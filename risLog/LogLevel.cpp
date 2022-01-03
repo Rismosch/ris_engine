@@ -1,35 +1,39 @@
 #include "pch.h"
 #include <string>
+#include "LogLevel.h"
 
 namespace risLog
 {
-	enum class LogLevel
+	struct LogLevel::Impl
 	{
-		Trace,
-		Debug,
-		Warning,
-		Error
+		int level;
 	};
 
-	inline std::string LogLevelToString(LogLevel logLevel)
+	LogLevel::LogLevel(int level): pImpl(new Impl())
 	{
-		switch (logLevel)
+		setLevel(level);
+	}
+
+	int LogLevel::getLevel()
+	{
+		return pImpl->level;
+	}
+	void LogLevel::setLevel(int level)
+	{
+		pImpl->level = level;
+	}
+
+	std::string LogLevel::toString()
+	{
+		switch (pImpl->level)
 		{
-		case LogLevel::Trace:
+		case 0:
 			return "Trace";
-
-		case LogLevel::Debug:
+		case 1:
 			return "Debug";
-
-		case LogLevel::Warning:
-			return "Warning";
-
-		case LogLevel::Error:
-			return "Error";
-			break;
-
+		case 2
 		default:
-			return "UNDEFINED";
+			break;
 		}
 	}
 }
