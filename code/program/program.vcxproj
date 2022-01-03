@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0207c3ff-10b7-4d77-a56d-df52ec217852}</ProjectGuid>
-    <RootNamespace>risEngine</RootNamespace>
+    <ProjectGuid>{6d98d2f8-9456-47c5-8f58-5b157c3ceaf0}</ProjectGuid>
+    <RootNamespace>program</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -139,7 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="risEngine.cpp" />
+    <ClCompile Include="program.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\risLog\risLog.vcxproj">
+      <Project>{882a134a-5b1a-49b1-8037-e63a97e088f0}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
