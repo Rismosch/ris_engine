@@ -6,18 +6,25 @@ using namespace risLog;
 int main()
 {
 	std::cout << "start" << std::endl;
-	
-	auto log_module = new LogModule();
-	
-	std::cout << "none" << std::endl;
+
+	const auto log = new LogModule(LogLevel::None);
+
 	std::cout << "trace" << std::endl;
+	log->trace("one");
+
 	std::cout << "debug" << std::endl;
+	log->debug("two");
+
 	std::cout << "warning" << std::endl;
+	log->warning("three");
+
 	std::cout << "error" << std::endl;
+	log->error("four");
+
 	
 	
 	std::cout << "reset" << std::endl;
-	// log_module.reset();
+	delete log;
 	
 	std::cout << "end" << std::endl;
 }

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "framework.h"
 #include "LogModule.h"
 #include <iostream>
 
@@ -7,13 +6,13 @@ namespace risLog
 {
 	struct LogModule::Impl
 	{
-		int log_level;
+		LogLevel level;
 	};
-
-	LogModule::LogModule() : pImpl(new Impl())
+	
+	LogModule::LogModule(LogLevel level) : pImpl(new Impl())
 	{
 		std::cout << "log module constructor" << std::endl;
-		set_log_level(4);
+		set_log_level(level);
 	}
 
 	LogModule::~LogModule()
@@ -22,41 +21,60 @@ namespace risLog
 		delete pImpl;
 	}
 
-	void LogModule::set_log_level(int log_level) const
+	void LogModule::set_log_level(LogLevel level) const
 	{
-		pImpl->log_level = log_level;
+		pImpl->level = level;
 	}
 
-	int LogModule::get_log_level() const
+	LogLevel LogModule::get_log_level() const
 	{
-		return pImpl->log_level;
+		return pImpl->level;
 	}
 
-	void LogModule::log(const std::string& message, int log_level) const
+	std::string LogModule::level_to_string(LogLevel level)
 	{
-		if (pImpl->log_level < log_level)
+		switch (level)
+		{
+		case LogLevel::None:
+			return "None";
+		case LogLevel::Error:
+			return "Error";
+		case LogLevel::Warning:
+			return "Warning";
+		case LogLevel::Debug:
+			return "Debug";
+		case LogLevel::Trace:
+			return "Trace";
+		default:
+			return "undefined";
+		}
+	}
+
+	void LogModule::log(const std::string& message, LogLevel level) const
+	{
+		if (level == LogLevel::None || pImpl->level < level)
 			return;
 
-		std::cout << "[" << log_level << ","<< "hhh:mm:ss" << "] " << message << std::endl;
+		std::cout << "[" << level_to_string(level) << "," << "hhh:mm:ss" << "] " << message << std::endl;
 	}
 
-	inline void LogModule::trace(const std::string& message) const
+	void LogModule::trace(const std::string& message) const
 	{
-		log(message, 4);
+		log(message, LogLevel::Trace);
 	}
 
-	inline void LogModule::debug(const std::string& message) const
+	void LogModule::debug(const std::string& message) const
 	{
-		log(message, 3);
+		log(message, LogLevel::Debug);
 	}
 
-	inline void LogModule::warning(const std::string& message) const
+	void LogModule::warning(const std::string& message) const
 	{
-		log(message, 2);
+		log(message, LogLevel::Warning);
 	}
 
-	inline void LogModule::error(const std::string& message) const
+	void LogModule::error(const std::string& message) const
 	{
-		log(message, 1);
+		log(message, LogLevel::Error);
 	}
 }

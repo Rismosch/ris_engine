@@ -3,20 +3,31 @@
 
 namespace risLog
 {
+	enum class LogLevel
+	{
+		None,
+		Error,
+		Warning,
+		Debug,
+		Trace
+	};
+
 	class LogModule
 	{
 	public:
-		LogModule();
+		LogModule(LogLevel level);
 		~LogModule();
 
-		void set_log_level(int log_level) const;
-		int get_log_level() const;
+		inline static std::string level_to_string(LogLevel level);
 
-		void log(const std::string& message, int log_level) const;
-		inline void trace(const std::string& message) const;
-		inline void debug(const std::string& message) const;
-		inline void warning(const std::string& message) const;
-		inline void error(const std::string& message) const;
+		void set_log_level(LogLevel level) const;
+		LogLevel get_log_level() const;
+		
+		void log(const std::string& message, LogLevel level) const;
+		void trace(const std::string& message) const;
+		void debug(const std::string& message) const;
+		void warning(const std::string& message) const;
+		void error(const std::string& message) const;
 
 	private:
 		struct Impl;
