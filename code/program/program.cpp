@@ -1,29 +1,18 @@
-#include <iostream>
 #include "../modules/risLog/LogModule.h"
 
 using namespace risLog;
 
 int main()
 {
-	std::cout << "start" << std::endl;
-
+	// startup
 	const auto log = new LogModule(LogLevel::Debug);
 
-	std::cout << "trace" << std::endl;
+	// ??
 	log->trace("one");
-
-	std::cout << "debug" << std::endl;
 	log->debug("two");
-
-	std::cout << "warning" << std::endl;
 	log->warning("three");
-
-	std::cout << "error" << std::endl;
 	log->error("four");
 
-	
-	std::cout << "reset" << std::endl;
+	// shutdown
 	delete log;
-	
-	std::cout << "end" << std::endl;
 }

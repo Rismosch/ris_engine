@@ -45,7 +45,7 @@ namespace risLog
 			return "Debug";
 		case LogLevel::Trace:
 			return "Trace";
-		default:  // NOLINT(clang-diagnostic-covered-switch-default)
+		default:
 			return "undefined";
 		}
 	}
