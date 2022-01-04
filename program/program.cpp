@@ -3,8 +3,6 @@
 
 using namespace risLog;
 
-
-
 int main()
 {
 	std::cout << "start" << std::endl;
