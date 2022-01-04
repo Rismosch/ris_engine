@@ -11,13 +11,11 @@ namespace risLog
 	
 	LogModule::LogModule(LogLevel level) : pImpl(new Impl())
 	{
-		std::cout << "log module constructor" << std::endl;
 		set_log_level(level);
 	}
 
 	LogModule::~LogModule()
 	{
-		std::cout << "log module destructor" << std::endl;
 		delete pImpl;
 	}
 
@@ -45,7 +43,7 @@ namespace risLog
 			return "Debug";
 		case LogLevel::Trace:
 			return "Trace";
-		default:
+		default:  // NOLINT(clang-diagnostic-covered-switch-default)
 			return "undefined";
 		}
 	}
