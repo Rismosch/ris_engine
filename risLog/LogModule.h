@@ -1,21 +1,25 @@
 #pragma once
-#include "../risSupport/risModule.h"
-#include "LogLevel.cpp"
-
-using namespace risSupport;
+#include <string>
 
 namespace risLog
 {
-	class LogModule : risModule
+	class LogModule
 	{
 	public:
-		void setUp() override;
-		void shutDown() override;
+		LogModule();
+		~LogModule();
 
-		void setLogLevel(LogLevel logLevel);
-		LogLevel getLogLevel();
+		void set_log_level(int log_level) const;
+		int get_log_level() const;
+
+		void log(const std::string& message, int log_level) const;
+		inline void trace(const std::string& message) const;
+		inline void debug(const std::string& message) const;
+		inline void warning(const std::string& message) const;
+		inline void error(const std::string& message) const;
+
 	private:
 		struct Impl;
-		Impl* pImpl;
+		Impl* pImpl{};
 	};
 }

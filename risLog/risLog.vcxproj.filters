@@ -24,15 +24,9 @@
     <ClInclude Include="LogModule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LogLevel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LogLevel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="LogModule.cpp">
