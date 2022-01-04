@@ -45,27 +45,22 @@ namespace risLog
 			return "Debug";
 		case LogLevel::Trace:
 			return "Trace";
-		default:
+		default:  // NOLINT(clang-diagnostic-covered-switch-default)
 			return "undefined";
 		}
 	}
 
 	void LogModule::log(const std::string& message, LogLevel level) const
 	{
-		if (level == LogLevel::None || pImpl->level < level)
+		if (pImpl->level < level)
 			return;
 
 		std::cout << "[" << level_to_string(level) << "," << "hhh:mm:ss" << "] " << message << std::endl;
 	}
 
-	void LogModule::trace(const std::string& message) const
+	void LogModule::error(const std::string& message) const
 	{
-		log(message, LogLevel::Trace);
-	}
-
-	void LogModule::debug(const std::string& message) const
-	{
-		log(message, LogLevel::Debug);
+		log(message, LogLevel::Error);
 	}
 
 	void LogModule::warning(const std::string& message) const
@@ -73,8 +68,13 @@ namespace risLog
 		log(message, LogLevel::Warning);
 	}
 
-	void LogModule::error(const std::string& message) const
+	void LogModule::debug(const std::string& message) const
 	{
-		log(message, LogLevel::Error);
+		log(message, LogLevel::Debug);
+	}
+
+	void LogModule::trace(const std::string& message) const
+	{
+		log(message, LogLevel::Trace);
 	}
 }

@@ -22,12 +22,13 @@ namespace risLog
 
 		void set_log_level(LogLevel level) const;
 		LogLevel get_log_level() const;
-		
-		void log(const std::string& message, LogLevel level) const;
-		void trace(const std::string& message) const;
-		void debug(const std::string& message) const;
-		void warning(const std::string& message) const;
+
 		void error(const std::string& message) const;
+		void warning(const std::string& message) const;
+		void debug(const std::string& message) const;
+		void trace(const std::string& message) const;
+
+		void log(const std::string& message, LogLevel level) const;
 
 	private:
 		struct Impl;

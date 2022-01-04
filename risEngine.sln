@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "program\program.vcxproj", "{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "code", "code", "{6BF2BF00-9847-4344-B180-DC31D61BA11F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risLog", "risLog\risLog.vcxproj", "{882A134A-5B1A-49B1-8037-E63A97E088F0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "code\program\program.vcxproj", "{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{964E301D-1D25-4988-AAD2-3E22F98ED28A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risLog", "code\modules\risLog\risLog.vcxproj", "{882A134A-5B1A-49B1-8037-E63A97E088F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +48,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0} = {6BF2BF00-9847-4344-B180-DC31D61BA11F}
+		{964E301D-1D25-4988-AAD2-3E22F98ED28A} = {6BF2BF00-9847-4344-B180-DC31D61BA11F}
+		{882A134A-5B1A-49B1-8037-E63A97E088F0} = {964E301D-1D25-4988-AAD2-3E22F98ED28A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {06462A58-3F52-49A9-8DB3-68FC27226424}

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../risLog/LogModule.h"
+#include "../modules/risLog/LogModule.h"
 
 using namespace risLog;
 
@@ -7,7 +7,7 @@ int main()
 {
 	std::cout << "start" << std::endl;
 
-	const auto log = new LogModule(LogLevel::None);
+	const auto log = new LogModule(LogLevel::Debug);
 
 	std::cout << "trace" << std::endl;
 	log->trace("one");
@@ -21,7 +21,6 @@ int main()
 	std::cout << "error" << std::endl;
 	log->error("four");
 
-	
 	
 	std::cout << "reset" << std::endl;
 	delete log;

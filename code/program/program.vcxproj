@@ -210,7 +210,7 @@
     <ClCompile Include="program.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\risLog\risLog.vcxproj">
+    <ProjectReference Include="..\modules\risLog\risLog.vcxproj">
       <Project>{882a134a-5b1a-49b1-8037-e63a97e088f0}</Project>
     </ProjectReference>
   </ItemGroup>
