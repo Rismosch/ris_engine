@@ -210,8 +210,8 @@
     <ClCompile Include="program.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\modules\risLog\risLog.vcxproj">
-      <Project>{882a134a-5b1a-49b1-8037-e63a97e088f0}</Project>
+    <ProjectReference Include="..\modules\risUtility\risUtility.vcxproj">
+      <Project>{bcc603b8-7e45-468c-baee-781fcddad9c0}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
