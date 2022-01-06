@@ -20,6 +20,16 @@ namespace risUtility
 	FlagModule::FlagModule() : pImpl(new Impl()) { }
 	FlagModule::~FlagModule() { delete pImpl; }
 
+	void FlagModule::apply(U64 flags) const
+	{
+		*pImpl->flags = flags;
+	}
+
+	U64 FlagModule::retrieve() const
+	{
+		return *pImpl->flags;
+	}
+
 	bool FlagModule::get(U8 flag) const
 	{
 		if (flag >= Impl::flag_count)
