@@ -6,6 +6,7 @@ namespace risUtility
 {
 	using namespace risData;
 
+	//TODO: make template, such that different size flag handlers can be used
 	class risFlag
 	{
 	public:
