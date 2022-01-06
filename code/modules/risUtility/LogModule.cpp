@@ -2,7 +2,7 @@
 #include "LogModule.h"
 #include <iostream>
 
-namespace risLog
+namespace risUtility
 {
 	struct LogModule::Impl
 	{

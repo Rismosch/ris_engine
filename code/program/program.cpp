@@ -1,12 +1,12 @@
 #include <iostream>
 
+#include "flags.h"
 #include "../modules/risUtility/LogModule.h"
 #include "../modules/risUtility/FlagModule.h"
 
-using namespace risLog;
-using namespace risFlag;
+using namespace risUtility;
 
-using ::flag;
+using namespace ris;
 
 int main()
 {
@@ -21,22 +21,22 @@ int main()
 	log->error("four");
 
 	// test flag
-	flags->toggle(flag::Test0);
-	flags->toggle(flag::Test2);
+	flags->toggle(test0);
+	flags->toggle(test2);
 
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->set(flag::Test1, true);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->set(flag::Test1, false);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->toggle(flag::Test1);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->toggle(flag::Test1);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->toggle(flag::Test2);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
-	flags->toggle(flag::Test2);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(flag::Test1) << std::endl;
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->set(test1, true);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->set(test1, false);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->toggle(test1);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->toggle(test1);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->toggle(test2);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->toggle(test2);
+	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
 
 	// shutdown
 	delete flags;

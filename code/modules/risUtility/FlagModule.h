@@ -1,30 +1,25 @@
 #pragma once
 #include <iostream>
+#include "../risData/risData.h"
 
-namespace risFlag
+namespace risUtility
 {
-	// Flags
-	constexpr auto TEST_START_LINE = __LINE__;
-	enum class flag
-	{
-		Test0,
-		Test1,
-		Test2,
-		Test3
-	};
-	constexpr auto flag_count = __LINE__ - TEST_START_LINE - 4;
+	using namespace risData;
 
 	class FlagModule
 	{
 	public:
 		FlagModule();
 		~FlagModule();
+		
+		void apply(U64 flags) const;
+		U64 retrieve() const;
+		
+		bool get(U8 flag) const;
+		void set(U8 flag, bool value) const;
+		void toggle(U8 flag) const;
 
-		bool get(flag flag) const;
-		void set(flag flag, bool value) const;
-		void toggle(flag flag) const;
-
-		std::string to_string(int group = 8) const;
+		std::string toString() const;
 	private:
 		struct Impl;
 		Impl* pImpl;

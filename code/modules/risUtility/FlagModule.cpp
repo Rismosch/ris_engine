@@ -1,88 +1,69 @@
 #include "pch.h"
 #include "FlagModule.h"
 
-namespace risFlag
+namespace risUtility
 {
 	struct FlagModule::Impl
 	{
-		int* flags = nullptr;
+		constexpr static U8 flag_count = 64;
+		U64* flags = nullptr;
 
-		Impl() : flags(new int[flag_count])
+		Impl() : flags(new U64(0)) { }
+		~Impl() { delete flags; }
+
+		constexpr static U64 mask(U8 flag)
 		{
-			for (int i = 0; i < flag_count; ++i)
-			{
-				flags[i] = 0;
-			}
-		}
-
-		~Impl()
-		{
-			delete[] flags;
-		}
-
-		static int page(flag flag)
-		{
-			constexpr int page_size = sizeof(int) * 8;
-
-			int result = 0;
-			auto value = static_cast<int>(flag);
-
-			while (value >= page_size)
-			{
-				value -= page_size;
-				++result;
-			}
-
-			return result;
-		}
-
-		static int mask(flag flag)
-		{
-			constexpr int page_size = sizeof(int) * 8;
-
-			return 1 << (static_cast<int>(flag) % page_size);
+			return static_cast<U64>(1) << flag;
 		}
 	};
 
 	FlagModule::FlagModule() : pImpl(new Impl()) { }
 	FlagModule::~FlagModule() { delete pImpl; }
 
-	bool FlagModule::get(flag flag) const
+	bool FlagModule::get(U8 flag) const
 	{
-		const int value = pImpl->flags[Impl::page(flag)];
-		const int mask = Impl::mask(flag);
+		if (flag >= Impl::flag_count)
+			return false;
+
+		const auto value = *pImpl->flags;
+		const auto mask = Impl::mask(flag);
 
 		return (value & mask) != 0;
 	}
 
-	void FlagModule::set(flag flag, bool value) const
+	void FlagModule::set(U8 flag, bool value) const
 	{
-		const int mask = Impl::mask(flag);
+		if (flag >= Impl::flag_count)
+			return;
+
+		const auto mask = Impl::mask(flag);
 
 		if (value)
-			pImpl->flags[Impl::page(flag)] |= mask;
+			*pImpl->flags |= mask;
 		else
-			pImpl->flags[Impl::page(flag)] &= ~mask;
+			*pImpl->flags &= ~mask;
 	}
 
-	void FlagModule::toggle(flag flag) const
+	void FlagModule::toggle(U8 flag) const
 	{
-		const int mask = Impl::mask(flag);
-		pImpl->flags[Impl::page(flag)] ^= mask;
+		if (flag >= Impl::flag_count)
+			return;
+
+		const auto mask = Impl::mask(flag);
+		*pImpl->flags ^= mask;
 	}
 
-	std::string FlagModule::to_string(int group) const
+	std::string FlagModule::toString() const
 	{
+		constexpr U8 groupBy = 8;
+
 		std::string result;
-		for (int i = 0; i < flag_count; ++i)
+		for (U8 i = 0; i < Impl::flag_count; ++i)
 		{
-			if (i != 0 && i % group == 0)
+			if (i != 0 && i % groupBy == 0)
 				result.append(" ");
 
-			const auto flag = static_cast<risFlag::flag>(i);
-			const bool value = get(flag);
-
-			result.append(value ? "1" : "0");
+			result.append(get(i) ? "1" : "0");
 		}
 
 		return result;
