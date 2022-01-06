@@ -21,10 +21,13 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FlagModule.h">
+    <ClInclude Include="risFlag.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LogModule.h">
+    <ClInclude Include="risLog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StackAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,10 +35,10 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FlagModule.cpp">
+    <ClCompile Include="risFlag.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LogModule.cpp">
+    <ClCompile Include="risLog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

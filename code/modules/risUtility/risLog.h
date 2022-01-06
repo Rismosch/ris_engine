@@ -12,11 +12,11 @@ namespace risUtility
 		Trace
 	};
 
-	class LogModule
+	class risLog
 	{
 	public:
-		LogModule(LogLevel level);
-		~LogModule();
+		risLog(LogLevel level);
+		~risLog();
 
 		inline static std::string level_to_string(LogLevel level);
 

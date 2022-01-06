@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "FlagModule.h"
+#include "risFlag.h"
 
 namespace risUtility
 {
-	struct FlagModule::Impl
+	struct risFlag::Impl
 	{
 		constexpr static U8 flag_count = 64;
 		U64* flags = nullptr;
@@ -17,20 +17,20 @@ namespace risUtility
 		}
 	};
 
-	FlagModule::FlagModule() : pImpl(new Impl()) { }
-	FlagModule::~FlagModule() { delete pImpl; }
+	risFlag::risFlag() : pImpl(new Impl()) { }
+	risFlag::~risFlag() { delete pImpl; }
 
-	void FlagModule::apply(U64 flags) const
+	void risFlag::apply(U64 flags) const
 	{
 		*pImpl->flags = flags;
 	}
 
-	U64 FlagModule::retrieve() const
+	U64 risFlag::retrieve() const
 	{
 		return *pImpl->flags;
 	}
 
-	bool FlagModule::get(U8 flag) const
+	bool risFlag::get(U8 flag) const
 	{
 		if (flag >= Impl::flag_count)
 			return false;
@@ -41,7 +41,7 @@ namespace risUtility
 		return (value & mask) != 0;
 	}
 
-	void FlagModule::set(U8 flag, bool value) const
+	void risFlag::set(U8 flag, bool value) const
 	{
 		if (flag >= Impl::flag_count)
 			return;
@@ -54,7 +54,7 @@ namespace risUtility
 			*pImpl->flags &= ~mask;
 	}
 
-	void FlagModule::toggle(U8 flag) const
+	void risFlag::toggle(U8 flag) const
 	{
 		if (flag >= Impl::flag_count)
 			return;
@@ -63,7 +63,7 @@ namespace risUtility
 		*pImpl->flags ^= mask;
 	}
 
-	std::string FlagModule::toString() const
+	std::string risFlag::toString() const
 	{
 		constexpr U8 groupBy = 8;
 

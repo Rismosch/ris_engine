@@ -1,35 +1,35 @@
 #include "pch.h"
-#include "LogModule.h"
+#include "risLog.h"
 #include <iostream>
 
 namespace risUtility
 {
-	struct LogModule::Impl
+	struct risLog::Impl
 	{
 		LogLevel level;
 	};
 	
-	LogModule::LogModule(LogLevel level) : pImpl(new Impl())
+	risLog::risLog(LogLevel level) : pImpl(new Impl())
 	{
 		set_log_level(level);
 	}
 
-	LogModule::~LogModule()
+	risLog::~risLog()
 	{
 		delete pImpl;
 	}
 
-	void LogModule::set_log_level(LogLevel level) const
+	void risLog::set_log_level(LogLevel level) const
 	{
 		pImpl->level = level;
 	}
 
-	LogLevel LogModule::get_log_level() const
+	LogLevel risLog::get_log_level() const
 	{
 		return pImpl->level;
 	}
 
-	std::string LogModule::level_to_string(LogLevel level)
+	std::string risLog::level_to_string(LogLevel level)
 	{
 		switch (level)
 		{
@@ -48,7 +48,7 @@ namespace risUtility
 		}
 	}
 
-	void LogModule::log(const std::string& message, LogLevel level) const
+	void risLog::log(const std::string& message, LogLevel level) const
 	{
 		if (pImpl->level < level)
 			return;
@@ -56,22 +56,22 @@ namespace risUtility
 		std::cout << "[" << level_to_string(level) << "," << "hhh:mm:ss" << "] " << message << std::endl;
 	}
 
-	void LogModule::error(const std::string& message) const
+	void risLog::error(const std::string& message) const
 	{
 		log(message, LogLevel::Error);
 	}
 
-	void LogModule::warning(const std::string& message) const
+	void risLog::warning(const std::string& message) const
 	{
 		log(message, LogLevel::Warning);
 	}
 
-	void LogModule::debug(const std::string& message) const
+	void risLog::debug(const std::string& message) const
 	{
 		log(message, LogLevel::Debug);
 	}
 
-	void LogModule::trace(const std::string& message) const
+	void risLog::trace(const std::string& message) const
 	{
 		log(message, LogLevel::Trace);
 	}

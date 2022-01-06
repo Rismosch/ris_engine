@@ -6,11 +6,11 @@ namespace risUtility
 {
 	using namespace risData;
 
-	class FlagModule
+	class risFlag
 	{
 	public:
-		FlagModule();
-		~FlagModule();
+		risFlag();
+		~risFlag();
 		
 		void apply(U64 flags) const;
 		U64 retrieve() const;

@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include "flags.h"
-#include "../modules/risUtility/LogModule.h"
-#include "../modules/risUtility/FlagModule.h"
+#include "../modules/risUtility/risLog.h"
+#include "../modules/risUtility/risFlag.h"
 
 using namespace risUtility;
 
@@ -11,8 +11,8 @@ using namespace ris;
 int main()
 {
 	// startup
-	const auto log = new LogModule(LogLevel::Warning);
-	const auto flags = new FlagModule();
+	const auto log = new risLog(LogLevel::Warning);
+	const auto flags = new risFlag();
 
 	// test logger
 	log->trace("one");
