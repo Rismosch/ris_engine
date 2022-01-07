@@ -6,26 +6,26 @@ namespace risUtility
 	struct risFlag::Impl
 	{
 		constexpr static U8 flag_count = 64;
-		U64* flags = nullptr;
+		FlagCollection* flags = nullptr;
 
-		Impl() : flags(new U64(0)) { }
+		Impl() : flags(new FlagCollection(0)) { }
 		~Impl() { delete flags; }
 
-		constexpr static U64 mask(U8 flag)
+		constexpr static FlagCollection mask(U8 flag)
 		{
-			return static_cast<U64>(1) << flag;
+			return static_cast<FlagCollection>(1) << flag;
 		}
 	};
 
 	risFlag::risFlag() : pImpl(new Impl()) { }
 	risFlag::~risFlag() { delete pImpl; }
 
-	void risFlag::apply(U64 flags) const
+	void risFlag::apply(FlagCollection flags) const
 	{
 		*pImpl->flags = flags;
 	}
 
-	U64 risFlag::retrieve() const
+	risFlag::FlagCollection risFlag::retrieve() const
 	{
 		return *pImpl->flags;
 	}

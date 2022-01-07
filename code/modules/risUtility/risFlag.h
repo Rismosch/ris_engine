@@ -5,16 +5,17 @@
 namespace risUtility
 {
 	using namespace risData;
-
-	//TODO: make template, such that different size flag handlers can be used
+	
 	class risFlag
 	{
 	public:
+		typedef U32 FlagCollection;
+
 		risFlag();
 		~risFlag();
 		
-		void apply(U64 flags) const;
-		U64 retrieve() const;
+		void apply(FlagCollection flags) const;
+		FlagCollection retrieve() const;
 		
 		bool get(U8 flag) const;
 		void set(U8 flag, bool value) const;

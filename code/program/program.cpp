@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include "flags.h"
+#include "../modules/risData/crc32.h"
+#include "../modules/risData/stringid.h"
 #include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/StackAllocator.h"
@@ -70,6 +72,13 @@ int main()
 	std::cout << *number0 << " " << *number1 << " " << *number2 << " " << *number3 << std::endl;
 	*number3 = 7;
 	std::cout << *number0 << " " << *number1 << " " << *number2 << " " << *number3 << std::endl;
+
+	// test strings
+	auto stringid0 = internString("test1");
+	auto stringid1 = internString("wazzup?");
+	auto stringid2 = internString("bruh");
+
+	std::cout << stringid0 << " " << stringid1 << " " << stringid2 << std::endl;
 
 	// shutdown
 	delete stackAllocator;
