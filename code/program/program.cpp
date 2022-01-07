@@ -6,6 +6,7 @@
 #include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/StackAllocator.h"
+#include "../modules/risUtility/risRandom.h"
 
 using namespace ris;
 
@@ -17,6 +18,7 @@ int main()
 	const auto log = new risLog(LogLevel::Warning);
 	const auto flags = new risFlag();
 	const auto stackAllocator = new StackAllocator(sizeof(U32) * 2);
+	const auto rng = new risRandom(42);
 
 	// test logger
 	log->trace("one");
@@ -83,7 +85,14 @@ int main()
 
 	std::cout << "shouldn't exist: " << (risSidToString(static_cast<StringId>(42)) == nullptr) << std::endl;
 
+	// test rng
+	for(U16 i = 0; i < 1000; ++i)
+	{
+		std::cout << rng->bRandom() << " " << rng->fRandom() << " " << rng->iRandom(-24, 13) << std::endl;
+	}
+
 	// shutdown
+	delete rng;
 	delete stackAllocator;
 	delete flags;
 	delete log;

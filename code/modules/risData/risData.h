@@ -5,6 +5,7 @@
 namespace risData
 {
 	using F32 = float;
+	using F64 = double;
 
 	using U8 = uint8_t;
 	using U16 = uint16_t;
