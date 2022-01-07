@@ -4,5 +4,6 @@
 namespace risData
 {
 	typedef U32 StringId;
-	extern StringId internString(const char* str);
+	extern StringId risStringToSid(const char* str);
+	extern const char* risSidToString(StringId sid);
 }

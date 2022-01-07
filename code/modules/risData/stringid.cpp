@@ -8,18 +8,25 @@ namespace risData
 {
 	static std::map<StringId, const char*> gStringIdTable;
 
-	StringId internString(const char* str)
+	StringId risStringToSid(const char* str)
 	{
 		StringId sid = crc32(str);
-		
-		auto it = gStringIdTable.find(sid);
-		
+
+		const auto it = gStringIdTable.find(sid);
 		if (it == gStringIdTable.end())
 		{
 			gStringIdTable[sid] = _strdup(str);
 		}
 		
 		return sid;
+	}
+
+	const char* risSidToString(StringId sid)
+	{
+		const auto it = gStringIdTable.find(sid);
+		return it != gStringIdTable.end()
+			? it.operator*().second
+			: nullptr;
 	}
 
 }

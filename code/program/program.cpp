@@ -55,30 +55,33 @@ int main()
 	marker = stackAllocator->get_marker();
 
 	number1 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
-	std::cout << *number0 << " " << *number1 << " 0 0" << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 	*number1 = 13;
-	std::cout << *number0 << " " << *number1 << " 0 0" << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 
 	stackAllocator->free_to_marker(marker);
 
 	number2 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
-	std::cout << *number0 << " " << *number1 << " " << *number2 << " 0" << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 	*number2 = 0;
-	std::cout << *number0 << " " << *number1 << " " << *number2 << " 0" << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 
 	stackAllocator->clear();
 
 	number3 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
-	std::cout << *number0 << " " << *number1 << " " << *number2 << " " << *number3 << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
 	*number3 = 7;
-	std::cout << *number0 << " " << *number1 << " " << *number2 << " " << *number3 << std::endl;
+	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
 
 	// test strings
-	auto stringid0 = internString("test1");
-	auto stringid1 = internString("wazzup?");
-	auto stringid2 = internString("bruh");
+	auto stringid0 = risStringToSid("test1");
+	auto stringid1 = risStringToSid("wazzup?");
+	auto stringid2 = risStringToSid("bruh");
 
 	std::cout << stringid0 << " " << stringid1 << " " << stringid2 << std::endl;
+	std::cout << risSidToString(stringid0) << " " << risSidToString(stringid1) << " " << risSidToString(stringid2) << std::endl;
+
+	std::cout << "shouldn't exist: " << (risSidToString(static_cast<StringId>(42)) == nullptr) << std::endl;
 
 	// shutdown
 	delete stackAllocator;
