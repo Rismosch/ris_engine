@@ -5,13 +5,13 @@ namespace risUtility
 {
 	using namespace risData;
 
-	class StackAllocator
+	class risAllocator
 	{
 	public:
 		typedef U32 Marker;
 
-		explicit StackAllocator(U32 size_bytes);
-		~StackAllocator();
+		explicit risAllocator(U32 size_bytes);
+		~risAllocator();
 
 		void* alloc(U32 size_bytes) const;
 		Marker get_marker() const;

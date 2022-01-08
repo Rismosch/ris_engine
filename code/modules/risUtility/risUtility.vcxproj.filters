@@ -24,7 +24,7 @@
     <ClInclude Include="risLog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StackAllocator.h">
+    <ClInclude Include="risAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="framework.h">
@@ -44,7 +44,7 @@
     <ClCompile Include="risLog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StackAllocator.cpp">
+    <ClCompile Include="risAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="risRandom.cpp">

@@ -160,7 +160,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="risFlag.h" />
     <ClInclude Include="risRandom.h" />
-    <ClInclude Include="StackAllocator.h" />
+    <ClInclude Include="risAllocator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="risLog.cpp" />
@@ -172,7 +172,7 @@
     </ClCompile>
     <ClCompile Include="risFlag.cpp" />
     <ClCompile Include="risRandom.cpp" />
-    <ClCompile Include="StackAllocator.cpp" />
+    <ClCompile Include="risAllocator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\risData\risData.vcxproj">

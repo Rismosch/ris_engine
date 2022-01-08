@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "StackAllocator.h"
+#include "risAllocator.h"
 
 namespace risUtility
 {
-	struct StackAllocator::Impl
+	struct risAllocator::Impl
 	{
 		U8* data;
 		Marker marker = 0;
@@ -12,10 +12,10 @@ namespace risUtility
 		~Impl() { delete[] data; }
 	};
 
-	StackAllocator::StackAllocator(U32 size_bytes) : pImpl(new Impl(size_bytes)) { }
-	StackAllocator::~StackAllocator() { delete pImpl; }
+	risAllocator::risAllocator(U32 size_bytes) : pImpl(new Impl(size_bytes)) { }
+	risAllocator::~risAllocator() { delete pImpl; }
 
-	void* StackAllocator::alloc(U32 size_bytes) const
+	void* risAllocator::alloc(U32 size_bytes) const
 	{
 		const auto result = &pImpl->data[pImpl->marker];
 		pImpl->marker += size_bytes;
@@ -23,18 +23,18 @@ namespace risUtility
 		return result;
 	}
 
-	StackAllocator::Marker StackAllocator::get_marker() const
+	risAllocator::Marker risAllocator::get_marker() const
 	{
 		return pImpl->marker;
 	}
 
-	void StackAllocator::free_to_marker(Marker marker) const
+	void risAllocator::free_to_marker(Marker marker) const
 	{
 		if (pImpl->marker > marker)
 			pImpl->marker = marker;
 	}
 
-	void StackAllocator::clear() const
+	void risAllocator::clear() const
 	{
 		pImpl->marker = static_cast<Marker>(0);
 	}

@@ -9,7 +9,7 @@ namespace risUtility
 	class risFlag
 	{
 	public:
-		typedef U32 FlagCollection;
+		typedef U64 FlagCollection;
 
 		risFlag();
 		~risFlag();

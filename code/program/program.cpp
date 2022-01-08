@@ -5,28 +5,60 @@
 #include "../modules/risData/stringid.h"
 #include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
-#include "../modules/risUtility/StackAllocator.h"
+#include "../modules/risUtility/risAllocator.h"
 #include "../modules/risUtility/risRandom.h"
 
 using namespace ris;
-
 using namespace risUtility;
+
+risLog* logger;
+risFlag* flags;
+risAllocator* stackAllocator;
+risRandom* rng;
+
+void test_logger();
+void test_flag();
+void test_allocator();
+void test_strings();
+void test_rng();
 
 int main()
 {
 	// startup
-	const auto log = new risLog(LogLevel::Warning);
-	const auto flags = new risFlag();
-	const auto stackAllocator = new StackAllocator(sizeof(U32) * 2);
-	const auto rng = new risRandom(42);
+	logger = new risLog(LogLevel::Warning);
+	flags = new risFlag();
+	stackAllocator = new risAllocator(sizeof(U32) * 2);
+	rng = new risRandom(42);
 
-	// test logger
-	log->trace("one");
-	log->debug("two");
-	log->warning("three");
-	log->error("four");
+	// tests
+	test_logger();
+	test_flag();
+	test_allocator();
+	test_strings();
+	// test_rng();
 
-	// test flag
+	// shutdown
+	delete rng;
+	delete stackAllocator;
+	delete flags;
+	delete logger;
+}
+
+
+void test_logger()
+{
+	std::cout << "\nlogger:" << std::endl;
+
+	logger->trace("one");
+	logger->debug("two");
+	logger->warning("three");
+	logger->error("four");
+}
+
+void test_flag()
+{
+	std::cout << "\nflag:" << std::endl;
+
 	flags->toggle(test0);
 	flags->toggle(test2);
 
@@ -43,13 +75,17 @@ int main()
 	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->toggle(test2);
 	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+}
 
-	// test stack allocator
+void test_allocator()
+{
+	std::cout << "\nallocator:" << std::endl;
+
 	U32* number0 = nullptr;
 	U32* number1 = nullptr;
 	U32* number2 = nullptr;
 	U32* number3 = nullptr;
-	StackAllocator::Marker marker = 0;
+	risAllocator::Marker marker = 0;
 
 	number0 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
 	*number0 = 42;
@@ -74,8 +110,12 @@ int main()
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
 	*number3 = 7;
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
+}
 
-	// test strings
+void test_strings()
+{
+	std::cout << "\nstrings:" << std::endl;
+
 	auto stringid0 = risStringToSid("test1");
 	auto stringid1 = risStringToSid("wazzup?");
 	auto stringid2 = risStringToSid("bruh");
@@ -83,17 +123,15 @@ int main()
 	std::cout << stringid0 << " " << stringid1 << " " << stringid2 << std::endl;
 	std::cout << risSidToString(stringid0) << " " << risSidToString(stringid1) << " " << risSidToString(stringid2) << std::endl;
 
-	std::cout << "shouldn't exist: " << (risSidToString(static_cast<StringId>(42)) == nullptr) << std::endl;
+	std::cout << "shouldn't exist: " << (risSidToString(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
+}
 
-	// test rng
-	for(U16 i = 0; i < 1000; ++i)
+void test_rng()
+{
+	std::cout << "\nrng:" << std::endl;
+
+	for (U16 i = 0; i < 1000; ++i)
 	{
 		std::cout << rng->bRandom() << " " << rng->fRandom() << " " << rng->iRandom(-24, 13) << std::endl;
 	}
-
-	// shutdown
-	delete rng;
-	delete stackAllocator;
-	delete flags;
-	delete log;
 }
