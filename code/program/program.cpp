@@ -2,7 +2,7 @@
 
 #include "flags.h"
 #include "../modules/risData/crc32.h"
-#include "../modules/risData/stringid.h"
+#include "../modules/risData/risString.h"
 #include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/risAllocator.h"
@@ -116,14 +116,26 @@ void test_strings()
 {
 	std::cout << "\nstrings:" << std::endl;
 
-	auto stringid0 = risStringToSid("test1");
-	auto stringid1 = risStringToSid("wazzup?");
-	auto stringid2 = risStringToSid("bruh");
+	auto stringid0 = internal_string_to_sid("test1");
+	auto stringid1 = internal_string_to_sid("wazzup?");
+	auto stringid2 = internal_string_to_sid("bruh");
 
 	std::cout << stringid0 << " " << stringid1 << " " << stringid2 << std::endl;
-	std::cout << risSidToString(stringid0) << " " << risSidToString(stringid1) << " " << risSidToString(stringid2) << std::endl;
 
-	std::cout << "shouldn't exist: " << (risSidToString(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
+	auto string0 = sid_to_string(stringid0);
+	auto string1 = sid_to_string(stringid1);
+	auto string2 = sid_to_string(stringid2);
+
+	if (string0 == nullptr)
+		string0 = "null";
+	if (string1 == nullptr)
+		string1 = "null";
+	if (string2 == nullptr)
+		string2 = "null";
+
+	std::cout << string0 << " " << string1 << " " << string2 << std::endl;
+
+	std::cout << "shouldn't exist: " << (sid_to_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
 }
 
 void test_rng()

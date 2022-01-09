@@ -24,7 +24,7 @@
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stringid.h">
+    <ClInclude Include="risString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="crc32.h">
@@ -35,7 +35,7 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stringid.cpp">
+    <ClCompile Include="risString.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
