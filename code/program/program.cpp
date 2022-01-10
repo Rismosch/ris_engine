@@ -21,8 +21,9 @@ void test_flag();
 void test_allocator();
 void test_strings();
 void test_rng();
+void test_arguments(int argc, char* argv[]);
 
-int main()
+int main(int argc, char *argv[])
 {
 	// startup
 	logger = new risLog(LogLevel::Warning);
@@ -36,6 +37,7 @@ int main()
 	test_allocator();
 	test_strings();
 	// test_rng();
+	test_arguments(argc, argv);
 
 	// shutdown
 	delete rng;
@@ -145,5 +147,15 @@ void test_rng()
 	for (U16 i = 0; i < 1000; ++i)
 	{
 		std::cout << rng->bRandom() << " " << rng->fRandom() << " " << rng->iRandom(-24, 13) << std::endl;
+	}
+}
+
+void test_arguments(int argc, char* argv[])
+{
+	std::cout << "\narguments:" << std::endl;
+
+	for (int i = 0; i < argc; ++i)
+	{
+		std::cout << argv[i] << std::endl;
 	}
 }
