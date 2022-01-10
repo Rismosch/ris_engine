@@ -162,6 +162,21 @@ void test_arguments(int argc, char* argv[])
 	}
 }
 
+class Person
+{
+public:
+	Person(std::string name, U32 age, F32 favoriteNumber, bool isAwesome) : _name(std::move(name)), _age(age), _favorite_number(favoriteNumber), _is_awesome(isAwesome) {}
+	Person(const Person& rhs)=default;
+	~Person() = default;
+protected:
+	e
+private:
+	std::string _name;
+	U32 _age;
+	F32 _favorite_number;
+	bool _is_awesome;
+};
+
 void test_json()
 {
 	std::cout << "\njson:" << std::endl;
