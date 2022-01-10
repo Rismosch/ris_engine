@@ -14,22 +14,22 @@ namespace risData
 	static std::map<StringId, const char*> gStringIdTable;
 #endif
 
-	StringId internal_string_to_sid(const char* str)
+	StringId sid(const char* str)
 	{
-		StringId sid = crc32(str);
+		const StringId string_id = crc32(str);
 
 #if defined _DEBUG
-		const auto it = gStringIdTable.find(sid);
+		const auto it = gStringIdTable.find(string_id);
 		if (it == gStringIdTable.end())
 		{
-			gStringIdTable[sid] = _strdup(str);
+			gStringIdTable[string_id] = _strdup(str);
 		}
 #endif
 
-		return sid;
+		return string_id;
 	}
 
-	const char* sid_to_string(StringId sid)
+	const char* internal_string(StringId sid)
 	{
 #if defined _DEBUG
 		const auto it = gStringIdTable.find(sid);

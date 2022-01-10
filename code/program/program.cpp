@@ -118,15 +118,15 @@ void test_strings()
 {
 	std::cout << "\nstrings:" << std::endl;
 
-	auto stringid0 = internal_string_to_sid("test1");
-	auto stringid1 = internal_string_to_sid("wazzup?");
-	auto stringid2 = internal_string_to_sid("bruh");
+	auto stringid0 = sid("test1");
+	auto stringid1 = sid("wazzup?");
+	auto stringid2 = sid("bruh");
 
 	std::cout << stringid0 << " " << stringid1 << " " << stringid2 << std::endl;
 
-	auto string0 = sid_to_string(stringid0);
-	auto string1 = sid_to_string(stringid1);
-	auto string2 = sid_to_string(stringid2);
+	auto string0 = internal_string(stringid0);
+	auto string1 = internal_string(stringid1);
+	auto string2 = internal_string(stringid2);
 
 	if (string0 == nullptr)
 		string0 = "null";
@@ -137,7 +137,7 @@ void test_strings()
 
 	std::cout << string0 << " " << string1 << " " << string2 << std::endl;
 
-	std::cout << "shouldn't exist: " << (sid_to_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
+	std::cout << "shouldn't exist: " << (internal_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
 }
 
 void test_rng()
