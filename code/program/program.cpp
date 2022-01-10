@@ -22,6 +22,7 @@ void test_allocator();
 void test_strings();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
+void test_json();
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +39,7 @@ int main(int argc, char *argv[])
 	test_strings();
 	// test_rng();
 	test_arguments(argc, argv);
+	test_json();
 
 	// shutdown
 	delete rng;
@@ -158,4 +160,10 @@ void test_arguments(int argc, char* argv[])
 	{
 		std::cout << argv[i] << std::endl;
 	}
+}
+
+void test_json()
+{
+	std::cout << "\njson:" << std::endl;
+
 }
