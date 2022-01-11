@@ -150,6 +150,9 @@
     <ClCompile Include="program.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\3rd_party\rapidjson\rapidjson.vcxproj">
+      <Project>{95018073-152e-46f3-b89c-345d8117dfe8}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\modules\risData\risData.vcxproj">
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
     </ProjectReference>
