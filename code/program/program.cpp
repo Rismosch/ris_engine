@@ -2,7 +2,8 @@
 #include <vector>
 #include <string>
 
-#include "../3rd_party/rapidjson/prettywriter.h"
+#include "../3rd_party/rapidjson/writer.h"
+#include "../3rd_party/rapidjson/reader.h"
 
 #include "flags.h"
 #include "../modules/risData/crc32.h"
@@ -167,36 +168,68 @@ void test_arguments(int argc, char* argv[])
 		std::cout << argv[i] << std::endl;
 	}
 }
+struct MyHandler {
+	bool Null() { std::cout << "Null()" << std::endl; return true; }
+	bool Bool(bool b) { std::cout << "Bool(" << std::boolalpha << b << ")" << std::endl; return true; }
+	bool Int(int i) { std::cout << "Int(" << i << ")" << std::endl; return true; }
+	bool Uint(unsigned u) { std::cout << "Uint(" << u << ")" << std::endl; return true; }
+	bool Int64(int64_t i) { std::cout << "Int64(" << i << ")" << std::endl; return true; }
+	bool Uint64(uint64_t u) { std::cout << "Uint64(" << u << ")" << std::endl; return true; }
+	bool Double(double d) { std::cout << "Double(" << d << ")" << std::endl; return true; }
+	bool RawNumber(const char* str, SizeType length, bool copy) {
+		std::cout << "Number(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
+		return true;
+	}
+	bool String(const char* str, SizeType length, bool copy) {
+		std::cout << "String(" << str << ", " << length << ", " << std::boolalpha << copy << ")" << std::endl;
+		return true;
+	}
+	bool StartObject() { std::cout << "StartObject()" << std::endl; return true; }
+	bool Key(const char* str, SizeType length, bool copy) {
+		std::cout << "Key(" << str << ", " << length << ", " << std::boolalpha << copy << ", " << sid(str) << ")" << std::endl;
+		return true;
+	}
+	bool EndObject(SizeType memberCount) { std::cout << "EndObject(" << memberCount << ")" << std::endl; return true; }
+	bool StartArray() { std::cout << "StartArray()" << std::endl; return true; }
+	bool EndArray(SizeType elementCount) { std::cout << "EndArray(" << elementCount << ")" << std::endl; return true; }
+};
 
 void test_json()
 {
-	std::cout << "\njson:" << std::endl;
+	std::cout << "\njson write:" << std::endl;
 
-	StringBuffer serializedString;
-	PrettyWriter<StringBuffer> writer(serializedString);
+	StringBuffer sb;
+	Writer<StringBuffer> writer(sb);
 
 	writer.StartObject();
 
-	writer.String("some array");
+	writer.Key("some array");
 	writer.StartArray();
 	writer.Int(1);
 	writer.Int(2);
 	writer.Int(3);
 	writer.EndArray();
 
-	writer.String("some object");
+	writer.Key("some object");
 	writer.StartObject();
-	writer.String("my number");
+	writer.Key("my number");
 	writer.Int(42);
-	writer.String("my bool");
+	writer.Key("my bool");
 	writer.Bool(false);
-	writer.String("my big number");
+	writer.Key("my big number");
 	writer.Int64(static_cast<int64_t>(1) << 33);
-	writer.String("my double");
+	writer.Key("my double");
 	writer.Double(12.34);
 	writer.EndObject();
 
 	writer.EndObject();
 
-	puts(serializedString.GetString());
+	puts(sb.GetString());
+
+	std::cout << "\njson read:" << std::endl;
+
+	MyHandler handler;
+	Reader reader;
+	StringStream ss(sb.GetString());
+	reader.Parse(ss, handler);
 }
