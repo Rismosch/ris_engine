@@ -1,35 +1,14 @@
 #include "pch.h"
 #include "risLog.h"
-#include <iostream>
+
+#include <cstdarg>
+#include <cstdio>
 
 namespace risUtility
 {
-	struct risLog::Impl
-	{
-		LogLevel level;
-	};
-	
-	risLog::risLog(LogLevel level) : pImpl(new Impl())
-	{
-		set_log_level(level);
-	}
+	risLog::risLog(LogLevel logLevel) : log_level(logLevel) { }
 
-	risLog::~risLog()
-	{
-		delete pImpl;
-	}
-
-	void risLog::set_log_level(LogLevel level) const
-	{
-		pImpl->level = level;
-	}
-
-	LogLevel risLog::get_log_level() const
-	{
-		return pImpl->level;
-	}
-
-	std::string risLog::level_to_string(LogLevel level)
+	inline const char* risLog::level_to_string(LogLevel level)
 	{
 		switch (level)
 		{
@@ -48,31 +27,40 @@ namespace risUtility
 		}
 	}
 
-	void risLog::log(const std::string& message, LogLevel level) const
+	inline void risLog::log(LogLevel level, const char* file, const int line, const char* message, ...)
 	{
-		if (pImpl->level < level)
+		if (log_level < level)
 			return;
 
-		std::cout << "[" << level_to_string(level) << "," << "hhh:mm:ss" << "] " << message << std::endl;
+		auto bruh = level_to_string(level);
+		va_list args;
+		va_start(args, message);
+		vprintf(message, args);
+		va_end(args);
+
+		// std::cout << "[" << level_to_string(level) << "," << "hhh:mm:ss" << "] " << message << std::endl;
 	}
 
-	void risLog::error(const std::string& message) const
+	inline void risLog::error(const char* message, ...)
 	{
-		log(message, LogLevel::Error);
+		va_list args;
+		va_start(args, message);
+		log(LogLevel::Error, __FILE__, __LINE__, message, args);
+		va_end(args);
 	}
 
-	void risLog::warning(const std::string& message) const
-	{
-		log(message, LogLevel::Warning);
-	}
-
-	void risLog::debug(const std::string& message) const
-	{
-		log(message, LogLevel::Debug);
-	}
-
-	void risLog::trace(const std::string& message) const
-	{
-		log(message, LogLevel::Trace);
-	}
+	// void risLog::warning(const char* message) const
+	// {
+	// 	log(message, LogLevel::Warning);
+	// }
+	//
+	// void risLog::debug(const char* message) const
+	// {
+	// 	log(message, LogLevel::Debug);
+	// }
+	//
+	// void risLog::trace(const char* message) const
+	// {
+	// 	log(message, LogLevel::Trace);
+	// }
 }

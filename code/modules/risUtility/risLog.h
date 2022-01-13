@@ -1,5 +1,6 @@
 #pragma once
-#include <string>
+
+// #define error(message, ...) log(LogLevel::Error, __FILE__, __LINE__, message, __VA_ARGS__)
 
 namespace risUtility
 {
@@ -15,23 +16,18 @@ namespace risUtility
 	class risLog
 	{
 	public:
+		LogLevel log_level;
+
 		risLog(LogLevel level);
 		~risLog();
 
-		inline static std::string level_to_string(LogLevel level);
+		inline const char* level_to_string(LogLevel level);
 
-		void set_log_level(LogLevel level) const;
-		LogLevel get_log_level() const;
+		inline void error(const char* message, ...);
+		// void warning(const char* message) const;
+		// void debug(const char* message) const;
+		// void trace(const char* message) const;
 
-		void error(const std::string& message) const;
-		void warning(const std::string& message) const;
-		void debug(const std::string& message) const;
-		void trace(const std::string& message) const;
-
-		void log(const std::string& message, LogLevel level) const;
-
-	private:
-		struct Impl;
-		Impl* pImpl{};
+		inline void log(LogLevel level, const char* file, const int line, const char* message, ...);
 	};
 }

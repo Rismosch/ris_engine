@@ -17,7 +17,7 @@ using namespace rapidjson;
 using namespace ris;
 using namespace risUtility;
 
-risLog* logger;
+risLog logger(LogLevel::Warning);
 risFlag* flags;
 risAllocator* stackAllocator;
 CRandomMother* rng;
@@ -33,7 +33,6 @@ void test_json();
 int main(int argc, char *argv[])
 {
 	// startup
-	logger = new risLog(LogLevel::Warning);
 	flags = new risFlag();
 	stackAllocator = new risAllocator(sizeof(U32) * 2);
 	rng = new CRandomMother(42);
@@ -51,7 +50,6 @@ int main(int argc, char *argv[])
 	delete rng;
 	delete stackAllocator;
 	delete flags;
-	delete logger;
 }
 
 
@@ -59,10 +57,10 @@ void test_logger()
 {
 	std::cout << "\nlogger:" << std::endl;
 
-	logger->trace("one");
-	logger->debug("two");
-	logger->warning("three");
-	logger->error("four");
+	// logger->trace("one");
+	// logger->debug("two");
+	// logger->warning("three");
+	logger.error("hello %i", 3);
 
 	// testing different logger...
 	// https://stackoverflow.com/questions/41400/how-to-wrap-a-function-with-variable-length-arguments
