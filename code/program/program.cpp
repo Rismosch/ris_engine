@@ -4,6 +4,7 @@
 
 #include "../3rd_party/rapidjson/writer.h"
 #include "../3rd_party/rapidjson/reader.h"
+#include "../3rd_party/randomc/randomc.h"
 
 #include "flags.h"
 #include "../modules/risData/crc32.h"
@@ -11,7 +12,6 @@
 #include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/risAllocator.h"
-#include "../modules/risUtility/risRandom.h"
 
 using namespace rapidjson;
 
@@ -21,7 +21,7 @@ using namespace risUtility;
 risLog* logger;
 risFlag* flags;
 risAllocator* stackAllocator;
-risRandom* rng;
+CRandomMother* rng;
 
 void test_logger();
 void test_flag();
@@ -37,14 +37,14 @@ int main(int argc, char *argv[])
 	logger = new risLog(LogLevel::Warning);
 	flags = new risFlag();
 	stackAllocator = new risAllocator(sizeof(U32) * 2);
-	rng = new risRandom(42);
+	rng = new CRandomMother(42);
 
 	// tests
 	test_logger();
 	test_flag();
 	test_allocator();
 	test_strings();
-	// test_rng();
+	test_rng();
 	test_arguments(argc, argv);
 	test_json();
 
@@ -66,6 +66,7 @@ void test_logger()
 	logger->error("four");
 
 	// testing different logger...
+	// https://stackoverflow.com/questions/41400/how-to-wrap-a-function-with-variable-length-arguments
 	char buffer[50];
 	int n, a = 5, b = 3;
 	n = sprintf_s(buffer, "%d plus %d is %d", a, b, a + b);
@@ -161,7 +162,7 @@ void test_rng()
 
 	for (U16 i = 0; i < 1000; ++i)
 	{
-		std::cout << rng->bRandom() << " " << rng->fRandom() << " " << rng->iRandom(-24, 13) << std::endl;
+		std::cout << rng->BRandom() << " " << rng->Random() << " " << rng->IRandom(-24, 13) << std::endl;
 	}
 }
 
