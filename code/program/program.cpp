@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <vector>
-#include <string>
 
 #include "../3rd_party/rapidjson/writer.h"
 #include "../3rd_party/rapidjson/reader.h"
@@ -160,7 +159,7 @@ void test_rng()
 {
 	std::cout << "\nrng:" << std::endl;
 
-	for (U16 i = 0; i < 1000; ++i)
+	for (U16 i = 0; i < 10; ++i)
 	{
 		std::cout << rng->BRandom() << " " << rng->Random() << " " << rng->IRandom(-24, 13) << std::endl;
 	}
