@@ -39,11 +39,11 @@ int main(int argc, char *argv[])
 
 	// tests
 	test_logger();
-	test_flag();
-	test_allocator();
-	test_strings();
-	test_rng();
-	test_arguments(argc, argv);
+	// test_flag();
+	// test_allocator();
+	// test_strings();
+	// test_rng();
+	// test_arguments(argc, argv);
 	test_json();
 
 	// shutdown
@@ -60,14 +60,16 @@ void test_logger()
 	// logger->trace("one");
 	// logger->debug("two");
 	// logger->warning("three");
-	logger.error("hello %i", 3);
+	// logger.error("hello %i", 3, 2, 42);
+
+	logger.func("test", 1.0, "heinz", 42, true);
 
 	// testing different logger...
 	// https://stackoverflow.com/questions/41400/how-to-wrap-a-function-with-variable-length-arguments
-	char buffer[50];
-	int n, a = 5, b = 3;
-	n = sprintf_s(buffer, "%d plus %d is %d", a, b, a + b);
-	printf("[%s] is a string %d chars long\n", buffer, n);
+	// char buffer[50];
+	// int n, a = 5, b = 3;
+	// n = sprintf_s(buffer, "%d plus %d is %d", a, b, a + b);
+	// printf("[%s] is a string %d chars long\n", buffer, n);
 }
 
 void test_flag()
