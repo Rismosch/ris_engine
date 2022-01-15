@@ -8,7 +8,6 @@
 #include "flags.h"
 #include "../modules/risData/crc32.h"
 #include "../modules/risData/risString.h"
-#include "../modules/risUtility/risLog.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/risAllocator.h"
 
@@ -17,12 +16,10 @@ using namespace rapidjson;
 using namespace ris;
 using namespace risUtility;
 
-risLog logger(LogLevel::Warning);
 risFlag* flags;
 risAllocator* stackAllocator;
 CRandomMother* rng;
 
-void test_logger();
 void test_flag();
 void test_allocator();
 void test_strings();
@@ -38,38 +35,17 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	test_logger();
-	// test_flag();
-	// test_allocator();
-	// test_strings();
-	// test_rng();
-	// test_arguments(argc, argv);
+	test_flag();
+	test_allocator();
+	test_strings();
+	test_rng();
+	test_arguments(argc, argv);
 	test_json();
 
 	// shutdown
 	delete rng;
 	delete stackAllocator;
 	delete flags;
-}
-
-
-void test_logger()
-{
-	std::cout << "\nlogger:" << std::endl;
-
-	// logger->trace("one");
-	// logger->debug("two");
-	// logger->warning("three");
-	// logger.error("hello %i", 3, 2, 42);
-
-	logger.func("test", 1.0, "heinz", 42, true);
-
-	// testing different logger...
-	// https://stackoverflow.com/questions/41400/how-to-wrap-a-function-with-variable-length-arguments
-	// char buffer[50];
-	// int n, a = 5, b = 3;
-	// n = sprintf_s(buffer, "%d plus %d is %d", a, b, a + b);
-	// printf("[%s] is a string %d chars long\n", buffer, n);
 }
 
 void test_flag()
@@ -174,6 +150,7 @@ void test_arguments(int argc, char* argv[])
 		std::cout << argv[i] << std::endl;
 	}
 }
+
 struct MyHandler {
 	bool Null() { std::cout << "Null()" << std::endl; return true; }
 	bool Bool(bool b) { std::cout << "Bool(" << std::boolalpha << b << ")" << std::endl; return true; }
