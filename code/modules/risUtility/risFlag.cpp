@@ -58,17 +58,20 @@ namespace risUtility
 		*pImpl->flags ^= mask;
 	}
 
-	std::string risFlag::toString() const
+	const U8* risFlag::to_string() const
 	{
-		constexpr U8 groupBy = 8;
+		constexpr U8 group_by = 8;
+		constexpr U8 number_spaces = Impl::flag_count / group_by - (Impl::flag_count % group_by == 0);
+		constexpr U8 string_length = Impl::flag_count + number_spaces;
 
-		std::string result;
-		for (U8 i = Impl::flag_count; i > 0; --i)
+		U8* result = new U8[string_length];
+
+		for (U8 i = 0, j = string_length - 1; i < Impl::flag_count; ++i)
 		{
-			if (i != Impl::flag_count && i % groupBy == 0)
-				result.append(" ");
-
-			result.append(get(i - 1) ? "1" : "0");
+			if (i != 0 && i % group_by == 0)
+				result[j--] = ' ';
+		
+			result[j--] = get(i) ? '1' : '0';
 		}
 
 		return result;

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 #include <vector>
 
 #include "../3rd_party/rapidjson/writer.h"
@@ -10,6 +11,7 @@
 #include "../modules/risData/risString.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risUtility/risAllocator.h"
+#include "../modules/risUtility/risEndian.h"
 
 using namespace rapidjson;
 
@@ -26,6 +28,7 @@ void test_strings();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
+void test_endian();
 
 int main(int argc, char *argv[])
 {
@@ -41,6 +44,7 @@ int main(int argc, char *argv[])
 	test_rng();
 	test_arguments(argc, argv);
 	test_json();
+	test_endian();
 
 	// shutdown
 	delete rng;
@@ -55,19 +59,21 @@ void test_flag()
 	flags->toggle(test0);
 	flags->toggle(test2);
 
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->set(test1, true);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->set(test1, false);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->toggle(test1);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->toggle(test1);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->toggle(test2);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 	flags->toggle(test2);
-	std::cout << flags->toString() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
+	flags->apply(0x0123456789ABCDEF);
+	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
 }
 
 void test_allocator()
@@ -215,4 +221,33 @@ void test_json()
 	Reader reader;
 	StringStream ss(sb.GetString());
 	reader.Parse(ss, handler);
+}
+
+void test_endian()
+{
+	std::cout << "\nendian:" << std::endl;
+
+	U16 value1 = 0x00FF;
+	U32 value2 = 0x00FF00FF;
+	F32 value3 = convertU32(value2);
+
+	flags->apply(value1);
+	std::cout << flags->to_string() << std::endl;
+	flags->apply(value2);
+	std::cout << flags->to_string() << std::endl;
+
+	auto result1 = swapU16(value1);
+	auto result2 = swapU32(value2);
+	auto result3 = swapF32(value3);
+
+	std::cout << result1 << std::endl;
+	std::cout << result2 << std::endl;
+	std::cout << result3 << std::endl;
+
+	flags->apply(result1);
+	std::cout << flags->to_string() << std::endl;
+	flags->apply(result2);
+	std::cout << flags->to_string() << std::endl;
+	flags->apply(convertF32(result3));
+	std::cout << flags->to_string() << std::endl;
 }

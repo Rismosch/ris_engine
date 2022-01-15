@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include "../risData/risData.h"
 
 namespace risUtility
@@ -21,7 +20,7 @@ namespace risUtility
 		void set(U8 flag, bool value) const;
 		void toggle(U8 flag) const;
 
-		std::string toString() const;
+		const U8* to_string() const;
 	private:
 		struct Impl;
 		Impl* pImpl;
