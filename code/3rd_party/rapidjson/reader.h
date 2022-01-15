@@ -1212,6 +1212,7 @@ private:
                             useDouble = true;
                             break;
                         }
+#pragma warning(disable:26451)
                     i64 = i64 * 10 + static_cast<unsigned>(s.TakePush() - '0');
                     significandDigit++;
                 }
@@ -1822,6 +1823,7 @@ private:
     ParseResult IterativeParse(InputStream& is, Handler& handler) {
         parseResult_.Clear();
         ClearStackOnExit scope(*this);
+#pragma warning(disable:26812)
         IterativeParsingState state = IterativeParsingStartState;
 
         SkipWhitespaceAndComments<parseFlags>(is);

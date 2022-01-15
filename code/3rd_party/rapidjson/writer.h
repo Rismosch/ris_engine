@@ -168,7 +168,7 @@ public:
         \see Handler
     */
     //@{
-
+#pragma warning(disable:26812)
     bool Null()                 { Prefix(kNullType);   return EndValue(WriteNull()); }
     bool Bool(bool b)           { Prefix(b ? kTrueType : kFalseType); return EndValue(WriteBool(b)); }
     bool Int(int i)             { Prefix(kNumberType); return EndValue(WriteInt(i)); }
@@ -356,6 +356,7 @@ protected:
 #undef Z16
         };
 
+#pragma warning(disable:26451)
         if (TargetEncoding::supportUnicode)
             PutReserve(*os_, 2 + length * 6); // "\uxxxx..."
         else

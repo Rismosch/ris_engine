@@ -106,6 +106,7 @@ enum ParseErrorCode {
 struct ParseResult {
 public:
     //! Default constructor, no error.
+#pragma warning(disable:26812)
     ParseResult() : code_(kParseErrorNone), offset_(0) {}
     //! Constructor to set an error.
     ParseResult(ParseErrorCode code, size_t offset) : code_(code), offset_(offset) {}

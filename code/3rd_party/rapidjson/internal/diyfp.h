@@ -130,6 +130,7 @@ struct DiyFp {
     void NormalizedBoundaries(DiyFp* minus, DiyFp* plus) const {
         DiyFp pl = DiyFp((f << 1) + 1, e - 1).NormalizeBoundary();
         DiyFp mi = (f == kDpHiddenBit) ? DiyFp((f << 2) - 1, e - 2) : DiyFp((f << 1) - 1, e - 1);
+#pragma warning(disable:26451)
         mi.f <<= mi.e - pl.e;
         mi.e = pl.e;
         *plus = pl;

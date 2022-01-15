@@ -22,6 +22,7 @@ namespace internal {
 
 class Double {
 public:
+#pragma warning(disable:26495)
     Double() {}
     Double(double d) : d_(d) {}
     Double(uint64_t u) : u_(u) {}
