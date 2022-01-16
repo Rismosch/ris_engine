@@ -174,7 +174,7 @@ void test_strings()
 		sb->append_utf8(random_value);
 	}
 
-	const U32 count = sb->character_count();
+	const U32 count = sb->character_count(); // this will be significantly less than 100, because the buffer is too small and wont append further characters. This is by design.
 
 	std::cout << "character count: " << count << std::endl;
 
