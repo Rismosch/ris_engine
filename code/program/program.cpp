@@ -9,9 +9,9 @@
 #include "flags.h"
 #include "../modules/risData/crc32.h"
 #include "../modules/risData/risString.h"
+#include "../modules/risData/risEndian.h"
+#include "../modules/risData/risAllocator.h"
 #include "../modules/risUtility/risFlag.h"
-#include "../modules/risUtility/risAllocator.h"
-#include "../modules/risUtility/risEndian.h"
 
 using namespace rapidjson;
 

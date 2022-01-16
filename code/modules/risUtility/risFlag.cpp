@@ -61,14 +61,16 @@ namespace risUtility
 	const U8* risFlag::to_string() const
 	{
 		constexpr U8 group_by = 8;
-		constexpr U8 number_spaces = Impl::flag_count / group_by - (Impl::flag_count % group_by == 0);
+		constexpr U8 number_spaces = Impl::flag_count / group_by - (Impl::flag_count % group_by == 0) + 1;
 		constexpr U8 string_length = Impl::flag_count + number_spaces;
 
 		U8* result = new U8[string_length];
 
 		for (U8 i = 0, j = string_length - 1; i < Impl::flag_count; ++i)
 		{
-			if (i != 0 && i % group_by == 0)
+			if (i == 0)
+				result[j--] = '\0';
+			else if (i % group_by == 0)
 				result[j--] = ' ';
 		
 			result[j--] = get(i) ? '1' : '0';
