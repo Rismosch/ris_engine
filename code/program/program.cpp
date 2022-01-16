@@ -38,13 +38,13 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	test_flag();
-	test_allocator();
+	// test_flag();
+	// test_allocator();
 	test_strings();
-	test_rng();
-	test_arguments(argc, argv);
-	test_json();
-	test_endian();
+	// test_rng();
+	// test_arguments(argc, argv);
+	// test_json();
+	// test_endian();
 
 	// shutdown
 	delete rng;
@@ -135,6 +135,61 @@ void test_strings()
 	std::cout << string0 << " " << string1 << " " << string2 << std::endl;
 
 	std::cout << "shouldn't exist: " << (internal_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
+
+	std::cout << "\nstring buffer:" << std::endl;
+	const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
+	auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
+	sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
+
+	sb->append('h');
+	sb->append('e');
+	sb->append('l');
+	sb->append('l');
+	sb->append('o');
+	sb->append(' ');
+	sb->append('w');
+	sb->append('o');
+	sb->append('r');
+	sb->append('l');
+	sb->append('d');
+
+	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+
+	sb->append(" bruh");
+
+	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+
+	sb->clear();
+
+	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+
+
+	U32* values = new U32[100];
+
+	for (U8 i = 0; i < 100; ++i)
+	{
+		const U32 random_value = rng->IRandom(0, 0x0010FFFF);
+
+		values[i] = random_value;
+		sb->append_utf8(random_value);
+	}
+
+	const U32 count = sb->character_count();
+
+	std::cout << "character count: " << count << std::endl;
+
+	U32* decodedString = new U32[count];
+	sb->decode_utf8(decodedString);
+
+	for (U32 i = 0; i < count; ++i)
+	{
+		std::cout << values[i] << " = " << decodedString[i] << std::endl;
+	}
+
+	delete[] values;
+	delete[] decodedString;
+
+	delete stringAllocator;
 }
 
 void test_rng()
