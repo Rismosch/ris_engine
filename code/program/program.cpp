@@ -27,6 +27,7 @@ void test_flag();
 void test_allocator();
 void test_strings();
 void test_file();
+void test_file_and_unicode();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
 	// test_allocator();
 	test_strings();
 	test_file();
+	test_file_and_unicode();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_json();
@@ -208,9 +210,51 @@ void test_file()
 	readFile.open("example.txt");
 
 	char* buffer = new char[100];
-	readFile.getline(buffer, 100);
+	readFile.read(buffer, 100);
 	std::cout << buffer << std::endl;
 	readFile.close();
+}
+
+void test_file_and_unicode()
+{
+	std::cout << "\nfile and unicode:" << std::endl;
+
+	const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
+	auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
+	sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
+
+	sb->append_utf8('t');
+	sb->append_utf8('h');
+	sb->append_utf8('i');
+	sb->append_utf8('s');
+	sb->append_utf8(' ');
+	sb->append_utf8('i');
+	sb->append_utf8('s');
+	sb->append_utf8(' ');
+	sb->append_utf8('s');
+	sb->append_utf8('o');
+	sb->append_utf8('m');
+	sb->append_utf8('e');
+	sb->append_utf8(' ');
+	sb->append_utf8('u');
+	sb->append_utf8('n');
+	sb->append_utf8('i');
+	sb->append_utf8('c');
+	sb->append_utf8('o');
+	sb->append_utf8('d');
+	sb->append_utf8('e');
+	sb->append_utf8(' ');
+	sb->append_utf8(0x1F60D); // emoji with heart eyes
+	sb->append_utf8(0x2705); // green checkmark
+
+	auto unicodeString = sb->get_string();
+
+	std::ofstream writeFile;
+	writeFile.open("unicode_example.txt");
+	writeFile << unicodeString;
+	writeFile.close();
+
+	delete stringAllocator;
 }
 
 void test_rng()
