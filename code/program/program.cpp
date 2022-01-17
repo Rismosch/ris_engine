@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 #include "../3rd_party/rapidjson/writer.h"
 #include "../3rd_party/rapidjson/reader.h"
@@ -25,6 +26,7 @@ CRandomMother* rng;
 void test_flag();
 void test_allocator();
 void test_strings();
+void test_file();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
@@ -41,6 +43,7 @@ int main(int argc, char *argv[])
 	// test_flag();
 	// test_allocator();
 	test_strings();
+	test_file();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_json();
@@ -190,6 +193,24 @@ void test_strings()
 	delete[] decodedString;
 
 	delete stringAllocator;
+}
+
+void test_file()
+{
+	std::cout << "\nfile:" << std::endl;
+
+	std::ofstream writeFile;
+	writeFile.open("example.txt");
+	writeFile << "hello world";
+	writeFile.close();
+
+	std::ifstream readFile;
+	readFile.open("example.txt");
+
+	char* buffer = new char[100];
+	readFile.getline(buffer, 100);
+	std::cout << buffer << std::endl;
+	readFile.close();
 }
 
 void test_rng()
