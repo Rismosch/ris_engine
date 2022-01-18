@@ -42,15 +42,15 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	test_flag();
-	test_allocator();
-	test_strings();
+	// test_flag();
+	// test_allocator();
+	// test_strings();
 	test_file();
 	test_file_and_unicode();
-	test_rng();
-	test_arguments(argc, argv);
-	test_json();
-	test_endian();
+	// test_rng();
+	// test_arguments(argc, argv);
+	// test_json();
+	// test_endian();
 
 	// shutdown
 	delete rng;

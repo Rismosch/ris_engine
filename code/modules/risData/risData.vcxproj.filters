@@ -18,10 +18,13 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risData.h">
+    <ClInclude Include="risPrimitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="risFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

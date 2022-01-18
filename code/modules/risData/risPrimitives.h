@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 
-
 namespace risData
 {
 	using F32 = float;
