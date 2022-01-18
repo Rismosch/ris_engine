@@ -55,6 +55,8 @@ namespace risData
 			_buffer[i] = 0;
 		}
 
+		// *_buffer = {};
+
 		_pointer = 0;
 		_character_count = 0;
 	}
@@ -94,44 +96,11 @@ namespace risData
 		if (codepoint > 0x0010FFFF)
 			return false;
 
-		U8 required_size = 0;
-
 		if (codepoint > 0x000FFFF)
-			required_size = 4;
-		else if (codepoint > 0x000007FF)
-			required_size = 3;
-		else if (codepoint > 0x0000007F)
-			required_size = 2;
-		else
-			required_size = 1;
-
-		if (_pointer + required_size >= _buffer_size)
-			return false;
-
-		switch (required_size)
 		{
-		case 1:
-			_buffer[_pointer++] = static_cast<U8>(0x0000007f & codepoint);
+			if (_pointer + 4 >= _buffer_size)
+				return false;
 
-			++_character_count;
-			return true;
-
-		case 2:
-			_buffer[_pointer++] = static_cast<U8>(0xC0 | (0x7C0 & codepoint) >> 6);
-			_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
-
-			++_character_count;
-			return true;
-
-		case 3:
-			_buffer[_pointer++] = static_cast<U8>(0xE0 | (0xF000 & codepoint) >> 12);
-			_buffer[_pointer++] = static_cast<U8>(0x80 | (0xFC0 & codepoint) >> 6);
-			_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
-
-			++_character_count;
-			return true;
-
-		case 4: {
 			_buffer[_pointer++] = static_cast<U8>(0xF0 | (0x1C0000 & codepoint) >> 18);
 			_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F000 & codepoint) >> 12);
 			_buffer[_pointer++] = static_cast<U8>(0x80 | (0xFC0 & codepoint) >> 6);
@@ -140,8 +109,38 @@ namespace risData
 			++_character_count;
 			return true;
 		}
-		default:
-			return false;
+		else if (codepoint > 0x000007FF)
+		{
+			if (_pointer + 3 >= _buffer_size)
+				return false;
+
+			_buffer[_pointer++] = static_cast<U8>(0xE0 | (0xF000 & codepoint) >> 12);
+			_buffer[_pointer++] = static_cast<U8>(0x80 | (0xFC0 & codepoint) >> 6);
+			_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
+
+			++_character_count;
+			return true;
+		}
+		else if (codepoint > 0x0000007F)
+		{
+			if (_pointer + 2 >= _buffer_size)
+				return false;
+
+			_buffer[_pointer++] = static_cast<U8>(0xC0 | (0x7C0 & codepoint) >> 6);
+			_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
+
+			++_character_count;
+			return true;
+		}
+		else
+		{
+			if (_pointer + 1 >= _buffer_size)
+				return false;
+
+			_buffer[_pointer++] = static_cast<U8>(0x0000007f & codepoint);
+
+			++_character_count;
+			return true;
 		}
 	}
 
@@ -201,9 +200,4 @@ namespace risData
 	{
 		return _buffer;
 	}
-
-
-
-
-
 }

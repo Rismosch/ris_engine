@@ -209,7 +209,7 @@ void test_file()
 	std::ifstream readFile;
 	readFile.open("example.txt");
 
-	char* buffer = new char[100];
+	char* buffer = new char[100]{};
 	readFile.read(buffer, 100);
 	std::cout << buffer << std::endl;
 	readFile.close();
@@ -223,27 +223,10 @@ void test_file_and_unicode()
 	auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
 	sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
 
-	sb->append_utf8('t');
-	sb->append_utf8('h');
-	sb->append_utf8('i');
-	sb->append_utf8('s');
-	sb->append_utf8(' ');
-	sb->append_utf8('i');
-	sb->append_utf8('s');
-	sb->append_utf8(' ');
-	sb->append_utf8('s');
-	sb->append_utf8('o');
-	sb->append_utf8('m');
-	sb->append_utf8('e');
-	sb->append_utf8(' ');
+	sb->append_utf8('b');
+	sb->append_utf8('r');
 	sb->append_utf8('u');
-	sb->append_utf8('n');
-	sb->append_utf8('i');
-	sb->append_utf8('c');
-	sb->append_utf8('o');
-	sb->append_utf8('d');
-	sb->append_utf8('e');
-	sb->append_utf8(' ');
+	sb->append_utf8('h');
 	sb->append_utf8(0x1F60D); // emoji with heart eyes
 	sb->append_utf8(0x2705); // green checkmark
 
