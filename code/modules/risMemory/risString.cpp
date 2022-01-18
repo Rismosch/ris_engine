@@ -6,9 +6,10 @@
 
 #include <string>
 
-#include "crc32.h"
+#include "../risData/crc32.h"
+#include "risMemoryUtility.h"
 
-namespace risData
+namespace risMemory
 {
 #if defined _DEBUG
 	static std::map<StringId, const char*> gStringIdTable;

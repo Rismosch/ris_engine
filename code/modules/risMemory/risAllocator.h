@@ -1,8 +1,10 @@
 #pragma once
-#include "risData.h"
+#include "../risData/risData.h"
 
-namespace risData
+namespace risMemory
 {
+	using namespace risData;
+
 	class risAllocator
 	{
 	public:

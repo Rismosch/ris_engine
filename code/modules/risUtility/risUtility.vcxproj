@@ -158,7 +158,6 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risFlag.h" />
-    <ClInclude Include="risMemory.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

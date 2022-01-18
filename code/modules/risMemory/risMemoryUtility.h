@@ -2,11 +2,11 @@
 #include "../risData/risData.h"
 #include <cstring>
 
-namespace risUtility
+namespace risMemory
 {
 	using namespace risData;
 
-	constexpr void init0(void* dest, U32 count)
+	void init0(void* dest, U32 count)
 	{
 		std::memset(dest, 0, count);
 	};

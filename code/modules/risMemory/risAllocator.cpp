@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "risAllocator.h"
 
-namespace risData
+namespace risMemory
 {
 	struct risAllocator::Impl
 	{

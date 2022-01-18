@@ -1,8 +1,10 @@
 ﻿#pragma once
-#include "risData.h"
+#include "../risData/risData.h"
 
-namespace risData
+namespace risMemory
 {
+	using namespace risData;
+
 	typedef U32 StringId;
 	extern StringId sid(const char* str);
 	extern const char* internal_string(StringId sid);
