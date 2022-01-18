@@ -1,5 +1,5 @@
 #pragma once
-#include "risData.h"
+#include "../risData/risData.h"
 
 namespace risData
 {

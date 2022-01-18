@@ -30,6 +30,9 @@
     <ClInclude Include="risMemoryUtility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="risEndian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

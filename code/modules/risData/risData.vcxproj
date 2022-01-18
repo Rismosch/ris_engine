@@ -155,11 +155,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="crc32.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risData.h" />
-    <ClInclude Include="risEndian.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

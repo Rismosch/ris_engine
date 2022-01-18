@@ -154,6 +154,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risAllocator.h" />
+    <ClInclude Include="risEndian.h" />
     <ClInclude Include="risMemoryUtility.h" />
     <ClInclude Include="risString.h" />
   </ItemGroup>
@@ -170,6 +171,9 @@
   <ItemGroup>
     <ProjectReference Include="..\risData\risData.vcxproj">
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\risUtility\risUtility.vcxproj">
+      <Project>{bcc603b8-7e45-468c-baee-781fcddad9c0}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

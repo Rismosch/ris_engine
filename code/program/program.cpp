@@ -8,9 +8,9 @@
 #include "../3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "../modules/risData/crc32.h"
+#include "../modules/risUtility/crc32.h"
 #include "../modules/risMemory/risString.h"
-#include "../modules/risData/risEndian.h"
+#include "../modules/risMemory/risEndian.h"
 #include "../modules/risMemory/risAllocator.h"
 #include "../modules/risUtility/risFlag.h"
 
@@ -42,15 +42,15 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	// test_flag();
-	// test_allocator();
+	test_flag();
+	test_allocator();
 	test_strings();
 	test_file();
 	test_file_and_unicode();
-	// test_rng();
-	// test_arguments(argc, argv);
-	// test_json();
-	// test_endian();
+	test_rng();
+	test_arguments(argc, argv);
+	test_json();
+	test_endian();
 
 	// shutdown
 	delete rng;

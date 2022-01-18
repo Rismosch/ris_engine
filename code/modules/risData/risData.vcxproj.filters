@@ -24,12 +24,6 @@
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risEndian.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="crc32.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
