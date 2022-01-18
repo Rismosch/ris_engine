@@ -50,10 +50,12 @@ namespace risData
 
 	void risStringBuffer::clear()
 	{
-		for (U32 i = 0; i < _buffer_size; ++i)
-		{
-			_buffer[i] = 0;
-		}
+		init0(_buffer, _buffer_size);
+
+		// for (U32 i = 0; i < _buffer_size; ++i)
+		// {
+		// 	_buffer[i] = 0;
+		// }
 
 		// *_buffer = {};
 
