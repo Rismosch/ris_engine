@@ -38,5 +38,8 @@
     <ClCompile Include="risString.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="risFiles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

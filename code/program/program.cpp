@@ -13,6 +13,7 @@
 #include "../modules/risMemory/risEndian.h"
 #include "../modules/risMemory/risAllocator.h"
 #include "../modules/risUtility/risFlag.h"
+#include "../modules/risStreams/risFiles.h"
 
 using namespace rapidjson;
 
@@ -30,6 +31,7 @@ void test_allocator();
 void test_strings();
 void test_file();
 void test_file_and_unicode();
+void test_risFileWrite();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
@@ -46,8 +48,9 @@ int main(int argc, char *argv[])
 	// test_flag();
 	// test_allocator();
 	// test_strings();
-	test_file();
-	test_file_and_unicode();
+	// test_file();
+	// test_file_and_unicode();
+	test_risFileWrite();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_json();
@@ -240,6 +243,21 @@ void test_file_and_unicode()
 	writeFile.close();
 
 	delete stringAllocator;
+}
+
+void test_risFileWrite()
+{
+	std::cout << "\nfile and unicode:" << std::endl;
+
+	risWriteFile writeFile;
+	writeFile.open("test.txt");
+	writeFile.write("this is an apple", 16);
+	auto pos = writeFile.tellp();
+	writeFile.seekp(pos - 7);
+	writeFile.write(" sam", 4);
+	writeFile.seekp(-8, StreamPosition::End);
+	writeFile.write("t", 1);
+	writeFile.close();
 }
 
 void test_rng()

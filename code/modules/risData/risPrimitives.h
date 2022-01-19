@@ -3,19 +3,22 @@
 
 namespace risData
 {
-	using F32 = float;
-	using F64 = double;
+	typedef float F32;
+	typedef double F64;
 
-	using U8 = uint8_t;
-	using U16 = uint16_t;
-	using U32 = uint32_t;
-	using U64 = uint64_t;
+	typedef uint8_t U8;
+	typedef uint16_t U16;
+	typedef uint32_t U32;
+	typedef uint64_t U64;
 
-	using I8 = int8_t;
-	using I16 = int16_t;
-	using I32 = int32_t;
-	using I64 = int64_t;
+	typedef int8_t I8;
+	typedef int16_t I16;
+	typedef int32_t I32;
+	typedef int64_t I64;
 
-	using U32F = uint_fast32_t;
-	using I32F = int_fast32_t;
+	typedef uint_fast32_t U32F;
+	typedef int_fast32_t I32F;
+
+	typedef char C8;
+	typedef bool B;
 }
