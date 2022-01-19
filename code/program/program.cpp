@@ -9,7 +9,7 @@
 
 #include "flags.h"
 #include "../modules/risUtility/crc32.h"
-#include "../modules/risMemory/risString.h"
+#include "../modules/risStreams/risString.h"
 #include "../modules/risMemory/risEndian.h"
 #include "../modules/risMemory/risAllocator.h"
 #include "../modules/risUtility/risFlag.h"
@@ -19,6 +19,7 @@ using namespace rapidjson;
 using namespace ris;
 using namespace risUtility;
 using namespace risMemory;
+using namespace risStreams;
 
 risFlag* flags;
 risAllocator* stackAllocator;

@@ -7,9 +7,9 @@
 #include <string>
 
 #include "../risUtility/crc32.h"
-#include "risMemoryUtility.h"
+#include "../risMemory/risMemoryUtility.h"
 
-namespace risMemory
+namespace risStreams
 {
 #if defined _DEBUG
 	static std::map<StringId, const char*> gStringIdTable;
@@ -51,7 +51,7 @@ namespace risMemory
 
 	void risStringBuffer::clear()
 	{
-		init0(_buffer, _buffer_size);
+		risMemory::init0(_buffer, _buffer_size);
 
 		_pointer = 0;
 		_character_count = 0;

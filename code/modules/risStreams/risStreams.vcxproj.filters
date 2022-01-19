@@ -15,18 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risPrimitives.h">
+    <ClInclude Include="risFiles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="framework.h">
+    <ClInclude Include="risString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="risStreams.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="risString.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "../risData/risPrimitives.h"
 
-namespace risMemory
+namespace risStreams
 {
 	using namespace risData;
 
