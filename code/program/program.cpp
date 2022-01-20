@@ -12,6 +12,7 @@
 #include "../modules/risStreams/risString.h"
 #include "../modules/risMemory/risEndian.h"
 #include "../modules/risMemory/risAllocator.h"
+#include "../modules/risMemory/risMemoryUtility.h"
 #include "../modules/risUtility/risFlag.h"
 #include "../modules/risStreams/risFiles.h"
 
@@ -31,7 +32,7 @@ void test_allocator();
 void test_strings();
 void test_file();
 void test_file_and_unicode();
-void test_risFileWrite();
+void test_risFile();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
@@ -50,7 +51,7 @@ int main(int argc, char *argv[])
 	// test_strings();
 	// test_file();
 	// test_file_and_unicode();
-	test_risFileWrite();
+	test_risFile();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_json();
@@ -245,9 +246,9 @@ void test_file_and_unicode()
 	delete stringAllocator;
 }
 
-void test_risFileWrite()
+void test_risFile()
 {
-	std::cout << "\nfile and unicode:" << std::endl;
+	std::cout << "\nrisFile Write:" << std::endl;
 
 	risWriteFile writeFile;
 	writeFile.open("test.txt");
@@ -255,9 +256,18 @@ void test_risFileWrite()
 	auto pos = writeFile.tellp();
 	writeFile.seekp(pos - 7);
 	writeFile.write(" sam", 4);
-	writeFile.seekp(-8, StreamPosition::End);
+	writeFile.seekp(-8, StreamLocation::End);
 	writeFile.write("t", 1);
 	writeFile.close();
+
+	std::cout << "\nrisFile Read:" << std::endl;
+	risReadFile risReadFile;
+	risReadFile.open("test.txt");
+	char* buffer = new char[100];
+	init0(buffer, 100);
+	risReadFile.get(buffer, 100);
+	std::cout << buffer << std::endl;
+	risReadFile.close();
 }
 
 void test_rng()
