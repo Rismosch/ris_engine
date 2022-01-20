@@ -4,12 +4,12 @@
 
 namespace risStreams
 {
-	void risWriteFile::open(const C8* filename)
+	void risWriteFile::open(const char* filename)
 	{
 		ofstream_.open(filename);
 	}
 
-	B risWriteFile::is_open() const
+	bool risWriteFile::is_open() const
 	{
 		return ofstream_.is_open();
 	}
@@ -19,13 +19,13 @@ namespace risStreams
 		ofstream_.close();
 	}
 
-	risOutStream& risWriteFile::put(C8 value)
+	risOutStream& risWriteFile::put(char value)
 	{
 		ofstream_.put(value);
 		return *this;
 	}
 
-	risOutStream& risWriteFile::write(const C8* values, U32 count)
+	risOutStream& risWriteFile::write(const char* values, U32 count)
 	{
 		ofstream_.write(values, count);
 		return *this;

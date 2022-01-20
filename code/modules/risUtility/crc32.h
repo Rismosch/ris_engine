@@ -4,7 +4,7 @@
 namespace risData
 {
 	// adapted from https://web.archive.org/web/20190108202303/http://www.hackersdelight.org/hdcodetxt/crc.c.txt
-	inline U32 crc32(const char *message)
+	inline U32 crc32(const char* message)
 	{
 		I32 i, j;
 		U32 byte, crc, mask;

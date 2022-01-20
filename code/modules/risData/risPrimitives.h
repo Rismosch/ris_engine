@@ -18,7 +18,4 @@ namespace risData
 
 	typedef uint_fast32_t U32F;
 	typedef int_fast32_t I32F;
-
-	typedef char C8;
-	typedef bool B;
 }
