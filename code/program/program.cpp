@@ -37,6 +37,7 @@ void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_json();
 void test_endian();
+void test_template();
 
 int main(int argc, char *argv[])
 {
@@ -56,6 +57,8 @@ int main(int argc, char *argv[])
 	// test_arguments(argc, argv);
 	// test_json();
 	// test_endian();
+	test_template();
+
 
 	// shutdown
 	delete rng;
@@ -383,4 +386,48 @@ void test_endian()
 	std::cout << flags->to_string() << std::endl;
 	flags->apply(convertF32(result3));
 	std::cout << flags->to_string() << std::endl;
+}
+
+class PrinterA
+{
+public:
+	void print() { std::cout << "A" << std::endl; }
+};
+
+class PrinterB
+{
+public:
+	void print() { std::cout << "B" << std::endl; }
+};
+
+class PrinterC
+{
+public:
+	void print() { std::cout << "C" << std::endl; }
+};
+
+class PrinterD
+{
+	
+};
+
+template<typename Printer>
+void print(Printer printer)
+{
+	printer.print();
+}
+
+void test_template()
+{
+	std::cout << "\ntemplate:" << std::endl;
+
+	PrinterA a;
+	PrinterB b;
+	PrinterC c;
+	PrinterD d;
+
+	print(a);
+	print(b);
+	print(c);
+	print(d);
 }
