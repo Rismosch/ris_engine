@@ -14,9 +14,9 @@ namespace risStreams
 		void close();
 
 		risOutStream& put(char value) override;
-		risOutStream& write(const char* values, U32 count) override;
-		I64 tellp() override;
-		risOutStream& seekp(I64 offset, StreamPosition stream_position = StreamPosition::Beginning) override;
+		risOutStream& write(const char* values, StreamSize count) override;
+		StreamPosition tellp() override;
+		risOutStream& seekp(StreamPosition offset, StreamLocation stream_location = StreamLocation::Beginning) override;
 		risOutStream& flush() override;
 
 	private:

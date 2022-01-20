@@ -25,30 +25,30 @@ namespace risStreams
 		return *this;
 	}
 
-	risOutStream& risWriteFile::write(const char* values, U32 count)
+	risOutStream& risWriteFile::write(const char* values, StreamSize count)
 	{
 		ofstream_.write(values, count);
 		return *this;
 	}
 
-	I64 risWriteFile::tellp()
+	StreamPosition risWriteFile::tellp()
 	{
 		return ofstream_.tellp();
 	}
 
-	risOutStream& risWriteFile::seekp(I64 offset, StreamPosition stream_position)
+	risOutStream& risWriteFile::seekp(StreamPosition offset, StreamLocation stream_location)
 	{
-		switch (stream_position)
+		switch (stream_location)
 		{
-		case StreamPosition::Beginning:
+		case StreamLocation::Beginning:
 			ofstream_.seekp(offset, std::ios_base::beg);
 			break;
 
-		case StreamPosition::Current:
+		case StreamLocation::Current:
 			ofstream_.seekp(offset, std::ios_base::cur);
 			break;
 
-		case StreamPosition::End:
+		case StreamLocation::End:
 			ofstream_.seekp(offset, std::ios_base::end);
 			break;
 		}
