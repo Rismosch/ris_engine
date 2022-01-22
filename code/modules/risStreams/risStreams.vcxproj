@@ -153,7 +153,6 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="risFiles.h" />
     <ClInclude Include="risString.h" />
   </ItemGroup>
   <ItemGroup>
@@ -163,16 +162,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="risFiles.cpp" />
-    <ClCompile Include="risStreams.h" />
     <ClCompile Include="risString.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\risData\risData.vcxproj">
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\risMemory\risMemory.vcxproj">
-      <Project>{a81a33ca-5333-4291-a355-6422cd04af61}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

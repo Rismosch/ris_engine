@@ -7,7 +7,7 @@
 #include <string>
 
 #include "../risUtility/crc32.h"
-#include "../risMemory/risMemoryUtility.h"
+#include "../risData/risDataUtility.h"
 
 namespace risStreams
 {
@@ -51,7 +51,7 @@ namespace risStreams
 
 	void risStringBuffer::clear()
 	{
-		risMemory::init0(_buffer, _buffer_size);
+		init0(_buffer, _buffer_size);
 
 		_pointer = 0;
 		_character_count = 0;

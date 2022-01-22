@@ -8,15 +8,15 @@
 #include "flags.h"
 #include "../modules/risUtility/crc32.h"
 #include "../modules/risStreams/risString.h"
-#include "../modules/risMemory/risEndian.h"
-#include "../modules/risMemory/risAllocator.h"
-#include "../modules/risMemory/risMemoryUtility.h"
+#include "../modules/risData/risEndian.h"
+#include "../modules/risData/risAllocator.h"
+#include "../modules/risData/risDataUtility.h"
 #include "../modules/risUtility/risFlag.h"
-#include "../modules/risStreams/risFiles.h"
+#include "../modules/risFile/risFiles.h"
 
 using namespace ris;
 using namespace risUtility;
-using namespace risMemory;
+using namespace risFile;
 using namespace risStreams;
 
 risFlag* flags;

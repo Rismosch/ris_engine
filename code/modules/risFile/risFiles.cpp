@@ -2,7 +2,7 @@
 
 #include "risFiles.h"
 
-namespace risStreams
+namespace risFile
 {
 #pragma region risWriteFile
 	void risWriteFile::open(const char* filename)
@@ -20,13 +20,13 @@ namespace risStreams
 		ofstream_.close();
 	}
 
-	risOutStream& risWriteFile::put(char value)
+	risWriteFile& risWriteFile::put(char value)
 	{
 		ofstream_.put(value);
 		return *this;
 	}
 
-	risOutStream& risWriteFile::write(const char* values, StreamSize count)
+	risWriteFile& risWriteFile::write(const char* values, StreamSize count)
 	{
 		ofstream_.write(values, count);
 		return *this;
@@ -37,7 +37,7 @@ namespace risStreams
 		return ofstream_.tellp();
 	}
 
-	risOutStream& risWriteFile::seekp(StreamPosition offset, StreamLocation stream_location)
+	risWriteFile& risWriteFile::seekp(StreamPosition offset, StreamLocation stream_location)
 	{
 		switch (stream_location)
 		{
@@ -57,7 +57,7 @@ namespace risStreams
 		return *this;
 	}
 
-	risOutStream& risWriteFile::flush()
+	risWriteFile& risWriteFile::flush()
 	{
 		ofstream_.flush();
 
@@ -86,33 +86,33 @@ namespace risStreams
 		return ifstream_.gcount();
 	}
 
-	risInStream& risReadFile::get(char* buffer, StreamSize count)
+	risReadFile& risReadFile::get(char* buffer, StreamSize count)
 	{
 		ifstream_.get(buffer, count);
 
 		return *this;
 	}
 
-	risInStream& risReadFile::get(char* buffer, StreamSize count, char delim)
+	risReadFile& risReadFile::get(char* buffer, StreamSize count, char delim)
 	{
 		ifstream_.get(buffer, count, delim);
 
 		return *this;
 	}
 
-	risInStream& risReadFile::get(risOutStream& buffer, StreamSize count)
-	{
-		// figure this one out
-		return *this;
-	}
+	// risInStream& risReadFile::get(risOutStream& buffer, StreamSize count)
+	// {
+	// 	// figure this one out
+	// 	return *this;
+	// }
+	//
+	// risInStream& risReadFile::get(risOutStream& buffer, StreamSize count, char delim)
+	// {
+	// 	// figure this one out
+	// 	return *this;
+	// }
 
-	risInStream& risReadFile::get(risOutStream& buffer, StreamSize count, char delim)
-	{
-		// figure this one out
-		return *this;
-	}
-
-	risInStream& risReadFile::ignore(StreamSize count, StreamCharacter delim)
+	risReadFile& risReadFile::ignore(StreamSize count, StreamCharacter delim)
 	{
 		ifstream_.ignore(count, delim);
 
@@ -124,7 +124,7 @@ namespace risStreams
 		return ifstream_.tellg();
 	}
 
-	risInStream& risReadFile::seekg(StreamPosition offset, StreamLocation stream_location)
+	risReadFile& risReadFile::seekg(StreamPosition offset, StreamLocation stream_location)
 	{
 		switch (stream_location)
 		{

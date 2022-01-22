@@ -1,10 +1,8 @@
 #pragma once
-#include "../risData/risPrimitives.h"
+#include "risPrimitives.h"
 
-namespace risMemory
+namespace risData
 {
-	using namespace risData;
-
 	inline U16 swapU16(U16 value)
 	{
 		return
