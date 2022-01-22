@@ -158,7 +158,7 @@ void test_strings()
 	{
 		//const auto random_value = static_cast<CodePoint>(rng->IRandom(0, 0x0010FFFF));
 
-		input_values[i] = (i * 0x0010FFFF / 100) % 0x0010FFFF;
+		input_values[i] = (0x0010FFFF - (i * 0x0010FFFF / 100)) % 0x0010FFFF;
 		encoded_values[i] = 0;
 		decoded_values[i] = 0;
 	}

@@ -48,14 +48,14 @@ namespace risData
 	{
 		memory_ = memory;
 		memory_size_ = memory_size;
-		pointer_ = 0;
+		position_ = 0;
 	}
 
 	template<typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character value)
 	{
-		if (pointer_ + 1 < memory_size_)
-			memory_[pointer_++] = value;
+		if (position_ + 1 < memory_size_)
+			memory_[position_++] = value;
 
 		return *this;
 	}
@@ -93,8 +93,8 @@ namespace risData
 	template <typename encoding>
 	typename risStringBuffer<encoding>::Character risStringBuffer<encoding>::take()
 	{
-		if (pointer_ < memory_size_)
-			return memory_[pointer_++];
+		if (position_ < memory_size_)
+			return memory_[position_++];
 		else
 			return 0;
 	}
@@ -114,7 +114,7 @@ namespace risData
 	template<typename encoding>
 	StreamPosition risStringBuffer<encoding>::tellp() const
 	{
-		return pointer_;
+		return position_;
 	}
 	
 	template<typename encoding>
@@ -123,15 +123,15 @@ namespace risData
 		switch (stream_location)
 		{
 		case StreamLocation::Beginning:
-			pointer_ = offset;
+			position_ = offset;
 			break;
 	
 		case StreamLocation::Current:
-			pointer_ += offset;
+			position_ += offset;
 			break;
 	
 		case StreamLocation::End:
-			pointer_ = memory_size_ + offset - 1;
+			position_ = memory_size_ + offset - 1;
 			break;
 		}
 	
@@ -158,16 +158,16 @@ namespace risData
 	void risStringBuffer<encoding>::get_decoded_string(CodePoint* buffer, StreamSize buffer_size)
 	{
 		put(static_cast<Character>(0));
-		auto current_position = pointer_;
+		auto current_position = position_;
 
 		seekp(0, StreamLocation::Beginning);
 
-		for (StreamSize i = 0; pointer_ < current_position; ++i)
+		for (StreamSize i = 0; position_ < current_position; ++i)
 		{
 			buffer[i] = encoding::decode(*this);
 		}
 
-		pointer_ = current_position;
+		position_ = current_position;
 	}
 
 	template class risStringBuffer<risUTF8<>>;

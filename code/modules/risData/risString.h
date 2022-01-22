@@ -32,10 +32,10 @@ namespace risData
 		void get_decoded_string(CodePoint* buffer, StreamSize buffer_size);
 
 	private:
-		Character* memory_;
-		StreamSize memory_size_;
+		Character* memory_ = nullptr;
+		StreamSize memory_size_ = 0;
 
-		StreamSize pointer_;
+		StreamSize position_ = 0;
 	};
 
 	typedef risStringBuffer<risUTF8<>> risStringUTF8;
