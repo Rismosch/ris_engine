@@ -10,8 +10,8 @@
 #include "../modules/risData/risString.h"
 #include "../modules/risData/risEndian.h"
 #include "../modules/risData/risAllocator.h"
-#include "../modules/risData/risDataUtility.h"
 #include "../modules/risData/risFlag.h"
+#include "../modules/risData/risEncodings.h"
 #include "../modules/risFile/risFiles.h"
 
 using namespace ris;
@@ -40,16 +40,16 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	test_flag();
-	test_allocator();
+	// test_flag();
+	// test_allocator();
 	test_strings();
-	test_file();
-	test_file_and_unicode();
-	test_risFile();
-	test_rng();
-	test_arguments(argc, argv);
-	test_endian();
-	test_template();
+	// test_file();
+	// test_file_and_unicode();
+	// test_risFile();
+	// test_rng();
+	// test_arguments(argc, argv);
+	// test_endian();
+	// test_template();
 
 
 	// shutdown
@@ -143,59 +143,68 @@ void test_strings()
 	std::cout << "shouldn't exist: " << (internal_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
 
 	std::cout << "\nstring buffer:" << std::endl;
-	const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
-	auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
-	sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
 
-	sb->append('h');
-	sb->append('e');
-	sb->append('l');
-	sb->append('l');
-	sb->append('o');
-	sb->append(' ');
-	sb->append('w');
-	sb->append('o');
-	sb->append('r');
-	sb->append('l');
-	sb->append('d');
+	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
+	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
+	string_buffer->init(static_cast<U8*>(string_allocator->alloc(256)), 256);
 
-	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+	// string_buffer->init(static_cast<U8*>(string_allocator->alloc(256)), 256);
 
-	sb->append(" bruh");
+	delete string_allocator;
 
-	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
-
-	sb->clear();
-
-	std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
-
-
-	U32* values = new U32[100];
-
-	for (U8 i = 0; i < 100; ++i)
-	{
-		const U32 random_value = rng->IRandom(0, 0x0010FFFF);
-
-		values[i] = random_value;
-		sb->append_utf8(random_value);
-	}
-
-	const U32 count = sb->character_count(); // this will be significantly less than 100, because the buffer is too small and wont append further characters. This is by design.
-
-	std::cout << "character count: " << count << std::endl;
-
-	U32* decodedString = new U32[count];
-	sb->decode_utf8(decodedString);
-
-	for (U32 i = 0; i < count; ++i)
-	{
-		std::cout << values[i] << " = " << decodedString[i] << std::endl;
-	}
-
-	delete[] values;
-	delete[] decodedString;
-
-	delete stringAllocator;
+	// const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
+	// auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
+	// sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
+	//
+	// sb->append('h');
+	// sb->append('e');
+	// sb->append('l');
+	// sb->append('l');
+	// sb->append('o');
+	// sb->append(' ');
+	// sb->append('w');
+	// sb->append('o');
+	// sb->append('r');
+	// sb->append('l');
+	// sb->append('d');
+	//
+	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+	//
+	// sb->append(" bruh");
+	//
+	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+	//
+	// sb->clear();
+	//
+	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
+	//
+	//
+	// U32* values = new U32[100];
+	//
+	// for (U8 i = 0; i < 100; ++i)
+	// {
+	// 	const U32 random_value = rng->IRandom(0, 0x0010FFFF);
+	//
+	// 	values[i] = random_value;
+	// 	sb->append_utf8(random_value);
+	// }
+	//
+	// const U32 count = sb->character_count(); // this will be significantly less than 100, because the buffer is too small and wont append further characters. This is by design.
+	//
+	// std::cout << "character count: " << count << std::endl;
+	//
+	// U32* decodedString = new U32[count];
+	// sb->decode_utf8(decodedString);
+	//
+	// for (U32 i = 0; i < count; ++i)
+	// {
+	// 	std::cout << values[i] << " = " << decodedString[i] << std::endl;
+	// }
+	//
+	// delete[] values;
+	// delete[] decodedString;
+	//
+	// delete stringAllocator;
 }
 
 void test_file()
@@ -218,27 +227,27 @@ void test_file()
 
 void test_file_and_unicode()
 {
-	std::cout << "\nfile and unicode:" << std::endl;
-
-	const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
-	auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
-	sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
-
-	sb->append_utf8('b');
-	sb->append_utf8('r');
-	sb->append_utf8('u');
-	sb->append_utf8('h');
-	sb->append_utf8(0x1F60D); // emoji with heart eyes
-	sb->append_utf8(0x2705); // green checkmark
-
-	auto unicodeString = sb->get_string();
-
-	std::ofstream writeFile;
-	writeFile.open("unicode_example.txt");
-	writeFile << unicodeString;
-	writeFile.close();
-
-	delete stringAllocator;
+	// std::cout << "\nfile and unicode:" << std::endl;
+	//
+	// const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
+	// auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
+	// sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
+	//
+	// sb->append_utf8('b');
+	// sb->append_utf8('r');
+	// sb->append_utf8('u');
+	// sb->append_utf8('h');
+	// sb->append_utf8(0x1F60D); // emoji with heart eyes
+	// sb->append_utf8(0x2705); // green checkmark
+	//
+	// auto unicodeString = sb->get_string();
+	//
+	// std::ofstream writeFile;
+	// writeFile.open("unicode_example.txt");
+	// writeFile << unicodeString;
+	// writeFile.close();
+	//
+	// delete stringAllocator;
 }
 
 void test_risFile()
@@ -259,7 +268,7 @@ void test_risFile()
 	risReadFile risReadFile;
 	risReadFile.open("test.txt");
 	char* buffer = new char[100];
-	init0(buffer, 100);
+	// init0(buffer, 100);
 	risReadFile.get(buffer, 100);
 	std::cout << buffer << std::endl;
 	risReadFile.close();

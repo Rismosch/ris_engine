@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "risPrimitives.h"
+#include "risStreams.h"
 
 namespace risData
 {
@@ -7,30 +8,79 @@ namespace risData
 	extern StringId sid(const char* str);
 	extern const char* internal_string(StringId sid);
 
+	template<typename encoding>
 	class risStringBuffer
 	{
 	public:
-		void init(U8* buffer, U32 buffer_size);
+		typedef typename encoding::Character Character;
 
-		void clear();
+		void init(U8* memory, StreamSize memory_size)
+		{
+			memory_ = memory;
+			memory_size_ = memory_size;
+		}
 
-		bool append(const char* s);
-		bool append(U8 byte);
+		risStringBuffer& put_byte(U8 value)
+		{
+			if (pointer_ + 1 < memory_size_)
+				memory_[pointer_++] = value;
 
-		bool append_utf8(U32 codepoint);
-		void decode_utf8(U32* buffer);
+			return *this;
+		}
 
-		U32 character_count();
-		U32 size();
+		risStringBuffer& put(Character value)
+		{
+			encoding::encode(this, value);
 
-		U8* get_string();
+			return *this;
+		}
+		risStringBuffer& write(Character* values, StreamSize count)
+		{
+			for (StreamSize i = 0; i < count; ++i)
+			{
+				put(values[i]);
+			}
+
+			return *this;
+		}
+
+		StreamPosition tellp() const
+		{
+			return pointer_;
+		}
+
+		risStringBuffer& seekp(StreamPosition offset, StreamLocation stream_location = StreamLocation::Beginning)
+		{
+			switch (stream_location)
+			{
+			case StreamLocation::Beginning:
+				pointer_ = offset;
+				break;
+
+			case StreamLocation::Current:
+				pointer_ += offset;
+				break;
+
+			case StreamLocation::End:
+				pointer_ = memory_size_ + offset - 1;
+				break;
+			}
+
+			return *this;
+		}
+		risStringBuffer& flush();
+
+
+		void get_string(Character* buffer, StreamSize buffer_size)
+		{
+			
+		}
 
 	private:
-		U8* _buffer = nullptr;
-		U32 _buffer_size = 0;
+		U8* memory_ = nullptr;
+		StreamSize memory_size_ = 0;
 
-		U32 _pointer = 0;
-		U32 _character_count = 0;
+		StreamSize pointer_ = 0;
 
 	};
 }

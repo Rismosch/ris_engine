@@ -159,8 +159,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risAllocator.h" />
+    <ClInclude Include="risEncodings.h" />
     <ClInclude Include="risEndian.h" />
-    <ClInclude Include="risDataUtility.h" />
     <ClInclude Include="risFlag.h" />
     <ClInclude Include="risPrimitives.h" />
     <ClInclude Include="risStreams.h" />
@@ -174,7 +174,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="risAllocator.cpp" />
-    <ClCompile Include="risDataUtility.cpp" />
     <ClCompile Include="risFlag.cpp" />
     <ClCompile Include="risString.cpp" />
   </ItemGroup>
