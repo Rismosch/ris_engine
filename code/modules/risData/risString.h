@@ -18,6 +18,7 @@ namespace risData
 
 		risStringBuffer& put(Character value);
 		risStringBuffer& put(Character* values, StreamSize count);
+		risStringBuffer& put(const Character* values);
 		risStringBuffer& put(CodePoint code_point);
 		risStringBuffer& put(CodePoint* code_points, StreamSize count);
 
@@ -36,4 +37,7 @@ namespace risData
 
 		StreamSize pointer_;
 	};
+
+	typedef risStringBuffer<risUTF8<>> risStringUTF8;
+	typedef risStringBuffer<risASCII<>> risStringASCII;
 }

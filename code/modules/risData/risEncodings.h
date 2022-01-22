@@ -91,4 +91,23 @@ namespace risData
 			return 0xFFFF;
 		}
 	};
+
+	template<typename CharType = char>
+	struct risASCII
+	{
+		typedef CharType Character;
+
+
+		template<typename OutputStream>
+		static void encode(OutputStream& output_stream, CodePoint code_point)
+		{
+			output_stream.put(code_point & 0x7F);
+		}
+
+		template<typename InputStream>
+		static CodePoint decode(InputStream& input_stream)
+		{
+			return input_stream.take() & 0x7F;
+		}
+	};
 }

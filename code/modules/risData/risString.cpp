@@ -71,6 +71,17 @@ namespace risData
 		return *this;
 	}
 
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put(const Character* values)
+	{
+		for (StreamSize i = 0; values[i] != 0; ++i)
+		{
+			put(values[i]);
+		}
+
+		return *this;
+	}
+
 	template <typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint code_point)
 	{
@@ -153,12 +164,13 @@ namespace risData
 
 		for (StreamSize i = 0; pointer_ < current_position; ++i)
 		{
-			buffer[i] =encoding::decode(*this);
+			buffer[i] = encoding::decode(*this);
 		}
 
 		pointer_ = current_position;
 	}
 
 	template class risStringBuffer<risUTF8<>>;
+	template class risStringBuffer<risASCII<>>;
 #pragma endregion
 }

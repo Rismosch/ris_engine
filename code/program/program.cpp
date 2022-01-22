@@ -24,6 +24,7 @@ CRandomMother* rng;
 void test_flag();
 void test_allocator();
 void test_strings();
+void test_ascii();
 void test_file();
 void test_file_and_unicode();
 void test_risFile();
@@ -43,6 +44,7 @@ int main(int argc, char *argv[])
 	// test_flag();
 	// test_allocator();
 	test_strings();
+	test_ascii();
 	// test_file();
 	// test_file_and_unicode();
 	// test_risFile();
@@ -146,7 +148,7 @@ void test_strings()
 	
 	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
 	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
-	string_buffer->init(static_cast<U8*>(string_allocator->alloc(256)), 256);
+	string_buffer->init(static_cast<risUTF8<>::Character*>(string_allocator->alloc(256)), 256);
 
 	const auto input_values = new CodePoint[100];
 	const auto encoded_values = new risUTF8<>::Character[100];
@@ -173,6 +175,25 @@ void test_strings()
 	delete[] decoded_values;
 	delete[] encoded_values;
 	delete[] input_values;
+	delete string_allocator;
+}
+
+void test_ascii()
+{
+	std::cout << "\nascii:" << std::endl;
+
+	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
+	auto string_buffer = static_cast<risStringASCII*>(string_allocator->alloc(sizeof(risStringASCII)));
+	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(256)), 256);
+	
+	string_buffer->put("hoi").put(" ").put("poi");
+
+	auto result = new char[100];
+	string_buffer->get_encoded_string(result, 100);
+
+	std::cout << result << std::endl; // prints "hoi poi"
+
+	delete[] result;
 	delete string_allocator;
 }
 
