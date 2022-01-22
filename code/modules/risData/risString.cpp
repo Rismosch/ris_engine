@@ -7,6 +7,7 @@
 #include <string>
 
 #include "crc32.h"
+#include "risEncodings.h"
 
 namespace risData
 {
@@ -42,234 +43,122 @@ namespace risData
 	}
 
 #pragma region risStringBuffer
-	// template<typename encoding>
-	// void risStringBuffer<encoding>::init(U8* memory, StreamSize memory_size)
-	// {
-	// 	memory_ = memory;
-	// 	memory_size_ = memory_size;
-	// }
-	//
-	// template<typename encoding>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::put_byte(U8 value)
-	// {
-	// 	if(pointer_ + 1 < memory_size_)
-	// 		memory_[pointer_++] = value;
-	//
-	// 	return *this;
-	// }
-	//
-	// template<typename encoding>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character value)
-	// {
-	// 	encoding::encode(this, value);
-	//
-	// 	return *this;
-	// }
-	//
-	// template<typename encoding>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::write(Character* values, StreamSize count)
-	// {
-	// 	for (StreamSize i = 0; i < count; ++i)
-	// 	{
-	// 		put(values[i]);
-	// 	}
-	//
-	// 	return *this;
-	// }
-	//
-	// template<typename encoding>
-	// StreamPosition risStringBuffer<encoding>::tellp() const
-	// {
-	// 	return pointer_;
-	// }
-	//
-	// template<typename encoding>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::seekp(StreamPosition offset, StreamLocation stream_location)
-	// {
-	// 	switch (stream_location)
-	// 	{
-	// 	case StreamLocation::Beginning:
-	// 		pointer_ = offset;
-	// 		break;
-	//
-	// 	case StreamLocation::Current:
-	// 		pointer_ += offset;
-	// 		break;
-	//
-	// 	case StreamLocation::End:
-	// 		pointer_ = memory_size_ + offset - 1;
-	// 		break;
-	// 	}
-	//
-	// 	return *this;
-	// }
-	//
-	// template<typename encoding>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::flush()
-	// {
-	// 	return *this;
-	// }
-	//
-	// template<typename encoding>
-	// void risStringBuffer<encoding>::get_string(Character* buffer, StreamSize buffer_size)
-	// {
-	//
-	// }
+	template<typename encoding>
+	void risStringBuffer<encoding>::init(Character* memory, StreamSize memory_size)
+	{
+		memory_ = memory;
+		memory_size_ = memory_size;
+		pointer_ = 0;
+	}
+
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character value)
+	{
+		if (pointer_ + 1 < memory_size_)
+			memory_[pointer_++] = value;
+
+		return *this;
+	}
+
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character* values, StreamSize count)
+	{
+		for (StreamSize i = 0; i < count; ++i)
+		{
+			put(values[i]);
+		}
+
+		return *this;
+	}
+
+	template <typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint code_point)
+	{
+		encoding::encode(*this, code_point);
+
+		return *this;
+	}
+
+	template <typename encoding>
+	typename risStringBuffer<encoding>::Character risStringBuffer<encoding>::take()
+	{
+		if (pointer_ < memory_size_)
+			return memory_[pointer_++];
+		else
+			return 0;
+	}
 
 
-	// void risStringBuffer::init(U8* buffer, U32 buffer_size)
-	// {
-	// 	_buffer = buffer;
-	// 	_buffer_size = buffer_size;
-	// 	clear();
-	// }
-	//
-	// void risStringBuffer::clear()
-	// {
-	// 	init0(_buffer, _buffer_size);
-	//
-	// 	_pointer = 0;
-	// 	_character_count = 0;
-	// }
-	//
-	// bool risStringBuffer::append(const char* s)
-	// {
-	// 	U32 input_size = 0;
-	// 	while (s[input_size] != 0)
-	// 	{
-	// 		++input_size;
-	// 	}
-	//
-	// 	if (_pointer + input_size >= _buffer_size)
-	// 		return false;
-	//
-	// 	for (U32 i = 0; i < input_size; ++i)
-	// 	{
-	// 		_buffer[_pointer++] = s[i];
-	// 		++_character_count;
-	// 	}
-	//
-	// 	return true;
-	// }
-	//
-	// bool risStringBuffer::append(U8 byte)
-	// {
-	// 	if (_pointer + 1 >= _buffer_size)
-	// 		return false;
-	//
-	// 	_buffer[_pointer++] = byte;
-	// 	++_character_count;
-	// 	return true;
-	// }
-	//
-	// bool risStringBuffer::append_utf8(U32 codepoint)
-	// {
-	// 	if (codepoint > 0x0010FFFF)
-	// 		return false;
-	//
-	// 	if (codepoint > 0x000FFFF)
-	// 	{
-	// 		if (_pointer + 4 >= _buffer_size)
-	// 			return false;
-	//
-	// 		_buffer[_pointer++] = static_cast<U8>(0xF0 | (0x1C0000 & codepoint) >> 18);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F000 & codepoint) >> 12);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0xFC0 & codepoint) >> 6);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
-	//
-	// 		++_character_count;
-	// 		return true;
-	// 	}
-	// 	else if (codepoint > 0x000007FF)
-	// 	{
-	// 		if (_pointer + 3 >= _buffer_size)
-	// 			return false;
-	//
-	// 		_buffer[_pointer++] = static_cast<U8>(0xE0 | (0xF000 & codepoint) >> 12);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0xFC0 & codepoint) >> 6);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
-	//
-	// 		++_character_count;
-	// 		return true;
-	// 	}
-	// 	else if (codepoint > 0x0000007F)
-	// 	{
-	// 		if (_pointer + 2 >= _buffer_size)
-	// 			return false;
-	//
-	// 		_buffer[_pointer++] = static_cast<U8>(0xC0 | (0x7C0 & codepoint) >> 6);
-	// 		_buffer[_pointer++] = static_cast<U8>(0x80 | (0x3F & codepoint));
-	//
-	// 		++_character_count;
-	// 		return true;
-	// 	}
-	// 	else
-	// 	{
-	// 		if (_pointer + 1 >= _buffer_size)
-	// 			return false;
-	//
-	// 		_buffer[_pointer++] = static_cast<U8>(0x0000007f & codepoint);
-	//
-	// 		++_character_count;
-	// 		return true;
-	// 	}
-	// }
-	//
-	// void risStringBuffer::decode_utf8(U32* buffer)
-	// {
-	// 	U32 read_pointer = 0;
-	//
-	// 	const U32 count = character_count();
-	// 	for (U32 i = 0; i < count; ++i)
-	// 	{
-	// 		U8 byte1 = _buffer[read_pointer++];
-	// 		if ((byte1 & 0x80) == 0)
-	// 		{
-	// 			buffer[i] = byte1;
-	// 		}
-	// 		else if ((byte1 & 0xE0) == 0xC0)
-	// 		{
-	// 			U8 byte2 = _buffer[read_pointer++];
-	//
-	// 			buffer[i] = (byte1 & 0x1F) << 6 | byte2 & 0x3F;
-	// 		}
-	// 		else if ((byte1 & 0xF0) == 0xE0)
-	// 		{
-	// 			U8 byte2 = _buffer[read_pointer++];
-	// 			U8 byte3 = _buffer[read_pointer++];
-	//
-	// 			buffer[i] = (byte1 & 0x0F) << 12 | (byte2 & 0x3F) << 6 | byte3 & 0x3F;
-	// 		}
-	// 		else if ((byte1 & 0xF8) == 0xF0)
-	// 		{
-	// 			U8 byte2 = _buffer[read_pointer++];
-	// 			U8 byte3 = _buffer[read_pointer++];
-	// 			U8 byte4 = _buffer[read_pointer++];
-	//
-	// 			buffer[i] = (byte1 & 0x07) << 18 | (byte2 & 0x3F) << 12 | (byte3 & 0x3F) << 6 | byte4 & 0x3F;
-	// 		}
-	// 		else
-	// 		{
-	// 			// did not expect to find 0b10xxxxxx here
-	// 			// discarding character...
-	// 			--i;
-	// 		}
-	// 	}
-	// }
-	//
-	// U32 risStringBuffer::character_count()
-	// {
-	// 	return _character_count + 1;
-	// }
-	//
-	// U32 risStringBuffer::size()
-	// {
-	// 	return _pointer + 1;
-	// }
-	//
-	// U8* risStringBuffer::get_string()
-	// {
-	// 	return _buffer;
-	// }
+	template <typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint* code_points, StreamSize count)
+	{
+		for (StreamSize i = 0; i < count; ++i)
+		{
+			put(code_points[i]);
+		}
+		
+		return *this;
+	}
+	
+	template<typename encoding>
+	StreamPosition risStringBuffer<encoding>::tellp() const
+	{
+		return pointer_;
+	}
+	
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::seekp(StreamPosition offset, StreamLocation stream_location)
+	{
+		switch (stream_location)
+		{
+		case StreamLocation::Beginning:
+			pointer_ = offset;
+			break;
+	
+		case StreamLocation::Current:
+			pointer_ += offset;
+			break;
+	
+		case StreamLocation::End:
+			pointer_ = memory_size_ + offset - 1;
+			break;
+		}
+	
+		return *this;
+	}
+	
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::flush()
+	{
+		return *this;
+	}
+
+	template<typename encoding>
+	void risStringBuffer<encoding>::get_encoded_string(Character* buffer, StreamSize buffer_size)
+	{
+		put(static_cast<Character>(0));
+		for (StreamSize i = 0; i < buffer_size && i < memory_size_; ++i)
+		{
+			buffer[i] = memory_[i];
+		}
+	}
+
+	template<typename encoding>
+	void risStringBuffer<encoding>::get_decoded_string(CodePoint* buffer, StreamSize buffer_size)
+	{
+		put(static_cast<Character>(0));
+		auto current_position = pointer_;
+
+		seekp(0, StreamLocation::Beginning);
+
+		for (StreamSize i = 0; pointer_ < current_position; ++i)
+		{
+			buffer[i] =encoding::decode(*this);
+		}
+
+		pointer_ = current_position;
+	}
+
+	template class risStringBuffer<risUTF8<>>;
 #pragma endregion
 }

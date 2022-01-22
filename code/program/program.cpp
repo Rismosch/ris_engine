@@ -143,68 +143,37 @@ void test_strings()
 	std::cout << "shouldn't exist: " << (internal_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
 
 	std::cout << "\nstring buffer:" << std::endl;
-
+	
 	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
 	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
 	string_buffer->init(static_cast<U8*>(string_allocator->alloc(256)), 256);
 
-	// string_buffer->init(static_cast<U8*>(string_allocator->alloc(256)), 256);
+	const auto input_values = new CodePoint[100];
+	const auto encoded_values = new risUTF8<>::Character[100];
+	const auto decoded_values = new CodePoint[100];
+	
+	for (U8 i = 0; i < 100; ++i)
+	{
+		//const auto random_value = static_cast<CodePoint>(rng->IRandom(0, 0x0010FFFF));
 
+		input_values[i] = (i * 0x0010FFFF / 100) % 0x0010FFFF;
+		encoded_values[i] = 0;
+		decoded_values[i] = 0;
+	}
+
+	string_buffer->put(input_values, 100);
+	string_buffer->get_encoded_string(encoded_values, 100);
+	string_buffer->get_decoded_string(decoded_values, 100);
+
+	for (U8 i = 0; i < 100; ++i)
+	{
+		std::cout << input_values[i] << "=" << encoded_values[i] << "=" << decoded_values[i] << std::endl;
+	}
+
+	delete[] decoded_values;
+	delete[] encoded_values;
+	delete[] input_values;
 	delete string_allocator;
-
-	// const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
-	// auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
-	// sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
-	//
-	// sb->append('h');
-	// sb->append('e');
-	// sb->append('l');
-	// sb->append('l');
-	// sb->append('o');
-	// sb->append(' ');
-	// sb->append('w');
-	// sb->append('o');
-	// sb->append('r');
-	// sb->append('l');
-	// sb->append('d');
-	//
-	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
-	//
-	// sb->append(" bruh");
-	//
-	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
-	//
-	// sb->clear();
-	//
-	// std::cout << sb->get_string() << " " << sb->character_count() << " " << sb->size() << std::endl;
-	//
-	//
-	// U32* values = new U32[100];
-	//
-	// for (U8 i = 0; i < 100; ++i)
-	// {
-	// 	const U32 random_value = rng->IRandom(0, 0x0010FFFF);
-	//
-	// 	values[i] = random_value;
-	// 	sb->append_utf8(random_value);
-	// }
-	//
-	// const U32 count = sb->character_count(); // this will be significantly less than 100, because the buffer is too small and wont append further characters. This is by design.
-	//
-	// std::cout << "character count: " << count << std::endl;
-	//
-	// U32* decodedString = new U32[count];
-	// sb->decode_utf8(decodedString);
-	//
-	// for (U32 i = 0; i < count; ++i)
-	// {
-	// 	std::cout << values[i] << " = " << decodedString[i] << std::endl;
-	// }
-	//
-	// delete[] values;
-	// delete[] decodedString;
-	//
-	// delete stringAllocator;
 }
 
 void test_file()

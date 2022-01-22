@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "risPrimitives.h"
+#include "risEncodings.h"
 #include "risStreams.h"
 
 namespace risData
@@ -14,73 +14,26 @@ namespace risData
 	public:
 		typedef typename encoding::Character Character;
 
-		void init(U8* memory, StreamSize memory_size)
-		{
-			memory_ = memory;
-			memory_size_ = memory_size;
-		}
+		void init(Character* memory, StreamSize memory_size);
 
-		risStringBuffer& put_byte(U8 value)
-		{
-			if (pointer_ + 1 < memory_size_)
-				memory_[pointer_++] = value;
+		risStringBuffer& put(Character value);
+		risStringBuffer& put(Character* values, StreamSize count);
+		risStringBuffer& put(CodePoint code_point);
+		risStringBuffer& put(CodePoint* code_points, StreamSize count);
 
-			return *this;
-		}
+		Character take();
 
-		risStringBuffer& put(Character value)
-		{
-			encoding::encode(this, value);
-
-			return *this;
-		}
-		risStringBuffer& write(Character* values, StreamSize count)
-		{
-			for (StreamSize i = 0; i < count; ++i)
-			{
-				put(values[i]);
-			}
-
-			return *this;
-		}
-
-		StreamPosition tellp() const
-		{
-			return pointer_;
-		}
-
-		risStringBuffer& seekp(StreamPosition offset, StreamLocation stream_location = StreamLocation::Beginning)
-		{
-			switch (stream_location)
-			{
-			case StreamLocation::Beginning:
-				pointer_ = offset;
-				break;
-
-			case StreamLocation::Current:
-				pointer_ += offset;
-				break;
-
-			case StreamLocation::End:
-				pointer_ = memory_size_ + offset - 1;
-				break;
-			}
-
-			return *this;
-		}
+		StreamPosition tellp() const;
+		risStringBuffer& seekp(StreamPosition offset, StreamLocation stream_location = StreamLocation::Beginning);
 		risStringBuffer& flush();
 
-
-		void get_string(Character* buffer, StreamSize buffer_size)
-		{
-			
-		}
+		void get_encoded_string(Character* buffer, StreamSize buffer_size);
+		void get_decoded_string(CodePoint* buffer, StreamSize buffer_size);
 
 	private:
-		U8* memory_ = nullptr;
-		StreamSize memory_size_ = 0;
+		Character* memory_;
+		StreamSize memory_size_;
 
-		StreamSize pointer_ = 0;
-
+		StreamSize pointer_;
 	};
 }
