@@ -163,12 +163,6 @@
     <ProjectReference Include="..\modules\risFile\risFile.vcxproj">
       <Project>{01df574e-42f0-4efc-a9c0-d56f1257b951}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\modules\risStreams\risStreams.vcxproj">
-      <Project>{efce48c2-ef08-4def-aa6e-dbbc41a943b6}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\modules\risUtility\risUtility.vcxproj">
-      <Project>{bcc603b8-7e45-468c-baee-781fcddad9c0}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="flags.h" />

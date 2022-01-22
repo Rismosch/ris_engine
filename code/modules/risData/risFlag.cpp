@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "risFlag.h"
 
-namespace risUtility
+namespace risData
 {
 	struct risFlag::Impl
 	{

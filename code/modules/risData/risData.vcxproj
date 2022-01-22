@@ -155,13 +155,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="crc32.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risAllocator.h" />
     <ClInclude Include="risEndian.h" />
     <ClInclude Include="risDataUtility.h" />
+    <ClInclude Include="risFlag.h" />
     <ClInclude Include="risPrimitives.h" />
     <ClInclude Include="risStreams.h" />
+    <ClInclude Include="risString.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -172,6 +175,8 @@
     </ClCompile>
     <ClCompile Include="risAllocator.cpp" />
     <ClCompile Include="risDataUtility.cpp" />
+    <ClCompile Include="risFlag.cpp" />
+    <ClCompile Include="risString.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

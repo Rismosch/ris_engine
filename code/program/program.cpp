@@ -6,18 +6,16 @@
 #include "../3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "../modules/risUtility/crc32.h"
-#include "../modules/risStreams/risString.h"
+#include "../modules/risData/crc32.h"
+#include "../modules/risData/risString.h"
 #include "../modules/risData/risEndian.h"
 #include "../modules/risData/risAllocator.h"
 #include "../modules/risData/risDataUtility.h"
-#include "../modules/risUtility/risFlag.h"
+#include "../modules/risData/risFlag.h"
 #include "../modules/risFile/risFiles.h"
 
 using namespace ris;
-using namespace risUtility;
 using namespace risFile;
-using namespace risStreams;
 
 risFlag* flags;
 risAllocator* stackAllocator;
@@ -31,7 +29,6 @@ void test_file_and_unicode();
 void test_risFile();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
-void test_json();
 void test_endian();
 void test_template();
 
@@ -43,16 +40,15 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	// test_flag();
-	// test_allocator();
-	// test_strings();
-	// test_file();
-	// test_file_and_unicode();
+	test_flag();
+	test_allocator();
+	test_strings();
+	test_file();
+	test_file_and_unicode();
 	test_risFile();
-	// test_rng();
-	// test_arguments(argc, argv);
-	// test_json();
-	// test_endian();
+	test_rng();
+	test_arguments(argc, argv);
+	test_endian();
 	test_template();
 
 
