@@ -1,0 +1,16 @@
+config: 
+folder_root=path to root folder of folder structure
+package=path to package location
+lookup=path to sid lookup table
+
+lookup_table:
+sid=rispath // array of only these
+
+// manager methods:
+compile lookup // scans folder structure and generates lookup_table
+decompile // extracts single files out of package. If lookup_table exists, create folder structure instead
+compile folder // generates lookup_table, sorts it by sid, and then generates package from it and the folder_structure
+get_file(sid) // get file with according sid,
+		 in DEBUG, per default it looks up the path and retreives it from the folder structure,
+		 in DEBUG, if flag is set to true, which is set upon construction, retreives it from the package instead,
+		 in RELEASE, it will always retreive it from the package
