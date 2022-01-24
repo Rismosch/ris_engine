@@ -24,7 +24,7 @@
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risAllocator.h">
+    <ClInclude Include="risAllocators.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="risEndian.h">
@@ -50,7 +50,7 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="risAllocator.cpp">
+    <ClCompile Include="risStackAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="risString.cpp">

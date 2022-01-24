@@ -9,7 +9,7 @@
 #include "../modules/risData/crc32.h"
 #include "../modules/risData/risString.h"
 #include "../modules/risData/risEndian.h"
-#include "../modules/risData/risAllocator.h"
+#include "../modules/risData/risAllocators.h"
 #include "../modules/risData/risFlag.h"
 #include "../modules/risData/risEncodings.h"
 #include "../modules/risFile/risFiles.h"
@@ -18,7 +18,7 @@ using namespace ris;
 using namespace risFile;
 
 risFlag* flags;
-risAllocator* stackAllocator;
+risStackAllocator* stackAllocator;
 CRandomMother* rng;
 
 void test_flag();
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 {
 	// startup
 	flags = new risFlag();
-	stackAllocator = new risAllocator(sizeof(U32) * 2);
+	stackAllocator = new risStackAllocator(sizeof(U32) * 2);
 	rng = new CRandomMother(42);
 
 	// tests
@@ -92,7 +92,7 @@ void test_allocator()
 	U32* number1 = nullptr;
 	U32* number2 = nullptr;
 	U32* number3 = nullptr;
-	risAllocator::Marker marker = 0;
+	risStackAllocator::Marker marker = 0;
 
 	number0 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
 	*number0 = 42;
@@ -146,7 +146,7 @@ void test_strings()
 
 	std::cout << "\nstring buffer:" << std::endl;
 	
-	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
+	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
 	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
 	string_buffer->init(static_cast<risUTF8<>::Character*>(string_allocator->alloc(256)), 256);
 
@@ -182,7 +182,7 @@ void test_ascii()
 {
 	std::cout << "\nascii:" << std::endl;
 
-	const auto string_allocator = new risAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
+	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
 	auto string_buffer = static_cast<risStringASCII*>(string_allocator->alloc(sizeof(risStringASCII)));
 	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(256)), 256);
 	
@@ -219,7 +219,7 @@ void test_file_and_unicode()
 {
 	// std::cout << "\nfile and unicode:" << std::endl;
 	//
-	// const auto stringAllocator = new risAllocator(sizeof(risStringBuffer) + 256);
+	// const auto stringAllocator = new risStackAllocator(sizeof(risStringBuffer) + 256);
 	// auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
 	// sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
 	//
