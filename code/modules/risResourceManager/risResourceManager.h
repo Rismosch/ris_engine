@@ -23,5 +23,10 @@ namespace risResource
 		bool should_use_package_;
 #endif
 
+		template<class Resource>
+		Resource* load_from_file(StringId path_id);
+
+		template<class Resource>w
+		Resource* load_from_package(StringId path_id);
 	};
 }
