@@ -3,6 +3,7 @@
 
 namespace risData
 {
+#pragma region risStackAllocator
 	struct risStackAllocator::Impl
 	{
 		U8* data;
@@ -14,6 +15,7 @@ namespace risData
 
 	risStackAllocator::risStackAllocator(U32 size_bytes) : pImpl(new Impl(size_bytes)) { }
 	risStackAllocator::~risStackAllocator() { delete pImpl; }
+
 
 	void* risStackAllocator::alloc(U32 size_bytes) const
 	{
@@ -38,4 +40,5 @@ namespace risData
 	{
 		pImpl->marker = static_cast<Marker>(0);
 	}
+#pragma endregion
 }

@@ -10,12 +10,18 @@ namespace risResource
 	class risResourceManager
 	{
 	public:
-		risResourceManager(risStackAllocator stack_allocator, bool should_use_package = false);
+		risResourceManager(const risStackAllocator& file_allocator, const risStackAllocator& resource_allocator, bool should_use_package = false);
 
 		template<class Resource>
-		Resource load(StringId path_id);
+		Resource* load(StringId path_id);
+
 	private:
-		risStackAllocator stack_allocator_;
+		risStackAllocator file_allocator_;
+		risStackAllocator resource_allocator_;
+
+#if defined _DEBUG
 		bool should_use_package_;
+#endif
+
 	};
 }
