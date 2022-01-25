@@ -2,8 +2,5 @@
 
 namespace risResource
 {
-	class risResourceBase
-	{
-		
-	};
+	class risResourceBase {};
 }
