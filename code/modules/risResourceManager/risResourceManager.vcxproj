@@ -154,8 +154,11 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="risResourceBase.h" />
+    <ClInclude Include="risResourceParserBase.h" />
+    <ClInclude Include="risResourceType.h" />
     <ClInclude Include="risResourceManager.h" />
-    <ClInclude Include="TextResource.h" />
+    <ClInclude Include="risTextResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

@@ -24,7 +24,16 @@
     <ClInclude Include="risResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextResource.h">
+    <ClInclude Include="risTextResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="risResourceType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="risResourceParserBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="risResourceBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
