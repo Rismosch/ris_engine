@@ -92,7 +92,7 @@ void test_allocator()
 	U32* number1 = nullptr;
 	U32* number2 = nullptr;
 	U32* number3 = nullptr;
-	risStackAllocator::Marker marker = 0;
+	Marker marker = 0;
 
 	number0 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
 	*number0 = 42;

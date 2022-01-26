@@ -36,7 +36,7 @@ namespace risData
 #pragma endregion
 
 #pragma region risDoubleStackAllocator
-	risDoubleStackAllocator::risDoubleStackAllocator(U32 size_bytes) : data_(new U8[size_bytes]), size_bytes_(size_bytes), marker_end_(size_bytes){}
+	risDoubleStackAllocator::risDoubleStackAllocator(U32 size_bytes) : data_(new U8[size_bytes]), size_bytes_(size_bytes), marker_back_(size_bytes){}
 	risDoubleStackAllocator::~risDoubleStackAllocator() { delete[] data_; }
 
 	void* risDoubleStackAllocator::alloc_front(U32 size_bytes)
