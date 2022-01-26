@@ -11,7 +11,17 @@ namespace risResource
 		should_use_package_ = should_use_package;  // NOLINT(cppcoreguidelines-prefer-member-initializer)
 #endif
 	}
-	
+
+	void risResourceManager::compile()
+	{
+		
+	}
+
+	void risResourceManager::decompile()
+	{
+
+	}
+
 	template <class Resource>
 	Resource* risResourceManager::load(StringId path_id)
 	{
