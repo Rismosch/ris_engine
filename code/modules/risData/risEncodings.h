@@ -97,11 +97,10 @@ namespace risData
 	{
 		typedef CharType Character;
 
-
 		template<typename OutputStream>
 		static void encode(OutputStream& output_stream, CodePoint code_point)
 		{
-			output_stream.put(code_point & 0x7F);
+			output_stream.put(static_cast<Character>(code_point & 0x7F));
 		}
 
 		template<typename InputStream>

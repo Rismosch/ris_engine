@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <iostream>
-#include <vector>
 #include <fstream>
 
 #include "../3rd_party/randomc/randomc.h"
@@ -45,7 +44,7 @@ int main(int argc, char *argv[])
 	// test_allocator();
 	test_strings();
 	test_ascii();
-	// test_file();
+	test_file();
 	// test_file_and_unicode();
 	// test_risFile();
 	// test_rng();
@@ -187,6 +186,11 @@ void test_ascii()
 	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(256)), 256);
 	
 	string_buffer->put("hoi").put(" ").put("poi");
+	string_buffer->put(" ").put_bool(true);
+	string_buffer->put(" ").put_bool(false);
+	string_buffer->put(" ").put_int(0);
+	// string_buffer->put(" ").put_int(-13);
+	// string_buffer->put(" ").put_int(42);
 
 	auto result = new char[100];
 	string_buffer->get_encoded_string(result, 100);

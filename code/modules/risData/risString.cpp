@@ -11,6 +11,7 @@
 
 namespace risData
 {
+#pragma region global
 #if defined _DEBUG
 	static std::map<StringId, const char*> gStringIdTable;
 #endif
@@ -42,6 +43,8 @@ namespace risData
 #endif
 	}
 
+#pragma endregion
+
 #pragma region risStringBuffer
 	template<typename encoding>
 	void risStringBuffer<encoding>::init(Character* memory, StreamSize memory_size)
@@ -51,6 +54,7 @@ namespace risData
 		position_ = 0;
 	}
 
+#pragma region unformatted input
 	template<typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character value)
 	{
@@ -91,32 +95,75 @@ namespace risData
 	}
 
 	template <typename encoding>
-	typename risStringBuffer<encoding>::Character risStringBuffer<encoding>::take()
-	{
-		if (position_ < memory_size_)
-			return memory_[position_++];
-		else
-			return 0;
-	}
-
-
-	template <typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint* code_points, StreamSize count)
 	{
 		for (StreamSize i = 0; i < count; ++i)
 		{
 			put(code_points[i]);
 		}
-		
+
 		return *this;
 	}
-	
+#pragma endregion
+
+#pragma region formatted input
+	template<typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put_bool(bool value)
+	{
+		if (value)
+		{
+			put(static_cast<CodePoint>(116)); // t
+			put(static_cast<CodePoint>(114)); // r
+			put(static_cast<CodePoint>(117)); // u
+			put(static_cast<CodePoint>(101)); // e
+		}
+		else
+		{
+			put(static_cast<CodePoint>(102)); // f
+			put(static_cast<CodePoint>( 97)); // a
+			put(static_cast<CodePoint>(108)); // l
+			put(static_cast<CodePoint>(115)); // s
+			put(static_cast<CodePoint>(101)); // e
+		}
+
+		return *this;
+	}
+
+	template <typename encoding>
+	template <typename number>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::put_int(number value)
+	{
+		// if (value == 0)
+		// {
+		// 	put(static_cast<CodePoint>(48)); // 0
+		// 	return *this;
+		// }
+		//
+		// if (value < 0)
+		// {
+		// 	put(static_cast<CodePoint>(45)); // -
+		// 	value *= -1;
+		// }
+
+		return *this;
+	}
+
+	// template <typename encoding>
+	// template <typename number>
+	// risStringBuffer<encoding>& risStringBuffer<encoding>::put_float(number value)
+	// {
+	//
+	// }
+#pragma endregion
+
+
+#pragma region stream utility
 	template<typename encoding>
 	StreamPosition risStringBuffer<encoding>::tellp() const
 	{
 		return position_;
 	}
-	
+
 	template<typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::seekp(StreamPosition offset, StreamLocation stream_location)
 	{
@@ -125,32 +172,44 @@ namespace risData
 		case StreamLocation::Beginning:
 			position_ = offset;
 			break;
-	
+
 		case StreamLocation::Current:
 			position_ += offset;
 			break;
-	
+
 		case StreamLocation::End:
 			position_ = memory_size_ + offset - 1;
 			break;
 		}
-	
+
 		return *this;
 	}
-	
+
 	template<typename encoding>
 	risStringBuffer<encoding>& risStringBuffer<encoding>::flush()
 	{
 		return *this;
 	}
+#pragma endregion
+
+#pragma region output
+	template <typename encoding>
+	typename risStringBuffer<encoding>::Character risStringBuffer<encoding>::take()
+	{
+		if (position_ < memory_size_)
+			return memory_[position_++];
+		else
+			return 0;
+	}
 
 	template<typename encoding>
 	void risStringBuffer<encoding>::get_encoded_string(Character* buffer, StreamSize buffer_size)
 	{
-		put(static_cast<Character>(0));
+		put(static_cast<CodePoint>(0));
 		for (StreamSize i = 0; i < buffer_size && i < memory_size_; ++i)
 		{
-			buffer[i] = memory_[i];
+			auto test = memory_[i];
+			buffer[i] = test;
 		}
 	}
 
@@ -169,6 +228,7 @@ namespace risData
 
 		position_ = current_position;
 	}
+#pragma endregion
 
 	template class risStringBuffer<risUTF8<>>;
 	template class risStringBuffer<risASCII<>>;
