@@ -12,6 +12,9 @@ namespace risResource
 	public:
 		risResourceManager(const risDoubleStackAllocator& double_stack_allocator, bool should_use_package = false);
 
+		void compile();
+		void decompile();
+
 		template<class Resource>
 		Resource* load(StringId path_id);
 
