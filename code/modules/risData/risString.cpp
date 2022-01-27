@@ -108,7 +108,7 @@ namespace risData
 
 #pragma region formatted input
 	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put_bool(bool value)
+	risStringBuffer<encoding>& risStringBuffer<encoding>::format(bool value)
 	{
 		if (value)
 		{
@@ -130,30 +130,82 @@ namespace risData
 	}
 
 	template <typename encoding>
-	template <typename number>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put_int(number value)
+	risStringBuffer<encoding>& risStringBuffer<encoding>::format(I32 value)
 	{
-		// if (value == 0)
-		// {
-		// 	put(static_cast<CodePoint>(48)); // 0
-		// 	return *this;
-		// }
-		//
-		// if (value < 0)
-		// {
-		// 	put(static_cast<CodePoint>(45)); // -
-		// 	value *= -1;
-		// }
+		constexpr CodePoint code_point[10]{ 48,49,50,51,52,53,54,55,56,57 };
+
+		if (value == 0)
+		{
+			return put(static_cast<CodePoint>(code_point[0]));
+		}
+
+		if (value < 0)
+		{
+			put(static_cast<CodePoint>(45)); // -
+			value *= -1;
+		}
+
+		U32 digit_count = 0;
+		U32 value_copy = value;
+		while (value_copy > 0)
+		{
+			++digit_count;
+			value_copy /= 10;
+		}
+
+		for (U32 i = 0; i < digit_count; ++i)
+		{
+			const U32 digit_index = digit_count - i - 1;
+			U32 div = 1;
+			for (U32 j = 0; j < digit_index; ++j)
+			{
+				div *= 10;
+			}
+
+			const U32 digit_value = value / div % 10;
+
+			put(static_cast<CodePoint>(code_point[digit_value]));
+		}
 
 		return *this;
 	}
 
-	// template <typename encoding>
-	// template <typename number>
-	// risStringBuffer<encoding>& risStringBuffer<encoding>::put_float(number value)
-	// {
-	//
-	// }
+	template <typename encoding>
+	risStringBuffer<encoding>& risStringBuffer<encoding>::format(F32 value, U8 precision)
+	{
+		constexpr CodePoint code_point[10]{ 48,49,50,51,52,53,54,55,56,57 };
+
+		I32 int_value = static_cast<I32>(value);
+
+		format(int_value);
+		put(static_cast<CodePoint>(46)); // .
+
+		U32 mul = 1;
+		for (U8 i = 0; i < precision; ++i)
+		{
+			mul *= 10;
+		}
+
+		int_value = static_cast<I32>((value - static_cast<F32>(int_value)) * static_cast<float>(mul));
+		if (int_value < 0)
+			int_value *= -1;
+
+		for (U32 i = 0; i < precision; ++i)
+		{
+			const U32 digit_index = precision - i - 1;
+			U32 div = 1;
+			for (U32 j = 0; j < digit_index; ++j)
+			{
+				div *= 10;
+			}
+
+			const U32 digit_value = int_value / div % 10;
+
+			put(static_cast<CodePoint>(code_point[digit_value]));
+		}
+
+		return *this;
+	}
 #pragma endregion
 
 

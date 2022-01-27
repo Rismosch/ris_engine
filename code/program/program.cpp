@@ -181,19 +181,28 @@ void test_ascii()
 {
 	std::cout << "\nascii:" << std::endl;
 
-	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
+	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 500);
 	auto string_buffer = static_cast<risStringASCII*>(string_allocator->alloc(sizeof(risStringASCII)));
-	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(256)), 256);
+	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(500)), 500);
 	
 	string_buffer->put("hoi").put(" ").put("poi");
-	string_buffer->put(" ").put_bool(true);
-	string_buffer->put(" ").put_bool(false);
-	string_buffer->put(" ").put_int(0);
-	// string_buffer->put(" ").put_int(-13);
-	// string_buffer->put(" ").put_int(42);
+	string_buffer->put(" ").format(true);
+	string_buffer->put(" ").format(false);
+	string_buffer->put(" ").format(0);
+	string_buffer->put(" ").format(123456);
+	string_buffer->put(" ").format(1513653123);
+	string_buffer->put(" ").format(235235);
+	string_buffer->put(" ").format(42);
+	string_buffer->put(" ").format(1500008);
+	string_buffer->put(" ").format(-13);
+	string_buffer->put(" ").format(-987654321);
+	string_buffer->put(" ").format(-0);
+	string_buffer->put(" ").format(123.456f);
+	string_buffer->put(" ").format(-24680.f);
+	string_buffer->put(" ").format(-.0102030405f);
 
-	auto result = new char[100];
-	string_buffer->get_encoded_string(result, 100);
+	auto result = new char[500];
+	string_buffer->get_encoded_string(result, 500);
 
 	std::cout << result << std::endl; // prints "hoi poi"
 

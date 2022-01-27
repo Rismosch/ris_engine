@@ -24,11 +24,9 @@ namespace risData
 		risStringBuffer& put(CodePoint* code_points, StreamSize count);
 
 		// formatted input
-		risStringBuffer& put_bool(bool value);
-		template<typename number>
-		risStringBuffer& put_int(number value);
-		// template<typename number>
-		// risStringBuffer& put_float(number value);
+		risStringBuffer& format(bool value);
+		risStringBuffer& format(I32 value);
+		risStringBuffer& format(F32 value, U8 precision = 8);
 
 		// stream utility
 		StreamPosition tellp() const;
