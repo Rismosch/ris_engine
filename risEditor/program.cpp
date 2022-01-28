@@ -2,15 +2,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "../3rd_party/randomc/randomc.h"
+#include "3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "../modules/risData/risString.h"
-#include "../modules/risData/risEndian.h"
-#include "../modules/risData/risAllocators.h"
-#include "../modules/risData/risFlag.h"
-#include "../modules/risData/risEncodings.h"
-#include "../modules/risFile/risFiles.h"
+#include "risModules/risData/risString.h"
+#include "risModules/risData/risEndian.h"
+#include "risModules/risData/risAllocators.h"
+#include "risModules/risData/risFlag.h"
+#include "risModules/risData/risEncodings.h"
+#include "risModules/risFile/risFiles.h"
 
 using namespace ris;
 using namespace risFile;

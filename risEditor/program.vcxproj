@@ -24,6 +24,7 @@
     <ProjectGuid>{6d98d2f8-9456-47c5-8f58-5b157c3ceaf0}</ProjectGuid>
     <RootNamespace>program</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>risEditor</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -90,6 +91,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)risEngine;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -107,6 +109,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)risEngine;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,6 +127,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)risEngine;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +145,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)risEngine;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,18 +159,18 @@
     <ClCompile Include="program.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\3rd_party\randomc\randomc.vcxproj">
-      <Project>{b8384b94-1015-48e3-a046-609e50805d61}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\modules\risData\risData.vcxproj">
-      <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\modules\risFile\risFile.vcxproj">
-      <Project>{01df574e-42f0-4efc-a9c0-d56f1257b951}</Project>
-    </ProjectReference>
+    <ClInclude Include="flags.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="flags.h" />
+    <ProjectReference Include="..\risEngine\3rd_party\randomc\randomc.vcxproj">
+      <Project>{b8384b94-1015-48e3-a046-609e50805d61}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\risEngine\risModules\risData\risData.vcxproj">
+      <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\risEngine\risModules\risFile\risFile.vcxproj">
+      <Project>{01df574e-42f0-4efc-a9c0-d56f1257b951}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
