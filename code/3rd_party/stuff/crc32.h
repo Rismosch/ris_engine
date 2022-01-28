@@ -1,13 +1,13 @@
 #pragma once
-#include "risPrimitives.h"
+#include <cstdint>
 
 namespace risData
 {
 	// adapted from https://web.archive.org/web/20190108202303/http://www.hackersdelight.org/hdcodetxt/crc.c.txt
-	inline U32 crc32(const char* message)
+	inline uint32_t crc32(const char* message)
 	{
-		I32 i, j;
-		U32 byte, crc, mask;
+		int32_t i, j;
+		uint32_t byte, crc, mask;
 
 		i = 0;
 		crc = 0xFFFFFFFF;

@@ -5,7 +5,6 @@
 #include "../3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "../modules/risData/crc32.h"
 #include "../modules/risData/risString.h"
 #include "../modules/risData/risEndian.h"
 #include "../modules/risData/risAllocators.h"
@@ -40,17 +39,17 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 
 	// tests
-	// test_flag();
-	// test_allocator();
+	test_flag();
+	test_allocator();
 	test_strings();
 	test_ascii();
 	test_file();
-	// test_file_and_unicode();
-	// test_risFile();
-	// test_rng();
-	// test_arguments(argc, argv);
-	// test_endian();
-	// test_template();
+	test_file_and_unicode();
+	test_risFile();
+	test_rng();
+	test_arguments(argc, argv);
+	test_endian();
+	test_template();
 
 
 	// shutdown

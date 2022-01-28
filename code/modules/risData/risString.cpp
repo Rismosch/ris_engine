@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "crc32.h"
+#include "../../3rd_party/stuff/crc32.h"
 #include "risEncodings.h"
 
 namespace risData

@@ -21,9 +21,10 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{01df574e-42f0-4efc-a9c0-d56f1257b951}</ProjectGuid>
-    <RootNamespace>risFile</RootNamespace>
+    <ProjectGuid>{c3524f2c-feeb-4ab2-9355-53abcda967d0}</ProjectGuid>
+    <RootNamespace>risResourceManager</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>risResource</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -157,8 +158,9 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="risFiles.h" />
     <ClInclude Include="risPath.h" />
+    <ClInclude Include="risResourceManager.h" />
+    <ClInclude Include="risTextResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -167,7 +169,15 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="risFiles.cpp" />
+    <ClCompile Include="risResourceManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\risData\risData.vcxproj">
+      <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\risFile\risFile.vcxproj">
+      <Project>{01df574e-42f0-4efc-a9c0-d56f1257b951}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
