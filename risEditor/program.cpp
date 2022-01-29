@@ -33,29 +33,37 @@ void test_template();
 
 int main(int argc, char *argv[])
 {
-	// startup
-	flags = new risFlag();
-	stackAllocator = new risStackAllocator(sizeof(U32) * 2);
-	rng = new CRandomMother(42);
-
-	// tests
-	test_flag();
-	test_allocator();
-	test_strings();
-	test_ascii();
-	test_file();
-	test_file_and_unicode();
-	test_risFile();
-	test_rng();
-	test_arguments(argc, argv);
-	test_endian();
-	test_template();
+	std::string cmd_command;
 
 
-	// shutdown
-	delete rng;
-	delete stackAllocator;
-	delete flags;
+	std::cout << "Enter \"bruh\": ";
+	std::cin >> cmd_command;
+
+	std::cout << cmd_command << std::endl << (sid(cmd_command.c_str()) == sid("bruh")) << std::endl;
+
+	// // startup
+	// flags = new risFlag();
+	// stackAllocator = new risStackAllocator(sizeof(U32) * 2);
+	// rng = new CRandomMother(42);
+	//
+	// // tests
+	// test_flag();
+	// test_allocator();
+	// test_strings();
+	// test_ascii();
+	// test_file();
+	// test_file_and_unicode();
+	// test_risFile();
+	// test_rng();
+	// test_arguments(argc, argv);
+	// test_endian();
+	// test_template();
+	//
+	//
+	// // shutdown
+	// delete rng;
+	// delete stackAllocator;
+	// delete flags;
 }
 
 void test_flag()
