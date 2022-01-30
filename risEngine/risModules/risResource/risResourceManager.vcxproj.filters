@@ -39,4 +39,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="resource manager specifications.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resource_manager_load_method_exploration.drawio" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Screenshot 2022-01-23 185119.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

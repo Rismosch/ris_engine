@@ -176,6 +176,15 @@
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="resource manager specifications.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resource_manager_load_method_exploration.drawio" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Screenshot 2022-01-23 185119.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
