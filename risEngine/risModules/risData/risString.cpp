@@ -33,17 +33,7 @@ namespace risData
 
 	StringId sid(char* str)
 	{
-		const StringId string_id = crc32(str);
-
-#if defined _DEBUG
-		const auto it = gStringIdTable.find(string_id);
-		if (it == gStringIdTable.end())
-		{
-			gStringIdTable[string_id] = _strdup(str);
-		}
-#endif
-
-		return string_id;
+		return sid(static_cast<const char*>(str));
 	}
 
 	const char* internal_string(StringId sid)

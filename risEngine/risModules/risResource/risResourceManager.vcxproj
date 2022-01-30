@@ -175,9 +175,6 @@
     <ProjectReference Include="..\risData\risData.vcxproj">
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\risFile\risFile.vcxproj">
-      <Project>{01df574e-42f0-4efc-a9c0-d56f1257b951}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

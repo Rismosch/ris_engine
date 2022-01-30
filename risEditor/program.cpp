@@ -10,10 +10,11 @@
 #include "risModules/risData/risAllocators.h"
 #include "risModules/risData/risFlag.h"
 #include "risModules/risData/risEncodings.h"
-#include "risModules/risFile/risFiles.h"
+#include "risModules/risResource/risPath.h"
 
 using namespace ris;
-using namespace risFile;
+using namespace risData;
+using namespace risResource;
 
 risFlag* flags;
 risStackAllocator* stackAllocator;
@@ -24,46 +25,33 @@ void test_allocator();
 void test_strings();
 void test_ascii();
 void test_file();
-void test_file_and_unicode();
-void test_risFile();
+void test_path();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_endian();
-void test_template();
 
 int main(int argc, char *argv[])
 {
-	std::string cmd_command;
-
-
-	std::cout << "Enter \"bruh\": ";
-	std::cin >> cmd_command;
-
-	std::cout << cmd_command << std::endl << (sid(cmd_command.c_str()) == sid("bruh")) << std::endl;
-
-	// // startup
-	// flags = new risFlag();
-	// stackAllocator = new risStackAllocator(sizeof(U32) * 2);
-	// rng = new CRandomMother(42);
-	//
-	// // tests
+	// startup
+	flags = new risFlag();
+	stackAllocator = new risStackAllocator(1000000);
+	rng = new CRandomMother(42);
+	
+	// tests
 	// test_flag();
 	// test_allocator();
 	// test_strings();
 	// test_ascii();
 	// test_file();
-	// test_file_and_unicode();
-	// test_risFile();
+	test_path();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_endian();
-	// test_template();
-	//
-	//
-	// // shutdown
-	// delete rng;
-	// delete stackAllocator;
-	// delete flags;
+	
+	// shutdown
+	delete rng;
+	delete stackAllocator;
+	delete flags;
 }
 
 void test_flag()
@@ -150,6 +138,16 @@ void test_strings()
 
 	std::cout << "shouldn't exist: " << (internal_string(static_cast<StringId>(42)) == nullptr) << " (there should be a 1)" << std::endl;
 
+
+	const char* c_str_0 = "hello world";
+	char* c_str_1 = new char[12]{ "hello world" };
+
+	auto c_sid0 = sid(c_str_0);
+	auto c_sid1 = sid(c_str_1);
+
+	std::cout << c_sid0  << " == "  << c_sid1 << " : " << (c_sid0 == c_sid1) << std::endl;
+
+
 	std::cout << "\nstring buffer:" << std::endl;
 	
 	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
@@ -235,53 +233,28 @@ void test_file()
 	readFile.close();
 }
 
-void test_file_and_unicode()
+void test_path()
 {
-	// std::cout << "\nfile and unicode:" << std::endl;
-	//
-	// const auto stringAllocator = new risStackAllocator(sizeof(risStringBuffer) + 256);
-	// auto sb = static_cast<risStringBuffer*>(stringAllocator->alloc(sizeof(risStringBuffer)));
-	// sb->init(static_cast<U8*>(stringAllocator->alloc(256)), 256);
-	//
-	// sb->append_utf8('b');
-	// sb->append_utf8('r');
-	// sb->append_utf8('u');
-	// sb->append_utf8('h');
-	// sb->append_utf8(0x1F60D); // emoji with heart eyes
-	// sb->append_utf8(0x2705); // green checkmark
-	//
-	// auto unicodeString = sb->get_string();
-	//
-	// std::ofstream writeFile;
-	// writeFile.open("unicode_example.txt");
-	// writeFile << unicodeString;
-	// writeFile.close();
-	//
-	// delete stringAllocator;
-}
+	std::cout << "\npath:" << std::endl;
 
-void test_risFile()
-{
-	std::cout << "\nrisFile Write:" << std::endl;
+	const auto start_filepath = sid("assets/texts/my_text.txt");
 
-	risWriteFile writeFile;
-	writeFile.open("test.txt");
-	writeFile.write("this is an apple", 16);
-	auto pos = writeFile.tellp();
-	writeFile.seekp(pos - 7);
-	writeFile.write(" sam", 4);
-	writeFile.seekp(-8, StreamLocation::End);
-	writeFile.write("t", 1);
-	writeFile.close();
+	const auto windows_path = path_to_platform(start_filepath, stackAllocator);
 
-	std::cout << "\nrisFile Read:" << std::endl;
-	risReadFile risReadFile;
-	risReadFile.open("test.txt");
-	char* buffer = new char[100];
-	// init0(buffer, 100);
-	risReadFile.get(buffer, 100);
-	std::cout << buffer << std::endl;
-	risReadFile.close();
+	auto internal_start_filepath = internal_string(start_filepath);
+	if (internal_start_filepath == nullptr)
+		internal_start_filepath = "null";
+
+	auto windows_path_encoded = new char[MAX_PATH_LENGTH];
+	windows_path->get_encoded_string(windows_path_encoded, MAX_PATH_LENGTH);
+
+	auto end_filepath = path_to_ris(windows_path);
+	auto internal_end_filepath = internal_string(end_filepath);
+
+	std::cout << "start:   " << internal_start_filepath << std::endl;
+	std::cout << "windows: " << windows_path_encoded << std::endl;
+	std::cout << "end:     " << internal_end_filepath << std::endl;
+	std::cout << start_filepath << " == " << end_filepath << " : " << (start_filepath == end_filepath) << std::endl;
 }
 
 void test_rng()
@@ -331,48 +304,4 @@ void test_endian()
 	std::cout << flags->to_string() << std::endl;
 	flags->apply(convertF32(result3));
 	std::cout << flags->to_string() << std::endl;
-}
-
-class PrinterA
-{
-public:
-	void print() { std::cout << "A" << std::endl; }
-};
-
-class PrinterB
-{
-public:
-	void print() { std::cout << "B" << std::endl; }
-};
-
-class PrinterC
-{
-public:
-	void print() { std::cout << "C" << std::endl; }
-};
-
-class PrinterD
-{
-	
-};
-
-template<typename Printer>
-void print(Printer printer)
-{
-	printer.print();
-}
-
-void test_template()
-{
-	std::cout << "\ntemplate:" << std::endl;
-
-	PrinterA a;
-	PrinterB b;
-	PrinterC c;
-	PrinterD d;
-
-	print(a);
-	print(b);
-	print(c);
-	// print(d); // this does not compile
 }
