@@ -46,8 +46,6 @@
     <None Include="resource_manager_load_method_exploration.drawio" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Screenshot 2022-01-23 185119.png">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <Image Include="Screenshot 2022-01-23 185119.png" />
   </ItemGroup>
 </Project>
