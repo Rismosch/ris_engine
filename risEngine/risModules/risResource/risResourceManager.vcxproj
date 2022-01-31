@@ -159,7 +159,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="risPath.h" />
-    <ClInclude Include="risResourceManager.h" />
+    <ClInclude Include="risResourceCompiler.h" />
+    <ClInclude Include="risResourceLoader.h" />
     <ClInclude Include="risTextResource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -169,7 +170,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="risResourceManager.cpp" />
+    <ClCompile Include="risResourceCompiler.cpp" />
+    <ClCompile Include="risResourceLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\risData\risData.vcxproj">

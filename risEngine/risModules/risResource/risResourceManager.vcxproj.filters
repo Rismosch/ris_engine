@@ -21,7 +21,7 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risResourceManager.h">
+    <ClInclude Include="risResourceLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="risTextResource.h">
@@ -30,12 +30,18 @@
     <ClInclude Include="risPath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="risResourceCompiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="risResourceManager.cpp">
+    <ClCompile Include="risResourceLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="risResourceCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

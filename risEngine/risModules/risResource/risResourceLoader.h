@@ -7,19 +7,16 @@ namespace risResource
 {
 	using namespace risData;
 	
-	class risResourceManager
+	class risResourceLoader
 	{
 	public:
-		risResourceManager(const risDoubleStackAllocator& double_stack_allocator, bool should_use_package = false);
-
-		void compile();
-		void decompile();
+		risResourceLoader(risDoubleStackAllocator* double_stack_allocator, bool should_use_package = false);
 
 		template<class Resource>
 		Resource* load(StringId path_id);
 
 	private:
-		risDoubleStackAllocator double_stack_allocator_;
+		risDoubleStackAllocator* double_stack_allocator_;
 
 #if defined _DEBUG
 		bool should_use_package_;
