@@ -21,6 +21,8 @@ namespace risEngine
 		auto length = read_file.tellg();
 		read_file.seekg(0, std::ios_base::beg);
 
+		double_stack_allocator_->alloc_front(length)
+
 		read_file.close();
 
 		return risCompilerError::OK;
