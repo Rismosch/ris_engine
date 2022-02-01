@@ -9,20 +9,24 @@ namespace risEngine
 	extern StringId sid(char* str);
 	extern const char* internal_string(StringId sid);
 
-	template<typename encoding>
+	template<typename Encoding>
 	class risStringBuffer
 	{
 	public:
-		typedef typename encoding::Character Character;
+		typedef typename Encoding::Character Character;
 
-		void init(Character* memory, StreamSize memory_size);
+		template<class Allocator>
+		void init(Allocator* allocator, StreamSize memory_size)
+		{
+			memory_ = static_cast<Character*>(allocator->alloc(memory_size));
+			memory_size_ = memory_size;
+			position_ = 0;
+		}
 
 		// unformatted input
 		risStringBuffer& put(Character value);
-		risStringBuffer& put(Character* values, StreamSize count);
-		risStringBuffer& put(const Character* values);
 		risStringBuffer& put(CodePoint code_point);
-		risStringBuffer& put(CodePoint* code_points, StreamSize count);
+		risStringBuffer& put(const Character* values);
 
 		// formatted input
 		risStringBuffer& format(bool value);
@@ -38,6 +42,8 @@ namespace risEngine
 		Character take();
 		void get_encoded_string(Character* buffer, StreamSize buffer_size);
 		void get_decoded_string(CodePoint* buffer, StreamSize buffer_size);
+
+		Character* get_buffer();
 
 	private:
 		Character* memory_ = nullptr;

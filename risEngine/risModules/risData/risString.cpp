@@ -51,17 +51,9 @@ namespace risEngine
 #pragma endregion
 
 #pragma region risStringBuffer
-	template<typename encoding>
-	void risStringBuffer<encoding>::init(Character* memory, StreamSize memory_size)
-	{
-		memory_ = memory;
-		memory_size_ = memory_size;
-		position_ = 0;
-	}
-
 #pragma region unformatted input
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character value)
+	template<typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::put(Character value)
 	{
 		if (position_ + 1 < memory_size_)
 			memory_[position_++] = value;
@@ -69,19 +61,16 @@ namespace risEngine
 		return *this;
 	}
 
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put(Character* values, StreamSize count)
+	template <typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::put(CodePoint code_point)
 	{
-		for (StreamSize i = 0; i < count; ++i)
-		{
-			put(values[i]);
-		}
+		Encoding::encode(*this, code_point);
 
 		return *this;
 	}
 
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put(const Character* values)
+	template<typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::put(const Character* values)
 	{
 		for (StreamSize i = 0; values[i] != 0; ++i)
 		{
@@ -90,30 +79,11 @@ namespace risEngine
 
 		return *this;
 	}
-
-	template <typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint code_point)
-	{
-		encoding::encode(*this, code_point);
-
-		return *this;
-	}
-
-	template <typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::put(CodePoint* code_points, StreamSize count)
-	{
-		for (StreamSize i = 0; i < count; ++i)
-		{
-			put(code_points[i]);
-		}
-
-		return *this;
-	}
 #pragma endregion
 
 #pragma region formatted input
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::format(bool value)
+	template<typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::format(bool value)
 	{
 		if (value)
 		{
@@ -134,8 +104,8 @@ namespace risEngine
 		return *this;
 	}
 
-	template <typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::format(I32 value)
+	template <typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::format(I32 value)
 	{
 		constexpr CodePoint code_point[10]{ 48,49,50,51,52,53,54,55,56,57 };
 
@@ -175,8 +145,8 @@ namespace risEngine
 		return *this;
 	}
 
-	template <typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::format(F32 value, U8 precision)
+	template <typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::format(F32 value, U8 precision)
 	{
 		constexpr CodePoint code_point[10]{ 48,49,50,51,52,53,54,55,56,57 };
 
@@ -215,14 +185,14 @@ namespace risEngine
 
 
 #pragma region stream utility
-	template<typename encoding>
-	StreamPosition risStringBuffer<encoding>::tellp() const
+	template<typename Encoding>
+	StreamPosition risStringBuffer<Encoding>::tellp() const
 	{
 		return position_;
 	}
 
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::seekp(StreamPosition offset, StreamLocation stream_location)
+	template<typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::seekp(StreamPosition offset, StreamLocation stream_location)
 	{
 		switch (stream_location)
 		{
@@ -242,16 +212,16 @@ namespace risEngine
 		return *this;
 	}
 
-	template<typename encoding>
-	risStringBuffer<encoding>& risStringBuffer<encoding>::flush()
+	template<typename Encoding>
+	risStringBuffer<Encoding>& risStringBuffer<Encoding>::flush()
 	{
 		return *this;
 	}
 #pragma endregion
 
 #pragma region output
-	template <typename encoding>
-	typename risStringBuffer<encoding>::Character risStringBuffer<encoding>::take()
+	template <typename Encoding>
+	typename risStringBuffer<Encoding>::Character risStringBuffer<Encoding>::take()
 	{
 		if (position_ < memory_size_)
 			return memory_[position_++];
@@ -259,8 +229,8 @@ namespace risEngine
 			return 0;
 	}
 
-	template<typename encoding>
-	void risStringBuffer<encoding>::get_encoded_string(Character* buffer, StreamSize buffer_size)
+	template<typename Encoding>
+	void risStringBuffer<Encoding>::get_encoded_string(Character* buffer, StreamSize buffer_size)
 	{
 		put(static_cast<CodePoint>(0));
 		for (StreamSize i = 0; i < buffer_size && i < memory_size_; ++i)
@@ -270,8 +240,8 @@ namespace risEngine
 		}
 	}
 
-	template<typename encoding>
-	void risStringBuffer<encoding>::get_decoded_string(CodePoint* buffer, StreamSize buffer_size)
+	template<typename Encoding>
+	void risStringBuffer<Encoding>::get_decoded_string(CodePoint* buffer, StreamSize buffer_size)
 	{
 		put(static_cast<Character>(0));
 		auto current_position = position_;
@@ -280,10 +250,16 @@ namespace risEngine
 
 		for (StreamSize i = 0; position_ < current_position; ++i)
 		{
-			buffer[i] = encoding::decode(*this);
+			buffer[i] = Encoding::decode(*this);
 		}
 
 		position_ = current_position;
+	}
+
+	template <typename Encoding>
+	typename risStringBuffer<Encoding>::Character* risStringBuffer<Encoding>::get_buffer()
+	{
+		return memory_;
 	}
 #pragma endregion
 

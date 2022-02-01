@@ -13,7 +13,7 @@ namespace risEngine
 	class risResourceCompiler
 	{
 	public:
-		risResourceCompiler(risDoubleStackAllocator* double_stack_allocator);
+		void init(risDoubleStackAllocator* double_stack_allocator);
 
 		risCompilerError compile();
 		risCompilerError decompile();

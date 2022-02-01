@@ -11,6 +11,7 @@
 #include "risModules/risData/risFlag.h"
 #include "risModules/risData/risEncodings.h"
 #include "risModules/risResource/risPath.h"
+#include "risModules/risResource/risResourceCompiler.h"
 
 using namespace risEditor;
 using namespace risEngine;
@@ -25,6 +26,7 @@ void test_strings();
 void test_ascii();
 void test_file();
 void test_path();
+void test_resource_compiler();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
 void test_endian();
@@ -39,10 +41,11 @@ int main(int argc, char *argv[])
 	// tests
 	// test_flag();
 	// test_allocator();
-	// test_strings();
-	// test_ascii();
+	test_strings();
+	test_ascii();
 	// test_file();
 	test_path();
+	test_resource_compiler();
 	// test_rng();
 	// test_arguments(argc, argv);
 	// test_endian();
@@ -151,7 +154,7 @@ void test_strings()
 	
 	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
 	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
-	string_buffer->init(static_cast<risUTF8<>::Character*>(string_allocator->alloc(256)), 256);
+	string_buffer->init(string_allocator, 256);
 
 	const auto input_values = new CodePoint[100];
 	const auto encoded_values = new risUTF8<>::Character[100];
@@ -160,13 +163,15 @@ void test_strings()
 	for (U8 i = 0; i < 100; ++i)
 	{
 		//const auto random_value = static_cast<CodePoint>(rng->IRandom(0, 0x0010FFFF));
+		const CodePoint code_point = (0x0010FFFF - (i * 0x0010FFFF / 100)) % 0x0010FFFF;
 
-		input_values[i] = (0x0010FFFF - (i * 0x0010FFFF / 100)) % 0x0010FFFF;
+		input_values[i] = code_point;
 		encoded_values[i] = 0;
 		decoded_values[i] = 0;
-	}
 
-	string_buffer->put(input_values, 100);
+		string_buffer->put(code_point);
+	}
+	
 	string_buffer->get_encoded_string(encoded_values, 100);
 	string_buffer->get_decoded_string(decoded_values, 100);
 
@@ -187,7 +192,7 @@ void test_ascii()
 
 	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 500);
 	auto string_buffer = static_cast<risStringASCII*>(string_allocator->alloc(sizeof(risStringASCII)));
-	string_buffer->init(static_cast<risStringASCII::Character*>(string_allocator->alloc(500)), 500);
+	string_buffer->init(string_allocator, 500);
 	
 	string_buffer->put("hoi").put(" ").put("poi");
 	string_buffer->put(" ").format(true);
@@ -254,6 +259,19 @@ void test_path()
 	std::cout << "windows: " << windows_path_encoded << std::endl;
 	std::cout << "end:     " << internal_end_filepath << std::endl;
 	std::cout << start_filepath << " == " << end_filepath << " : " << (start_filepath == end_filepath) << std::endl;
+}
+
+void test_resource_compiler()
+{
+	std::cout << "\nresource compiler:" << std::endl;
+	auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
+
+	auto compiler = static_cast<risResourceCompiler*>(doubleStackAllocator->alloc(sizeof(risResourceCompiler)));
+	compiler->init(doubleStackAllocator);
+
+	auto error = compiler->compile();
+
+	delete doubleStackAllocator;
 }
 
 void test_rng()
