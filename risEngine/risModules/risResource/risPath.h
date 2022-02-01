@@ -3,10 +3,8 @@
 #include "../risData/risPrimitives.h"
 #include "../risData/risString.h"
 
-namespace risResource
+namespace risEngine
 {
-	using namespace risData;
-
 	constexpr U32 MAX_PATH_LENGTH = 4096;
 
 	typedef risStringASCII risPathString;

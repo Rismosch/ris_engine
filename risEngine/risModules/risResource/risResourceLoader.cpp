@@ -2,7 +2,7 @@
 
 #include "risResourceLoader.h"
 
-namespace risResource
+namespace risEngine
 {
 	risResourceLoader::risResourceLoader(risDoubleStackAllocator* double_stack_allocator, bool should_use_package) :
 		double_stack_allocator_(double_stack_allocator)

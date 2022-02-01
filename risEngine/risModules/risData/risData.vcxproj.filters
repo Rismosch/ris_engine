@@ -36,9 +36,6 @@
     <ClInclude Include="risString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="crc32.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="risFlag.h">
       <Filter>Header Files</Filter>
     </ClInclude>

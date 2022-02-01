@@ -2,10 +2,8 @@
 
 #include "../risData/risPrimitives.h"
 
-namespace risResource
+namespace risEngine
 {
-	using namespace risData;
-
 	class risTextResource
 	{
 	public:

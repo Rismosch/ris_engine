@@ -9,7 +9,7 @@
 #include "../../3rd_party/stuff/crc32.h"
 #include "risEncodings.h"
 
-namespace risData
+namespace risEngine
 {
 #pragma region global
 #if defined _DEBUG

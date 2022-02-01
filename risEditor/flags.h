@@ -1,9 +1,9 @@
 #pragma once
 #include "risModules/risData/risPrimitives.h"
 
-namespace ris
+namespace risEditor
 {
-	risData::U8
+	risEngine::U8
 		test0 = 0,
 		test1 = 1,
 		test2 = 2,

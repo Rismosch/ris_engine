@@ -1,7 +1,7 @@
 #pragma once
 #include "risPrimitives.h"
 
-namespace risData
+namespace risEngine
 {
 	inline U16 swapU16(U16 value)
 	{

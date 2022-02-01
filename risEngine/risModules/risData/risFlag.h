@@ -1,7 +1,7 @@
 #pragma once
 #include "risPrimitives.h"
 
-namespace risData
+namespace risEngine
 {
 	class risFlag
 	{

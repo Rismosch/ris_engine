@@ -3,10 +3,8 @@
 #include "../risData/risString.h"
 #include "../risData/risAllocators.h"
 
-namespace risResource
+namespace risEngine
 {
-	using namespace risData;
-	
 	class risResourceLoader
 	{
 	public:

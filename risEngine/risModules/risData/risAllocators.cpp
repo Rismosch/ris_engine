@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "risAllocators.h"
 
-namespace risData
+namespace risEngine
 {
 #pragma region risStackAllocator
 	risStackAllocator::risStackAllocator(U32 size_bytes) : data_(new U8[size_bytes]), size_bytes_(size_bytes) { }

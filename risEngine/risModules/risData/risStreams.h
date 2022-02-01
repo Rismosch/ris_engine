@@ -5,7 +5,7 @@
 
 #define EndOfFile (-1)
 
-namespace risData
+namespace risEngine
 {
 	typedef I64 StreamPosition;
 	typedef I64 StreamSize;

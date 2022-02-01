@@ -2,7 +2,7 @@
 #include "risEncodings.h"
 #include "risStreams.h"
 
-namespace risData
+namespace risEngine
 {
 	typedef U32 StringId;
 	extern StringId sid(const char* str);

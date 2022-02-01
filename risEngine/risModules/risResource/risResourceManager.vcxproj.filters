@@ -33,6 +33,9 @@
     <ClInclude Include="risResourceCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="risFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

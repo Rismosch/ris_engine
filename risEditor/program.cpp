@@ -12,9 +12,8 @@
 #include "risModules/risData/risEncodings.h"
 #include "risModules/risResource/risPath.h"
 
-using namespace ris;
-using namespace risData;
-using namespace risResource;
+using namespace risEditor;
+using namespace risEngine;
 
 risFlag* flags;
 risStackAllocator* stackAllocator;

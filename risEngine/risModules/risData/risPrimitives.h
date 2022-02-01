@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace risData
+namespace risEngine
 {
 	typedef float F32;
 	typedef double F64;
