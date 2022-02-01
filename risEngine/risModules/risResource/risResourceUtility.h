@@ -9,7 +9,7 @@ namespace risEngine
 	const auto resource_redirect_path = "resource.redirect";
 
 	template<class Allocator>
-	risResourceError locate_asset_folder(Allocator* allocator, risPath* path_buffer)
+	risResourceError locate_asset_folder(Allocator* allocator, risPath*& path)
 	{
 		if (!file_exists(resource_redirect_path))
 			return risResourceError::REDIRECT_MISSING;
@@ -27,11 +27,11 @@ namespace risEngine
 
 		read_file.seekg(0, std::ios_base::beg);
 
-		path_buffer = allocator->alloc_class<risPath>();
-		path_buffer->init(allocator, length + 1);
+		path = allocator->alloc_class<risPath>();
+		path->init(allocator, length + 1);
 
-		read_file.read(path_buffer->get_buffer(), length);
-		path_buffer->seekp(length, StreamLocation::Beginning);
+		read_file.read(path->get_buffer(), length);
+		path->seekp(length, StreamLocation::Beginning);
 		read_file.close();
 
 		return risResourceError::OK;

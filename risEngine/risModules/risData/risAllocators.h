@@ -41,7 +41,7 @@ namespace risEngine
 
 		// utility
 		void swap_buffers();
-		bool buffer_is_front();
+		bool buffer_is_front() const;
 
 		// specific
 		void* alloc_front(U32 size_bytes);

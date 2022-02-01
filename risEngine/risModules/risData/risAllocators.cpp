@@ -80,7 +80,7 @@ namespace risEngine
 		buffer_is_front_ = !buffer_is_front_;
 	}
 
-	bool risDoubleStackAllocator::buffer_is_front()
+	bool risDoubleStackAllocator::buffer_is_front() const
 	{
 		return  buffer_is_front_;
 	}

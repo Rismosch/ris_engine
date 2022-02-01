@@ -27,6 +27,11 @@ namespace risEngine
 			return error;
 		}
 
+		auto test = new char[100];
+		path_buffer->get_encoded_string(test, 100);
+		delete[] test;
+
+		allocator_->free_to_marker(marker);
 		return risResourceError::OK;
 	}
 
