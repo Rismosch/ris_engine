@@ -161,7 +161,9 @@
     <ClInclude Include="risFile.h" />
     <ClInclude Include="risPath.h" />
     <ClInclude Include="risResourceCompiler.h" />
+    <ClInclude Include="risResourceError.h" />
     <ClInclude Include="risResourceLoader.h" />
+    <ClInclude Include="risResourceUtility.h" />
     <ClInclude Include="risTextResource.h" />
   </ItemGroup>
   <ItemGroup>

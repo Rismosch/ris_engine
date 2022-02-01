@@ -13,6 +13,7 @@ namespace risEngine
 		~risStackAllocator();
 
 		// allocator policy
+		template<class T> T* alloc_class() { return static_cast<T*>(alloc(sizeof(T))); }
 		void* alloc(U32 size_bytes);
 		Marker get_marker() const;
 		void free_to_marker(Marker marker);
@@ -32,6 +33,7 @@ namespace risEngine
 		~risDoubleStackAllocator();
 
 		// allocator policy
+		template<class T> T* alloc_class() { return static_cast<T*>(alloc(sizeof(T))); }
 		void* alloc(U32 size_bytes);
 		Marker get_marker() const;
 		void free_to_marker(Marker marker);

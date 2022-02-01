@@ -55,7 +55,7 @@ namespace risEngine
 	template<typename Encoding>
 	risStringBuffer<Encoding>& risStringBuffer<Encoding>::put(Character value)
 	{
-		if (position_ + 1 < memory_size_)
+		if (position_ < memory_size_)
 			memory_[position_++] = value;
 
 		return *this;

@@ -7,12 +7,12 @@ namespace risEngine
 {
 	constexpr U32 MAX_PATH_LENGTH = 4096;
 
-	typedef risStringASCII risPathBuffer;
+	typedef risStringASCII risPath;
 
 	template<class Allocator>
-	risPathBuffer* path_to_platform(StringId string_id, Allocator* allocator)
+	risPath* path_to_platform(StringId string_id, Allocator* allocator)
 	{
-		const auto path = static_cast<risPathBuffer*>(allocator->alloc(sizeof(risPathBuffer)));
+		const auto path = allocator->alloc_class<risPath>();
 		path->init(allocator, MAX_PATH_LENGTH);
 
 		const auto internal_path = internal_string(string_id);
@@ -27,9 +27,9 @@ namespace risEngine
 		return path;
 	}
 
-	inline StringId path_to_ris(risPathBuffer* path_string)
+	inline StringId path_to_ris(risPath* path_string)
 	{
-		risPathBuffer::Character encoded_path[MAX_PATH_LENGTH];
+		risPath::Character encoded_path[MAX_PATH_LENGTH];
 		path_string->get_encoded_string(encoded_path, MAX_PATH_LENGTH);
 
 		for (U32 i = 0; encoded_path[i] != 0 && i < MAX_PATH_LENGTH; ++i)

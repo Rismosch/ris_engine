@@ -1,24 +1,19 @@
 #pragma once
 
+#include "risResourceError.h"
 #include "../risData/risAllocators.h"
 
 namespace risEngine
 {
-	enum class risCompilerError
-	{
-		OK,
-		REDIRECT_MISSING
-	};
-
 	class risResourceCompiler
 	{
 	public:
 		void init(risDoubleStackAllocator* double_stack_allocator);
 
-		risCompilerError compile();
-		risCompilerError decompile();
+		risResourceError compile();
+		risResourceError decompile();
 
 	private:
-		risDoubleStackAllocator* double_stack_allocator_;
+		risDoubleStackAllocator* allocator_ = nullptr;
 	};
 }

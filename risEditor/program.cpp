@@ -266,7 +266,7 @@ void test_resource_compiler()
 	std::cout << "\nresource compiler:" << std::endl;
 	auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
 
-	auto compiler = static_cast<risResourceCompiler*>(doubleStackAllocator->alloc(sizeof(risResourceCompiler)));
+	auto compiler = doubleStackAllocator->alloc_class<risResourceCompiler>();
 	compiler->init(doubleStackAllocator);
 
 	auto error = compiler->compile();
