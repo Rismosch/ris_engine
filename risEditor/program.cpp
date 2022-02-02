@@ -17,8 +17,8 @@ using namespace risEditor;
 using namespace risEngine;
 
 risFlag* flags;
-risStackAllocator* stackAllocator;
-CRandomMother* rng;
+risStackAllocator stackAllocator(1000000);
+CRandomMother rng(42);
 
 void test_flag();
 void test_allocator();
@@ -35,8 +35,6 @@ int main(int argc, char *argv[])
 {
 	// startup
 	flags = new risFlag();
-	stackAllocator = new risStackAllocator(1000000);
-	rng = new CRandomMother(42);
 	
 	// tests
 	test_flag();
@@ -51,8 +49,6 @@ int main(int argc, char *argv[])
 	test_endian();
 	
 	// shutdown
-	delete rng;
-	delete stackAllocator;
 	delete flags;
 }
 
@@ -90,26 +86,26 @@ void test_allocator()
 	U32* number3 = nullptr;
 	Marker marker = 0;
 
-	number0 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
+	number0 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
 	*number0 = 42;
 
-	marker = stackAllocator->get_marker();
+	marker = stackAllocator.get_marker();
 
-	number1 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
+	number1 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 	*number1 = 13;
 	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 
-	stackAllocator->free_to_marker(marker);
+	stackAllocator.free_to_marker(marker);
 
-	number2 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
+	number2 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 	*number2 = 0;
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 
-	stackAllocator->clear();
+	stackAllocator.clear();
 
-	number3 = static_cast<U32*>(stackAllocator->alloc(sizeof(U32)));
+	number3 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
 	*number3 = 7;
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
@@ -241,7 +237,7 @@ void test_path()
 
 	const auto start_filepath = sid("assets/texts/my_text.txt");
 
-	auto windows_path = path_to_platform(start_filepath, stackAllocator);
+	auto windows_path = path_to_platform(start_filepath, &stackAllocator);
 
 	auto internal_start_filepath = internal_string(start_filepath);
 	if (internal_start_filepath == nullptr)
@@ -277,7 +273,7 @@ void test_rng()
 
 	for (U16 i = 0; i < 10; ++i)
 	{
-		std::cout << rng->BRandom() << " " << rng->Random() << " " << rng->IRandom(-24, 13) << std::endl;
+		std::cout << rng.BRandom() << " " << rng.Random() << " " << rng.IRandom(-24, 13) << std::endl;
 	}
 }
 
