@@ -15,8 +15,10 @@ namespace risEngine
 	public:
 		typedef typename Encoding::Character Character;
 
+		risStringBuffer() = default;
+
 		template<class Allocator>
-		void init(Allocator* allocator, StreamSize memory_size)
+		risStringBuffer(Allocator* allocator, StreamSize memory_size)
 		{
 			memory_ = static_cast<Character*>(allocator->alloc(memory_size));
 			memory_size_ = memory_size;

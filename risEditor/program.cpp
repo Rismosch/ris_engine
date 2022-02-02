@@ -39,16 +39,16 @@ int main(int argc, char *argv[])
 	rng = new CRandomMother(42);
 	
 	// tests
-	// test_flag();
-	// test_allocator();
+	test_flag();
+	test_allocator();
 	test_strings();
 	test_ascii();
-	// test_file();
+	test_file();
 	test_path();
 	test_resource_compiler();
-	// test_rng();
-	// test_arguments(argc, argv);
-	// test_endian();
+	test_rng();
+	test_arguments(argc, argv);
+	test_endian();
 	
 	// shutdown
 	delete rng;
@@ -152,9 +152,8 @@ void test_strings()
 
 	std::cout << "\nstring buffer:" << std::endl;
 	
-	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 256);
-	auto string_buffer = static_cast<risStringBuffer<risUTF8<>>*>(string_allocator->alloc(sizeof(risStringBuffer<risUTF8<>>)));
-	string_buffer->init(string_allocator, 256);
+	const auto string_allocator = new risStackAllocator(256);
+	auto string_buffer = risStringBuffer<risUTF8<>>(string_allocator, 256);
 
 	const auto input_values = new CodePoint[100];
 	const auto encoded_values = new risUTF8<>::Character[100];
@@ -169,11 +168,11 @@ void test_strings()
 		encoded_values[i] = 0;
 		decoded_values[i] = 0;
 
-		string_buffer->put(code_point);
+		string_buffer.put(code_point);
 	}
 	
-	string_buffer->get_encoded_string(encoded_values, 100);
-	string_buffer->get_decoded_string(decoded_values, 100);
+	string_buffer.get_encoded_string(encoded_values, 100);
+	string_buffer.get_decoded_string(decoded_values, 100);
 
 	for (U8 i = 0; i < 100; ++i)
 	{
@@ -191,27 +190,26 @@ void test_ascii()
 	std::cout << "\nascii:" << std::endl;
 
 	const auto string_allocator = new risStackAllocator(sizeof(risStringBuffer<risUTF8<>>) + 500);
-	auto string_buffer = static_cast<risStringASCII*>(string_allocator->alloc(sizeof(risStringASCII)));
-	string_buffer->init(string_allocator, 500);
+	auto string_buffer = risStringASCII(string_allocator, 500);
 	
-	string_buffer->put("hoi").put(" ").put("poi");
-	string_buffer->put(" ").format(true);
-	string_buffer->put(" ").format(false);
-	string_buffer->put(" ").format(0);
-	string_buffer->put(" ").format(123456);
-	string_buffer->put(" ").format(1513653123);
-	string_buffer->put(" ").format(235235);
-	string_buffer->put(" ").format(42);
-	string_buffer->put(" ").format(1500008);
-	string_buffer->put(" ").format(-13);
-	string_buffer->put(" ").format(-987654321);
-	string_buffer->put(" ").format(-0);
-	string_buffer->put(" ").format(123.456f);
-	string_buffer->put(" ").format(-24680.f);
-	string_buffer->put(" ").format(-.0102030405f);
+	string_buffer.put("hoi").put(" ").put("poi");
+	string_buffer.put(" ").format(true);
+	string_buffer.put(" ").format(false);
+	string_buffer.put(" ").format(0);
+	string_buffer.put(" ").format(123456);
+	string_buffer.put(" ").format(1513653123);
+	string_buffer.put(" ").format(235235);
+	string_buffer.put(" ").format(42);
+	string_buffer.put(" ").format(1500008);
+	string_buffer.put(" ").format(-13);
+	string_buffer.put(" ").format(-987654321);
+	string_buffer.put(" ").format(-0);
+	string_buffer.put(" ").format(123.456f);
+	string_buffer.put(" ").format(-24680.f);
+	string_buffer.put(" ").format(-.0102030405f);
 
 	auto result = new char[500];
-	string_buffer->get_encoded_string(result, 500);
+	string_buffer.get_encoded_string(result, 500);
 
 	std::cout << result << std::endl; // prints "hoi poi"
 
@@ -243,14 +241,14 @@ void test_path()
 
 	const auto start_filepath = sid("assets/texts/my_text.txt");
 
-	const auto windows_path = path_to_platform(start_filepath, stackAllocator);
+	auto windows_path = path_to_platform(start_filepath, stackAllocator);
 
 	auto internal_start_filepath = internal_string(start_filepath);
 	if (internal_start_filepath == nullptr)
 		internal_start_filepath = "null";
 
 	auto windows_path_encoded = new char[MAX_PATH_LENGTH];
-	windows_path->get_encoded_string(windows_path_encoded, MAX_PATH_LENGTH);
+	windows_path.get_encoded_string(windows_path_encoded, MAX_PATH_LENGTH);
 
 	auto end_filepath = path_to_ris(windows_path);
 	auto internal_end_filepath = internal_string(end_filepath);
@@ -264,12 +262,11 @@ void test_path()
 void test_resource_compiler()
 {
 	std::cout << "\nresource compiler:" << std::endl;
-	auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
+	const auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
 
-	auto compiler = doubleStackAllocator->alloc_class<risResourceCompiler>();
-	compiler->init(doubleStackAllocator);
+	auto compiler = risResourceCompiler(doubleStackAllocator);
 
-	auto error = compiler->compile();
+	auto error = compiler.compile();
 
 	delete doubleStackAllocator;
 }

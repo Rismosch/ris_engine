@@ -8,11 +8,35 @@ namespace risEngine
 {
 	const auto resource_redirect_path = "resource.redirect";
 
-	template<class Allocator>
-	risResourceError locate_asset_folder(Allocator* allocator, risPath*& path)
+	struct AssetFolderResponse
 	{
+		risResourceError error;
+		risPath path;
+
+		static AssetFolderResponse Error(risResourceError input_error)
+		{
+			AssetFolderResponse response{};
+			response.error = input_error;
+
+			return response;
+		}
+
+		static AssetFolderResponse Success(risPath input_path)
+		{
+			AssetFolderResponse response{};
+			response.error = risResourceError::OK;
+			response.path = input_path;
+
+			return response;
+		}
+	};
+
+	template<class Allocator>
+	AssetFolderResponse locate_asset_folder(Allocator* allocator)
+	{
+
 		if (!file_exists(resource_redirect_path))
-			return risResourceError::REDIRECT_MISSING;
+			return AssetFolderResponse::Error(risResourceError::REDIRECT_MISSING);
 
 		std::ifstream read_file;
 		read_file.open(resource_redirect_path);
@@ -22,18 +46,17 @@ namespace risEngine
 		if (length > MAX_PATH_LENGTH)
 		{
 			read_file.close();
-			return risResourceError::REDIRECT_PATH_TOO_LONG;
+			return AssetFolderResponse::Error(risResourceError::REDIRECT_PATH_TOO_LONG);
 		}
 
 		read_file.seekg(0, std::ios_base::beg);
 
-		path = allocator->alloc_class<risPath>();
-		path->init(allocator, length + 1);
+		auto path = risPath(allocator, length + 1);
 
-		read_file.read(path->get_buffer(), length);
-		path->seekp(length, StreamLocation::Beginning);
+		read_file.read(path.get_buffer(), length);
+		path.seekp(length, StreamLocation::Beginning);
 		read_file.close();
 
-		return risResourceError::OK;
+		return AssetFolderResponse::Success(path);
 	}
 }

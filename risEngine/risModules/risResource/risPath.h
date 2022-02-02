@@ -10,27 +10,26 @@ namespace risEngine
 	typedef risStringASCII risPath;
 
 	template<class Allocator>
-	risPath* path_to_platform(StringId string_id, Allocator* allocator)
+	risPath path_to_platform(StringId string_id, Allocator* allocator)
 	{
-		const auto path = allocator->alloc_class<risPath>();
-		path->init(allocator, MAX_PATH_LENGTH);
+		auto path = risPath(allocator, MAX_PATH_LENGTH);
 
 		const auto internal_path = internal_string(string_id);
 		for (U32 i = 0; internal_path[i] != 0 && i < MAX_PATH_LENGTH; ++i)
 		{
 			if (internal_path[i] == '/')
-				path->put('\\');
+				path.put('\\');
 			else
-				path->put(internal_path[i]);
+				path.put(internal_path[i]);
 		}
-
+		
 		return path;
 	}
 
-	inline StringId path_to_ris(risPath* path_string)
+	inline StringId path_to_ris(risPath& path_string)
 	{
 		risPath::Character encoded_path[MAX_PATH_LENGTH];
-		path_string->get_encoded_string(encoded_path, MAX_PATH_LENGTH);
+		path_string.get_encoded_string(encoded_path, MAX_PATH_LENGTH);
 
 		for (U32 i = 0; encoded_path[i] != 0 && i < MAX_PATH_LENGTH; ++i)
 		{
