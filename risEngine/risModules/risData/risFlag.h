@@ -16,7 +16,11 @@ namespace risEngine
 		void set(Flag flag, bool value);
 		void toggle(Flag flag);
 
+#if defined _DEBUG
 		const char* to_string();
+#else
+		const char* to_string() = delete;
+#endif
 
 	private:
 		constexpr static auto flag_count_ = sizeof(FlagCollection) * 8;

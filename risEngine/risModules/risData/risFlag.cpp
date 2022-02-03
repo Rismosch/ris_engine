@@ -46,6 +46,7 @@ namespace risEngine
 		flags_ ^= mask;
 	}
 
+#if defined _DEBUG
 	const char* risFlag::to_string()
 	{
 		constexpr U8 group_by = 8;
@@ -66,4 +67,5 @@ namespace risEngine
 
 		return result;
 	}
+#endif
 }
