@@ -23,6 +23,14 @@ namespace risEngine
 			return response.error;
 		}
 
+		path_to_platform(response.path);
+
+		if(!directory_exists(response.path))
+		{
+			allocator_->free_to_marker(marker);
+			return risResourceError::ASSET_FOLDER_MISSING;
+		}
+
 		allocator_->free_to_marker(marker);
 		return risResourceError::OK;
 	}

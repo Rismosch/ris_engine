@@ -22,14 +22,26 @@ namespace risEngine
 			else
 				path.put(internal_path[i]);
 		}
-		
+
 		return path;
 	}
 
-	inline StringId path_to_ris(risPath& path_string)
+	inline void path_to_platform(risPath path)
+	{
+		path.put(static_cast<CodePoint>(0));
+		const auto buffer = path.get_buffer();
+
+		for (U32 i = 0; buffer[i] != 0 && i < MAX_PATH_LENGTH; ++i)
+		{
+			if (buffer[i] == '/')
+				buffer[i] = '\\';
+		}
+	}
+
+	inline StringId path_to_ris(risPath& path)
 	{
 		risPath::Character encoded_path[MAX_PATH_LENGTH];
-		path_string.get_encoded_string(encoded_path, MAX_PATH_LENGTH);
+		path.get_encoded_string(encoded_path, MAX_PATH_LENGTH);
 
 		for (U32 i = 0; encoded_path[i] != 0 && i < MAX_PATH_LENGTH; ++i)
 		{
@@ -39,4 +51,5 @@ namespace risEngine
 
 		return sid(encoded_path);
 	}
+
 }
