@@ -16,7 +16,7 @@
 using namespace risEditor;
 using namespace risEngine;
 
-risFlag* flags;
+risFlag flags;
 risStackAllocator stackAllocator(1000000);
 CRandomMother rng(42);
 
@@ -33,9 +33,6 @@ void test_endian();
 
 int main(int argc, char *argv[])
 {
-	// startup
-	flags = new risFlag();
-	
 	// tests
 	test_flag();
 	test_allocator();
@@ -47,33 +44,30 @@ int main(int argc, char *argv[])
 	test_rng();
 	test_arguments(argc, argv);
 	test_endian();
-	
-	// shutdown
-	delete flags;
 }
 
 void test_flag()
 {
 	std::cout << "\nflag:" << std::endl;
 
-	flags->toggle(test0);
-	flags->toggle(test2);
+	flags.toggle(test0);
+	flags.toggle(test2);
 
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->set(test1, true);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->set(test1, false);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->toggle(test1);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->toggle(test1);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->toggle(test2);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->toggle(test2);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
-	flags->apply(0x0123456789ABCDEF);
-	std::cout << flags->to_string() << " Flag1: " << flags->get(test1) << std::endl;
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.set(test1, true);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.set(test1, false);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.toggle(test1);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.toggle(test1);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.toggle(test2);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.toggle(test2);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
+	flags.apply(0x0123456789ABCDEF);
+	std::cout << flags.to_string() << " Flag1: " << flags.get(test1) << std::endl;
 }
 
 void test_allocator()
@@ -295,10 +289,10 @@ void test_endian()
 	U32 value2 = 0x00FF00FF;
 	F32 value3 = convertU32(value2);
 
-	flags->apply(value1);
-	std::cout << flags->to_string() << std::endl;
-	flags->apply(value2);
-	std::cout << flags->to_string() << std::endl;
+	flags.apply(value1);
+	std::cout << flags.to_string() << std::endl;
+	flags.apply(value2);
+	std::cout << flags.to_string() << std::endl;
 
 	auto result1 = swapU16(value1);
 	auto result2 = swapU32(value2);
@@ -308,10 +302,10 @@ void test_endian()
 	std::cout << result2 << std::endl;
 	std::cout << result3 << std::endl;
 
-	flags->apply(result1);
-	std::cout << flags->to_string() << std::endl;
-	flags->apply(result2);
-	std::cout << flags->to_string() << std::endl;
-	flags->apply(convertF32(result3));
-	std::cout << flags->to_string() << std::endl;
+	flags.apply(result1);
+	std::cout << flags.to_string() << std::endl;
+	flags.apply(result2);
+	std::cout << flags.to_string() << std::endl;
+	flags.apply(convertF32(result3));
+	std::cout << flags.to_string() << std::endl;
 }

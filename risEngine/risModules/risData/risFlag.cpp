@@ -3,70 +3,58 @@
 
 namespace risEngine
 {
-	struct risFlag::Impl
+	void risFlag::apply(FlagCollection flags)
 	{
-		constexpr static auto flag_count = sizeof(FlagCollection) * 8;
-		FlagCollection* flags = nullptr;
-
-		Impl() : flags(new FlagCollection(0)) { }
-		~Impl() { delete flags; }
-	};
-
-	risFlag::risFlag() : pImpl(new Impl()) { }
-	risFlag::~risFlag() { delete pImpl; }
-
-	void risFlag::apply(FlagCollection flags) const
-	{
-		*pImpl->flags = flags;
+		flags_ = flags;
 	}
 
 	risFlag::FlagCollection risFlag::retrieve() const
 	{
-		return *pImpl->flags;
+		return flags_;
 	}
 
-	bool risFlag::get(U8 flag) const
+	bool risFlag::get(Flag flag) const
 	{
-		if (flag >= Impl::flag_count)
+		if (flag >= flag_count_)
 			return false;
 
-		const auto value = *pImpl->flags;
+		const auto value = flags_;
 		const auto mask = static_cast<FlagCollection>(1) << flag;
 
 		return (value & mask) != 0;
 	}
 
-	void risFlag::set(U8 flag, bool value) const
+	void risFlag::set(Flag flag, bool value)
 	{
-		if (flag >= Impl::flag_count)
+		if (flag >= flag_count_)
 			return;
 
 		const auto mask = static_cast<FlagCollection>(1) << flag;
 
 		if (value)
-			*pImpl->flags |= mask;
+			flags_ |= mask;
 		else
-			*pImpl->flags &= ~mask;
+			flags_ &= ~mask;
 	}
 
-	void risFlag::toggle(U8 flag) const
+	void risFlag::toggle(Flag flag)
 	{
-		if (flag >= Impl::flag_count)
+		if (flag >= flag_count_)
 			return;
 
 		const auto mask = static_cast<FlagCollection>(1) << flag;
-		*pImpl->flags ^= mask;
+		flags_ ^= mask;
 	}
 
-	const U8* risFlag::to_string() const
+	const char* risFlag::to_string()
 	{
 		constexpr U8 group_by = 8;
-		constexpr U8 number_spaces = Impl::flag_count / group_by - (Impl::flag_count % group_by == 0) + 1;
-		constexpr U8 string_length = Impl::flag_count + number_spaces;
+		constexpr U8 number_spaces = flag_count_ / group_by - (flag_count_ % group_by == 0) + 1;
+		constexpr U8 string_length = flag_count_ + number_spaces;
 
-		U8* result = new U8[string_length];
+		char* result = new char[string_length];
 
-		for (U8 i = 0, j = string_length - 1; i < Impl::flag_count; ++i)
+		for (U8 i = 0, j = string_length - 1; i < flag_count_; ++i)
 		{
 			if (i == 0)
 				result[j--] = '\0';

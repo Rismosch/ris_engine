@@ -7,20 +7,19 @@ namespace risEngine
 	{
 	public:
 		typedef U64 FlagCollection;
-
-		risFlag();
-		~risFlag();
+		typedef U8 Flag;
 		
-		void apply(FlagCollection flags) const;
+		void apply(FlagCollection flags);
 		FlagCollection retrieve() const;
 		
-		bool get(U8 flag) const;
-		void set(U8 flag, bool value) const;
-		void toggle(U8 flag) const;
+		bool get(Flag flag) const;
+		void set(Flag flag, bool value);
+		void toggle(Flag flag);
 
-		const U8* to_string() const;
+		const char* to_string();
+
 	private:
-		struct Impl;
-		Impl* pImpl;
+		constexpr static auto flag_count_ = sizeof(FlagCollection) * 8;
+		FlagCollection flags_ = 0;
 	};
 }
