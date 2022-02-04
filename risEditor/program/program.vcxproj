@@ -24,7 +24,7 @@
     <ProjectGuid>{6d98d2f8-9456-47c5-8f58-5b157c3ceaf0}</ProjectGuid>
     <RootNamespace>program</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>risEditor</ProjectName>
+    <ProjectName>program</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -162,13 +162,13 @@
     <ClInclude Include="flags.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\risEngine\3rd_party\randomc\randomc.vcxproj">
+    <ProjectReference Include="..\..\risEngine\3rd_party\randomc\randomc.vcxproj">
       <Project>{b8384b94-1015-48e3-a046-609e50805d61}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\risEngine\risModules\risData\risData.vcxproj">
+    <ProjectReference Include="..\..\risEngine\risModules\risData\risData.vcxproj">
       <Project>{b552d671-1702-479e-b3fd-75eb6c52d9dd}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\risEngine\risModules\risResource\risResourceManager.vcxproj">
+    <ProjectReference Include="..\..\risEngine\risModules\risResource\risResourceManager.vcxproj">
       <Project>{c3524f2c-feeb-4ab2-9355-53abcda967d0}</Project>
     </ProjectReference>
   </ItemGroup>
