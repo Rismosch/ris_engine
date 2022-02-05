@@ -4,14 +4,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "risEngine", "risEngine", "{383C3E17-FA45-447A-A0ED-B6C7C15C672A}"
-	ProjectSection(SolutionItems) = preProject
-		risEngine\README.md = risEngine\README.md
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "risEditor", "risEditor", "{9F6A1218-8492-4A88-A054-EC26CAE41BF7}"
-	ProjectSection(SolutionItems) = preProject
-		risEditor\README.md = risEditor\README.md
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "risEditor\program\program.vcxproj", "{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}"
 EndProject
@@ -23,7 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risResource", "risEngine\ri
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd_party", "3rd_party", "{671836E5-11EE-4A3F-9A2A-440F64D1FFF6}"
 	ProjectSection(SolutionItems) = preProject
-		GNU GPLv3.txt = GNU GPLv3.txt
+		3rd_party\GNU_GPLv3_license.txt = 3rd_party\GNU_GPLv3_license.txt
+		3rd_party\MIT_license.txt = 3rd_party\MIT_license.txt
 		3rd_party\README.md = 3rd_party\README.md
 	EndProjectSection
 EndProject
@@ -32,9 +27,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stuff", "3rd_party\stuff\stuff.vcxproj", "{EDE5B0F4-A367-499F-9C82-075B749AB360}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6CCE65B0-D7ED-4E01-BB59-3389688A1B52}"
-	ProjectSection(SolutionItems) = preProject
-		README.md = README.md
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

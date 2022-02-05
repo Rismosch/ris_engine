@@ -1,8 +1,5 @@
 #pragma once
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include "../../risEngine/risResource/risPath.h"
 #include "../../risEngine/risResource/risResourceUtility.h"
 #include "risCompilerError.h"
@@ -62,12 +59,5 @@ namespace risEditor
 		read_file.close();
 
 		return AssetFolderResponse::Success(path);
-	}
-
-	// adapted from: https://stackoverflow.com/a/18101042
-	inline bool directory_exists(risPath path)
-	{
-		struct stat info;
-		return (stat(path.get_buffer(), &info) == 0) && (info.st_mode & S_IFDIR);
 	}
 }
