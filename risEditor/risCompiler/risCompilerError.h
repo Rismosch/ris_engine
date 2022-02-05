@@ -1,8 +1,8 @@
 #pragma once
 
-namespace risEngine
+namespace risEditor
 {
-	enum class risResourceError
+	enum class risCompilerError
 	{
 		// build was successful, no issues found
 		OK,

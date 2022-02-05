@@ -21,16 +21,13 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risResourceLoader.h">
+    <ClInclude Include="risCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risTextResource.h">
+    <ClInclude Include="risCompilerError.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risPath.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="risResourceUtility.h">
+    <ClInclude Include="risCompilerUtility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -38,8 +35,17 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="risResourceLoader.cpp">
+    <ClCompile Include="risCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resource manager specifications.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resource_manager_load_method_exploration.drawio" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Screenshot 2022-01-23 185119.png" />
   </ItemGroup>
 </Project>

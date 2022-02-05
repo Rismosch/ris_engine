@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "risEditor\progra
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "randomc", "risEngine\3rd_party\randomc\randomc.vcxproj", "{B8384B94-1015-48E3-A046-609E50805D61}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risResourceCompiler", "risEditor\risCompiler\risResourceCompiler.vcxproj", "{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -69,6 +71,14 @@ Global
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x64.Build.0 = Release|x64
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x86.ActiveCfg = Release|Win32
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x86.Build.0 = Release|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.ActiveCfg = Debug|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.Build.0 = Debug|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.ActiveCfg = Debug|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.Build.0 = Debug|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.ActiveCfg = Release|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.Build.0 = Release|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.ActiveCfg = Release|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,6 +91,7 @@ Global
 		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0} = {EAC67161-0EBC-477E-858F-4612714A74FC}
 		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0} = {9F6A1218-8492-4A88-A054-EC26CAE41BF7}
 		{B8384B94-1015-48E3-A046-609E50805D61} = {AF4EC73D-0114-448A-B422-720487B54F6B}
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53} = {9F6A1218-8492-4A88-A054-EC26CAE41BF7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {06462A58-3F52-49A9-8DB3-68FC27226424}

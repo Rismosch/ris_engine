@@ -5,13 +5,13 @@
 #include "3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "risModules/risData/risString.h"
-#include "risModules/risData/risEndian.h"
-#include "risModules/risData/risAllocators.h"
-#include "risModules/risData/risFlag.h"
-#include "risModules/risData/risEncodings.h"
-#include "risModules/risResource/risPath.h"
-#include "risModules/risResource/risResourceCompiler.h"
+#include "../../risEngine/risModules/risData/risString.h"
+#include "../../risEngine/risModules/risData/risEndian.h"
+#include "../../risEngine/risModules/risData/risAllocators.h"
+#include "../../risEngine/risModules/risData/risFlag.h"
+#include "../../risEngine/risModules/risData/risEncodings.h"
+#include "../../risEngine/risModules/risResource/risPath.h"
+#include "../risCompiler/risCompiler.h"
 
 using namespace risEditor;
 using namespace risEngine;
@@ -254,9 +254,9 @@ void test_resource_compiler()
 	std::cout << "\nresource compiler:" << std::endl;
 	const auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
 
-	auto compiler = risResourceCompiler(doubleStackAllocator);
+	auto compiler = risCompiler(doubleStackAllocator);
 
-	auto error = compiler.compile();
+	auto error = compiler.compile_asset_folder();
 
 	delete doubleStackAllocator;
 }
