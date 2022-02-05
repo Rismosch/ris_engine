@@ -1,7 +1,7 @@
 #pragma once
 
 #include "risCompilerError.h"
-#include "../../risEngine/risModules/risData/risAllocators.h"
+#include "../../risEngine/risData/risAllocators.h"
 
 namespace risEditor
 {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <fstream>
+#include <sys/types.h>
 #include <sys/stat.h>
 
-#include "../../risEngine/risModules/risResource/risPath.h"
-#include "../../risEngine/risModules/risResource/risResourceUtility.h"
+#include "../../risEngine/risResource/risPath.h"
+#include "../../risEngine/risResource/risResourceUtility.h"
 #include "risCompilerError.h"
 
 namespace risEditor

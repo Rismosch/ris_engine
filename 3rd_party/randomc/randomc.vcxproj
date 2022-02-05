@@ -172,9 +172,6 @@
     <ClCompile Include="sfmt.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="license.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="ran-instructions.pdf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

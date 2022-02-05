@@ -4,24 +4,37 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "risEngine", "risEngine", "{383C3E17-FA45-447A-A0ED-B6C7C15C672A}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd_party", "3rd_party", "{AF4EC73D-0114-448A-B422-720487B54F6B}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stuff", "risEngine\3rd_party\stuff\stuff.vcxproj", "{EDE5B0F4-A367-499F-9C82-075B749AB360}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "risModules", "risModules", "{EAC67161-0EBC-477E-858F-4612714A74FC}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risData", "risEngine\risModules\risData\risData.vcxproj", "{B552D671-1702-479E-B3FD-75EB6C52D9DD}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risResource", "risEngine\risModules\risResource\risResourceManager.vcxproj", "{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0}"
+	ProjectSection(SolutionItems) = preProject
+		risEngine\README.md = risEngine\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "risEditor", "risEditor", "{9F6A1218-8492-4A88-A054-EC26CAE41BF7}"
+	ProjectSection(SolutionItems) = preProject
+		risEditor\README.md = risEditor\README.md
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "risEditor\program\program.vcxproj", "{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "randomc", "risEngine\3rd_party\randomc\randomc.vcxproj", "{B8384B94-1015-48E3-A046-609E50805D61}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risCompiler", "risEditor\risCompiler\risResourceCompiler.vcxproj", "{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risResourceCompiler", "risEditor\risCompiler\risResourceCompiler.vcxproj", "{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risData", "risEngine\risData\risData.vcxproj", "{B552D671-1702-479E-B3FD-75EB6C52D9DD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risResource", "risEngine\risResource\risResourceManager.vcxproj", "{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd_party", "3rd_party", "{671836E5-11EE-4A3F-9A2A-440F64D1FFF6}"
+	ProjectSection(SolutionItems) = preProject
+		GNU GPLv3.txt = GNU GPLv3.txt
+		3rd_party\README.md = 3rd_party\README.md
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "randomc", "3rd_party\randomc\randomc.vcxproj", "{B8384B94-1015-48E3-A046-609E50805D61}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stuff", "3rd_party\stuff\stuff.vcxproj", "{EDE5B0F4-A367-499F-9C82-075B749AB360}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6CCE65B0-D7ED-4E01-BB59-3389688A1B52}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,14 +44,22 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x64.ActiveCfg = Debug|x64
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x64.Build.0 = Debug|x64
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x86.ActiveCfg = Debug|Win32
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x86.Build.0 = Debug|Win32
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x64.ActiveCfg = Release|x64
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x64.Build.0 = Release|x64
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x86.ActiveCfg = Release|Win32
-		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x86.Build.0 = Release|Win32
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x64.ActiveCfg = Debug|x64
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x64.Build.0 = Debug|x64
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x86.ActiveCfg = Debug|Win32
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x86.Build.0 = Debug|Win32
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x64.ActiveCfg = Release|x64
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x64.Build.0 = Release|x64
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.ActiveCfg = Release|Win32
+		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.Build.0 = Release|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.ActiveCfg = Debug|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.Build.0 = Debug|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.ActiveCfg = Debug|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.Build.0 = Debug|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.ActiveCfg = Release|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.Build.0 = Release|x64
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.ActiveCfg = Release|Win32
+		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.Build.0 = Release|Win32
 		{B552D671-1702-479E-B3FD-75EB6C52D9DD}.Debug|x64.ActiveCfg = Debug|x64
 		{B552D671-1702-479E-B3FD-75EB6C52D9DD}.Debug|x64.Build.0 = Debug|x64
 		{B552D671-1702-479E-B3FD-75EB6C52D9DD}.Debug|x86.ActiveCfg = Debug|Win32
@@ -55,14 +76,6 @@ Global
 		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0}.Release|x64.Build.0 = Release|x64
 		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0}.Release|x86.ActiveCfg = Release|Win32
 		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0}.Release|x86.Build.0 = Release|Win32
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x64.ActiveCfg = Debug|x64
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x64.Build.0 = Debug|x64
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x86.ActiveCfg = Debug|Win32
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Debug|x86.Build.0 = Debug|Win32
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x64.ActiveCfg = Release|x64
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x64.Build.0 = Release|x64
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.ActiveCfg = Release|Win32
-		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.Build.0 = Release|Win32
 		{B8384B94-1015-48E3-A046-609E50805D61}.Debug|x64.ActiveCfg = Debug|x64
 		{B8384B94-1015-48E3-A046-609E50805D61}.Debug|x64.Build.0 = Debug|x64
 		{B8384B94-1015-48E3-A046-609E50805D61}.Debug|x86.ActiveCfg = Debug|Win32
@@ -71,27 +84,25 @@ Global
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x64.Build.0 = Release|x64
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x86.ActiveCfg = Release|Win32
 		{B8384B94-1015-48E3-A046-609E50805D61}.Release|x86.Build.0 = Release|Win32
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.ActiveCfg = Debug|x64
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x64.Build.0 = Debug|x64
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.ActiveCfg = Debug|Win32
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Debug|x86.Build.0 = Debug|Win32
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.ActiveCfg = Release|x64
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x64.Build.0 = Release|x64
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.ActiveCfg = Release|Win32
-		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53}.Release|x86.Build.0 = Release|Win32
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x64.ActiveCfg = Debug|x64
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x64.Build.0 = Debug|x64
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x86.ActiveCfg = Debug|Win32
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Debug|x86.Build.0 = Debug|Win32
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x64.ActiveCfg = Release|x64
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x64.Build.0 = Release|x64
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x86.ActiveCfg = Release|Win32
+		{EDE5B0F4-A367-499F-9C82-075B749AB360}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AF4EC73D-0114-448A-B422-720487B54F6B} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
-		{EDE5B0F4-A367-499F-9C82-075B749AB360} = {AF4EC73D-0114-448A-B422-720487B54F6B}
-		{EAC67161-0EBC-477E-858F-4612714A74FC} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
-		{B552D671-1702-479E-B3FD-75EB6C52D9DD} = {EAC67161-0EBC-477E-858F-4612714A74FC}
-		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0} = {EAC67161-0EBC-477E-858F-4612714A74FC}
 		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0} = {9F6A1218-8492-4A88-A054-EC26CAE41BF7}
-		{B8384B94-1015-48E3-A046-609E50805D61} = {AF4EC73D-0114-448A-B422-720487B54F6B}
 		{E8813EAF-1CEB-4D0F-B861-E38AC7E58E53} = {9F6A1218-8492-4A88-A054-EC26CAE41BF7}
+		{B552D671-1702-479E-B3FD-75EB6C52D9DD} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
+		{C3524F2C-FEEB-4AB2-9355-53ABCDA967D0} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
+		{B8384B94-1015-48E3-A046-609E50805D61} = {671836E5-11EE-4A3F-9A2A-440F64D1FFF6}
+		{EDE5B0F4-A367-499F-9C82-075B749AB360} = {671836E5-11EE-4A3F-9A2A-440F64D1FFF6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {06462A58-3F52-49A9-8DB3-68FC27226424}

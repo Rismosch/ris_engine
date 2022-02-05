@@ -1,5 +1,5 @@
 #pragma once
-#include "risModules/risData/risPrimitives.h"
+#include "../../risEngine/risData/risPrimitives.h"
 
 namespace risEditor
 {

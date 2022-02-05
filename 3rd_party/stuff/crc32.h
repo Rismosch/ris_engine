@@ -3,7 +3,6 @@
 
 namespace risEngine
 {
-	// adapted from https://web.archive.org/web/20190108202303/http://www.hackersdelight.org/hdcodetxt/crc.c.txt
 	inline uint32_t crc32(const char* message)
 	{
 		int32_t i = 0;

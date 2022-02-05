@@ -2,15 +2,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "3rd_party/randomc/randomc.h"
+#include "../../3rd_party/randomc/randomc.h"
 
 #include "flags.h"
-#include "../../risEngine/risModules/risData/risString.h"
-#include "../../risEngine/risModules/risData/risEndian.h"
-#include "../../risEngine/risModules/risData/risAllocators.h"
-#include "../../risEngine/risModules/risData/risFlag.h"
-#include "../../risEngine/risModules/risData/risEncodings.h"
-#include "../../risEngine/risModules/risResource/risPath.h"
+#include "../../risEngine/risData/risString.h"
+#include "../../risEngine/risData/risEndian.h"
+#include "../../risEngine/risData/risAllocators.h"
+#include "../../risEngine/risData/risFlag.h"
+#include "../../risEngine/risData/risEncodings.h"
+#include "../../risEngine/risResource/risPath.h"
 #include "../risCompiler/risCompiler.h"
 
 using namespace risEditor;
