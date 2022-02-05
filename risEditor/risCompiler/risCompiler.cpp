@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include <filesystem>
+#include <string>
 
 #include "risCompiler.h"
 #include "risCompilerUtility.h"
@@ -39,6 +40,30 @@ namespace risEditor
 			if (!asset_file.good())
 				continue;
 
+			auto asset_path = entry_path.c_str();
+			I32 path_length = 0;
+			I32 dot_position = 0;
+			while (asset_path[path_length] != 0)
+			{
+				if (asset_path[path_length] == '.')
+					dot_position = path_length;
+
+				++path_length;
+			}
+
+			auto extension_marker = allocator_->get_marker();
+
+			auto extension_length = path_length - dot_position;
+			auto extension = static_cast<wchar_t*>(allocator_->alloc(sizeof(wchar_t) * extension_length));
+
+			I32 i = 0;
+			for (; i + 1 < extension_length; ++i)
+			{
+				extension[i] = asset_path[dot_position + 1 + i];
+			}
+			extension[i] = 0;
+
+			allocator_->free_to_marker(extension_marker);
 		}
 
 		allocator_->free_to_marker(marker);
