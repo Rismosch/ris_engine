@@ -33,7 +33,6 @@ void test_endian();
 
 int main(int argc, char *argv[])
 {
-	// tests
 	test_flag();
 	test_allocator();
 	test_strings();

@@ -109,4 +109,23 @@ namespace risEngine
 			return input_stream.take() & 0x7F;
 		}
 	};
+
+
+	template<typename CharType = wchar_t>
+	struct risNoEncoding
+	{
+		typedef CharType Character;
+
+		template<typename OutputStream>
+		static void encode(OutputStream& output_stream, CodePoint code_point)
+		{
+			output_stream.put(static_cast<Character>(code_point));
+		}
+
+		template<typename InputStream>
+		static CodePoint decode(InputStream& input_stream)
+		{
+			return input_stream.take();
+		}
+	};
 }

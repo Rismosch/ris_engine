@@ -56,4 +56,5 @@ namespace risEngine
 
 	typedef risStringBuffer<risUTF8<>> risStringUTF8;
 	typedef risStringBuffer<risASCII<>> risStringASCII;
+	typedef risStringBuffer<risNoEncoding<>> risStringNoEncoding;
 }
