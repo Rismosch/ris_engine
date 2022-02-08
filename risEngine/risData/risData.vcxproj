@@ -162,7 +162,6 @@
     <ClInclude Include="risEndian.h" />
     <ClInclude Include="risFlag.h" />
     <ClInclude Include="risPrimitives.h" />
-    <ClInclude Include="risStaticUtility.h" />
     <ClInclude Include="risStreams.h" />
     <ClInclude Include="risString.h" />
   </ItemGroup>

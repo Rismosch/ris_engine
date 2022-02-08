@@ -5,6 +5,7 @@ namespace risEngine
 {
 	typedef U32 CodePoint;
 
+#pragma region UTF8
 	template<typename CharType = U8>
 	struct risUTF8
 	{
@@ -57,7 +58,7 @@ namespace risEngine
 
 				return (byte1 & 0x1F) << 6 | byte2 & 0x3F;
 			}
-			
+
 			if ((byte1 & 0xF0) == 0xE0)
 			{
 				Character byte2 = input_stream.take();
@@ -91,7 +92,65 @@ namespace risEngine
 			return 0xFFFF;
 		}
 	};
+#pragma endregion
 
+#pragma region UTF16
+	template<typename CharType = wchar_t>
+	struct risUTF16LE
+	{
+		typedef CharType Character;
+
+		template<typename OutputStream>
+		static void encode(OutputStream& output_stream, CodePoint code_point)
+		{
+			output_stream.put(static_cast<Character>(code_point));
+		}
+
+		template<typename InputStream>
+		static CodePoint decode(InputStream& input_stream)
+		{
+			return input_stream.take();
+		}
+	};
+
+	template<typename CharType = wchar_t>
+	struct risUTF16BE
+	{
+		typedef CharType Character;
+
+		template<typename OutputStream>
+		static void encode(OutputStream& output_stream, CodePoint code_point)
+		{
+			output_stream.put(static_cast<Character>(code_point));
+		}
+
+		template<typename InputStream>
+		static CodePoint decode(InputStream& input_stream)
+		{
+			return input_stream.take();
+		}
+	};
+
+	template<typename CharType = wchar_t>
+	struct risUTF16
+	{
+		typedef CharType Character;
+
+		template<typename OutputStream>
+		static void encode(OutputStream& output_stream, CodePoint code_point)
+		{
+			output_stream.put(static_cast<Character>(code_point));
+		}
+
+		template<typename InputStream>
+		static CodePoint decode(InputStream& input_stream)
+		{
+			return input_stream.take();
+		}
+	};
+#pragma endregion
+
+#pragma region ASCII
 	template<typename CharType = char>
 	struct risASCII
 	{
@@ -109,23 +168,5 @@ namespace risEngine
 			return input_stream.take() & 0x7F;
 		}
 	};
-
-
-	template<typename CharType = wchar_t>
-	struct risNoEncoding
-	{
-		typedef CharType Character;
-
-		template<typename OutputStream>
-		static void encode(OutputStream& output_stream, CodePoint code_point)
-		{
-			output_stream.put(static_cast<Character>(code_point));
-		}
-
-		template<typename InputStream>
-		static CodePoint decode(InputStream& input_stream)
-		{
-			return input_stream.take();
-		}
-	};
+#pragma endregion
 }

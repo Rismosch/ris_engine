@@ -7,7 +7,7 @@ namespace risEngine
 {
 	constexpr U32 MAX_PATH_LENGTH = 4096;
 
-	typedef risStringNoEncoding risPath;
+	typedef risStringASCII risPath;
 
 	template<class Allocator>
 	risPath path_to_platform(StringId string_id, Allocator* allocator)
@@ -18,7 +18,7 @@ namespace risEngine
 		for (U32 i = 0; internal_path[i] != 0 && i < MAX_PATH_LENGTH; ++i)
 		{
 			if (internal_path[i] == '/')
-				path.put(L'\\');
+				path.put('\\');
 			else
 				path.put(internal_path[i]);
 		}
