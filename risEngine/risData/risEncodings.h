@@ -6,6 +6,8 @@ namespace risEngine
 	typedef U32 CodePoint;
 
 #pragma region UTF8
+	// https://datatracker.ietf.org/doc/html/rfc3629
+
 	template<typename CharType = U8>
 	struct risUTF8
 	{
@@ -95,6 +97,8 @@ namespace risEngine
 #pragma endregion
 
 #pragma region UTF16
+	// https://datatracker.ietf.org/doc/html/rfc2781
+
 	template<typename CharType = wchar_t>
 	struct risUTF16LE
 	{
