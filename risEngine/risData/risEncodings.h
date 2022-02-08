@@ -143,13 +143,34 @@ namespace risEngine
 		template<typename OutputStream>
 		static void encode(OutputStream& output_stream, CodePoint code_point)
 		{
-			output_stream.put(static_cast<Character>(code_point));
+			if (code_point < 0x10000)
+			{
+				output_stream.put(static_cast<Character>(code_point));
+			}
+			else
+			{
+				const CodePoint shifted_code_point = code_point - 0x10000;
+
+				output_stream.put(static_cast<Character>(0xD800 | (0xFFC00 & shifted_code_point) >> 10));
+				output_stream.put(static_cast<Character>(0xDC00 | (0x3FF & shifted_code_point)));
+			}
 		}
 
 		template<typename InputStream>
 		static CodePoint decode(InputStream& input_stream)
 		{
-			return input_stream.take();
+			Character W1 = input_stream.take();
+			if (W1 < 0xD800 || W1 > 0xDFFF)
+				return static_cast<CodePoint>(W1);
+
+			if (W1 <= 0xD800 || W1 >= 0xDBFF)
+				return 0xFFFF;
+
+			Character W2 = input_stream.take();
+			if (W2 == 0)
+				return 0xFFFF;
+
+			return (W1 & 0x3FF) << 10 | W2 & 0x3FF;
 		}
 	};
 #pragma endregion

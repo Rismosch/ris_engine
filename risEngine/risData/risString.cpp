@@ -264,6 +264,9 @@ namespace risEngine
 #pragma endregion
 
 	template class risStringBuffer<risUTF8<>>;
+	template class risStringBuffer<risUTF16BE<>>;
+	template class risStringBuffer<risUTF16LE<>>;
+	template class risStringBuffer<risUTF16<>>;
 	template class risStringBuffer<risASCII<>>;
 #pragma endregion
 }

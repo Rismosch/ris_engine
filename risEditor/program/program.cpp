@@ -23,6 +23,8 @@ CRandomMother rng(42);
 void test_flag();
 void test_allocator();
 void test_strings();
+void test_UTF8();
+void test_UTF16();
 void test_ascii();
 void test_file();
 void test_path();
@@ -36,6 +38,8 @@ int main(int argc, char *argv[])
 	test_flag();
 	test_allocator();
 	test_strings();
+	test_UTF8();
+	test_UTF16();
 	test_ascii();
 	test_file();
 	test_path();
@@ -137,17 +141,19 @@ void test_strings()
 	auto c_sid1 = sid(c_str_1);
 
 	std::cout << c_sid0  << " == "  << c_sid1 << " : " << (c_sid0 == c_sid1) << std::endl;
+}
 
+void test_UTF8()
+{
+	std::cout << "\nstring UTF8:" << std::endl;
 
-	std::cout << "\nstring buffer:" << std::endl;
-	
 	const auto string_allocator = new risStackAllocator(256);
 	auto string_buffer = risStringBuffer<risUTF8<>>(string_allocator, 256);
 
 	const auto input_values = new CodePoint[100];
 	const auto encoded_values = new risUTF8<>::Character[100];
 	const auto decoded_values = new CodePoint[100];
-	
+
 	for (U8 i = 0; i < 100; ++i)
 	{
 		//const auto random_value = static_cast<CodePoint>(rng->IRandom(0, 0x0010FFFF));
@@ -159,7 +165,7 @@ void test_strings()
 
 		string_buffer.put(code_point);
 	}
-	
+
 	string_buffer.get_encoded_string(encoded_values, 100);
 	string_buffer.get_decoded_string(decoded_values, 100);
 
@@ -168,6 +174,43 @@ void test_strings()
 		std::cout << input_values[i] << "=" << encoded_values[i] << "=" << decoded_values[i] << std::endl;
 	}
 
+	delete[] decoded_values;
+	delete[] encoded_values;
+	delete[] input_values;
+	delete string_allocator;
+}
+
+void test_UTF16()
+{
+	std::cout << "\nstring UTF16:" << std::endl;
+
+	const auto string_allocator = new risStackAllocator(256);
+	auto string_buffer = risStringUTF16(string_allocator, 256);
+
+	const auto input_values = new CodePoint[100];
+	const auto encoded_values = new risStringUTF16::Character[100];
+	const auto decoded_values = new CodePoint[100];
+	
+	for (U8 i = 0; i < 100; ++i)
+	{
+		//const auto random_value = static_cast<CodePoint>(rng->IRandom(0, 0x0010FFFF));
+		const CodePoint code_point = (0x0010FFFF - (i * 0x0010FFFF / 100)) % 0x0010FFFF;
+	
+		input_values[i] = code_point;
+		encoded_values[i] = 0;
+		decoded_values[i] = 0;
+	
+		string_buffer.put(code_point);
+	}
+	
+	string_buffer.get_encoded_string(encoded_values, 100);
+	string_buffer.get_decoded_string(decoded_values, 100);
+	
+	for (U8 i = 0; i < 100; ++i)
+	{
+		std::cout << input_values[i] << "=" << encoded_values[i] << "=" << decoded_values[i] << std::endl;
+	}
+	
 	delete[] decoded_values;
 	delete[] encoded_values;
 	delete[] input_values;
