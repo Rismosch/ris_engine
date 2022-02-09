@@ -30,13 +30,7 @@
     <ClInclude Include="risEndian.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risStreams.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="risString.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="risFlag.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="risEncodings.h">
@@ -51,9 +45,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="risString.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="risFlag.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

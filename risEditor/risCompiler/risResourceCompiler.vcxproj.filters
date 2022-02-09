@@ -24,18 +24,9 @@
     <ClInclude Include="risCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risCompilerError.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="risCompilerUtility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="risCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

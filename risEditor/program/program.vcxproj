@@ -167,9 +167,6 @@
     <ClCompile Include="program.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="flags.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\3rd_party\randomc\randomc.vcxproj">
       <Project>{b8384b94-1015-48e3-a046-609e50805d61}</Project>
     </ProjectReference>

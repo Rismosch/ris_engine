@@ -27,12 +27,6 @@
     <ClInclude Include="risTextResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risPath.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="risResourceUtility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
