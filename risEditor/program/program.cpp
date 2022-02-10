@@ -10,7 +10,6 @@
 #include "../../risEngine/risData/risEncodings.h"
 #include "../risCompiler/risCompiler.h"
 
-using namespace risEditor;
 using namespace risEngine;
 
 risStackAllocator stackAllocator(1000000);
@@ -124,13 +123,11 @@ void test_file()
 void test_resource_compiler()
 {
 	std::cout << "\nresource compiler:" << std::endl;
-	// const auto doubleStackAllocator = new risDoubleStackAllocator(1000000);
-	//
-	// auto compiler = risCompiler(doubleStackAllocator);
-	//
-	// auto error = compiler.compile_asset_folder();
-	//
-	// delete doubleStackAllocator;
+	const auto double_stack_allocator = new risDoubleStackAllocator(1000000);
+	
+	auto error = risCompiler::compile_assets(*double_stack_allocator);
+	
+	delete double_stack_allocator;
 }
 
 void test_rng()

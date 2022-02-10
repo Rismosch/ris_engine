@@ -24,8 +24,8 @@ namespace risEngine
 	typedef int_fast32_t I32F;	static_assert(sizeof(I32F) >= 4, "I32F must be at minimum 32 bits in size");
 
 	// bool
-	typedef bool BOOL; // any bool goes, really
+	// any bool goes, really
 
 	// char
-	typedef char16_t CHAR;	static_assert(sizeof(CHAR) == 2, "CHAR must be exactly 16 bits in size");
+	static_assert(sizeof(char) == 1, "CHAR must be exactly 16 bits in size");
 }

@@ -36,6 +36,9 @@
     <ClInclude Include="risEncodings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="risAllocatorJanitors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

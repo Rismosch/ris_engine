@@ -29,14 +29,8 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="resource manager specifications.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="resource_manager_load_method_exploration.drawio" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Screenshot 2022-01-23 185119.png" />
+    <ClCompile Include="risCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

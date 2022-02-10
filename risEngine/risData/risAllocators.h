@@ -8,9 +8,13 @@ namespace risEngine
 	class risStackAllocator
 	{
 	public:
-
+		// constructors
 		explicit risStackAllocator(U32 size_bytes);
 		~risStackAllocator();
+		risStackAllocator(const risStackAllocator& other) = default;
+		risStackAllocator(risStackAllocator&& other) noexcept;
+		risStackAllocator& operator=(const risStackAllocator& other);
+		risStackAllocator& operator=(risStackAllocator&& other) noexcept;
 
 		// allocator policy
 		void* alloc(U32 size_bytes);
@@ -28,8 +32,13 @@ namespace risEngine
 	class risDoubleStackAllocator
 	{
 	public:
+		// constructors
 		explicit risDoubleStackAllocator(U32 size_bytes);
 		~risDoubleStackAllocator();
+		risDoubleStackAllocator(const risDoubleStackAllocator& other) = default;
+		risDoubleStackAllocator(risDoubleStackAllocator&& other) noexcept;
+		risDoubleStackAllocator& operator=(const risDoubleStackAllocator& other);
+		risDoubleStackAllocator& operator=(risDoubleStackAllocator&& other) noexcept;
 
 		// allocator policy
 		void* alloc(U32 size_bytes);

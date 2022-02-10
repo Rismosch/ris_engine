@@ -5,7 +5,33 @@ namespace risEngine
 {
 #pragma region risStackAllocator
 	risStackAllocator::risStackAllocator(U32 size_bytes) : data_(new U8[size_bytes]), size_bytes_(size_bytes) { }
+
 	risStackAllocator::~risStackAllocator() { delete[] data_; }
+
+	risStackAllocator::risStackAllocator(risStackAllocator&& other) noexcept
+		: data_(other.data_),
+		size_bytes_(other.size_bytes_),
+		marker_(other.marker_) {}
+
+	risStackAllocator& risStackAllocator::operator=(const risStackAllocator& other)
+	{
+		if (this == &other)
+			return *this;
+		data_ = other.data_;
+		size_bytes_ = other.size_bytes_;
+		marker_ = other.marker_;
+		return *this;
+	}
+
+	risStackAllocator& risStackAllocator::operator=(risStackAllocator&& other) noexcept
+	{
+		if (this == &other)
+			return *this;
+		data_ = other.data_;
+		size_bytes_ = other.size_bytes_;
+		marker_ = other.marker_;
+		return *this;
+	}
 
 	// allocator policy
 	void* risStackAllocator::alloc(U32 size_bytes)
@@ -38,7 +64,39 @@ namespace risEngine
 
 #pragma region risDoubleStackAllocator
 	risDoubleStackAllocator::risDoubleStackAllocator(U32 size_bytes) : data_(new U8[size_bytes]), size_bytes_(size_bytes), marker_back_(size_bytes){}
+
 	risDoubleStackAllocator::~risDoubleStackAllocator() { delete[] data_; }
+
+	risDoubleStackAllocator::risDoubleStackAllocator(risDoubleStackAllocator&& other) noexcept
+		: data_(other.data_),
+		size_bytes_(other.size_bytes_),
+		marker_front_(other.marker_front_),
+		marker_back_(other.marker_back_),
+		buffer_is_front_(other.buffer_is_front_) {}
+
+	risDoubleStackAllocator& risDoubleStackAllocator::operator=(const risDoubleStackAllocator& other)
+	{
+		if (this == &other)
+			return *this;
+		data_ = other.data_;
+		size_bytes_ = other.size_bytes_;
+		marker_front_ = other.marker_front_;
+		marker_back_ = other.marker_back_;
+		buffer_is_front_ = other.buffer_is_front_;
+		return *this;
+	}
+
+	risDoubleStackAllocator& risDoubleStackAllocator::operator=(risDoubleStackAllocator&& other) noexcept
+	{
+		if (this == &other)
+			return *this;
+		data_ = other.data_;
+		size_bytes_ = other.size_bytes_;
+		marker_front_ = other.marker_front_;
+		marker_back_ = other.marker_back_;
+		buffer_is_front_ = other.buffer_is_front_;
+		return *this;
+	}
 
 	// allocator policy
 	void* risDoubleStackAllocator::alloc(U32 size_bytes)
