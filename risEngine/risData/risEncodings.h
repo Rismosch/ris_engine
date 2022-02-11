@@ -4,10 +4,8 @@
 namespace risEngine
 {
 	typedef U32 CodePoint;
-
-#pragma region UTF8
+	
 	// https://datatracker.ietf.org/doc/html/rfc3629
-
 	template<typename CharType = U8>
 	struct risUTF8
 	{
@@ -94,9 +92,6 @@ namespace risEngine
 			return 0xFFFF;
 		}
 	};
-#pragma endregion
-
-#pragma region UTF16
 	// https://datatracker.ietf.org/doc/html/rfc2781
 
 	template<typename CharType = wchar_t>
@@ -173,25 +168,4 @@ namespace risEngine
 			return (W1 & 0x3FF) << 10 | W2 & 0x3FF;
 		}
 	};
-#pragma endregion
-
-#pragma region ASCII
-	template<typename CharType = char>
-	struct risASCII
-	{
-		typedef CharType Character;
-
-		template<typename OutputStream>
-		static void encode(OutputStream& output_stream, CodePoint code_point)
-		{
-			output_stream.put(static_cast<Character>(code_point & 0x7F));
-		}
-
-		template<typename InputStream>
-		static CodePoint decode(InputStream& input_stream)
-		{
-			return input_stream.take() & 0x7F;
-		}
-	};
-#pragma endregion
 }
