@@ -6,7 +6,7 @@ namespace risCompiler
 {
 	using namespace risEngine;
 
-	constexpr I32 MAX_PATH_LENGTH = 4096;
+	constexpr I32 MAX_PATH_SIZE = 4096;
 	const auto RESOURCE_REDIRECT_PATH = "resource.redirect";
 
 	enum class risCompilerError

@@ -27,5 +27,6 @@ namespace risEngine
 	// any bool goes, really
 
 	// char
-	static_assert(sizeof(char) == 1, "CHAR must be exactly 16 bits in size");
+	static_assert(sizeof(char) == 1, "char must be exactly 8 bits in size");
+	static_assert(sizeof(wchar_t) == 2, "wchar_t must be exactly 16 bits in size");
 }
