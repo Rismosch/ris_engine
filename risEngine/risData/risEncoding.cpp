@@ -4,11 +4,11 @@
 
 namespace risEngine
 {
-	inline void risUtf8::encode(const CodePoint input, std::function<void(Character)> output)
+	void risUtf8::encode(const CodePoint input, const std::function<void(Character)>& output)
 	{
 		if (input > 0x0010FFFF)
 			return;
-
+		
 		if (input > 0x000FFFF)
 		{
 			output(static_cast<Character>(0xF0 | (0x1C0000 & input) >> 18));
@@ -33,7 +33,7 @@ namespace risEngine
 		}
 	}
 
-	CodePoint risUtf8::decode(std::function<Character()> input)
+	CodePoint risUtf8::decode(const std::function<Character()>& input)
 	{
 		Character byte1 = input();
 		if ((byte1 & 0x80) == 0)
@@ -83,7 +83,7 @@ namespace risEngine
 		return 0xFFFF;
 	}
 
-	void risUtf16LE::encode(const CodePoint input, std::function<void(Character)> output)
+	void risUtf16LE::encode(const CodePoint input, const std::function<void(Character)>& output)
 	{
 		if (input < 0x10000)
 		{
@@ -98,7 +98,7 @@ namespace risEngine
 		}
 	}
 
-	CodePoint risUtf16LE::decode(std::function<Character()> input)
+	CodePoint risUtf16LE::decode(const std::function<Character()>& input)
 	{
 		Character w1 = input();
 		if (w1 < 0xD800 || w1 > 0xDFFF)
