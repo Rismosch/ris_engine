@@ -7,7 +7,9 @@ namespace risCompiler
 	using namespace risEngine;
 
 	constexpr I32 MAX_PATH_SIZE = 4096;
-	const auto RESOURCE_REDIRECT_PATH = "resource.redirect";
+	const auto ASSET_REDIRECT_PATH = L"asset.ris_redirect";
+	const auto ASSET_LOOKUP_PATH = L"asset.ris_lookup";
+	const auto ASSET_PACKAGE_PATH = L"asset.ris_package";
 
 	enum class risCompilerError
 	{

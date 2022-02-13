@@ -29,11 +29,6 @@ namespace risEngine
 		return string_id;
 	}
 
-	StringId sid(char* str)
-	{
-		return sid(static_cast<const char*>(str));
-	}
-
 	const char* internal_string(StringId sid)
 	{
 #if defined _DEBUG

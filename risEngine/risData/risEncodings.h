@@ -27,26 +27,18 @@ namespace risEngine
 	};
 
 	template<class From, class To>
-	int convert(const typename From::Character* input, typename To::Character* output, std::function<CodePoint(CodePoint)> replace_callback = nullptr)
+	I32 convert(const typename From::Character * input, typename To::Character * output, std::function<CodePoint(CodePoint)> replace_callback = nullptr)
 	{
 		I32 i = 0, j = 0;
 	
 		while (input[i] != 0)
 		{
-			auto input_lambda = [&]
-			{
-				return input[i++];
-			};
-			auto output_lambda = [&](typename To::Character c)
-			{
-				output[j++] = c;
-			};
-	
-			const auto code_point = From::decode(input_lambda);
+			auto code_point = From::decode([&] {return input[i++]; });
+
 			if (replace_callback != nullptr)
-				To::encode(replace_callback(code_point), output_lambda);
-			else
-				To::encode(code_point, output_lambda);
+				code_point = replace_callback(code_point);
+			
+			To::encode(code_point, [&](typename To::Character c) {output[j++] = c; });
 		}
 	
 		output[j] = 0;
