@@ -12,7 +12,7 @@
 
 using namespace risEngine;
 
-risStackAllocator stackAllocator(1000000);
+risStackAllocator stack_allocator;
 CRandomMother rng(42);
 
 void test_allocator();
@@ -24,12 +24,16 @@ void test_arguments(int argc, char* argv[]);
 
 int main(int argc, char *argv[])
 {
+	stack_allocator.init(1000000);
+
 	test_allocator();
 	test_strings();
 	// test_file();
 	test_resource_compiler();
 	test_rng();
 	test_arguments(argc, argv);
+
+	stack_allocator.release();
 }
 
 void test_allocator()
@@ -42,26 +46,26 @@ void test_allocator()
 	U32* number3 = nullptr;
 	Marker marker = 0;
 
-	number0 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
+	number0 = static_cast<U32*>(stack_allocator.alloc(sizeof(U32)));
 	*number0 = 42;
 
-	marker = stackAllocator.get_marker();
+	marker = stack_allocator.get_marker();
 
-	number1 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
+	number1 = static_cast<U32*>(stack_allocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 	*number1 = 13;
 	std::cout << *number0 << "\t" << *number1 << "\t0\t0" << std::endl;
 
-	stackAllocator.free_to_marker(marker);
+	stack_allocator.free_to_marker(marker);
 
-	number2 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
+	number2 = static_cast<U32*>(stack_allocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 	*number2 = 0;
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t0" << std::endl;
 
-	stackAllocator.clear();
+	stack_allocator.clear();
 
-	number3 = static_cast<U32*>(stackAllocator.alloc(sizeof(U32)));
+	number3 = static_cast<U32*>(stack_allocator.alloc(sizeof(U32)));
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
 	*number3 = 7;
 	std::cout << *number0 << "\t" << *number1 << "\t" << *number2 << "\t" << *number3 << std::endl;
@@ -123,11 +127,12 @@ void test_file()
 void test_resource_compiler()
 {
 	std::cout << "\nresource compiler:" << std::endl;
-	const auto double_stack_allocator = new risDoubleStackAllocator(1000000);
+	risDoubleStackAllocator double_stack_allocator;
+	double_stack_allocator.init(1000000);
 	
-	auto error = risCompiler::compile_assets(*double_stack_allocator);
+	auto error = risCompiler::compile_assets(double_stack_allocator);
 	
-	delete double_stack_allocator;
+	double_stack_allocator.release();
 }
 
 void test_rng()

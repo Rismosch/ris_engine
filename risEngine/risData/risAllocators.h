@@ -5,16 +5,10 @@ namespace risEngine
 {
 	typedef U32 Marker;
 
-	class risStackAllocator
+	struct risStackAllocator
 	{
-	public:
-		// constructors
-		explicit risStackAllocator(U32 size_bytes);
-		~risStackAllocator();
-		risStackAllocator(const risStackAllocator& other) = default;
-		risStackAllocator(risStackAllocator&& other) noexcept;
-		risStackAllocator& operator=(const risStackAllocator& other);
-		risStackAllocator& operator=(risStackAllocator&& other) noexcept;
+		void init(U32 size_bytes);
+		void release() const;
 
 		// allocator policy
 		void* alloc(U32 size_bytes);
@@ -23,22 +17,15 @@ namespace risEngine
 		void clear();
 
 	private:
-		U8* data_;
+		U8* data_ = nullptr;
 		U32 size_bytes_ = 0;
-
 		Marker marker_ = 0;
 	};
 
-	class risDoubleStackAllocator
+	struct risDoubleStackAllocator
 	{
-	public:
-		// constructors
-		explicit risDoubleStackAllocator(U32 size_bytes);
-		~risDoubleStackAllocator();
-		risDoubleStackAllocator(const risDoubleStackAllocator& other) = default;
-		risDoubleStackAllocator(risDoubleStackAllocator&& other) noexcept;
-		risDoubleStackAllocator& operator=(const risDoubleStackAllocator& other);
-		risDoubleStackAllocator& operator=(risDoubleStackAllocator&& other) noexcept;
+		void init(U32 size_bytes);
+		void release() const;
 
 		// allocator policy
 		void* alloc(U32 size_bytes);
@@ -62,7 +49,7 @@ namespace risEngine
 		void clear_back();
 
 	private:
-		U8* data_;
+		U8* data_ = nullptr;
 		U32 size_bytes_ = 0;
 
 		Marker marker_front_ = 0;
