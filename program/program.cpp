@@ -2,13 +2,13 @@
 #include <iostream>
 #include <fstream>
 
-#include "../../3rd_party/randomc/randomc.h"
+#include "../3rd_party/randomc/randomc.h"
 
-#include "../../risEngine/risData/risString.h"
-#include "../../risEngine/risData/risEndian.h"
-#include "../../risEngine/risData/risAllocators.h"
-#include "../../risEngine/risData/risEncodings.h"
-#include "../risCompiler/risCompiler.h"
+#include "../risEngine/risData/risString.h"
+#include "../risEngine/risData/risEndian.h"
+#include "../risEngine/risData/risAllocators.h"
+#include "../risEngine/risData/risEncodings.h"
+#include "../risEngine/risCompiler/risCompiler.h"
 
 using namespace risEngine;
 
@@ -130,7 +130,7 @@ void test_resource_compiler()
 	risDoubleStackAllocator double_stack_allocator;
 	double_stack_allocator.init(1000000);
 	
-	auto error = risCompiler::compile_assets(double_stack_allocator);
+	auto error = compile_assets(double_stack_allocator);
 	
 	double_stack_allocator.release();
 }

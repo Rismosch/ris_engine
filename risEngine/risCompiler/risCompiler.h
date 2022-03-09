@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../../risEngine/risData/risAllocators.h"
+#include "../risData/risAllocators.h"
 
-namespace risCompiler
+namespace risEngine
 {
-	using namespace risEngine;
 
 	constexpr I32 MAX_PATH_SIZE = 4096;
 	const auto ASSET_REDIRECT_PATH = L"asset.ris_redirect";

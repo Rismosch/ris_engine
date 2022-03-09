@@ -6,11 +6,11 @@
 #include <tuple>
 #include <filesystem>
 
-#include "../../risEngine/risData/risAllocatorJanitors.h"
-#include "../../risEngine/risData/risEncodings.h"
-#include "../../risEngine/risData/risString.h"
+#include "../risData/risAllocatorJanitors.h"
+#include "../risData/risEncodings.h"
+#include "../risData/risString.h"
 
-namespace risCompiler
+namespace risEngine
 {
 	std::tuple<risCompilerError, char*> locate_asset_folder(const risDoubleStackAllocatorJanitor& alloc_jtr);
 	StringId get_asset_id(const risDoubleStackAllocatorJanitor& alloc_jtr, const wchar_t* full_path_utf16, const I32 root_path_length);
