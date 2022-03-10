@@ -183,6 +183,11 @@
       <Project>{a409b08c-3228-4766-823b-7eb1afd36142}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="singleton_a.h" />
+    <ClInclude Include="singleton_b.h" />
+    <ClInclude Include="singleton_c.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

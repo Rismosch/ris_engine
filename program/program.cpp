@@ -2,6 +2,9 @@
 #include <iostream>
 #include <fstream>
 
+#include "singleton_a.h"
+#include "singleton_b.h"
+#include "singleton_c.h"
 #include "../3rd_party/randomc/randomc.h"
 
 #include "../risEngine/risData/risString.h"
@@ -9,6 +12,7 @@
 #include "../risEngine/risData/risAllocators.h"
 #include "../risEngine/risData/risEncodings.h"
 #include "../risEngine/risCompiler/risCompiler.h"
+#include "../risEngine/risEngine/risSingletonJanitor.h"
 
 using namespace risEngine;
 
@@ -21,6 +25,7 @@ void test_file();
 void test_resource_compiler();
 void test_rng();
 void test_arguments(int argc, char* argv[]);
+void test_singleton();
 
 int main(int argc, char *argv[])
 {
@@ -32,6 +37,7 @@ int main(int argc, char *argv[])
 	test_resource_compiler();
 	test_rng();
 	test_arguments(argc, argv);
+	test_singleton();
 
 	stack_allocator.release();
 }
@@ -154,4 +160,53 @@ void test_arguments(int argc, char* argv[])
 		std::cout << argv[i] << std::endl;
 	}
 }
+
+// class Singleton_B
+// {
+// public:
+// 	// singleton policy
+// 	static Singleton_B* instance()
+// 	{
+// 		return instance_;
+// 	}
+//
+// 	static void create()
+// 	{
+// 		std::cout << "create singleton b" << std::endl;
+// 		if (!instance_)
+// 			instance_ = new Singleton_B;
+// 	}
+//
+//
+// 	static void destroy()
+// 	{
+// 		std::cout << "destroy singleton b" << std::endl;
+// 		delete instance_;
+// 	}
+//
+// 	// functions
+// 	void print()
+// 	{
+// 		std::cout << "i am singleton b" << std::endl;
+// 	}
+//
+// private:
+// 	static Singleton_B* instance_;
+// };
+
+void test_singleton()
+{
+	std::cout << "\singleton janitor:" << std::endl;
+
+	risSingletonJanitor jtr = risSingletonJanitor();
+
+	jtr.setup<Singleton_A>();
+	jtr.setup<Singleton_B>();
+	jtr.setup<Singleton_C>();
+
+	Singleton_A::instance()->print();
+	Singleton_B::instance()->print();
+	Singleton_C::instance()->print();
+}
+
 
