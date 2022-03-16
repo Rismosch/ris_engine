@@ -21,10 +21,7 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="risSingletonJanitor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="risEngine.h">
+    <ClInclude Include="risJobSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,7 +29,7 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="risEngine.cpp">
+    <ClCompile Include="risJobSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

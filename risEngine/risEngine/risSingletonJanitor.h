@@ -9,7 +9,7 @@ namespace risEngine
 	{
 	public:
 		template<class Singleton>
-		void setup()
+		void create()
 		{
 			Singleton::create();
 			destroy_functions_.push(Singleton::destroy);
@@ -27,9 +27,9 @@ namespace risEngine
 		risSingletonJanitor() = default;
 
 		risSingletonJanitor(const risSingletonJanitor& other) = delete;
-		risSingletonJanitor(risSingletonJanitor&& other) noexcept = delete;
-		risSingletonJanitor& operator=(const risSingletonJanitor& other) = delete;
-		risSingletonJanitor& operator=(risSingletonJanitor&& other) noexcept = delete;
+		risSingletonJanitor(risSingletonJanitor&& other) noexcept = default;
+		risSingletonJanitor& operator=(const risSingletonJanitor& other) = default;
+		risSingletonJanitor& operator=(risSingletonJanitor&& other) noexcept = default;
 
 	private:
 		std::stack<std::function<void()>> destroy_functions_;
