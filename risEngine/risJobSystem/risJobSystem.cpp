@@ -13,12 +13,13 @@ namespace risEngine
 		return p_instance_;
 	}
 
-
-	void risJobSystem::create()
+	void risJobSystem::create(uintptr_t param)
 	{
+		auto p_param = reinterpret_cast<risJobSystemParameters*>(param);
+
 		std::cout << "create job system" << std::endl;
 
-		std::cout << "threads to spawn: " << "??" << std::endl;
+		std::cout << "threads to spawn: " << p_param->threads << std::endl;
 	}
 
 	void risJobSystem::destroy()

@@ -9,9 +9,10 @@ namespace risEngine
 	{
 	public:
 		template<class Singleton>
-		void create()
+		void create(uintptr_t param)
 		{
-			Singleton::create();
+			Singleton::create(param);
+
 			destroy_functions_.push(Singleton::destroy);
 		}
 

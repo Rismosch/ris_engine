@@ -10,7 +10,11 @@ namespace risEngine
 	risEngine::risEngine(risArguments& arguments)
 	{
 		singleton_janitor_ = risSingletonJanitor();
-		singleton_janitor_.create<risJobSystem>();
+
+		auto job_system_parameters = risJobSystemParameters();
+		job_system_parameters.threads = arguments.job_threads;
+
+		singleton_janitor_.create<risJobSystem>(reinterpret_cast<uintptr_t>(&job_system_parameters));
 	}
 
 	void risEngine::run()
