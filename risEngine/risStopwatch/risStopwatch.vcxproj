@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a409b08c-3228-4766-823b-7eb1afd36142}</ProjectGuid>
-    <RootNamespace>risEngine</RootNamespace>
+    <ProjectGuid>{3df5cca9-2260-4e53-ba11-106b283bf906}</ProjectGuid>
+    <RootNamespace>risStopwatch</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -153,8 +153,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="risEngine.h" />
-    <ClInclude Include="risSingletonJanitor.h" />
+    <ClInclude Include="risStopwatch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -163,15 +162,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="risEngine.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\risJobSystem\risJobSystem.vcxproj">
-      <Project>{2a26381e-ee96-4247-999b-dd7c0cf72d65}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\risStopwatch\risStopwatch.vcxproj">
-      <Project>{3df5cca9-2260-4e53-ba11-106b283bf906}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

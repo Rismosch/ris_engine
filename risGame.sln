@@ -28,6 +28,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "program", "program\program.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risJobSystem", "risEngine\risJobSystem\risJobSystem.vcxproj", "{2A26381E-EE96-4247-999B-DD7C0CF72D65}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "risStopwatch", "risEngine\risStopwatch\risStopwatch.vcxproj", "{3DF5CCA9-2260-4E53-BA11-106B283BF906}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -100,6 +102,14 @@ Global
 		{2A26381E-EE96-4247-999B-DD7C0CF72D65}.Release|x64.Build.0 = Release|x64
 		{2A26381E-EE96-4247-999B-DD7C0CF72D65}.Release|x86.ActiveCfg = Release|Win32
 		{2A26381E-EE96-4247-999B-DD7C0CF72D65}.Release|x86.Build.0 = Release|Win32
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Debug|x64.ActiveCfg = Debug|x64
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Debug|x64.Build.0 = Debug|x64
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Debug|x86.ActiveCfg = Debug|Win32
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Debug|x86.Build.0 = Debug|Win32
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Release|x64.ActiveCfg = Release|x64
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Release|x64.Build.0 = Release|x64
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Release|x86.ActiveCfg = Release|Win32
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +122,7 @@ Global
 		{A409B08C-3228-4766-823B-7EB1AFD36142} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
 		{59B930CE-C935-4A69-8DAA-EAC739A8BC86} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
 		{2A26381E-EE96-4247-999B-DD7C0CF72D65} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
+		{3DF5CCA9-2260-4E53-BA11-106B283BF906} = {383C3E17-FA45-447A-A0ED-B6C7C15C672A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {06462A58-3F52-49A9-8DB3-68FC27226424}

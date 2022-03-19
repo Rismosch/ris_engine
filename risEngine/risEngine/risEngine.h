@@ -13,7 +13,7 @@ namespace risEngine
 	class risEngine
 	{
 	public:
-		risEngine(risArguments& arguments);
+		risEngine(const risArguments& arguments);
 		~risEngine();
 
 		risEngine(const risEngine& other) = delete;

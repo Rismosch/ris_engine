@@ -4,10 +4,11 @@
 
 #include "risEngine.h"
 #include "../risJobSystem/risJobSystem.h"
+#include "../risStopwatch/risStopwatch.h"
 
 namespace risEngine
 {
-	risEngine::risEngine(risArguments& arguments)
+	risEngine::risEngine(const risArguments& arguments)
 	{
 		singleton_janitor_ = risSingletonJanitor();
 
@@ -19,13 +20,19 @@ namespace risEngine
 
 	void risEngine::run()
 	{
+		const auto stopwatch = risStopwatch();
+
 		auto counter = 0;
 		while (true)
 		{
 			std::cout << counter << std::endl;
-			if (++counter > 10)
+			if (++counter > 40000)
 				break;
 		}
+
+		auto elapsed = stopwatch.elapsed();
+
+		std::cout << "elapsed: " << elapsed << std::endl;
 	}
 
 	risEngine::~risEngine()
