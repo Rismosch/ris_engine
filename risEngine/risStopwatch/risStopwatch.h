@@ -17,48 +17,24 @@ namespace risEngine
 	{
 		typedef std::chrono::high_resolution_clock risClock;
 
-		template<typename T>
-		static T cycles_to_unit(U64 duration, T unit)
-		{
-			return unit * duration * static_cast<T>(risClock::period::num) / static_cast<T>(risClock::period::den);
-		}
-
 	public:
-		risStopwatch() : last_(risClock::now()) {}
+		risStopwatch();
 
-		void reset()
-		{
-			*this = risStopwatch();
-		}
+		void reset();
 
-		U64 elapsed_cycles() const
-		{
-			return (risClock::now() - last_).count();
-		}
-
-		U64 reset_cycles()
-		{
-			const auto now = risClock::now();
-			const auto elapsed = now - last_;
-			last_ = now;
-			return elapsed.count();
-		}
+		U64 elapsed_cycles() const;
+		U64 reset_cycles();
 
 		template <typename T = U32>
-		T elapsed(T unit = risDefaultTimeunit) const
-		{
-			const auto duration = elapsed_cycles();
-			return cycles_to_unit<T>(duration, unit);
-		}
+		T elapsed(T unit = risDefaultTimeunit) const;
 
 		template <typename T = U32>
-		T reset(T unit = risDefaultTimeunit)
-		{
-			const auto duration = reset_cycles();
-			return cycles_to_unit<T>(duration, unit);
-		}
+		T reset(T unit = risDefaultTimeunit);
 
 	private:
 		risClock::time_point last_;
+
+		template<typename T>
+		static T cycles_to_unit(U64 duration, T unit);
 	};
 }
