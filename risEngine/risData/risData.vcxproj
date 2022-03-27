@@ -91,6 +91,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories>..\..\3rd_party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -109,6 +110,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories>..\..\3rd_party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -127,6 +129,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories>..\..\3rd_party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -145,6 +148,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories>..\..\3rd_party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -174,11 +178,6 @@
     <ClCompile Include="risAllocators.cpp" />
     <ClCompile Include="risEncoding.cpp" />
     <ClCompile Include="risString.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\3rd_party\stuff\stuff.vcxproj">
-      <Project>{ede5b0f4-a367-499f-9c82-075b749ab360}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

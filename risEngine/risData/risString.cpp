@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "../../3rd_party/stuff/crc32.h"
+#include <lib_uncredited/crc32.h>
 
 namespace risEngine
 {
