@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <risEngine/data/string.hpp>
 #include <risEngine/engine/engine.hpp>
 #include <risEngine/time/stopwatch.hpp>
 #include <risEngine/job_system/job_system.hpp>
@@ -29,13 +30,13 @@ namespace risEngine
 				break;
 		}
 
-		auto elapsed = stopwatch.elapsed();
+		const auto elapsed = stopwatch.elapsed();
 
 		std::cout << "elapsed: " << elapsed << std::endl;
 	}
 
 	risEngine::~risEngine()
 	{
-		std::cout << "bruh" << std::endl;
+		std::cout << "bruh " << sid("bruh") << std::endl;
 	}
 }

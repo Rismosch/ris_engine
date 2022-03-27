@@ -1,6 +1,6 @@
 #include "pch.h"
 #include <risEngine/data/string.hpp>
-#include <third_party/lib_uncredited/crc32.h>
+#include <risEngine/data/crc32.hpp>
 
 #include <string>
 #if defined _DEBUG
