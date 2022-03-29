@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "job_system", "risEngine\job
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "main", "main\main.vcxproj", "{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -89,6 +91,14 @@ Global
 		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x64.Build.0 = Release|x64
 		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.ActiveCfg = Release|Win32
 		{6D98D2F8-9456-47C5-8F58-5B157C3CEAF0}.Release|x86.Build.0 = Release|Win32
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Debug|x64.ActiveCfg = Debug|x64
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Debug|x64.Build.0 = Debug|x64
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Debug|x86.ActiveCfg = Debug|Win32
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Debug|x86.Build.0 = Debug|Win32
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Release|x64.ActiveCfg = Release|x64
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Release|x64.Build.0 = Release|x64
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Release|x86.ActiveCfg = Release|Win32
+		{AEC09E18-FD1C-46D7-80E7-7E52BCF47556}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
