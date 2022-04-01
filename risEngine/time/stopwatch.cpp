@@ -38,9 +38,9 @@ namespace risEngine
 	}
 
 	template<typename T>
-	static T risStopwatch::cycles_to_unit(U64 duration, T unit)
+	T risStopwatch::cycles_to_unit(U64 duration, T unit)
 	{
-		return unit * duration * static_cast<T>(risClock::period::num) / static_cast<T>(risClock::period::den);
+		return unit * duration * risClock::period::num / static_cast<T>(risClock::period::den);
 	}
 
 	template U32 risStopwatch::elapsed(U32 unit) const;
