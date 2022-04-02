@@ -38,6 +38,6 @@ namespace risEngine
 
 	risEngine::~risEngine()
 	{
-		std::cout << "sid of bruh = " << sid("bruh") << std::endl;
+		std::cout << "string_id of bruh = " << string_id("bruh") << std::endl;
 	}
 }

@@ -13,7 +13,7 @@ namespace risEngine
 	static std::map<StringId, const char*> gStringIdTable;
 #endif
 
-	StringId sid(const char* str)
+	StringId string_id(const char* str)
 	{
 		const StringId string_id = crc32(str);
 

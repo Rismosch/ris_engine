@@ -100,9 +100,9 @@ namespace risEngine
 					: code_point;
 			});
 
-		const auto string_id = sid(asset_path_utf8);
+		const auto sid = string_id(asset_path_utf8);
 		
 		alloc_jtr.allocator.free_to_marker_back(marker);
-		return string_id;
+		return sid;
 	}
 }
