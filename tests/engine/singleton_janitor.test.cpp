@@ -1,22 +1,11 @@
 #include "pch.h"
 
+#include <risEngine/data/template_utility.tpp>
 #include <risEngine/engine/singleton_janitor.tpp>
 
 using namespace risEngine;
 
-template <int v>
-struct Int2Type
-{
-	enum {value = v};
-};
-
-class CallList
-{
-public:
-	static std::vector<int> calls;
-};
-
-std::vector<int> CallList::calls;
+std::vector<int> call_list;
 
 struct SinlgetonParameters
 {
@@ -34,11 +23,11 @@ public: // singleton policy
 		instance_ = SingletonMock();
 		instance_.sinlgeton_parameters = reinterpret_cast<SinlgetonParameters*>(param);
 
-		CallList::calls.push_back(instance_.sinlgeton_parameters->number);
+		call_list.push_back(instance_.sinlgeton_parameters->number);
 	}
 	static void destroy()
 	{
-		CallList::calls.push_back(instance_.sinlgeton_parameters->number);
+		call_list.push_back(instance_.sinlgeton_parameters->number);
 	}
 
 private:
@@ -63,7 +52,7 @@ protected:
 	void SetUp() override
 	{
 		singleton_janitor = new risSingletonJanitor();
-		CallList::calls.clear();
+		call_list.clear();
 	}
 
 	void TearDown() override
@@ -87,7 +76,7 @@ TEST_F(risSingletonJanitorTests, ShouldCreateSingletonsWithParameters)
 	singleton_janitor->create<SingletonMock<Int2Type<1>>>(reinterpret_cast<uintptr_t>(&parameters));
 	
 	EXPECT_EQ(parameters.number, SingletonMock<Int2Type<1>>::instance().sinlgeton_parameters->number);
-	EXPECT_EQ(CallList::calls.size(), 1);
+	EXPECT_EQ(call_list.size(), 1);
 }
 
 TEST_F(risSingletonJanitorTests, ShouldCreateSingletonsInOrder)
@@ -100,10 +89,10 @@ TEST_F(risSingletonJanitorTests, ShouldCreateSingletonsInOrder)
 	singleton_janitor->create<SingletonMock<Int2Type<2>>>(reinterpret_cast<uintptr_t>(&parameters2));
 	singleton_janitor->create<SingletonMock<Int2Type<3>>>(reinterpret_cast<uintptr_t>(&parameters3));
 
-	ASSERT_EQ(CallList::calls.size(), 3);
-	EXPECT_EQ(CallList::calls[0], 1);
-	EXPECT_EQ(CallList::calls[1], 2);
-	EXPECT_EQ(CallList::calls[2], 3);
+	ASSERT_EQ(call_list.size(), 3);
+	EXPECT_EQ(call_list[0], 1);
+	EXPECT_EQ(call_list[1], 2);
+	EXPECT_EQ(call_list[2], 3);
 }
 
 TEST_F(risSingletonJanitorTests, ShouldDestroySingletonsInReversedOrder)
@@ -116,12 +105,12 @@ TEST_F(risSingletonJanitorTests, ShouldDestroySingletonsInReversedOrder)
 	singleton_janitor->create<SingletonMock<Int2Type<2>>>(reinterpret_cast<uintptr_t>(&parameters2));
 	singleton_janitor->create<SingletonMock<Int2Type<3>>>(reinterpret_cast<uintptr_t>(&parameters3));
 
-	CallList::calls.clear();
+	call_list.clear();
 
 	destroy_janitor();
 
-	ASSERT_EQ(CallList::calls.size(), 3);
-	EXPECT_EQ(CallList::calls[0], 3);
-	EXPECT_EQ(CallList::calls[1], 2);
-	EXPECT_EQ(CallList::calls[2], 1);
+	ASSERT_EQ(call_list.size(), 3);
+	EXPECT_EQ(call_list[0], 3);
+	EXPECT_EQ(call_list[1], 2);
+	EXPECT_EQ(call_list[2], 1);
 }

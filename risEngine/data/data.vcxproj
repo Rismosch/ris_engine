@@ -180,6 +180,9 @@
     <ClCompile Include="encoding.cpp" />
     <ClCompile Include="string.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="template_utility.tpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
