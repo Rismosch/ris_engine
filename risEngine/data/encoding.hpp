@@ -27,7 +27,7 @@ namespace risEngine
 	};
 
 	template<class From, class To>
-	I32 convert(const typename From::Character * input, typename To::Character * output, std::function<CodePoint(CodePoint)> replace_callback = nullptr)
+	I32 convert_encoding(const typename From::Character * input, typename To::Character * output, std::function<CodePoint(CodePoint)> replace_callback = nullptr)
 	{
 		I32 i = 0, j = 0;
 	

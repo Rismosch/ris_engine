@@ -23,7 +23,7 @@ namespace risEngine
 		else
 		{
 			const auto path_utf16 = static_cast<wchar_t*>(alloc_jtr.allocator.alloc_front(static_cast<U32>(MAX_PATH_SIZE)));
-			const I32 root_path_length = convert<risUtf8, risUtf16LE>(path_utf8, path_utf16);
+			const I32 root_path_length = convert_encoding<risUtf8, risUtf16LE>(path_utf8, path_utf16);
 
 			if(!std::filesystem::is_directory(path_utf16))
 				return risCompilerError::ASSET_FOLDER_MISSING;
@@ -93,7 +93,7 @@ namespace risEngine
 		
 		wcsncpy_s(stripped_asset_path_utf16, max_wpath_size,  &full_path_utf16[root_path_length], MAX_PATH_SIZE - root_path_length + 1);
 		
-		convert<risUtf16LE, risUtf8>(stripped_asset_path_utf16, asset_path_utf8, [](CodePoint code_point)
+		convert_encoding<risUtf16LE, risUtf8>(stripped_asset_path_utf16, asset_path_utf8, [](CodePoint code_point)
 			{
 				return code_point == static_cast<CodePoint>('\\')
 					? static_cast<CodePoint>('/')

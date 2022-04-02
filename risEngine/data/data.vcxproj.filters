@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="encoding.cpp" />
+    <ClCompile Include="string.cpp" />
+    <ClCompile Include="allocators.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="crc32.hpp" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="encoding.hpp" />
+    <ClInclude Include="endian.hpp" />
+    <ClInclude Include="primitives.hpp" />
+    <ClInclude Include="string.hpp" />
+    <ClInclude Include="allocators.hpp" />
+    <ClInclude Include="allocator_janitors.hpp" />
+  </ItemGroup>
+</Project>

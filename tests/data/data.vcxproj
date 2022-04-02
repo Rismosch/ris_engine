@@ -36,6 +36,8 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="encoding.test.cpp" />
+    <ClCompile Include="stack_allocators.test.cpp" />
     <ClCompile Include="string.test.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
