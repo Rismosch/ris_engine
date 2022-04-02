@@ -11,16 +11,18 @@ namespace risEngine
 
 	class risJobSystem
 	{
-	public:
-		// singleton policy
-		static risJobSystem* instance();
+	public: // singleton policy
+		static risJobSystem& instance();
 		static void create(uintptr_t param);
 		static void destroy();
 
-		risJobSystem(const risJobSystem& other) = delete;
-		risJobSystem(risJobSystem && other) noexcept = delete;
 	private:
-		risJobSystem() = default;
-		static risJobSystem* p_instance_;
+		static risJobSystem instance_;
+
+	public: // Public Methods
+		U32 get_threads();
+
+	private:
+		U32 threads_ = 0;
 	};
 }

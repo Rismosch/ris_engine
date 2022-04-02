@@ -26,17 +26,18 @@ namespace risEngine
 		while (true)
 		{
 			std::cout << counter << std::endl;
-			if (++counter > 40000)
+			if (++counter > 400)
 				break;
 		}
 
 		const auto elapsed = stopwatch.elapsed();
 
 		std::cout << "elapsed: " << elapsed << std::endl;
+		std::cout << "threads: " << risJobSystem::instance().get_threads() << std::endl;
 	}
 
 	risEngine::~risEngine()
 	{
-		std::cout << "bruh " << sid("bruh") << std::endl;
+		std::cout << "sid of bruh = " << sid("bruh") << std::endl;
 	}
 }

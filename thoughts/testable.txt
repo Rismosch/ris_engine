@@ -3,5 +3,4 @@ allocators
 encoding
 endian
 string
-singleton_janitor
 stopwatch
