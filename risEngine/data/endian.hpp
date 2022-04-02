@@ -7,7 +7,7 @@ namespace risEngine
 	{
 		return
 			static_cast<U16>((value & 0x00FF) << 8) |
-			static_cast<U16>((value & 0xFF00) << 8);
+			static_cast<U16>((value & 0xFF00) >> 8);
 	}
 
 	inline U32 swapU32(U32 value)
