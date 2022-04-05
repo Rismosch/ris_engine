@@ -22,7 +22,7 @@ protected:
 	const I32 expected5 = 100;
 	const I32 expected6 = 5040;
 
-	void SetUp() override
+	void setup_base()
 	{
 		allocator = risDoubleStackAllocator();
 		allocator.init(sizeof(I32) * 3);
@@ -37,6 +37,21 @@ protected:
 		*number3 = expected3;
 	}
 
+	void setup_front()
+	{
+		
+	}
+
+	void setup_back()
+	{
+		
+	}
+
+	void setup_both()
+	{
+		
+	}
+
 	void TearDown() override
 	{
 		allocator.release();
@@ -45,6 +60,8 @@ protected:
 
 TEST_F(risStackAllocatorTests, ShouldAllocate)
 {
+	setup_base();
+
 	EXPECT_EQ(*(number1 + 0), expected1);
 	EXPECT_EQ(*(number1 + 1), expected2);
 	EXPECT_EQ(*(number1 + 2), expected3);
@@ -52,6 +69,8 @@ TEST_F(risStackAllocatorTests, ShouldAllocate)
 
 TEST_F(risStackAllocatorTests, ShouldClear)
 {
+	setup_base();
+
 	allocator.clear();
 
 	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
@@ -69,6 +88,8 @@ TEST_F(risStackAllocatorTests, ShouldClear)
 
 TEST_F(risStackAllocatorTests, ShouldFreeToMarker)
 {
+	setup_base();
+
 	allocator.free_to_marker(marker);
 
 	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
@@ -82,6 +103,8 @@ TEST_F(risStackAllocatorTests, ShouldFreeToMarker)
 
 TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenFull)
 {
+	setup_base();
+
 	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
 
 	EXPECT_EQ(number4, nullptr);
@@ -89,6 +112,8 @@ TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenFull)
 
 TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenTooBig)
 {
+	setup_base();
+
 	allocator.clear();
 	const auto too_big = allocator.alloc(sizeof(I32) * 4);
 
@@ -97,5 +122,20 @@ TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenTooBig)
 
 TEST_F(risStackAllocatorTests, ShouldNotFreeToBiggerMarker)
 {
-	FAIL() << "add more tests for backbuffer";
+	setup_base();
+
+	Marker marker1 = allocator.get_marker();
+	allocator.free_to_marker(marker);
+	Marker marker2 = allocator.get_marker();
+	allocator.free_to_marker(marker1);
+	Marker marker3 = allocator.get_marker();
+
+	EXPECT_NE(marker1, marker2);
+	EXPECT_NE(marker1, marker3);
+	EXPECT_EQ(marker2, marker3);
+}
+
+TEST_F(risStackAllocatorTests, hmm)
+{
+	FAIL() << "implement tests for front and backbuffer";
 }
