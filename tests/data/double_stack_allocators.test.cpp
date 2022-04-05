@@ -9,47 +9,10 @@ class risStackAllocatorTests : public ::testing::Test
 protected:
 	risDoubleStackAllocator allocator;
 
-	Marker marker;
-
-	I32* number1 = nullptr;
-	I32* number2 = nullptr;
-	I32* number3 = nullptr;
-
-	const I32 expected1 = 42;
-	const I32 expected2 = 13;
-	const I32 expected3 = -17;
-	const I32 expected4 = 0;
-	const I32 expected5 = 100;
-	const I32 expected6 = 5040;
-
-	void setup_base()
+	void SetUp() override
 	{
 		allocator = risDoubleStackAllocator();
-		allocator.init(sizeof(I32) * 3);
-
-		number1 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-		marker = allocator.get_marker();
-		number2 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-		number3 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-
-		*number1 = expected1;
-		*number2 = expected2;
-		*number3 = expected3;
-	}
-
-	void setup_front()
-	{
-		
-	}
-
-	void setup_back()
-	{
-		
-	}
-
-	void setup_both()
-	{
-		
+		allocator.init(10);
 	}
 
 	void TearDown() override
@@ -58,84 +21,142 @@ protected:
 	}
 };
 
-TEST_F(risStackAllocatorTests, ShouldAllocate)
+TEST_F(risStackAllocatorTests, ShouldAllocateFrontAndBack)
 {
-	setup_base();
+	const auto pointer1 = allocator.alloc_front(1);
+	const auto pointer2 = allocator.alloc_back(1);
 
-	EXPECT_EQ(*(number1 + 0), expected1);
-	EXPECT_EQ(*(number1 + 1), expected2);
-	EXPECT_EQ(*(number1 + 2), expected3);
+	EXPECT_NE(pointer1, nullptr);
+	EXPECT_NE(pointer2, nullptr);
 }
 
-TEST_F(risStackAllocatorTests, ShouldClear)
+TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenSizeDoesNotFit)
 {
-	setup_base();
+	const auto pointer1 = allocator.alloc_front(100);
+	const auto pointer2 = allocator.alloc_back(100);
 
+	allocator.alloc_front(1);
+	allocator.alloc_back(1);
+
+	const auto pointer3 = allocator.alloc_front(9);
+	const auto pointer4 = allocator.alloc_back(9);
+
+	allocator.alloc_front(8);
+
+	const auto pointer5 = allocator.alloc_front(1);
+	const auto pointer6 = allocator.alloc_back(1);
+
+	EXPECT_EQ(pointer1, nullptr);
+	EXPECT_EQ(pointer2, nullptr);
+	EXPECT_EQ(pointer3, nullptr);
+	EXPECT_EQ(pointer4, nullptr);
+	EXPECT_EQ(pointer5, nullptr);
+	EXPECT_EQ(pointer6, nullptr);
+}
+
+TEST_F(risStackAllocatorTests, ShouldAllocateAndFreeFront)
+{
+	const auto marker1 = allocator.get_marker_front();
+	allocator.alloc_front(1);
+	const auto marker2 = allocator.get_marker_front();
+	allocator.free_to_marker_front(marker1);
+	const auto marker3 = allocator.get_marker_front();
+
+	EXPECT_LT(marker1, marker2);
+	EXPECT_EQ(marker1, marker3);
+	EXPECT_GT(marker2, marker3);
+}
+
+TEST_F(risStackAllocatorTests, ShouldAllocateAndFreeBack)
+{
+	const auto marker1 = allocator.get_marker_back();
+	allocator.alloc_back(1);
+	const auto marker2 = allocator.get_marker_back();
+	allocator.free_to_marker_back(marker1);
+	const auto marker3 = allocator.get_marker_back();
+
+	EXPECT_GT(marker1, marker2);
+	EXPECT_EQ(marker1, marker3);
+	EXPECT_LT(marker2, marker3);
+}
+
+TEST_F(risStackAllocatorTests, ShouldClearFront)
+{
+	const auto marker1 = allocator.get_marker_front();
+	allocator.alloc_front(1);
+	allocator.alloc_front(1);
+	allocator.alloc_front(1);
+	allocator.alloc_front(1);
+	const auto marker2 = allocator.get_marker_front();
+	allocator.clear_front();
+	const auto marker3 = allocator.get_marker_front();
+
+	EXPECT_LT(marker1, marker2);
+	EXPECT_EQ(marker1, marker3);
+	EXPECT_GT(marker2, marker3);
+}
+
+TEST_F(risStackAllocatorTests, ShouldClearBack)
+{
+	const auto marker1 = allocator.get_marker_back();
+	allocator.alloc_back(1);
+	allocator.alloc_back(1);
+	allocator.alloc_back(1);
+	allocator.alloc_back(1);
+	const auto marker2 = allocator.get_marker_back();
+	allocator.clear_back();
+	const auto marker3 = allocator.get_marker_back();
+
+	EXPECT_GT(marker1, marker2);
+	EXPECT_EQ(marker1, marker3);
+	EXPECT_LT(marker2, marker3);
+}
+
+TEST_F(risStackAllocatorTests, ShouldUseFrontOnInitialize)
+{
+	EXPECT_TRUE(allocator.buffer_is_front());
+
+	const auto marker1 = allocator.get_marker();
+	allocator.alloc(1);
+	allocator.alloc(1);
+	const auto marker2 = allocator.get_marker();
+	allocator.alloc(1);
+	allocator.alloc(1);
+	const auto marker3 = allocator.get_marker();
+	allocator.free_to_marker(marker2);
+	const auto marker4 = allocator.get_marker();
 	allocator.clear();
+	const auto marker5 = allocator.get_marker();
 
-	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-	const auto number5 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-	const auto number6 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-
-	*number4 = expected4;
-	*number5 = expected5;
-	*number6 = expected6;
-
-	EXPECT_EQ(*(number1 + 0), expected4);
-	EXPECT_EQ(*(number1 + 1), expected5);
-	EXPECT_EQ(*(number1 + 2), expected6);
+	EXPECT_LT(marker1, marker2);
+	EXPECT_LT(marker2, marker3);
+	EXPECT_GT(marker3, marker4);
+	EXPECT_GT(marker4, marker5);
+	EXPECT_EQ(marker1, marker5);
+	EXPECT_EQ(marker2, marker4);
 }
 
-TEST_F(risStackAllocatorTests, ShouldFreeToMarker)
+TEST_F(risStackAllocatorTests, ShouldUseFrontOnSwap)
 {
-	setup_base();
+	allocator.swap_buffers();
+	EXPECT_FALSE(allocator.buffer_is_front());
 
-	allocator.free_to_marker(marker);
-
-	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-
-	*number4 = expected4;
-
-	EXPECT_EQ(*(number1 + 0), expected1);
-	EXPECT_EQ(*(number1 + 1), expected4);
-	EXPECT_EQ(*(number1 + 2), expected3);
-}
-
-TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenFull)
-{
-	setup_base();
-
-	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
-
-	EXPECT_EQ(number4, nullptr);
-}
-
-TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenTooBig)
-{
-	setup_base();
-
+	const auto marker1 = allocator.get_marker();
+	allocator.alloc(1);
+	allocator.alloc(1);
+	const auto marker2 = allocator.get_marker();
+	allocator.alloc(1);
+	allocator.alloc(1);
+	const auto marker3 = allocator.get_marker();
+	allocator.free_to_marker(marker2);
+	const auto marker4 = allocator.get_marker();
 	allocator.clear();
-	const auto too_big = allocator.alloc(sizeof(I32) * 4);
+	const auto marker5 = allocator.get_marker();
 
-	EXPECT_EQ(too_big, nullptr);
-}
-
-TEST_F(risStackAllocatorTests, ShouldNotFreeToBiggerMarker)
-{
-	setup_base();
-
-	Marker marker1 = allocator.get_marker();
-	allocator.free_to_marker(marker);
-	Marker marker2 = allocator.get_marker();
-	allocator.free_to_marker(marker1);
-	Marker marker3 = allocator.get_marker();
-
-	EXPECT_NE(marker1, marker2);
-	EXPECT_NE(marker1, marker3);
-	EXPECT_EQ(marker2, marker3);
-}
-
-TEST_F(risStackAllocatorTests, hmm)
-{
-	FAIL() << "implement tests for front and backbuffer";
+	EXPECT_GT(marker1, marker2);
+	EXPECT_GT(marker2, marker3);
+	EXPECT_LT(marker3, marker4);
+	EXPECT_LT(marker4, marker5);
+	EXPECT_EQ(marker1, marker5);
+	EXPECT_EQ(marker2, marker4);
 }

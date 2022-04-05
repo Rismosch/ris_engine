@@ -3,7 +3,7 @@
 
 namespace risEngine
 {
-	void risDoubleStackAllocator::init(U32 size_bytes)
+	void risDoubleStackAllocator::init(I32 size_bytes)
 	{
 		data_ = new U8[size_bytes];
 		size_bytes_ = size_bytes;
@@ -16,7 +16,7 @@ namespace risEngine
 	}
 
 	// allocator policy
-	void* risDoubleStackAllocator::alloc(U32 size_bytes)
+	void* risDoubleStackAllocator::alloc(I32 size_bytes)
 	{
 		if (buffer_is_front_)
 			return alloc_front(size_bytes);
@@ -61,7 +61,7 @@ namespace risEngine
 	}
 
 	// specific
-	void* risDoubleStackAllocator::alloc_front(U32 size_bytes)
+	void* risDoubleStackAllocator::alloc_front(I32 size_bytes)
 	{
 		if (marker_front_ + size_bytes > marker_back_)
 			return nullptr;
@@ -88,7 +88,7 @@ namespace risEngine
 		marker_front_ = 0;
 	}
 
-	void* risDoubleStackAllocator::alloc_back(U32 size_bytes)
+	void* risDoubleStackAllocator::alloc_back(I32 size_bytes)
 	{
 		if (marker_back_ - size_bytes < marker_front_)
 			return nullptr;
