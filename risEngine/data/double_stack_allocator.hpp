@@ -5,23 +5,6 @@ namespace risEngine
 {
 	typedef U32 Marker;
 
-	struct risStackAllocator
-	{
-		void init(U32 size_bytes);
-		void release() const;
-
-		// allocator policy
-		void* alloc(U32 size_bytes);
-		Marker get_marker() const;
-		void free_to_marker(Marker marker);
-		void clear();
-
-	private:
-		U8* data_ = nullptr;
-		U32 size_bytes_ = 0;
-		Marker marker_ = 0;
-	};
-
 	struct risDoubleStackAllocator
 	{
 		void init(U32 size_bytes);

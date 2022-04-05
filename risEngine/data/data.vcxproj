@@ -162,8 +162,8 @@
     <ClInclude Include="crc32.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="allocator_janitors.hpp" />
-    <ClInclude Include="allocators.hpp" />
+    <ClInclude Include="allocator_janitor.hpp" />
+    <ClInclude Include="double_stack_allocator.hpp" />
     <ClInclude Include="encoding.hpp" />
     <ClInclude Include="endian.hpp" />
     <ClInclude Include="primitives.hpp" />
@@ -176,7 +176,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="allocators.cpp" />
+    <ClCompile Include="double_stack_allocator.cpp" />
     <ClCompile Include="encoding.cpp" />
     <ClCompile Include="string.cpp" />
   </ItemGroup>

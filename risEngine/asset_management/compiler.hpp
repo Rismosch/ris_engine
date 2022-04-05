@@ -1,6 +1,6 @@
 #pragma once
 
-#include <risEngine/data/allocators.hpp>
+#include <risEngine/data/double_stack_allocator.hpp>
 
 namespace risEngine
 {

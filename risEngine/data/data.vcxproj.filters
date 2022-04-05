@@ -4,7 +4,9 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="encoding.cpp" />
     <ClCompile Include="string.cpp" />
-    <ClCompile Include="allocators.cpp" />
+    <ClCompile Include="double_stack_allocator.cpp">
+      <Filter>allocators</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="crc32.hpp" />
@@ -14,7 +16,19 @@
     <ClInclude Include="endian.hpp" />
     <ClInclude Include="primitives.hpp" />
     <ClInclude Include="string.hpp" />
-    <ClInclude Include="allocators.hpp" />
-    <ClInclude Include="allocator_janitors.hpp" />
+    <ClInclude Include="double_stack_allocator.hpp">
+      <Filter>allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="allocator_janitor.hpp">
+      <Filter>allocators</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="template_utility.tpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="allocators">
+      <UniqueIdentifier>{13523583-1a2c-4adb-bce7-df4fd084bc24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

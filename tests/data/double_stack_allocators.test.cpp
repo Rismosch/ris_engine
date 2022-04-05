@@ -1,13 +1,13 @@
 #include "pch.h"
 
-#include <risEngine/data/allocators.hpp>
+#include <risEngine/data/double_stack_allocator.hpp>
 
 using namespace risEngine;
 
 class risStackAllocatorTests : public ::testing::Test
 {
 protected:
-	risStackAllocator stack_allocator;
+	risDoubleStackAllocator allocator;
 
 	Marker marker;
 
@@ -24,13 +24,13 @@ protected:
 
 	void SetUp() override
 	{
-		stack_allocator = risStackAllocator();
-		stack_allocator.init(sizeof(I32) * 3);
+		allocator = risDoubleStackAllocator();
+		allocator.init(sizeof(I32) * 3);
 
-		number1 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
-		marker = stack_allocator.get_marker();
-		number2 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
-		number3 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
+		number1 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
+		marker = allocator.get_marker();
+		number2 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
+		number3 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
 
 		*number1 = expected1;
 		*number2 = expected2;
@@ -39,7 +39,7 @@ protected:
 
 	void TearDown() override
 	{
-		stack_allocator.release();
+		allocator.release();
 	}
 };
 
@@ -52,11 +52,11 @@ TEST_F(risStackAllocatorTests, ShouldAllocate)
 
 TEST_F(risStackAllocatorTests, ShouldClear)
 {
-	stack_allocator.clear();
+	allocator.clear();
 
-	const auto number4 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
-	const auto number5 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
-	const auto number6 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
+	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
+	const auto number5 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
+	const auto number6 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
 
 	*number4 = expected4;
 	*number5 = expected5;
@@ -69,9 +69,9 @@ TEST_F(risStackAllocatorTests, ShouldClear)
 
 TEST_F(risStackAllocatorTests, ShouldFreeToMarker)
 {
-	stack_allocator.free_to_marker(marker);
+	allocator.free_to_marker(marker);
 
-	const auto number4 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
+	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
 
 	*number4 = expected4;
 
@@ -82,15 +82,20 @@ TEST_F(risStackAllocatorTests, ShouldFreeToMarker)
 
 TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenFull)
 {
-	const auto number4 = static_cast<I32*>(stack_allocator.alloc(sizeof(I32)));
+	const auto number4 = static_cast<I32*>(allocator.alloc(sizeof(I32)));
 
 	EXPECT_EQ(number4, nullptr);
 }
 
 TEST_F(risStackAllocatorTests, ShouldNotAllocateWhenTooBig)
 {
-	stack_allocator.clear();
-	const auto too_big = stack_allocator.alloc(sizeof(I32) * 4);
+	allocator.clear();
+	const auto too_big = allocator.alloc(sizeof(I32) * 4);
 
 	EXPECT_EQ(too_big, nullptr);
+}
+
+TEST_F(risStackAllocatorTests, ShouldNotFreeToBiggerMarker)
+{
+	FAIL() << "add more tests for backbuffer";
 }

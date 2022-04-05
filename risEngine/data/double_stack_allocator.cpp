@@ -1,50 +1,8 @@
 #include "pch.h"
-#include <risEngine/data/allocators.hpp>
+#include <risEngine/data/double_stack_allocator.hpp>
 
 namespace risEngine
 {
-#pragma region risStackAllocator
-	void risStackAllocator::init(U32 size_bytes)
-	{
-		data_ = new U8[size_bytes];
-		size_bytes_ = size_bytes;
-	};
-
-	void risStackAllocator::release() const
-	{
-		delete[] data_;
-	}
-
-	// allocator policy
-	void* risStackAllocator::alloc(U32 size_bytes)
-	{
-		if (marker_ + size_bytes > size_bytes_)
-			return nullptr;
-
-		const auto result = &data_[marker_];
-		marker_ += size_bytes;
-
-		return result;
-	}
-
-	Marker risStackAllocator::get_marker() const
-	{
-		return marker_;
-	}
-
-	void risStackAllocator::free_to_marker(Marker marker)
-	{
-		if (marker_ > marker)
-			marker_ = marker;
-	}
-
-	void risStackAllocator::clear()
-	{
-		marker_ = static_cast<Marker>(0);
-	}
-#pragma endregion
-
-#pragma region risDoubleStackAllocator
 	void risDoubleStackAllocator::init(U32 size_bytes)
 	{
 		data_ = new U8[size_bytes];
@@ -156,6 +114,4 @@ namespace risEngine
 	{
 		marker_back_ = size_bytes_;
 	}
-#pragma endregion
-
 }

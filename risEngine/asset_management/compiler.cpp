@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 
 #include <risEngine/asset_management/compiler.hpp>
-#include <risEngine/data/allocator_janitors.hpp>
+#include <risEngine/data/allocator_janitor.hpp>
 #include <risEngine/data/encoding.hpp>
 #include <risEngine/data/string.hpp>
 
@@ -11,12 +11,12 @@
 
 namespace risEngine
 {
-	std::tuple<risCompilerError, char*> locate_asset_folder(const risDoubleStackAllocatorJanitor& alloc_jtr);
-	StringId get_asset_id(const risDoubleStackAllocatorJanitor& alloc_jtr, const wchar_t* full_path_utf16, const I32 root_path_length);
+	std::tuple<risCompilerError, char*> locate_asset_folder(const risAllocatorJanitor& alloc_jtr);
+	StringId get_asset_id(const risAllocatorJanitor& alloc_jtr, const wchar_t* full_path_utf16, const I32 root_path_length);
 
 	risCompilerError compile_assets(risDoubleStackAllocator& allocator)
 	{
-		const auto alloc_jtr = risDoubleStackAllocatorJanitor(allocator);
+		const auto alloc_jtr = risAllocatorJanitor(allocator);
 
 		if (auto [err, path_utf8] = locate_asset_folder(alloc_jtr); err != risCompilerError::OK)
 			return err;
@@ -53,7 +53,7 @@ namespace risEngine
 		return risCompilerError::OK;
 	}
 
-	std::tuple<risCompilerError, char*> locate_asset_folder(const risDoubleStackAllocatorJanitor& alloc_jtr)
+	std::tuple<risCompilerError, char*> locate_asset_folder(const risAllocatorJanitor& alloc_jtr)
 	{
 		const std::ifstream redirect_file(ASSET_REDIRECT_PATH);
 		if (!redirect_file.good())
@@ -83,7 +83,7 @@ namespace risEngine
 		return { risCompilerError::OK, path };
 	}
 
-	StringId get_asset_id(const risDoubleStackAllocatorJanitor& alloc_jtr, const wchar_t* full_path_utf16, const I32 root_path_length)
+	StringId get_asset_id(const risAllocatorJanitor& alloc_jtr, const wchar_t* full_path_utf16, const I32 root_path_length)
 	{
 		constexpr U32 max_wpath_size = MAX_PATH_SIZE / 2;
 
