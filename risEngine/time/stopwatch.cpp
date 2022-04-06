@@ -40,6 +40,10 @@ namespace risEngine
 	template<typename T>
 	T risStopwatch::cycles_to_unit(U64 duration, T unit)
 	{
+		// return static_cast<T>(static_cast<U64>(unit) * duration) * risClock::period::num / static_cast<T>(risClock::period::den);
+		// auto test1 = unit * duration;
+		// auto test2 = test1 * risClock::period::num;
+		// auto test3 = test2 / static_cast<T>(risClock::period::den);
 		return unit * duration * risClock::period::num / static_cast<T>(risClock::period::den);
 	}
 

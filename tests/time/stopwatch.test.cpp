@@ -50,7 +50,7 @@ TEST(risStopwatchTests, ShouldReturnCustomTimeUnit)
 	auto stopwatch = risStopwatch();
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	const auto elapsed = stopwatch.elapsed(risMilliSecond);
+	const auto elapsed = stopwatch.elapsed();
 
 	EXPECT_GE(elapsed, 60);
 	EXPECT_LE(elapsed, 120);
