@@ -5,16 +5,15 @@ pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
 pub struct Frame {
     pub delta: Duration,
-    pub index: usize,
     pub number: usize,
 }
 
 impl Frame{
-    pub fn new(delta: Duration, index: usize, number: usize) -> Frame{
+    pub fn new(delta: Duration, number: usize) -> Frame{
         if delta > MAX_DELTA {
-            Frame {delta: IDEAL_DELTA, index, number}
+            Frame {delta: IDEAL_DELTA, number}
         } else {
-            Frame {delta, index, number}
+            Frame {delta, number}
         }
     }
 }

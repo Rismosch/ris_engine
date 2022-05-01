@@ -8,13 +8,8 @@ pub fn run(frame_buffer_lenght: usize) -> Result<(), Box<dyn std::error::Error>>
 
     let mut count = 0;
     let mut index = 0;
-
-    let mut frame_buffer = Vec::with_capacity(frame_buffer_lenght);
-
-    let test = (0 - (frame_buffer_lenght as isize)) as usize;
-    for i in 0..frame_buffer_lenght {
-        frame_buffer.push(frame::Frame::new(frame::IDEAL_DELTA, i, test + i));
-    }
+    
+    frame_buffer::init(frame_buffer_lenght);
 
     loop {
         let now = Instant::now();
@@ -24,12 +19,11 @@ pub fn run(frame_buffer_lenght: usize) -> Result<(), Box<dyn std::error::Error>>
 
         let delta = now.elapsed();
 
-        let last_frame = frame::Frame::new(delta, index, count);
+        let last_frame = frame::Frame::new(delta, count);
 
         println!(
-            "{} {} {}",
+            "{} {}",
             last_frame.delta.as_millis(),
-            last_frame.index,
             last_frame.number
         );
 
