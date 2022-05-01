@@ -1,3 +1,3 @@
-pub mod frame;
+pub mod engine;
 pub mod frame_buffer;
 pub mod gameloop;

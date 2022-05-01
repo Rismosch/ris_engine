@@ -1,40 +1,29 @@
-use std::time::{Duration, Instant};
 use std::thread;
+use std::time::Instant;
 
 use crate::ris_core::*;
 
-pub fn run(frame_buffer_lenght: usize) -> Result<(), Box<dyn std::error::Error>> {
-    let max_index = frame_buffer_lenght - 1;
-
-    let mut count = 0;
-    let mut index = 0;
-    
-    frame_buffer::init(frame_buffer_lenght);
-
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let now = Instant::now();
 
-        // game logic here
-        thread::sleep(frame::IDEAL_DELTA);
+        game_logic();
 
         let delta = now.elapsed();
-
-        let last_frame = frame::Frame::new(delta, count);
-
-        println!(
-            "{} {}",
-            last_frame.delta.as_millis(),
-            last_frame.number
-        );
-
-        count += 1;
-
-        if index >= max_index {
-            index = 0;
-        } else {
-            index += 1;
-        }
+        frame_buffer::add(delta);
     }
 
     return Ok(());
+}
+
+fn game_logic() {
+    thread::sleep(frame_buffer::IDEAL_DELTA);
+    let previous = frame_buffer::get(3);
+
+    println!(
+        "{}\t{}\t{}",
+        previous.number(),
+        previous.delta().as_millis(),
+        frame_buffer::delta().as_millis(),
+    );
 }
