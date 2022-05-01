@@ -1,13 +1,8 @@
-[workspace]
-
 [package]
 name = "ris_engine"
 version = "0.1.0"
 edition = "2021"
-authors = ["Simon Sutoris contact@rismosch.com"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-ris_core = { path = "ris_core" }
