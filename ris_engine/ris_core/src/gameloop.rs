@@ -10,7 +10,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let running = game_logic();
 
         let delta = now.elapsed();
-        frame_buffer::add(delta);
+        unsafe {
+            frame_buffer::add(delta);
+        }
 
         if !running {
             break;

@@ -16,7 +16,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(delta: Duration, number: usize) -> Frame {
+    fn new(delta: Duration, number: usize) -> Frame {
         if delta > MAX_DELTA {
             Frame {
                 delta: IDEAL_DELTA,
@@ -35,34 +35,33 @@ impl Frame {
     }
 }
 
-pub fn init(frame_buffer_lenght: usize) {
-    unsafe {
-        FRAMES = Vec::with_capacity(frame_buffer_lenght);
+pub unsafe fn init(frame_buffer_lenght: usize) {
+    FRAMES = Vec::with_capacity(frame_buffer_lenght);
 
-        FRAMES_LENGTH = frame_buffer_lenght;
-        MAX_INDEX = frame_buffer_lenght - 1;
+    FRAMES_LENGTH = frame_buffer_lenght;
+    MAX_INDEX = frame_buffer_lenght - 1;
+    COUNT = 0;
+    INDEX = 0;
+    DELTA = IDEAL_DELTA;
 
-        let number_offset = (0 - (frame_buffer_lenght as isize)) as usize;
-        for i in 0..frame_buffer_lenght {
-            let frame = Frame::new(IDEAL_DELTA, number_offset + i);
-            FRAMES.push(frame);
-        }
+    let number_offset = (0 - (frame_buffer_lenght as isize)) as usize;
+    for i in 0..frame_buffer_lenght {
+        let frame = Frame::new(IDEAL_DELTA, number_offset + i);
+        FRAMES.push(frame);
     }
 }
 
-pub fn add(delta: Duration) {
-    unsafe {
-        let mut frame = &mut FRAMES[INDEX];
-        frame.delta = delta;
-        frame.number = COUNT;
+pub unsafe fn add(delta: Duration) {
+    let mut frame = &mut FRAMES[INDEX];
+    frame.delta = delta;
+    frame.number = COUNT;
 
-        COUNT += 1;
+    COUNT += 1;
 
-        if INDEX >= MAX_INDEX {
-            INDEX = 0;
-        } else {
-            INDEX += 1;
-        }
+    if INDEX >= MAX_INDEX {
+        INDEX = 0;
+    } else {
+        INDEX += 1;
     }
 
     calculate_delta();

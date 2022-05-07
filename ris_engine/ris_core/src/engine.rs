@@ -10,7 +10,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn startup_and_run() -> Result<(), Box<dyn std::error::Error>> {
-    frame_buffer::init(4);
+    unsafe {
+        frame_buffer::init(4);
+    }
 
     gameloop::run()
 }
