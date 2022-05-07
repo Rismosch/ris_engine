@@ -78,3 +78,78 @@ fn should_add_frames() {
         assert_eq!(frame3.delta(), frame_buffer::IDEAL_DELTA);
     });
 }
+
+#[test]
+fn should_wrap_around() {
+    retry(10, || {
+        unsafe {
+            frame_buffer::init(3);
+
+            frame_buffer::add(Duration::from_millis(0));
+            frame_buffer::add(Duration::from_millis(1));
+            frame_buffer::add(Duration::from_millis(2));
+            frame_buffer::add(Duration::from_millis(3));
+            frame_buffer::add(Duration::from_millis(4));
+            frame_buffer::add(Duration::from_millis(5));
+            frame_buffer::add(Duration::from_millis(6));
+        }
+
+        let frame0 = frame_buffer::get(0);
+        let frame1 = frame_buffer::get(1);
+        let frame2 = frame_buffer::get(2);
+
+        assert_eq!(frame0.number(), 6);
+        assert_eq!(frame1.number(), 5);
+        assert_eq!(frame2.number(), 4);
+
+        assert_eq!(frame0.delta(), Duration::from_millis(6));
+        assert_eq!(frame1.delta(), Duration::from_millis(5));
+        assert_eq!(frame2.delta(), Duration::from_millis(4));
+    });
+}
+
+#[test]
+#[should_panic]
+fn should_panic_when_getting_frame_outside_of_range() {
+    retry(10, || {
+        unsafe {
+            frame_buffer::init(10);
+        }
+
+        let _ = frame_buffer::get(10);
+    });
+}
+
+#[test]
+fn should_calculate_average_delta() {
+    retry(10, || {
+        let expected = (2 * frame_buffer::IDEAL_DELTA
+            + Duration::from_millis(123)
+            + Duration::from_millis(456))
+            / 4;
+
+        unsafe {
+            frame_buffer::init(4);
+
+            frame_buffer::add(Duration::from_millis(123));
+            frame_buffer::add(Duration::from_millis(456));
+        }
+
+        assert_eq!(frame_buffer::delta(), expected);
+    })
+}
+
+#[test]
+fn should_set_delta_to_ideal_when_duration_is_too_big() {
+    retry(10, || {
+        unsafe {
+            frame_buffer::init(4);
+
+            frame_buffer::add(Duration::from_secs(10));
+        }
+
+        let frame = frame_buffer::get(0);
+
+        assert_eq!(frame.delta(), frame_buffer::IDEAL_DELTA);
+    });
+}

@@ -16,17 +16,6 @@ pub struct Frame {
 }
 
 impl Frame {
-    fn new(delta: Duration, number: usize) -> Frame {
-        if delta > MAX_DELTA {
-            Frame {
-                delta: IDEAL_DELTA,
-                number,
-            }
-        } else {
-            Frame { delta, number }
-        }
-    }
-
     pub fn delta(&self) -> Duration {
         self.delta
     }
@@ -35,6 +24,9 @@ impl Frame {
     }
 }
 
+/// # Safety
+/// Should only be called by the main thread.
+/// This method modifies global static variables, and thus is inherently unsafe.
 pub unsafe fn init(frame_buffer_lenght: usize) {
     FRAMES = Vec::with_capacity(frame_buffer_lenght);
 
@@ -46,15 +38,26 @@ pub unsafe fn init(frame_buffer_lenght: usize) {
 
     let number_offset = (0 - (frame_buffer_lenght as isize)) as usize;
     for i in 0..frame_buffer_lenght {
-        let frame = Frame::new(IDEAL_DELTA, number_offset + i);
+        let frame = Frame {
+            delta: IDEAL_DELTA,
+            number: number_offset + i,
+        };
         FRAMES.push(frame);
     }
 }
 
+/// # Safety
+/// Should only be called by the main thread.
+/// This method modifies global static variables, and thus is inherently unsafe.
 pub unsafe fn add(delta: Duration) {
     let mut frame = &mut FRAMES[INDEX];
-    frame.delta = delta;
     frame.number = COUNT;
+
+    if delta > MAX_DELTA {
+        frame.delta = IDEAL_DELTA;
+    } else {
+        frame.delta = delta;
+    }
 
     COUNT += 1;
 
