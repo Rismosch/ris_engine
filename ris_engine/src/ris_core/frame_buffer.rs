@@ -44,16 +44,17 @@ pub fn init(frame_buffer_lenght: usize) {
 
         let number_offset = (0 - (frame_buffer_lenght as isize)) as usize;
         for i in 0..frame_buffer_lenght {
-            FRAMES.push(Frame::new(IDEAL_DELTA, number_offset + i));
+            let frame = Frame::new(IDEAL_DELTA, number_offset + i);
+            FRAMES.push(frame);
         }
     }
 }
 
 pub fn add(delta: Duration) {
     unsafe {
-        let frame = Frame::new(delta, COUNT);
-
-        let _ = std::mem::replace(&mut FRAMES[INDEX], frame);
+        let mut frame = &mut FRAMES[INDEX];
+        frame.delta = delta;
+        frame.number = COUNT;
 
         COUNT += 1;
 
