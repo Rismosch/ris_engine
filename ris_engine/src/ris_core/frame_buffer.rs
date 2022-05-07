@@ -78,7 +78,7 @@ pub fn get(offset: usize) -> &'static Frame {
             previous_index - offset
         };
 
-        return &FRAMES[index as usize];
+        &FRAMES[index as usize]
     }
 }
 

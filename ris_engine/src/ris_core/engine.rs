@@ -5,13 +5,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     shutdown();
 
-    return result;
+    result
 }
 
 fn startup_and_run() -> Result<(), Box<dyn std::error::Error>> {
     frame_buffer::init(4);
 
-    return gameloop::run();
+    gameloop::run()
 }
 
 fn shutdown() {}
