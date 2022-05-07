@@ -1,7 +1,7 @@
 use std::thread;
 use std::time::Instant;
 
-use crate::ris_core::*;
+use crate::frame_buffer;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {

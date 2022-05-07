@@ -1,4 +1,5 @@
-use crate::ris_core::*;
+use crate::frame_buffer;
+use crate::gameloop;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let result = startup_and_run();

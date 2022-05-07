@@ -13,9 +13,18 @@ keywords = []
 categories = []
 #build = "Path to the package build script."
 publish = false
+# default-run = "main"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+default-members = ["main"]
+members = [
+    "main",
+    "ris_core"
+]
+
 [dependencies]
+ris_core = { path = "ris_core" }
 
 [profile]

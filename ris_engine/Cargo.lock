@@ -3,5 +3,19 @@
 version = 3
 
 [[package]]
+name = "main"
+version = "0.1.0"
+dependencies = [
+ "ris_core",
+]
+
+[[package]]
+name = "ris_core"
+version = "0.1.0"
+
+[[package]]
 name = "ris_engine"
 version = "0.1.0"
+dependencies = [
+ "ris_core",
+]
