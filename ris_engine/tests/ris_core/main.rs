@@ -1,4 +1,1 @@
-#[test]
-fn this_fails() {
-    assert_eq!(true, false);
-}
+mod frame_buffer_tests;

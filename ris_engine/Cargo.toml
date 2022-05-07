@@ -1,8 +1,21 @@
 [package]
 name = "ris_engine"
 version = "0.1.0"
+authors = ["Simon Sutoris"]
 edition = "2021"
+description = "very WIP"
+#documentation = "URL of the package documentation."
+readme = "../README.md"
+#homepage = "URL of the package homepage."
+repository = "https://github.com/Rismosch/ris_engine"
+license = "GPL-3.0"
+keywords = []
+categories = []
+#build = "Path to the package build script."
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[profile]
