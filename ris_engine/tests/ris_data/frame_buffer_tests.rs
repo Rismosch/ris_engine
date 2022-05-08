@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ris_core::frame_buffer;
+use ris_data::*;
 
 use ris_testing_utility::*;
 
@@ -31,10 +31,10 @@ fn should_initialize_n_frames() {
         assert_eq!(frame2.number(), frame2_number);
         assert_eq!(frame3.number(), frame3_number);
 
-        assert_eq!(frame0.delta(), frame_buffer::IDEAL_DELTA);
-        assert_eq!(frame1.delta(), frame_buffer::IDEAL_DELTA);
-        assert_eq!(frame2.delta(), frame_buffer::IDEAL_DELTA);
-        assert_eq!(frame3.delta(), frame_buffer::IDEAL_DELTA);
+        assert_eq!(frame0.delta(), frame::IDEAL_DELTA);
+        assert_eq!(frame1.delta(), frame::IDEAL_DELTA);
+        assert_eq!(frame2.delta(), frame::IDEAL_DELTA);
+        assert_eq!(frame3.delta(), frame::IDEAL_DELTA);
     });
 }
 
@@ -74,8 +74,8 @@ fn should_add_frames() {
 
         assert_eq!(frame0.delta(), Duration::from_millis(456));
         assert_eq!(frame1.delta(), Duration::from_millis(123));
-        assert_eq!(frame2.delta(), frame_buffer::IDEAL_DELTA);
-        assert_eq!(frame3.delta(), frame_buffer::IDEAL_DELTA);
+        assert_eq!(frame2.delta(), frame::IDEAL_DELTA);
+        assert_eq!(frame3.delta(), frame::IDEAL_DELTA);
     });
 }
 
@@ -123,10 +123,8 @@ fn should_panic_when_getting_frame_outside_of_range() {
 #[test]
 fn should_calculate_average_delta() {
     retry(10, || {
-        let expected = (2 * frame_buffer::IDEAL_DELTA
-            + Duration::from_millis(123)
-            + Duration::from_millis(456))
-            / 4;
+        let expected =
+            (2 * frame::IDEAL_DELTA + Duration::from_millis(123) + Duration::from_millis(456)) / 4;
 
         unsafe {
             frame_buffer::init(4);
@@ -150,6 +148,6 @@ fn should_set_delta_to_ideal_when_duration_is_too_big() {
 
         let frame = frame_buffer::get(0);
 
-        assert_eq!(frame.delta(), frame_buffer::IDEAL_DELTA);
+        assert_eq!(frame.delta(), frame::IDEAL_DELTA);
     });
 }

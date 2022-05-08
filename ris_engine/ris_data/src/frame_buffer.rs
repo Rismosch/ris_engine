@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-const MAX_DELTA: Duration = Duration::from_secs(1);
-pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
+use crate::frame::*;
 
 static mut FRAMES: Vec<Frame> = Vec::new();
 static mut FRAMES_LENGTH: usize = 0;
@@ -9,20 +8,6 @@ static mut MAX_INDEX: usize = 0;
 static mut COUNT: usize = 0;
 static mut INDEX: usize = 0;
 static mut DELTA: Duration = IDEAL_DELTA;
-
-pub struct Frame {
-    delta: Duration,
-    number: usize,
-}
-
-impl Frame {
-    pub fn delta(&self) -> Duration {
-        self.delta
-    }
-    pub fn number(&self) -> usize {
-        self.number
-    }
-}
 
 /// # Safety
 /// Should only be called by the main thread.
@@ -38,10 +23,7 @@ pub unsafe fn init(frame_buffer_lenght: usize) {
 
     let number_offset = (0 - (frame_buffer_lenght as isize)) as usize;
     for i in 0..frame_buffer_lenght {
-        let frame = Frame {
-            delta: IDEAL_DELTA,
-            number: number_offset + i,
-        };
+        let frame = Frame::new(IDEAL_DELTA, number_offset + i);
         FRAMES.push(frame);
     }
 }
@@ -50,14 +32,10 @@ pub unsafe fn init(frame_buffer_lenght: usize) {
 /// Should only be called by the main thread.
 /// This method modifies global static variables, and thus is inherently unsafe.
 pub unsafe fn add(delta: Duration) {
-    let mut frame = &mut FRAMES[INDEX];
-    frame.number = COUNT;
+    let frame = &mut FRAMES[INDEX];
 
-    if delta > MAX_DELTA {
-        frame.delta = IDEAL_DELTA;
-    } else {
-        frame.delta = delta;
-    }
+    let number = COUNT;
+    frame.set(delta, number);
 
     COUNT += 1;
 
@@ -93,7 +71,7 @@ fn calculate_delta() {
     unsafe {
         let mut sum = Duration::ZERO;
         for frame in FRAMES.iter() {
-            sum += frame.delta;
+            sum += frame.delta();
         }
 
         DELTA = sum / FRAMES_LENGTH as u32;

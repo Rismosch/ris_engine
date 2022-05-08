@@ -22,11 +22,13 @@ default-members = ["main"]
 members = [
     "main",
     "ris_core",
+    "ris_data",
     "ris_testing_utility"
 ]
 
 [dependencies]
 ris_core = { path = "ris_core" }
+ris_data = { path = "ris_data" }
 ris_testing_utility = { path = "ris_testing_utility"}
 
 [profile]

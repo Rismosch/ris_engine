@@ -10,7 +10,7 @@ impl PCG32 {
             increment: 0xa02bdbf7bb3c0a7,
         };
 
-        let state = (seed[0o00] as u64) << 0x00
+        let state = (seed[0o00] as u64)
             | (seed[0o01] as u64) << 0x08
             | (seed[0o02] as u64) << 0x10
             | (seed[0o03] as u64) << 0x18
@@ -19,7 +19,7 @@ impl PCG32 {
             | (seed[0o06] as u64) << 0x30
             | (seed[0o07] as u64) << 0x38;
 
-        let increment = (seed[0o10] as u64) << 0x00
+        let increment = (seed[0o10] as u64)
             | (seed[0o11] as u64) << 0x08
             | (seed[0o12] as u64) << 0x10
             | (seed[0o13] as u64) << 0x18
@@ -49,9 +49,5 @@ impl PCG32 {
         let xorshifted = (((oldstate >> XSHIFT) ^ oldstate) >> SPARE) as u32;
         let rot = (oldstate >> ROTATE) as u32;
         xorshifted.rotate_right(rot)
-    }
-
-    pub fn next_f(&mut self) -> f32 {
-        self.next() as f32 / 4_294_967_296.
     }
 }
