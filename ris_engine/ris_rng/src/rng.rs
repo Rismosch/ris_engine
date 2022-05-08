@@ -1,16 +1,19 @@
-pub struct PCG32{
-    state: u64,
-    increment: u64
+use crate::pcg::PCG32;
+
+static mut PCG: PCG32 = PCG32{state: 0, increment: 0};
+
+pub unsafe fn init(seed: [u8; 16]) {
+    PCG = PCG32::seed(seed);
 }
 
-impl PCG32 {
-    pub fn next(&mut self) -> u32 {
-        let oldstate = self.state;
-        // Advance internal state
-        self.state = oldstate * 6364136223846793005ULL + (self.increment | 1);
-        // Calculate output function (XSH RR), uses old state for max ILP
-        let xorshifted: u32 = ((oldstate >> 18u) ^ oldstate) >> 27u;
-        let rot: u32 = oldstate >> 59u;
-        (xorshifted >> rot) | (xorshifted << ((-rot) & 31))
+pub fn next() -> u32 {
+    unsafe {
+        PCG.next()
+    }
+}
+
+pub fn next_f() -> f32 {
+    unsafe {
+        PCG.next() as f32 / 4_294_967_296.
     }
 }
