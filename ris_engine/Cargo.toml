@@ -18,9 +18,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-default-members = ["main"]
 members = [
-    "main",
     "ris_core",
     "ris_data",
     "ris_testing_utility"
