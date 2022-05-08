@@ -224,15 +224,15 @@ fn single_threaded_should_panic() {
             handle.join().unwrap();
         }
 
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC.len(), 8);
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[0], 'a');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[1], 'b');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[2], 'a');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[3], 'b');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[4], 'a');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[5], 'b');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[6], 'a');
-        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[7], 'b');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC.len(), 8);
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[0], 'a');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[1], 'b');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[2], 'a');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[3], 'b');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[4], 'a');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[5], 'b');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[6], 'a');
+        assert_eq!(SINGLE_THREADED_FAIL_VEC[7], 'b');
 
         assert_eq!(SINGLE_THREADED_FAIL_RESULTS.len(), 4);
         assert_eq!(SINGLE_THREADED_FAIL_RESULTS[0], Some(false));

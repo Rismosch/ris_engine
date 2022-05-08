@@ -32,7 +32,7 @@ fn game_logic() -> bool {
         previous.number(),
         previous.delta().as_millis(),
         frame_buffer::delta().as_millis(),
-        rng::next_i(0, 10),
+        rng::range_i(0, 9),
     );
 
     true
