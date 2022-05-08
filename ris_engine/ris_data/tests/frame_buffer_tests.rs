@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use ris_data::*;
 
-use ris_testing_utility::*;
+use ris_test::util::*;
 
 #[test]
 fn should_initialize_n_frames() {

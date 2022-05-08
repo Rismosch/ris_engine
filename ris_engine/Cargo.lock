@@ -14,7 +14,7 @@ dependencies = [
 name = "ris_data"
 version = "0.1.0"
 dependencies = [
- "ris_testing_utility",
+ "ris_test",
 ]
 
 [[package]]
@@ -22,8 +22,6 @@ name = "ris_engine"
 version = "0.1.0"
 dependencies = [
  "ris_core",
- "ris_data",
- "ris_testing_utility",
 ]
 
 [[package]]
@@ -31,5 +29,5 @@ name = "ris_rng"
 version = "0.1.0"
 
 [[package]]
-name = "ris_testing_utility"
+name = "ris_test"
 version = "0.1.0"
