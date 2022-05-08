@@ -68,3 +68,98 @@ fn repeat_should_fail() {
         assert!(result.is_err());
     }
 }
+
+static mut WRAP_SHOULD_SUCCEED_VEC: Vec<i32> = Vec::new();
+#[test]
+fn wrap_should_succeed() {
+    unsafe {
+        WRAP_SHOULD_SUCCEED_VEC = Vec::new();
+
+        wrap(
+            || WRAP_SHOULD_SUCCEED_VEC.push(2),
+            || WRAP_SHOULD_SUCCEED_VEC.push(1),
+        );
+
+        assert_eq!(WRAP_SHOULD_SUCCEED_VEC.len(), 2);
+        assert_eq!(WRAP_SHOULD_SUCCEED_VEC[0], 1);
+        assert_eq!(WRAP_SHOULD_SUCCEED_VEC[1], 2);
+    }
+}
+
+static mut WRAP_SHOULD_FAIL_VEC: Vec<i32> = Vec::new();
+#[test]
+fn wrap_should_fail() {
+    unsafe {
+        WRAP_SHOULD_FAIL_VEC = Vec::new();
+
+        let result = std::panic::catch_unwind(|| {
+            wrap(
+                || WRAP_SHOULD_FAIL_VEC.push(2),
+                || {
+                    WRAP_SHOULD_FAIL_VEC.push(1);
+                    panic!();
+                },
+            );
+        });
+
+        assert_eq!(WRAP_SHOULD_FAIL_VEC.len(), 2);
+        assert_eq!(WRAP_SHOULD_FAIL_VEC[0], 1);
+        assert_eq!(WRAP_SHOULD_FAIL_VEC[1], 2);
+        assert!(result.is_err());
+    }
+}
+
+static mut SINGLE_THREADED_SUCCEED_VEC: Vec<char> = Vec::new();
+#[test]
+fn single_threaded_should_run_tests_sequentially(){
+    unsafe {
+        let mut handles = Vec::new();
+
+        handles.push(std::thread::spawn(||{
+            single_threaded(||{
+                SINGLE_THREADED_SUCCEED_VEC.push('a');
+                std::thread::sleep(std::time::Duration::from_millis(400));
+                SINGLE_THREADED_SUCCEED_VEC.push('b');
+            })
+        }));
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        handles.push(std::thread::spawn(||{
+            single_threaded(||{
+                SINGLE_THREADED_SUCCEED_VEC.push('a');
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                SINGLE_THREADED_SUCCEED_VEC.push('b');
+            })
+        }));
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        handles.push(std::thread::spawn(||{
+            single_threaded(||{
+                SINGLE_THREADED_SUCCEED_VEC.push('a');
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                SINGLE_THREADED_SUCCEED_VEC.push('b');
+            })
+        }));
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        handles.push(std::thread::spawn(||{
+            single_threaded(||{
+                SINGLE_THREADED_SUCCEED_VEC.push('a');
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                SINGLE_THREADED_SUCCEED_VEC.push('b');
+            })
+        }));
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC.len(),8);
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[0],'a');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[1],'b');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[2],'a');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[3],'b');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[4],'a');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[5],'b');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[6],'a');
+        assert_eq!(SINGLE_THREADED_SUCCEED_VEC[7],'b');
+        
+    }
+}
