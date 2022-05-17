@@ -49,18 +49,17 @@ pub unsafe fn add(delta: Duration) {
 }
 
 pub fn get(offset: usize) -> &'static Frame {
-    unsafe {
-        let previous_index = INDEX as isize;
-        let offset = 1 + offset as isize;
+    let previous_index = unsafe { INDEX } as isize;
 
-        let index = if previous_index < offset {
-            previous_index - offset + FRAMES_LENGTH as isize
-        } else {
-            previous_index - offset
-        };
+    let offset = 1 + offset as isize;
 
-        &FRAMES[index as usize]
-    }
+    let index = if previous_index < offset {
+        previous_index - offset + unsafe { FRAMES_LENGTH } as isize
+    } else {
+        previous_index - offset
+    };
+
+    unsafe { &FRAMES[index as usize] }
 }
 
 pub fn delta() -> Duration {
