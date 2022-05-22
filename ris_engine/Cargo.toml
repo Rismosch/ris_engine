@@ -22,6 +22,7 @@ members = [
     "ris_core",
     "ris_data",
     "ris_input",
+    "ris_sdl",
     "ris_test"
 ]
 

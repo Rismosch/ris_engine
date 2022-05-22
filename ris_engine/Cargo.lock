@@ -31,7 +31,9 @@ name = "ris_core"
 version = "0.1.0"
 dependencies = [
  "ris_data",
+ "ris_input",
  "ris_rng",
+ "ris_sdl",
  "sdl2",
 ]
 
@@ -54,12 +56,23 @@ dependencies = [
 [[package]]
 name = "ris_input"
 version = "0.1.0"
+dependencies = [
+ "ris_sdl",
+ "sdl2",
+]
 
 [[package]]
 name = "ris_rng"
 version = "0.1.0"
 dependencies = [
  "ris_test",
+]
+
+[[package]]
+name = "ris_sdl"
+version = "0.1.0"
+dependencies = [
+ "sdl2",
 ]
 
 [[package]]
