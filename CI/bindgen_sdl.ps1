@@ -3,6 +3,11 @@ $ris_engine = [IO.Path]::Combine($root, "ris_engine")
 $sdl_include = [IO.Path]::Combine($root,"SDL2","2.0.22","include")
 $sdl_sys = [IO.Path]::Combine($ris_engine,"sdl-sys","src")
 
+$librs = "lib.rs"
+$librs_path = [IO.Path]::Combine($sdl_sys, $librs)
+
+New-Item -Path $sdl_sys -Name $librs -ItemType "file" -Force
+
 $sdl_headers = Get-ChildItem -Path $sdl_include
 
 [System.Collections.ArrayList]$erroneous_files = @()
@@ -19,6 +24,9 @@ foreach ($sdl_header in $sdl_headers)
     {
         $_ = $erroneous_files.Add($source);
         Remove-Item $target
+    }
+    else {
+        Add-Content -Path $librs_path -Value "pub mod $filename;"
     }
 }
 

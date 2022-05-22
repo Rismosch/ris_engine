@@ -34,3 +34,7 @@ dependencies = [
 [[package]]
 name = "ris_test"
 version = "0.1.0"
+
+[[package]]
+name = "sdl-sys"
+version = "0.1.0"
