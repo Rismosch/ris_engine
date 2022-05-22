@@ -19,7 +19,7 @@ fn startup_and_run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // let mut prev_keys = HashSet::new();
-    
+
     gameloop::run()
 }
 

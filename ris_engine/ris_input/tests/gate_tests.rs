@@ -3,11 +3,10 @@ use std::result;
 use ris_input::gate::Gate;
 
 #[test]
-fn should_create_correct_state()
-{
+fn should_create_correct_state() {
     let mut gate = Gate::new();
     let result0 = gate.clone();
-    
+
     gate.update(true);
     let result1 = gate.clone();
     gate.update(false);

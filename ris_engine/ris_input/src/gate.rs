@@ -1,14 +1,17 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Gate{
+pub struct Gate {
     up: bool,
     down: bool,
-    hold:bool
+    hold: bool,
 }
 
-impl Gate
-{
-    pub fn new() -> Gate{
-        Gate{up: false, down: false, hold: false}
+impl Gate {
+    pub fn new() -> Gate {
+        Gate {
+            up: false,
+            down: false,
+            hold: false,
+        }
     }
 
     pub fn update(&mut self, value: bool) {
@@ -17,18 +20,15 @@ impl Gate
         self.hold = value;
     }
 
-    pub fn up(&self) -> bool
-    {
+    pub fn up(&self) -> bool {
         self.up
     }
 
-    pub fn down(&self) -> bool
-    {
+    pub fn down(&self) -> bool {
         self.down
     }
 
-    pub fn hold(&self) -> bool
-    {
+    pub fn hold(&self) -> bool {
         self.hold
     }
 }
