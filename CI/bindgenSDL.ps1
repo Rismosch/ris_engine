@@ -17,7 +17,7 @@ foreach ($sdl_header in $sdl_headers)
 
     if ($LASTEXITCODE -ne 0)
     {
-        $erroneous_files.Add($source);
+        $_ = $erroneous_files.Add($source);
         Remove-Item $target
     }
 }
