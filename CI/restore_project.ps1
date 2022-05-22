@@ -6,5 +6,6 @@ if ($continue -eq "y")
     git clean -dxf
 }
 
+
 $bindgen_sdl = [IO.Path]::Combine($PSScriptRoot, "bindgen_sdl.ps1");
 . $bindgen_sdl

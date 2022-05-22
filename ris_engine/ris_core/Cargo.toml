@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 ris_data = { path = "../ris_data" }
 ris_rng = { path = "../ris_rng" }
+sdl-sys = { path = "../sdl-sys" }
