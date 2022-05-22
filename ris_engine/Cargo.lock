@@ -52,6 +52,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ris_input"
+version = "0.1.0"
+
+[[package]]
 name = "ris_rng"
 version = "0.1.0"
 dependencies = [
