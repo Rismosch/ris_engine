@@ -14,7 +14,7 @@ fn startup_and_run() -> Result<(), Box<dyn std::error::Error>> {
         ris_rng::init()?;
 
         ris_sdl::init()?;
-        
+
         ris_input::init();
     }
 
