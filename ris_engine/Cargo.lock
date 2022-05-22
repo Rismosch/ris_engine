@@ -32,6 +32,7 @@ version = "0.1.0"
 dependencies = [
  "ris_data",
  "ris_rng",
+ "sdl2",
 ]
 
 [[package]]
@@ -39,6 +40,7 @@ name = "ris_data"
 version = "0.1.0"
 dependencies = [
  "ris_test",
+ "sdl2",
 ]
 
 [[package]]

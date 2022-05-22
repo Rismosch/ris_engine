@@ -1,10 +1,8 @@
 [package]
-name = "ris_data"
+name = "ris_input"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = "0.35"
-ris_test = { path = "../ris_test" }
