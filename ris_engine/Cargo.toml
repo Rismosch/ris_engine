@@ -21,7 +21,8 @@ publish = false
 members = [
     "ris_core",
     "ris_data",
-    "ris_test"
+    "ris_test",
+    "sdl-sys"
 ]
 
 [dependencies]
