@@ -50,7 +50,7 @@ pub unsafe fn add(delta: Duration) {
 }
 
 pub fn count() -> usize {
-    unsafe {COUNT}
+    unsafe { COUNT }
 }
 
 pub fn get(offset: usize) -> &'static Frame {
@@ -85,11 +85,9 @@ fn get_index(offset: usize) -> isize {
 
     let offset = 1 + offset as isize;
 
-    let index = if previous_index < offset {
+    if previous_index < offset {
         previous_index - offset + unsafe { FRAMES_LENGTH } as isize
     } else {
         previous_index - offset
-    };
-
-    index
+    }
 }

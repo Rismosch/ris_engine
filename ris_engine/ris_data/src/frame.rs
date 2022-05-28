@@ -1,4 +1,4 @@
-use std::{time::Duration};
+use std::time::Duration;
 
 const MAX_DELTA: Duration = Duration::from_secs(1);
 pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
@@ -6,7 +6,7 @@ pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 pub struct Frame {
     delta: Duration,
     number: usize,
-    
+
     pub fps: u128,
 }
 

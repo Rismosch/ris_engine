@@ -12,7 +12,7 @@ impl Gate {
         self.hold = value;
     }
 
-    pub fn set(&mut self, up: bool, down: bool, hold: bool){
+    pub fn set(&mut self, up: bool, down: bool, hold: bool) {
         self.up = up;
         self.down = down;
         self.hold = hold;

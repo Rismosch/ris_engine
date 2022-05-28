@@ -1,9 +1,12 @@
-use std::{time::{Instant, Duration}, thread};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 extern crate sdl2;
 use sdl2::event::Event;
 
-use ris_data::{frame_buffer};
+use ris_data::frame_buffer;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
@@ -25,7 +28,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn game_logic() -> bool {
-
     thread::sleep(Duration::from_millis(50));
 
     for event in ris_sdl::event_pump::poll_iter() {
@@ -45,20 +47,13 @@ fn game_logic() -> bool {
 
     let frame = frame_buffer::get(1);
     let mut fps = frame.fps;
-    if frame_buffer::count() % 1000 == 0{
+    if frame_buffer::count() % 1000 == 0 {
         fps = 1_000_000_000 / frame_buffer::delta().as_nanos();
     }
-    
+
     frame_buffer::get_mut(0).fps = fps;
 
-    println!(
-        "{}\t{}\t{}\t{}\t{}",
-        num1,
-        num2,
-        num3,
-        num4,
-        fps
-    );
+    println!("{}\t{}\t{}\t{}\t{}", num1, num2, num3, num4, fps);
 
     true
 }

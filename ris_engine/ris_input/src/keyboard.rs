@@ -1,4 +1,4 @@
-use std::{collections::HashMap, borrow::Borrow};
+use std::{borrow::Borrow, collections::HashMap};
 
 use ris_sdl::event_pump;
 
@@ -34,7 +34,6 @@ pub unsafe fn init() {
         gates.insert(y, Box::new(Gate::default()));
         rebind_gates.insert(y, Box::new(Gate::default()));
     }
-    
 
     REBIND_MATRIX = Some(rebind_matrix);
     GATES = Some(gates);
@@ -44,8 +43,8 @@ pub unsafe fn init() {
 pub fn update() {
     let rebind_matrix = get_rebind_matrix();
 
-    for (_, gate) in get_rebind_gates() {
-        gate.set(false,false,false);
+    for gate in get_rebind_gates().values_mut() {
+        gate.set(false, false, false);
     }
 
     for (scancode, value) in event_pump::keyboard_state().scancodes() {
@@ -58,7 +57,7 @@ pub fn update() {
                 continue;
             }
 
-            let rebind_gate = get_rebind_gates().get_mut(&rebind_scancode).unwrap();
+            let rebind_gate = get_rebind_gates().get_mut(rebind_scancode).unwrap();
             let new_up = rebind_gate.up() || gate.up();
             let new_down = rebind_gate.down() || gate.down();
             let new_hold = rebind_gate.hold() || gate.hold();
