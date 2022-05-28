@@ -7,6 +7,7 @@ static mut FRAMES_LENGTH: usize = 0;
 static mut MAX_INDEX: usize = 0;
 static mut COUNT: usize = 0;
 static mut INDEX: usize = 0;
+
 static mut DELTA: Duration = IDEAL_DELTA;
 
 /// # Safety
@@ -45,10 +46,41 @@ pub unsafe fn add(delta: Duration) {
         INDEX += 1;
     }
 
-    calculate_delta();
+    calculate_durations();
+}
+
+pub fn count() -> usize {
+    unsafe {COUNT}
 }
 
 pub fn get(offset: usize) -> &'static Frame {
+    let index = get_index(offset);
+
+    unsafe { &FRAMES[index as usize] }
+}
+
+pub fn get_mut(offset: usize) -> &'static mut Frame {
+    let index = get_index(offset);
+
+    unsafe { &mut FRAMES[index as usize] }
+}
+
+pub fn delta() -> Duration {
+    unsafe { DELTA }
+}
+
+fn calculate_durations() {
+    unsafe {
+        let mut sum = Duration::ZERO;
+        for frame in FRAMES.iter() {
+            sum += frame.delta();
+        }
+
+        DELTA = sum / FRAMES_LENGTH as u32;
+    }
+}
+
+fn get_index(offset: usize) -> isize {
     let previous_index = unsafe { INDEX } as isize;
 
     let offset = 1 + offset as isize;
@@ -59,20 +91,5 @@ pub fn get(offset: usize) -> &'static Frame {
         previous_index - offset
     };
 
-    unsafe { &FRAMES[index as usize] }
-}
-
-pub fn delta() -> Duration {
-    unsafe { DELTA }
-}
-
-fn calculate_delta() {
-    unsafe {
-        let mut sum = Duration::ZERO;
-        for frame in FRAMES.iter() {
-            sum += frame.delta();
-        }
-
-        DELTA = sum / FRAMES_LENGTH as u32;
-    }
+    index
 }

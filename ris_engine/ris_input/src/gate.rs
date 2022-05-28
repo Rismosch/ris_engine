@@ -6,18 +6,16 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new() -> Gate {
-        Gate {
-            up: false,
-            down: false,
-            hold: false,
-        }
-    }
-
     pub fn update(&mut self, value: bool) {
         self.up = !value && self.hold;
         self.down = value && !self.hold;
         self.hold = value;
+    }
+
+    pub fn set(&mut self, up: bool, down: bool, hold: bool){
+        self.up = up;
+        self.down = down;
+        self.hold = hold;
     }
 
     pub fn up(&self) -> bool {
