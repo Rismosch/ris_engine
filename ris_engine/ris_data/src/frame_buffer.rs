@@ -69,6 +69,10 @@ pub fn delta() -> Duration {
     unsafe { DELTA }
 }
 
+pub fn fps() -> u128 {
+    unsafe { 1_000_000_000 / DELTA.as_nanos() }
+}
+
 fn calculate_durations() {
     unsafe {
         let mut sum = Duration::ZERO;

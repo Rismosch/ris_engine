@@ -6,16 +6,13 @@ pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 pub struct Frame {
     delta: Duration,
     number: usize,
-
-    pub fps: u128,
 }
 
 impl Frame {
     pub fn new(delta: Duration, number: usize) -> Frame {
         let delta = calculate_delta(delta);
 
-        let fps = 0;
-        Frame { delta, number, fps }
+        Frame { delta, number }
     }
 
     pub fn delta(&self) -> Duration {

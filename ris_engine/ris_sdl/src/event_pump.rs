@@ -1,3 +1,5 @@
+use sdl2::EventPump;
+
 use crate::context::context;
 
 static mut EVENT_PUMP: Option<Box<sdl2::EventPump>> = None;
@@ -15,19 +17,25 @@ pub unsafe fn init() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn poll_iter() -> sdl2::event::EventPollIterator<'static> {
-    unsafe {
-        match &mut EVENT_PUMP {
-            Some(event_pump) => event_pump.as_mut().poll_iter(),
-            None => panic!("sdl is not initialized"),
-        }
-    }
-}
+// pub fn poll_iter() -> sdl2::event::EventPollIterator<'static> {
+//     let event_pump = get_event_pump();
+//     event_pump.as_mut().poll_iter()
+// }
 
 pub fn keyboard_state() -> sdl2::keyboard::KeyboardState<'static> {
+    let event_pump = get_event_pump();
+    event_pump.keyboard_state()
+}
+
+pub fn mouse_state() -> sdl2::mouse::MouseState {
+    let event_pump = get_event_pump();
+    event_pump.mouse_state()
+}
+
+fn get_event_pump() -> &'static mut Box<EventPump> {
     unsafe {
         match &mut EVENT_PUMP {
-            Some(event_pump) => event_pump.keyboard_state(),
+            Some(event_pump) => event_pump,
             None => panic!("sdl is not initialized"),
         }
     }
