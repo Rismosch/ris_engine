@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use crate::rebind;
 
 #[derive(Debug, Default)]
@@ -65,7 +63,7 @@ fn handle_state_rebind() {
 
     state_rebind.wheel_x = state.wheel_x;
     state_rebind.wheel_y = state.wheel_y;
-    
+
     state_rebind.rel_x = state.x;
     state_rebind.rel_y = state.y;
     state_rebind.x = state.x;
@@ -75,21 +73,21 @@ fn handle_state_rebind() {
     state_rebind.down = 0;
     state_rebind.hold = 0;
 
-    for y in 0..32 {
+    for (y, rebind_mask) in mouse_to_mouse.iter().enumerate().take(32) {
         let up = (state.up & (1 << y)) != 0;
         let down = (state.down & (1 << y)) != 0;
         let hold = (state.hold & (1 << y)) != 0;
-        
+
         if up {
-            state_rebind.up |= mouse_to_mouse[y];
+            state_rebind.up |= rebind_mask;
         }
 
         if down {
-            state_rebind.down |= mouse_to_mouse[y];
+            state_rebind.down |= rebind_mask;
         }
 
         if hold {
-            state_rebind.hold |= mouse_to_mouse[y];
+            state_rebind.hold |= rebind_mask;
         }
     }
 }

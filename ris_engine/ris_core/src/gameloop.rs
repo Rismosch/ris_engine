@@ -43,7 +43,8 @@ fn game_logic() {
     let key_2 = Scancode::Kp2;
     let key_3 = Scancode::Kp3;
 
-    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}",
+    println!(
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}",
         ris_input::keyboard::hold(key_1),
         ris_input::keyboard::hold(key_2),
         ris_input::keyboard::hold(key_3),
@@ -52,5 +53,4 @@ fn game_logic() {
         ris_input::mouse::hold(mouse_3),
         frame_buffer::fps()
     )
-    
 }

@@ -1,9 +1,9 @@
+use crate::gate::Gate;
+use crate::{rebind, util};
+use ris_sdl::event_pump;
+use sdl2::keyboard::Scancode;
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use sdl2::keyboard::Scancode;
-use ris_sdl::event_pump;
-use crate::{rebind, util};
-use crate::gate::Gate;
 
 // pub type RebindMatrix = HashMap<Scancode, HashMap<Scancode, bool>>;
 pub type Gates = HashMap<Scancode, Box<Gate>>;
@@ -45,7 +45,7 @@ pub fn update() {
                 continue;
             }
 
-            let rebind_gate = get_state_rebind().get_mut(&rebind_scancode).unwrap();
+            let rebind_gate = get_state_rebind().get_mut(rebind_scancode).unwrap();
             let new_up = rebind_gate.up() || gate.up();
             let new_down = rebind_gate.down() || gate.down();
             let new_hold = rebind_gate.hold() || gate.hold();

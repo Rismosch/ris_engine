@@ -24,7 +24,7 @@ impl Default for RebindMatrix {
         let mut mouse_to_mouse = default_mouse_to_mouse();
 
         println!("DEBUGGING ONLY; DON'T FORGET TO DELETE THIS");
-        
+
         let row = keyboard_to_keyboard.get_mut(&Scancode::Kp1).unwrap();
         *row.get_mut(&Scancode::Kp1).unwrap() = false;
         *row.get_mut(&Scancode::Kp2).unwrap() = true;
@@ -36,7 +36,7 @@ impl Default for RebindMatrix {
 
         println!("DEBUGGING ONLY; DON'T FORGET TO DELETE THIS");
 
-        RebindMatrix{
+        RebindMatrix {
             keyboard_to_keyboard,
             keyboard_to_mouse,
             mouse_to_keyboard,
@@ -57,7 +57,7 @@ pub unsafe fn init() {
 }
 
 pub fn get_rebind_matrix_mut() -> &'static mut RebindMatrix {
-    unsafe{
+    unsafe {
         match &mut REBIND_MATRIX {
             Some(rebind_matrix) => rebind_matrix,
             None => panic!("rebind is not initialized"),
@@ -66,7 +66,7 @@ pub fn get_rebind_matrix_mut() -> &'static mut RebindMatrix {
 }
 
 pub fn get_rebind_matrix() -> &'static RebindMatrix {
-    unsafe{
+    unsafe {
         match &REBIND_MATRIX {
             Some(rebind_matrix) => rebind_matrix,
             None => panic!("rebind is not initialized"),
@@ -85,7 +85,7 @@ fn default_keyboard_to_keyboard() -> KeyboardToKeyboard {
         }
 
         rebind_matrix.insert(y, rebind_row);
-    };
+    }
 
     rebind_matrix
 }
@@ -93,8 +93,8 @@ fn default_keyboard_to_keyboard() -> KeyboardToKeyboard {
 fn default_mouse_to_mouse() -> MouseToMouse {
     let mut rebind_matrix = [u32::default(); 32];
 
-    for y in 0..32 {
-        rebind_matrix[y] = 1 << y;
+    for (y, rebind_mask) in rebind_matrix.iter_mut().enumerate() {
+        *rebind_mask = 1 << y;
     }
 
     rebind_matrix
