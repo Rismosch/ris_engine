@@ -4,9 +4,19 @@ use sdl2::event::Event;
 use crate::context::context;
 
 #[derive(Default)]
-struct EventState
+pub struct EventState
 {
-    quit_was_called: bool,
+    pub quit_was_called: bool,
+    pub wheel_x: i32,
+    pub wheel_y: i32,
+}
+
+impl EventState{
+    fn reset(&mut self){
+        self.quit_was_called = bool::default();
+        self.wheel_x = i32::default();
+        self.wheel_y = i32::default();
+    }
 }
 
 static mut EVENT_PUMP: Option<sdl2::EventPump> = None;
@@ -20,20 +30,30 @@ pub unsafe fn init() -> Result<(), Box<dyn std::error::Error>> {
 
     let event_pump = sdl_context.event_pump()?;
 
+    let mut event_state = EventState::default();
+    event_state.reset();
+
     EVENT_PUMP = Some(event_pump);
-    EVENT_STATE = Some(EventState::default());
+    EVENT_STATE = Some(event_state);
 
     Ok(())
 }
 
 pub fn poll_all_events() {
     let event_pump = get_event_pump();
-    let event_state = get_event_state();
+    let event_state = get_event_state_mut();
+
+    event_state.reset();
 
     for event in event_pump.poll_iter() {
         if let Event::Quit { .. } = event {
             event_state.quit_was_called = true;
         };
+
+        if let Event::MouseWheel { x, y, .. } = event {
+            event_state.wheel_x += x;
+            event_state.wheel_y += y;
+        }
     }
 }
 
@@ -48,7 +68,7 @@ pub fn mouse_state() -> sdl2::mouse::MouseState {
 }
 
 pub fn quit_was_called() -> bool {
-    get_event_state().quit_was_called
+    get_event_state_mut().quit_was_called
 }
 
 fn get_event_pump() -> &'static mut EventPump {
@@ -60,7 +80,16 @@ fn get_event_pump() -> &'static mut EventPump {
     }
 }
 
-fn get_event_state() -> &'static mut EventState {
+pub fn get_event_state() -> &'static EventState {
+    unsafe {
+        match &EVENT_STATE {
+            Some(event_state) => event_state,
+            None => panic!("eventpump is not initialized"),
+        }
+    }
+}
+
+fn get_event_state_mut() -> &'static mut EventState {
     unsafe {
         match &mut EVENT_STATE {
             Some(event_state) => event_state,

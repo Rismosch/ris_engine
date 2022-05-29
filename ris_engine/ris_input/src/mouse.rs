@@ -34,9 +34,13 @@ pub unsafe fn init() {
 }
 
 pub fn update() {
+    let event_state = ris_sdl::event_pump::get_event_state();
     let event_mouse_state = ris_sdl::event_pump::mouse_state();
     let sdl_mouse_state = event_mouse_state.to_sdl_state();
     let mouse_state = get_mouse_state();
+
+    mouse_state.wheel_x = event_state.wheel_x;
+    mouse_state.wheel_y = event_state.wheel_y;
 
     mouse_state.rel_x = event_mouse_state.x() - mouse_state.x;
     mouse_state.rel_y = event_mouse_state.y() - mouse_state.y;
