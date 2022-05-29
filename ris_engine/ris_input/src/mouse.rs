@@ -50,8 +50,6 @@ pub fn update() {
     mouse_state.down = changes & sdl_mouse_state;
     mouse_state.up = changes & !sdl_mouse_state;
     mouse_state.hold = sdl_mouse_state;
-
-    println!("{:?}", mouse_state);
 }
 
 fn get_mouse_state() -> &'static mut MouseState {
@@ -61,4 +59,8 @@ fn get_mouse_state() -> &'static mut MouseState {
             None => panic!("mouse is not initialized"),
         }
     }
+}
+
+pub fn hold(button: u32) -> bool{
+    false
 }

@@ -6,6 +6,7 @@ use std::{
 use ris_sdl::event_pump;
 
 use ris_data::frame_buffer;
+use sdl2::keyboard::Scancode;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
@@ -33,4 +34,23 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 fn game_logic() {
     thread::sleep(Duration::from_millis(50));
+
+    let mouse_1 = 1;
+    let mouse_2 = 2;
+    let mouse_3 = 3;
+
+    let key_1 = Scancode::Kp1;
+    let key_2 = Scancode::Kp2;
+    let key_3 = Scancode::Kp3;
+
+    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        ris_input::keyboard::hold(key_1),
+        ris_input::keyboard::hold(key_2),
+        ris_input::keyboard::hold(key_3),
+        ris_input::mouse::hold(1),
+        ris_input::mouse::hold(2),
+        ris_input::mouse::hold(3),
+        frame_buffer::fps()
+    )
+    
 }

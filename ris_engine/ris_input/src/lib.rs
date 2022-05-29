@@ -1,6 +1,8 @@
 pub mod gate;
 pub mod keyboard;
 pub mod mouse;
+pub mod rebind;
+pub mod util;
 
 /// # Safety
 /// Should only be called by the main thread.
@@ -8,4 +10,5 @@ pub mod mouse;
 pub unsafe fn init() {
     keyboard::init();
     mouse::init();
+    rebind::init();
 }
