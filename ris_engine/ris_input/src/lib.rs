@@ -9,5 +9,3 @@ pub unsafe fn init() {
     keyboard::init();
     mouse::init();
 }
-
-pub fn update() {}

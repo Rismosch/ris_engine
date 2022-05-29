@@ -1,8 +1,16 @@
 use sdl2::EventPump;
+use sdl2::event::Event;
 
 use crate::context::context;
 
-static mut EVENT_PUMP: Option<Box<sdl2::EventPump>> = None;
+#[derive(Default)]
+struct EventState
+{
+    quit_was_called: bool,
+}
+
+static mut EVENT_PUMP: Option<sdl2::EventPump> = None;
+static mut EVENT_STATE: Option<EventState> = None;
 
 /// # Safety
 /// Should only be called by the main thread.
@@ -12,15 +20,22 @@ pub unsafe fn init() -> Result<(), Box<dyn std::error::Error>> {
 
     let event_pump = sdl_context.event_pump()?;
 
-    EVENT_PUMP = Some(Box::new(event_pump));
+    EVENT_PUMP = Some(event_pump);
+    EVENT_STATE = Some(EventState::default());
 
     Ok(())
 }
 
-// pub fn poll_iter() -> sdl2::event::EventPollIterator<'static> {
-//     let event_pump = get_event_pump();
-//     event_pump.as_mut().poll_iter()
-// }
+pub fn poll_all_events() {
+    let event_pump = get_event_pump();
+    let event_state = get_event_state();
+
+    for event in event_pump.poll_iter() {
+        if let Event::Quit { .. } = event {
+            event_state.quit_was_called = true;
+        };
+    }
+}
 
 pub fn keyboard_state() -> sdl2::keyboard::KeyboardState<'static> {
     let event_pump = get_event_pump();
@@ -32,11 +47,24 @@ pub fn mouse_state() -> sdl2::mouse::MouseState {
     event_pump.mouse_state()
 }
 
-fn get_event_pump() -> &'static mut Box<EventPump> {
+pub fn quit_was_called() -> bool {
+    get_event_state().quit_was_called
+}
+
+fn get_event_pump() -> &'static mut EventPump {
     unsafe {
         match &mut EVENT_PUMP {
             Some(event_pump) => event_pump,
-            None => panic!("sdl is not initialized"),
+            None => panic!("eventpump is not initialized"),
+        }
+    }
+}
+
+fn get_event_state() -> &'static mut EventState {
+    unsafe {
+        match &mut EVENT_STATE {
+            Some(event_state) => event_state,
+            None => panic!("eventpump is not initialized"),
         }
     }
 }

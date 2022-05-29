@@ -13,17 +13,19 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let now = Instant::now();
 
+        event_pump::poll_all_events();
+
         ris_input::keyboard::update();
         ris_input::mouse::update();
 
-        let running = game_logic();
+        game_logic();
 
         let delta = now.elapsed();
         unsafe {
             frame_buffer::add(delta);
         }
 
-        if !running {
+        if event_pump::quit_was_called() {
             break;
         }
     }
@@ -31,18 +33,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn game_logic() -> bool {
+fn game_logic() {
     thread::sleep(Duration::from_millis(50));
-
-    for event in ris_sdl::event_pump::poll_iter() {
-        println!("{:?}",event);
-
-        if let Event::Quit { .. } = event {
-            return false;
-        };
-    }
-
-    // println!("{}\t", frame_buffer::fps());
-
-    true
 }
