@@ -3,9 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-extern crate sdl2;
 use ris_sdl::event_pump;
-use sdl2::event::Event;
 
 use ris_data::frame_buffer;
 

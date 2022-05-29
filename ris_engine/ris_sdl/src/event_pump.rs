@@ -1,18 +1,17 @@
-use sdl2::EventPump;
 use sdl2::event::Event;
+use sdl2::EventPump;
 
 use crate::context::context;
 
 #[derive(Default)]
-pub struct EventState
-{
+pub struct EventState {
     pub quit_was_called: bool,
     pub wheel_x: i32,
     pub wheel_y: i32,
 }
 
-impl EventState{
-    fn reset(&mut self){
+impl EventState {
+    fn reset(&mut self) {
         self.quit_was_called = bool::default();
         self.wheel_x = i32::default();
         self.wheel_y = i32::default();

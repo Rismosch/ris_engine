@@ -12,9 +12,8 @@ struct MouseState {
 }
 
 static mut MOUSE_STATE: Option<MouseState> = None;
-// static mut MOUSE
 
-// # Safety
+/// # Safety
 /// Should only be called by the main thread.
 /// This method modifies global static variables, and thus is inherently unsafe.
 pub unsafe fn init() {
