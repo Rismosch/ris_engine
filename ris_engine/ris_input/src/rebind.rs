@@ -1,4 +1,4 @@
-use std::{collections::HashMap, borrow::Borrow};
+use std::collections::HashMap;
 
 use sdl2::keyboard::Scancode;
 
@@ -7,7 +7,7 @@ use crate::util;
 pub type KeyboardToKeyboard = HashMap<Scancode, HashMap<Scancode, bool>>;
 pub type KeyboardToMouse = bool;
 pub type MouseToKeyboard = bool;
-pub type MouseToMouse = bool;
+pub type MouseToMouse = [u32; 32];
 
 pub struct RebindMatrix {
     pub keyboard_to_keyboard: KeyboardToKeyboard,
@@ -20,8 +20,8 @@ impl Default for RebindMatrix {
     fn default() -> Self {
         let mut keyboard_to_keyboard = default_keyboard_to_keyboard();
         let keyboard_to_mouse = false;
-        let mouse_to_mouse = false;
         let mouse_to_keyboard = false;
+        let mut mouse_to_mouse = default_mouse_to_mouse();
 
         println!("DEBUGGING ONLY; DON'T FORGET TO DELETE THIS");
         
@@ -30,13 +30,17 @@ impl Default for RebindMatrix {
         *row.get_mut(&Scancode::Kp2).unwrap() = true;
         *row.get_mut(&Scancode::Kp3).unwrap() = true;
 
+        mouse_to_mouse[0] = 0b011;
+        mouse_to_mouse[1] = 0b101;
+        mouse_to_mouse[2] = 0b110;
+
         println!("DEBUGGING ONLY; DON'T FORGET TO DELETE THIS");
 
         RebindMatrix{
             keyboard_to_keyboard,
             keyboard_to_mouse,
-            mouse_to_mouse,
             mouse_to_keyboard,
+            mouse_to_mouse,
         }
     }
 }
@@ -82,6 +86,16 @@ fn default_keyboard_to_keyboard() -> KeyboardToKeyboard {
 
         rebind_matrix.insert(y, rebind_row);
     };
+
+    rebind_matrix
+}
+
+fn default_mouse_to_mouse() -> MouseToMouse {
+    let mut rebind_matrix = [u32::default(); 32];
+
+    for y in 0..32 {
+        rebind_matrix[y] = 1 << y;
+    }
 
     rebind_matrix
 }

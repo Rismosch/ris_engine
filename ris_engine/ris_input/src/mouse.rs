@@ -1,4 +1,8 @@
-#[derive(Debug)]
+use std::borrow::Borrow;
+
+use crate::rebind;
+
+#[derive(Debug, Default)]
 struct MouseState {
     up: u32,
     down: u32,
@@ -11,56 +15,105 @@ struct MouseState {
     wheel_y: i32,
 }
 
-static mut MOUSE_STATE: Option<MouseState> = None;
+static mut STATE: Option<MouseState> = None;
+static mut STATE_REBIND: Option<MouseState> = None;
 
 /// # Safety
 /// Should only be called by the main thread.
 /// This method modifies global static variables, and thus is inherently unsafe.
 pub unsafe fn init() {
-    let mouse_state = MouseState {
-        up: 0,
-        down: 0,
-        hold: 0,
-        x: 0,
-        y: 0,
-        rel_x: 0,
-        rel_y: 0,
-        wheel_x: 0,
-        wheel_y: 0,
-    };
+    let state = MouseState::default();
+    let state_rebind = MouseState::default();
 
-    MOUSE_STATE = Some(mouse_state);
+    STATE = Some(state);
+    STATE_REBIND = Some(state_rebind);
 }
 
 pub fn update() {
+    handle_state();
+    handle_state_rebind();
+
+    // println!("{:?} {:?}", get_state(), get_state_rebind())
+}
+
+fn handle_state() {
     let event_state = ris_sdl::event_pump::get_event_state();
     let event_mouse_state = ris_sdl::event_pump::mouse_state();
     let sdl_mouse_state = event_mouse_state.to_sdl_state();
-    let mouse_state = get_mouse_state();
+    let state = get_state();
 
-    mouse_state.wheel_x = event_state.wheel_x;
-    mouse_state.wheel_y = event_state.wheel_y;
+    state.wheel_x = event_state.wheel_x;
+    state.wheel_y = event_state.wheel_y;
 
-    mouse_state.rel_x = event_mouse_state.x() - mouse_state.x;
-    mouse_state.rel_y = event_mouse_state.y() - mouse_state.y;
-    mouse_state.x = event_mouse_state.x();
-    mouse_state.y = event_mouse_state.y();
+    state.rel_x = event_mouse_state.x() - state.x;
+    state.rel_y = event_mouse_state.y() - state.y;
+    state.x = event_mouse_state.x();
+    state.y = event_mouse_state.y();
 
-    let changes = sdl_mouse_state ^ mouse_state.hold;
-    mouse_state.down = changes & sdl_mouse_state;
-    mouse_state.up = changes & !sdl_mouse_state;
-    mouse_state.hold = sdl_mouse_state;
+    let changes = sdl_mouse_state ^ state.hold;
+    state.down = changes & sdl_mouse_state;
+    state.up = changes & !sdl_mouse_state;
+    state.hold = sdl_mouse_state;
 }
 
-fn get_mouse_state() -> &'static mut MouseState {
+fn handle_state_rebind() {
+    let rebind_matrix = rebind::get_rebind_matrix();
+    let mouse_to_mouse = &rebind_matrix.mouse_to_mouse;
+
+    let state = get_state();
+    let state_rebind = get_state_rebind();
+
+    state_rebind.wheel_x = state.wheel_x;
+    state_rebind.wheel_y = state.wheel_y;
+    
+    state_rebind.rel_x = state.x;
+    state_rebind.rel_y = state.y;
+    state_rebind.x = state.x;
+    state_rebind.y = state.y;
+
+    state_rebind.up = 0;
+    state_rebind.down = 0;
+    state_rebind.hold = 0;
+
+    for y in 0..32 {
+        let up = (state.up & (1 << y)) != 0;
+        let down = (state.down & (1 << y)) != 0;
+        let hold = (state.hold & (1 << y)) != 0;
+        
+        if up {
+            state_rebind.up |= mouse_to_mouse[y];
+        }
+
+        if down {
+            state_rebind.down |= mouse_to_mouse[y];
+        }
+
+        if hold {
+            state_rebind.hold |= mouse_to_mouse[y];
+        }
+    }
+}
+
+fn get_state() -> &'static mut MouseState {
     unsafe {
-        match &mut MOUSE_STATE {
-            Some(mouse_state) => mouse_state,
+        match &mut STATE {
+            Some(state) => state,
             None => panic!("mouse is not initialized"),
         }
     }
 }
 
-pub fn hold(button: u32) -> bool{
-    false
+fn get_state_rebind() -> &'static mut MouseState {
+    unsafe {
+        match &mut STATE_REBIND {
+            Some(state_rebind) => state_rebind,
+            None => panic!("mouse is not initialized"),
+        }
+    }
+}
+
+pub fn hold(button: u8) -> bool {
+    let state_rebind = get_state_rebind();
+
+    (state_rebind.hold & (1 << button)) != 0
 }

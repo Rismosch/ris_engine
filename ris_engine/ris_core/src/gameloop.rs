@@ -35,9 +35,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 fn game_logic() {
     thread::sleep(Duration::from_millis(50));
 
-    let mouse_1 = 1;
-    let mouse_2 = 2;
-    let mouse_3 = 3;
+    let mouse_1 = 0;
+    let mouse_2 = 1;
+    let mouse_3 = 2;
 
     let key_1 = Scancode::Kp1;
     let key_2 = Scancode::Kp2;
@@ -47,9 +47,9 @@ fn game_logic() {
         ris_input::keyboard::hold(key_1),
         ris_input::keyboard::hold(key_2),
         ris_input::keyboard::hold(key_3),
-        ris_input::mouse::hold(1),
-        ris_input::mouse::hold(2),
-        ris_input::mouse::hold(3),
+        ris_input::mouse::hold(mouse_1),
+        ris_input::mouse::hold(mouse_2),
+        ris_input::mouse::hold(mouse_3),
         frame_buffer::fps()
     )
     
