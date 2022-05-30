@@ -37,7 +37,10 @@ pub fn next_u() -> u32 {
 }
 
 pub fn next_f() -> f32 {
-    unsafe { PCG.next() as f32 / 4_294_967_296. }
+    unsafe {
+        // PCG.next() as f32 / 4_294_967_296.
+        f32::from_bits(0x3F80_0000 | (PCG.next() & 0x7F_FFFF)) - 1.
+    }
 }
 
 pub fn range_i(min: i32, max: i32) -> i32 {

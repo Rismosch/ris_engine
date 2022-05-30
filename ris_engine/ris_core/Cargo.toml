@@ -6,5 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sdl2 = "0.35"
 ris_data = { path = "../ris_data" }
+ris_input = { path = "../ris_input" }
 ris_rng = { path = "../ris_rng" }
+ris_sdl = { path = "../ris_sdl" }

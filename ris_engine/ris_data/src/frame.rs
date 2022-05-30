@@ -11,6 +11,7 @@ pub struct Frame {
 impl Frame {
     pub fn new(delta: Duration, number: usize) -> Frame {
         let delta = calculate_delta(delta);
+
         Frame { delta, number }
     }
 
