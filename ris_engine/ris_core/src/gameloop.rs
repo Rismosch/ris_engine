@@ -9,6 +9,13 @@ use ris_data::frame_buffer;
 use sdl2::keyboard::Scancode;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+
+    for scancode in ris_input::util::ALL_SCANCODES {
+        println!("\"{}\" \"{:?}\"", scancode as i32, scancode)
+    }
+
+    return Ok(());
+
     loop {
         let now = Instant::now();
 
