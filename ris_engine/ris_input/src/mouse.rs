@@ -34,8 +34,40 @@
 //     // println!("{:?} {:?}", get_state(), get_state_rebind())
 // }
 
-pub fn update(events: &Vec<sdl2::event::Event>) {
-    println!("{:?}", events);
+use std::rc::Rc;
+use std::rc::Weak;
+
+use sdl2::event::Event;
+use ris_sdl::event_pump::IEventPump;
+use ris_sdl::event_pump::IEventObserver;
+
+#[derive(Default)]
+pub struct Mouse{
+    buttons: u32,
+    x: i32,
+    y: i32,
+    rel_x: i32,
+    rel_y: i32,
+    wheel_relx: i32,
+    wheel_rely: i32,
+}
+
+impl Mouse {
+    pub fn new(event_pump: &mut impl IEventPump) -> Rc<Mouse> {
+        let mouse = Rc::new(Mouse::default());
+        let bruh = Rc::downgrade(&mouse);
+
+        event_pump.subscribe_mouse(bruh);
+        println!("mouse");
+
+        mouse
+    }
+}
+
+impl IEventObserver for Mouse{
+    fn update(&self, events: &Vec<Event>){
+        println!("bruh {} {:?}", events.len(), events);
+    }
 }
 
 // fn handle_state() {
