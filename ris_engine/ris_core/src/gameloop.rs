@@ -3,55 +3,46 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ris_sdl::event_pump;
+use ris_sdl::event_pump::EventPump;
 
-use ris_data::frame_buffer;
+use ris_data::frame_buffer::FrameBuffer;
 
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    loop {
-        let now = Instant::now();
-
-        event_pump::poll_all_events();
-
-        // ris_input::keyboard::update();
-        // ris_input::mouse::update();
-
-        game_logic();
-
-        let delta = now.elapsed();
-        unsafe {
-            // frame_buffer::add(delta);
-        }
-
-        if event_pump::quit_was_called() {
-            break;
-        }
-
-        break;
-    }
-
-    Ok(())
+pub struct GameLoop{
+    event_pump: EventPump,
+    frame_buffer: FrameBuffer,
 }
 
-fn game_logic() {
-    thread::sleep(Duration::from_millis(50));
+impl GameLoop{
+    pub fn new(event_pump: EventPump, frame_buffer: FrameBuffer) -> GameLoop
+    {
+        GameLoop { event_pump, frame_buffer }
+    }
 
-    // let mouse_1 = 0;
-    // let mouse_2 = 1;
-    // let mouse_3 = 2;
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+        loop {
+            let now = Instant::now();
+    
+            self.event_pump.pump();
+    
+            // ris_input::keyboard::update();
+            // ris_input::mouse::update();
+    
+            self.game_logic();
+    
+            let delta = now.elapsed();
+            unsafe {
+                self.frame_buffer.add(delta);
+            }
+    
+            if self.event_pump.wants_to_quit {
+                break;
+            }
+        }
+    
+        Ok(())
+    }
 
-    // let key_1 = Scancode::Kp1;
-    // let key_2 = Scancode::Kp2;
-    // let key_3 = Scancode::Kp3;
-
-    // println!(
-    //     "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-    //     ris_input::keyboard::hold(key_1),
-    //     ris_input::keyboard::hold(key_2),
-    //     ris_input::keyboard::hold(key_3),
-    //     ris_input::mouse::hold(mouse_1),
-    //     ris_input::mouse::hold(mouse_2),
-    //     ris_input::mouse::hold(mouse_3),
-    //     frame_buffer::fps()
-    // )
+    fn game_logic(&self) {
+        thread::sleep(Duration::from_millis(50));
+    }
 }
