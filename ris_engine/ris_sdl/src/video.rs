@@ -1,11 +1,11 @@
 use sdl2::Sdl;
 
 pub struct Video {
-    window: sdl2::video::Window,
+    _window: sdl2::video::Window,
 }
 
 impl Video {
-    pub fn new(sdl_context: Sdl) -> Result<Video, Box<dyn std::error::Error>> {
+    pub fn new(sdl_context: &Sdl) -> Result<Video, Box<dyn std::error::Error>> {
         let video_subsystem = sdl_context.video()?;
 
         let window = video_subsystem
@@ -14,7 +14,7 @@ impl Video {
             .build()
             .map_err(|e| e.to_string())?;
 
-        let video = Video { window };
+        let video = Video { _window: window };
 
         Ok(video)
     }

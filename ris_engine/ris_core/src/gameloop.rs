@@ -32,9 +32,8 @@ impl GameLoop {
             self.game_logic();
 
             let delta = now.elapsed();
-            unsafe {
-                self.frame_buffer.add(delta);
-            }
+
+            self.frame_buffer.add(delta);
 
             if self.event_pump.wants_to_quit {
                 break;

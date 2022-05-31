@@ -8,7 +8,7 @@ pub struct EventPump {
 }
 
 impl EventPump {
-    pub fn new(sdl_context: Sdl) -> Result<EventPump, Box<dyn std::error::Error>> {
+    pub fn new(sdl_context: &Sdl) -> Result<EventPump, Box<dyn std::error::Error>> {
         let sdl2_pump = sdl_context.event_pump()?;
         let wants_to_quit = false;
 
