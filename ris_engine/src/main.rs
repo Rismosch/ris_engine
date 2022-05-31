@@ -1,7 +1,9 @@
-fn main() {
-    let result = ris_core::engine::run();
+use ris_core::engine::Engine;
 
-    if let Err(error) = result {
-        eprint!("FATAL ERROR: {}", error);
-    };
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let engine = Engine::new()?;
+    
+    engine.run()?;
+
+    Ok(())
 }

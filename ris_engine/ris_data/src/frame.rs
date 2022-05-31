@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-const MAX_DELTA: Duration = Duration::from_secs(1);
+const MAX_DELTA: Duration = Duration::from_millis(500);
 pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
 pub struct Frame {

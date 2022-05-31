@@ -2,12 +2,14 @@
 
 use ris_sdl::event_observer::*;
 
+use sdl2::event::Event;
+
 #[derive(PartialEq)]
 struct ConcreteObserver {
     id: i32,
 }
 impl IObserver for ConcreteObserver {
-    fn update(&self) {
+    fn update(&self, events: &Vec<Event>) {
         println!("Observer id:{} received event!", self.id);
     }
 }

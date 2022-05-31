@@ -1,18 +1,18 @@
-pub struct PCG32 {
+pub struct Pcg32 {
     pub state: u64,
     pub increment: u64,
 }
 
-impl PCG32 {
-    pub fn new() -> PCG32 {
-        PCG32 {
+impl Pcg32 {
+    pub fn new() -> Pcg32 {
+        Pcg32 {
             state: 0xcafef00dd15ea5e5,
             increment: 0xa02bdbf7bb3c0a7,
         }
     }
 
-    pub fn seed(seed: [u8; 16]) -> PCG32 {
-        let mut result = PCG32::new();
+    pub fn new_from_seed(seed: [u8; 16]) -> Pcg32 {
+        let mut result = Pcg32::new();
 
         let state = (seed[0o00] as u64)
             | (seed[0o01] as u64) << 0x08

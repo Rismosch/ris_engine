@@ -1,24 +1,28 @@
 use crate::gameloop;
+use ris_data::frame_buffer::FrameBuffer;
+use ris_rng::rng::Rng;
 
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let result = startup_and_run();
-
-    shutdown();
-
-    result
+pub struct Engine{
+    frame_buffer: FrameBuffer,
 }
 
-fn startup_and_run() -> Result<(), Box<dyn std::error::Error>> {
-    unsafe {
-        ris_data::init();
-        ris_rng::init()?;
+impl Engine{
+    pub fn new() -> Result<Engine, Box<dyn std::error::Error>> {
+        let frame_buffer = FrameBuffer::new(4);
+        let rng = Rng::new();
 
-        ris_sdl::init()?;
+        unsafe {
+            ris_sdl::init()?;
+    
+            // ris_input::init();
+        }
 
-        ris_input::init();
+        let engine = Engine{frame_buffer};
+
+        Ok(engine)
     }
 
-    gameloop::run()
+    pub fn run(&self) -> Result<(), Box<dyn std::error::Error>>{
+        gameloop::run()
+    }
 }
-
-fn shutdown() {}

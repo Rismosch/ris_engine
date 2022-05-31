@@ -6,7 +6,6 @@ use std::{
 use ris_sdl::event_pump;
 
 use ris_data::frame_buffer;
-use sdl2::keyboard::Scancode;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
@@ -21,12 +20,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
         let delta = now.elapsed();
         unsafe {
-            frame_buffer::add(delta);
+            // frame_buffer::add(delta);
         }
 
         if event_pump::quit_was_called() {
             break;
         }
+
+        break;
     }
 
     Ok(())

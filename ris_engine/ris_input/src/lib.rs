@@ -11,5 +11,5 @@ pub mod util;
 pub unsafe fn init() {
     // keyboard::init();
     // mouse::init();
-    rebind::init();
+    // rebind::init();
 }
