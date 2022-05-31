@@ -2,12 +2,12 @@ use crate::pcg::Pcg32;
 
 pub type Seed = [u8; 16];
 
-pub struct Rng{
+pub struct Rng {
     seed: Seed,
     pcg: Pcg32,
 }
 
-impl Rng{
+impl Rng {
     pub fn new() -> Result<Rng, Box<dyn std::error::Error>> {
         let now = std::time::SystemTime::now();
         let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH)?;
@@ -18,7 +18,10 @@ impl Rng{
     }
 
     pub fn new_from_seed(seed: Seed) -> Rng {
-        Rng { seed: seed, pcg: Pcg32::new_from_seed(seed) }
+        Rng {
+            seed,
+            pcg: Pcg32::new_from_seed(seed),
+        }
     }
 
     pub fn seed(&self) -> Seed {
@@ -41,9 +44,9 @@ impl Rng{
                 return f32::NAN;
             }
         }
-    
+
         let r = (max - min + 1.) * self.next_f() + min;
-    
+
         if r > max {
             max
         } else {
@@ -59,9 +62,9 @@ impl Rng{
                 return i32::MIN;
             }
         }
-    
+
         let r = (((max - min + 1) as f32) * self.next_f()) as i32 + min;
-    
+
         if r > max {
             max
         } else {

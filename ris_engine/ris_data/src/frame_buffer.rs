@@ -13,7 +13,7 @@ pub struct FrameBuffer {
 
 impl FrameBuffer {
     pub fn new(frame_buffer_lenght: usize) -> FrameBuffer {
-        let mut frame_buffer = FrameBuffer{
+        let mut frame_buffer = FrameBuffer {
             frames: Vec::with_capacity(frame_buffer_lenght),
             frames_length: frame_buffer_lenght,
             max_index: frame_buffer_lenght - 1,
@@ -48,11 +48,17 @@ impl FrameBuffer {
         self.calculate_delta();
     }
 
-    pub fn count(&self) -> usize {self.count}
+    pub fn count(&self) -> usize {
+        self.count
+    }
 
-    pub fn delta(&self) -> Duration {self.delta}
+    pub fn delta(&self) -> Duration {
+        self.delta
+    }
 
-    pub fn fps(&self) -> u128 {1_000_000_000 / self.delta.as_nanos()}
+    pub fn fps(&self) -> u128 {
+        1_000_000_000 / self.delta.as_nanos()
+    }
 
     pub fn get(&self, offset: usize) -> &Frame {
         let index = self.get_index(offset);
@@ -77,9 +83,9 @@ impl FrameBuffer {
 
     fn get_index(&self, offset: usize) -> isize {
         let previous_index = self.index as isize;
-    
+
         let offset = 1 + offset as isize;
-    
+
         if previous_index < offset {
             previous_index - offset + self.frames_length as isize
         } else {

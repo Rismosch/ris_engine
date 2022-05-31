@@ -7,38 +7,40 @@ use ris_sdl::event_pump::EventPump;
 
 use ris_data::frame_buffer::FrameBuffer;
 
-pub struct GameLoop{
+pub struct GameLoop {
     event_pump: EventPump,
     frame_buffer: FrameBuffer,
 }
 
-impl GameLoop{
-    pub fn new(event_pump: EventPump, frame_buffer: FrameBuffer) -> GameLoop
-    {
-        GameLoop { event_pump, frame_buffer }
+impl GameLoop {
+    pub fn new(event_pump: EventPump, frame_buffer: FrameBuffer) -> GameLoop {
+        GameLoop {
+            event_pump,
+            frame_buffer,
+        }
     }
 
-    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
             let now = Instant::now();
-    
+
             self.event_pump.pump();
-    
+
             // ris_input::keyboard::update();
             // ris_input::mouse::update();
-    
+
             self.game_logic();
-    
+
             let delta = now.elapsed();
             unsafe {
                 self.frame_buffer.add(delta);
             }
-    
+
             if self.event_pump.wants_to_quit {
                 break;
             }
         }
-    
+
         Ok(())
     }
 

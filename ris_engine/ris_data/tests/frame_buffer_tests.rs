@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ris_data::{*, frame_buffer::FrameBuffer};
+use ris_data::{frame_buffer::FrameBuffer, *};
 
 #[test]
 fn should_initialize_n_frames() {
@@ -104,7 +104,8 @@ fn should_panic_when_getting_frame_outside_of_range() {
 
 #[test]
 fn should_calculate_average_delta() {
-    let expected = (2 * frame::IDEAL_DELTA + Duration::from_millis(123) + Duration::from_millis(456)) / 4;
+    let expected =
+        (2 * frame::IDEAL_DELTA + Duration::from_millis(123) + Duration::from_millis(456)) / 4;
 
     let mut frame_buffer = FrameBuffer::new(4);
 

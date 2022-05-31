@@ -34,8 +34,7 @@
 //     // println!("{:?} {:?}", get_state(), get_state_rebind())
 // }
 
-pub fn update(events: &Vec<sdl2::event::Event>)
-{
+pub fn update(events: &Vec<sdl2::event::Event>) {
     println!("{:?}", events);
 }
 

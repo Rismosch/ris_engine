@@ -15,6 +15,6 @@ impl IObserver for ConcreteObserver {
 }
 
 #[test]
-fn should_subscribe(){
+fn should_subscribe() {
     panic!("bruh");
 }
