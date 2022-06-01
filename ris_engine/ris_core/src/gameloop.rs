@@ -1,6 +1,7 @@
 use std::{
+    rc::Rc,
     thread,
-    time::{Duration, Instant}, rc::Rc,
+    time::{Duration, Instant},
 };
 
 use ris_sdl::event_pump::IEventPump;
@@ -14,8 +15,6 @@ pub struct GameLoop<TEventPump: IEventPump> {
 
 impl<TEventPump: IEventPump> GameLoop<TEventPump> {
     pub fn new(event_pump: TEventPump, frame_buffer: FrameBuffer) -> GameLoop<TEventPump> {
-        
-        println!("gameloop");
         GameLoop {
             event_pump,
             frame_buffer,
