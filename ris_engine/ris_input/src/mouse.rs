@@ -1,41 +1,50 @@
-use std::rc::Rc;
+use ris_sdl::{event_pump::IEventPump, event_observer::IMouseObserver};
+use sdl2::{event::Event, mouse};
 
-use ris_sdl::event_pump::IEventObserver;
-use ris_sdl::event_pump::IEventPump;
-use sdl2::event::Event;
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Mouse {
-    buttons: u32,
+    buttons_up: u32,
+    buttons_down: u32,
+    buttons_hold: u32,
     x: i32,
     y: i32,
-    rel_x: i32,
-    rel_y: i32,
-    wheel_relx: i32,
-    wheel_rely: i32,
+    xrel: i32,
+    yrel: i32,
+    wheel_xrel: i32,
+    wheel_yrel: i32
 }
 
-impl Mouse {
-    pub fn new(event_pump: &mut impl IEventPump) -> Rc<Mouse> {
-        let mouse = Rc::new(Mouse::default());
-        let test = Rc::downgrade(&mouse);
-
-        event_pump.subscribe(test);
-
-        mouse
-    }
-}
-
-impl IEventObserver for Mouse {
-    fn pre_update(&self){
-        println!("mouse")
+impl IMouseObserver for Mouse {
+    fn pre_update(&mut self){
+        self.xrel = 0;
+        self.yrel = 0;
+        self.wheel_xrel = 0;
+        self.wheel_yrel = 0;
     }
 
-    fn update(&self, event: &Event) {
+    fn update(&mut self, event: &Event) {
+        if let Event::MouseMotion { x, y, xrel, yrel, .. } = event {
+            self.x = *x;
+            self.y = *y;
+            self.xrel += xrel;
+            self.yrel += yrel;
+        }
 
         if let Event::MouseWheel {x, y,..} = event {
-            wheel_relx += x;
-            wheel_rely += y;
+            self.wheel_xrel += x;
+            self.wheel_yrel += y;
         }
+    }
+
+    fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
+        let buttons = mouse_state.to_sdl_state();
+        let changed_buttons = buttons ^ self.buttons_hold;
+        self.buttons_down = changed_buttons & self.buttons_hold;
+        self.buttons_up = changed_buttons & !self.buttons_hold;
+        self.buttons_hold = buttons;
+    }
+
+    fn post_update(&mut self) {
+        println!("{:b} {:b} {:b}", self.buttons_up, self.buttons_down, self.buttons_hold);
     }
 }

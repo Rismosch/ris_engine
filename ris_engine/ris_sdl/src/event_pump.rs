@@ -1,14 +1,23 @@
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
+use std::rc::Rc;
 use std::rc::Weak;
 
 use sdl2::event::Event;
 use sdl2::EventPump as Sdl2Pump;
 use sdl2::Sdl;
 
-pub struct EventPump {
+use crate::event_observer::IGameControllerObserver;
+use crate::event_observer::IKeyboardObserver;
+use crate::event_observer::IMouseObserver;
+
+pub struct EventPump<TMouseObserver: IMouseObserver> {
     wants_to_quit: bool,
     sdl2_pump: Sdl2Pump,
 
-    event_observers: Vec<Weak<dyn IEventObserver>>,
+    mouse_observer: TMouseObserver,
+    // keyboard_observer: IKeyboardObserver,
+    // game_controller_observer: IGameControllerObserver,
 }
 
 pub trait IEventPump {
@@ -16,43 +25,31 @@ pub trait IEventPump {
 
     fn pump(&mut self);
 
-    fn subscribe(&mut self, observer: Weak<dyn IEventObserver>);
-
     fn keyboard_state(&self) -> sdl2::keyboard::KeyboardState;
     fn mouse_state(&self) -> sdl2::mouse::MouseState;
 }
 
-pub trait IEventObserver {
-    fn pre_update(&self);
-    fn update(&self, events: &Event);
-}
-
-impl EventPump {
-    pub fn new(sdl_context: &Sdl) -> Result<EventPump, Box<dyn std::error::Error>> {
+impl<TMouseObserver: IMouseObserver> EventPump<TMouseObserver> {
+    pub fn new(sdl_context: &Sdl, mouse_observer: TMouseObserver) -> Result<EventPump<TMouseObserver>, Box<dyn std::error::Error>> {
         let wants_to_quit = false;
         let sdl2_pump = sdl_context.event_pump()?;
-        let event_observers = Vec::new();
 
         let event_pump = EventPump {
             wants_to_quit,
             sdl2_pump,
-            event_observers,
+            mouse_observer,
         };
         Ok(event_pump)
     }
 }
 
-impl IEventPump for EventPump {
+impl<TMouseObserver: IMouseObserver> IEventPump for EventPump<TMouseObserver> {
     fn wants_to_quit(&self) -> bool {
         self.wants_to_quit
     }
 
     fn pump(&mut self) {
-        for event_observer in &self.event_observers {
-            if let Some(event_observer) = event_observer.upgrade() {
-                event_observer.pre_update();
-            }
-        }
+        self.mouse_observer.pre_update();
 
         for event in self.sdl2_pump.poll_iter() {
             // println!("{:?}", event);
@@ -61,16 +58,11 @@ impl IEventPump for EventPump {
                 self.wants_to_quit = true;
             };
 
-            for event_observer in &self.event_observers {
-                if let Some(event_observer) = event_observer.upgrade() {
-                    event_observer.update(&event);
-                }
-            }
+            self.mouse_observer.update(&event);
         }
-    }
 
-    fn subscribe(&mut self, observer: Weak<dyn IEventObserver>) {
-        self.event_observers.push(observer);
+        self.mouse_observer.update_state(self.sdl2_pump.mouse_state());
+        self.mouse_observer.post_update();
     }
 
     fn keyboard_state(&self) -> sdl2::keyboard::KeyboardState {
