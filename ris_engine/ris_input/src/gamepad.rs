@@ -3,7 +3,6 @@ use sdl2::event::Event;
 
 pub struct Gamepad {
     subsystem: GameControllerSubsystem,
-    game_controller: Option<GameController>,
 }
 
 impl Gamepad {
@@ -12,7 +11,6 @@ impl Gamepad {
 
         let game_controller = Gamepad {
             subsystem,
-            game_controller: None,
         };
 
         Ok(game_controller)
@@ -20,60 +18,50 @@ impl Gamepad {
 }
 
 pub trait IGamepad {
-    fn pre_update(&mut self);
     fn update(&mut self, event: &Event);
     fn update_state(&mut self);
 }
 
 impl IGamepad for Gamepad {
-    fn pre_update(&mut self) {
-        // println!("controller connected: {}", self.game_controller.is_some());
-        // println!("Error:\"{}\"",sdl2::get_error());
-
-        if let Some(game_controller) = &self.game_controller {
-            println!("hello {}",game_controller.attached());
-            if game_controller.attached() {
-                return;
-            } else {
-                self.game_controller = None;
-            }
-        }
-
-        open_game_controller(self);
-    }
-
     fn update(&mut self, event: &Event) {
-        // println!("{:?}", event);
+        // if let Event::JoyDeviceAdded { which, .. } = event {
+        //     println!("attached {}", which);
+        // }
+        
+        // if let Event::JoyDeviceRemoved { which, .. } = event {
+        //     println!("removed {}", which);
+        // }
     }
 
     fn update_state(&mut self) {
-        if let Some(game_controller) = &self.game_controller {
-            // println!("bruh {}",game_controller.instance_id());
+        let result = open_game_controller(self);
+        match result {
+            Ok(option) => {
+                if let Some(game_controller) = option {
+                    println!("{}", game_controller.attached());
+                }
+                else {
+                    println!("bruh");
+                }
+            },
+            Err(error) => println!("{}", error),
         }
     }
 }
 
-fn open_game_controller(gamepad: &mut Gamepad) {
-    let num_joysticks = gamepad.subsystem.num_joysticks();
-    if num_joysticks.is_err() {
-        return;
-    }
-
-    let num_joysticks = num_joysticks.unwrap();
+fn open_game_controller(gamepad: &mut Gamepad) -> Result<Option<GameController>, String> {
+    let num_joysticks = gamepad.subsystem.num_joysticks()?;
 
     for index in 0..num_joysticks {
         if !gamepad.subsystem.is_game_controller(index) {
             continue;
         }
 
-        let game_controller = gamepad.subsystem.open(index);
-
-        if game_controller.is_err() {
-            continue;
-        }
-
-        let game_controller = game_controller.unwrap();
-        gamepad.game_controller = Some(game_controller);
-        break;
+        let game_controller = gamepad.subsystem.open(index)
+            .map_err(|e| format!("couldn't open game controller: {}", e))?;
+        
+        return Ok(None);
     }
+
+    Ok(None)
 }

@@ -78,7 +78,6 @@ impl Engine {
 
     fn pump_events(&mut self) -> bool {
         self.mouse.pre_update();
-        self.gamepad.pre_update();
 
         for event in self.event_pump.poll_iter() {
             // println!("{:?}", event);
