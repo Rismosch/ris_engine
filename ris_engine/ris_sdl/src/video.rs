@@ -1,7 +1,7 @@
-use sdl2::Sdl;
+use sdl2::{video::Window, Sdl};
 
 pub struct Video {
-    _window: sdl2::video::Window,
+    _window: Window,
 }
 
 impl Video {

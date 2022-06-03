@@ -1,15 +1,15 @@
 use sdl2::keyboard::Scancode;
 
-use crate::gate::{Gate, IGate};
+use crate::buttons::{Buttons, IButtons};
 
 pub struct Keyboard {
-    gate: Gate,
+    buttons: Buttons,
 
     keymask: [Scancode; 32],
 }
 
 pub trait IKeyboard {
-    fn gate(&self) -> &Gate;
+    fn buttons(&self) -> &Buttons;
 
     fn keymask(&self) -> &[Scancode; 32];
     fn set_keymask(&mut self, key_mask: &[Scancode; 32]);
@@ -20,15 +20,15 @@ pub trait IKeyboard {
 impl Default for Keyboard {
     fn default() -> Self {
         Keyboard {
-            gate: Gate::default(),
+            buttons: Buttons::default(),
             keymask: [Scancode::A; 32],
         }
     }
 }
 
 impl IKeyboard for Keyboard {
-    fn gate(&self) -> &Gate {
-        &self.gate
+    fn buttons(&self) -> &Buttons {
+        &self.buttons
     }
 
     fn keymask(&self) -> &[Scancode; 32] {
@@ -57,6 +57,6 @@ impl IKeyboard for Keyboard {
             }
         }
 
-        self.gate.update(new_state);
+        self.buttons.update(new_state);
     }
 }

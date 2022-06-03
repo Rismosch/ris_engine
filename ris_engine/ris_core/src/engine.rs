@@ -5,7 +5,8 @@ use std::{
 
 use ris_data::frame_buffer::FrameBuffer;
 use ris_input::{
-    gate::IGate,
+    buttons::IButtons,
+    gamepad::{Gamepad, IGamepad},
     keyboard::{IKeyboard, Keyboard},
     mouse::{IMouse, Mouse},
 };
@@ -20,6 +21,7 @@ pub struct Engine {
     frame_buffer: FrameBuffer,
     mouse: Mouse,
     keyboard: Keyboard,
+    gamepad: Gamepad,
 }
 
 impl Engine {
@@ -33,6 +35,7 @@ impl Engine {
 
         let mouse = Mouse::default();
         let mut keyboard = Keyboard::default();
+        let gamepad = Gamepad::new(&sdl_context)?;
 
         let mut keymask = [Scancode::Space; 32];
         keymask[0] = Scancode::W;
@@ -48,12 +51,13 @@ impl Engine {
             frame_buffer,
             mouse,
             keyboard,
+            gamepad,
         };
 
         Ok(engine)
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), String> {
         loop {
             let now = Instant::now();
 
@@ -68,21 +72,28 @@ impl Engine {
                 break;
             }
         }
+
+        Ok(())
     }
 
     fn pump_events(&mut self) -> bool {
         self.mouse.pre_update();
+        self.gamepad.pre_update();
 
         for event in self.event_pump.poll_iter() {
+            // println!("{:?}", event);
+
             if let Event::Quit { .. } = event {
                 return true;
             };
 
             self.mouse.update(&event);
+            self.gamepad.update(&event);
         }
 
         self.mouse.update_state(self.event_pump.mouse_state());
         self.keyboard.update_state(self.event_pump.keyboard_state());
+        self.gamepad.update_state();
 
         false
     }
@@ -91,8 +102,8 @@ impl Engine {
         thread::sleep(Duration::from_millis(50));
         // println!("{}",self.frame_buffer.fps());
 
-        println!("{:#034b}", self.keyboard.gate().hold());
-        // println!("{:#034b}",self.mouse.gate().hold());
+        // println!("{:#034b}", self.keyboard.buttons().hold());
+        // println!("{:#034b}",self.mouse.buttons().hold());
 
         false
     }

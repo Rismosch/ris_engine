@@ -1,3 +1,4 @@
-pub mod gate;
+pub mod buttons;
+pub mod gamepad;
 pub mod keyboard;
 pub mod mouse;

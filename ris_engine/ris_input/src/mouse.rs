@@ -1,10 +1,10 @@
 use sdl2::event::Event;
 
-use crate::gate::{Gate, IGate};
+use crate::buttons::{Buttons, IButtons};
 
 #[derive(Default)]
 pub struct Mouse {
-    gate: Gate,
+    buttons: Buttons,
     x: i32,
     y: i32,
     xrel: i32,
@@ -14,7 +14,7 @@ pub struct Mouse {
 }
 
 pub trait IMouse {
-    fn gate(&self) -> &Gate;
+    fn buttons(&self) -> &Buttons;
     fn x(&self) -> i32;
     fn y(&self) -> i32;
     fn xrel(&self) -> i32;
@@ -28,8 +28,8 @@ pub trait IMouse {
 }
 
 impl IMouse for Mouse {
-    fn gate(&self) -> &Gate {
-        &self.gate
+    fn buttons(&self) -> &Buttons {
+        &self.buttons
     }
     fn x(&self) -> i32 {
         self.x
@@ -76,6 +76,6 @@ impl IMouse for Mouse {
 
     fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
         let new_state = mouse_state.to_sdl_state();
-        self.gate.update(new_state);
+        self.buttons.update(new_state);
     }
 }
