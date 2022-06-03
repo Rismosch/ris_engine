@@ -1,14 +1,7 @@
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-use std::rc::Rc;
-use std::rc::Weak;
-
 use sdl2::event::Event;
 use sdl2::EventPump as Sdl2Pump;
 use sdl2::Sdl;
 
-use crate::event_observer::IGameControllerObserver;
-use crate::event_observer::IKeyboardObserver;
 use crate::event_observer::IMouseObserver;
 
 pub struct EventPump<TMouseObserver: IMouseObserver> {
@@ -30,7 +23,10 @@ pub trait IEventPump {
 }
 
 impl<TMouseObserver: IMouseObserver> EventPump<TMouseObserver> {
-    pub fn new(sdl_context: &Sdl, mouse_observer: TMouseObserver) -> Result<EventPump<TMouseObserver>, Box<dyn std::error::Error>> {
+    pub fn new(
+        sdl_context: &Sdl,
+        mouse_observer: TMouseObserver,
+    ) -> Result<EventPump<TMouseObserver>, Box<dyn std::error::Error>> {
         let wants_to_quit = false;
         let sdl2_pump = sdl_context.event_pump()?;
 
@@ -61,7 +57,8 @@ impl<TMouseObserver: IMouseObserver> IEventPump for EventPump<TMouseObserver> {
             self.mouse_observer.update(&event);
         }
 
-        self.mouse_observer.update_state(self.sdl2_pump.mouse_state());
+        self.mouse_observer
+            .update_state(self.sdl2_pump.mouse_state());
         self.mouse_observer.post_update();
     }
 

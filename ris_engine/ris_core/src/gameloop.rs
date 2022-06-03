@@ -1,5 +1,4 @@
 use std::{
-    rc::Rc,
     thread,
     time::{Duration, Instant},
 };

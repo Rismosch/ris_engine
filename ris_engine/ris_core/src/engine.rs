@@ -1,9 +1,7 @@
-use std::rc::Rc;
-
 use crate::gameloop::GameLoop;
 use ris_data::frame_buffer::FrameBuffer;
 use ris_input::mouse::Mouse;
-use ris_sdl::{event_pump::{EventPump, IEventPump}, video::Video};
+use ris_sdl::{event_pump::EventPump, video::Video};
 
 pub struct Engine {
     game_loop: GameLoop<EventPump<Mouse>>,

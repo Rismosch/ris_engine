@@ -1,5 +1,5 @@
-use ris_sdl::{event_pump::IEventPump, event_observer::IMouseObserver};
-use sdl2::{event::Event, mouse};
+use ris_sdl::event_observer::IMouseObserver;
+use sdl2::event::Event;
 
 #[derive(Debug, Default)]
 pub struct Mouse {
@@ -11,11 +11,11 @@ pub struct Mouse {
     xrel: i32,
     yrel: i32,
     wheel_xrel: i32,
-    wheel_yrel: i32
+    wheel_yrel: i32,
 }
 
 impl IMouseObserver for Mouse {
-    fn pre_update(&mut self){
+    fn pre_update(&mut self) {
         self.xrel = 0;
         self.yrel = 0;
         self.wheel_xrel = 0;
@@ -23,14 +23,17 @@ impl IMouseObserver for Mouse {
     }
 
     fn update(&mut self, event: &Event) {
-        if let Event::MouseMotion { x, y, xrel, yrel, .. } = event {
+        if let Event::MouseMotion {
+            x, y, xrel, yrel, ..
+        } = event
+        {
             self.x = *x;
             self.y = *y;
             self.xrel += xrel;
             self.yrel += yrel;
         }
 
-        if let Event::MouseWheel {x, y,..} = event {
+        if let Event::MouseWheel { x, y, .. } = event {
             self.wheel_xrel += x;
             self.wheel_yrel += y;
         }
@@ -45,6 +48,9 @@ impl IMouseObserver for Mouse {
     }
 
     fn post_update(&mut self) {
-        println!("{:b} {:b} {:b}", self.buttons_up, self.buttons_down, self.buttons_hold);
+        println!(
+            "{:b} {:b} {:b}",
+            self.buttons_up, self.buttons_down, self.buttons_hold
+        );
     }
 }
