@@ -1,86 +1,62 @@
-// use crate::gate::Gate;
-// use crate::{rebind, util};
-// use ris_sdl::event_pump;
-// use sdl2::keyboard::Scancode;
-// use std::borrow::Borrow;
-// use std::collections::HashMap;
+use sdl2::keyboard::Scancode;
 
-// // pub type RebindMatrix = HashMap<Scancode, HashMap<Scancode, bool>>;
-// pub type Gates = HashMap<Scancode, Box<Gate>>;
+use crate::gate::{Gate, IGate};
 
-// // pub static mut REBIND_MATRIX: Option<RebindMatrix> = None;
-// pub static mut STATE: Option<Gates> = None;
-// pub static mut STATE_REBIND: Option<Gates> = None;
+pub struct Keyboard {
+    gate: Gate,
 
-// /// # Safety
-// /// Should only be called by the main thread.
-// /// This method modifies global static variables, and thus is inherently unsafe.
-// pub unsafe fn init() {
-//     let mut state = HashMap::new();
-//     let mut state_rebind = HashMap::new();
+    keymask: [Scancode; 32],
+}
 
-//     for scancode in util::ALL_SCANCODES {
-//         state.insert(scancode, Box::new(Gate::default()));
-//         state_rebind.insert(scancode, Box::new(Gate::default()));
-//     }
+pub trait IKeyboard {
+    fn gate(&self) -> &Gate;
 
-//     STATE = Some(state);
-//     STATE_REBIND = Some(state_rebind);
-// }
+    fn keymask(&self) -> &[Scancode; 32];
+    fn set_keymask(&mut self, key_mask: &[Scancode; 32]);
 
-// pub fn update() {
-//     let rebind_matrix = rebind::get_rebind_matrix();
+    fn update_state(&mut self, keyboard_state: sdl2::keyboard::KeyboardState);
+}
 
-//     for gate in get_state_rebind().values_mut() {
-//         gate.set(false, false, false);
-//     }
+impl Default for Keyboard {
+    fn default() -> Self {
+        Keyboard {
+            gate: Gate::default(),
+            keymask: [Scancode::A; 32],
+        }
+    }
+}
 
-//     for (scancode, value) in event_pump::keyboard_state().scancodes() {
-//         let gate = get_state().get_mut(&scancode).unwrap();
-//         gate.update(value);
+impl IKeyboard for Keyboard {
+    fn gate(&self) -> &Gate {
+        &self.gate
+    }
 
-//         let rebind_row = rebind_matrix.keyboard_to_keyboard[&scancode].borrow();
-//         for (rebind_scancode, is_routed) in rebind_row {
-//             if !is_routed {
-//                 continue;
-//             }
+    fn keymask(&self) -> &[Scancode; 32] {
+        &self.keymask
+    }
+    fn set_keymask(&mut self, key_mask: &[Scancode; 32]) {
+        self.keymask[..32].copy_from_slice(&key_mask[..32]);
+    }
 
-//             let rebind_gate = get_state_rebind().get_mut(rebind_scancode).unwrap();
-//             let new_up = rebind_gate.up() || gate.up();
-//             let new_down = rebind_gate.down() || gate.down();
-//             let new_hold = rebind_gate.hold() || gate.hold();
+    fn update_state(&mut self, keyboard_state: sdl2::keyboard::KeyboardState) {
+        let mut new_state = 0;
 
-//             rebind_gate.set(new_up, new_down, new_hold);
-//         }
-//     }
-// }
+        for (scancode, value) in keyboard_state.scancodes() {
+            let mut button_mask = 0;
 
-// pub fn up(scancode: sdl2::keyboard::Scancode) -> bool {
-//     get_state_rebind()[&scancode].up()
-// }
+            for i in 0..32 {
+                if self.keymask[i] == scancode {
+                    button_mask |= 1 << i;
+                }
+            }
 
-// pub fn down(scancode: sdl2::keyboard::Scancode) -> bool {
-//     get_state_rebind()[&scancode].down()
-// }
+            if value {
+                new_state |= button_mask;
+            } else {
+                new_state &= !button_mask;
+            }
+        }
 
-// pub fn hold(scancode: sdl2::keyboard::Scancode) -> bool {
-//     get_state_rebind()[&scancode].hold()
-// }
-
-// fn get_state() -> &'static mut Gates {
-//     unsafe {
-//         match &mut STATE {
-//             Some(gates) => gates,
-//             None => panic!("keyboard is not initialized"),
-//         }
-//     }
-// }
-
-// fn get_state_rebind() -> &'static mut Gates {
-//     unsafe {
-//         match &mut STATE_REBIND {
-//             Some(rebind_gates) => rebind_gates,
-//             None => panic!("keyboard is not initialized"),
-//         }
-//     }
-// }
+        self.gate.update(new_state);
+    }
+}

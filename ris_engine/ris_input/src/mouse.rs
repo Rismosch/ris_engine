@@ -1,11 +1,10 @@
-use ris_sdl::event_observer::IMouseObserver;
 use sdl2::event::Event;
 
-#[derive(Debug, Default)]
+use crate::gate::{Gate, IGate};
+
+#[derive(Default)]
 pub struct Mouse {
-    buttons_up: u32,
-    buttons_down: u32,
-    buttons_hold: u32,
+    gate: Gate,
     x: i32,
     y: i32,
     xrel: i32,
@@ -14,7 +13,43 @@ pub struct Mouse {
     wheel_yrel: i32,
 }
 
-impl IMouseObserver for Mouse {
+pub trait IMouse {
+    fn gate(&self) -> &Gate;
+    fn x(&self) -> i32;
+    fn y(&self) -> i32;
+    fn xrel(&self) -> i32;
+    fn yrel(&self) -> i32;
+    fn wheel_xrel(&self) -> i32;
+    fn wheel_yrel(&self) -> i32;
+
+    fn pre_update(&mut self);
+    fn update(&mut self, event: &Event);
+    fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState);
+}
+
+impl IMouse for Mouse {
+    fn gate(&self) -> &Gate {
+        &self.gate
+    }
+    fn x(&self) -> i32 {
+        self.x
+    }
+    fn y(&self) -> i32 {
+        self.y
+    }
+    fn xrel(&self) -> i32 {
+        self.xrel
+    }
+    fn yrel(&self) -> i32 {
+        self.yrel
+    }
+    fn wheel_xrel(&self) -> i32 {
+        self.wheel_xrel
+    }
+    fn wheel_yrel(&self) -> i32 {
+        self.wheel_yrel
+    }
+
     fn pre_update(&mut self) {
         self.xrel = 0;
         self.yrel = 0;
@@ -40,17 +75,7 @@ impl IMouseObserver for Mouse {
     }
 
     fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
-        let buttons = mouse_state.to_sdl_state();
-        let changed_buttons = buttons ^ self.buttons_hold;
-        self.buttons_down = changed_buttons & self.buttons_hold;
-        self.buttons_up = changed_buttons & !self.buttons_hold;
-        self.buttons_hold = buttons;
-    }
-
-    fn post_update(&mut self) {
-        println!(
-            "{:b} {:b} {:b}",
-            self.buttons_up, self.buttons_down, self.buttons_hold
-        );
+        let new_state = mouse_state.to_sdl_state();
+        self.gate.update(new_state);
     }
 }

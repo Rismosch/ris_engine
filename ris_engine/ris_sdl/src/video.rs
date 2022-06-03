@@ -5,7 +5,7 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl) -> Result<Video, Box<dyn std::error::Error>> {
+    pub fn new(sdl_context: &Sdl) -> Result<Video, String> {
         let video_subsystem = sdl_context.video()?;
 
         let window = video_subsystem

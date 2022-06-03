@@ -1,32 +1,35 @@
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub struct Gate {
-    up: bool,
-    down: bool,
-    hold: bool,
+    up: u32,
+    down: u32,
+    hold: u32,
 }
 
-impl Gate {
-    pub fn update(&mut self, value: bool) {
-        self.up = !value && self.hold;
-        self.down = value && !self.hold;
-        self.hold = value;
-    }
+pub trait IGate {
+    fn up(&self) -> u32;
+    fn down(&self) -> u32;
+    fn hold(&self) -> u32;
 
-    pub fn set(&mut self, up: bool, down: bool, hold: bool) {
-        self.up = up;
-        self.down = down;
-        self.hold = hold;
-    }
+    fn update(&mut self, new_state: u32);
+}
 
-    pub fn up(&self) -> bool {
+impl IGate for Gate {
+    fn up(&self) -> u32 {
         self.up
     }
 
-    pub fn down(&self) -> bool {
+    fn down(&self) -> u32 {
         self.down
     }
 
-    pub fn hold(&self) -> bool {
+    fn hold(&self) -> u32 {
         self.hold
+    }
+
+    fn update(&mut self, new_state: u32) {
+        let changed_buttons = new_state ^ self.hold;
+        self.up = changed_buttons & self.hold;
+        self.down = changed_buttons & !self.hold;
+        self.hold = new_state;
     }
 }
