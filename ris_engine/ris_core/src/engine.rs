@@ -78,6 +78,7 @@ impl Engine {
 
     fn pump_events(&mut self) -> bool {
         self.mouse.pre_update();
+        self.gamepad.pre_update();
 
         for event in self.event_pump.poll_iter() {
             // println!("{:?}", event);
@@ -98,7 +99,7 @@ impl Engine {
     }
 
     fn game_logic(&mut self) -> bool {
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(200));
         // println!("{}",self.frame_buffer.fps());
 
         // println!("{:#034b}", self.keyboard.buttons().hold());
