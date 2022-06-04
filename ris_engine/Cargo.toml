@@ -27,7 +27,7 @@ members = [
 ]
 
 [dependencies]
-sdl2 = "0.35"
+sdl2 = "0.34.5"
 ris_core = { path = "ris_core" }
 
 [profile]
