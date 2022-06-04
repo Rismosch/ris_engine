@@ -30,8 +30,7 @@ pub struct SdlInfo {
 }
 
 pub fn app_info() -> AppInfo {
-
-    let cargo = CargoInfo{
+    let cargo = CargoInfo {
         manifest_dir: String::from(env!("CARGO_MANIFEST_DIR")),
         pkg_authors: String::from(env!("CARGO_PKG_AUTHORS")),
         pkg_homepage: String::from(env!("CARGO_PKG_HOMEPAGE")),
@@ -48,16 +47,13 @@ pub fn app_info() -> AppInfo {
     let revision = sdl2::version::revision();
     let revision_number = sdl2::version::revision_number();
 
-    let sdl = SdlInfo{
+    let sdl = SdlInfo {
         version,
         revision,
         revision_number,
     };
 
-    AppInfo {
-        cargo,
-        sdl,
-    }
+    AppInfo { cargo, sdl }
 }
 
 impl fmt::Display for AppInfo {

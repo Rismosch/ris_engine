@@ -76,6 +76,6 @@ impl IMouse for Mouse {
 
     fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
         let new_state = mouse_state.to_sdl_state();
-        self.buttons.update(new_state);
+        self.buttons.update(&new_state);
     }
 }

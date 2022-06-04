@@ -57,6 +57,6 @@ impl IKeyboard for Keyboard {
             }
         }
 
-        self.buttons.update(new_state);
+        self.buttons.update(&new_state);
     }
 }
