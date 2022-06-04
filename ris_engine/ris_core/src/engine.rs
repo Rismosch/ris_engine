@@ -98,7 +98,7 @@ impl Engine {
 
     fn game_logic(&mut self) -> bool {
         // thread::sleep(Duration::from_millis(50));
-        println!("{}",self.frame_buffer.fps());
+        println!("{}", self.frame_buffer.fps());
 
         // println!("{:#034b}", self.keyboard.buttons().hold());
         // println!("{:#034b}",self.mouse.buttons().hold());

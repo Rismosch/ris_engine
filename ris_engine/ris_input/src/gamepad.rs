@@ -1,6 +1,9 @@
 use sdl2::{controller::GameController, GameControllerSubsystem, Sdl};
 
-use crate::{gamepad_util::{ALL_BUTTONS, get_button_index}, buttons::{Buttons, IButtons}};
+use crate::{
+    buttons::{Buttons, IButtons},
+    gamepad_util::{get_button_index, ALL_BUTTONS},
+};
 
 pub struct Gamepad {
     buttons: Buttons,
@@ -94,7 +97,7 @@ impl IGamepad for Gamepad {
     }
 }
 
-fn compute_state(gamepad: &mut Gamepad){
+fn compute_state(gamepad: &mut Gamepad) {
     let game_controller = gamepad.game_controller.as_ref().unwrap();
 
     let mut left_x = game_controller.axis(sdl2::controller::Axis::LeftX);
@@ -113,12 +116,42 @@ fn compute_state(gamepad: &mut Gamepad){
 
     let mut new_state = get_button_state(game_controller);
 
-    apply_axis_as_button(gamepad, &left_x, sdl2::controller::Axis::LeftX, &mut new_state);
-    apply_axis_as_button(gamepad, &left_y, sdl2::controller::Axis::LeftY, &mut new_state);
-    apply_axis_as_button(gamepad, &right_x, sdl2::controller::Axis::RightX, &mut new_state);
-    apply_axis_as_button(gamepad, &right_y, sdl2::controller::Axis::RightY, &mut new_state);
-    apply_axis_as_button(gamepad, &trigger_left, sdl2::controller::Axis::TriggerLeft, &mut new_state);
-    apply_axis_as_button(gamepad, &trigger_right, sdl2::controller::Axis::TriggerRight, &mut new_state);
+    apply_axis_as_button(
+        gamepad,
+        &left_x,
+        sdl2::controller::Axis::LeftX,
+        &mut new_state,
+    );
+    apply_axis_as_button(
+        gamepad,
+        &left_y,
+        sdl2::controller::Axis::LeftY,
+        &mut new_state,
+    );
+    apply_axis_as_button(
+        gamepad,
+        &right_x,
+        sdl2::controller::Axis::RightX,
+        &mut new_state,
+    );
+    apply_axis_as_button(
+        gamepad,
+        &right_y,
+        sdl2::controller::Axis::RightY,
+        &mut new_state,
+    );
+    apply_axis_as_button(
+        gamepad,
+        &trigger_left,
+        sdl2::controller::Axis::TriggerLeft,
+        &mut new_state,
+    );
+    apply_axis_as_button(
+        gamepad,
+        &trigger_right,
+        sdl2::controller::Axis::TriggerRight,
+        &mut new_state,
+    );
 
     gamepad.buttons.update(&new_state);
     gamepad.axis[0] = left_x;
@@ -129,8 +162,7 @@ fn compute_state(gamepad: &mut Gamepad){
     gamepad.axis[5] = trigger_right;
 }
 
-fn reset_state(gamepad: &mut Gamepad)
-{
+fn reset_state(gamepad: &mut Gamepad) {
     gamepad.buttons.update(&0);
     gamepad.axis[0] = 0;
     gamepad.axis[1] = 0;
@@ -143,7 +175,7 @@ fn reset_state(gamepad: &mut Gamepad)
 fn apply_deadzone_stick(axis_x: &mut i16, axis_y: &mut i16, deadzone: i16) {
     if *axis_x != i16::MIN
         && *axis_y != i16::MIN
-        && i16::abs(*axis_x) < deadzone 
+        && i16::abs(*axis_x) < deadzone
         && i16::abs(*axis_y) < deadzone
     {
         *axis_x = 0;
@@ -152,9 +184,7 @@ fn apply_deadzone_stick(axis_x: &mut i16, axis_y: &mut i16, deadzone: i16) {
 }
 
 fn apply_deadzone_trigger(axis: &mut i16, deadzone: i16) {
-    if *axis != i16::MIN
-        && i16::abs(*axis) < deadzone
-    {
+    if *axis != i16::MIN && i16::abs(*axis) < deadzone {
         *axis = 0;
     }
 }
@@ -163,12 +193,10 @@ fn apply_axis_filter() {
     // ...
 }
 
-fn get_button_state(game_controller: &GameController) -> u32
-{
+fn get_button_state(game_controller: &GameController) -> u32 {
     let mut new_state = 0;
     for (i, button) in ALL_BUTTONS.iter().enumerate() {
-        if game_controller.button(*button)
-        {
+        if game_controller.button(*button) {
             new_state |= 1 << i;
         }
     }
@@ -176,7 +204,12 @@ fn get_button_state(game_controller: &GameController) -> u32
     new_state
 }
 
-fn apply_axis_as_button(gamepad: &Gamepad, axis_value: &i16, axis: sdl2::controller::Axis, state: &mut u32) {
+fn apply_axis_as_button(
+    gamepad: &Gamepad,
+    axis_value: &i16,
+    axis: sdl2::controller::Axis,
+    state: &mut u32,
+) {
     if *axis_value < -gamepad.axis_button_threshhold {
         *state |= 1 << get_button_index(axis, true);
     } else if *axis_value > gamepad.axis_button_threshhold {
