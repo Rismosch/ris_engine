@@ -17,6 +17,18 @@ pub struct Gamepad {
     axis_button_threshhold: i16,
 }
 
+pub trait IGamepad {
+    fn buttons(&self) -> &Buttons;
+    fn axis(&self) -> &[i16; 6];
+
+    fn deadzone_stick(&self) -> i16;
+    fn set_deadzone_stick(&mut self, value: &i16);
+    fn deadzone_trigger(&self) -> i16;
+    fn set_deadzone_trigger(&mut self, value: &i16);
+    fn axis_button_threshhold(&self) -> i16;
+    fn set_axis_button_threshhold(&mut self, value: &i16);
+}
+
 impl Gamepad {
     pub fn new(sdl_context: &Sdl) -> Result<Gamepad, String> {
         let subsystem = sdl_context.game_controller()?;
@@ -35,20 +47,24 @@ impl Gamepad {
 
         Ok(game_controller)
     }
-}
 
-pub trait IGamepad {
-    fn buttons(&self) -> &Buttons;
-    fn axis(&self) -> &[i16; 6];
+    pub fn update_state(&mut self) {
+        if let Some(game_controller) = &self.game_controller {
+            if game_controller.attached() {
+                compute_state(self);
+                return;
+            } else {
+                self.game_controller = None;
+            }
+        }
 
-    fn deadzone_stick(&self) -> i16;
-    fn set_deadzone_stick(&mut self, value: &i16);
-    fn deadzone_trigger(&self) -> i16;
-    fn set_deadzone_trigger(&mut self, value: &i16);
-    fn axis_button_threshhold(&self) -> i16;
-    fn set_axis_button_threshhold(&mut self, value: &i16);
+        reset_state(self);
 
-    fn update_state(&mut self);
+        match open_game_controller(self) {
+            Ok(game_controller) => self.game_controller = game_controller,
+            Err(error) => println!("{}", error),
+        }
+    }
 }
 
 impl IGamepad for Gamepad {
@@ -76,24 +92,6 @@ impl IGamepad for Gamepad {
     }
     fn set_axis_button_threshhold(&mut self, value: &i16) {
         self.axis_button_threshhold = *value
-    }
-
-    fn update_state(&mut self) {
-        if let Some(game_controller) = &self.game_controller {
-            if game_controller.attached() {
-                compute_state(self);
-                return;
-            } else {
-                self.game_controller = None;
-            }
-        }
-
-        reset_state(self);
-
-        match open_game_controller(self) {
-            Ok(game_controller) => self.game_controller = game_controller,
-            Err(error) => println!("{}", error),
-        }
     }
 }
 

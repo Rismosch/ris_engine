@@ -1,21 +1,24 @@
 use sdl2::{event::Event, keyboard::Scancode, EventPump, Sdl};
 
 use crate::{
-    gamepad::{Gamepad, IGamepad},
+    gamepad::{IGamepad, Gamepad},
     keyboard::{IKeyboard, Keyboard},
     mouse::{IMouse, Mouse},
+    general::{IGeneral, General},
 };
 
 pub struct Input {
     mouse: Mouse,
     keyboard: Keyboard,
     gamepad: Gamepad,
+    general: General
 }
 
 pub trait IInput {
     fn mouse(&self) -> &dyn IMouse;
     fn keyboard(&self) -> &dyn IKeyboard;
     fn gamepad(&self) -> &dyn IGamepad;
+    fn general(&self) -> &dyn IGeneral;
 
     fn pre_update(&mut self);
     fn update(&mut self, event: &Event);
@@ -27,6 +30,7 @@ impl Input {
         let mouse = Mouse::default();
         let mut keyboard = Keyboard::default();
         let gamepad = Gamepad::new(sdl_context)?;
+        let general = General::default();
 
         let mut keymask = [Scancode::Space; 32];
         keymask[0] = Scancode::W;
@@ -34,12 +38,13 @@ impl Input {
         keymask[2] = Scancode::S;
         keymask[3] = Scancode::D;
 
-        keyboard.set_keymask(&keymask);
+        keyboard.set_keymask(keymask);
 
         let input = Input {
             mouse,
             keyboard,
             gamepad,
+            general,
         };
 
         Ok(input)
@@ -59,6 +64,10 @@ impl IInput for Input {
         &self.gamepad
     }
 
+    fn general(&self) -> &'static (dyn IGeneral + '_) {
+        &self.general
+    }
+
     fn pre_update(&mut self) {
         self.mouse.pre_update();
     }
@@ -71,5 +80,7 @@ impl IInput for Input {
         self.mouse.update_state(event_pump.mouse_state());
         self.keyboard.update_state(event_pump.keyboard_state());
         self.gamepad.update_state();
+
+        self.general.update_state(&self.mouse, &self.keyboard, &self.gamepad);
     }
 }

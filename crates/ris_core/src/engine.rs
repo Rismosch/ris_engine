@@ -4,7 +4,7 @@ use std::{
 };
 
 use ris_data::frame_buffer::FrameBuffer;
-use ris_input::input::{IInput, Input};
+use ris_input::{input::{IInput, Input}, buttons::IButtons};
 use ris_sdl::video::Video;
 
 use sdl2::event::Event;
@@ -58,7 +58,6 @@ impl Engine {
     }
 
     fn pump_events(&mut self) -> bool {
-        // self.mouse.pre_update();
         self.input.pre_update();
 
         for event in self.event_pump.poll_iter() {
@@ -68,13 +67,9 @@ impl Engine {
                 return true;
             };
 
-            // self.mouse.update(&event);
             self.input.update(&event);
         }
 
-        // self.mouse.update_state(self.event_pump.mouse_state());
-        // self.keyboard.update_state(self.event_pump.keyboard_state());
-        // self.gamepad.update_state();
         self.input.post_update(&self.event_pump);
 
         false
@@ -82,13 +77,9 @@ impl Engine {
 
     fn game_logic(&mut self) -> bool {
         thread::sleep(Duration::from_millis(50));
-        println!("{}", self.frame_buffer.fps());
+        // println!("{}", self.frame_buffer.fps());
 
-        // println!("{:#034b}",self.input.mouse().buttons().hold());
-        // println!("{:#034b}", self.input.keyboard().buttons().hold());
-        // println!("{:#034b}",self.input.gamepad().buttons().hold());
-        // let axis = self.input.gamepad().axis();
-        // println!("{}\t{}\t{}\t{}\t{}\t{}", axis[0], axis[1], axis[2], axis[3], axis[4], axis[5]);
+        println!("{:#034b}", self.input.general().buttons().hold());
 
         false
     }

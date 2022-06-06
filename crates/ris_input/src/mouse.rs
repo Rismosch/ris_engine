@@ -21,10 +21,6 @@ pub trait IMouse {
     fn yrel(&self) -> i32;
     fn wheel_xrel(&self) -> i32;
     fn wheel_yrel(&self) -> i32;
-
-    fn pre_update(&mut self);
-    fn update(&mut self, event: &Event);
-    fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState);
 }
 
 impl IMouse for Mouse {
@@ -49,15 +45,17 @@ impl IMouse for Mouse {
     fn wheel_yrel(&self) -> i32 {
         self.wheel_yrel
     }
+}
 
-    fn pre_update(&mut self) {
+impl Mouse{
+    pub fn pre_update(&mut self) {
         self.xrel = 0;
         self.yrel = 0;
         self.wheel_xrel = 0;
         self.wheel_yrel = 0;
     }
 
-    fn update(&mut self, event: &Event) {
+    pub fn update(&mut self, event: &Event) {
         if let Event::MouseMotion {
             x, y, xrel, yrel, ..
         } = event
@@ -74,7 +72,7 @@ impl IMouse for Mouse {
         }
     }
 
-    fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
+    pub fn update_state(&mut self, mouse_state: sdl2::mouse::MouseState) {
         let new_state = mouse_state.to_sdl_state();
         self.buttons.update(&new_state);
     }
