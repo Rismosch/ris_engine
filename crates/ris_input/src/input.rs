@@ -1,17 +1,17 @@
 use sdl2::{event::Event, keyboard::Scancode, EventPump, Sdl};
 
 use crate::{
-    gamepad::{IGamepad, Gamepad},
+    gamepad::{Gamepad, IGamepad},
+    general::{General, IGeneral},
     keyboard::{IKeyboard, Keyboard},
     mouse::{IMouse, Mouse},
-    general::{IGeneral, General},
 };
 
 pub struct Input {
     mouse: Mouse,
     keyboard: Keyboard,
     gamepad: Gamepad,
-    general: General
+    general: General,
 }
 
 pub trait IInput {
@@ -81,6 +81,7 @@ impl IInput for Input {
         self.keyboard.update_state(event_pump.keyboard_state());
         self.gamepad.update_state();
 
-        self.general.update_state(&self.mouse, &self.keyboard, &self.gamepad);
+        self.general
+            .update_state(&self.mouse, &self.keyboard, &self.gamepad);
     }
 }

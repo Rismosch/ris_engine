@@ -47,7 +47,7 @@ impl IMouse for Mouse {
     }
 }
 
-impl Mouse{
+impl Mouse {
     pub fn pre_update(&mut self) {
         self.xrel = 0;
         self.yrel = 0;

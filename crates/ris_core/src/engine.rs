@@ -4,7 +4,10 @@ use std::{
 };
 
 use ris_data::frame_buffer::FrameBuffer;
-use ris_input::{input::{IInput, Input}, buttons::IButtons};
+use ris_input::{
+    buttons::IButtons,
+    input::{IInput, Input},
+};
 use ris_sdl::video::Video;
 
 use sdl2::event::Event;

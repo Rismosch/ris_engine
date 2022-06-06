@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub type RebindMatrix = [u32; 32];
-pub enum RebindMatrixKind{
+pub enum RebindMatrixKind {
     Mouse,
     Keyboard,
     Gamepad,
@@ -23,16 +23,15 @@ pub struct General {
 impl Default for General {
     fn default() -> Self {
         let mut rebind_matrix = [0; 32];
-        for i in 0..32 {
-            let mask = 1 << i;
-            rebind_matrix[i] = mask;
+        for (i, row) in rebind_matrix.iter_mut().enumerate() {
+            *row = 1 << i;
         }
 
         General {
             buttons: Buttons::default(),
-            rebind_matrix_mouse: rebind_matrix.clone(),
-            rebind_matrix_keyboard: rebind_matrix.clone(),
-            rebind_matrix_gamepad: rebind_matrix.clone(),
+            rebind_matrix_mouse: rebind_matrix,
+            rebind_matrix_keyboard: rebind_matrix,
+            rebind_matrix_gamepad: rebind_matrix,
         }
     }
 }
@@ -58,8 +57,7 @@ impl IGeneral for General {
     }
 
     fn set_rebind_matrix(&mut self, kind: RebindMatrixKind, rebind_matrix: &RebindMatrix) {
-
-        fn set(source: &RebindMatrix, target: &mut RebindMatrix){
+        fn set(source: &RebindMatrix, target: &mut RebindMatrix) {
             target[..32].copy_from_slice(&source[..32])
         }
 
@@ -71,7 +69,7 @@ impl IGeneral for General {
     }
 }
 
-impl General{
+impl General {
     pub fn update_state(
         &mut self,
         mouse: &impl IMouse,
@@ -88,7 +86,7 @@ impl General{
     }
 }
 
-fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32{
+fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {
     let mut result = 0;
     let mut bitset = buttons.hold();
 
