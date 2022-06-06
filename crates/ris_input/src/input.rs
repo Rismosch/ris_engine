@@ -1,8 +1,12 @@
-use sdl2::{Sdl, EventPump, event::Event, keyboard::Scancode};
+use sdl2::{event::Event, keyboard::Scancode, EventPump, Sdl};
 
-use crate::{mouse::{IMouse, Mouse}, keyboard::{IKeyboard, Keyboard}, gamepad::{IGamepad, Gamepad}};
+use crate::{
+    gamepad::{Gamepad, IGamepad},
+    keyboard::{IKeyboard, Keyboard},
+    mouse::{IMouse, Mouse},
+};
 
-pub struct Input{
+pub struct Input {
     mouse: Mouse,
     keyboard: Keyboard,
     gamepad: Gamepad,
@@ -18,8 +22,8 @@ pub trait IInput {
     fn post_update(&mut self, event_pump: &EventPump);
 }
 
-impl Input{
-    pub fn new(sdl_context: &Sdl) -> Result<Input, String>{
+impl Input {
+    pub fn new(sdl_context: &Sdl) -> Result<Input, String> {
         let mouse = Mouse::default();
         let mut keyboard = Keyboard::default();
         let gamepad = Gamepad::new(sdl_context)?;
@@ -32,21 +36,25 @@ impl Input{
 
         keyboard.set_keymask(&keymask);
 
-        let input = Input { mouse , keyboard , gamepad};
+        let input = Input {
+            mouse,
+            keyboard,
+            gamepad,
+        };
 
         Ok(input)
     }
 }
 
-impl IInput for Input{
+impl IInput for Input {
     fn mouse(&self) -> &'static (dyn IMouse + '_) {
         &self.mouse
     }
-    
+
     fn keyboard(&self) -> &'static (dyn IKeyboard + '_) {
         &self.keyboard
     }
-    
+
     fn gamepad(&self) -> &'static (dyn IGamepad + '_) {
         &self.gamepad
     }

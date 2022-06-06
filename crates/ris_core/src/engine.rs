@@ -4,17 +4,11 @@ use std::{
 };
 
 use ris_data::frame_buffer::FrameBuffer;
-use ris_input::{
-    buttons::IButtons,
-    gamepad::{Gamepad, IGamepad},
-    keyboard::{IKeyboard, Keyboard},
-    mouse::{IMouse, Mouse},
-    input::{Input, IInput},
-};
+use ris_input::input::{IInput, Input};
 use ris_sdl::video::Video;
 
+use sdl2::event::Event;
 use sdl2::EventPump;
-use sdl2::{event::Event, keyboard::Scancode};
 
 pub struct Engine {
     _video: Video,
@@ -87,7 +81,7 @@ impl Engine {
     }
 
     fn game_logic(&mut self) -> bool {
-        // thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(50));
         println!("{}", self.frame_buffer.fps());
 
         // println!("{:#034b}",self.input.mouse().buttons().hold());
