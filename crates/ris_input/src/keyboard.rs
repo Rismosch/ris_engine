@@ -12,7 +12,7 @@ pub trait IKeyboard {
     fn buttons(&self) -> &Buttons;
 
     fn keymask(&self) -> &[Scancode; 32];
-    fn set_keymask(&mut self, key_mask: &[Scancode; 32]);
+    fn set_keymask(&mut self, keymask: &[Scancode; 32]);
 
     fn update_state(&mut self, keyboard_state: sdl2::keyboard::KeyboardState);
 }
@@ -34,8 +34,8 @@ impl IKeyboard for Keyboard {
     fn keymask(&self) -> &[Scancode; 32] {
         &self.keymask
     }
-    fn set_keymask(&mut self, key_mask: &[Scancode; 32]) {
-        self.keymask[..32].copy_from_slice(&key_mask[..32]);
+    fn set_keymask(&mut self, keymask: &[Scancode; 32]) {
+        self.keymask[..32].copy_from_slice(&keymask[..32]);
     }
 
     fn update_state(&mut self, keyboard_state: sdl2::keyboard::KeyboardState) {

@@ -9,6 +9,7 @@ use ris_input::{
     gamepad::{Gamepad, IGamepad},
     keyboard::{IKeyboard, Keyboard},
     mouse::{IMouse, Mouse},
+    input::{Input, IInput},
 };
 use ris_sdl::video::Video;
 
@@ -19,9 +20,7 @@ pub struct Engine {
     _video: Video,
     event_pump: EventPump,
     frame_buffer: FrameBuffer,
-    mouse: Mouse,
-    keyboard: Keyboard,
-    gamepad: Gamepad,
+    input: Input,
 }
 
 impl Engine {
@@ -33,25 +32,13 @@ impl Engine {
 
         let frame_buffer = FrameBuffer::new(4);
 
-        let mouse = Mouse::default();
-        let mut keyboard = Keyboard::default();
-        let gamepad = Gamepad::new(&sdl_context)?;
-
-        let mut keymask = [Scancode::Space; 32];
-        keymask[0] = Scancode::W;
-        keymask[1] = Scancode::A;
-        keymask[2] = Scancode::S;
-        keymask[3] = Scancode::D;
-
-        keyboard.set_keymask(&keymask);
+        let input = Input::new(&sdl_context)?;
 
         let engine = Engine {
             _video,
             event_pump,
             frame_buffer,
-            mouse,
-            keyboard,
-            gamepad,
+            input,
         };
 
         Ok(engine)
@@ -77,7 +64,8 @@ impl Engine {
     }
 
     fn pump_events(&mut self) -> bool {
-        self.mouse.pre_update();
+        // self.mouse.pre_update();
+        self.input.pre_update();
 
         for event in self.event_pump.poll_iter() {
             // println!("{:?}", event);
@@ -86,12 +74,14 @@ impl Engine {
                 return true;
             };
 
-            self.mouse.update(&event);
+            // self.mouse.update(&event);
+            self.input.update(&event);
         }
 
-        self.mouse.update_state(self.event_pump.mouse_state());
-        self.keyboard.update_state(self.event_pump.keyboard_state());
-        self.gamepad.update_state();
+        // self.mouse.update_state(self.event_pump.mouse_state());
+        // self.keyboard.update_state(self.event_pump.keyboard_state());
+        // self.gamepad.update_state();
+        self.input.post_update(&self.event_pump);
 
         false
     }
@@ -100,10 +90,10 @@ impl Engine {
         // thread::sleep(Duration::from_millis(50));
         println!("{}", self.frame_buffer.fps());
 
-        // println!("{:#034b}", self.keyboard.buttons().hold());
-        // println!("{:#034b}",self.mouse.buttons().hold());
-        // println!("{:#034b}",self.gamepad.buttons().hold());
-        // let axis = self.gamepad.axis();
+        // println!("{:#034b}",self.input.mouse().buttons().hold());
+        // println!("{:#034b}", self.input.keyboard().buttons().hold());
+        // println!("{:#034b}",self.input.gamepad().buttons().hold());
+        // let axis = self.input.gamepad().axis();
         // println!("{}\t{}\t{}\t{}\t{}\t{}", axis[0], axis[1], axis[2], axis[3], axis[4], axis[5]);
 
         false

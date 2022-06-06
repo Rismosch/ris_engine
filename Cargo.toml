@@ -19,15 +19,15 @@ publish = false
 
 [workspace]
 members = [
-    "ris_core",
-    "ris_data",
-    "ris_input",
-    "ris_sdl",
-    "ris_test"
+    "crates/ris_core",
+    "crates/ris_data",
+    "crates/ris_input",
+    "crates/ris_sdl",
+    "crates/ris_test"
 ]
 
 [dependencies]
 sdl2 = "0.34.5"
-ris_core = { path = "ris_core" }
+ris_core = { path = "crates/ris_core" }
 
 [profile]
