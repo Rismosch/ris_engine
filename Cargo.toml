@@ -1,6 +1,6 @@
 [package]
 name = "ris_engine"
-version = "0.1.0"
+version = "0.1.0-dev"
 authors = ["Simon Sutoris"]
 edition = "2021"
 description = "very WIP"
