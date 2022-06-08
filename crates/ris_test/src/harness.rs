@@ -84,7 +84,7 @@ mod tests {
             HARNESS_SHOULD_FAIL_IN_SETUP_VEC = Vec::new();
 
             let result = std::panic::catch_unwind(|| {
-                test_harness::<TestContext>(Box::new(|context| {
+                test_harness::<TestContext>(Box::new(|_| {
                     HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(2);
                 }));
             });
@@ -116,7 +116,7 @@ mod tests {
             HARNESS_SHOULD_FAIL_IN_TEST_VEC = Vec::new();
 
             let result = std::panic::catch_unwind(|| {
-                test_harness::<TestContext>(Box::new(|context| {
+                test_harness::<TestContext>(Box::new(|_| {
                     HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(2);
                     panic!();
                 }));
