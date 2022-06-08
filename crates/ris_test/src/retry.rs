@@ -1,4 +1,4 @@
-pub fn retry(count: usize, test: fn() -> ()) {
+pub fn test_retry(count: usize, test: fn() -> ()) {
     for _ in 0..count - 1 {
         let result = std::panic::catch_unwind(test);
 
@@ -20,7 +20,7 @@ mod tests {
         unsafe {
             RETRY_SHOULD_SUCCEED_COUNT = 0;
 
-            retry(10, || {
+            test_retry(10, || {
                 RETRY_SHOULD_SUCCEED_COUNT += 1;
                 if RETRY_SHOULD_SUCCEED_COUNT < 5 {
                     panic!();
@@ -38,7 +38,7 @@ mod tests {
             RETRY_SHOULD_FAIL_COUNT = 0;
 
             let result = std::panic::catch_unwind(|| {
-                retry(10, || {
+                test_retry(10, || {
                     RETRY_SHOULD_FAIL_COUNT += 1;
                     panic!();
                 })

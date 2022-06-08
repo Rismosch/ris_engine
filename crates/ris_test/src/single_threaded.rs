@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
-pub fn single_threaded(test: fn() -> ()) {
+pub fn test_single_threaded(test: fn() -> ()) {
     loop {
         let result = unsafe {
             THREAD_BLOCKED.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
@@ -32,7 +32,7 @@ mod tests {
             let mut handles = Vec::new();
 
             handles.push(std::thread::spawn(|| {
-                single_threaded(|| {
+                test_single_threaded(|| {
                     SINGLE_THREADED_SUCCEED_VEC.push('a');
                     std::thread::sleep(std::time::Duration::from_millis(400));
                     SINGLE_THREADED_SUCCEED_VEC.push('b');
@@ -40,7 +40,7 @@ mod tests {
             }));
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(|| {
-                single_threaded(|| {
+                test_single_threaded(|| {
                     SINGLE_THREADED_SUCCEED_VEC.push('a');
                     std::thread::sleep(std::time::Duration::from_millis(300));
                     SINGLE_THREADED_SUCCEED_VEC.push('b');
@@ -48,7 +48,7 @@ mod tests {
             }));
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(|| {
-                single_threaded(|| {
+                test_single_threaded(|| {
                     SINGLE_THREADED_SUCCEED_VEC.push('a');
                     std::thread::sleep(std::time::Duration::from_millis(200));
                     SINGLE_THREADED_SUCCEED_VEC.push('b');
@@ -56,7 +56,7 @@ mod tests {
             }));
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(|| {
-                single_threaded(|| {
+                test_single_threaded(|| {
                     SINGLE_THREADED_SUCCEED_VEC.push('a');
                     std::thread::sleep(std::time::Duration::from_millis(100));
                     SINGLE_THREADED_SUCCEED_VEC.push('b');
@@ -92,7 +92,7 @@ mod tests {
 
             handles.push(std::thread::spawn(move || {
                 let result = std::panic::catch_unwind(|| {
-                    single_threaded(|| {
+                    test_single_threaded(|| {
                         SINGLE_THREADED_FAIL_VEC.push('a');
                         std::thread::sleep(std::time::Duration::from_millis(400));
                         SINGLE_THREADED_FAIL_VEC.push('b');
@@ -104,7 +104,7 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(move || {
                 let result = std::panic::catch_unwind(|| {
-                    single_threaded(|| {
+                    test_single_threaded(|| {
                         SINGLE_THREADED_FAIL_VEC.push('a');
                         std::thread::sleep(std::time::Duration::from_millis(300));
                         SINGLE_THREADED_FAIL_VEC.push('b');
@@ -115,7 +115,7 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(move || {
                 let result = std::panic::catch_unwind(|| {
-                    single_threaded(|| {
+                    test_single_threaded(|| {
                         SINGLE_THREADED_FAIL_VEC.push('a');
                         std::thread::sleep(std::time::Duration::from_millis(200));
                         SINGLE_THREADED_FAIL_VEC.push('b');
@@ -127,7 +127,7 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
             handles.push(std::thread::spawn(move || {
                 let result = std::panic::catch_unwind(|| {
-                    single_threaded(|| {
+                    test_single_threaded(|| {
                         SINGLE_THREADED_FAIL_VEC.push('a');
                         std::thread::sleep(std::time::Duration::from_millis(100));
                         SINGLE_THREADED_FAIL_VEC.push('b');

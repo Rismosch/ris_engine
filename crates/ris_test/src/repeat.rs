@@ -1,6 +1,6 @@
-pub fn repeat(count: usize, test: fn() -> ()) {
-    for _ in 0..count {
-        test();
+pub fn test_repeat(count: usize, test: fn(usize) -> ()) {
+    for index in 0..count {
+        test(index);
     }
 }
 
@@ -8,36 +8,36 @@ pub fn repeat(count: usize, test: fn() -> ()) {
 mod tests {
     use super::*;
 
-    static mut REPEAT_SHOULD_SUCCEED_COUNT: i32 = 0;
+    static mut REPEAT_SHOULD_SUCCEED_VEC: Vec<usize> = Vec::new();
     #[test]
     fn repeat_should_succeed() {
         unsafe {
-            REPEAT_SHOULD_SUCCEED_COUNT = 0;
+            REPEAT_SHOULD_SUCCEED_VEC = Vec::new();
 
-            repeat(10, || {
-                REPEAT_SHOULD_SUCCEED_COUNT += 1;
+            test_repeat(10, |index| {
+                REPEAT_SHOULD_SUCCEED_VEC.push(index);
             });
 
-            assert_eq!(REPEAT_SHOULD_SUCCEED_COUNT, 10);
+            assert_eq!(REPEAT_SHOULD_SUCCEED_VEC, [0,1,2,3,4,5,6,7,8,9]);
         }
     }
 
-    static mut REPEAT_SHOULD_FAIL_COUNT: i32 = 0;
+    static mut REPEAT_SHOULD_FAIL_VEC: Vec<usize> = Vec::new();
     #[test]
     fn repeat_should_fail() {
         unsafe {
-            REPEAT_SHOULD_FAIL_COUNT = 0;
+            REPEAT_SHOULD_FAIL_VEC = Vec::new();
 
             let result = std::panic::catch_unwind(|| {
-                repeat(10, || {
-                    REPEAT_SHOULD_FAIL_COUNT += 1;
-                    if REPEAT_SHOULD_FAIL_COUNT >= 5 {
+                test_repeat(10, |index| {
+                    REPEAT_SHOULD_FAIL_VEC.push(index);
+                    if REPEAT_SHOULD_FAIL_VEC.len() >= 5 {
                         panic!();
                     }
                 });
             });
 
-            assert_eq!(REPEAT_SHOULD_FAIL_COUNT, 5);
+            assert_eq!(REPEAT_SHOULD_FAIL_VEC, [0,1,2,3,4]);
             assert!(result.is_err());
         }
     }

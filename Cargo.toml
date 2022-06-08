@@ -22,6 +22,7 @@ members = [
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_input",
+    "crates/ris_rng",
     "crates/ris_sdl",
     "crates/ris_test"
 ]

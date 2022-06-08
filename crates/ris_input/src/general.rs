@@ -72,13 +72,13 @@ impl IGeneral for General {
 impl General {
     pub fn update_state(
         &mut self,
-        mouse: &impl IMouse,
-        keyboard: &impl IKeyboard,
-        gamepad: &impl IGamepad,
+        mouse: &Buttons,
+        keyboard: &Buttons,
+        gamepad: &Buttons,
     ) {
-        let rebound_mouse = rebind(mouse.buttons(), &self.rebind_matrix_mouse);
-        let rebound_keyboard = rebind(keyboard.buttons(), &self.rebind_matrix_keyboard);
-        let rebound_gamepad = rebind(gamepad.buttons(), &self.rebind_matrix_gamepad);
+        let rebound_mouse = rebind(mouse, &self.rebind_matrix_mouse);
+        let rebound_keyboard = rebind(keyboard, &self.rebind_matrix_keyboard);
+        let rebound_gamepad = rebind(gamepad, &self.rebind_matrix_gamepad);
 
         let new_state = rebound_mouse | rebound_keyboard | rebound_gamepad;
 

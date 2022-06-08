@@ -82,6 +82,6 @@ impl IInput for Input {
         self.gamepad.update_state();
 
         self.general
-            .update_state(&self.mouse, &self.keyboard, &self.gamepad);
+            .update_state(self.mouse.buttons(), self.keyboard.buttons(), self.gamepad.buttons());
     }
 }
