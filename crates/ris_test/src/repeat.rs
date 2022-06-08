@@ -18,7 +18,7 @@ mod tests {
                 REPEAT_SHOULD_SUCCEED_VEC.push(index);
             });
 
-            assert_eq!(REPEAT_SHOULD_SUCCEED_VEC, [0,1,2,3,4,5,6,7,8,9]);
+            assert_eq!(REPEAT_SHOULD_SUCCEED_VEC, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         }
     }
 
@@ -37,7 +37,7 @@ mod tests {
                 });
             });
 
-            assert_eq!(REPEAT_SHOULD_FAIL_VEC, [0,1,2,3,4]);
+            assert_eq!(REPEAT_SHOULD_FAIL_VEC, [0, 1, 2, 3, 4]);
             assert!(result.is_err());
         }
     }

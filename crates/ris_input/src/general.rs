@@ -1,9 +1,4 @@
-use crate::{
-    buttons::{Buttons, IButtons},
-    gamepad::IGamepad,
-    keyboard::IKeyboard,
-    mouse::IMouse,
-};
+use crate::buttons::{Buttons, IButtons};
 
 pub type RebindMatrix = [u32; 32];
 pub enum RebindMatrixKind {
@@ -70,12 +65,7 @@ impl IGeneral for General {
 }
 
 impl General {
-    pub fn update_state(
-        &mut self,
-        mouse: &Buttons,
-        keyboard: &Buttons,
-        gamepad: &Buttons,
-    ) {
+    pub fn update_state(&mut self, mouse: &Buttons, keyboard: &Buttons, gamepad: &Buttons) {
         let rebound_mouse = rebind(mouse, &self.rebind_matrix_mouse);
         let rebound_keyboard = rebind(keyboard, &self.rebind_matrix_keyboard);
         let rebound_gamepad = rebind(gamepad, &self.rebind_matrix_gamepad);

@@ -29,26 +29,26 @@ mod tests {
     static mut HARNESS_SHOULD_SUCCEED_VEC: Vec<i32> = Vec::new();
     #[test]
     fn should_succeed() {
-        struct TestContext{
+        struct TestContext {
             value: i32,
         }
 
-        impl ITestContext for TestContext{
+        impl ITestContext for TestContext {
             fn setup() -> Self {
-                unsafe{HARNESS_SHOULD_SUCCEED_VEC.push(1)};
+                unsafe { HARNESS_SHOULD_SUCCEED_VEC.push(1) };
                 TestContext { value: 0 }
             }
 
             fn teardown(&mut self) {
                 assert_eq!(self.value, 42);
-                unsafe{HARNESS_SHOULD_SUCCEED_VEC.push(3)};
+                unsafe { HARNESS_SHOULD_SUCCEED_VEC.push(3) };
             }
         }
 
         unsafe {
             HARNESS_SHOULD_SUCCEED_VEC = Vec::new();
 
-            let result = std::panic::catch_unwind(||{
+            let result = std::panic::catch_unwind(|| {
                 test_harness::<TestContext>(Box::new(|context| {
                     context.value = 42;
                     HARNESS_SHOULD_SUCCEED_VEC.push(2)
@@ -69,21 +69,21 @@ mod tests {
     fn should_fail_in_setup() {
         struct TestContext;
 
-        impl ITestContext for TestContext{
+        impl ITestContext for TestContext {
             fn setup() -> Self {
-                unsafe{HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(1)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(1) };
                 panic!();
             }
 
             fn teardown(&mut self) {
-                unsafe{HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(3)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(3) };
             }
         }
 
         unsafe {
             HARNESS_SHOULD_FAIL_IN_SETUP_VEC = Vec::new();
 
-            let result = std::panic::catch_unwind(||{
+            let result = std::panic::catch_unwind(|| {
                 test_harness::<TestContext>(Box::new(|context| {
                     HARNESS_SHOULD_FAIL_IN_SETUP_VEC.push(2);
                 }));
@@ -101,21 +101,21 @@ mod tests {
     fn should_fail_in_test() {
         struct TestContext;
 
-        impl ITestContext for TestContext{
+        impl ITestContext for TestContext {
             fn setup() -> Self {
-                unsafe{HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(1)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(1) };
                 TestContext {}
             }
 
             fn teardown(&mut self) {
-                unsafe{HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(3)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(3) };
             }
         }
 
         unsafe {
             HARNESS_SHOULD_FAIL_IN_TEST_VEC = Vec::new();
 
-            let result = std::panic::catch_unwind(||{
+            let result = std::panic::catch_unwind(|| {
                 test_harness::<TestContext>(Box::new(|context| {
                     HARNESS_SHOULD_FAIL_IN_TEST_VEC.push(2);
                     panic!();
@@ -134,16 +134,16 @@ mod tests {
     static mut HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC: Vec<i32> = Vec::new();
     #[test]
     fn should_fail_in_teardown() {
-        struct TestContext{}
+        struct TestContext {}
 
-        impl ITestContext for TestContext{
+        impl ITestContext for TestContext {
             fn setup() -> Self {
-                unsafe{HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC.push(1)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC.push(1) };
                 TestContext {}
             }
 
             fn teardown(&mut self) {
-                unsafe{HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC.push(3)};
+                unsafe { HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC.push(3) };
                 panic!();
             }
         }
@@ -151,7 +151,7 @@ mod tests {
         unsafe {
             HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC = Vec::new();
 
-            let result = std::panic::catch_unwind(||{
+            let result = std::panic::catch_unwind(|| {
                 test_harness::<TestContext>(Box::new(|_| {
                     HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC.push(2)
                 }));

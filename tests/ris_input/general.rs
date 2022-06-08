@@ -1,8 +1,14 @@
-use ris_input::{general::{General, IGeneral, RebindMatrix}, buttons::{Buttons, IButtons}};
+use ris_input::{
+    buttons::{Buttons, IButtons},
+    general::{General, IGeneral, RebindMatrix},
+};
 use ris_rng::rng::Rng;
-use ris_test::{harness::{ITestContext, test_harness}, repeat::test_repeat};
+use ris_test::{
+    harness::{test_harness, ITestContext},
+    repeat::test_repeat,
+};
 
-struct GeneralTestContext{
+struct GeneralTestContext {
     general: General,
     mouse: Buttons,
     keyboard: Buttons,
@@ -17,7 +23,8 @@ struct GeneralTestContext{
 
 impl GeneralTestContext {
     fn update(&mut self) {
-        self.general.update_state(&self.mouse, &self.keyboard, &self.gamepad);
+        self.general
+            .update_state(&self.mouse, &self.keyboard, &self.gamepad);
     }
 }
 
@@ -30,9 +37,9 @@ impl ITestContext for GeneralTestContext {
 
         let mut rng = Rng::new().unwrap();
 
-        let mut rebind_matrix_mouse: RebindMatrix = [0;32];
-        let mut rebind_matrix_keyboard: RebindMatrix = [0;32];
-        let mut rebind_matrix_gamepad: RebindMatrix = [0;32];
+        let mut rebind_matrix_mouse: RebindMatrix = [0; 32];
+        let mut rebind_matrix_keyboard: RebindMatrix = [0; 32];
+        let mut rebind_matrix_gamepad: RebindMatrix = [0; 32];
 
         for i in 0..32 {
             rebind_matrix_mouse[i] = rng.next_u();
@@ -40,7 +47,7 @@ impl ITestContext for GeneralTestContext {
             rebind_matrix_gamepad[i] = rng.next_u();
         }
 
-        GeneralTestContext{
+        GeneralTestContext {
             general,
             mouse,
             keyboard,
@@ -48,7 +55,7 @@ impl ITestContext for GeneralTestContext {
             rng,
             rebind_matrix_mouse,
             rebind_matrix_keyboard,
-            rebind_matrix_gamepad
+            rebind_matrix_gamepad,
         }
     }
 
@@ -57,8 +64,8 @@ impl ITestContext for GeneralTestContext {
 
 #[test]
 fn should_forward_buttons_by_default() {
-    test_repeat(3, |index|{
-        test_harness::<GeneralTestContext>(Box::new(move |context|{
+    test_repeat(3, |index| {
+        test_harness::<GeneralTestContext>(Box::new(move |context| {
             for i in 0..32 {
                 let expected = i << 1;
 
@@ -69,9 +76,9 @@ fn should_forward_buttons_by_default() {
                     _ => panic!(),
                 };
                 buttons.update(&expected);
-    
+
                 context.update();
-    
+
                 let actual = context.general.buttons().hold();
                 assert_eq!(expected, actual, "{}", i);
             }
@@ -81,14 +88,22 @@ fn should_forward_buttons_by_default() {
 
 #[test]
 fn can_block_buttons() {
-    test_repeat(3, |index|{
-        test_harness::<GeneralTestContext>(Box::new(move |context|{
-
-            let empty_rebind_matrix: RebindMatrix = [0;32];
+    test_repeat(3, |index| {
+        test_harness::<GeneralTestContext>(Box::new(move |context| {
+            let empty_rebind_matrix: RebindMatrix = [0; 32];
             match index {
-                0 => context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Mouse, &empty_rebind_matrix),
-                1 => context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Keyboard, &empty_rebind_matrix),
-                2 => context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Gamepad, &empty_rebind_matrix),
+                0 => context.general.set_rebind_matrix(
+                    ris_input::general::RebindMatrixKind::Mouse,
+                    &empty_rebind_matrix,
+                ),
+                1 => context.general.set_rebind_matrix(
+                    ris_input::general::RebindMatrixKind::Keyboard,
+                    &empty_rebind_matrix,
+                ),
+                2 => context.general.set_rebind_matrix(
+                    ris_input::general::RebindMatrixKind::Gamepad,
+                    &empty_rebind_matrix,
+                ),
                 _ => panic!(),
             }
 
@@ -100,9 +115,9 @@ fn can_block_buttons() {
                     _ => panic!(),
                 };
                 buttons.update(&(i << 1));
-    
+
                 context.update();
-    
+
                 let actual = context.general.buttons().hold();
                 assert_eq!(0, actual, "{}", i);
             }
@@ -113,9 +128,8 @@ fn can_block_buttons() {
 #[test]
 fn should_rebind() {
     test_repeat(100, |_| {
-        test_repeat(3, |index|{
+        test_repeat(3, |index| {
             test_harness::<GeneralTestContext>(Box::new(move |context| {
-
                 let input_index = context.rng.range_i(0, 32);
                 let input = 1 << input_index as u32;
 
@@ -123,21 +137,30 @@ fn should_rebind() {
                     0 => {
                         context.mouse.update(&input);
 
-                        context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Mouse, &context.rebind_matrix_mouse);
+                        context.general.set_rebind_matrix(
+                            ris_input::general::RebindMatrixKind::Mouse,
+                            &context.rebind_matrix_mouse,
+                        );
                         context.rebind_matrix_mouse
-                    },
+                    }
                     1 => {
                         context.keyboard.update(&input);
-                        
-                        context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Keyboard, &context.rebind_matrix_keyboard);
+
+                        context.general.set_rebind_matrix(
+                            ris_input::general::RebindMatrixKind::Keyboard,
+                            &context.rebind_matrix_keyboard,
+                        );
                         context.rebind_matrix_keyboard
-                    },
+                    }
                     2 => {
                         context.gamepad.update(&input);
 
-                        context.general.set_rebind_matrix(ris_input::general::RebindMatrixKind::Gamepad, &context.rebind_matrix_gamepad);
+                        context.general.set_rebind_matrix(
+                            ris_input::general::RebindMatrixKind::Gamepad,
+                            &context.rebind_matrix_gamepad,
+                        );
                         context.rebind_matrix_gamepad
-                    },
+                    }
                     _ => panic!(),
                 };
 
@@ -145,7 +168,7 @@ fn should_rebind() {
 
                 let expected = rebind_matrix[input_index as usize];
                 let actual = context.general.buttons().hold();
-                
+
                 println!("5: {:#034b}", actual);
 
                 assert_eq!(expected, actual);
@@ -156,7 +179,7 @@ fn should_rebind() {
 
 #[test]
 fn should_bitwise_or_all_inputs() {
-    test_harness::<GeneralTestContext>(Box::new(|context|{
+    test_harness::<GeneralTestContext>(Box::new(|context| {
         context.mouse.update(&0b0000_0000_0000_1111);
         context.keyboard.update(&0b0000_0000_1111_0000);
         context.gamepad.update(&0b0000_1111_0000_0000);
@@ -171,7 +194,7 @@ fn should_bitwise_or_all_inputs() {
 
 #[test]
 fn should_not_down_when_other_input_holds() {
-    test_harness::<GeneralTestContext>(Box::new(|context|{
+    test_harness::<GeneralTestContext>(Box::new(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().down(), 1);
@@ -185,7 +208,7 @@ fn should_not_down_when_other_input_holds() {
             context.update();
             assert_eq!(context.general.buttons().down(), 0);
         }
-        
+
         context.mouse.update(&0);
         context.update();
         assert_eq!(context.general.buttons().down(), 0);
@@ -194,7 +217,7 @@ fn should_not_down_when_other_input_holds() {
 
 #[test]
 fn should_not_up_when_other_input_holds() {
-    test_harness::<GeneralTestContext>(Box::new(|context|{
+    test_harness::<GeneralTestContext>(Box::new(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().up(), 0);
@@ -208,7 +231,7 @@ fn should_not_up_when_other_input_holds() {
             context.update();
             assert_eq!(context.general.buttons().up(), 0);
         }
-        
+
         context.mouse.update(&0);
         context.update();
         assert_eq!(context.general.buttons().up(), 1);

@@ -24,7 +24,7 @@ pub fn test_single_threaded(test: fn() -> ()) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     static mut SINGLE_THREADED_SUCCEED_VEC: Vec<char> = Vec::new();
     #[test]
     fn should_run_tests_sequentially() {
@@ -157,5 +157,4 @@ mod tests {
             assert_eq!(SINGLE_THREADED_FAIL_RESULTS[3], Some(true));
         }
     }
-
 }
