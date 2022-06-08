@@ -199,7 +199,7 @@ fn should_not_down_when_other_input_holds() {
         context.update();
         assert_eq!(context.general.buttons().down(), 1);
 
-        for i in 0..100 {
+        for _ in 0..100 {
             context.gamepad.update(&1);
             context.update();
             assert_eq!(context.general.buttons().down(), 0);
@@ -222,7 +222,7 @@ fn should_not_up_when_other_input_holds() {
         context.update();
         assert_eq!(context.general.buttons().up(), 0);
 
-        for i in 0..100 {
+        for _ in 0..100 {
             context.gamepad.update(&1);
             context.update();
             assert_eq!(context.general.buttons().up(), 0);

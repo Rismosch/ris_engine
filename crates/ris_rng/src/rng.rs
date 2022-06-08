@@ -63,7 +63,7 @@ impl Rng {
             }
         }
 
-        let r = (((max - min + 1) as f32) * self.next_f()) as i32 + min;
+        let r = (((max - min) as f32) * self.next_f()) as i32 + min;
 
         if r > max {
             max

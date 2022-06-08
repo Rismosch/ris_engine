@@ -48,7 +48,7 @@ fn should_generate_numbers_between_int_range() {
     for _ in 0..1_000_000 {
         let random = rng.range_i(min, max);
         assert!(random >= min);
-        assert!(random <= max);
+        assert!(random < max);
     }
 }
 
