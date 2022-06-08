@@ -30,5 +30,10 @@ members = [
 [dependencies]
 sdl2 = "0.34.5"
 ris_core = { path = "crates/ris_core" }
+ris_data = { path = "crates/ris_data" }
+ris_input = { path = "crates/ris_input" }
+ris_rng = { path = "crates/ris_rng" }
+ris_sdl = { path = "crates/ris_sdl" }
+ris_test = { path = "crates/ris_test" }
 
 [profile]

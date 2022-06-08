@@ -27,7 +27,7 @@ mod tests {
     
     static mut SINGLE_THREADED_SUCCEED_VEC: Vec<char> = Vec::new();
     #[test]
-    fn single_threaded_should_run_tests_sequentially() {
+    fn should_run_tests_sequentially() {
         unsafe {
             let mut handles = Vec::new();
 
@@ -82,7 +82,7 @@ mod tests {
     static mut SINGLE_THREADED_FAIL_VEC: Vec<char> = Vec::new();
     static mut SINGLE_THREADED_FAIL_RESULTS: Vec<Option<bool>> = Vec::new();
     #[test]
-    fn single_threaded_should_panic() {
+    fn should_panic() {
         unsafe {
             let mut handles = Vec::new();
             SINGLE_THREADED_FAIL_RESULTS.push(None);

@@ -16,7 +16,7 @@ mod tests {
 
     static mut RETRY_SHOULD_SUCCEED_COUNT: i32 = 0;
     #[test]
-    fn retry_should_succeed() {
+    fn should_succeed() {
         unsafe {
             RETRY_SHOULD_SUCCEED_COUNT = 0;
 
@@ -33,7 +33,7 @@ mod tests {
 
     static mut RETRY_SHOULD_FAIL_COUNT: i32 = 0;
     #[test]
-    fn retry_should_fail() {
+    fn should_fail() {
         unsafe {
             RETRY_SHOULD_FAIL_COUNT = 0;
 

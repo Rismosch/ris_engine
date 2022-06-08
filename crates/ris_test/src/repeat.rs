@@ -10,7 +10,7 @@ mod tests {
 
     static mut REPEAT_SHOULD_SUCCEED_VEC: Vec<usize> = Vec::new();
     #[test]
-    fn repeat_should_succeed() {
+    fn should_succeed() {
         unsafe {
             REPEAT_SHOULD_SUCCEED_VEC = Vec::new();
 
@@ -24,7 +24,7 @@ mod tests {
 
     static mut REPEAT_SHOULD_FAIL_VEC: Vec<usize> = Vec::new();
     #[test]
-    fn repeat_should_fail() {
+    fn should_fail() {
         unsafe {
             REPEAT_SHOULD_FAIL_VEC = Vec::new();
 

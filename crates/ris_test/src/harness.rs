@@ -28,7 +28,7 @@ mod tests {
 
     static mut HARNESS_SHOULD_SUCCEED_VEC: Vec<i32> = Vec::new();
     #[test]
-    fn harness_should_succeed() {
+    fn should_succeed() {
         struct TestContext{
             value: i32,
         }
@@ -66,7 +66,7 @@ mod tests {
 
     static mut HARNESS_SHOULD_FAIL_IN_SETUP_VEC: Vec<i32> = Vec::new();
     #[test]
-    fn harness_should_fail_in_setup() {
+    fn should_fail_in_setup() {
         struct TestContext;
 
         impl ITestContext for TestContext{
@@ -98,7 +98,7 @@ mod tests {
 
     static mut HARNESS_SHOULD_FAIL_IN_TEST_VEC: Vec<i32> = Vec::new();
     #[test]
-    fn harness_should_fail_in_test() {
+    fn should_fail_in_test() {
         struct TestContext;
 
         impl ITestContext for TestContext{
@@ -133,7 +133,7 @@ mod tests {
 
     static mut HARNESS_SHOULD_FAIL_IN_TEARDOWN_VEC: Vec<i32> = Vec::new();
     #[test]
-    fn harness_should_fail_in_teardown() {
+    fn should_fail_in_teardown() {
         struct TestContext{}
 
         impl ITestContext for TestContext{

@@ -50,6 +50,11 @@ name = "ris_engine"
 version = "0.1.0-dev"
 dependencies = [
  "ris_core",
+ "ris_data",
+ "ris_input",
+ "ris_rng",
+ "ris_sdl",
+ "ris_test",
  "sdl2",
 ]
 
