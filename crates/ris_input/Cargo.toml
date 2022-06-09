@@ -7,5 +7,3 @@ edition = "2021"
 
 [dependencies]
 sdl2 = "0.34.5"
-ris_sdl = { path = "../ris_sdl" }
-ris_test = { path = "../ris_test" }
