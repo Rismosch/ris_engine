@@ -193,7 +193,7 @@ fn should_bitwise_or_all_inputs() {
 }
 
 #[test]
-fn should_not_down_when_other_input_holds() {
+fn should_not_be_down_when_other_input_holds() {
     test_harness::<GeneralTestContext>(Box::new(|context| {
         context.mouse.update(&1);
         context.update();
@@ -216,7 +216,7 @@ fn should_not_down_when_other_input_holds() {
 }
 
 #[test]
-fn should_not_up_when_other_input_holds() {
+fn should_not_be_up_when_other_input_holds() {
     test_harness::<GeneralTestContext>(Box::new(|context| {
         context.mouse.update(&1);
         context.update();
