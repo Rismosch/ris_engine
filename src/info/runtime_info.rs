@@ -1,8 +1,7 @@
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct RuntimeInfo {
-}
+pub struct RuntimeInfo {}
 
 pub fn runtime_info() -> RuntimeInfo {
     RuntimeInfo {}
