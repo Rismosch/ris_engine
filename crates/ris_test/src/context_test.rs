@@ -11,21 +11,26 @@ impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> Co
         ContextTest{ phantom_data: PhantomData::default() }
     }
 
-    pub fn run<T: FnOnce(&mut TContext) + std::panic::UnwindSafe>(&self, test_fn: T) {
-        let result;
-
-        let mut context = TContext::setup();
-        let raw_context = &mut context as *mut TContext;
-        
-
-        unsafe {
-            result = std::panic::catch_unwind(move || {
-                test_fn(raw_context.as_mut().unwrap());
-            });
-
-            raw_context.as_mut().unwrap().teardown();
-        }
-
-        assert!(result.is_ok());
+    pub fn run<TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(&self, test_fn: TFn) {
+        execute_context_test::<TContext, TFn>(test_fn)
     }
+}
+
+pub fn execute_context_test<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe, TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(mut test: TFn) {
+    let result;
+
+    let mut context = TContext::setup();
+    let raw_context = &mut context as *mut TContext;
+    
+
+    unsafe {
+        result = std::panic::catch_unwind(move || {
+            test(raw_context.as_mut().unwrap());
+        });
+
+        raw_context.as_mut().unwrap().teardown();
+    }
+
+    assert!(result.is_ok());
+
 }

@@ -16,14 +16,14 @@ impl Test {
     }
 
     pub fn single_thread(&self) -> SingleThreadTest {
-        panic!()
+        SingleThreadTest::new()
     }
 
     pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(&self) -> ContextTest<TContext> {
         ContextTest::new()
     }
 
-    pub fn run<T: FnOnce()>(&self, test_fn: T) {
-        test_fn();
+    pub fn run<T: FnOnce()>(&self, test: T) {
+        test();
     }
 }
