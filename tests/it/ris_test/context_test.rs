@@ -1,4 +1,4 @@
-use ris_test::{test::test, icontext::IContext};
+use ris_test::{icontext::IContext, context_test::execute_context_test};
 
 struct ContextSucceed {
     number: i32,
@@ -28,12 +28,12 @@ fn should_succeed() {
         SUCCEED_TEARDOWN_NUMBER = 0;
     }
 
-    test()
-    .context::<ContextSucceed>()
-    .run(move |context| {
+    let test: for<'r> fn(&'r mut ContextSucceed) -> _ = |mut context: &mut ContextSucceed| {
         assert_eq!(context.number, -13);
         context.number = 42;
-    });
+    };
+
+    execute_context_test(test);
 
     let setup_called = unsafe {
         SUCCEED_SETUP_CALLED
@@ -76,13 +76,13 @@ fn should_fail() {
     }
 
     let result = std::panic::catch_unwind(|| {
-        test()
-        .context::<ContextFail>()
-        .run(move |context| {
+        let test: for<'r> fn(&'r mut ContextFail) -> _ = |mut context: &mut ContextFail| {
             assert_eq!(context.number, -13);
             context.number = 42;
             panic!()
-        });
+        };
+
+        execute_context_test(test);
     });
 
     assert!(result.is_err());
