@@ -3,4 +3,6 @@
 // pub mod retry;
 // pub mod single_threaded;
 pub mod context_test;
+pub mod single_thread_context_test;
+pub mod single_thread_test;
 pub mod test;
