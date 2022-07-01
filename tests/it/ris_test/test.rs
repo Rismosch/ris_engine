@@ -162,28 +162,126 @@ fn should_build_repeat_context_test() {
     assert_eq!(calls, 10);
 }
 
-// #[test]
-// fn should_build_repeat_single_thread_context_test() {
-//     panic!()
-// }
+struct RepeatSingleThreadContext {}
+impl IContext for RepeatSingleThreadContext{
+    fn setup() -> Self {
+        RepeatSingleThreadContext {  }
+    }
 
-// #[test]
-// fn should_build_retry_single_thread_test() {
-//     panic!()
-// }
+    fn teardown(&mut self) {
+        
+    }
+}
 
-// #[test]
-// fn should_build_retry_context_test() {
-//     panic!()
-// }
+static mut REPEAT_SINGLE_THREAD_CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_repeat_single_thread_context_test() {
+    unsafe {
+        REPEAT_SINGLE_THREAD_CONTEXT_CALLS = 0;
+    }
 
-// #[test]
-// fn should_build_retry_single_thread_context_test() {
-//     panic!()
-// }
+    test()
+    .repeat(10)
+    .single_thread()
+    .context::<RepeatSingleThreadContext>()
+    .run(|_| unsafe {
+        REPEAT_SINGLE_THREAD_CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        REPEAT_SINGLE_THREAD_CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 10);
+}
+
+static mut RETRY_SINGLE_THREAD_CALLS: i32 = 0;
+#[test]
+fn should_build_retry_single_thread_test() {
+    unsafe {
+        RETRY_SINGLE_THREAD_CALLS = 0;
+    }
+
+    test()
+    .retry(10)
+    .single_thread()
+    .run(|| unsafe {
+        RETRY_SINGLE_THREAD_CALLS += 1
+    });
+
+    let calls = unsafe {
+        RETRY_SINGLE_THREAD_CALLS
+    };
+
+    assert_eq!(calls, 1);
+}
+
+struct RetryContext {}
+impl IContext for RetryContext{
+    fn setup() -> Self {
+        RetryContext {  }
+    }
+
+    fn teardown(&mut self) {
+        
+    }
+}
+
+static mut RETRY_CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_retry_context_test() {
+    unsafe {
+        RETRY_CONTEXT_CALLS = 0;
+    }
+
+    test()
+    .retry(10)
+    .context::<RetryContext>()
+    .run(|_| unsafe {
+        RETRY_CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        RETRY_CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 1);
+}
+
+struct RetrySingleThreadContext {}
+impl IContext for RetrySingleThreadContext{
+    fn setup() -> Self {
+        RetrySingleThreadContext {  }
+    }
+
+    fn teardown(&mut self) {
+        
+    }
+}
+
+static mut RETRY_SINGLE_THREAD_CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_retry_single_thread_context_test() {
+    unsafe {
+        RETRY_SINGLE_THREAD_CONTEXT_CALLS = 0;
+    }
+
+    test()
+    .repeat(10)
+    .single_thread()
+    .context::<RetrySingleThreadContext>()
+    .run(|_| unsafe {
+        RETRY_SINGLE_THREAD_CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        RETRY_SINGLE_THREAD_CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 10);
+}
 
 struct SingleThreadContext {}
-
 impl IContext for SingleThreadContext {
     fn setup() -> Self {
         SingleThreadContext {  }
