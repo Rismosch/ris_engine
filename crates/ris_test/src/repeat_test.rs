@@ -44,35 +44,10 @@ impl RepeatTest {
         RepeatContextTest::new(self.data.clone())
     }
 
-    pub fn run(&self, test: fn()){
+    pub fn run<TFnMut: FnMut() + Clone + std::panic::UnwindSafe + std::panic::RefUnwindSafe>(&self, test: TFnMut){
         execute_repeat_test(self.data.count, self.data.kind.clone(), test)
     }
 }
-
-// pub fn execute_repeat_experimentation<TFnMut: FnMut() + std::panic::UnwindSafe>(count: u32, kind: RepeatKind, test: TFnMut){}
-
-// pub fn execute_repeat_test(count: u32, kind: RepeatKind, test: fn())
-// {
-//     match kind {
-//         RepeatKind::Repeat => {
-//             for _ in 0..count {
-//                 test();
-//             }
-//         },
-//         RepeatKind::Retry => {
-//             for _ in 0..count - 1 {
-                
-//                 let result = std::panic::catch_unwind(test);
-
-//                 if result.is_ok() {
-//                     return;
-//                 }
-//             }
-
-//             test();
-//         },
-//     }
-// }
 
 pub fn execute_repeat_test<TFnMut: FnMut() + Clone + std::panic::UnwindSafe>(count: u32, kind: RepeatKind, test: TFnMut)
 {
