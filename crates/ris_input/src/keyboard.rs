@@ -42,18 +42,14 @@ impl Keyboard {
         let mut new_state = 0;
 
         for (scancode, value) in keyboard_state.scancodes() {
-            let mut button_mask = 0;
+            if !value {
+                continue;
+            }
 
             for i in 0..32 {
                 if self.keymask[i] == scancode {
-                    button_mask |= 1 << i;
+                    new_state |= 1 << i;
                 }
-            }
-
-            if value {
-                new_state |= button_mask;
-            } else {
-                new_state &= !button_mask;
             }
         }
 
