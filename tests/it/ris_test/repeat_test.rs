@@ -1,4 +1,4 @@
-use ris_test::repeat_test::{execute_repeat_test, RepeatKind, RepeatTest};
+use ris_test::repeat_test::{execute_repeat_test, RepeatKind};
 
 static mut SUCCEED_REPEAT_CALLS: i32 = 0;
 #[test]

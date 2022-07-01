@@ -14,8 +14,8 @@ impl SingleThreadTest {
         SingleThreadContextTest::default()
     }
 
-    pub fn run<TFnMut: FnMut() + std::panic::UnwindSafe>(&self, test_fn: TFnMut) {
-        execute_single_thread_test(test_fn);
+    pub fn run<TFnMut: FnMut() + std::panic::UnwindSafe>(&self, test: TFnMut) {
+        execute_single_thread_test(test);
     }
 }
 
