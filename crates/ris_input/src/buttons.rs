@@ -27,9 +27,8 @@ impl IButtons for Buttons {
     }
 
     fn update(&mut self, new_state: &u32) {
-        let changed_buttons = new_state ^ self.hold;
-        self.up = changed_buttons & self.hold;
-        self.down = changed_buttons & !self.hold;
+        self.up = !new_state & self.hold;
+        self.down = new_state & !self.hold;
         self.hold = *new_state;
     }
 }
