@@ -3,20 +3,33 @@ use std::marker::PhantomData;
 use crate::icontext::IContext;
 
 pub struct ContextTest<TContext: IContext> {
-    phantom_data: PhantomData<TContext>
+    phantom_data: PhantomData<TContext>,
 }
 
-impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> ContextTest<TContext> {
-    pub fn new() -> Self {
-        ContextTest{ phantom_data: PhantomData::default() }
+impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> Default
+    for ContextTest<TContext>
+{
+    fn default() -> Self {
+        ContextTest {
+            phantom_data: PhantomData::default(),
+        }
     }
+}
 
+impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>
+    ContextTest<TContext>
+{
     pub fn run<TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(&self, test_fn: TFn) {
         execute_context_test::<TContext, TFn>(test_fn)
     }
 }
 
-pub fn execute_context_test<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe, TFnMut: FnMut(&mut TContext) + std::panic::UnwindSafe>(mut test: TFnMut) {
+pub fn execute_context_test<
+    TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe,
+    TFnMut: FnMut(&mut TContext) + std::panic::UnwindSafe,
+>(
+    mut test: TFnMut,
+) {
     let result;
 
     let mut context = TContext::setup();
@@ -31,5 +44,4 @@ pub fn execute_context_test<TContext: IContext + std::panic::RefUnwindSafe + std
     }
 
     assert!(result.is_ok());
-
 }

@@ -1,7 +1,10 @@
-use crate::{repeat_single_thread_test::RepeatSingleThreadTest, repeat_context_test::RepeatContextTest, icontext::IContext};
+use crate::{
+    icontext::IContext, repeat_context_test::RepeatContextTest,
+    repeat_single_thread_test::RepeatSingleThreadTest,
+};
 
 pub struct RepeatTest {
-    data: RepeatData
+    data: RepeatData,
 }
 
 #[derive(Clone)]
@@ -11,28 +14,24 @@ pub struct RepeatData {
 }
 
 #[derive(Clone)]
-pub enum RepeatKind{
+pub enum RepeatKind {
     Repeat,
-    Retry
+    Retry,
 }
 
-struct Bruh {
-
-}
+struct Bruh {}
 
 impl IContext for Bruh {
     fn setup() -> Self {
-        Bruh {  }
+        Bruh {}
     }
 
-    fn teardown(&mut self) {
-        
-    }
+    fn teardown(&mut self) {}
 }
 
 impl RepeatTest {
     pub fn new(count: u32, kind: RepeatKind) -> Self {
-        let data = RepeatData {count, kind};
+        let data = RepeatData { count, kind };
         RepeatTest { data }
     }
 
@@ -40,26 +39,33 @@ impl RepeatTest {
         RepeatSingleThreadTest::new(self.data.clone())
     }
 
-    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(&self) -> RepeatContextTest<TContext> {
+    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(
+        &self,
+    ) -> RepeatContextTest<TContext> {
         RepeatContextTest::new(self.data.clone())
     }
 
-    pub fn run<TFnMut: FnMut() + Clone + std::panic::UnwindSafe + std::panic::RefUnwindSafe>(&self, test: TFnMut){
+    pub fn run<TFnMut: FnMut() + Clone + std::panic::UnwindSafe + std::panic::RefUnwindSafe>(
+        &self,
+        test: TFnMut,
+    ) {
         execute_repeat_test(self.data.count, self.data.kind.clone(), test)
     }
 }
 
-pub fn execute_repeat_test<TFnMut: FnMut() + Clone + std::panic::UnwindSafe>(count: u32, kind: RepeatKind, test: TFnMut)
-{
+pub fn execute_repeat_test<TFnMut: FnMut() + Clone + std::panic::UnwindSafe>(
+    count: u32,
+    kind: RepeatKind,
+    test: TFnMut,
+) {
     match kind {
         RepeatKind::Repeat => {
             for _ in 0..count {
                 test.clone()();
             }
-        },
+        }
         RepeatKind::Retry => {
             for _ in 0..count - 1 {
-                
                 let result = std::panic::catch_unwind(test.clone());
 
                 if result.is_ok() {
@@ -67,7 +73,8 @@ pub fn execute_repeat_test<TFnMut: FnMut() + Clone + std::panic::UnwindSafe>(cou
                 }
             }
 
-            test.clone()();
-        },
+            let mut mut_test = test;
+            mut_test();
+        }
     }
 }
