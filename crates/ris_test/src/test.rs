@@ -1,4 +1,4 @@
-use crate::{repeat_test::RepeatTest, single_thread_test::SingleThreadTest, icontext::IContext, context_test::ContextTest};
+use crate::{repeat_test::{RepeatTest, RepeatKind}, single_thread_test::SingleThreadTest, icontext::IContext, context_test::ContextTest};
 
 pub struct Test {}
 
@@ -8,11 +8,11 @@ pub fn test() -> Test {
 
 impl Test {
     pub fn repeat(&self, repeats: u32) -> RepeatTest {
-        panic!()
+        RepeatTest::new(repeats, RepeatKind::Repeat)
     }
 
     pub fn retry(&self, retries: u32) -> RepeatTest {
-        panic!()
+        RepeatTest::new(retries, RepeatKind::Retry)
     }
 
     pub fn single_thread(&self) -> SingleThreadTest {

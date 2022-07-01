@@ -11,16 +11,16 @@ impl SingleThreadTest {
         SingleThreadTest {  }
     }
 
-    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>() -> SingleThreadContextTest<TContext> {
+    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(&self) -> SingleThreadContextTest<TContext> {
         SingleThreadContextTest::new()
     }
 
-    pub fn run(&self, test_fn: fn()){
+    pub fn run<TFnMut: FnMut() + std::panic::UnwindSafe>(&self, test_fn:TFnMut){
         execute_single_thread_test(test_fn);
     }
 }
 
-pub fn execute_single_thread_test<T: FnMut() + std::panic::UnwindSafe>(test: T){
+pub fn execute_single_thread_test<TFnMut: FnMut() + std::panic::UnwindSafe>(test: TFnMut){
     loop {
         let result = unsafe {
             THREAD_BLOCKED.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
