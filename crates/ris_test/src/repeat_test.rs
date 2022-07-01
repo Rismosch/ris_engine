@@ -16,6 +16,20 @@ pub enum RepeatKind{
     Retry
 }
 
+struct Bruh {
+
+}
+
+impl IContext for Bruh {
+    fn setup() -> Self {
+        Bruh {  }
+    }
+
+    fn teardown(&mut self) {
+        
+    }
+}
+
 impl RepeatTest {
     pub fn new(count: u32, kind: RepeatKind) -> Self {
         let data = RepeatData {count, kind};
@@ -35,25 +49,50 @@ impl RepeatTest {
     }
 }
 
-pub fn execute_repeat_test(count: u32, kind: RepeatKind, test: fn())
+// pub fn execute_repeat_experimentation<TFnMut: FnMut() + std::panic::UnwindSafe>(count: u32, kind: RepeatKind, test: TFnMut){}
+
+// pub fn execute_repeat_test(count: u32, kind: RepeatKind, test: fn())
+// {
+//     match kind {
+//         RepeatKind::Repeat => {
+//             for _ in 0..count {
+//                 test();
+//             }
+//         },
+//         RepeatKind::Retry => {
+//             for _ in 0..count - 1 {
+                
+//                 let result = std::panic::catch_unwind(test);
+
+//                 if result.is_ok() {
+//                     return;
+//                 }
+//             }
+
+//             test();
+//         },
+//     }
+// }
+
+pub fn execute_repeat_test<TFnMut: FnMut() + Clone + std::panic::UnwindSafe>(count: u32, kind: RepeatKind, test: TFnMut)
 {
     match kind {
         RepeatKind::Repeat => {
             for _ in 0..count {
-                test();
+                test.clone()();
             }
         },
         RepeatKind::Retry => {
             for _ in 0..count - 1 {
                 
-                let result = std::panic::catch_unwind(test);
+                let result = std::panic::catch_unwind(test.clone());
 
                 if result.is_ok() {
                     return;
                 }
             }
 
-            test();
+            test.clone()();
         },
     }
 }

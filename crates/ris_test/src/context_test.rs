@@ -16,12 +16,11 @@ impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> Co
     }
 }
 
-pub fn execute_context_test<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe, TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(mut test: TFn) {
+pub fn execute_context_test<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe, TFnMut: FnMut(&mut TContext) + std::panic::UnwindSafe>(mut test: TFnMut) {
     let result;
 
     let mut context = TContext::setup();
     let raw_context = &mut context as *mut TContext;
-    
 
     unsafe {
         result = std::panic::catch_unwind(move || {
