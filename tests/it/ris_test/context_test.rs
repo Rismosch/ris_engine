@@ -1,4 +1,4 @@
-use ris_test::{icontext::IContext, context_test::execute_context_test};
+use ris_test::{context_test::execute_context_test, icontext::IContext};
 
 struct ContextSucceed {
     number: i32,
@@ -9,7 +9,7 @@ impl IContext for ContextSucceed {
         unsafe {
             SUCCEED_SETUP_CALLED = true;
         }
-        ContextSucceed { number: -13}
+        ContextSucceed { number: -13 }
     }
 
     fn teardown(&mut self) {
@@ -35,13 +35,9 @@ fn should_succeed() {
 
     execute_context_test(test);
 
-    let setup_called = unsafe {
-        SUCCEED_SETUP_CALLED
-    };
+    let setup_called = unsafe { SUCCEED_SETUP_CALLED };
 
-    let teardown_number = unsafe {
-        SUCCEED_TEARDOWN_NUMBER
-    };
+    let teardown_number = unsafe { SUCCEED_TEARDOWN_NUMBER };
 
     assert!(setup_called);
     assert_eq!(teardown_number, 42);
@@ -56,7 +52,7 @@ impl IContext for ContextFail {
         unsafe {
             FAIL_SETUP_CALLED = true;
         }
-        ContextFail { number: -13}
+        ContextFail { number: -13 }
     }
 
     fn teardown(&mut self) {
@@ -87,13 +83,9 @@ fn should_fail() {
 
     assert!(result.is_err());
 
-    let setup_called = unsafe {
-        FAIL_SETUP_CALLED
-    };
+    let setup_called = unsafe { FAIL_SETUP_CALLED };
 
-    let teardown_number = unsafe {
-        FAIL_TEARDOWN_NUMBER
-    };
+    let teardown_number = unsafe { FAIL_TEARDOWN_NUMBER };
 
     assert!(setup_called);
     assert_eq!(teardown_number, 42);

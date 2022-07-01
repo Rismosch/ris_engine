@@ -1,9 +1,14 @@
-use crate::{repeat_test::{RepeatTest, RepeatKind}, single_thread_test::SingleThreadTest, icontext::IContext, context_test::ContextTest};
+use crate::{
+    context_test::ContextTest,
+    icontext::IContext,
+    repeat_test::{RepeatKind, RepeatTest},
+    single_thread_test::SingleThreadTest,
+};
 
 pub struct Test {}
 
 pub fn test() -> Test {
-    Test {  }
+    Test {}
 }
 
 impl Test {
@@ -16,11 +21,13 @@ impl Test {
     }
 
     pub fn single_thread(&self) -> SingleThreadTest {
-        SingleThreadTest::new()
+        SingleThreadTest::default()
     }
 
-    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(&self) -> ContextTest<TContext> {
-        ContextTest::new()
+    pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(
+        &self,
+    ) -> ContextTest<TContext> {
+        ContextTest::default()
     }
 
     pub fn run<T: FnOnce()>(&self, test: T) {
