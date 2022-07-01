@@ -1,18 +1,214 @@
-use ris_test::test::test;
+use ris_test::{test::test, icontext::IContext};
 
+static mut TEST_CALLS: i32 = 0;
 #[test]
-fn should_succeed() {
-    let mut result = false;
+fn should_build_test() {
+    unsafe {
+        TEST_CALLS = 0;
+    }
 
     test()
-    .run(|| result = true);
+    .run(|| unsafe {
+        TEST_CALLS += 1
+    });
 
-    assert!(result);
+    let calls = unsafe {
+        TEST_CALLS
+    };
+
+    assert_eq!(calls, 1);
 }
 
+static mut REPEAT_CALLS: i32 = 0;
 #[test]
-#[should_panic(expected = "test failed")]
-fn should_fail() {
+fn should_build_repeat_test() {
+    unsafe {
+        REPEAT_CALLS = 0;
+    }
+
     test()
-    .run(|| panic!("test failed"))
+    .repeat(10)
+    .run(|| unsafe {
+        REPEAT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        REPEAT_CALLS
+    };
+
+    assert_eq!(calls, 10);
+}
+
+static mut RETRY_CALLS: i32 = 0;
+#[test]
+fn should_build_retry_test() {
+    unsafe {
+        RETRY_CALLS = 0;
+    }
+
+    test()
+    .retry(10)
+    .run(|| unsafe {
+        RETRY_CALLS += 1
+    });
+
+    let calls = unsafe {
+        RETRY_CALLS
+    };
+
+    assert_eq!(calls, 1);
+}
+
+static mut SINGLE_THREAD_CALLS: i32 = 0;
+#[test]
+fn should_build_single_thread_test() {
+    unsafe {
+        SINGLE_THREAD_CALLS = 0;
+    }
+
+    test()
+    .single_thread()
+    .run(|| unsafe {
+        SINGLE_THREAD_CALLS += 1
+    });
+
+    let calls = unsafe {
+        SINGLE_THREAD_CALLS
+    };
+
+    assert_eq!(calls, 1);
+}
+
+struct Context {}
+
+impl IContext for Context {
+    fn setup() -> Self {
+        Context {  }
+    }
+
+    fn teardown(&mut self) { }
+}
+
+static mut CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_context_test() {
+    unsafe {
+        CONTEXT_CALLS = 0;
+    }
+
+    test()
+    .context::<Context>()
+    .run(|_| unsafe {
+        CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 1);
+}
+
+static mut REPEAT_SINGLE_THREAD_CALLS: i32 = 0;
+#[test]
+fn should_build_repeat_single_thread_test() {
+    unsafe {
+        REPEAT_SINGLE_THREAD_CALLS = 0;
+    }
+
+    test()
+    .repeat(10)
+    .single_thread()
+    .run(|| unsafe {
+        REPEAT_SINGLE_THREAD_CALLS += 1
+    });
+
+    let calls = unsafe {
+        REPEAT_SINGLE_THREAD_CALLS
+    };
+
+    assert_eq!(calls, 10);
+}
+
+struct RepeatContext {}
+impl IContext for RepeatContext{
+    fn setup() -> Self {
+        RepeatContext {  }
+    }
+
+    fn teardown(&mut self) {
+        
+    }
+}
+
+static mut REPEAT_CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_repeat_context_test() {
+    unsafe {
+        REPEAT_CONTEXT_CALLS = 0;
+    }
+
+    test()
+    .repeat(10)
+    .context::<RepeatContext>()
+    .run(|_| unsafe {
+        REPEAT_CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        REPEAT_CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 10);
+}
+
+// #[test]
+// fn should_build_repeat_single_thread_context_test() {
+//     panic!()
+// }
+
+// #[test]
+// fn should_build_retry_single_thread_test() {
+//     panic!()
+// }
+
+// #[test]
+// fn should_build_retry_context_test() {
+//     panic!()
+// }
+
+// #[test]
+// fn should_build_retry_single_thread_context_test() {
+//     panic!()
+// }
+
+struct SingleThreadContext {}
+
+impl IContext for SingleThreadContext {
+    fn setup() -> Self {
+        SingleThreadContext {  }
+    }
+
+    fn teardown(&mut self) { }
+}
+
+static mut SINGLE_THREAD_CONTEXT_CALLS: i32 = 0;
+#[test]
+fn should_build_single_thread_context_test() {
+    unsafe {
+        SINGLE_THREAD_CONTEXT_CALLS = 0;
+    }
+
+    test()
+    .single_thread()
+    .context::<SingleThreadContext>()
+    .run(|_| unsafe {
+        SINGLE_THREAD_CONTEXT_CALLS += 1
+    });
+
+    let calls = unsafe {
+        SINGLE_THREAD_CONTEXT_CALLS
+    };
+
+    assert_eq!(calls, 1);
 }
