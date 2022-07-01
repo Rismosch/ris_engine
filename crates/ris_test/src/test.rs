@@ -5,13 +5,13 @@ use crate::{
     single_thread_test::SingleThreadTest,
 };
 
-pub struct Test {}
+pub struct RisTest {}
 
-pub fn test() -> Test {
-    Test {}
+pub fn ris_test() -> RisTest {
+    RisTest {}
 }
 
-impl Test {
+impl RisTest {
     pub fn repeat(&self, repeats: u32) -> RepeatTest {
         RepeatTest::new(repeats, RepeatKind::Repeat)
     }

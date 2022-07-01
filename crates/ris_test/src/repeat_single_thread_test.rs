@@ -27,9 +27,5 @@ impl RepeatSingleThreadTest {
         execute_repeat_test(self.data.count, self.data.kind.clone(), || {
             execute_single_thread_test(test.clone())
         });
-
-        // execute_single_thread_test(||
-        //     execute_repeat_test(self.data.count, self.data.kind.clone(), test)
-        // )
     }
 }

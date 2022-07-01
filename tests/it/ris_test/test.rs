@@ -1,4 +1,4 @@
-use ris_test::{icontext::IContext, test::test};
+use ris_test::{icontext::IContext, test::ris_test};
 
 static mut TEST_CALLS: i32 = 0;
 #[test]
@@ -7,7 +7,7 @@ fn should_build_test() {
         TEST_CALLS = 0;
     }
 
-    test().run(|| unsafe { TEST_CALLS += 1 });
+    ris_test().run(|| unsafe { TEST_CALLS += 1 });
 
     let calls = unsafe { TEST_CALLS };
 
@@ -21,7 +21,7 @@ fn should_build_repeat_test() {
         REPEAT_CALLS = 0;
     }
 
-    test().repeat(10).run(|| unsafe { REPEAT_CALLS += 1 });
+    ris_test().repeat(10).run(|| unsafe { REPEAT_CALLS += 1 });
 
     let calls = unsafe { REPEAT_CALLS };
 
@@ -35,7 +35,7 @@ fn should_build_retry_test() {
         RETRY_CALLS = 0;
     }
 
-    test().retry(10).run(|| unsafe { RETRY_CALLS += 1 });
+    ris_test().retry(10).run(|| unsafe { RETRY_CALLS += 1 });
 
     let calls = unsafe { RETRY_CALLS };
 
@@ -49,7 +49,7 @@ fn should_build_single_thread_test() {
         SINGLE_THREAD_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .single_thread()
         .run(|| unsafe { SINGLE_THREAD_CALLS += 1 });
 
@@ -75,7 +75,7 @@ fn should_build_context_test() {
         CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .context::<Context>()
         .run(|_| unsafe { CONTEXT_CALLS += 1 });
 
@@ -91,7 +91,7 @@ fn should_build_repeat_single_thread_test() {
         REPEAT_SINGLE_THREAD_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .repeat(10)
         .single_thread()
         .run(|| unsafe { REPEAT_SINGLE_THREAD_CALLS += 1 });
@@ -117,7 +117,7 @@ fn should_build_repeat_context_test() {
         REPEAT_CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .repeat(10)
         .context::<RepeatContext>()
         .run(|_| unsafe { REPEAT_CONTEXT_CALLS += 1 });
@@ -143,7 +143,7 @@ fn should_build_repeat_single_thread_context_test() {
         REPEAT_SINGLE_THREAD_CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .repeat(10)
         .single_thread()
         .context::<RepeatSingleThreadContext>()
@@ -161,7 +161,7 @@ fn should_build_retry_single_thread_test() {
         RETRY_SINGLE_THREAD_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .retry(10)
         .single_thread()
         .run(|| unsafe { RETRY_SINGLE_THREAD_CALLS += 1 });
@@ -187,7 +187,7 @@ fn should_build_retry_context_test() {
         RETRY_CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .retry(10)
         .context::<RetryContext>()
         .run(|_| unsafe { RETRY_CONTEXT_CALLS += 1 });
@@ -213,7 +213,7 @@ fn should_build_retry_single_thread_context_test() {
         RETRY_SINGLE_THREAD_CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .repeat(10)
         .single_thread()
         .context::<RetrySingleThreadContext>()
@@ -240,7 +240,7 @@ fn should_build_single_thread_context_test() {
         SINGLE_THREAD_CONTEXT_CALLS = 0;
     }
 
-    test()
+    ris_test()
         .single_thread()
         .context::<SingleThreadContext>()
         .run(|_| unsafe { SINGLE_THREAD_CONTEXT_CALLS += 1 });

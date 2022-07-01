@@ -1,4 +1,4 @@
-use ris_test::{single_thread_test::execute_single_thread_test, test::test};
+use ris_test::{single_thread_test::execute_single_thread_test, test::ris_test};
 
 static mut SUCCEED_VEC: Vec<char> = Vec::new();
 #[test]
@@ -71,7 +71,7 @@ fn should_fail() {
 
         handles.push(std::thread::spawn(move || {
             let result = std::panic::catch_unwind(|| {
-                test().single_thread().run(|| {
+                ris_test().single_thread().run(|| {
                     FAIL_VEC.push('a');
                     std::thread::sleep(std::time::Duration::from_millis(40));
                     FAIL_VEC.push('b');
