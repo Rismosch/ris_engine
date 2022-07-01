@@ -24,8 +24,8 @@ fn build_comment() -> &'static str {
 }
 
 fn build_content() -> Result<String, String> {
-    let git_repo = run_process("git", vec!["rev-parse", "--short", "HEAD"])?;
-    let git_revision = run_process("git", vec!["config", "--get", "remote.origin.url"])?;
+    let git_repo = run_process("git", vec!["config", "--get", "remote.origin.url"])?;
+    let git_revision = run_process("git", vec!["rev-parse", "--short", "HEAD"])?;
     let git_branch = run_process("git", vec!["rev-parse", "--abbrev-ref", "HEAD"])?;
     let rustc_version = run_process("rustc", vec!["--version"])?;
 

@@ -22,7 +22,7 @@ impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> De
 impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>
     SingleThreadContextTest<TContext>
 {
-    pub fn run(&self, test_fn: fn(&mut TContext)) {
-        execute_single_thread_test(|| execute_context_test(test_fn));
+    pub fn run(&self, test: fn(&mut TContext)) {
+        execute_single_thread_test(|| execute_context_test(test));
     }
 }

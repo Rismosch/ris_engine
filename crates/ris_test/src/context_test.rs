@@ -19,8 +19,8 @@ impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe> De
 impl<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>
     ContextTest<TContext>
 {
-    pub fn run<TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(&self, test_fn: TFn) {
-        execute_context_test::<TContext, TFn>(test_fn)
+    pub fn run<TFn: FnMut(&mut TContext) + std::panic::UnwindSafe>(&self, test: TFn) {
+        execute_context_test::<TContext, TFn>(test)
     }
 }
 

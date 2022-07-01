@@ -13,9 +13,7 @@ struct GeneralTestContext {
 
     rng: Rng,
 
-    rebind_matrix_mouse: RebindMatrix,
-    rebind_matrix_keyboard: RebindMatrix,
-    rebind_matrix_gamepad: RebindMatrix,
+    rebind_matrix: RebindMatrix,
 }
 
 impl GeneralTestContext {
@@ -34,13 +32,9 @@ impl IContext for GeneralTestContext {
 
         let mut rng = Rng::new().unwrap();
 
-        let mut rebind_matrix_mouse: RebindMatrix = [0; 32];
-        let mut rebind_matrix_keyboard: RebindMatrix = [0; 32];
         let mut rebind_matrix_gamepad: RebindMatrix = [0; 32];
 
         for i in 0..32 {
-            rebind_matrix_mouse[i] = rng.next_u();
-            rebind_matrix_keyboard[i] = rng.next_u();
             rebind_matrix_gamepad[i] = rng.next_u();
         }
 
@@ -50,9 +44,7 @@ impl IContext for GeneralTestContext {
             keyboard,
             gamepad,
             rng,
-            rebind_matrix_mouse,
-            rebind_matrix_keyboard,
-            rebind_matrix_gamepad,
+            rebind_matrix: rebind_matrix_gamepad,
         }
     }
 
@@ -61,9 +53,7 @@ impl IContext for GeneralTestContext {
 
 #[test]
 fn should_forward_buttons_by_default() {
-    ris_test()
-    .context::<GeneralTestContext>()
-    .run(|context| {
+    ris_test().context::<GeneralTestContext>().run(|context| {
         for i in 0..32 {
             let expected = i << 1;
 
@@ -79,9 +69,7 @@ fn should_forward_buttons_by_default() {
 
 #[test]
 fn can_block_buttons() {
-    ris_test()
-    .context::<GeneralTestContext>()
-    .run(|context|{
+    ris_test().context::<GeneralTestContext>().run(|context| {
         let empty_rebind_matrix: RebindMatrix = [0; 32];
 
         context.general.set_rebind_matrix(
@@ -103,34 +91,31 @@ fn can_block_buttons() {
 #[test]
 fn should_rebind_buttons() {
     ris_test()
-    .repeat(100)
-    .context::<GeneralTestContext>()
-    .run(|context|{
-        let input_index = context.rng.range_i(0, 32);
-        let input = 1 << input_index as u32;
+        .repeat(100)
+        .context::<GeneralTestContext>()
+        .run(|context| {
+            let input_index = context.rng.range_i(0, 32);
+            let input = 1 << input_index as u32;
 
-        
-        context.gamepad.update(&input);
+            context.gamepad.update(&input);
 
-        context.general.set_rebind_matrix(
-            ris_input::general::RebindMatrixKind::Gamepad,
-            &context.rebind_matrix_gamepad,
-        );
+            context.general.set_rebind_matrix(
+                ris_input::general::RebindMatrixKind::Gamepad,
+                &context.rebind_matrix,
+            );
 
-        context.update();
+            context.update();
 
-        let expected = context.rebind_matrix_gamepad[input_index as usize];
-        let actual = context.general.buttons().hold();
+            let expected = context.rebind_matrix[input_index as usize];
+            let actual = context.general.buttons().hold();
 
-        assert_eq!(expected, actual);
-    });
+            assert_eq!(expected, actual);
+        });
 }
 
 #[test]
 fn should_bitwise_or_all_inputs() {
-    ris_test()
-    .context::<GeneralTestContext>()
-    .run(|context|{
+    ris_test().context::<GeneralTestContext>().run(|context| {
         context.mouse.update(&0b0000_0000_0000_1111);
         context.keyboard.update(&0b0000_0000_1111_0000);
         context.gamepad.update(&0b0000_1111_0000_0000);
@@ -145,9 +130,7 @@ fn should_bitwise_or_all_inputs() {
 
 #[test]
 fn should_not_be_down_when_other_input_holds() {
-    ris_test()
-    .context::<GeneralTestContext>()
-    .run(|context|{
+    ris_test().context::<GeneralTestContext>().run(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().down(), 1);
@@ -170,9 +153,7 @@ fn should_not_be_down_when_other_input_holds() {
 
 #[test]
 fn should_not_be_up_when_other_input_holds() {
-    ris_test()
-    .context::<GeneralTestContext>()
-    .run(|context|{
+    ris_test().context::<GeneralTestContext>().run(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().up(), 0);
