@@ -5,8 +5,6 @@ use crate::{icontext::IContext, single_thread_context_test::SingleThreadContextT
 #[derive(Default)]
 pub struct SingleThreadTest {}
 
-static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
-
 impl SingleThreadTest {
     pub fn context<TContext: IContext + std::panic::RefUnwindSafe + std::panic::UnwindSafe>(
         &self,
@@ -19,6 +17,7 @@ impl SingleThreadTest {
     }
 }
 
+static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
 pub fn execute_single_thread_test<TFnMut: FnMut() + std::panic::UnwindSafe>(test: TFnMut) {
     loop {
         let result = unsafe {
