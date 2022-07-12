@@ -1,6 +1,6 @@
-use ris_data::frame_buffer::FrameBuffer;
+use ris_data::{frame_buffer::FrameBuffer, info::runtime_info::{RuntimeInfo, runtime_info}};
 use ris_input::input::Input;
-use ris_sdl::video::Video;
+use ris_video::video::Video;
 use sdl2::EventPump;
 
 pub struct GlobalContainer {
@@ -8,6 +8,7 @@ pub struct GlobalContainer {
     pub event_pump: EventPump,
     pub frame_buffer: FrameBuffer,
     pub input: Input,
+    pub runtime_info: RuntimeInfo,
 }
 
 pub fn bootstrap() -> Result<GlobalContainer, String> {
@@ -20,11 +21,14 @@ pub fn bootstrap() -> Result<GlobalContainer, String> {
 
     let input = Input::new(&sdl_context)?;
 
+    let runtime_info = runtime_info();
+
     let global_container = GlobalContainer {
         _video,
         event_pump,
         frame_buffer,
         input,
+        runtime_info,
     };
 
     Ok(global_container)

@@ -70,13 +70,16 @@ version = "0.1.0"
 dependencies = [
  "ris_data",
  "ris_input",
- "ris_sdl",
+ "ris_video",
  "sdl2",
 ]
 
 [[package]]
 name = "ris_data"
 version = "0.1.0"
+dependencies = [
+ "sdl2",
+]
 
 [[package]]
 name = "ris_engine"
@@ -87,8 +90,8 @@ dependencies = [
  "ris_data",
  "ris_input",
  "ris_rng",
- "ris_sdl",
  "ris_test",
+ "ris_video",
  "sdl2",
 ]
 
@@ -104,15 +107,15 @@ name = "ris_rng"
 version = "0.1.0"
 
 [[package]]
-name = "ris_sdl"
+name = "ris_test"
+version = "0.1.0"
+
+[[package]]
+name = "ris_video"
 version = "0.1.0"
 dependencies = [
  "sdl2",
 ]
-
-[[package]]
-name = "ris_test"
-version = "0.1.0"
 
 [[package]]
 name = "sdl2"

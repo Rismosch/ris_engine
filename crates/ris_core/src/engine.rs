@@ -10,6 +10,9 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Result<Engine, String> {
         let global_container = bootstrap()?;
+
+        println!("{}", global_container.runtime_info);
+
         Ok(Engine { global_container })
     }
 

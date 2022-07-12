@@ -9,4 +9,4 @@ edition = "2021"
 sdl2 = "0.34.5"
 ris_data = { path = "../ris_data" }
 ris_input = { path = "../ris_input" }
-ris_sdl = { path = "../ris_sdl" }
+ris_video = { path = "../ris_video" }
