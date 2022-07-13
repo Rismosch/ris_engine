@@ -72,11 +72,7 @@ macro_rules! fatal {
 #[macro_export]
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
-        let right = unsafe {};
-
-        let should_log = unsafe {$priority as u8 >= ris_log::log::LOG_LEVEL as u8};
-
-        if (should_log) {
+        if (unsafe {$priority as u8 >= ris_log::log::LOG_LEVEL as u8}) {
             let formatted_message = format!($($arg)*);
 
             let package_name = env!("CARGO_PKG_NAME");

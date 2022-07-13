@@ -55,12 +55,12 @@ pub fn build_info() -> BuildInfo {{
 
 impl fmt::Display for BuildInfo {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
-        write!(f, \"Build\\n\")?;
-        write!(f, \"git repo:      {{}}\\n\", self.git_repo)?;
-        write!(f, \"git commit:    {{}}\\n\", self.git_commit)?;
-        write!(f, \"git branch:    {{}}\\n\", self.git_branch)?;
-        write!(f, \"rustc version: {{}}\\n\", self.rustc_version)?;
-        write!(f, \"build date:    {{}}\\n\", self.build_date)?;
+        writeln!(f, \"Build\")?;
+        writeln!(f, \"git repo:      {{}}\", self.git_repo)?;
+        writeln!(f, \"git commit:    {{}}\", self.git_commit)?;
+        writeln!(f, \"git branch:    {{}}\", self.git_branch)?;
+        writeln!(f, \"rustc version: {{}}\", self.rustc_version)?;
+        writeln!(f, \"build date:    {{}}\", self.build_date)?;
 
         Ok(())
     }}

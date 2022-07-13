@@ -102,6 +102,7 @@ dependencies = [
 name = "ris_input"
 version = "0.1.0"
 dependencies = [
+ "ris_log",
  "sdl2",
 ]
 
