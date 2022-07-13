@@ -73,18 +73,16 @@ macro_rules! fatal {
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
         if (unsafe {$priority as u8 >= ris_log::log::LOG_LEVEL as u8}) {
-            let formatted_message = format!($($arg)*);
-
             let package_name = env!("CARGO_PKG_NAME");
-
             let current_time = ris_log::log::get_current_time_string();
-
+            let formatted_message = format!($($arg)*);
+            
             let filename = if unsafe {ris_log::log::SHOULD_LOG_FILENAMES} {
                 format!("\n at {}:{}\n",file!(),line!())
             } else {
                 String::from("")
             };
-
+            
             let message_to_print = format!(
                 "<{}> {} [{}]: {}{}",
                 package_name,
