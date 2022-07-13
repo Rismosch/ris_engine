@@ -10,10 +10,10 @@ fn main() -> Result<(), String> {
     println!("{}", app_info);
 
     ris_log::log::register_appender(ConsoleAppender{});
-    ris_log::log!("bruh {}", 42);
-    ris_log::log!("hoi {:?}", vec![1,2,3,4,5]);
+    ris_log::trace!("bruh {}", 42);
+    ris_log::trace!("hoi {:?}", vec![1,2,3,4,5]);
 
-    return Ok(());
+    // return Ok(());
 
     let mut engine = Engine::new()?;
 

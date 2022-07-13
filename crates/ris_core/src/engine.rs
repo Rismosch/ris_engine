@@ -13,6 +13,8 @@ impl Engine {
 
         println!("{}", global_container.runtime_info);
 
+        ris_log::trace!("what? {}", 13);
+
         Ok(Engine { global_container })
     }
 
