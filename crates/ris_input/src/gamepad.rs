@@ -62,7 +62,7 @@ impl Gamepad {
 
         match open_game_controller(self) {
             Ok(game_controller) => self.game_controller = game_controller,
-            Err(error) => println!("{}", error),
+            Err(error) => ris_log::error!("{}", error),
         }
     }
 }
