@@ -17,7 +17,9 @@ pub enum GameloopState {
     Error(String),
 }
 
-pub fn run_one_frame<TPackageInfo: IPackageInfo>(container: &mut GlobalContainer<TPackageInfo>) -> GameloopState {
+pub fn run_one_frame<TPackageInfo: IPackageInfo>(
+    container: &mut GlobalContainer<TPackageInfo>,
+) -> GameloopState {
     let now = Instant::now();
 
     let pump_wants_to_quit = pump_events(&mut container.input, &mut container.event_pump);

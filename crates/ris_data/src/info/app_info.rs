@@ -3,9 +3,9 @@ use std::fmt;
 
 use super::{
     build_info::{build_info, BuildInfo},
-    cpu_info::{CpuInfo, cpu_info},
-    sdl_info::{SdlInfo, sdl_info},
+    cpu_info::{cpu_info, CpuInfo},
     ipackage_info::IPackageInfo,
+    sdl_info::{sdl_info, SdlInfo},
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -16,7 +16,7 @@ pub struct AppInfo<TPackageInfo: IPackageInfo> {
     cpu: CpuInfo,
 }
 
-pub fn app_info<TPackageInfo: IPackageInfo>() -> AppInfo<TPackageInfo>{
+pub fn app_info<TPackageInfo: IPackageInfo>() -> AppInfo<TPackageInfo> {
     AppInfo {
         package: TPackageInfo::new(),
         build: build_info(),
@@ -27,11 +27,11 @@ pub fn app_info<TPackageInfo: IPackageInfo>() -> AppInfo<TPackageInfo>{
 
 impl<TPackageInfo: IPackageInfo + std::fmt::Display> fmt::Display for AppInfo<TPackageInfo> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}\n", self.package)?;
-        write!(f, "{}\n", self.build)?;
-        write!(f, "{}\n", self.sdl)?;
-        write!(f, "{}\n", self.cpu)?;
-        write!(f, "Date: {}\n", Utc::now())?;
+        writeln!(f, "{}", self.package)?;
+        writeln!(f, "{}", self.build)?;
+        writeln!(f, "{}", self.sdl)?;
+        writeln!(f, "{}", self.cpu)?;
+        writeln!(f, "Date\n{}", Utc::now())?;
 
         Ok(())
     }

@@ -1,4 +1,4 @@
-pub trait IPackageInfo{
+pub trait IPackageInfo {
     fn new() -> Self;
 
     fn name(&self) -> &str;

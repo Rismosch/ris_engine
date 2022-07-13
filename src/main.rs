@@ -7,7 +7,7 @@ use ris_log::log_level::LogLevel;
 
 fn main() -> Result<(), String> {
     ris_log::log::init(LogLevel::Trace, false);
-    ris_log::log::register_appender(ConsoleAppender{});
+    ris_log::log::register_appender(ConsoleAppender {});
 
     let mut engine = Engine::<PackageInfo>::new()?;
 
