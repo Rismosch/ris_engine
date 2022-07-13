@@ -70,6 +70,7 @@ version = "0.1.0"
 dependencies = [
  "ris_data",
  "ris_input",
+ "ris_log",
  "ris_video",
  "sdl2",
 ]

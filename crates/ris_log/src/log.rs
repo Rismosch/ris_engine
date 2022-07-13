@@ -13,13 +13,21 @@ pub fn register_appender<TAppender: 'static + IAppender>(appender: TAppender)
 }
 
 #[macro_export]
-macro_rules! log {
+macro_rules! trace {
     ($($arg:tt)*) => {
+        ris_log::log!(ris_log::log_priority::LogPriority::Trace, $($arg)*);
+    };
+}
+
+#[macro_export]
+macro_rules! log {
+    ($priority:expr, $($arg:tt)*) => {
         let formatted_message = format!($($arg)*);
+        let message_to_print = format!("[ {} | {} | 17:55:03 ]: {}", std::env::var("CARGO_PKG_NAME").unwrap(), $priority, formatted_message);
 
         unsafe {
             for appender in ris_log::log::APPENDERS.iter() {
-                appender.print(&formatted_message);
+                appender.print(&message_to_print);
             }
         }
     };
