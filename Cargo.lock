@@ -79,6 +79,7 @@ dependencies = [
 name = "ris_data"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "sdl2",
 ]
 
@@ -107,6 +108,9 @@ dependencies = [
 [[package]]
 name = "ris_log"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+]
 
 [[package]]
 name = "ris_rng"

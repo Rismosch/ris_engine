@@ -1,23 +1,15 @@
-mod info;
+pub mod package_info;
 
+use package_info::PackageInfo;
 use ris_core::engine::Engine;
 use ris_log::console_appender::ConsoleAppender;
-
-use crate::info::app_info::app_info;
+use ris_log::log_level::LogLevel;
 
 fn main() -> Result<(), String> {
-    let app_info = app_info();
-    println!("{}", app_info);
-
+    ris_log::log::init(LogLevel::Trace, false);
     ris_log::log::register_appender(ConsoleAppender{});
-    ris_log::trace!("bruh {}", 42);
-    ris_log::trace!("hoi {:?}", vec![1,2,3,4,5]);
 
-    // return Ok(());
+    let mut engine = Engine::<PackageInfo>::new()?;
 
-    let mut engine = Engine::new()?;
-
-    engine.run()?;
-
-    Ok(())
+    engine.run()
 }

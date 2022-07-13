@@ -3,6 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use ris_data::info::ipackage_info::IPackageInfo;
 use ris_input::{buttons::IButtons, input::IInput};
 
 use sdl2::event::Event;
@@ -16,7 +17,7 @@ pub enum GameloopState {
     Error(String),
 }
 
-pub fn run_one_frame(container: &mut GlobalContainer) -> GameloopState {
+pub fn run_one_frame<TPackageInfo: IPackageInfo>(container: &mut GlobalContainer<TPackageInfo>) -> GameloopState {
     let now = Instant::now();
 
     let pump_wants_to_quit = pump_events(&mut container.input, &mut container.event_pump);
@@ -55,7 +56,7 @@ fn game_logic<TInput: IInput>(input: &TInput) -> bool {
     thread::sleep(Duration::from_millis(50));
     // println!("{}", frame_buffer.fps());
 
-    println!("{:#034b}", input.general().buttons().hold());
+    ris_log::debug!("{:#034b}", input.general().buttons().hold());
 
     false
 }
