@@ -28,6 +28,7 @@ members = [
 ]
 
 [dependencies]
+chrono = "0.4"
 sdl2 = "0.34.5"
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }

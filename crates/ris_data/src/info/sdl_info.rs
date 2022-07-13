@@ -17,9 +17,9 @@ pub fn sdl_info() -> SdlInfo {
 
 impl fmt::Display for SdlInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "SDL2 Info")?;
-        writeln!(f, "Version:  {}", self.version)?;
-        writeln!(f, "Revision: {}", self.revision)?;
+        write!(f, "SDL2\n")?;
+        write!(f, "Version:  {}\n", self.version)?;
+        write!(f, "Revision: {}\n", self.revision)?;
 
         Ok(())
     }

@@ -1,17 +1,17 @@
-use ris_data::{frame_buffer::FrameBuffer, info::runtime_info::{RuntimeInfo, runtime_info}};
+use ris_data::{frame_buffer::FrameBuffer, info::{app_info::{AppInfo, app_info}, ipackage_info::IPackageInfo}};
 use ris_input::input::Input;
 use ris_video::video::Video;
 use sdl2::EventPump;
 
-pub struct GlobalContainer {
+pub struct GlobalContainer<TPackageInfo: IPackageInfo> {
     pub _video: Video,
     pub event_pump: EventPump,
     pub frame_buffer: FrameBuffer,
     pub input: Input,
-    pub runtime_info: RuntimeInfo,
+    pub app_info: AppInfo<TPackageInfo>,
 }
 
-pub fn bootstrap() -> Result<GlobalContainer, String> {
+pub fn bootstrap<TPackageInfo: IPackageInfo>() -> Result<GlobalContainer<TPackageInfo>, String> {
     let sdl_context = sdl2::init()?;
 
     let _video = Video::new(&sdl_context)?;
@@ -21,14 +21,14 @@ pub fn bootstrap() -> Result<GlobalContainer, String> {
 
     let input = Input::new(&sdl_context)?;
 
-    let runtime_info = runtime_info();
+    let app_info = app_info();
 
     let global_container = GlobalContainer {
         _video,
         event_pump,
         frame_buffer,
         input,
-        runtime_info,
+        app_info,
     };
 
     Ok(global_container)
