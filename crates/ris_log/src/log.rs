@@ -1,7 +1,7 @@
-use chrono::Utc;
 use crate::log_level::LogLevel;
+use chrono::Utc;
 
-pub trait IAppender{
+pub trait IAppender {
     fn print(&self, message: &str);
 }
 
@@ -9,16 +9,14 @@ pub static mut SHOULD_LOG_FILENAMES: bool = false;
 pub static mut LOG_LEVEL: LogLevel = LogLevel::None;
 pub static mut APPENDERS: Vec<Box<dyn IAppender>> = Vec::new();
 
-pub fn init(priority: LogLevel, should_log_filenames: bool)
-{
+pub fn init(priority: LogLevel, should_log_filenames: bool) {
     unsafe {
         LOG_LEVEL = priority;
         SHOULD_LOG_FILENAMES = should_log_filenames;
     }
 }
 
-pub fn register_appender<TAppender: 'static + IAppender>(appender: TAppender)
-{
+pub fn register_appender<TAppender: 'static + IAppender>(appender: TAppender) {
     let wrapped_appender = Box::new(appender);
     unsafe {
         APPENDERS.push(wrapped_appender);
@@ -90,7 +88,7 @@ macro_rules! log {
             } else {
                 String::from("")
             };
-    
+
             let message_to_print = format!(
                 "<{}> {} [{}]: {}{}",
                 package_name,
@@ -99,7 +97,7 @@ macro_rules! log {
                 formatted_message,
                 filename
             );
-    
+
             ris_log::forward_to_appenders!("{}",message_to_print);
         }
     };

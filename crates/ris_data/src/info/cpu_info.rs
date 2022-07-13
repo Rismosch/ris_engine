@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct CpuInfo{
+pub struct CpuInfo {
     cpu_cache_line_size: i32,
     cpu_count: i32,
     has_3d_now: bool,
@@ -20,7 +20,7 @@ pub struct CpuInfo{
 }
 
 pub fn cpu_info() -> CpuInfo {
-    CpuInfo{
+    CpuInfo {
         cpu_cache_line_size: sdl2::cpuinfo::cpu_cache_line_size(),
         cpu_count: sdl2::cpuinfo::cpu_count(),
         has_3d_now: sdl2::cpuinfo::has_3d_now(),
@@ -41,22 +41,22 @@ pub fn cpu_info() -> CpuInfo {
 
 impl fmt::Display for CpuInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CPU\n")?;
-        write!(f, "Cache Line Size: {}\n", self.cpu_cache_line_size)?;
-        write!(f, "Count:        {}\n", self.cpu_count)?;
-        write!(f, "System RAM:   {}\n", self.system_ram)?;
-        write!(f, "has 3d now:   {}\n", self.has_3d_now)?;
-        write!(f, "has alti vec: {}\n", self.has_alti_vec)?;
-        write!(f, "has avx:      {}\n", self.has_avx)?;
-        write!(f, "has avx2:     {}\n", self.has_avx2)?;
-        write!(f, "has avx512f:  {}\n", self.has_avx512f)?;
-        write!(f, "has mmx:      {}\n", self.has_mmx)?;
-        write!(f, "has rdtsc:    {}\n", self.has_rdtsc)?;
-        write!(f, "has sse:      {}\n", self.has_sse)?;
-        write!(f, "has sse2:     {}\n", self.has_sse2)?;
-        write!(f, "has sse3:     {}\n", self.has_sse3)?;
-        write!(f, "has sse41:    {}\n", self.has_sse41)?;
-        write!(f, "has sse42:    {}\n", self.has_sse42)?;
+        writeln!(f, "CPU")?;
+        writeln!(f, "Cache Line Size: {}", self.cpu_cache_line_size)?;
+        writeln!(f, "Count:        {}", self.cpu_count)?;
+        writeln!(f, "System RAM:   {}", self.system_ram)?;
+        writeln!(f, "has 3d now:   {}", self.has_3d_now)?;
+        writeln!(f, "has alti vec: {}", self.has_alti_vec)?;
+        writeln!(f, "has avx:      {}", self.has_avx)?;
+        writeln!(f, "has avx2:     {}", self.has_avx2)?;
+        writeln!(f, "has avx512f:  {}", self.has_avx512f)?;
+        writeln!(f, "has mmx:      {}", self.has_mmx)?;
+        writeln!(f, "has rdtsc:    {}", self.has_rdtsc)?;
+        writeln!(f, "has sse:      {}", self.has_sse)?;
+        writeln!(f, "has sse2:     {}", self.has_sse2)?;
+        writeln!(f, "has sse3:     {}", self.has_sse3)?;
+        writeln!(f, "has sse41:    {}", self.has_sse41)?;
+        writeln!(f, "has sse42:    {}", self.has_sse42)?;
 
         Ok(())
     }

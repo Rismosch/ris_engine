@@ -1,4 +1,10 @@
-use ris_data::{frame_buffer::FrameBuffer, info::{app_info::{AppInfo, app_info}, ipackage_info::IPackageInfo}};
+use ris_data::{
+    frame_buffer::FrameBuffer,
+    info::{
+        app_info::{app_info, AppInfo},
+        ipackage_info::IPackageInfo,
+    },
+};
 use ris_input::input::Input;
 use ris_video::video::Video;
 use sdl2::EventPump;

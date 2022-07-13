@@ -39,9 +39,9 @@ impl IPackageInfo for PackageInfo {
 
 impl fmt::Display for PackageInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} v{}\n", self.name, self.version)?;
-        write!(f, "author:  {}\n", self.author)?;
-        write!(f, "website: {}\n", self.website)?;
+        writeln!(f, "{} v{}", self.name, self.version)?;
+        writeln!(f, "author:  {}", self.author)?;
+        writeln!(f, "website: {}", self.website)?;
 
         Ok(())
     }
