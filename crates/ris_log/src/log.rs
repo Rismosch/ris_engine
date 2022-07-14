@@ -1,18 +1,48 @@
-use crate::log_level::LogLevel;
+use std::{thread::JoinHandle, sync::atomic::{AtomicBool, Ordering}};
+
+use crate::{log_level::LogLevel, iappender::IAppender};
 use chrono::Utc;
 
-pub trait IAppender {
-    fn print(&self, message: &str);
-}
-
-pub static mut SHOULD_LOG_FILENAMES: bool = false;
 pub static mut LOG_LEVEL: LogLevel = LogLevel::None;
+pub static mut SHOULD_LOG_FILENAMES: bool = false;
 pub static mut APPENDERS: Vec<Box<dyn IAppender>> = Vec::new();
 
-pub fn init(priority: LogLevel, should_log_filenames: bool) {
+static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
+static mut STOP_LOG_THREAD: AtomicBool = AtomicBool::new(false);
+static mut LOG_THREAD: Option<JoinHandle<()>> = None;
+
+
+pub fn init(log_level: LogLevel, should_log_filenames: bool) {
     unsafe {
-        LOG_LEVEL = priority;
+        LOG_LEVEL = log_level;
         SHOULD_LOG_FILENAMES = should_log_filenames;
+        
+        THREAD_BLOCKED.swap(false, Ordering::SeqCst);
+        STOP_LOG_THREAD.swap(false, Ordering::SeqCst);
+        LOG_THREAD = Some(std::thread::spawn(log_thread));
+    }
+}
+
+pub fn log_thread()
+{
+    loop {
+        unsafe {
+            let should_stop_thread = STOP_LOG_THREAD.load(Ordering::SeqCst);
+            if should_stop_thread {
+                break;
+            }
+
+            // log logic here
+        }
+    }
+}
+
+pub fn drop(){
+    unsafe {
+        STOP_LOG_THREAD.swap(true, Ordering::SeqCst);
+        if let Some(log_thread) = LOG_THREAD.take() {
+            log_thread.join();
+        }
     }
 }
 

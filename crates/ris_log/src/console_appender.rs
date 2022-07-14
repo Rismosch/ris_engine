@@ -1,4 +1,4 @@
-use crate::log::IAppender;
+use crate::iappender::IAppender;
 
 pub struct ConsoleAppender {}
 
