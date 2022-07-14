@@ -21,7 +21,7 @@ static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
 pub fn execute_single_thread_test<TFnMut: FnMut() + std::panic::UnwindSafe>(test: TFnMut) {
     loop {
         let result = unsafe {
-            THREAD_BLOCKED.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            THREAD_BLOCKED.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         };
 
         if result.is_err() {
@@ -31,7 +31,7 @@ pub fn execute_single_thread_test<TFnMut: FnMut() + std::panic::UnwindSafe>(test
 
         let result = std::panic::catch_unwind(test);
 
-        let _ = unsafe { THREAD_BLOCKED.swap(false, Ordering::Relaxed) };
+        let _ = unsafe { THREAD_BLOCKED.swap(false, Ordering::SeqCst) };
 
         assert!(result.is_ok());
 
