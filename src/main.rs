@@ -6,10 +6,10 @@ use ris_log::console_appender::ConsoleAppender;
 use ris_log::{log,log_level::LogLevel};
 
 fn main() -> Result<(), String> {
-    log::init(LogLevel::Trace, false);
+    log::init(LogLevel::Trace);
     log::register_appender(ConsoleAppender {});
 
-    Engine::<PackageInfo>::new()?.run()?;
+    Engine::new()?.run()?;
 
     log::drop();
 

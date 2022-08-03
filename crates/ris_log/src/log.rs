@@ -4,7 +4,6 @@ use crate::{log_level::LogLevel, iappender::IAppender};
 use chrono::Utc;
 
 pub static mut LOG_LEVEL: LogLevel = LogLevel::None;
-pub static mut SHOULD_LOG_FILENAMES: bool = false;
 pub static mut APPENDERS: Vec<Box<dyn IAppender>> = Vec::new();
 
 static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
@@ -12,10 +11,9 @@ static mut STOP_LOG_THREAD: AtomicBool = AtomicBool::new(false);
 static mut LOG_THREAD: Option<JoinHandle<()>> = None;
 
 
-pub fn init(log_level: LogLevel, should_log_filenames: bool) {
+pub fn init(log_level: LogLevel) {
     unsafe {
         LOG_LEVEL = log_level;
-        SHOULD_LOG_FILENAMES = should_log_filenames;
         
         THREAD_BLOCKED.swap(false, Ordering::SeqCst);
         STOP_LOG_THREAD.swap(false, Ordering::SeqCst);
@@ -41,7 +39,7 @@ pub fn drop(){
     unsafe {
         STOP_LOG_THREAD.swap(true, Ordering::SeqCst);
         if let Some(log_thread) = LOG_THREAD.take() {
-            log_thread.join();
+            let _ = log_thread.join();
         }
     }
 }
@@ -107,19 +105,14 @@ macro_rules! log {
             let current_time = ris_log::log::get_current_time_string();
             let formatted_message = format!($($arg)*);
             
-            let filename = if unsafe {ris_log::log::SHOULD_LOG_FILENAMES} {
-                format!("\n at {}:{}\n",file!(),line!())
-            } else {
-                String::from("")
-            };
-            
             let message_to_print = format!(
-                "<{}> {} [{}]: {}{}",
-                package_name,
-                $priority,
+                "[{}] {}: {}\n    in {} at {}:{}\n",
                 current_time,
+                $priority,
                 formatted_message,
-                filename
+                package_name,
+                file!(),
+                line!()
             );
 
             ris_log::forward_to_appenders!("{}",message_to_print);
