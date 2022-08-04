@@ -9,7 +9,7 @@ impl IContext for ContextSucceed {
         unsafe {
             SUCCEED_SETUP_CALLED = true;
         }
-        ContextSucceed { number: -13 }
+        Self { number: -13 }
     }
 
     fn teardown(&mut self) {
@@ -52,7 +52,7 @@ impl IContext for ContextFail {
         unsafe {
             FAIL_SETUP_CALLED = true;
         }
-        ContextFail { number: -13 }
+        Self { number: -13 }
     }
 
     fn teardown(&mut self) {

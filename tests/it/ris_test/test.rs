@@ -62,7 +62,7 @@ struct Context {}
 
 impl IContext for Context {
     fn setup() -> Self {
-        Context {}
+        Self {}
     }
 
     fn teardown(&mut self) {}
@@ -104,7 +104,7 @@ fn should_build_repeat_single_thread_test() {
 struct RepeatContext {}
 impl IContext for RepeatContext {
     fn setup() -> Self {
-        RepeatContext {}
+        Self {}
     }
 
     fn teardown(&mut self) {}
@@ -130,7 +130,7 @@ fn should_build_repeat_context_test() {
 struct RepeatSingleThreadContext {}
 impl IContext for RepeatSingleThreadContext {
     fn setup() -> Self {
-        RepeatSingleThreadContext {}
+        Self {}
     }
 
     fn teardown(&mut self) {}
@@ -174,7 +174,7 @@ fn should_build_retry_single_thread_test() {
 struct RetryContext {}
 impl IContext for RetryContext {
     fn setup() -> Self {
-        RetryContext {}
+        Self {}
     }
 
     fn teardown(&mut self) {}
@@ -200,7 +200,7 @@ fn should_build_retry_context_test() {
 struct RetrySingleThreadContext {}
 impl IContext for RetrySingleThreadContext {
     fn setup() -> Self {
-        RetrySingleThreadContext {}
+        Self {}
     }
 
     fn teardown(&mut self) {}
@@ -227,7 +227,7 @@ fn should_build_retry_single_thread_context_test() {
 struct SingleThreadContext {}
 impl IContext for SingleThreadContext {
     fn setup() -> Self {
-        SingleThreadContext {}
+        Self {}
     }
 
     fn teardown(&mut self) {}

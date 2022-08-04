@@ -1,17 +1,17 @@
-use ris_data::info::ipackage_info::IPackageInfo;
+use ris_data::info::package_info::{PackageInfo};
 
 use crate::{
     bootstrapper::{bootstrap, GlobalContainer},
     gameloop::{run_one_frame, GameloopState},
 };
 
-pub struct Engine<TPackageInfo: IPackageInfo> {
-    global_container: GlobalContainer<TPackageInfo>,
+pub struct Engine {
+    global_container: GlobalContainer,
 }
 
-impl<TPackageInfo: IPackageInfo + std::fmt::Display> Engine<TPackageInfo> {
-    pub fn new() -> Result<Engine<TPackageInfo>, String> {
-        let global_container = bootstrap()?;
+impl Engine {
+    pub fn new(package_info: PackageInfo) -> Result<Engine, String> {
+        let global_container = bootstrap(package_info)?;
 
         ris_log::forward_to_appenders!("{}", global_container.app_info);
 

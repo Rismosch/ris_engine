@@ -38,7 +38,7 @@ impl IContext for GeneralTestContext {
             rebind_matrix_gamepad[i] = rng.next_u();
         }
 
-        GeneralTestContext {
+        Self {
             general,
             mouse,
             keyboard,
