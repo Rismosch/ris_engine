@@ -1,6 +1,6 @@
 use std::{thread::JoinHandle, sync::atomic::{AtomicBool, Ordering}};
 
-use crate::{log_level::LogLevel, iappender::IAppender};
+use crate::{log_level::LogLevel, i_appender::IAppender};
 use chrono::Utc;
 
 pub static mut LOG_LEVEL: LogLevel = LogLevel::None;

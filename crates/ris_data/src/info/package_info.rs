@@ -8,32 +8,17 @@ pub struct PackageInfo {
     pub website: String,
 }
 
-// impl PackageInfo {
-//     fn new() -> Self {
-//         PackageInfo {
-//             name: String::from(env!("CARGO_PKG_NAME")),
-//             version: String::from(env!("CARGO_PKG_VERSION")),
-//             author: String::from(env!("CARGO_PKG_AUTHORS")),
-//             website: String::from(env!("CARGO_PKG_HOMEPAGE")),
-//         }
-//     }
-
-//     fn name(&self) -> &str {
-//         &self.name
-//     }
-
-//     fn version(&self) -> &str {
-//         &self.version
-//     }
-
-//     fn author(&self) -> &str {
-//         &self.author
-//     }
-
-//     fn website(&self) -> &str {
-//         &self.website
-//     }
-// }
+#[macro_export]
+macro_rules! package_info {
+    () => {
+        PackageInfo{
+            name: String::from(env!("CARGO_PKG_NAME")),
+            version: String::from(env!("CARGO_PKG_VERSION")),
+            author: String::from(env!("CARGO_PKG_AUTHORS")),
+            website: String::from(env!("CARGO_PKG_HOMEPAGE")),
+        }
+    };
+}
 
 impl fmt::Display for PackageInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
