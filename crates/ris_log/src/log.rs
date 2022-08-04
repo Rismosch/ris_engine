@@ -1,53 +1,62 @@
-use std::{thread::JoinHandle, sync::atomic::{AtomicBool, Ordering}};
+use std::{thread::JoinHandle, sync::{atomic::{AtomicBool, Ordering}}};
 
 use crate::{log_level::LogLevel, i_appender::IAppender};
 use chrono::Utc;
 
-pub static mut LOG_LEVEL: LogLevel = LogLevel::None;
-pub static mut APPENDERS: Vec<Box<dyn IAppender>> = Vec::new();
+pub struct Logger
+{
+    pub log_level: LogLevel,
+    appenders: Vec<Box<dyn IAppender>>,
+    stop_log_thread: AtomicBool,
+    thread_handle: Option<JoinHandle<()>>
+}
 
-static mut THREAD_BLOCKED: AtomicBool = AtomicBool::new(false);
-static mut STOP_LOG_THREAD: AtomicBool = AtomicBool::new(false);
-static mut LOG_THREAD: Option<JoinHandle<()>> = None;
+impl Drop for Logger {
+    fn drop(&mut self) {
+        self.stop_log_thread.swap(true, Ordering::SeqCst);
 
-
-pub fn init(log_level: LogLevel) {
-    unsafe {
-        LOG_LEVEL = log_level;
-        
-        THREAD_BLOCKED.swap(false, Ordering::SeqCst);
-        STOP_LOG_THREAD.swap(false, Ordering::SeqCst);
-        LOG_THREAD = Some(std::thread::spawn(log_thread));
+        if let Some(thread_handle) = self.thread_handle.take(){
+            let _ = thread_handle.join();
+        }
     }
 }
 
-pub fn log_thread()
-{
-    loop {
-        unsafe {
-            let should_stop_thread = STOP_LOG_THREAD.load(Ordering::SeqCst);
-            if should_stop_thread {
-                break;
-            }
+pub static mut LOG: Option<Logger> = None;
 
-            // log logic here
-        }
+pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
+
+    let thread_handle = Some(std::thread::spawn(log_thread));
+
+    let log = Logger{
+        log_level,
+        appenders,
+        stop_log_thread: AtomicBool::new(false),
+        thread_handle,
+    };
+
+    unsafe {
+        LOG = Some(log);
     }
 }
 
 pub fn drop(){
     unsafe {
-        STOP_LOG_THREAD.swap(true, Ordering::SeqCst);
-        if let Some(log_thread) = LOG_THREAD.take() {
-            let _ = log_thread.join();
-        }
+        LOG = None;
     }
 }
 
-pub fn register_appender<TAppender: 'static + IAppender>(appender: TAppender) {
-    let wrapped_appender = Box::new(appender);
+fn log_thread()
+{
     unsafe {
-        APPENDERS.push(wrapped_appender);
+        if let Some(log) = &LOG {
+
+            loop {
+                let should_stop_thread = log.stop_log_thread.load(Ordering::SeqCst);
+                if should_stop_thread {
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -100,22 +109,28 @@ macro_rules! fatal {
 #[macro_export]
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
-        if (unsafe {$priority as u8 >= ris_log::log::LOG_LEVEL as u8}) {
-            let package_name = env!("CARGO_PKG_NAME");
-            let current_time = ris_log::log::get_current_time_string();
-            let formatted_message = format!($($arg)*);
+        {
+            unsafe {
+                if let Some(log) = &ris_log::log::LOG {
+                    if ($priority as u8 >= log.log_level as u8) {
+                        let package_name = env!("CARGO_PKG_NAME");
+                        let current_time = ris_log::log::get_current_time_string();
+                        let formatted_message = format!($($arg)*);
+                        
+                        let message_to_print = format!(
+                            "[{}] {}: {}\n    in {} at {}:{}\n",
+                            current_time,
+                            $priority,
+                            formatted_message,
+                            package_name,
+                            file!(),
+                            line!()
+                        );
             
-            let message_to_print = format!(
-                "[{}] {}: {}\n    in {} at {}:{}\n",
-                current_time,
-                $priority,
-                formatted_message,
-                package_name,
-                file!(),
-                line!()
-            );
-
-            ris_log::forward_to_appenders!("{}",message_to_print);
+                        ris_log::forward_to_appenders!("{}",message_to_print);
+                    }
+                }
+            }
         }
     };
 }
@@ -125,10 +140,6 @@ macro_rules! forward_to_appenders {
     ($($arg:tt)*) => {
         let message = format!($($arg)*);
 
-        unsafe {
-            for appender in ris_log::log::APPENDERS.iter() {
-                appender.print(&message);
-            }
-        }
+        println!("hoi {}", message);
     };
 }
