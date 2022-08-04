@@ -6,13 +6,13 @@ const BUILD_INFO_PATH: &str = "./crates/ris_data/src/info/build_info.rs";
 
 fn main() {
     let comment = build_comment();
-    let file_content = match build_content() {
+    let body = match build_content() {
         Ok(content) => content,
         Err(error) => error,
     };
 
-    let test = format!("{}\n{}", comment, file_content);
-    let bytes = test.as_bytes();
+    let file_content = format!("{}\n{}", comment, body);
+    let bytes = file_content.as_bytes();
 
     if let Ok(mut file) = File::create(BUILD_INFO_PATH) {
         let _ = file.write(bytes);

@@ -57,7 +57,10 @@ fn game_logic<TInput: IInput>(input: &TInput) -> bool {
     thread::sleep(Duration::from_millis(50));
     // ris_log::debug!("{}", frame_buffer.fps());
 
-    // ris_log::debug!("{:#034b}", input.general().buttons().hold());
+    let buttons = input.general().buttons();
+    if buttons.down() != 0 || buttons.up() != 0 {
+        ris_log::debug!("{:#034b}", buttons.hold());
+    }
 
     false
 }
