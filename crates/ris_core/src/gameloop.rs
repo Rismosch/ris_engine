@@ -3,7 +3,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ris_data::info::ipackage_info::IPackageInfo;
 use ris_input::{buttons::IButtons, input::IInput};
 
 use sdl2::event::Event;
@@ -17,8 +16,8 @@ pub enum GameloopState {
     Error(String),
 }
 
-pub fn run_one_frame<TPackageInfo: IPackageInfo>(
-    container: &mut GlobalContainer<TPackageInfo>,
+pub fn run_one_frame(
+    container: &mut GlobalContainer,
 ) -> GameloopState {
     let now = Instant::now();
 

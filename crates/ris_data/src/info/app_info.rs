@@ -4,28 +4,28 @@ use std::fmt;
 use super::{
     build_info::{build_info, BuildInfo},
     cpu_info::{cpu_info, CpuInfo},
-    ipackage_info::IPackageInfo,
     sdl_info::{sdl_info, SdlInfo},
+    package_info::PackageInfo,
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct AppInfo<TPackageInfo: IPackageInfo> {
-    package: TPackageInfo,
+pub struct AppInfo {
+    package: PackageInfo,
     build: BuildInfo,
     sdl: SdlInfo,
     cpu: CpuInfo,
 }
 
-pub fn app_info<TPackageInfo: IPackageInfo>() -> AppInfo<TPackageInfo> {
+pub fn app_info(package: PackageInfo) -> AppInfo {
     AppInfo {
-        package: TPackageInfo::new(),
+        package: package,
         build: build_info(),
         sdl: sdl_info(),
         cpu: cpu_info(),
     }
 }
 
-impl<TPackageInfo: IPackageInfo + std::fmt::Display> fmt::Display for AppInfo<TPackageInfo> {
+impl fmt::Display for AppInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.package)?;
         writeln!(f, "{}", self.build)?;
