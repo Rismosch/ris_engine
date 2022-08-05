@@ -5,7 +5,7 @@ use ris_input::{
 use ris_rng::rng::Rng;
 use ris_test::{icontext::IContext, test::ris_test};
 
-struct GeneralTestContext {
+struct GeneralContext {
     general: General,
     mouse: Buttons,
     keyboard: Buttons,
@@ -16,14 +16,14 @@ struct GeneralTestContext {
     rebind_matrix: RebindMatrix,
 }
 
-impl GeneralTestContext {
+impl GeneralContext {
     fn update(&mut self) {
         self.general
             .update_state(&self.mouse, &self.keyboard, &self.gamepad);
     }
 }
 
-impl IContext for GeneralTestContext {
+impl IContext for GeneralContext {
     fn setup() -> Self {
         let general = General::default();
         let mouse = Buttons::default();
@@ -53,7 +53,7 @@ impl IContext for GeneralTestContext {
 
 #[test]
 fn should_forward_buttons_by_default() {
-    ris_test().context::<GeneralTestContext>().run(|context| {
+    ris_test().context::<GeneralContext>().run(|context| {
         for i in 0..32 {
             let expected = i << 1;
 
@@ -69,7 +69,7 @@ fn should_forward_buttons_by_default() {
 
 #[test]
 fn can_block_buttons() {
-    ris_test().context::<GeneralTestContext>().run(|context| {
+    ris_test().context::<GeneralContext>().run(|context| {
         let empty_rebind_matrix: RebindMatrix = [0; 32];
 
         context.general.set_rebind_matrix(
@@ -92,7 +92,7 @@ fn can_block_buttons() {
 fn should_rebind_buttons() {
     ris_test()
         .repeat(100)
-        .context::<GeneralTestContext>()
+        .context::<GeneralContext>()
         .run(|context| {
             let input_index = context.rng.range_i(0, 32);
             let input = 1 << input_index as u32;
@@ -115,7 +115,7 @@ fn should_rebind_buttons() {
 
 #[test]
 fn should_bitwise_or_all_inputs() {
-    ris_test().context::<GeneralTestContext>().run(|context| {
+    ris_test().context::<GeneralContext>().run(|context| {
         context.mouse.update(&0b0000_0000_0000_1111);
         context.keyboard.update(&0b0000_0000_1111_0000);
         context.gamepad.update(&0b0000_1111_0000_0000);
@@ -130,7 +130,7 @@ fn should_bitwise_or_all_inputs() {
 
 #[test]
 fn should_not_be_down_when_other_input_holds() {
-    ris_test().context::<GeneralTestContext>().run(|context| {
+    ris_test().context::<GeneralContext>().run(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().down(), 1);
@@ -153,7 +153,7 @@ fn should_not_be_down_when_other_input_holds() {
 
 #[test]
 fn should_not_be_up_when_other_input_holds() {
-    ris_test().context::<GeneralTestContext>().run(|context| {
+    ris_test().context::<GeneralContext>().run(|context| {
         context.mouse.update(&1);
         context.update();
         assert_eq!(context.general.buttons().up(), 0);

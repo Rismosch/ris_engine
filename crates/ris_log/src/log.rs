@@ -140,6 +140,6 @@ macro_rules! forward_to_appenders {
     ($($arg:tt)*) => {
         let message = format!($($arg)*);
 
-        println!("hoi {}", message);
+        
     };
 }
