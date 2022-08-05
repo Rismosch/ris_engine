@@ -24,7 +24,6 @@ members = [
     "crates/ris_input",
     "crates/ris_rng",
     "crates/ris_video",
-    "crates/ris_test"
 ]
 
 [dependencies]
@@ -36,7 +35,6 @@ ris_input = { path = "crates/ris_input" }
 ris_log = { path = "crates/ris_log" }
 ris_rng = { path = "crates/ris_rng" }
 ris_video = { path = "crates/ris_video" }
-ris_test = { path = "crates/ris_test" }
 
 [profile]
 
