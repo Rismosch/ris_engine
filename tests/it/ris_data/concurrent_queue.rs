@@ -1,8 +1,8 @@
 use ris_data::concurrent_queue::ConcurrentQueue;
-use ris_test::{icontext::IContext};
+use ris_test::icontext::IContext;
 
 #[test]
-fn should_push_and_pop(){
+fn should_push_and_pop() {
     let mut queue = ConcurrentQueue::new();
 
     queue.push(1);

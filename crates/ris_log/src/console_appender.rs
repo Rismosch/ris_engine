@@ -2,9 +2,9 @@ use crate::i_appender::IAppender;
 
 pub struct ConsoleAppender {}
 
-impl ConsoleAppender{
+impl ConsoleAppender {
     pub fn new() -> Box<ConsoleAppender> {
-        let appender = ConsoleAppender {  };
+        let appender = ConsoleAppender {};
         Box::new(appender)
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ris_data::{frame_buffer::FrameBuffer, frame};
+use ris_data::{frame, frame_buffer::FrameBuffer};
 
 #[test]
 fn should_initialize_n_frames() {

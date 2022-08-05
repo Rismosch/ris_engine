@@ -1,21 +1,23 @@
-use std::{thread::JoinHandle, sync::{atomic::{AtomicBool, Ordering}}};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    thread::JoinHandle,
+};
 
-use crate::{log_level::LogLevel, i_appender::IAppender};
+use crate::{i_appender::IAppender, log_level::LogLevel};
 use chrono::Utc;
 
-pub struct Logger
-{
+pub struct Logger {
     pub log_level: LogLevel,
     appenders: Vec<Box<dyn IAppender>>,
     stop_log_thread: AtomicBool,
-    thread_handle: Option<JoinHandle<()>>
+    thread_handle: Option<JoinHandle<()>>,
 }
 
 impl Drop for Logger {
     fn drop(&mut self) {
         self.stop_log_thread.swap(true, Ordering::SeqCst);
 
-        if let Some(thread_handle) = self.thread_handle.take(){
+        if let Some(thread_handle) = self.thread_handle.take() {
             let _ = thread_handle.join();
         }
     }
@@ -24,10 +26,9 @@ impl Drop for Logger {
 pub static mut LOG: Option<Logger> = None;
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
-
     let thread_handle = Some(std::thread::spawn(log_thread));
 
-    let log = Logger{
+    let log = Logger {
         log_level,
         appenders,
         stop_log_thread: AtomicBool::new(false),
@@ -39,17 +40,15 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     }
 }
 
-pub fn drop(){
+pub fn drop() {
     unsafe {
         LOG = None;
     }
 }
 
-fn log_thread()
-{
+fn log_thread() {
     unsafe {
         if let Some(log) = &LOG {
-
             loop {
                 let should_stop_thread = log.stop_log_thread.load(Ordering::SeqCst);
                 if should_stop_thread {
@@ -116,7 +115,7 @@ macro_rules! log {
                         let package_name = env!("CARGO_PKG_NAME");
                         let current_time = ris_log::log::get_current_time_string();
                         let formatted_message = format!($($arg)*);
-                        
+
                         let message_to_print = format!(
                             "[{}] {}: {}\n    in {} at {}:{}\n",
                             current_time,
@@ -126,7 +125,7 @@ macro_rules! log {
                             file!(),
                             line!()
                         );
-            
+
                         ris_log::forward_to_appenders!("{}",message_to_print);
                     }
                 }
@@ -140,6 +139,6 @@ macro_rules! forward_to_appenders {
     ($($arg:tt)*) => {
         let message = format!($($arg)*);
 
-        
+
     };
 }
