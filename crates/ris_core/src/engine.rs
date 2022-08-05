@@ -1,4 +1,4 @@
-use ris_data::info::package_info::{PackageInfo};
+use ris_data::info::package_info::PackageInfo;
 
 use crate::{
     bootstrapper::{bootstrap, GlobalContainer},

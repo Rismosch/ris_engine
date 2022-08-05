@@ -1,42 +1,41 @@
-use std::{rc::Rc, borrow::BorrowMut, cell::RefCell};
+use std::{cell::RefCell, rc::Rc};
 
 pub enum PopError {
     IsEmpty,
 }
 
-pub struct ConcurrentQueue<T>{
+pub struct ConcurrentQueue<T> {
     head: Link<T>,
     tail: Link<T>,
 }
 
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
 
-struct Node<T>
-{
+struct Node<T> {
     data: T,
     next: Link<T>,
 }
 
-impl<T> Node<T>{
+impl<T> Node<T> {
     fn new(data: T) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Node {
-            data: data,
-            next: None
-        }))
+        Rc::new(RefCell::new(Node { data, next: None }))
     }
 }
 
-impl<T> ConcurrentQueue<T>{
+impl<T> ConcurrentQueue<T> {
     pub fn new() -> Self {
-        ConcurrentQueue {head: None, tail: None}
+        ConcurrentQueue {
+            head: None,
+            tail: None,
+        }
     }
 
-    pub fn try_pop(&mut self) -> Option<T>{
-        self.tail.take().map(|old_tail|{
+    pub fn try_pop(&mut self) -> Option<T> {
+        self.tail.take().map(|old_tail| {
             match old_tail.as_ref().borrow_mut().next.take() {
                 Some(new_tail) => {
                     self.tail = Some(new_tail);
-                },
+                }
                 None => {
                     self.head.take();
                 }
@@ -68,8 +67,6 @@ impl<T> ConcurrentQueue<T>{
 
 impl<T> Drop for ConcurrentQueue<T> {
     fn drop(&mut self) {
-        while self.try_pop().is_some() {
-            
-        }
+        while self.try_pop().is_some() {}
     }
 }

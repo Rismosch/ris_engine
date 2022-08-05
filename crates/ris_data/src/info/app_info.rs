@@ -4,8 +4,8 @@ use std::fmt;
 use super::{
     build_info::{build_info, BuildInfo},
     cpu_info::{cpu_info, CpuInfo},
-    sdl_info::{sdl_info, SdlInfo},
     package_info::PackageInfo,
+    sdl_info::{sdl_info, SdlInfo},
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -18,7 +18,7 @@ pub struct AppInfo {
 
 pub fn app_info(package: PackageInfo) -> AppInfo {
     AppInfo {
-        package: package,
+        package,
         build: build_info(),
         sdl: sdl_info(),
         cpu: cpu_info(),
