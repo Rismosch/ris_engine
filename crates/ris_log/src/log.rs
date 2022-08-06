@@ -4,26 +4,7 @@ use std::{
 };
 
 use crate::{i_appender::IAppender, log_level::LogLevel};
-use chrono::Utc;
-
-pub struct Logger {
-    pub log_level: LogLevel,
-    appenders: Vec<Box<dyn IAppender>>,
-    stop_log_thread: AtomicBool,
-    thread_handle: Option<JoinHandle<()>>,
-}
-
-impl Drop for Logger {
-    fn drop(&mut self) {
-        self.stop_log_thread.swap(true, Ordering::SeqCst);
-
-        if let Some(thread_handle) = self.thread_handle.take() {
-            let _ = thread_handle.join();
-        }
-    }
-}
-
-pub static mut LOG: Option<Logger> = None;
+use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     let thread_handle = Some(std::thread::spawn(log_thread));
@@ -44,23 +25,6 @@ pub fn drop() {
     unsafe {
         LOG = None;
     }
-}
-
-fn log_thread() {
-    unsafe {
-        if let Some(log) = &LOG {
-            loop {
-                let should_stop_thread = log.stop_log_thread.load(Ordering::SeqCst);
-                if should_stop_thread {
-                    break;
-                }
-            }
-        }
-    }
-}
-
-pub fn get_current_time_string() -> String {
-    format!("{}", Utc::now().format("%T"))
 }
 
 #[macro_export]
@@ -109,36 +73,106 @@ macro_rules! fatal {
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
         {
-            unsafe {
+            let log_level = unsafe {
                 if let Some(log) = &ris_log::log::LOG {
-                    if ($priority as u8 >= log.log_level as u8) {
-                        let package_name = env!("CARGO_PKG_NAME");
-                        let current_time = ris_log::log::get_current_time_string();
-                        let formatted_message = format!($($arg)*);
-
-                        let message_to_print = format!(
-                            "[{}] {}: {}\n    in {} at {}:{}\n",
-                            current_time,
-                            $priority,
-                            formatted_message,
-                            package_name,
-                            file!(),
-                            line!()
-                        );
-
-                        ris_log::forward_to_appenders!("{}",message_to_print);
-                    }
+                    log.log_level
+                } else {
+                    ris_log::log_level::LogLevel::None
                 }
+            };
+
+            if $priority as u8 >= log_level as u8 {
+                let package = String::from(env!("CARGO_PKG_NAME"));
+                let file = String::from(file!());
+                let line = line!();
+                let timestamp = ris_log::log::get_timestamp();
+                let priority = $priority;
+                let message = format!($($arg)*);
+
+                let constructed_log = ris_log::log::ConstructedLog {
+                    package,
+                    file,
+                    line,
+                    timestamp,
+                    priority,
+                    message,
+                };
+
+                let message = ris_log::log::LogMessage::Constructed(constructed_log);
+
+                ris_log::log::forward_to_appenders(message);
             }
         }
     };
 }
 
-#[macro_export]
-macro_rules! forward_to_appenders {
-    ($($arg:tt)*) => {
-        let message = format!($($arg)*);
+pub enum LogMessage {
+    Constructed(ConstructedLog),
+    Unconstructed(String),
+}
 
+pub static mut LOG: Option<Logger> = None;
 
-    };
+pub struct ConstructedLog {
+    pub package: String,
+    pub file: String,
+    pub line: u32,
+    pub timestamp: DateTime<Utc>,
+    pub priority: LogLevel,
+    pub message: String,
+}
+
+impl ConstructedLog {
+    pub fn to_string(&self) -> String {
+        format!(
+            "[{}] {}: {}\n    in {} at {}:{}\n",
+            self.timestamp.format("%T"),
+            self.priority,
+            self.message,
+            self.package,
+            self.file,
+            self.line
+        )
+    }
+}
+
+pub struct Logger {
+    pub log_level: LogLevel,
+    appenders: Vec<Box<dyn IAppender>>,
+    stop_log_thread: AtomicBool,
+    thread_handle: Option<JoinHandle<()>>,
+}
+
+impl Drop for Logger {
+    fn drop(&mut self) {
+        self.stop_log_thread.swap(true, Ordering::SeqCst);
+
+        if let Some(thread_handle) = self.thread_handle.take() {
+            let _ = thread_handle.join();
+        }
+    }
+}
+
+fn log_thread() {
+    unsafe {
+        if let Some(log) = &LOG {
+            loop {
+                let should_stop_thread = log.stop_log_thread.load(Ordering::SeqCst);
+                if should_stop_thread {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+pub fn get_timestamp() -> DateTime<Utc> {
+    Utc::now()
+}
+
+pub fn forward_to_appenders(log_message: LogMessage) {
+    match log_message {
+        LogMessage::Constructed(message) => println!("{}", message.to_string()),
+        LogMessage::Unconstructed(message) => println!("{}", message),
+    }
 }

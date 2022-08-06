@@ -1,4 +1,5 @@
 use ris_data::info::package_info::PackageInfo;
+use ris_log::log::LogMessage;
 
 use crate::{
     bootstrapper::{bootstrap, GlobalContainer},
@@ -13,7 +14,8 @@ impl Engine {
     pub fn new(package_info: PackageInfo) -> Result<Engine, String> {
         let global_container = bootstrap(package_info)?;
 
-        ris_log::forward_to_appenders!("{}", global_container.app_info);
+        let app_info = format!("{}", global_container.app_info);
+        ris_log::log::forward_to_appenders(LogMessage::Unconstructed(app_info));
 
         Ok(Engine { global_container })
     }
