@@ -4,7 +4,7 @@ pub enum PopError {
     IsEmpty,
 }
 
-pub struct NaiveQueue<T> {
+pub struct ConcurrentQueue<T> {
     head: Link<T>,
     tail: Link<T>,
 }
@@ -22,9 +22,9 @@ impl<T> Node<T> {
     }
 }
 
-impl<T> NaiveQueue<T> {
+impl<T> ConcurrentQueue<T> {
     pub fn new() -> Self {
-        NaiveQueue {
+        ConcurrentQueue {
             head: None,
             tail: None,
         }
@@ -65,7 +65,7 @@ impl<T> NaiveQueue<T> {
     }
 }
 
-impl<T> Drop for NaiveQueue<T> {
+impl<T> Drop for ConcurrentQueue<T> {
     fn drop(&mut self) {
         while self.try_pop().is_some() {}
     }

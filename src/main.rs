@@ -1,9 +1,7 @@
 use ris_core::engine::Engine;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::package_info;
-use ris_log::console_appender::ConsoleAppender;
-use ris_log::i_appender::IAppender;
-use ris_log::{log, log_level::LogLevel};
+use ris_log::{log, log_level::LogLevel, appenders::{console_appender::ConsoleAppender, i_appender::IAppender}};
 
 fn main() -> Result<(), String> {
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![ConsoleAppender::new()];
@@ -11,9 +9,6 @@ fn main() -> Result<(), String> {
 
     let package_info = package_info!();
     Engine::new(package_info)?.run()?;
-
-    ris_log::debug!("hello world");
-    ris_log::debug!("{}", 42);
 
     log::drop();
 
