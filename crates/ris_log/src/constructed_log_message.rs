@@ -15,7 +15,7 @@ impl std::fmt::Display for ConstructedLogMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(
             f,
-            "[{}] {}: {}\n    in {} at {}:{}\n",
+            "[{}] {}: {}\n    in {} at {}:{}",
             self.timestamp.format("%T"),
             self.priority,
             self.message,

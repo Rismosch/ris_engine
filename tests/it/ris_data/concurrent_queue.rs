@@ -8,16 +8,16 @@ fn should_push_and_pop() {
     queue.push(2);
     queue.push(3);
 
-    let one = queue.try_pop();
-    let two = queue.try_pop();
+    let one = queue.pop();
+    let two = queue.pop();
 
     queue.push(4);
     queue.push(5);
 
-    let three = queue.try_pop();
-    let four = queue.try_pop();
-    let five = queue.try_pop();
-    let six = queue.try_pop();
+    let three = queue.pop();
+    let four = queue.pop();
+    let five = queue.pop();
+    let six = queue.pop();
 
     assert_eq!(one, Some(1));
     assert_eq!(two, Some(2));

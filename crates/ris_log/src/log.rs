@@ -3,7 +3,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use crate::{i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
+use crate::{log_level::LogLevel, log_message::LogMessage, appenders::i_appender::IAppender};
 use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
@@ -81,7 +81,10 @@ macro_rules! log {
                 }
             };
 
-            if $priority as u8 >= log_level as u8 {
+            let priority = $priority as u8;
+            let log_level = log_level as u8;
+
+            if priority >= log_level {
                 let package = String::from(env!("CARGO_PKG_NAME"));
                 let file = String::from(file!());
                 let line = line!();
@@ -143,8 +146,10 @@ pub fn get_timestamp() -> DateTime<Utc> {
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
-    match log_message {
-        LogMessage::Constructed(message) => println!("{}", message),
-        LogMessage::Plain(message) => println!("{}", message),
-    }
+    let message = match log_message {
+        LogMessage::Constructed(message) => message.to_string(),
+        LogMessage::Plain(message) => message,
+    };
+
+    println!("{}", message);
 }
