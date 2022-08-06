@@ -3,7 +3,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use crate::{i_appender::IAppender, log_level::LogLevel};
+use crate::{i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
@@ -89,7 +89,7 @@ macro_rules! log {
                 let priority = $priority;
                 let message = format!($($arg)*);
 
-                let constructed_log = ris_log::log::ConstructedLog {
+                let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
                     package,
                     file,
                     line,
@@ -98,7 +98,7 @@ macro_rules! log {
                     message,
                 };
 
-                let message = ris_log::log::LogMessage::Constructed(constructed_log);
+                let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
 
                 ris_log::log::forward_to_appenders(message);
             }
@@ -106,35 +106,7 @@ macro_rules! log {
     };
 }
 
-pub enum LogMessage {
-    Constructed(ConstructedLog),
-    Unconstructed(String),
-}
-
 pub static mut LOG: Option<Logger> = None;
-
-pub struct ConstructedLog {
-    pub package: String,
-    pub file: String,
-    pub line: u32,
-    pub timestamp: DateTime<Utc>,
-    pub priority: LogLevel,
-    pub message: String,
-}
-
-impl ConstructedLog {
-    pub fn to_string(&self) -> String {
-        format!(
-            "[{}] {}: {}\n    in {} at {}:{}\n",
-            self.timestamp.format("%T"),
-            self.priority,
-            self.message,
-            self.package,
-            self.file,
-            self.line
-        )
-    }
-}
 
 pub struct Logger {
     pub log_level: LogLevel,
@@ -172,7 +144,7 @@ pub fn get_timestamp() -> DateTime<Utc> {
 
 pub fn forward_to_appenders(log_message: LogMessage) {
     match log_message {
-        LogMessage::Constructed(message) => println!("{}", message.to_string()),
-        LogMessage::Unconstructed(message) => println!("{}", message),
+        LogMessage::Constructed(message) => println!("{}", message),
+        LogMessage::Plain(message) => println!("{}", message),
     }
 }

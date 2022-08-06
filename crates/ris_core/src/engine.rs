@@ -1,5 +1,5 @@
 use ris_data::info::package_info::PackageInfo;
-use ris_log::log::LogMessage;
+use ris_log::log_message::LogMessage;
 
 use crate::{
     bootstrapper::{bootstrap, GlobalContainer},
@@ -15,7 +15,7 @@ impl Engine {
         let global_container = bootstrap(package_info)?;
 
         let app_info = format!("{}", global_container.app_info);
-        ris_log::log::forward_to_appenders(LogMessage::Unconstructed(app_info));
+        ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
 
         Ok(Engine { global_container })
     }
