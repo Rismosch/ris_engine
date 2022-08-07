@@ -72,38 +72,33 @@ macro_rules! fatal {
 #[macro_export]
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
-        {
-            let log_level = unsafe {
-                if let Some(log) = &ris_log::log::LOG {
-                    log.log_level
-                } else {
-                    ris_log::log_level::LogLevel::None
+        unsafe {
+            if let Some(log) = &ris_log::log::LOG {
+
+                let priority = $priority as u8;
+                let log_level = log.log_level as u8;
+
+                if priority >= log_level {
+                    let package = String::from(env!("CARGO_PKG_NAME"));
+                    let file = String::from(file!());
+                    let line = line!();
+                    let timestamp = ris_log::log::get_timestamp();
+                    let priority = $priority;
+                    let message = format!($($arg)*);
+
+                    let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
+                        package,
+                        file,
+                        line,
+                        timestamp,
+                        priority,
+                        message,
+                    };
+
+                    let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
+
+                    ris_log::log::forward_to_appenders(message);
                 }
-            };
-
-            let priority = $priority as u8;
-            let log_level = log_level as u8;
-
-            if priority >= log_level {
-                let package = String::from(env!("CARGO_PKG_NAME"));
-                let file = String::from(file!());
-                let line = line!();
-                let timestamp = ris_log::log::get_timestamp();
-                let priority = $priority;
-                let message = format!($($arg)*);
-
-                let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
-                    package,
-                    file,
-                    line,
-                    timestamp,
-                    priority,
-                    message,
-                };
-
-                let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
-
-                ris_log::log::forward_to_appenders(message);
             }
         }
     };
@@ -146,10 +141,14 @@ pub fn get_timestamp() -> DateTime<Utc> {
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
-    let message = match log_message {
-        LogMessage::Constructed(message) => message.to_string(),
-        LogMessage::Plain(message) => message,
-    };
-
-    println!("{}", message);
+    unsafe {
+        if let Some(log) = &LOG {
+            let message = match log_message {
+                LogMessage::Constructed(message) => message.to_string(),
+                LogMessage::Plain(message) => message,
+            };
+        
+            println!("{}", message);
+        }
+    }
 }
