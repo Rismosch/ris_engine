@@ -1,3 +1,5 @@
+use std::cell::{Cell, UnsafeCell};
+
 use ris_data::concurrent_queue::ConcurrentQueue;
 
 #[test]
@@ -26,3 +28,22 @@ fn should_push_and_pop() {
     assert_eq!(five, Some(5));
     assert_eq!(six, None);
 }
+
+// fn opaque_read(value: &i32){
+//     println!("{}", value);
+// }
+
+// #[test]
+// fn example(){
+//     unsafe{
+//         let mut data = Box::new(10);
+//         let ptr = (&mut *data) as *mut i32;
+
+//         *ptr += 1;
+//         *data += 10;
+
+//         println!("{}", data);
+//     }
+    
+//     panic!()
+// }
