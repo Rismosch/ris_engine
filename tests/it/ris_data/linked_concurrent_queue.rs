@@ -27,10 +27,11 @@ fn should_push_and_pop() {
 
 #[test]
 fn should_push_and_pop_from_different_threads(){
+    let repeats = 1;
     let thread_count= 10;
     let timeout = std::time::Duration::from_secs(5);
 
-    for _ in 0..1 {
+    for _ in 0..repeats {
         let mut handles = Vec::new();
         let mut queue = LinkedConcurrentQueue::new();
         let mut results = Vec::new();

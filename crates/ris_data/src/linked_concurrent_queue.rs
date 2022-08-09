@@ -1,10 +1,15 @@
 use std::{marker::PhantomData, ptr::NonNull, sync::{atomic::{self, AtomicI32}, Arc}};
 
 pub struct LinkedConcurrentQueue<T> {
+    inner: NonNull<Inner<T>>,
+    _boo: PhantomData<T>,
+}
+
+struct Inner<T>
+{
     head: NonNull<Node<T>>,
     tail: NonNull<Node<T>>,
-    _boo: PhantomData<T>,
-    external_count: Arc<AtomicI32>,
+    reference_count: AtomicI32,
 }
 
 struct Node<T> {
@@ -31,8 +36,8 @@ impl<T> LinkedConcurrentQueue<T> {
         Self {
             head: dummy_node,
             tail: dummy_node,
-            _boo: PhantomData,
             external_count: Arc::new(AtomicI32::new(0)),
+            _boo: PhantomData,
         }
     }
 
@@ -73,8 +78,8 @@ impl<T> Clone for LinkedConcurrentQueue<T>{
         LinkedConcurrentQueue {
             head: other_head,
             tail: other_tail,
-            _boo: PhantomData,
             external_count,
+            _boo: PhantomData,
         }
     }
 }
