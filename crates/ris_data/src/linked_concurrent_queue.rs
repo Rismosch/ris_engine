@@ -1,24 +1,36 @@
 use std::{marker::PhantomData, ptr::NonNull, sync::{atomic::{self, AtomicI32}, Arc}};
 
 pub struct LinkedConcurrentQueue<T> {
-    head: Link<T>,
-    tail: Link<T>,
+    head: NonNull<Node<T>>,
+    tail: NonNull<Node<T>>,
     _boo: PhantomData<T>,
     external_count: Arc<AtomicI32>,
 }
 
-type Link<T> = Option<NonNull<Node<T>>>;
-
 struct Node<T> {
-    data: T,
-    next: Link<T>,
+    data: Option<T>,
+    next: Option<NonNull<Node<T>>>,
+}
+
+impl<T> Node<T> {
+    fn new() -> NonNull<Node<T>> {
+        unsafe {
+            NonNull::new_unchecked(Box::into_raw(Box::new(Node {
+                data: None,
+                next: None
+            })))
+        }
+    }
 }
 
 impl<T> LinkedConcurrentQueue<T> {
     pub fn new() -> Self {
+
+        let dummy_node = Node::new();
+
         Self {
-            head: None,
-            tail: None,
+            head: dummy_node,
+            tail: dummy_node,
             _boo: PhantomData,
             external_count: Arc::new(AtomicI32::new(0)),
         }
@@ -26,37 +38,26 @@ impl<T> LinkedConcurrentQueue<T> {
 
     pub fn push(&mut self, data: T){
         unsafe {
-            let new_tail = NonNull::new_unchecked(Box::into_raw(Box::new(Node {
-                data,
-                next: None
-            })));
+            let new_tail = Node::new();
+
+            (*self.tail.as_ptr()).data = Some(data);
+            (*self.tail.as_ptr()).next = Some(new_tail);
     
-            if let Some(old_tail) = self.tail {
-                (*old_tail.as_ptr()).next = Some(new_tail);
-            } else {
-                debug_assert!(self.head.is_none());
-                debug_assert!(self.tail.is_none());
-                self.head = Some(new_tail);
-            }
-    
-            self.tail = Some(new_tail);
+            self.tail = new_tail;
         }
     }
 
     pub fn pop(&mut self) -> Option<T> {
         unsafe {
-            self.head.map(|node| {
-                let boxed_node = Box::from_raw(node.as_ptr());
-                let result = boxed_node.data;
+            let result = (*self.head.as_ptr()).data.take();
+            let next = (*self.head.as_ptr()).next;
 
-                self.head = boxed_node.next; change the pointer, not the damn value!
+            if let Some(next) = next {
+                Box::from_raw(self.head.as_ptr());
+                self.head = next;
+            }
 
-                if self.head.is_none() {
-                    self.tail = None;
-                }
-
-                result
-            })
+            result
         }
     }
 }
@@ -84,6 +85,10 @@ impl<T> Drop for LinkedConcurrentQueue<T> {
 
         if external_count < 1 {
             while let Some(_) = self.pop() {}
+            
+            unsafe {
+                Box::from_raw(self.head.as_ptr());
+            }
         }
     }
 }
