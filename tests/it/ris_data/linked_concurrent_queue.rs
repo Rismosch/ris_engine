@@ -1,5 +1,3 @@
-use std::{thread::JoinHandle, sync::{Arc, Mutex}};
-
 use ris_data::linked_concurrent_queue::LinkedConcurrentQueue;
 
 #[test]
@@ -48,7 +46,7 @@ fn should_push_and_pop_from_different_threads(){
             handles.push(thread);
         }
 
-        for i in 0..thread_count {
+        for _ in 0..thread_count {
             let now = std::time::Instant::now();
             loop {
                 let result = queue.pop();
