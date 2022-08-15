@@ -3,7 +3,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use crate::{log_level::LogLevel, log_message::LogMessage, appenders::i_appender::IAppender};
+use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
@@ -142,12 +142,12 @@ pub fn get_timestamp() -> DateTime<Utc> {
 
 pub fn forward_to_appenders(log_message: LogMessage) {
     unsafe {
-        if let Some(_) = &LOG {
+        if LOG.is_some() {
             let message = match log_message {
                 LogMessage::Constructed(message) => message.to_string(),
                 LogMessage::Plain(message) => message,
             };
-        
+
             println!("{}", message);
         }
     }

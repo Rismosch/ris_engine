@@ -1,12 +1,16 @@
-use std::{marker::PhantomData, ptr::NonNull, sync::atomic::{self, AtomicI32}, alloc::{Layout, alloc, dealloc}};
+use std::{
+    alloc::{alloc, dealloc, Layout},
+    marker::PhantomData,
+    ptr::NonNull,
+    sync::atomic::{self, AtomicI32},
+};
 
 pub struct LinkedConcurrentQueue<T> {
     inner: NonNull<Inner<T>>,
     _boo: PhantomData<T>,
 }
 
-struct Inner<T>
-{
+struct Inner<T> {
     head: NonNull<Node<T>>,
     tail: NonNull<Node<T>>,
     reference_count: AtomicI32,
@@ -46,7 +50,7 @@ impl<T> LinkedConcurrentQueue<T> {
             inner_deref.head = dummy_node;
             inner_deref.tail = dummy_node;
             inner_deref.reference_count = AtomicI32::new(0);
-    
+
             Self {
                 inner,
                 _boo: PhantomData,
@@ -54,7 +58,7 @@ impl<T> LinkedConcurrentQueue<T> {
         }
     }
 
-    pub fn push(&mut self, data: T){
+    pub fn push(&mut self, data: T) {
         unsafe {
             let new_tail = Node::new();
 
@@ -62,7 +66,7 @@ impl<T> LinkedConcurrentQueue<T> {
 
             (*inner.tail.as_ptr()).data = Some(data);
             (*inner.tail.as_ptr()).next = Some(new_tail);
-    
+
             inner.tail = new_tail;
         }
     }
@@ -75,7 +79,6 @@ impl<T> LinkedConcurrentQueue<T> {
             let next = (*inner.head.as_ptr()).next;
 
             if let Some(next) = next {
-
                 let layout = Layout::new::<Node<T>>();
                 let to_dealloc = inner.head.as_ptr() as *mut u8;
                 dealloc(to_dealloc, layout);
@@ -88,13 +91,13 @@ impl<T> LinkedConcurrentQueue<T> {
     }
 }
 
-impl<T> Clone for LinkedConcurrentQueue<T>{
+impl<T> Clone for LinkedConcurrentQueue<T> {
     fn clone(&self) -> Self {
         unsafe {
             let inner = &mut *self.inner.as_ptr();
-    
+
             inner.reference_count.fetch_add(1, atomic::Ordering::SeqCst);
-    
+
             LinkedConcurrentQueue {
                 inner: self.inner,
                 _boo: PhantomData,
@@ -107,11 +110,11 @@ impl<T> Drop for LinkedConcurrentQueue<T> {
     fn drop(&mut self) {
         unsafe {
             let inner = &mut *self.inner.as_ptr();
-    
+
             let external_count = inner.reference_count.fetch_sub(1, atomic::Ordering::SeqCst);
-    
+
             if external_count < 1 {
-                while let Some(_) = self.pop() {}
+                while self.pop().is_some() {}
 
                 let inner = &mut *self.inner.as_ptr();
 
@@ -124,6 +127,12 @@ impl<T> Drop for LinkedConcurrentQueue<T> {
                 dealloc(to_dealloc, layout);
             }
         }
+    }
+}
+
+impl<T> Default for LinkedConcurrentQueue<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
