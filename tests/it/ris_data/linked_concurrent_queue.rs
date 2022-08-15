@@ -27,9 +27,9 @@ fn should_push_and_pop() {
 
 #[test]
 fn should_push_and_pop_from_different_threads(){
-    let repeats = 1;
-    let thread_count= 10;
-    let timeout = std::time::Duration::from_secs(5);
+    let repeats = 2;
+    let thread_count= 20;
+    let timeout = std::time::Duration::from_secs(1);
 
     for _ in 0..repeats {
         let mut handles = Vec::new();
@@ -47,7 +47,7 @@ fn should_push_and_pop_from_different_threads(){
             handles.push(thread);
         }
 
-        for _ in 0..thread_count {
+        for i in 0..thread_count {
             let now = std::time::Instant::now();
             loop {
                 let result = queue.pop();
@@ -58,6 +58,7 @@ fn should_push_and_pop_from_different_threads(){
 
                 let duration = std::time::Instant::now() - now;
                 if duration > timeout {
+                    println!("{i} {:?}", results);
                     panic!("didn't expect queue to be empty for {:?}", duration)
                 }
 

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ptr::NonNull, sync::{atomic::{self, AtomicI32}, Arc}};
+use std::{marker::PhantomData, ptr::NonNull, sync::atomic::{self, AtomicI32}, alloc::{Layout, alloc, dealloc}};
 
 pub struct LinkedConcurrentQueue<T> {
     inner: NonNull<Inner<T>>,
@@ -20,24 +20,37 @@ struct Node<T> {
 impl<T> Node<T> {
     fn new() -> NonNull<Node<T>> {
         unsafe {
-            NonNull::new_unchecked(Box::into_raw(Box::new(Node {
-                data: None,
-                next: None
-            })))
+            let layout = Layout::new::<Node<T>>();
+            let ptr = alloc(layout);
+            let node = NonNull::new_unchecked(ptr as *mut Node<T>);
+
+            let inner_deref = &mut *node.as_ptr();
+            inner_deref.data = None;
+            inner_deref.next = None;
+
+            node
         }
     }
 }
 
 impl<T> LinkedConcurrentQueue<T> {
     pub fn new() -> Self {
+        unsafe {
+            let dummy_node = Node::new();
 
-        let dummy_node = Node::new();
+            let layout = Layout::new::<Inner<T>>();
+            let ptr = alloc(layout);
+            let inner = NonNull::new_unchecked(ptr as *mut Inner<T>);
 
-        Self {
-            head: dummy_node,
-            tail: dummy_node,
-            external_count: Arc::new(AtomicI32::new(0)),
-            _boo: PhantomData,
+            let inner_deref = &mut *inner.as_ptr();
+            inner_deref.head = dummy_node;
+            inner_deref.tail = dummy_node;
+            inner_deref.reference_count = AtomicI32::new(0);
+    
+            Self {
+                inner,
+                _boo: PhantomData,
+            }
         }
     }
 
@@ -45,21 +58,29 @@ impl<T> LinkedConcurrentQueue<T> {
         unsafe {
             let new_tail = Node::new();
 
-            (*self.tail.as_ptr()).data = Some(data);
-            (*self.tail.as_ptr()).next = Some(new_tail);
+            let inner = &mut *self.inner.as_ptr();
+
+            (*inner.tail.as_ptr()).data = Some(data);
+            (*inner.tail.as_ptr()).next = Some(new_tail);
     
-            self.tail = new_tail;
+            inner.tail = new_tail;
         }
     }
 
     pub fn pop(&mut self) -> Option<T> {
         unsafe {
-            let result = (*self.head.as_ptr()).data.take();
-            let next = (*self.head.as_ptr()).next;
+            let inner = &mut *self.inner.as_ptr();
+
+            let result = (*inner.head.as_ptr()).data.take();
+            let next = (*inner.head.as_ptr()).next;
 
             if let Some(next) = next {
-                Box::from_raw(self.head.as_ptr());
-                self.head = next;
+
+                let layout = Layout::new::<Node<T>>();
+                let to_dealloc = inner.head.as_ptr() as *mut u8;
+                dealloc(to_dealloc, layout);
+
+                inner.head = next;
             }
 
             result
@@ -69,30 +90,38 @@ impl<T> LinkedConcurrentQueue<T> {
 
 impl<T> Clone for LinkedConcurrentQueue<T>{
     fn clone(&self) -> Self {
-        let external_count = self.external_count.clone();
-        external_count.fetch_add(1, atomic::Ordering::SeqCst);
-
-        let other_head = self.head;
-        let other_tail = self.tail;
-
-        LinkedConcurrentQueue {
-            head: other_head,
-            tail: other_tail,
-            external_count,
-            _boo: PhantomData,
+        unsafe {
+            let inner = &mut *self.inner.as_ptr();
+    
+            inner.reference_count.fetch_add(1, atomic::Ordering::SeqCst);
+    
+            LinkedConcurrentQueue {
+                inner: self.inner,
+                _boo: PhantomData,
+            }
         }
     }
 }
 
 impl<T> Drop for LinkedConcurrentQueue<T> {
     fn drop(&mut self) {
-        let external_count = self.external_count.fetch_sub(1, atomic::Ordering::SeqCst);
+        unsafe {
+            let inner = &mut *self.inner.as_ptr();
+    
+            let external_count = inner.reference_count.fetch_sub(1, atomic::Ordering::SeqCst);
+    
+            if external_count < 1 {
+                while let Some(_) = self.pop() {}
 
-        if external_count < 1 {
-            while let Some(_) = self.pop() {}
-            
-            unsafe {
-                Box::from_raw(self.head.as_ptr());
+                let inner = &mut *self.inner.as_ptr();
+
+                let layout = Layout::new::<Node<T>>();
+                let to_dealloc = inner.head.as_ptr() as *mut u8;
+                dealloc(to_dealloc, layout);
+
+                let layout = Layout::new::<Inner<T>>();
+                let to_dealloc = self.inner.as_ptr() as *mut u8;
+                dealloc(to_dealloc, layout);
             }
         }
     }
