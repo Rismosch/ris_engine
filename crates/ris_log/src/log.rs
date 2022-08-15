@@ -11,7 +11,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
 
     let log = Logger {
         log_level,
-        appenders,
+        _appenders: appenders,
         stop_log_thread: AtomicBool::new(false),
         thread_handle,
     };
@@ -108,7 +108,7 @@ pub static mut LOG: Option<Logger> = None;
 
 pub struct Logger {
     pub log_level: LogLevel,
-    appenders: Vec<Box<dyn IAppender>>,
+    _appenders: Vec<Box<dyn IAppender>>,
     stop_log_thread: AtomicBool,
     thread_handle: Option<JoinHandle<()>>,
 }
@@ -142,7 +142,7 @@ pub fn get_timestamp() -> DateTime<Utc> {
 
 pub fn forward_to_appenders(log_message: LogMessage) {
     unsafe {
-        if let Some(log) = &LOG {
+        if let Some(_) = &LOG {
             let message = match log_message {
                 LogMessage::Constructed(message) => message.to_string(),
                 LogMessage::Plain(message) => message,
