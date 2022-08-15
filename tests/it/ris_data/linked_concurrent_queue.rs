@@ -26,9 +26,9 @@ fn should_push_and_pop() {
 }
 
 #[test]
-fn should_push_and_pop_from_different_threads(){
+fn should_push_and_pop_from_different_threads() {
     let repeats = 2;
-    let thread_count= 20;
+    let thread_count = 20;
     let timeout = std::time::Duration::from_secs(1);
 
     for _ in 0..repeats {
