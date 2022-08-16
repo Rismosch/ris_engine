@@ -1,7 +1,7 @@
 use std::{
     alloc::{alloc, dealloc, Layout},
     marker::PhantomData,
-    ptr::NonNull,
+    ptr::{NonNull, self},
     sync::atomic::{self, AtomicI32},
 };
 
@@ -18,7 +18,7 @@ struct Inner<T> {
 
 struct Node<T> {
     data: Option<T>,
-    next: Option<NonNull<Node<T>>>,
+    next: *mut Node<T>,
 }
 
 impl<T> Node<T> {
@@ -28,9 +28,9 @@ impl<T> Node<T> {
             let ptr = alloc(layout);
             let node = NonNull::new_unchecked(ptr as *mut Node<T>);
 
-            let inner_deref = &mut *node.as_ptr();
-            inner_deref.data = None;
-            inner_deref.next = None;
+            let node_deref = &mut *node.as_ptr();
+            node_deref.data = None;
+            node_deref.next = ptr::null_mut();
 
             node
         }
@@ -65,7 +65,7 @@ impl<T> LinkedConcurrentQueue<T> {
             let inner = &mut *self.inner.as_ptr();
 
             (*inner.tail.as_ptr()).data = Some(data);
-            (*inner.tail.as_ptr()).next = Some(new_tail);
+            (*inner.tail.as_ptr()).next = new_tail.as_ptr();
 
             inner.tail = new_tail;
         }
@@ -78,12 +78,12 @@ impl<T> LinkedConcurrentQueue<T> {
             let result = (*inner.head.as_ptr()).data.take();
             let next = (*inner.head.as_ptr()).next;
 
-            if let Some(next) = next {
+            if !next.is_null() {
                 let layout = Layout::new::<Node<T>>();
                 let to_dealloc = inner.head.as_ptr() as *mut u8;
                 dealloc(to_dealloc, layout);
 
-                inner.head = next;
+                inner.head = NonNull::new_unchecked(next);
             }
 
             result
@@ -111,9 +111,9 @@ impl<T> Drop for LinkedConcurrentQueue<T> {
         unsafe {
             let inner = &mut *self.inner.as_ptr();
 
-            let external_count = inner.reference_count.fetch_sub(1, atomic::Ordering::SeqCst);
+            let reference_count = inner.reference_count.fetch_sub(1, atomic::Ordering::SeqCst);
 
-            if external_count < 1 {
+            if reference_count < 1 {
                 while self.pop().is_some() {}
 
                 let inner = &mut *self.inner.as_ptr();
