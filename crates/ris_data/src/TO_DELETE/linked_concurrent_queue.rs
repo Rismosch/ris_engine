@@ -2,7 +2,7 @@ use std::{
     alloc::{alloc, dealloc, Layout},
     marker::PhantomData,
     ptr::{NonNull, self},
-    sync::atomic::{self, AtomicI32},
+    sync::{atomic::{self, AtomicI32}, Mutex},
 };
 
 pub struct LinkedConcurrentQueue<T> {
@@ -11,8 +11,8 @@ pub struct LinkedConcurrentQueue<T> {
 }
 
 struct Inner<T> {
-    head: NonNull<Node<T>>,
-    tail: NonNull<Node<T>>,
+    head: Mutex<NonNull<Node<T>>>,
+    tail: Mutex<NonNull<Node<T>>>,
     reference_count: AtomicI32,
 }
 
@@ -47,8 +47,8 @@ impl<T> LinkedConcurrentQueue<T> {
             let inner = NonNull::new_unchecked(ptr as *mut Inner<T>);
 
             let inner_deref = &mut *inner.as_ptr();
-            inner_deref.head = dummy_node;
-            inner_deref.tail = dummy_node;
+            inner_deref.head = Mutex::new(dummy_node);
+            inner_deref.tail = Mutex::new(dummy_node);
             inner_deref.reference_count = AtomicI32::new(0);
 
             Self {
@@ -64,10 +64,17 @@ impl<T> LinkedConcurrentQueue<T> {
 
             let inner = &mut *self.inner.as_ptr();
 
-            (*inner.tail.as_ptr()).data = Some(data);
-            (*inner.tail.as_ptr()).next = new_tail.as_ptr();
+            // (*inner.tail.as_ptr()).data = Some(data);
+            // (*inner.tail.as_ptr()).next = new_tail.as_ptr();
 
-            inner.tail = new_tail;
+            // inner.tail = new_tail;
+
+            let tail = inner.tail.lock().unwrap();
+
+            (*tail.as_ptr()).data = Some(data);
+            (*tail.as_ptr()).next = new_tail.as_ptr();
+
+            *tail.as_ptr() = *new_tail.as_ptr();
         }
     }
 
@@ -75,15 +82,28 @@ impl<T> LinkedConcurrentQueue<T> {
         unsafe {
             let inner = &mut *self.inner.as_ptr();
 
-            let result = (*inner.head.as_ptr()).data.take();
-            let next = (*inner.head.as_ptr()).next;
+            // let result = (*inner.head.as_ptr()).data.take();
+            // let next = (*inner.head.as_ptr()).next;
+
+            // if !next.is_null() {
+            //     let layout = Layout::new::<Node<T>>();
+            //     let to_dealloc = inner.head.as_ptr() as *mut u8;
+            //     dealloc(to_dealloc, layout);
+
+            //     inner.head = NonNull::new_unchecked(next);
+            // }
+
+            let head = inner.head.lock().unwrap();
+
+            let result = (*head.as_ptr()).data.take();
+            let next = (*head.as_ptr()).next;
 
             if !next.is_null() {
                 let layout = Layout::new::<Node<T>>();
-                let to_dealloc = inner.head.as_ptr() as *mut u8;
+                let to_dealloc = head.as_ptr() as *mut u8;
                 dealloc(to_dealloc, layout);
 
-                inner.head = NonNull::new_unchecked(next);
+                *head.as_ptr() = *next;
             }
 
             result
@@ -119,7 +139,7 @@ impl<T> Drop for LinkedConcurrentQueue<T> {
                 let inner = &mut *self.inner.as_ptr();
 
                 let layout = Layout::new::<Node<T>>();
-                let to_dealloc = inner.head.as_ptr() as *mut u8;
+                let to_dealloc = inner.head.lock().unwrap().as_ptr() as *mut u8;
                 dealloc(to_dealloc, layout);
 
                 let layout = Layout::new::<Inner<T>>();

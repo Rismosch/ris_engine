@@ -1,18 +1,18 @@
-use std::{
-    sync::atomic::{AtomicBool, Ordering},
-    thread::JoinHandle,
-};
+use std::sync::mpsc::{Sender, Receiver, channel};
+use std::thread::JoinHandle;
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
-    let thread_handle = Some(std::thread::spawn(log_thread));
+
+    let (sender, receiver) = channel();
+    let thread_handle = Some(std::thread::spawn(|| log_thread(receiver)));
 
     let log = Logger {
         log_level,
-        _appenders: appenders,
-        stop_log_thread: AtomicBool::new(false),
+        appenders,
+        sender,
         thread_handle,
     };
 
@@ -108,14 +108,14 @@ pub static mut LOG: Option<Logger> = None;
 
 pub struct Logger {
     pub log_level: LogLevel,
-    _appenders: Vec<Box<dyn IAppender>>,
-    stop_log_thread: AtomicBool,
+    appenders: Vec<Box<dyn IAppender>>,
+    sender: Sender<LogMessage>,
     thread_handle: Option<JoinHandle<()>>,
 }
 
 impl Drop for Logger {
     fn drop(&mut self) {
-        self.stop_log_thread.swap(true, Ordering::SeqCst);
+        let _ = self.sender.send(LogMessage::ShutDown);
 
         if let Some(thread_handle) = self.thread_handle.take() {
             let _ = thread_handle.join();
@@ -123,13 +123,20 @@ impl Drop for Logger {
     }
 }
 
-fn log_thread() {
+fn log_thread(receiver: Receiver<LogMessage>) {
     unsafe {
         if let Some(log) = &LOG {
-            loop {
-                let should_stop_thread = log.stop_log_thread.load(Ordering::SeqCst);
-                if should_stop_thread {
-                    break;
+            for log_message in receiver.iter() {
+                
+                match log_message {
+                    LogMessage::ShutDown => break,
+                    log_message => {
+                        let to_print = log_message.to_string();
+        
+                        for appender in &log.appenders {
+                            appender.print(&to_print);
+                        }
+                    },
                 }
             }
         }
@@ -142,13 +149,8 @@ pub fn get_timestamp() -> DateTime<Utc> {
 
 pub fn forward_to_appenders(log_message: LogMessage) {
     unsafe {
-        if LOG.is_some() {
-            let message = match log_message {
-                LogMessage::Constructed(message) => message.to_string(),
-                LogMessage::Plain(message) => message,
-            };
-
-            println!("{}", message);
+        if let Some(log) = &LOG {
+            let _ = log.sender.send(log_message);
         }
     }
 }

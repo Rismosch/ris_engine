@@ -34,3 +34,9 @@ impl Engine {
         Ok(())
     }
 }
+
+impl Drop for Engine {
+    fn drop(&mut self) {
+        ris_log::info!("engine was dropped");
+    }
+}

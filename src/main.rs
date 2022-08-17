@@ -12,9 +12,15 @@ fn main() -> Result<(), String> {
     log::init(LogLevel::Trace, appenders);
 
     let package_info = package_info!();
-    Engine::new(package_info)?.run()?;
+    let result = run_engine(package_info);
 
     log::drop();
+
+    result
+}
+
+fn run_engine(package_info: PackageInfo) -> Result<(), String> {
+    Engine::new(package_info)?.run()?;
 
     Ok(())
 }
