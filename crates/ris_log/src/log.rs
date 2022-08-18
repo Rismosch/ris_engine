@@ -1,10 +1,13 @@
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread::JoinHandle;
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Utc};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
+    if matches!(log_level, LogLevel::None) || appenders.is_empty() {
+        return;
+    }
 
     let (sender, receiver) = channel();
     let thread_handle = Some(std::thread::spawn(|| log_thread(receiver)));
@@ -113,6 +116,12 @@ pub struct Logger {
     thread_handle: Option<JoinHandle<()>>,
 }
 
+impl Logger {
+    pub fn appenders(&self) -> &Vec<Box<dyn IAppender>> {
+        &self.appenders
+    }
+}
+
 impl Drop for Logger {
     fn drop(&mut self) {
         let _ = self.sender.send(LogMessage::ShutDown);
@@ -127,16 +136,15 @@ fn log_thread(receiver: Receiver<LogMessage>) {
     unsafe {
         if let Some(log) = &LOG {
             for log_message in receiver.iter() {
-                
                 match log_message {
                     LogMessage::ShutDown => break,
                     log_message => {
                         let to_print = log_message.to_string();
-        
+
                         for appender in &log.appenders {
                             appender.print(&to_print);
                         }
-                    },
+                    }
                 }
             }
         }
