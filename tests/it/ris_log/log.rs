@@ -127,11 +127,11 @@ fn should_not_block() {
     let results = messages.lock().unwrap();
     assert_eq!(results.len(), 1);
 
-    let elapsed1 = (instant1 - start).as_millis();
-    let elapsed2 = (instant2 - start).as_millis();
+    let elapsed1 = instant1 - start;
+    let elapsed2 = instant2 - start;
 
-    assert!(elapsed1 < TIMEOUT.into());
-    assert!(elapsed2 > TIMEOUT.into());
+    assert!(elapsed1.as_millis() < TIMEOUT.into());
+    assert!(elapsed2.as_millis() > TIMEOUT.into());
 
     drop(lock)
 }
