@@ -1,3 +1,3 @@
 pub trait IAppender {
-    fn print(&self, message: &str);
+    fn print(&mut self, message: &str);
 }

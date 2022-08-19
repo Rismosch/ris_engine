@@ -13,7 +13,7 @@ pub struct ConstructedLogMessage {
 
 impl std::fmt::Display for ConstructedLogMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(
+        write!(
             f,
             "[{}] {}: {}\n    in {} at {}:{}",
             self.timestamp.format("%T"),
