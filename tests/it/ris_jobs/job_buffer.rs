@@ -1,7 +1,7 @@
 use ris_jobs::job_buffer::JobBuffer;
 
 #[test]
-fn should_push_and_pop_on_a_single_thread(){
+fn should_push_and_pop_on_a_single_thread() {
     let mut job_buffer = JobBuffer::new(4);
 
     let magic_number = 42;

@@ -9,6 +9,21 @@ pub enum LogLevel {
     None = 6,
 }
 
+impl From<usize> for LogLevel {
+    fn from(value: usize) -> LogLevel {
+        match value {
+            0 => LogLevel::Trace,
+            1 => LogLevel::Debug,
+            2 => LogLevel::Info,
+            3 => LogLevel::Warning,
+            4 => LogLevel::Error,
+            5 => LogLevel::Fatal,
+            6 => LogLevel::None,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl std::fmt::Display for LogLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {

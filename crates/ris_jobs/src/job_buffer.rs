@@ -1,4 +1,4 @@
-use std::{sync::Mutex, ops::DerefMut};
+use std::{ops::DerefMut, sync::Mutex};
 
 pub struct JobBuffer {
     capacity: usize,
@@ -14,7 +14,7 @@ pub enum PushResult {
     Full(Job),
 }
 
-impl JobBuffer{
+impl JobBuffer {
     pub fn new(capacity: usize) -> Self {
         let mut jobs = Vec::with_capacity(capacity);
         for _ in 0..capacity {
@@ -46,7 +46,7 @@ impl JobBuffer{
                 *head = (old_head + 1) % self.capacity;
 
                 PushResult::Ok
-            },
+            }
         }
     }
 
@@ -67,7 +67,7 @@ impl JobBuffer{
                 *head = new_head;
 
                 Some(job)
-            },
+            }
         }
     }
 
