@@ -134,14 +134,14 @@ impl Drop for Logger {
 
 fn log_thread(receiver: Receiver<LogMessage>) {
     unsafe {
-        if let Some(log) = &LOG {
+        if let Some(log) = &mut LOG {
             for log_message in receiver.iter() {
                 match log_message {
                     LogMessage::ShutDown => break,
                     log_message => {
                         let to_print = log_message.to_string();
 
-                        for appender in &log.appenders {
+                        for appender in &mut log.appenders {
                             appender.print(&to_print);
                         }
                     }

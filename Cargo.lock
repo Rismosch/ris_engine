@@ -94,6 +94,7 @@ dependencies = [
  "ris_jobs",
  "ris_log",
  "ris_rng",
+ "ris_util",
  "ris_video",
  "sdl2",
 ]
@@ -119,6 +120,10 @@ dependencies = [
 
 [[package]]
 name = "ris_rng"
+version = "0.1.0"
+
+[[package]]
+name = "ris_util"
 version = "0.1.0"
 
 [[package]]
