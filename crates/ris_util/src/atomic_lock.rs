@@ -63,6 +63,7 @@ mod examples {
     #[test]
     #[should_panic]
     fn single_threaded_test_two() {
+        // same as the test above, really
         let lock = AtomicLock::wait_and_lock(unsafe { &mut LOCK });
 
         assert!(false);
