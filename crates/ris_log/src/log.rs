@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread::JoinHandle;
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
@@ -151,8 +151,8 @@ fn log_thread(receiver: Receiver<LogMessage>) {
     }
 }
 
-pub fn get_timestamp() -> DateTime<Utc> {
-    Utc::now()
+pub fn get_timestamp() -> DateTime<Local> {
+    Local::now()
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
