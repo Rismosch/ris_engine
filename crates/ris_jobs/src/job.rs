@@ -1,9 +1,8 @@
-pub struct Job
-{
+pub struct Job {
     wrapped: Option<Box<dyn FnOnce()>>,
 }
 
-impl Job{
+impl Job {
     pub fn new<F: FnOnce() + 'static>(job: F) -> Self {
         let wrapped: Option<Box<dyn FnOnce()>> = Some(Box::new(job));
 

@@ -1,6 +1,21 @@
-use std::{ops::{DerefMut, Deref}, sync::Mutex};
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+    sync::Mutex,
+};
 
 use crate::job::Job;
+
+#[derive(Debug)]
+pub struct IsEmpty;
+
+impl fmt::Display for IsEmpty {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "is empty")
+    }
+}
+
+impl std::error::Error for IsEmpty {}
 
 pub struct JobBuffer {
     head: Mutex<usize>,
@@ -29,7 +44,7 @@ impl JobBuffer {
 
     pub fn push(&mut self, job: Job) -> Result<(), Job> {
         let mut head = self.head.lock().unwrap();
-        let old_head = head.clone();
+        let old_head = *head;
         let mut node = self.jobs[old_head].lock().unwrap();
 
         match *node.deref() {
@@ -43,9 +58,9 @@ impl JobBuffer {
         }
     }
 
-    pub fn pop(&mut self) -> Result<Job, ()> {
+    pub fn pop(&mut self) -> Result<Job, IsEmpty> {
         let mut head = self.head.lock().unwrap();
-        let old_head = head.clone();
+        let old_head = *head;
         let new_head = if old_head == 0 {
             self.jobs.capacity() - 1
         } else {
@@ -55,7 +70,7 @@ impl JobBuffer {
         let mut node = self.jobs[new_head].lock().unwrap();
 
         match node.deref_mut().take() {
-            None => Err(()),
+            None => Err(IsEmpty),
             Some(job) => {
                 *head = new_head;
 
@@ -64,14 +79,14 @@ impl JobBuffer {
         }
     }
 
-    pub fn steal(&mut self) -> Result<Job, ()> {
+    pub fn steal(&mut self) -> Result<Job, IsEmpty> {
         let mut tail = self.tail.lock().unwrap();
-        let old_tail = tail.clone();
+        let old_tail = *tail;
 
         let mut node = self.jobs[old_tail].lock().unwrap();
 
         match node.deref_mut().take() {
-            None => Err(()),
+            None => Err(IsEmpty),
             Some(job) => {
                 *tail = (old_tail + 1) % self.jobs.capacity();
 

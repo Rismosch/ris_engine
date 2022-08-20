@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use ris_jobs::{job_buffer::JobBuffer, job::Job};
+use ris_jobs::{job::Job, job_buffer::JobBuffer};
 
 #[test]
 fn should_push_and_pop() {
@@ -20,8 +20,7 @@ fn should_push_and_pop() {
 }
 
 #[test]
-fn should_push_and_steal()
-{
+fn should_push_and_steal() {
     let mut job_buffer = JobBuffer::new(4);
 
     let data = Rc::new(RefCell::new(0));
@@ -38,8 +37,7 @@ fn should_push_and_steal()
 }
 
 #[test]
-fn should_push_till_full()
-{
+fn should_push_till_full() {
     let mut job_buffer = JobBuffer::new(2);
 
     let data = Rc::new(RefCell::new(0));
@@ -64,7 +62,7 @@ fn should_push_till_full()
 }
 
 #[test]
-fn should_pop_till_empty(){
+fn should_pop_till_empty() {
     let mut job_buffer = JobBuffer::new(4);
 
     let data = Rc::new(RefCell::new(0));
@@ -78,8 +76,8 @@ fn should_pop_till_empty(){
     let _ = job_buffer.push(job2);
 
     let pop1 = job_buffer.pop();
-    let pop2= job_buffer.pop();
-    let pop3= job_buffer.pop();
+    let pop2 = job_buffer.pop();
+    let pop3 = job_buffer.pop();
 
     assert!(pop1.is_ok());
     assert!(pop2.is_ok());
@@ -92,7 +90,7 @@ fn should_pop_till_empty(){
 }
 
 #[test]
-fn should_steal_till_empty(){
+fn should_steal_till_empty() {
     let mut job_buffer = JobBuffer::new(4);
 
     let data = Rc::new(RefCell::new(0));
@@ -106,8 +104,8 @@ fn should_steal_till_empty(){
     let _ = job_buffer.push(job2);
 
     let steal1 = job_buffer.steal();
-    let steal2= job_buffer.steal();
-    let steal3= job_buffer.steal();
+    let steal2 = job_buffer.steal();
+    let steal3 = job_buffer.steal();
 
     assert!(steal1.is_ok());
     assert!(steal2.is_ok());
@@ -120,7 +118,7 @@ fn should_steal_till_empty(){
 }
 
 #[test]
-fn should_push_pop_and_steal_multiple_times(){
+fn should_push_pop_and_steal_multiple_times() {
     let mut job_buffer = JobBuffer::new(5);
 
     for _ in 0..5 {
@@ -131,7 +129,7 @@ fn should_push_pop_and_steal_multiple_times(){
         let moved_data4 = data.clone();
         let moved_data5 = data.clone();
         let moved_data6 = data.clone();
-        
+
         let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
         let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
         let job3 = Job::new(move || *moved_data3.borrow_mut() = 3);
