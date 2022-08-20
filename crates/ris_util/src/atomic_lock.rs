@@ -3,7 +3,7 @@ use std::{
     thread,
 };
 
-/// Mutex-like utility, mainly used to execute tests synchronously.
+/// Mutex-like utility, mainly used to execute tests serially.
 pub struct AtomicLock<'a> {
     lock: &'a AtomicBool,
 }
@@ -43,13 +43,13 @@ mod examples {
     use crate::atomic_lock::AtomicLock;
     use std::sync::atomic::AtomicBool;
 
-    // Globally shared `AtomicBool`, to sync tests.
+    // Globally shared `AtomicBool`. Tests which should run in series must lock the same `AtomicBool`.
     static mut LOCK: AtomicBool = AtomicBool::new(false);
 
     #[test]
     fn single_threaded_test_one() {
         // Lock the `AtomicBool` and prevent other tests from executing.
-        // If another test is holding the lock, `wait_and_lock()` spinlocks until it aquired the lock.
+        // If another test is holding the lock, `wait_and_lock()` spinlocks until it aquires the lock.
         let lock = AtomicLock::wait_and_lock(unsafe { &mut LOCK });
 
         // do your testing...
