@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::Local;
 use std::fmt;
 
 use super::{
@@ -31,7 +31,7 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.build)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
-        writeln!(f, "Date\n{}", Utc::now())?;
+        write!(f, "Date\n{}", Local::now())?;
 
         Ok(())
     }
