@@ -14,7 +14,7 @@ pub fn build_info() -> BuildInfo {
 impl fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Build")?;
-        writeln!(f, "`build.rs` was not run yet");
+        writeln!(f, "`build.rs` was not run yet")?;
 
         Ok(())
     }
