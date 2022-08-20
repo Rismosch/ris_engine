@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 
 use crate::log_level::LogLevel;
 
@@ -6,7 +6,7 @@ pub struct ConstructedLogMessage {
     pub package: String,
     pub file: String,
     pub line: u32,
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Local>,
     pub priority: LogLevel,
     pub message: String,
 }
