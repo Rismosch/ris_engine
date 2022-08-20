@@ -11,32 +11,16 @@
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct BuildInfo {
-    git_repo: String,
-    git_commit: String,
-    git_branch: String,
-    rustc_version: String,
-    build_date: String,
-}
+pub struct BuildInfo;
 
 pub fn build_info() -> BuildInfo {
-    BuildInfo {
-        git_repo: String::from("https://github.com/Rismosch/ris_engine.git"),
-        git_commit: String::from("3567bd8"),
-        git_branch: String::from("main"),
-        rustc_version: String::from("rustc 1.61.0 (fe5b13d68 2022-05-18)"),
-        build_date: String::from("2022-08-20 11:07:19.183966 UTC"),
-    }
+    BuildInfo {}
 }
 
 impl fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Build")?;
-        writeln!(f, "git repo:      {}", self.git_repo)?;
-        writeln!(f, "git commit:    {}", self.git_commit)?;
-        writeln!(f, "git branch:    {}", self.git_branch)?;
-        writeln!(f, "rustc version: {}", self.rustc_version)?;
-        writeln!(f, "build date:    {}", self.build_date)?;
+        writeln!(f, "`build.rs` was not run yet")?;
 
         Ok(())
     }
