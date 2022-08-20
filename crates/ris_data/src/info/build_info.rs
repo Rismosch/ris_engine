@@ -1,5 +1,11 @@
-// DO NOT PUSH CHANGES TO THIS FILE.
+// DO NOT COMMIT CHANGES TO THIS FILE.
 // THE CONTENTS OF THIS FILE WILL BE REPLACED BY `build.rs`.
+// 
+// I highly recommend you run the following git command:
+// 
+// git update-index --assume-unchanged crates/ris_data/src/info/build_info.rs
+// 
+// Doc: https://git-scm.com/docs/git-update-index#_using_assume_unchanged_bit
 
 use std::fmt;
 
