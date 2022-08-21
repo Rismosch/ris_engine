@@ -13,9 +13,8 @@ impl fmt::Display for IsEmpty {
 
 impl std::error::Error for IsEmpty {}
 
-
 #[derive(Debug)]
-pub struct IsFull{
+pub struct IsFull {
     pub not_pushed_job: Job,
 }
 
