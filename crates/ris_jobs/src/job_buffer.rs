@@ -1,9 +1,16 @@
 use std::{
     ops::{Deref, DerefMut},
-    sync::{Mutex, atomic::{AtomicI32, Ordering}}, ptr::NonNull,
+    ptr::NonNull,
+    sync::{
+        atomic::{AtomicI32, Ordering},
+        Mutex,
+    },
 };
 
-use crate::{job::Job, errors::{IsFull, IsEmpty}};
+use crate::{
+    errors::{IsEmpty, IsFull},
+    job::Job,
+};
 
 pub struct JobBuffer {
     inner: NonNull<Inner>,
@@ -30,14 +37,12 @@ impl JobBuffer {
             refs: AtomicI32::new(0),
         }));
 
-        let inner = unsafe {
-            NonNull::new_unchecked(boxed)
-        };
+        let inner = unsafe { NonNull::new_unchecked(boxed) };
 
         Self { inner }
     }
 
-    pub fn duplicate(&self) -> Self {
+    pub fn duplicate(&mut self) -> Self {
         let inner = self.inner();
 
         inner.refs.fetch_add(1, Ordering::SeqCst);
@@ -53,7 +58,9 @@ impl JobBuffer {
         let mut node = inner.jobs[old_head].lock().unwrap();
 
         match *node.deref() {
-            Some(_) => Err(IsFull{not_pushed_job: job}),
+            Some(_) => Err(IsFull {
+                not_pushed_job: job,
+            }),
             None => {
                 *node.deref_mut() = Some(job);
                 *head = (old_head + 1) % inner.jobs.capacity();
@@ -104,10 +111,8 @@ impl JobBuffer {
         }
     }
 
-    fn inner(&self) -> &mut Inner {
-        unsafe {
-            &mut *self.inner.as_ptr()
-        }
+    fn inner(&mut self) -> &mut Inner {
+        unsafe { &mut *self.inner.as_ptr() }
     }
 }
 
