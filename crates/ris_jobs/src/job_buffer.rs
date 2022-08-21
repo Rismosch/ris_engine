@@ -1,26 +1,19 @@
 use std::{
-    fmt,
     ops::{Deref, DerefMut},
-    sync::Mutex,
+    sync::{Mutex, atomic::{AtomicI32, Ordering}}, ptr::NonNull,
 };
 
-use crate::job::Job;
-
-#[derive(Debug)]
-pub struct IsEmpty;
-
-impl fmt::Display for IsEmpty {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "is empty")
-    }
-}
-
-impl std::error::Error for IsEmpty {}
+use crate::{job::Job, errors::{IsFull, IsEmpty}};
 
 pub struct JobBuffer {
+    inner: NonNull<Inner>,
+}
+
+struct Inner {
     head: Mutex<usize>,
     tail: Mutex<usize>,
     jobs: Vec<Mutex<Option<Job>>>,
+    refs: AtomicI32,
 }
 
 impl JobBuffer {
@@ -30,28 +23,40 @@ impl JobBuffer {
             jobs.push(Mutex::new(None));
         }
 
-        JobBuffer {
+        let boxed = Box::into_raw(Box::new(Inner {
             head: Mutex::new(0),
             tail: Mutex::new(0),
             jobs,
-        }
+            refs: AtomicI32::new(0),
+        }));
+
+        let inner = unsafe {
+            NonNull::new_unchecked(boxed)
+        };
+
+        Self { inner }
     }
 
-    // pub fn duplicate(other: &Self) -> Self {
-    //     // JobBuffer { }
-    //     panic!()
-    // }
+    pub fn duplicate(&self) -> Self {
+        let inner = self.inner();
 
-    pub fn push(&mut self, job: Job) -> Result<(), Job> {
-        let mut head = self.head.lock().unwrap();
+        inner.refs.fetch_add(1, Ordering::SeqCst);
+
+        Self { inner: self.inner }
+    }
+
+    pub fn push(&mut self, job: Job) -> Result<(), IsFull> {
+        let inner = self.inner();
+
+        let mut head = inner.head.lock().unwrap();
         let old_head = *head;
-        let mut node = self.jobs[old_head].lock().unwrap();
+        let mut node = inner.jobs[old_head].lock().unwrap();
 
         match *node.deref() {
-            Some(_) => Err(job),
+            Some(_) => Err(IsFull{not_pushed_job: job}),
             None => {
                 *node.deref_mut() = Some(job);
-                *head = (old_head + 1) % self.jobs.capacity();
+                *head = (old_head + 1) % inner.jobs.capacity();
 
                 Ok(())
             }
@@ -59,15 +64,17 @@ impl JobBuffer {
     }
 
     pub fn pop(&mut self) -> Result<Job, IsEmpty> {
-        let mut head = self.head.lock().unwrap();
+        let inner = self.inner();
+
+        let mut head = inner.head.lock().unwrap();
         let old_head = *head;
         let new_head = if old_head == 0 {
-            self.jobs.capacity() - 1
+            inner.jobs.capacity() - 1
         } else {
             old_head - 1
         };
 
-        let mut node = self.jobs[new_head].lock().unwrap();
+        let mut node = inner.jobs[new_head].lock().unwrap();
 
         match node.deref_mut().take() {
             None => Err(IsEmpty),
@@ -80,17 +87,38 @@ impl JobBuffer {
     }
 
     pub fn steal(&mut self) -> Result<Job, IsEmpty> {
-        let mut tail = self.tail.lock().unwrap();
+        let inner = self.inner();
+
+        let mut tail = inner.tail.lock().unwrap();
         let old_tail = *tail;
 
-        let mut node = self.jobs[old_tail].lock().unwrap();
+        let mut node = inner.jobs[old_tail].lock().unwrap();
 
         match node.deref_mut().take() {
             None => Err(IsEmpty),
             Some(job) => {
-                *tail = (old_tail + 1) % self.jobs.capacity();
+                *tail = (old_tail + 1) % inner.jobs.capacity();
 
                 Ok(job)
+            }
+        }
+    }
+
+    fn inner(&self) -> &mut Inner {
+        unsafe {
+            &mut *self.inner.as_ptr()
+        }
+    }
+}
+
+impl Drop for JobBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            let inner = &mut *self.inner.as_ptr();
+
+            let previous_refs = inner.refs.fetch_sub(1, Ordering::SeqCst);
+            if previous_refs < 1 {
+                let _ = Box::from_raw(inner);
             }
         }
     }
