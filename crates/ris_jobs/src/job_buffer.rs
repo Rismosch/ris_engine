@@ -47,7 +47,7 @@ impl JobBuffer {
 
         // I am not quite sure if I should check `_previous_refs < 0` here, and return
         // an error if true.
-        // 
+        //
         // I am imagining this edgecase, where the buffer will be dropped by one thread
         // while another is duplicating it. `Drop` only drops `self.Inner`, when there
         // are no external references to it anymore. But in the drop method, between the
@@ -55,7 +55,7 @@ impl JobBuffer {
         // believe. If between these two calls, someone were to call `duplicate()`, the
         // drop would free `self.Inner`, and `duplicate()` would try to copy a dangling
         // pointer.
-        // 
+        //
         // This is all theory though, and I hope the design of my job system avoids this
         // edge case.
         let _previous_refs = inner.refs.fetch_add(1, Ordering::SeqCst);
@@ -131,12 +131,12 @@ impl JobBuffer {
 
 impl Drop for JobBuffer {
     fn drop(&mut self) {
-        unsafe {
-            let inner = &mut *self.inner.as_ptr();
+        let inner = self.inner();
 
-            let previous_refs = inner.refs.fetch_sub(1, Ordering::SeqCst);
-            if previous_refs < 1 {
-                let _ = Box::from_raw(inner);
+        let previous_refs = inner.refs.fetch_sub(1, Ordering::SeqCst);
+        if previous_refs < 1 {
+            unsafe {
+                Box::from_raw(inner);
             }
         }
     }
