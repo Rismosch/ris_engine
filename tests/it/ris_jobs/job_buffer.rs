@@ -57,7 +57,7 @@ fn should_push_till_full() {
     assert!(push2.is_ok());
     assert!(push3.is_err());
 
-    push3.err().unwrap().invoke();
+    push3.err().unwrap().not_pushed_job.invoke();
     assert_eq!(*data.borrow(), 3);
 }
 
@@ -151,7 +151,7 @@ fn should_push_pop_and_steal_multiple_times() {
         assert!(push5.is_ok());
         assert!(push6.is_err());
 
-        push6.err().unwrap().invoke();
+        push6.err().unwrap().not_pushed_job.invoke();
         assert_eq!(*data.borrow(), 6);
 
         let steal1 = job_buffer.steal();
@@ -181,6 +181,66 @@ fn should_push_pop_and_steal_multiple_times() {
         steal5.ok().unwrap().invoke();
         assert_eq!(*data.borrow(), 3);
     }
+}
+
+#[test]
+fn should_push_to_original_and_pop_from_duplicate() {
+    let mut original_buffer = JobBuffer::new(4);
+    let mut duplicated_buffer = original_buffer.duplicate();
+
+    let data = Rc::new(RefCell::new(0));
+    let moved_data1 = data.clone();
+    let moved_data2 = data.clone();
+
+    let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
+    let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
+
+    let push1 = original_buffer.push(job1);
+    let push2 = original_buffer.push(job2);
+
+    assert!(push1.is_ok());
+    assert!(push2.is_ok());
+
+    let pop1 = duplicated_buffer.pop();
+    let steal2 = duplicated_buffer.steal();
+
+    assert!(pop1.is_ok());
+    assert!(steal2.is_ok());
+
+    pop1.unwrap().invoke();
+    assert_eq!(*data.borrow(), 2);
+    steal2.unwrap().invoke();
+    assert_eq!(*data.borrow(), 1);
+}
+
+#[test]
+fn should_push_to_duplicate_and_pop_from_original() {
+    let mut original_buffer = JobBuffer::new(4);
+    let mut duplicated_buffer = original_buffer.duplicate();
+
+    let data = Rc::new(RefCell::new(0));
+    let moved_data1 = data.clone();
+    let moved_data2 = data.clone();
+
+    let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
+    let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
+
+    let push1 = duplicated_buffer.push(job1);
+    let push2 = duplicated_buffer.push(job2);
+
+    assert!(push1.is_ok());
+    assert!(push2.is_ok());
+
+    let pop1 = original_buffer.steal();
+    let steal2 = original_buffer.pop();
+
+    assert!(pop1.is_ok());
+    assert!(steal2.is_ok());
+
+    pop1.unwrap().invoke();
+    assert_eq!(*data.borrow(), 1);
+    steal2.unwrap().invoke();
+    assert_eq!(*data.borrow(), 2);
 }
 
 // should_push_and_pop_from_different_threads
