@@ -1,18 +1,18 @@
 use std::fmt;
 
 pub struct Job {
-    wrapped: Option<Box<dyn FnOnce()>>,
+    to_invoke: Option<Box<dyn FnOnce()>>,
 }
 
 impl Job {
     pub fn new<F: FnOnce() + 'static>(job: F) -> Self {
-        let wrapped: Option<Box<dyn FnOnce()>> = Some(Box::new(job));
+        let to_invoke: Option<Box<dyn FnOnce()>> = Some(Box::new(job));
 
-        Self { wrapped }
+        Self { to_invoke }
     }
 
     pub fn invoke(&mut self) {
-        if let Some(to_invoke) = self.wrapped.take() {
+        if let Some(to_invoke) = self.to_invoke.take() {
             to_invoke();
         }
     }
@@ -20,10 +20,10 @@ impl Job {
 
 impl fmt::Debug for Job {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let result = match self.wrapped {
+        let result = match self.to_invoke {
             Some(_) => "Some",
             None => "None",
         };
-        write!(f, "{{wrapped: {}}}", result)
+        write!(f, "{{ to_invoke: {} }}", result)
     }
 }
