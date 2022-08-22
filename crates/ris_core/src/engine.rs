@@ -2,27 +2,27 @@ use ris_data::info::package_info::PackageInfo;
 use ris_log::log_message::LogMessage;
 
 use crate::{
-    bootstrapper::{bootstrap, GlobalContainer},
+    god_object::{GodObject},
     gameloop::{run_one_frame, GameloopState},
 };
 
 pub struct Engine {
-    global_container: GlobalContainer,
+    god_object: GodObject,
 }
 
 impl Engine {
     pub fn new(package_info: PackageInfo) -> Result<Engine, String> {
-        let global_container = bootstrap(package_info)?;
+        let god_object = GodObject::new(package_info)?;
 
-        let app_info = format!("{}", global_container.app_info);
+        let app_info = format!("{}", god_object.app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
 
-        Ok(Engine { global_container })
+        Ok(Engine { god_object })
     }
 
     pub fn run(&mut self) -> Result<(), String> {
         loop {
-            let gameloop_state = run_one_frame(&mut self.global_container);
+            let gameloop_state = run_one_frame(&mut self.god_object);
 
             match gameloop_state {
                 GameloopState::Running => continue,
