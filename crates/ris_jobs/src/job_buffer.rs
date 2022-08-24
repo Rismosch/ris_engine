@@ -17,7 +17,7 @@ pub struct JobBuffer {
 }
 
 struct Inner {
-    head: Mutex<usize>,
+    head: usize,
     tail: Mutex<usize>,
     jobs: Vec<Mutex<Option<Job>>>,
     refs: AtomicI32,
@@ -31,7 +31,7 @@ impl JobBuffer {
         }
 
         let boxed = Box::into_raw(Box::new(Inner {
-            head: Mutex::new(0),
+            head: 0,
             tail: Mutex::new(0),
             jobs,
             refs: AtomicI32::new(0),
@@ -53,9 +53,7 @@ impl JobBuffer {
     pub fn push(&mut self, job: Job) -> Result<(), IsFull> {
         let inner = self.inner();
 
-        let mut head = inner.head.lock().unwrap();
-        let old_head = *head;
-        let mut node = inner.jobs[old_head].lock().unwrap();
+        let mut node = inner.jobs[inner.head].lock().unwrap();
 
         match *node.deref() {
             Some(_) => Err(IsFull {
@@ -63,7 +61,7 @@ impl JobBuffer {
             }),
             None => {
                 *node.deref_mut() = Some(job);
-                *head = (old_head + 1) % inner.jobs.capacity();
+                inner.head = (inner.head + 1) % inner.jobs.capacity();
 
                 Ok(())
             }
@@ -73,12 +71,10 @@ impl JobBuffer {
     pub fn pop(&mut self) -> Result<Job, IsEmpty> {
         let inner = self.inner();
 
-        let mut head = inner.head.lock().unwrap();
-        let old_head = *head;
-        let new_head = if old_head == 0 {
+        let new_head = if inner.head == 0 {
             inner.jobs.capacity() - 1
         } else {
-            old_head - 1
+            inner.head - 1
         };
 
         let mut node = inner.jobs[new_head].lock().unwrap();
@@ -86,7 +82,7 @@ impl JobBuffer {
         match node.deref_mut().take() {
             None => Err(IsEmpty),
             Some(job) => {
-                *head = new_head;
+                inner.head = new_head;
 
                 Ok(job)
             }
