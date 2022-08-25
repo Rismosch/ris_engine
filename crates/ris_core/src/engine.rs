@@ -2,8 +2,8 @@ use ris_data::info::package_info::PackageInfo;
 use ris_log::log_message::LogMessage;
 
 use crate::{
-    god_object::{GodObject},
     gameloop::{run_one_frame, GameloopState},
+    god_object::GodObject,
 };
 
 pub struct Engine {
