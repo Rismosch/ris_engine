@@ -3,12 +3,12 @@ use std::{
     ptr::NonNull,
     sync::{
         atomic::{AtomicI32, Ordering},
-        Mutex,
+        Mutex, TryLockError,
     },
 };
 
 use crate::{
-    errors::{IsEmpty, IsFull},
+    errors::{BlockedOrEmpty, BlockedOrFull, IsEmpty},
     job::Job,
 };
 
@@ -50,15 +50,19 @@ impl JobBuffer {
         Self { inner: self.inner }
     }
 
-    pub fn push(&mut self, job: Job) -> Result<(), IsFull> {
+    pub fn push(&mut self, job: Job) -> Result<(), BlockedOrFull> {
         let inner = self.inner();
 
-        let mut node = inner.jobs[inner.head].lock().unwrap();
+        let mut node = match inner.jobs[inner.head].try_lock() {
+            Ok(node) => node,
+            Err(std::sync::TryLockError::WouldBlock) => {
+                return Err(BlockedOrFull { not_pushed: job })
+            }
+            Err(std::sync::TryLockError::Poisoned(_)) => panic_poisoned(),
+        };
 
         match *node.deref() {
-            Some(_) => Err(IsFull {
-                not_pushed_job: job,
-            }),
+            Some(_) => Err(BlockedOrFull { not_pushed: job }),
             None => {
                 *node.deref_mut() = Some(job);
                 inner.head = (inner.head + 1) % inner.jobs.capacity();
@@ -68,7 +72,7 @@ impl JobBuffer {
         }
     }
 
-    pub fn pop(&mut self) -> Result<Job, IsEmpty> {
+    pub fn wait_and_pop(&mut self) -> Result<Job, IsEmpty> {
         let inner = self.inner();
 
         let new_head = if inner.head == 0 {
@@ -77,7 +81,7 @@ impl JobBuffer {
             inner.head - 1
         };
 
-        let mut node = inner.jobs[new_head].lock().unwrap();
+        let mut node = inner.jobs[new_head].lock().map_err(|_| panic_poisoned())?;
 
         match node.deref_mut().take() {
             None => Err(IsEmpty),
@@ -89,16 +93,16 @@ impl JobBuffer {
         }
     }
 
-    pub fn steal(&mut self) -> Result<Job, IsEmpty> {
+    pub fn steal(&mut self) -> Result<Job, BlockedOrEmpty> {
         let inner = self.inner();
 
-        let mut tail = inner.tail.lock().unwrap();
+        let mut tail = inner.tail.try_lock().map_err(to_steal_error)?;
         let old_tail = *tail;
 
-        let mut node = inner.jobs[old_tail].lock().unwrap();
+        let mut node = inner.jobs[old_tail].try_lock().map_err(to_steal_error)?;
 
         match node.deref_mut().take() {
-            None => Err(IsEmpty),
+            None => Err(BlockedOrEmpty),
             Some(job) => {
                 *tail = (old_tail + 1) % inner.jobs.capacity();
 
@@ -122,5 +126,18 @@ impl Drop for JobBuffer {
                 Box::from_raw(inner);
             }
         }
+    }
+}
+
+fn panic_poisoned() -> ! {
+    let poisoned_error_message = "mutex was poisoned";
+    ris_log::fatal!("{}", poisoned_error_message);
+    panic!("{}", poisoned_error_message);
+}
+
+fn to_steal_error<T>(error: TryLockError<T>) -> BlockedOrEmpty {
+    match error {
+        std::sync::TryLockError::WouldBlock => BlockedOrEmpty,
+        std::sync::TryLockError::Poisoned(_) => panic_poisoned(),
     }
 }

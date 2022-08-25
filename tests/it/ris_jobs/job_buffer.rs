@@ -13,7 +13,7 @@ fn should_push_and_pop() {
     let push = job_buffer.push(job);
     assert!(push.is_ok());
 
-    let job = job_buffer.pop();
+    let job = job_buffer.wait_and_pop();
     assert!(job.is_ok());
     job.unwrap().invoke();
     assert_eq!(*data.borrow(), 42);
@@ -57,7 +57,7 @@ fn should_push_till_full() {
     assert!(push2.is_ok());
     assert!(push3.is_err());
 
-    push3.err().unwrap().not_pushed_job.invoke();
+    push3.err().unwrap().not_pushed.invoke();
     assert_eq!(*data.borrow(), 3);
 }
 
@@ -75,9 +75,9 @@ fn should_pop_till_empty() {
     let _ = job_buffer.push(job1);
     let _ = job_buffer.push(job2);
 
-    let pop1 = job_buffer.pop();
-    let pop2 = job_buffer.pop();
-    let pop3 = job_buffer.pop();
+    let pop1 = job_buffer.wait_and_pop();
+    let pop2 = job_buffer.wait_and_pop();
+    let pop3 = job_buffer.wait_and_pop();
 
     assert!(pop1.is_ok());
     assert!(pop2.is_ok());
@@ -151,15 +151,15 @@ fn should_push_pop_and_steal_multiple_times() {
         assert!(push5.is_ok());
         assert!(push6.is_err());
 
-        push6.err().unwrap().not_pushed_job.invoke();
+        push6.err().unwrap().not_pushed.invoke();
         assert_eq!(*data.borrow(), 6);
 
         let steal1 = job_buffer.steal();
-        let pop2 = job_buffer.pop();
+        let pop2 = job_buffer.wait_and_pop();
         let steal3 = job_buffer.steal();
-        let pop4 = job_buffer.pop();
+        let pop4 = job_buffer.wait_and_pop();
         let steal5 = job_buffer.steal();
-        let pop6 = job_buffer.pop();
+        let pop6 = job_buffer.wait_and_pop();
         let steal7 = job_buffer.steal();
 
         assert!(steal1.is_ok());
@@ -201,7 +201,7 @@ fn should_push_to_original_and_pop_from_duplicate() {
     assert!(push1.is_ok());
     assert!(push2.is_ok());
 
-    let pop1 = duplicated_buffer.pop();
+    let pop1 = duplicated_buffer.wait_and_pop();
     let steal2 = duplicated_buffer.steal();
 
     assert!(pop1.is_ok());
@@ -232,7 +232,7 @@ fn should_push_to_duplicate_and_pop_from_original() {
     assert!(push2.is_ok());
 
     let pop1 = original_buffer.steal();
-    let steal2 = original_buffer.pop();
+    let steal2 = original_buffer.wait_and_pop();
 
     assert!(pop1.is_ok());
     assert!(steal2.is_ok());
@@ -258,3 +258,6 @@ fn should_push_to_duplicate_and_pop_from_original() {
 // should_pop_from_one_thread_while_one_is_stealing_on_full_buffer
 // should_pop_from_one_thread_while_multiple_are_stealing_on_empty_buffer
 // should_pop_from_one_thread_while_multiple_are_stealing_on_full_buffer
+
+// should_push_and_pop_from_one_thread_while_one_is_stealing_on_empty_buffer
+// should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buffer

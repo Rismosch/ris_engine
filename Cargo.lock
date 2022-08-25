@@ -110,6 +110,9 @@ dependencies = [
 [[package]]
 name = "ris_jobs"
 version = "0.1.0"
+dependencies = [
+ "ris_log",
+]
 
 [[package]]
 name = "ris_log"
