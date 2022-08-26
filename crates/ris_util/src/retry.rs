@@ -3,7 +3,7 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: u32, test: F)
         let result = std::panic::catch_unwind(test.clone());
 
         if i == retries - 1 {
-            assert!(result.is_ok(), "failed {} times", i);
+            assert!(result.is_ok(), "failed {} times", retries);
         } else if result.is_ok() {
             return;
         }
