@@ -129,6 +129,9 @@ impl Drop for JobBuffer {
     }
 }
 
+unsafe impl Send for JobBuffer {}
+unsafe impl Sync for JobBuffer {}
+
 fn panic_poisoned() -> ! {
     let poisoned_error_message = "mutex was poisoned";
     ris_log::fatal!("{}", poisoned_error_message);

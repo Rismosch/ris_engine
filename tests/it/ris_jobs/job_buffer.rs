@@ -1,6 +1,12 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, thread, sync::{Mutex, Arc}};
 
 use ris_jobs::{job::Job, job_buffer::JobBuffer};
+
+//-----------------------//
+//                       //
+// single threaded tests //
+//                       //
+//-----------------------//
 
 #[test]
 fn should_push_and_pop() {
@@ -243,11 +249,131 @@ fn should_push_to_duplicate_and_pop_from_original() {
     assert_eq!(*data.borrow(), 2);
 }
 
-// multi threaded tests
+//----------------------//
+//                      //
+// multi threaded tests //
+//                      //
+//----------------------//
 
-// should_steal_from_empty_buffer_from_multiple_threads
-// should_steal_from_full_buffer_from_multiple_threads
-// should_steal_from_partially_filled_buffer_from_multiple_threads
+#[test]
+fn should_steal_from_empty_buffer_from_multiple_threads() {
+    let mut buffer = JobBuffer::new(100);
+    let mut handles = Vec::new();
+    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+
+    for _ in 0..100 {
+        let mut copied_buffer = buffer.duplicate();
+        let copied_results = results.clone();
+        let handle = thread::spawn(move||{
+            let result = copied_buffer.steal();
+            copied_results.lock().unwrap().push(result.is_err());
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let results = results.lock().unwrap();
+    for i in 0..100 {
+        assert!(results[i], "{:?}", results);
+    }
+
+    let mut unsuccessful_steals = 0;
+    while buffer.wait_and_pop().is_ok() {
+        unsuccessful_steals += 1;
+    }
+
+    assert_eq!(unsuccessful_steals, 0);
+}
+
+#[test]
+fn should_steal_from_full_buffer_from_multiple_threads() {
+    let mut buffer = JobBuffer::new(100);
+    let mut handles = Vec::new();
+    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+
+    for _ in 0..100 {
+        let job = Job::new(||());
+        buffer.push(job).unwrap();
+    }
+
+    for _ in 0..100 {
+        let mut copied_buffer = buffer.duplicate();
+        let copied_results = results.clone();
+        let handle = thread::spawn(move||{
+            let result = copied_buffer.steal();
+            copied_results.lock().unwrap().push(result.is_ok());
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let results = results.lock().unwrap();
+    let mut successful_steals = 0;
+    for i in 0..100 {
+        assert_eq!(results.len(), 100);
+        if results[i] {
+            successful_steals += 1;
+        }
+    }
+
+    let mut unsuccessful_steals = 0;
+    while buffer.wait_and_pop().is_ok() {
+        unsuccessful_steals += 1;
+    }
+
+    assert!(successful_steals > 95);
+    assert_eq!(successful_steals + unsuccessful_steals, 100);
+
+}
+
+#[test]
+fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
+    let mut buffer = JobBuffer::new(100);
+    let mut handles = Vec::new();
+    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+
+    for _ in 0..50 {
+        let job = Job::new(||());
+        buffer.push(job).unwrap();
+    }
+
+    for _ in 0..100 {
+        let mut copied_buffer = buffer.duplicate();
+        let copied_results = results.clone();
+        let handle = thread::spawn(move||{
+            let result = copied_buffer.steal();
+            copied_results.lock().unwrap().push(result.is_ok());
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let results = results.lock().unwrap();
+    let mut successful_steals = 0;
+    for i in 0..100 {
+        assert_eq!(results.len(), 100);
+        if results[i] {
+            successful_steals += 1;
+        }
+    }
+
+    let mut unsuccessful_steals = 0;
+    while buffer.wait_and_pop().is_ok() {
+        unsuccessful_steals += 1;
+    }
+
+    assert_eq!(successful_steals, 50);
+    assert_eq!(unsuccessful_steals, 0);
+}
 
 // should_push_from_one_thread_while_one_is_stealing_on_empty_buffer
 // should_push_from_one_thread_while_one_is_stealing_on_full_buffer

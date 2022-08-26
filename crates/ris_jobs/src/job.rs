@@ -5,8 +5,8 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn new<F: FnOnce() + 'static>(job: F) -> Self {
-        let to_invoke: Option<Box<dyn FnOnce()>> = Some(Box::new(job));
+    pub fn new<F: FnOnce() + 'static>(to_invoke: F) -> Self {
+        let to_invoke: Option<Box<dyn FnOnce()>> = Some(Box::new(to_invoke));
 
         Self { to_invoke }
     }
