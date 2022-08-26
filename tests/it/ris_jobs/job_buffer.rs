@@ -1,4 +1,9 @@
-use std::{cell::RefCell, rc::Rc, thread, sync::{Mutex, Arc}};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use ris_jobs::{job::Job, job_buffer::JobBuffer};
 
@@ -264,7 +269,7 @@ fn should_steal_from_empty_buffer_from_multiple_threads() {
     for _ in 0..100 {
         let mut copied_buffer = buffer.duplicate();
         let copied_results = results.clone();
-        let handle = thread::spawn(move||{
+        let handle = thread::spawn(move || {
             let result = copied_buffer.steal();
             copied_results.lock().unwrap().push(result.is_err());
         });
@@ -295,14 +300,14 @@ fn should_steal_from_full_buffer_from_multiple_threads() {
     let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
 
     for _ in 0..100 {
-        let job = Job::new(||());
+        let job = Job::new(|| ());
         buffer.push(job).unwrap();
     }
 
     for _ in 0..100 {
         let mut copied_buffer = buffer.duplicate();
         let copied_results = results.clone();
-        let handle = thread::spawn(move||{
+        let handle = thread::spawn(move || {
             let result = copied_buffer.steal();
             copied_results.lock().unwrap().push(result.is_ok());
         });
@@ -329,7 +334,6 @@ fn should_steal_from_full_buffer_from_multiple_threads() {
 
     assert!(successful_steals > 95);
     assert_eq!(successful_steals + unsuccessful_steals, 100);
-
 }
 
 #[test]
@@ -339,14 +343,14 @@ fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
     let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
 
     for _ in 0..50 {
-        let job = Job::new(||());
+        let job = Job::new(|| ());
         buffer.push(job).unwrap();
     }
 
     for _ in 0..100 {
         let mut copied_buffer = buffer.duplicate();
         let copied_results = results.clone();
-        let handle = thread::spawn(move||{
+        let handle = thread::spawn(move || {
             let result = copied_buffer.steal();
             copied_results.lock().unwrap().push(result.is_ok());
         });
