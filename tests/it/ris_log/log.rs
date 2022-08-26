@@ -15,7 +15,7 @@ static mut LOCK: AtomicBool = AtomicBool::new(false);
 
 #[test]
 fn should_forward_to_one_appender() {
-    retry(5, ||{
+    retry(5, || {
         let lock = AtomicLock::wait_and_lock(unsafe { &mut LOCK });
 
         let (appender, messages) = DebugAppender::new();
