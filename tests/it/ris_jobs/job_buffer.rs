@@ -6,6 +6,7 @@ use std::{
 };
 
 use ris_jobs::{job::Job, job_buffer::JobBuffer};
+use ris_util::retry::retry;
 
 //-----------------------//
 //                       //
@@ -262,11 +263,11 @@ fn should_push_to_duplicate_and_pop_from_original() {
 
 #[test]
 fn should_steal_from_empty_buffer_from_multiple_threads() {
-    let mut buffer = JobBuffer::new(100);
+    let mut buffer = JobBuffer::new(1000);
     let mut handles = Vec::new();
-    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+    let results = Arc::new(Mutex::new(Vec::new()));
 
-    for _ in 0..100 {
+    for _ in 0..1000 {
         let mut copied_buffer = buffer.duplicate();
         let copied_results = results.clone();
         let handle = thread::spawn(move || {
@@ -281,7 +282,7 @@ fn should_steal_from_empty_buffer_from_multiple_threads() {
     }
 
     let results = results.lock().unwrap();
-    for i in 0..100 {
+    for i in 0..1000 {
         assert!(results[i], "{:?}", results);
     }
 
@@ -295,59 +296,61 @@ fn should_steal_from_empty_buffer_from_multiple_threads() {
 
 #[test]
 fn should_steal_from_full_buffer_from_multiple_threads() {
-    let mut buffer = JobBuffer::new(100);
-    let mut handles = Vec::new();
-    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+    retry(5, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let mut handles = Vec::new();
+        let results = Arc::new(Mutex::new(Vec::new()));
 
-    for _ in 0..100 {
-        let job = Job::new(|| ());
-        buffer.push(job).unwrap();
-    }
-
-    for _ in 0..100 {
-        let mut copied_buffer = buffer.duplicate();
-        let copied_results = results.clone();
-        let handle = thread::spawn(move || {
-            let result = copied_buffer.steal();
-            copied_results.lock().unwrap().push(result.is_ok());
-        });
-        handles.push(handle);
-    }
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let results = results.lock().unwrap();
-    let mut successful_steals = 0;
-    for i in 0..100 {
-        assert_eq!(results.len(), 100);
-        if results[i] {
-            successful_steals += 1;
+        for _ in 0..1000 {
+            let job = Job::new(|| {});
+            buffer.push(job).unwrap();
         }
-    }
 
-    let mut unsuccessful_steals = 0;
-    while buffer.wait_and_pop().is_ok() {
-        unsuccessful_steals += 1;
-    }
+        for _ in 0..1000 {
+            let mut copied_buffer = buffer.duplicate();
+            let copied_results = results.clone();
+            let handle = thread::spawn(move || {
+                let result = copied_buffer.steal();
+                copied_results.lock().unwrap().push(result.is_ok());
+            });
+            handles.push(handle);
+        }
 
-    assert!(successful_steals > 95);
-    assert_eq!(successful_steals + unsuccessful_steals, 100);
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        let results = results.lock().unwrap();
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            assert_eq!(results.len(), 1000);
+            if results[i] {
+                successful_steals += 1;
+            }
+        }
+
+        let mut unsuccessful_steals = 0;
+        while buffer.wait_and_pop().is_ok() {
+            unsuccessful_steals += 1;
+        }
+
+        assert!(successful_steals > 990, "successful_steals {}", successful_steals);
+        assert_eq!(successful_steals + unsuccessful_steals, 1000);
+    });
 }
 
 #[test]
 fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
-    let mut buffer = JobBuffer::new(100);
+    let mut buffer = JobBuffer::new(1000);
     let mut handles = Vec::new();
-    let results = Arc::new(Mutex::new(Vec::with_capacity(100)));
+    let results = Arc::new(Mutex::new(Vec::new()));
 
     for _ in 0..50 {
-        let job = Job::new(|| ());
+        let job = Job::new(|| {});
         buffer.push(job).unwrap();
     }
 
-    for _ in 0..100 {
+    for _ in 0..1000 {
         let mut copied_buffer = buffer.duplicate();
         let copied_results = results.clone();
         let handle = thread::spawn(move || {
@@ -363,8 +366,8 @@ fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
 
     let results = results.lock().unwrap();
     let mut successful_steals = 0;
-    for i in 0..100 {
-        assert_eq!(results.len(), 100);
+    for i in 0..1000 {
+        assert_eq!(results.len(), 1000);
         if results[i] {
             successful_steals += 1;
         }
@@ -379,10 +382,232 @@ fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
     assert_eq!(unsuccessful_steals, 0);
 }
 
-// should_push_from_one_thread_while_one_is_stealing_on_empty_buffer
-// should_push_from_one_thread_while_one_is_stealing_on_full_buffer
-// should_push_from_one_thread_while_multiple_are_stealing_on_empty_buffer
-// should_push_from_one_thread_while_multiple_are_stealing_on_full_buffer
+#[test]
+fn should_push_from_one_thread_while_one_is_stealing_on_empty_buffer() {
+    retry(5, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+        
+        let mut push_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let push_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = push_buffer.push(Job::new(|| {}));
+                push_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        let mut steal_buffer = buffer.duplicate();
+        let steal_results_copy = steal_results.clone();
+        let steal_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = steal_buffer.steal();
+                steal_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        push_handle.join().unwrap();
+        steal_handle.join().unwrap();
+    
+        let push_results = push_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+    
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+    
+        let mut successful_pushes = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                successful_pushes += 1;
+            }
+    
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+    
+        assert!(successful_pushes > 990, "successful_pushes: {}", successful_pushes);
+        assert!(successful_steals > 990, "successful_steals: {}", successful_steals);
+    });
+}
+
+#[test]
+fn should_push_from_one_thread_while_one_is_stealing_on_full_buffer() {
+    retry(5, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+        
+        for _ in 0..1000 {
+            buffer.push(Job::new(||{})).unwrap();
+        }
+
+        let mut push_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let push_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = push_buffer.push(Job::new(|| {}));
+                push_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        let mut steal_buffer = buffer.duplicate();
+        let steal_results_copy = steal_results.clone();
+        let steal_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = steal_buffer.steal();
+                steal_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        push_handle.join().unwrap();
+        steal_handle.join().unwrap();
+    
+        let push_results = push_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+    
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+    
+        let mut _successful_pushes = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                _successful_pushes += 1;
+            }
+    
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+    
+        // pushes are super unreliable. successful_pushes can be everything between
+        // 0 or 1000. in this edgecase, i am just happy that nothing panics
+        assert!(successful_steals > 990, "successful_steals: {}", successful_steals);
+    });
+}
+
+
+#[test]
+fn should_push_from_one_thread_while_multiple_are_stealing_on_empty_buffer() {
+    retry(5, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+        
+        let mut push_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let push_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = push_buffer.push(Job::new(|| {}));
+                push_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        let mut steal_handles = Vec::new();
+        for _ in 0..100 {
+            let mut steal_buffer = buffer.duplicate();
+            let steal_results_copy = steal_results.clone();
+            let steal_handle = thread::spawn(move || {
+                for _ in 0..10 {
+                    let result = steal_buffer.steal();
+                    steal_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            });
+            steal_handles.push(steal_handle);
+        }
+    
+        push_handle.join().unwrap();
+        for handle in steal_handles {
+            handle.join().unwrap();
+        }
+    
+        let push_results = push_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+    
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+    
+        let mut successful_pushes = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                successful_pushes += 1;
+            }
+    
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+    
+        assert!(successful_pushes > 990, "successful_pushes: {}", successful_pushes);
+        assert!(successful_steals > 990, "successful_steals: {}", successful_steals);
+    });
+}
+
+#[test]
+fn should_push_from_one_thread_while_multiple_are_stealing_on_full_buffer() {
+    retry(5, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+        
+        for _ in 0..1000 {
+            buffer.push(Job::new(||{})).unwrap();
+        }
+
+        let mut push_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let push_handle = thread::spawn(move || {
+            for _ in 0..1000 {
+                let result = push_buffer.push(Job::new(|| {}));
+                push_results_copy.lock().unwrap().push(result.is_ok());
+            }
+        });
+    
+        let mut steal_handles = Vec::new();
+        for _ in 0..100 {
+            let mut steal_buffer = buffer.duplicate();
+            let steal_results_copy = steal_results.clone();
+            let steal_handle = thread::spawn(move || {
+                for _ in 0..10 {
+                    let result = steal_buffer.steal();
+                    steal_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            });
+            steal_handles.push(steal_handle);
+        }
+    
+        push_handle.join().unwrap();
+        for handle in steal_handles {
+            handle.join().unwrap();
+        }
+    
+        let push_results = push_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+    
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+    
+        let mut _successful_pushes = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                _successful_pushes += 1;
+            }
+    
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+    
+        // pushes are super unreliable. successful_pushes can be everything between
+        // 0 or 1000. in this edgecase, i am just happy that nothing panics
+        assert!(successful_steals > 990, "successful_steals: {}", successful_steals);
+    });
+}
 
 // should_pop_from_one_thread_while_one_is_stealing_on_empty_buffer
 // should_pop_from_one_thread_while_one_is_stealing_on_full_buffer
