@@ -8,11 +8,11 @@ use std::{
 use ris_jobs::{job::Job, job_buffer::JobBuffer};
 use ris_util::retry::retry;
 
-//-----------------------//
-//                       //
-// single threaded tests //
-//                       //
-//-----------------------//
+//-----------------------------//
+//                             //
+//    single threaded tests    //
+//                             //
+//-----------------------------//
 
 #[test]
 fn should_push_and_pop() {
@@ -255,11 +255,11 @@ fn should_push_to_duplicate_and_pop_from_original() {
     assert_eq!(*data.borrow(), 2);
 }
 
-//----------------------//
-//                      //
-// multi threaded tests //
-//                      //
-//----------------------//
+//----------------------------//
+//                            //
+//    multi threaded tests    //
+//                            //
+//----------------------------//
 
 #[test]
 fn should_steal_from_empty_buffer_from_multiple_threads() {
@@ -1001,7 +1001,7 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
 
 #[test]
 fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buffer() {
-    retry(10, ||{
+    retry(10, || {
         let mut buffer = JobBuffer::new(1000);
         let push_results = Arc::new(Mutex::new(Vec::new()));
         let pop_results = Arc::new(Mutex::new(Vec::new()));
@@ -1038,7 +1038,7 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buff
         }
 
         push_pop_handle.join().unwrap();
-        
+
         for handle in steal_handles {
             handle.join().unwrap();
         }
@@ -1084,10 +1084,9 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buff
     });
 }
 
-
 #[test]
 fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffer() {
-    retry(10, ||{
+    retry(10, || {
         let mut buffer = JobBuffer::new(1000);
         let push_results = Arc::new(Mutex::new(Vec::new()));
         let pop_results = Arc::new(Mutex::new(Vec::new()));
@@ -1128,7 +1127,7 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffe
         }
 
         push_pop_handle.join().unwrap();
-        
+
         for handle in steal_handles {
             handle.join().unwrap();
         }
@@ -1181,5 +1180,3 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffe
         );
     });
 }
-
-// should_push_too_much_and_pop_too_little_from_one_thread_while_mutliple_are_stealing_too_much_on_full_buffer
