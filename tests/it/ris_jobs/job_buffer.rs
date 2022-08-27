@@ -981,9 +981,9 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
             }
         }
 
-        // pushing on full buffer here is more reliable than the other full buffer
-        // tests, is because the additional pop in the same threads guarantees that
-        // there is some room in the buffer to push too
+        // pushing on here is more reliable than the other full buffer tests,
+        // because the additional pop in the same threads guarantees that there
+        // is some room in the buffer to push to
         assert!(
             successful_pushes > 950,
             "successful_pushes: {}",
@@ -999,5 +999,187 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
     });
 }
 
-// should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buffer
-// should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffer
+#[test]
+fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buffer() {
+    retry(10, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let pop_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+
+        let mut push_pop_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let pop_results_copy = pop_results.clone();
+        let push_pop_handle = thread::spawn(move || {
+            for _ in 0..100 {
+                for _ in 0..10 {
+                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    push_results_copy.lock().unwrap().push(result.is_ok());
+                }
+
+                for _ in 0..10 {
+                    let result = push_pop_buffer.wait_and_pop();
+                    pop_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            }
+        });
+
+        let mut steal_handles = Vec::new();
+        for _ in 0..10 {
+            let mut steal_buffer = buffer.duplicate();
+            let steal_results_copy = steal_results.clone();
+            let handle = thread::spawn(move || {
+                for _ in 0..100 {
+                    let result = steal_buffer.steal();
+                    steal_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            });
+            steal_handles.push(handle);
+        }
+
+        push_pop_handle.join().unwrap();
+        
+        for handle in steal_handles {
+            handle.join().unwrap();
+        }
+
+        let push_results = push_results.lock().unwrap();
+        let pop_results = pop_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(pop_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+
+        let mut successful_pushes = 0;
+        let mut successful_pops = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                successful_pushes += 1;
+            }
+            if pop_results[i] {
+                successful_pops += 1;
+            }
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+
+        // pushing on here is less reliable than the other empty buffer tests,
+        // because the additional steals allow pushes, to access locked nodes.
+        // in this implementation this is non-blocking and returns an error
+        assert!(
+            successful_pushes > 950,
+            "successful_pushes: {}",
+            successful_pushes
+        );
+        assert_eq!(
+            successful_pops + successful_steals,
+            successful_pushes,
+            "successful_pops: {}, successful_steals: {}",
+            successful_pops,
+            successful_steals
+        );
+    });
+}
+
+
+#[test]
+fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffer() {
+    retry(10, ||{
+        let mut buffer = JobBuffer::new(1000);
+        let push_results = Arc::new(Mutex::new(Vec::new()));
+        let pop_results = Arc::new(Mutex::new(Vec::new()));
+        let steal_results = Arc::new(Mutex::new(Vec::new()));
+
+        for _ in 0..1000 {
+            buffer.push(Job::new(|| {})).unwrap();
+        }
+
+        let mut push_pop_buffer = buffer.duplicate();
+        let push_results_copy = push_results.clone();
+        let pop_results_copy = pop_results.clone();
+        let push_pop_handle = thread::spawn(move || {
+            for _ in 0..100 {
+                for _ in 0..10 {
+                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    push_results_copy.lock().unwrap().push(result.is_ok());
+                }
+
+                for _ in 0..10 {
+                    let result = push_pop_buffer.wait_and_pop();
+                    pop_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            }
+        });
+
+        let mut steal_handles = Vec::new();
+        for _ in 0..10 {
+            let mut steal_buffer = buffer.duplicate();
+            let steal_results_copy = steal_results.clone();
+            let handle = thread::spawn(move || {
+                for _ in 0..100 {
+                    let result = steal_buffer.steal();
+                    steal_results_copy.lock().unwrap().push(result.is_ok());
+                }
+            });
+            steal_handles.push(handle);
+        }
+
+        push_pop_handle.join().unwrap();
+        
+        for handle in steal_handles {
+            handle.join().unwrap();
+        }
+
+        let push_results = push_results.lock().unwrap();
+        let pop_results = pop_results.lock().unwrap();
+        let steal_results = steal_results.lock().unwrap();
+
+        assert_eq!(push_results.len(), 1000);
+        assert_eq!(pop_results.len(), 1000);
+        assert_eq!(steal_results.len(), 1000);
+
+        let mut successful_pushes = 0;
+        let mut successful_pops = 0;
+        let mut successful_steals = 0;
+        for i in 0..1000 {
+            if push_results[i] {
+                successful_pushes += 1;
+            }
+            if pop_results[i] {
+                successful_pops += 1;
+            }
+            if steal_results[i] {
+                successful_steals += 1;
+            }
+        }
+
+        let mut unsuccessful_pops = 0;
+        while buffer.wait_and_pop().is_ok() {
+            unsuccessful_pops += 1;
+        }
+
+        // pushing on here is more reliable than the other full buffer tests,
+        // because the additional pop in the same threads guarantees that there
+        // is some room in the buffer to push to. also, because of the high
+        // contention, not all jobs may be popped off, thus the buffer is still
+        // filled, and unpopped jobs are counted
+        assert!(
+            successful_pushes > 950,
+            "successful_pushes: {}",
+            successful_pushes
+        );
+        assert_eq!(
+            successful_pops + successful_steals + unsuccessful_pops,
+            successful_pushes + 1000,
+            "successful_pops: {}, successful_steals: {}, unsuccessful_pops: {}",
+            successful_pops,
+            successful_steals,
+            unsuccessful_pops
+        );
+    });
+}
+
+// should_push_too_much_and_pop_too_little_from_one_thread_while_mutliple_are_stealing_too_much_on_full_buffer
