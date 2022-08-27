@@ -335,7 +335,7 @@ fn should_steal_from_full_buffer_from_multiple_threads() {
         }
 
         assert!(
-            successful_steals > 990,
+            successful_steals > 950,
             "successful_steals {}",
             successful_steals
         );
@@ -433,12 +433,12 @@ fn should_push_from_one_thread_while_one_is_stealing_on_empty_buffer() {
         }
 
         assert!(
-            successful_pushes > 990,
+            successful_pushes > 950,
             "successful_pushes: {}",
             successful_pushes
         );
         assert!(
-            successful_steals > 990,
+            successful_steals > 950,
             "successful_steals: {}",
             successful_steals
         );
@@ -498,7 +498,7 @@ fn should_push_from_one_thread_while_one_is_stealing_on_full_buffer() {
         // pushes are super unreliable. successful_pushes can be everything between
         // 0 or 1000. in this edgecase, i am just happy that nothing panics
         assert!(
-            successful_steals > 990,
+            successful_steals > 950,
             "successful_steals: {}",
             successful_steals
         );
@@ -558,12 +558,12 @@ fn should_push_from_one_thread_while_multiple_are_stealing_on_empty_buffer() {
         }
 
         assert!(
-            successful_pushes > 990,
+            successful_pushes > 950,
             "successful_pushes: {}",
             successful_pushes
         );
         assert!(
-            successful_steals > 990,
+            successful_steals > 950,
             "successful_steals: {}",
             successful_steals
         );
@@ -629,7 +629,7 @@ fn should_push_from_one_thread_while_multiple_are_stealing_on_full_buffer() {
         // pushes are super unreliable. successful_pushes can be everything between
         // 0 or 1000. in this edgecase, i am just happy that nothing panics
         assert!(
-            successful_steals > 990,
+            successful_steals > 950,
             "successful_steals: {}",
             successful_steals
         );

@@ -10,6 +10,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     }
 
     let (sender, receiver) = channel();
+    let sender = Some(sender);
     let thread_handle = Some(std::thread::spawn(|| log_thread(receiver)));
 
     let log = Logger {
@@ -112,7 +113,7 @@ pub static mut LOG: Option<Logger> = None;
 pub struct Logger {
     pub log_level: LogLevel,
     appenders: Vec<Box<dyn IAppender>>,
-    sender: Sender<LogMessage>,
+    sender: Option<Sender<LogMessage>>,
     thread_handle: Option<JoinHandle<()>>,
 }
 
@@ -124,7 +125,7 @@ impl Logger {
 
 impl Drop for Logger {
     fn drop(&mut self) {
-        let _ = self.sender.send(LogMessage::ShutDown);
+        self.sender.take();
 
         if let Some(thread_handle) = self.thread_handle.take() {
             let _ = thread_handle.join();
@@ -136,15 +137,10 @@ fn log_thread(receiver: Receiver<LogMessage>) {
     unsafe {
         if let Some(log) = &mut LOG {
             for log_message in receiver.iter() {
-                match log_message {
-                    LogMessage::ShutDown => break,
-                    log_message => {
-                        let to_print = log_message.to_string();
+                let to_print = log_message.to_string();
 
-                        for appender in &mut log.appenders {
-                            appender.print(&to_print);
-                        }
-                    }
+                for appender in &mut log.appenders {
+                    appender.print(&to_print);
                 }
             }
         }
@@ -158,7 +154,9 @@ pub fn get_timestamp() -> DateTime<Local> {
 pub fn forward_to_appenders(log_message: LogMessage) {
     unsafe {
         if let Some(log) = &LOG {
-            let _ = log.sender.send(log_message);
+            if let Some(sender) = &log.sender {
+                let _ = sender.send(log_message);
+            }
         }
     }
 }
