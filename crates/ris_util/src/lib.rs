@@ -1,2 +1,2 @@
-pub mod atomic_lock;
 pub mod retry;
+pub mod test_lock;
