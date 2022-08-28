@@ -1,5 +1,5 @@
-use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Mutex;
 use std::thread::JoinHandle;
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
@@ -22,7 +22,6 @@ impl Logger {
 
 impl Drop for Logger {
     fn drop(&mut self) {
-
         if let Ok(mut sender) = self.sender.lock() {
             sender.take();
         }
