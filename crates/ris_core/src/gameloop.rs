@@ -52,7 +52,7 @@ fn pump_events<TInput: IInput>(input: &mut TInput, event_pump: &mut EventPump) -
 }
 
 fn game_logic<TInput: IInput>(input: &TInput) -> bool {
-    thread::sleep(Duration::from_millis(1000));
+    // thread::sleep(Duration::from_millis(1000));
     // ris_log::debug!("{}", frame_buffer.fps());
 
     let buttons = input.general().buttons();
