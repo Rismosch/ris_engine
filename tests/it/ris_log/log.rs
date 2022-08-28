@@ -1,20 +1,19 @@
 use std::{
-    sync::atomic::AtomicBool,
+    sync::Mutex,
     time::{Duration, Instant},
 };
 
 use ris_log::{appenders::i_appender::IAppender, log_level::LogLevel};
-use ris_util::test_lock::TestLock;
 
 use crate::ris_log::blocking_appender::BlockingAppender;
 
 use super::debug_appender::DebugAppender;
 
-static mut LOCK: AtomicBool = AtomicBool::new(false);
+static mut LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn should_forward_to_one_appender() {
-    let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+    let lock = unsafe {LOCK.lock().unwrap()};
 
     let (appender, messages) = DebugAppender::new();
 
@@ -39,7 +38,7 @@ fn should_forward_to_one_appender() {
 
 #[test]
 fn should_forward_to_all_appenders() {
-    let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+    let lock = unsafe {LOCK.lock().unwrap()};
 
     let (appender1, messages1) = DebugAppender::new();
     let (appender2, messages2) = DebugAppender::new();
@@ -68,7 +67,7 @@ fn should_forward_to_all_appenders() {
 
 #[test]
 fn should_not_log_below_log_level() {
-    let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+    let lock = unsafe {LOCK.lock().unwrap()};
 
     for i in 0..7 {
         let (appender, messages) = DebugAppender::new();
@@ -96,7 +95,7 @@ fn should_not_log_below_log_level() {
 #[test]
 fn should_not_block() {
     const TIMEOUT: u64 = 50;
-    let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+    let lock = unsafe {LOCK.lock().unwrap()};
 
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
 
