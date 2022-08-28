@@ -13,7 +13,7 @@ static mut LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn should_forward_to_one_appender() {
-    let lock = unsafe {LOCK.lock().unwrap()};
+    let _lock = unsafe { LOCK.lock().unwrap() };
 
     let (appender, messages) = DebugAppender::new();
 
@@ -32,13 +32,11 @@ fn should_forward_to_one_appender() {
     let results = messages.lock().unwrap();
 
     assert_eq!(results.len(), 6);
-
-    drop(lock)
 }
 
 #[test]
 fn should_forward_to_all_appenders() {
-    let lock = unsafe {LOCK.lock().unwrap()};
+    let _lock = unsafe { LOCK.lock().unwrap() };
 
     let (appender1, messages1) = DebugAppender::new();
     let (appender2, messages2) = DebugAppender::new();
@@ -61,13 +59,11 @@ fn should_forward_to_all_appenders() {
 
     assert_eq!(results1[0], results2[0]);
     assert_eq!(results2[0], results3[0]);
-
-    drop(lock)
 }
 
 #[test]
 fn should_not_log_below_log_level() {
-    let lock = unsafe {LOCK.lock().unwrap()};
+    let _lock = unsafe { LOCK.lock().unwrap() };
 
     for i in 0..7 {
         let (appender, messages) = DebugAppender::new();
@@ -88,14 +84,13 @@ fn should_not_log_below_log_level() {
 
         assert_eq!(results.len(), 6 - i);
     }
-
-    drop(lock)
 }
 
 #[test]
 fn should_not_block() {
     const TIMEOUT: u64 = 50;
-    let lock = unsafe {LOCK.lock().unwrap()};
+
+    let _lock = unsafe { LOCK.lock().unwrap() };
 
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
 
@@ -126,6 +121,4 @@ fn should_not_block() {
         "elapsed2: {}",
         elapsed2.as_millis()
     );
-
-    drop(lock);
 }

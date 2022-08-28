@@ -7,26 +7,24 @@ mod examples {
 
     #[test]
     fn test_one() {
-        let lock = unsafe {LOCK.lock().unwrap()};
+        // You must give the variable a proper name, besides just `_`.
+        // Otherwise, Rust drops the lock too early.
+        let _lock = unsafe {LOCK.lock().unwrap()};
 
         unsafe {
             UNSAFE_SHARED_DATA = String::from("hoi");
             thread::sleep(Duration::from_millis(1));
             assert_eq!(UNSAFE_SHARED_DATA, "hoi");
         }
-
-        drop(lock)
     }
 
     #[test]
     fn test_two() {
-        let lock = unsafe {LOCK.lock().unwrap()};
+        let _lock = unsafe {LOCK.lock().unwrap()};
 
         unsafe {
             UNSAFE_SHARED_DATA = String::from("poi");
             assert_eq!(UNSAFE_SHARED_DATA, "poi");
         }
-
-        drop(lock)
     }
 }
