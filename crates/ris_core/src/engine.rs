@@ -1,4 +1,7 @@
+use std::cell::RefCell;
+
 use ris_data::info::package_info::PackageInfo;
+use ris_jobs::{job_system::{init_run_and_block, self}, job::Job};
 use ris_log::log_message::LogMessage;
 
 use crate::{
@@ -7,7 +10,7 @@ use crate::{
 };
 
 pub struct Engine {
-    god_object: GodObject,
+    god_object: Option<GodObject>,
 }
 
 impl Engine {
@@ -17,21 +20,46 @@ impl Engine {
         let app_info = format!("{}", god_object.app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
 
-        Ok(Engine { god_object })
+        Ok(Engine { god_object: Some(god_object) })
     }
 
     pub fn run(&mut self) -> Result<(), String> {
-        loop {
-            let gameloop_state = run_one_frame(&mut self.god_object);
+        match self.god_object.take() {
+            None => Err(String::from("god_object was already taken")),
+            Some(mut god_object) => {
 
-            match gameloop_state {
-                GameloopState::Running => continue,
-                GameloopState::WantsToQuit => break,
-                GameloopState::Error(error) => return Err(error),
-            }
+                let result = RefCell::new(Ok(()));
+                let god_result = result.clone();
+
+                let god_job = Job::new(move || {
+                    loop {
+                        let gameloop_state = run_one_frame(&mut god_object);
+
+                        for i in 0..10 {
+                            job_system::submit(move || {
+                                let thread_index = job_system::thread_index();
+                                ris_log::debug!("{} {}", thread_index, i);
+                            });
+                        }
+
+                        match gameloop_state {
+                            GameloopState::Running => continue,
+                            GameloopState::WantsToQuit => break,
+                            GameloopState::Error(error) => {
+                                *god_result.borrow_mut() = Err(error);
+                                break;
+                            },
+                        }
+                    }
+                });
+
+                job_system::init_run_and_block(god_job, 1024);
+        
+                let result = result.borrow_mut().to_owned();
+
+                result
+            },
         }
-
-        Ok(())
     }
 }
 
