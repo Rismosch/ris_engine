@@ -10,10 +10,10 @@ use super::{
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {
-    package: PackageInfo,
-    build: BuildInfo,
-    sdl: SdlInfo,
-    cpu: CpuInfo,
+    pub package: PackageInfo,
+    pub build: BuildInfo,
+    pub sdl: SdlInfo,
+    pub cpu: CpuInfo,
 }
 
 pub fn app_info(package: PackageInfo) -> AppInfo {

@@ -4,8 +4,8 @@ use sdl2::version::Version;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct SdlInfo {
-    version: Version,
-    revision: String,
+    pub version: Version,
+    pub revision: String,
 }
 
 pub fn sdl_info() -> SdlInfo {

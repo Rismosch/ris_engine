@@ -2,21 +2,21 @@ use std::fmt;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct CpuInfo {
-    cpu_cache_line_size: i32,
-    cpu_count: i32,
-    has_3d_now: bool,
-    has_alti_vec: bool,
-    has_avx: bool,
-    has_avx2: bool,
-    has_avx512f: bool,
-    has_mmx: bool,
-    has_rdtsc: bool,
-    has_sse: bool,
-    has_sse2: bool,
-    has_sse3: bool,
-    has_sse41: bool,
-    has_sse42: bool,
-    system_ram: i32,
+    pub cpu_cache_line_size: i32,
+    pub cpu_count: i32,
+    pub has_3d_now: bool,
+    pub has_alti_vec: bool,
+    pub has_avx: bool,
+    pub has_avx2: bool,
+    pub has_avx512f: bool,
+    pub has_mmx: bool,
+    pub has_rdtsc: bool,
+    pub has_sse: bool,
+    pub has_sse2: bool,
+    pub has_sse3: bool,
+    pub has_sse41: bool,
+    pub has_sse42: bool,
+    pub system_ram: i32,
 }
 
 pub fn cpu_info() -> CpuInfo {

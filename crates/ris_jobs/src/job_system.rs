@@ -43,6 +43,8 @@ impl JobSystem {
                 run_worker_thread();
             }))
         }
+
+        ris_log::info!("spawned {} worker threads", handles.len());
         let handles = Some(handles);
 
         let buffers = duplicate_buffers(&mut buffers);
@@ -66,6 +68,8 @@ impl JobSystem {
                         Err(_) => ris_log::fatal!("failed to join thread {}", i),
                     }
                 }
+
+                ris_log::info!("job system finished")
             }
             None => ris_log::info!("handles already joined"),
         }
