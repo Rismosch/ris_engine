@@ -1,10 +1,8 @@
 use ris_data::info::package_info::PackageInfo;
-use ris_jobs::{job_system::JobSystem};
+use ris_jobs::job_system::JobSystem;
 use ris_log::log_message::LogMessage;
 
-use crate::{
-    god_object::GodObject, god_job,
-};
+use crate::{god_job, god_object::GodObject};
 
 pub struct Engine {
     god_object: GodObject,
@@ -17,7 +15,7 @@ impl Engine {
         let app_info = format!("{}", god_object.app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
 
-        Ok(Engine { god_object: god_object })
+        Ok(Engine { god_object })
     }
 
     pub fn run(&mut self) -> Result<(), String> {

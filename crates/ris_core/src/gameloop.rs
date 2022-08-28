@@ -1,7 +1,4 @@
-use std::{
-    thread,
-    time::{Duration, Instant},
-};
+use std::time::Instant;
 
 use ris_input::{buttons::IButtons, input::IInput};
 
