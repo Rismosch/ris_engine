@@ -1,4 +1,4 @@
-use std::{sync::{atomic::{AtomicBool, Ordering}}, thread, cell::RefCell};
+use std::{sync::{atomic::{AtomicBool, Ordering}}, thread::{self, JoinHandle}, cell::RefCell};
 
 use crate::{job::Job, job_buffer::JobBuffer, errors::{IsEmpty, BlockedOrEmpty}};
 
@@ -14,44 +14,68 @@ thread_local! {
 
 static DONE: AtomicBool = AtomicBool::new(false);
 
-pub fn init_run_and_block(god_job: Job, buffer_capacity: usize){
-    let cpus = num_cpus::get();
-    ris_log::info!("cpu count: {}", cpus);
+pub struct JobSystem
+{
+    handles: Option<Vec<JoinHandle<()>>>,
+}
 
-    DONE.store(false, Ordering::SeqCst);
+impl JobSystem {
+    pub fn new(buffer_capacity: usize, threads: usize) -> Self {
+        DONE.store(false, Ordering::SeqCst);
 
-    let mut buffers = Vec::with_capacity(cpus);
-    for _ in 0..cpus {
-        buffers.push(JobBuffer::new(buffer_capacity))
-    }
-
-    let wrapped_god_job = Job::new(move||{
-        let mut god_job = god_job;
-        god_job.invoke();
-        DONE.store(true, Ordering::SeqCst);
-    });
-    
-    match buffers[0].push(wrapped_god_job) {
-        Ok(()) => {},
-        Err(_) => ris_log::fatal!("god_job couldn't be submitted to the job system"),
-    }
-    
-    let mut handles = Vec::with_capacity(cpus);
-    for i in 1..cpus {
-        let buffers = duplicate_buffers(&mut buffers);
-        handles.push(thread::spawn(move || worker_thread(i, buffers)))
-    }
-
-    let buffers = duplicate_buffers(&mut buffers);
-    worker_thread(0, buffers);
-
-    let mut i = 0;
-    for handle in handles {
-        i += 1;
-        match handle.join() {
-            Ok(()) => ris_log::trace!("joined thread {}", i),
-            Err(_) => ris_log::fatal!("failed to join thread {}", i),
+        let mut buffers = Vec::with_capacity(threads);
+        for _ in 0..threads {
+            buffers.push(JobBuffer::new(buffer_capacity))
         }
+    
+        // let wrapped_god_job = Job::new(move||{
+        //     let mut god_job = god_job;
+        //     god_job.invoke();
+        //     DONE.store(true, Ordering::SeqCst);
+        // });
+        
+        // match buffers[0].push(wrapped_god_job) {
+        //     Ok(()) => {},
+        //     Err(_) => ris_log::fatal!("god_job couldn't be submitted to the job system"),
+        // }
+        
+        let mut handles = Vec::with_capacity(threads);
+        for i in 1..threads {
+            let buffers = duplicate_buffers(&mut buffers);
+            handles.push(thread::spawn(move || {
+                setup_worker_thread(i, buffers);
+                run_worker_thread();
+            }))
+        };
+        let handles = Some(handles);
+
+        let buffers = duplicate_buffers(&mut buffers);
+        setup_worker_thread(0, buffers);
+
+        Self{handles}
+    }
+
+    pub fn wait_till_done(&mut self){
+
+        DONE.store(true, Ordering::SeqCst);
+
+        empty_buffer();
+
+        match self.handles.take() {
+            Some(handles) => {let mut i = 0;
+                for handle in handles {
+                    i += 1;
+                    match handle.join() {
+                        Ok(()) => ris_log::trace!("joined thread {}", i),
+                        Err(_) => ris_log::fatal!("failed to join thread {}", i),
+                    }
+                }
+
+            },
+            None => ris_log::info!("handles already joined")
+        }
+
+        
     }
 }
 
@@ -65,26 +89,15 @@ fn duplicate_buffers(buffers: &mut Vec<JobBuffer>) -> Vec<JobBuffer> {
     result
 }
 
-// fn setup_worker_thread(index: usize, buffers: &mut Vec<JobBuffer>) {
-//     let local_buffer = buffers[index].duplicate();
-//     let mut steal_buffers = Vec::new();
-//     for (i, buffer) in buffers.iter_mut().enumerate() {
-//         if i == index {
-//             continue;
-//         }
-
-//         let steal_buffer = buffer.duplicate();
-//         steal_buffers.push(steal_buffer);
-//     }
-
-//     WORKER_THREAD.with(move |worker_thread|{
-//         *worker_thread.borrow_mut() = Some(WorkerThread {
-//             local_buffer,
-//             steal_buffers,
-//             index,
-//         });
-//     });
-// }
+fn empty_buffer() {
+    loop {
+        ris_log::trace!("emptying {}", thread_index());
+        match pop_job() {
+            Ok(mut job) => job.invoke(),
+            Err(IsEmpty) => break,
+        }
+    }
+}
 
 pub fn submit<F: FnOnce() + 'static>(job: F){
 
@@ -143,7 +156,7 @@ pub fn thread_index() -> usize {
     result
 }
 
-fn worker_thread(index: usize, buffers: Vec<JobBuffer>) {
+fn setup_worker_thread(index: usize, buffers: Vec<JobBuffer>) {
     let mut buffers = buffers;
 
     let local_buffer = buffers[index].duplicate();
@@ -163,10 +176,14 @@ fn worker_thread(index: usize, buffers: Vec<JobBuffer>) {
             index,
         });
     });
+}
 
+fn run_worker_thread() {
     while !DONE.load(Ordering::SeqCst) {
         run_pending_job();
     }
+
+    empty_buffer();
 }
 
 fn pop_job() -> Result<Job, IsEmpty> {
