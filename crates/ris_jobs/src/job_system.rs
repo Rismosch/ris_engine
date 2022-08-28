@@ -35,17 +35,6 @@ impl JobSystem {
             buffers.push(JobBuffer::new(buffer_capacity))
         }
 
-        // let wrapped_god_job = Job::new(move||{
-        //     let mut god_job = god_job;
-        //     god_job.invoke();
-        //     DONE.store(true, Ordering::SeqCst);
-        // });
-
-        // match buffers[0].push(wrapped_god_job) {
-        //     Ok(()) => {},
-        //     Err(_) => ris_log::fatal!("god_job couldn't be submitted to the job system"),
-        // }
-
         let mut handles = Vec::with_capacity(threads);
         for i in 1..threads {
             let buffers = duplicate_buffers(&mut buffers);
