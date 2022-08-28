@@ -1,8 +1,37 @@
+use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread::JoinHandle;
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Local};
+
+pub static mut LOG: Option<Logger> = None;
+
+pub struct Logger {
+    pub log_level: LogLevel,
+    appenders: Vec<Box<dyn IAppender>>,
+    sender: Mutex<Option<Sender<LogMessage>>>,
+    thread_handle: Option<JoinHandle<()>>,
+}
+
+impl Logger {
+    pub fn appenders(&self) -> &Vec<Box<dyn IAppender>> {
+        &self.appenders
+    }
+}
+
+impl Drop for Logger {
+    fn drop(&mut self) {
+
+        if let Ok(mut sender) = self.sender.lock() {
+            sender.take();
+        }
+
+        if let Some(thread_handle) = self.thread_handle.take() {
+            let _ = thread_handle.join();
+        }
+    }
+}
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
@@ -10,7 +39,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     }
 
     let (sender, receiver) = channel();
-    let sender = Some(sender);
+    let sender = Mutex::new(Some(sender));
     let thread_handle = Some(std::thread::spawn(|| log_thread(receiver)));
 
     let log = Logger {
@@ -28,6 +57,36 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
 pub fn drop() {
     unsafe {
         LOG = None;
+    }
+}
+
+fn log_thread(receiver: Receiver<LogMessage>) {
+    unsafe {
+        if let Some(log) = &mut LOG {
+            for log_message in receiver.iter() {
+                let to_print = log_message.to_string();
+
+                for appender in &mut log.appenders {
+                    appender.print(&to_print);
+                }
+            }
+        }
+    }
+}
+
+pub fn get_timestamp() -> DateTime<Local> {
+    Local::now()
+}
+
+pub fn forward_to_appenders(log_message: LogMessage) {
+    unsafe {
+        if let Some(log) = &LOG {
+            if let Ok(sender) = &log.sender.lock() {
+                if let Some(sender) = sender.as_ref() {
+                    let _ = sender.send(log_message);
+                }
+            }
+        }
     }
 }
 
@@ -106,57 +165,4 @@ macro_rules! log {
             }
         }
     };
-}
-
-pub static mut LOG: Option<Logger> = None;
-
-pub struct Logger {
-    pub log_level: LogLevel,
-    appenders: Vec<Box<dyn IAppender>>,
-    sender: Option<Sender<LogMessage>>,
-    thread_handle: Option<JoinHandle<()>>,
-}
-
-impl Logger {
-    pub fn appenders(&self) -> &Vec<Box<dyn IAppender>> {
-        &self.appenders
-    }
-}
-
-impl Drop for Logger {
-    fn drop(&mut self) {
-        self.sender.take();
-
-        if let Some(thread_handle) = self.thread_handle.take() {
-            let _ = thread_handle.join();
-        }
-    }
-}
-
-fn log_thread(receiver: Receiver<LogMessage>) {
-    unsafe {
-        if let Some(log) = &mut LOG {
-            for log_message in receiver.iter() {
-                let to_print = log_message.to_string();
-
-                for appender in &mut log.appenders {
-                    appender.print(&to_print);
-                }
-            }
-        }
-    }
-}
-
-pub fn get_timestamp() -> DateTime<Local> {
-    Local::now()
-}
-
-pub fn forward_to_appenders(log_message: LogMessage) {
-    unsafe {
-        if let Some(log) = &LOG {
-            if let Some(sender) = &log.sender {
-                let _ = sender.send(log_message);
-            }
-        }
-    }
 }

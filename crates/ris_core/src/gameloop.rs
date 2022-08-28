@@ -37,7 +37,7 @@ fn pump_events<TInput: IInput>(input: &mut TInput, event_pump: &mut EventPump) -
     input.pre_update();
 
     for event in event_pump.poll_iter() {
-        // ris_log::debug!("{:?}", event);
+        // ris_log::trace!("{:?}", event);
 
         if let Event::Quit { .. } = event {
             return true;
@@ -52,7 +52,7 @@ fn pump_events<TInput: IInput>(input: &mut TInput, event_pump: &mut EventPump) -
 }
 
 fn game_logic<TInput: IInput>(input: &TInput) -> bool {
-    thread::sleep(Duration::from_millis(50));
+    thread::sleep(Duration::from_millis(1000));
     // ris_log::debug!("{}", frame_buffer.fps());
 
     let buttons = input.general().buttons();
