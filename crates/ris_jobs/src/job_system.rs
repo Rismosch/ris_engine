@@ -10,17 +10,17 @@ use crate::{
     job_buffer::JobBuffer,
 };
 
-struct WorkerThread {
-    local_buffer: JobBuffer,
-    steal_buffers: Vec<JobBuffer>,
-    index: usize,
-}
+static DONE: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     static WORKER_THREAD: RefCell<Option<WorkerThread>> = RefCell::new(None);
 }
 
-static DONE: AtomicBool = AtomicBool::new(false);
+struct WorkerThread {
+    local_buffer: JobBuffer,
+    steal_buffers: Vec<JobBuffer>,
+    index: usize,
+}
 
 pub struct JobSystem {
     handles: Option<Vec<JoinHandle<()>>>,
@@ -72,26 +72,6 @@ impl JobSystem {
                 ris_log::info!("job system finished")
             }
             None => ris_log::info!("handles already joined"),
-        }
-    }
-}
-
-fn duplicate_buffers(buffers: &mut Vec<JobBuffer>) -> Vec<JobBuffer> {
-    let mut result = Vec::new();
-
-    for buffer in buffers {
-        result.push(buffer.duplicate());
-    }
-
-    result
-}
-
-fn empty_buffer() {
-    loop {
-        ris_log::trace!("emptying {}", thread_index());
-        match pop_job() {
-            Ok(mut job) => job.invoke(),
-            Err(IsEmpty) => break,
         }
     }
 }
@@ -150,6 +130,16 @@ pub fn thread_index() -> usize {
     result
 }
 
+fn duplicate_buffers(buffers: &mut Vec<JobBuffer>) -> Vec<JobBuffer> {
+    let mut result = Vec::new();
+
+    for buffer in buffers {
+        result.push(buffer.duplicate());
+    }
+
+    result
+}
+
 fn setup_worker_thread(index: usize, buffers: Vec<JobBuffer>) {
     let mut buffers = buffers;
 
@@ -178,6 +168,16 @@ fn run_worker_thread() {
     }
 
     empty_buffer();
+}
+
+fn empty_buffer() {
+    loop {
+        ris_log::trace!("emptying {}", thread_index());
+        match pop_job() {
+            Ok(mut job) => job.invoke(),
+            Err(IsEmpty) => break,
+        }
+    }
 }
 
 fn pop_job() -> Result<Job, IsEmpty> {
