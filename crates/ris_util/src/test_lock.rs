@@ -31,11 +31,11 @@ mod examples {
     use super::TestLock;
 
     static mut UNSAFE_SHARED_DATA: String = String::new();
-    static mut LOCK: AtomicBool = AtomicBool::new(false);
+    static LOCK: AtomicBool = AtomicBool::new(false);
 
     #[test]
     fn test_one() {
-        let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+        let lock = TestLock::wait_and_lock(&LOCK);
 
         unsafe {
             UNSAFE_SHARED_DATA = String::from("hoi");
@@ -48,7 +48,7 @@ mod examples {
 
     #[test]
     fn test_two() {
-        let lock = TestLock::wait_and_lock(unsafe { &mut LOCK });
+        let lock = TestLock::wait_and_lock(&LOCK);
 
         unsafe {
             UNSAFE_SHARED_DATA = String::from("poi");
