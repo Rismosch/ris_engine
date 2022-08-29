@@ -115,15 +115,14 @@ pub fn run_pending_job() {
     }
 }
 
-pub fn thread_index() -> usize {
-    let mut result = 0;
+pub fn thread_index() -> i32 {
+    let mut result = -1;
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow().as_ref() {
-            result = worker_thread.index;
+            result = worker_thread.index as i32;
         } else {
             ris_log::error!("calling thread isn't a worker thread");
-            result = usize::MAX;
         }
     });
 

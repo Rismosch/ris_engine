@@ -33,11 +33,11 @@ fn build_content() -> String {
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct BuildInfo {{
-    pub git_repo: String,
-    pub git_commit: String,
-    pub git_branch: String,
-    pub rustc_version: String,
-    pub build_date: String,
+    git_repo: String,
+    git_commit: String,
+    git_branch: String,
+    rustc_version: String,
+    build_date: String,
 }}
 
 pub fn build_info() -> BuildInfo {{
