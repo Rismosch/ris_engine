@@ -1,3 +1,5 @@
+use std::{thread, time::Duration, task::Poll};
+
 use ris_jobs::job_system;
 
 use crate::{
@@ -9,10 +11,17 @@ pub fn run(god_object: &mut GodObject) -> Result<(), String> {
     loop {
         let gameloop_state = run_one_frame(god_object);
 
-        job_system::submit(move || {
+        let future = job_system::submit(|| {
             let thread_index = job_system::thread_index();
-            ris_log::debug!("{}", thread_index);
+            ris_log::debug!("{} hoi", thread_index);
+
+            thread::sleep(Duration::from_millis(100));
+
+            String::from(format!("{} poi", thread_index))
         });
+
+        let result = job_system::wait(future);
+        ris_log::debug!("{}", result);
 
         match gameloop_state {
             GameloopState::Running => continue,

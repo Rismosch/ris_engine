@@ -68,4 +68,6 @@ fn drop_inner<T>(inner: &mut Inner<T>) {
 }
 
 unsafe impl<T: Clone> Send for SettableJobFuture<T> {}
+unsafe impl<T: Clone> Sync for SettableJobFuture<T> {}
 unsafe impl<T: Clone> Send for JobFuture<T> {}
+unsafe impl<T: Clone> Sync for JobFuture<T> {}

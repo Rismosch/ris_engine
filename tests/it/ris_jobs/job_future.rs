@@ -43,7 +43,7 @@ fn should_set_and_poll_on_different_threads(){
                         }
                     },
                     Poll::Ready(value) => {
-                        assert_eq!(*value, 42);
+                        assert_eq!(42, *value);
                         poll_result.store(true, Ordering::SeqCst);
                         break;
                     },
