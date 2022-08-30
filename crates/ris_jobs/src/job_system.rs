@@ -76,12 +76,15 @@ impl JobSystem {
     }
 }
 
-pub fn submit<F: FnOnce() + 'static>(job: F) {
+pub fn submit<ReturnType: Clone, F: FnOnce() -> ReturnType + 'static>(job: F) {
     let mut not_pushed = None;
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            let job = Job::new(job);
+
+            let job = Job::new(||{
+                job();
+            });
 
             match worker_thread.local_buffer.push(job) {
                 Ok(()) => (),
@@ -101,15 +104,9 @@ pub fn submit<F: FnOnce() + 'static>(job: F) {
 
 pub fn run_pending_job() {
     match pop_job() {
-        Ok(job) => {
-            let mut job = job;
-            job.invoke();
-        }
+        Ok(mut job) => job.invoke(),
         Err(IsEmpty) => match steal_job() {
-            Ok(job) => {
-                let mut job = job;
-                job.invoke();
-            }
+            Ok(mut job) => job.invoke(),
             Err(BlockedOrEmpty) => thread::yield_now(),
         },
     }
