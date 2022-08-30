@@ -13,7 +13,7 @@ impl Job {
 
     pub fn invoke(&mut self) {
         if let Some(to_invoke) = self.to_invoke.take() {
-            to_invoke();
+            let result = to_invoke();
         }
     }
 }
