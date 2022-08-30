@@ -1,13 +1,13 @@
 use std::{
     cell::RefCell,
     sync::atomic::{AtomicBool, Ordering},
-    thread::{self, JoinHandle},
+    thread::{self, JoinHandle}, task::Poll,
 };
 
 use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
-    job_buffer::JobBuffer,
+    job_buffer::JobBuffer, job_future::{JobFuture, SettableJobFuture},
 };
 
 static DONE: AtomicBool = AtomicBool::new(false);
@@ -76,16 +76,18 @@ impl JobSystem {
     }
 }
 
-pub fn submit<ReturnType: Clone, F: FnOnce() -> ReturnType + 'static>(job: F) {
+pub fn submit<ReturnType: Clone + 'static, F: FnOnce() -> ReturnType + 'static>(job: F) -> JobFuture<ReturnType> {
     let mut not_pushed = None;
+
+    let (mut settable_future,future) = SettableJobFuture::new();
+
+    let job = Job::new(move ||{
+        let result = job();
+        settable_future.set(result);
+    });
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-
-            let job = Job::new(||{
-                job();
-            });
-
             match worker_thread.local_buffer.push(job) {
                 Ok(()) => (),
                 Err(blocked_or_full) => {
@@ -99,6 +101,19 @@ pub fn submit<ReturnType: Clone, F: FnOnce() -> ReturnType + 'static>(job: F) {
 
     if let Some(mut to_invoke) = not_pushed {
         to_invoke.invoke();
+    }
+
+    future
+}
+
+pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
+    loop {
+        match future.poll() {
+            Poll::Pending => run_pending_job(),
+            Poll::Ready(result) => {
+                return result.clone();
+            }
+        }
     }
 }
 

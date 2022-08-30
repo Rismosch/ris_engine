@@ -59,3 +59,10 @@ fn should_get_thread_index() {
     panic!();
     drop(lock);
 }
+
+#[test]
+fn should_wait_for_future() {
+    let lock = TestLock::wait_and_lock(&LOCK);
+    panic!();
+    drop(lock);
+}
