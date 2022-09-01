@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Mutex;
-use std::thread::{JoinHandle, self};
+use std::thread::{self, JoinHandle};
 
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Local};
@@ -30,7 +30,7 @@ impl Drop for LogGuard {
                 if let Ok(mut sender) = log.sender.lock() {
                     sender.take();
                 }
-        
+
                 if let Some(thread_handle) = log.thread_handle.take() {
                     let _ = thread_handle.join();
                 }
@@ -55,7 +55,11 @@ impl Logger {
     }
 }
 
-pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>, lock: bool) -> Option<LogGuard> {
+pub fn init(
+    log_level: LogLevel,
+    appenders: Vec<Box<dyn IAppender>>,
+    lock: bool,
+) -> Option<LogGuard> {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return None;
     }
@@ -189,7 +193,7 @@ macro_rules! log {
                 if !ris_log::log::is_locked() {
                     let priority = $priority as u8;
                     let log_level = *log.log_level() as u8;
-    
+
                     if priority >= log_level {
                         let package = String::from(env!("CARGO_PKG_NAME"));
                         let file = String::from(file!());
@@ -197,7 +201,7 @@ macro_rules! log {
                         let timestamp = ris_log::log::get_timestamp();
                         let priority = $priority;
                         let message = format!($($arg)*);
-    
+
                         let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
                             package,
                             file,
@@ -206,9 +210,9 @@ macro_rules! log {
                             priority,
                             message,
                         };
-    
+
                         let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
-    
+
                         ris_log::log::forward_to_appenders(message);
                     }
                 }

@@ -1,16 +1,19 @@
 use std::{
     cell::RefCell,
-    sync::atomic::{AtomicBool, Ordering},
-    thread::{self, JoinHandle}, task::Poll,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    task::Poll,
+    thread::{self, JoinHandle},
 };
 
 use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
-    job_buffer::JobBuffer, job_future::{JobFuture, SettableJobFuture},
+    job_buffer::JobBuffer,
+    job_future::{JobFuture, SettableJobFuture},
 };
-
-static DONE: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     static WORKER_THREAD: RefCell<Option<WorkerThread>> = RefCell::new(None);
@@ -24,23 +27,25 @@ struct WorkerThread {
 
 pub struct JobSystem {
     handles: Option<Vec<JoinHandle<()>>>,
+    done: Arc<AtomicBool>,
 }
 
 impl JobSystem {
     pub fn new(buffer_capacity: usize, threads: usize) -> Self {
-        DONE.store(false, Ordering::SeqCst);
-
         let mut buffers = Vec::with_capacity(threads);
         for _ in 0..threads {
             buffers.push(JobBuffer::new(buffer_capacity))
         }
 
+        let done = Arc::new(AtomicBool::new(false));
+
         let mut handles = Vec::with_capacity(threads);
         for i in 1..threads {
             let buffers = duplicate_buffers(&mut buffers);
+            let done_copy = done.clone();
             handles.push(thread::spawn(move || {
                 setup_worker_thread(i, buffers);
-                run_worker_thread();
+                run_worker_thread(i, done_copy);
             }))
         }
 
@@ -50,13 +55,17 @@ impl JobSystem {
         let buffers = duplicate_buffers(&mut buffers);
         setup_worker_thread(0, buffers);
 
-        Self { handles }
+        Self { handles, done }
     }
+}
 
-    pub fn wait_till_done(&mut self) {
-        DONE.store(true, Ordering::SeqCst);
+impl Drop for JobSystem {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping job system...");
 
-        empty_buffer();
+        self.done.store(true, Ordering::SeqCst);
+
+        empty_buffer(0);
 
         match self.handles.take() {
             Some(handles) => {
@@ -68,20 +77,22 @@ impl JobSystem {
                         Err(_) => ris_log::fatal!("failed to join thread {}", i),
                     }
                 }
-
-                ris_log::info!("job system finished")
             }
-            None => ris_log::info!("handles already joined"),
+            None => ris_log::debug!("handles already joined"),
         }
+
+        ris_log::debug!("job system finished")
     }
 }
 
-pub fn submit<ReturnType: Clone + 'static, F: FnOnce() -> ReturnType + 'static>(job: F) -> JobFuture<ReturnType> {
+pub fn submit<ReturnType: Clone + 'static, F: FnOnce() -> ReturnType + 'static>(
+    job: F,
+) -> JobFuture<ReturnType> {
     let mut not_pushed = None;
 
-    let (mut settable_future,future) = SettableJobFuture::new();
+    let (mut settable_future, future) = SettableJobFuture::new();
 
-    let job = Job::new(move ||{
+    let job = Job::new(move || {
         let result = job();
         settable_future.set(result);
     });
@@ -114,16 +125,6 @@ pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
                 return result.clone();
             }
         }
-    }
-}
-
-pub fn run_pending_job() {
-    match pop_job() {
-        Ok(mut job) => job.invoke(),
-        Err(IsEmpty) => match steal_job() {
-            Ok(mut job) => job.invoke(),
-            Err(BlockedOrEmpty) => thread::yield_now(),
-        },
     }
 }
 
@@ -173,21 +174,31 @@ fn setup_worker_thread(index: usize, buffers: Vec<JobBuffer>) {
     });
 }
 
-fn run_worker_thread() {
-    while !DONE.load(Ordering::SeqCst) {
+fn run_worker_thread(index: usize, done: Arc<AtomicBool>) {
+    while !done.load(Ordering::SeqCst) {
         run_pending_job();
     }
 
-    empty_buffer();
+    empty_buffer(index);
 }
 
-fn empty_buffer() {
+fn empty_buffer(index: usize) {
     loop {
-        ris_log::trace!("emptying {}", thread_index());
+        ris_log::trace!("emptying {}", index);
         match pop_job() {
             Ok(mut job) => job.invoke(),
             Err(IsEmpty) => break,
         }
+    }
+}
+
+fn run_pending_job() {
+    match pop_job() {
+        Ok(mut job) => job.invoke(),
+        Err(IsEmpty) => match steal_job() {
+            Ok(mut job) => job.invoke(),
+            Err(BlockedOrEmpty) => thread::yield_now(),
+        },
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{thread, time::Duration, task::Poll};
+use std::{thread, time::Duration};
 
 use ris_jobs::job_system;
 
@@ -17,7 +17,7 @@ pub fn run(god_object: &mut GodObject) -> Result<(), String> {
 
             thread::sleep(Duration::from_millis(100));
 
-            String::from(format!("{} poi", thread_index))
+            format!("{} poi", thread_index)
         });
 
         let result = job_system::wait(future);

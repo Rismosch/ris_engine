@@ -20,11 +20,11 @@ impl Engine {
 
     pub fn run(&mut self) -> Result<(), String> {
         let cpu_count = self.god_object.app_info.cpu.cpu_count as usize;
-        let mut job_system = JobSystem::new(1024, cpu_count);
+        let job_system = JobSystem::new(1024, cpu_count);
 
         let result = god_job::run(&mut self.god_object);
 
-        job_system.wait_till_done();
+        drop(job_system);
 
         result
     }
