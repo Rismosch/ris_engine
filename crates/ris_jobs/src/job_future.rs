@@ -1,6 +1,10 @@
-use std::{task::Poll, sync::atomic::{Ordering, AtomicBool}, ptr::NonNull};
+use std::{
+    ptr::NonNull,
+    sync::atomic::{AtomicBool, Ordering},
+    task::Poll,
+};
 
-pub struct  SettableJobFuture<T: Clone> {
+pub struct SettableJobFuture<T: Clone> {
     inner: NonNull<Inner<T>>,
 }
 
@@ -15,7 +19,7 @@ pub struct Inner<T> {
 
 impl<T: Clone> SettableJobFuture<T> {
     pub fn new() -> (SettableJobFuture<T>, JobFuture<T>) {
-        let boxed = Box::into_raw(Box::new(Inner{
+        let boxed = Box::into_raw(Box::new(Inner {
             poll: Poll::Pending,
             can_be_dropped: AtomicBool::new(false),
         }));
@@ -36,7 +40,7 @@ impl<T: Clone> SettableJobFuture<T> {
 
 impl<T: Clone> JobFuture<T> {
     pub fn poll(&self) -> &Poll<T> {
-        let inner = unsafe { & *self.inner.as_ptr() };
+        let inner = unsafe { &*self.inner.as_ptr() };
 
         &inner.poll
     }
@@ -53,7 +57,7 @@ impl<T: Clone> Drop for SettableJobFuture<T> {
 impl<T: Clone> Drop for JobFuture<T> {
     fn drop(&mut self) {
         let inner = unsafe { &mut *self.inner.as_ptr() };
-        
+
         drop_inner(inner);
     }
 }

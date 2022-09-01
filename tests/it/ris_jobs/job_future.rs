@@ -1,16 +1,24 @@
-use std::{task::Poll, thread, sync::{atomic::{AtomicBool, Ordering}, Arc}, time::{Instant, Duration}};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    task::Poll,
+    thread,
+    time::Instant,
+};
 
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::repeat::repeat;
 
 #[test]
-fn should_set_and_poll_on_single_thread(){
+fn should_set_and_poll_on_single_thread() {
     let (mut settable, future) = SettableJobFuture::new();
 
     assert!(future.poll().is_pending());
 
     settable.set(String::from("hello world"));
-    
+
     match future.poll().clone() {
         Poll::Pending => panic!("expected future to be reads"),
         Poll::Ready(result) => assert_eq!(result, "hello world"),
@@ -18,14 +26,14 @@ fn should_set_and_poll_on_single_thread(){
 }
 
 #[test]
-fn should_set_and_poll_on_different_threads(){
+fn should_set_and_poll_on_different_threads() {
     repeat(1024, || {
         const TIMEOUT: u128 = 100;
 
         let result = Arc::new(AtomicBool::new(false));
         let (mut settable, future) = SettableJobFuture::new();
 
-        let set_handle = thread::spawn(move ||{
+        let set_handle = thread::spawn(move || {
             settable.set(42);
         });
 
@@ -40,12 +48,12 @@ fn should_set_and_poll_on_different_threads(){
                         if duration.as_millis() > TIMEOUT {
                             break;
                         }
-                    },
+                    }
                     Poll::Ready(value) => {
                         assert_eq!(42, *value);
                         poll_result.store(true, Ordering::SeqCst);
                         break;
-                    },
+                    }
                 }
             }
         });

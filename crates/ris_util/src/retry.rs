@@ -6,7 +6,7 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: u32, test: F)
             return;
         }
     }
-    
-    let result = std::panic::catch_unwind(test.clone());
+
+    let result = std::panic::catch_unwind(test);
     assert!(result.is_ok(), "failed {} times", retries);
 }

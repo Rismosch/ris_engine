@@ -1,6 +1,6 @@
 use std::{
-    sync::atomic::AtomicBool,
-    time::{Duration, Instant}, thread,
+    thread,
+    time::{Duration, Instant},
 };
 
 use ris_log::{appenders::i_appender::IAppender, log_level::LogLevel};
