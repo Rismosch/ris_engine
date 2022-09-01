@@ -4,18 +4,13 @@ use std::{
 };
 
 use ris_log::{appenders::i_appender::IAppender, log_level::LogLevel};
-use ris_util::test_lock::TestLock;
 
 use crate::ris_log::blocking_appender::BlockingAppender;
 
 use super::debug_appender::DebugAppender;
 
-static LOCK: AtomicBool = AtomicBool::new(false);
-
 #[test]
 fn should_forward_to_one_appender() {
-    let lock = TestLock::wait_and_lock(&LOCK);
-
     let (appender, messages) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
@@ -33,14 +28,10 @@ fn should_forward_to_one_appender() {
     let results = messages.lock().unwrap();
 
     assert_eq!(results.len(), 6);
-
-    drop(lock);
 }
 
 #[test]
 fn should_forward_to_all_appenders() {
-    let lock = TestLock::wait_and_lock(&LOCK);
-
     let (appender1, messages1) = DebugAppender::new();
     let (appender2, messages2) = DebugAppender::new();
     let (appender3, messages3) = DebugAppender::new();
@@ -62,14 +53,10 @@ fn should_forward_to_all_appenders() {
 
     assert_eq!(results1[0], results2[0]);
     assert_eq!(results2[0], results3[0]);
-
-    drop(lock);
 }
 
 #[test]
 fn should_not_log_below_log_level() {
-    let lock = TestLock::wait_and_lock(&LOCK);
-
     for i in 0..7 {
         let (appender, messages) = DebugAppender::new();
 
@@ -89,14 +76,10 @@ fn should_not_log_below_log_level() {
 
         assert_eq!(results.len(), 6 - i);
     }
-
-    drop(lock);
 }
 
 #[test]
 fn should_not_block() {
-    let lock = TestLock::wait_and_lock(&LOCK);
-
     const TIMEOUT: u64 = 50;
 
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
@@ -128,14 +111,10 @@ fn should_not_block() {
         "elapsed2: {}",
         elapsed2.as_millis()
     );
-
-    drop(lock);
 }
 
 #[test]
 fn should_not_log_from_different_threads_when_locked() {
-    let lock = TestLock::wait_and_lock(&LOCK);
-
     let (appender, messages) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
@@ -160,6 +139,4 @@ fn should_not_log_from_different_threads_when_locked() {
     let results = messages.lock().unwrap();
 
     assert_eq!(results.len(), 1);
-
-    drop(lock);
 }
