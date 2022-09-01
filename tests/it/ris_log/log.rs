@@ -19,7 +19,7 @@ fn should_forward_to_one_appender() {
     let (appender, messages) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-    ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
 
     ris_log::trace!("one");
     ris_log::debug!("two");
@@ -28,7 +28,7 @@ fn should_forward_to_one_appender() {
     ris_log::error!("five");
     ris_log::fatal!("six");
 
-    ris_log::log::drop();
+    drop(log_guard);
 
     let results = messages.lock().unwrap();
 
@@ -46,11 +46,11 @@ fn should_forward_to_all_appenders() {
     let (appender3, messages3) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender1, appender2, appender3];
-    ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
 
     ris_log::info!("my cool message");
 
-    ris_log::log::drop();
+    drop(log_guard);
 
     let results1 = messages1.lock().unwrap();
     let results2 = messages2.lock().unwrap();
@@ -74,7 +74,7 @@ fn should_not_log_below_log_level() {
         let (appender, messages) = DebugAppender::new();
 
         let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-        ris_log::log::init(LogLevel::from(i), appenders);
+        let log_guard = ris_log::log::init(LogLevel::from(i), appenders);
 
         ris_log::trace!("one");
         ris_log::debug!("two");
@@ -83,7 +83,7 @@ fn should_not_log_below_log_level() {
         ris_log::error!("five");
         ris_log::fatal!("six");
 
-        ris_log::log::drop();
+        drop(log_guard);
 
         let results = messages.lock().unwrap();
 
@@ -102,13 +102,13 @@ fn should_not_block() {
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-    ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
 
     let start = Instant::now();
     ris_log::info!("i hope i don't block :S");
     let instant1 = Instant::now();
 
-    ris_log::log::drop();
+    drop(log_guard);
 
     let instant2 = Instant::now();
 
