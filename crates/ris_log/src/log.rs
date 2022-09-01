@@ -7,11 +7,31 @@ use chrono::{DateTime, Local};
 
 pub static mut LOG: Option<Logger> = None;
 
+pub struct LogGuard;
+
 pub struct Logger {
     pub log_level: LogLevel,
     appenders: Vec<Box<dyn IAppender>>,
     sender: Mutex<Option<Sender<LogMessage>>>,
     thread_handle: Option<JoinHandle<()>>,
+}
+
+impl Drop for LogGuard {
+    fn drop(&mut self) {
+        unsafe {
+            if let Some(log) = &mut LOG {
+                if let Ok(mut sender) = log.sender.lock() {
+                    sender.take();
+                }
+        
+                if let Some(thread_handle) = log.thread_handle.take() {
+                    let _ = thread_handle.join();
+                }
+            }
+
+            LOG = None;
+        }
+    }
 }
 
 impl Logger {
@@ -20,21 +40,9 @@ impl Logger {
     }
 }
 
-impl Drop for Logger {
-    fn drop(&mut self) {
-        if let Ok(mut sender) = self.sender.lock() {
-            sender.take();
-        }
-
-        if let Some(thread_handle) = self.thread_handle.take() {
-            let _ = thread_handle.join();
-        }
-    }
-}
-
-pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
+pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) -> Option<LogGuard> {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
-        return;
+        return None;
     }
 
     let (sender, receiver) = channel();
@@ -51,12 +59,8 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender>>) {
     unsafe {
         LOG = Some(log);
     }
-}
 
-pub fn drop() {
-    unsafe {
-        LOG = None;
-    }
+    Some(LogGuard)
 }
 
 fn log_thread(receiver: Receiver<LogMessage>) {

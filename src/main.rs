@@ -9,18 +9,12 @@ use ris_log::{
 
 fn main() -> Result<(), String> {
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![ConsoleAppender::new()];
-    log::init(LogLevel::Trace, appenders);
+    let log_guard = log::init(LogLevel::Trace, appenders);
 
     let package_info = package_info!();
-    let result = run_engine(package_info);
-
-    log::drop();
-
-    result
-}
-
-fn run_engine(package_info: PackageInfo) -> Result<(), String> {
     Engine::new(package_info)?.run()?;
+
+    drop(log_guard);
 
     Ok(())
 }
