@@ -19,14 +19,13 @@ fn should_set_and_poll_on_single_thread(){
 
 #[test]
 fn should_set_and_poll_on_different_threads(){
-    repeat(100, || {
+    repeat(1024, || {
         const TIMEOUT: u128 = 100;
 
         let result = Arc::new(AtomicBool::new(false));
         let (mut settable, future) = SettableJobFuture::new();
 
         let set_handle = thread::spawn(move ||{
-            thread::sleep(Duration::from_millis(1));
             settable.set(42);
         });
 
