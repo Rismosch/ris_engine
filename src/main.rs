@@ -9,7 +9,7 @@ use ris_log::{
 
 fn main() -> Result<(), String> {
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![ConsoleAppender::new()];
-    let log_guard = log::init(LogLevel::Trace, appenders);
+    let log_guard = log::init(LogLevel::Trace, appenders, false);
 
     let package_info = package_info!();
     Engine::new(package_info)?.run()?;

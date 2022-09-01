@@ -1,6 +1,6 @@
 use std::{
     sync::atomic::AtomicBool,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, thread,
 };
 
 use ris_log::{appenders::i_appender::IAppender, log_level::LogLevel};
@@ -19,7 +19,7 @@ fn should_forward_to_one_appender() {
     let (appender, messages) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     ris_log::trace!("one");
     ris_log::debug!("two");
@@ -46,7 +46,7 @@ fn should_forward_to_all_appenders() {
     let (appender3, messages3) = DebugAppender::new();
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender1, appender2, appender3];
-    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     ris_log::info!("my cool message");
 
@@ -74,7 +74,7 @@ fn should_not_log_below_log_level() {
         let (appender, messages) = DebugAppender::new();
 
         let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-        let log_guard = ris_log::log::init(LogLevel::from(i), appenders);
+        let log_guard = ris_log::log::init(LogLevel::from(i), appenders, true);
 
         ris_log::trace!("one");
         ris_log::debug!("two");
@@ -102,7 +102,7 @@ fn should_not_block() {
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
 
     let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
-    let log_guard = ris_log::log::init(LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     let start = Instant::now();
     ris_log::info!("i hope i don't block :S");
@@ -133,6 +133,33 @@ fn should_not_block() {
 }
 
 #[test]
-fn should_lock() {
-    panic!();
+fn should_not_log_from_different_threads_when_locked() {
+    let lock = TestLock::wait_and_lock(&LOCK);
+
+    let (appender, messages) = DebugAppender::new();
+
+    let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
+    let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
+
+    let mut handles = Vec::new();
+    for _ in 0..1000 {
+        let handle = thread::spawn(|| {
+            ris_log::debug!("this will not be logged");
+        });
+        handles.push(handle);
+    }
+
+    ris_log::debug!("this will be logged");
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    drop(log_guard);
+
+    let results = messages.lock().unwrap();
+
+    assert_eq!(results.len(), 1);
+
+    drop(lock);
 }
