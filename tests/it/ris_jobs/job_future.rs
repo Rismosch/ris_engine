@@ -9,7 +9,7 @@ use std::{
 };
 
 use ris_jobs::job_future::SettableJobFuture;
-use ris_util::repeat::repeat;
+use ris_util::{repeat::repeat, retry::retry};
 
 #[test]
 fn should_set_and_poll_on_single_thread() {
@@ -27,8 +27,8 @@ fn should_set_and_poll_on_single_thread() {
 
 #[test]
 fn should_set_and_poll_on_different_threads() {
-    repeat(1000, || {
-        const TIMEOUT: u128 = 200;
+    retry(5, ||repeat(1000, || {
+        const TIMEOUT: u128 = 100;
 
         let result = Arc::new(AtomicBool::new(false));
         let was_timed_out = Arc::new(AtomicBool::new(false));
@@ -67,5 +67,5 @@ fn should_set_and_poll_on_different_threads() {
 
         assert!(!was_timed_out.load(Ordering::SeqCst));
         assert!(result.load(Ordering::SeqCst));
-    });
+    }));
 }
