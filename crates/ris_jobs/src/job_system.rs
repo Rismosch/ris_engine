@@ -39,7 +39,7 @@ impl JobSystem {
 
         let done = Arc::new(AtomicBool::new(false));
 
-        let mut handles = Vec::with_capacity(threads);
+        let mut handles = Vec::with_capacity(threads - 1);
         for i in 1..threads {
             let buffers = duplicate_buffers(&mut buffers);
             let done_copy = done.clone();
@@ -117,6 +117,16 @@ pub fn submit<ReturnType: Clone + 'static, F: FnOnce() -> ReturnType + 'static>(
     future
 }
 
+pub fn run_pending_job() {
+    match pop_job() {
+        Ok(mut job) => job.invoke(),
+        Err(IsEmpty) => match steal_job() {
+            Ok(mut job) => job.invoke(),
+            Err(BlockedOrEmpty) => thread::yield_now(),
+        },
+    }
+}
+
 pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
     loop {
         match future.poll() {
@@ -189,16 +199,6 @@ fn empty_buffer(index: usize) {
             Ok(mut job) => job.invoke(),
             Err(IsEmpty) => break,
         }
-    }
-}
-
-fn run_pending_job() {
-    match pop_job() {
-        Ok(mut job) => job.invoke(),
-        Err(IsEmpty) => match steal_job() {
-            Ok(mut job) => job.invoke(),
-            Err(BlockedOrEmpty) => thread::yield_now(),
-        },
     }
 }
 
