@@ -49,7 +49,7 @@ impl JobSystem {
             }))
         }
 
-        ris_log::info!("spawned {} worker threads", handles.len());
+        // ris_log::info!("spawned {} worker threads", handles.len());
         let handles = Some(handles);
 
         let buffers = duplicate_buffers(&mut buffers);

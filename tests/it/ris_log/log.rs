@@ -13,7 +13,7 @@ use super::debug_appender::DebugAppender;
 fn should_forward_to_one_appender() {
     let (appender, messages) = DebugAppender::new();
 
-    let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
+    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender];
     let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     ris_log::trace!("one");
@@ -36,7 +36,7 @@ fn should_forward_to_all_appenders() {
     let (appender2, messages2) = DebugAppender::new();
     let (appender3, messages3) = DebugAppender::new();
 
-    let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender1, appender2, appender3];
+    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender1, appender2, appender3];
     let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     ris_log::info!("my cool message");
@@ -60,7 +60,7 @@ fn should_not_log_below_log_level() {
     for i in 0..7 {
         let (appender, messages) = DebugAppender::new();
 
-        let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
+        let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender];
         let log_guard = ris_log::log::init(LogLevel::from(i), appenders, true);
 
         ris_log::trace!("one");
@@ -84,7 +84,7 @@ fn should_not_block() {
 
     let (appender, messages) = BlockingAppender::new(Duration::from_millis(TIMEOUT));
 
-    let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
+    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender];
     let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     let start = Instant::now();
@@ -117,7 +117,7 @@ fn should_not_block() {
 fn should_not_log_from_different_threads_when_locked() {
     let (appender, messages) = DebugAppender::new();
 
-    let appenders: Vec<Box<(dyn IAppender + 'static)>> = vec![appender];
+    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender];
     let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     let mut handles = Vec::new();
