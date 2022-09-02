@@ -27,8 +27,8 @@ fn should_set_and_poll_on_single_thread() {
 
 #[test]
 fn should_set_and_poll_on_different_threads() {
-    repeat(1024, || {
-        const TIMEOUT: u128 = 100;
+    repeat(1000, || {
+        const TIMEOUT: u128 = 200;
 
         let result = Arc::new(AtomicBool::new(false));
         let was_timed_out = Arc::new(AtomicBool::new(false));

@@ -7,6 +7,8 @@ use std::thread::{self, JoinHandle};
 use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Local};
 
+pub type Appenders = Vec<Box<(dyn IAppender + Send + 'static)>>;
+
 pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
 
 static LOCKED: AtomicBool = AtomicBool::new(false);
@@ -20,12 +22,6 @@ pub struct Logger {
     log_level: LogLevel,
     sender: Option<Sender<LogMessage>>,
     thread_handle: Option<JoinHandle<()>>,
-}
-
-impl Logger {
-    pub fn log_level(&self) -> &LogLevel {
-        &self.log_level
-    }
 }
 
 impl Drop for LogGuard {
@@ -53,20 +49,14 @@ impl Drop for Logger {
 
 pub fn init(
     log_level: LogLevel,
-    appenders: Vec<Box<dyn IAppender + Send>>,
+    appenders: Appenders,
     lock: bool,
 ) -> Option<LogGuard> {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return None;
     }
 
-    while LOCKED.load(Ordering::SeqCst) {
-        thread::yield_now();
-    }
-
-    if lock {
-        wait_and_lock();
-    }
+    wait_and_lock(lock);
 
     let (sender, receiver) = channel();
     let sender = Some(sender);
@@ -101,15 +91,30 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
     }
 }
 
-fn wait_and_lock() {
-    while LOCKED
-        .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err()
-    {
+fn wait_and_lock(lock: bool) {
+    while LOCKED.load(Ordering::SeqCst) {
         thread::yield_now();
     }
 
-    OWNS_LOCK.with(|owns_lock| *owns_lock.borrow_mut() = true);
+    if lock {
+        while LOCKED
+            .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {
+            thread::yield_now();
+        }
+    
+        OWNS_LOCK.with(|owns_lock| *owns_lock.borrow_mut() = true);
+    }
+}
+
+fn locked() -> bool {
+    let locked = LOCKED.load(Ordering::SeqCst);
+    if !locked {
+        return false;
+    }
+
+    OWNS_LOCK.with(|owns_lock| !*owns_lock.borrow())
 }
 
 fn unlock() {
@@ -118,23 +123,34 @@ fn unlock() {
     LOCKED.store(false, Ordering::SeqCst);
 }
 
-pub fn is_locked() -> bool {
-    if !LOCKED.load(Ordering::SeqCst) {
-        return false;
+pub fn log_level() -> LogLevel {
+    match LOG.lock() {
+        Err(e) => println!("{}", e),
+        Ok(log) => {
+            if let Some(logger) = &*log {
+                return logger.log_level;
+            }
+        },
     }
-
-    let mut result = true;
-
-    OWNS_LOCK.with(|owns_lock| result = !*owns_lock.borrow());
-
-    result
+            
+    LogLevel::None
 }
 
 pub fn get_timestamp() -> DateTime<Local> {
     Local::now()
 }
 
+pub fn can_log(priority: LogLevel) -> bool {
+    let priority = priority as u8;
+    let log_level = log_level() as u8;
+    priority >= log_level
+}
+
 pub fn forward_to_appenders(log_message: LogMessage) {
+    if locked() {
+        return;
+    }
+
     match LOG.lock() {
         Err(e) => println!("{}", e),
         Ok(mut log) => {
@@ -192,38 +208,26 @@ macro_rules! fatal {
 #[macro_export]
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
-        match ris_log::log::LOG.lock() {
-            Err(e) => println!("{}", e),
-            Ok(mut log) => {
-                if let Some(logger) = &*log {
-                    if !ris_log::log::is_locked() {
-                        let priority = $priority as u8;
-                        let log_level = *logger.log_level() as u8;
-    
-                        if priority >= log_level {
-                            let package = String::from(env!("CARGO_PKG_NAME"));
-                            let file = String::from(file!());
-                            let line = line!();
-                            let timestamp = ris_log::log::get_timestamp();
-                            let priority = $priority;
-                            let message = format!($($arg)*);
-    
-                            let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
-                                package,
-                                file,
-                                line,
-                                timestamp,
-                                priority,
-                                message,
-                            };
-    
-                            let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
-    
-                            ris_log::log::forward_to_appenders(message); it locks exaclty here, because of recursive locking
-                        }
-                    }
-                }
-            }
+        if (ris_log::log::can_log($priority)) {
+            let package = String::from(env!("CARGO_PKG_NAME"));
+            let file = String::from(file!());
+            let line = line!();
+            let timestamp = ris_log::log::get_timestamp();
+            let priority = $priority;
+            let message = format!($($arg)*);
+
+            let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
+                package,
+                file,
+                line,
+                timestamp,
+                priority,
+                message,
+            };
+
+            let message = ris_log::log_message::LogMessage::Constructed(constructed_log);
+
+            ris_log::log::forward_to_appenders(message);
         }
     };
 }
