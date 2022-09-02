@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, TryLockError},
     task::Poll,
 };
 
@@ -36,7 +36,10 @@ impl<T: Clone> JobFuture<T> {
         match self.data.try_lock() {
             Ok(data) => data.clone(),
             Err(e) => {
-                ris_log::error!("could not lock future: {}", e);
+                if let TryLockError::Poisoned(e) = e {
+                    ris_log::error!("could not lock future: {}", e);
+                }
+
                 Poll::Pending
             }
         }
