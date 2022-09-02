@@ -6,7 +6,7 @@ use std::{
 };
 
 use ris_jobs::{job::Job, job_buffer::JobBuffer};
-use ris_util::retry::retry;
+use ris_util::testing::retry;
 
 //-----------------------------//
 //                             //

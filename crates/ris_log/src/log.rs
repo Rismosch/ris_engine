@@ -40,7 +40,7 @@ impl Drop for Logger {
     }
 }
 
-pub fn init(log_level: LogLevel, appenders: Appenders, lock: bool) -> Option<LogGuard> {
+pub fn init(log_level: LogLevel, appenders: Appenders) -> Option<LogGuard> {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return None;
     }
