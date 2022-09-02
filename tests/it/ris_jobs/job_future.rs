@@ -33,7 +33,6 @@ fn should_set_and_poll_on_different_threads() {
         let result = Arc::new(AtomicBool::new(false));
         let was_timed_out = Arc::new(AtomicBool::new(false));
 
-
         let (mut settable, future) = SettableJobFuture::new();
 
         let set_handle = thread::spawn(move || {

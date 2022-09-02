@@ -36,7 +36,8 @@ fn should_forward_to_all_appenders() {
     let (appender2, messages2) = DebugAppender::new();
     let (appender3, messages3) = DebugAppender::new();
 
-    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> = vec![appender1, appender2, appender3];
+    let appenders: Vec<Box<(dyn IAppender + Send + 'static)>> =
+        vec![appender1, appender2, appender3];
     let log_guard = ris_log::log::init(LogLevel::Trace, appenders, true);
 
     ris_log::info!("my cool message");

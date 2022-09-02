@@ -122,7 +122,7 @@ pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
         match future.poll() {
             Poll::Pending => run_pending_job(),
             Poll::Ready(result) => {
-                return result.clone();
+                return result;
             }
         }
     }

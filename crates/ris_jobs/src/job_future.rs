@@ -1,7 +1,6 @@
 use std::{
-    ptr::NonNull,
-    sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex},
-    task::Poll, cell::RefCell,
+    sync::{Arc, Mutex},
+    task::Poll,
 };
 
 type Data<T> = Arc<Mutex<Poll<T>>>;
@@ -27,19 +26,19 @@ impl<T> SettableJobFuture<T> {
     pub fn set(&mut self, result: T) {
         self.data.lock().map_or_else(
             |e| ris_log::error!("could not lock future: {}", e),
-            |mut data| *data = Poll::Ready(result)
+            |mut data| *data = Poll::Ready(result),
         );
     }
 }
 
 impl<T: Clone> JobFuture<T> {
     pub fn poll(&self) -> Poll<T> {
-        self.data.lock().map_or_else(
-            |e| {
+        match self.data.try_lock() {
+            Ok(data) => data.clone(),
+            Err(e) => {
                 ris_log::error!("could not lock future: {}", e);
                 Poll::Pending
-            },
-            |data| data.clone()
-        )
+            }
+        }
     }
 }

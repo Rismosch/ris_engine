@@ -27,10 +27,10 @@ pub struct Logger {
 impl Drop for LogGuard {
     fn drop(&mut self) {
         match LOG.lock() {
-            Err(e) => println!("{}", e),
+            Err(e) => println!("error while dropping log: {}", e),
             Ok(mut log) => {
                 unlock();
-        
+
                 *log = None;
             }
         }
@@ -39,19 +39,17 @@ impl Drop for LogGuard {
 
 impl Drop for Logger {
     fn drop(&mut self) {
-       self.sender.take();
-        
+        self.sender.take();
+
         if let Some(thread_handle) = self.thread_handle.take() {
-            let _ = thread_handle.join();
+            if thread_handle.join().is_err() {
+                println!("error: couldn't join logger handle")
+            }
         }
     }
 }
 
-pub fn init(
-    log_level: LogLevel,
-    appenders: Appenders,
-    lock: bool,
-) -> Option<LogGuard> {
+pub fn init(log_level: LogLevel, appenders: Appenders, lock: bool) -> Option<LogGuard> {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return None;
     }
@@ -72,12 +70,12 @@ pub fn init(
         Ok(mut log) => {
             *log = Some(logger);
             Some(LogGuard)
-        },
+        }
         Err(e) => {
-            println!("{}", e);
+            println!("error while initializing log: {}", e);
             unlock();
             None
-        },
+        }
     }
 }
 
@@ -92,10 +90,6 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
 }
 
 fn wait_and_lock(lock: bool) {
-    while LOCKED.load(Ordering::SeqCst) {
-        thread::yield_now();
-    }
-
     if lock {
         while LOCKED
             .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -103,7 +97,7 @@ fn wait_and_lock(lock: bool) {
         {
             thread::yield_now();
         }
-    
+
         OWNS_LOCK.with(|owns_lock| *owns_lock.borrow_mut() = true);
     }
 }
@@ -119,20 +113,20 @@ fn locked() -> bool {
 
 fn unlock() {
     OWNS_LOCK.with(|owns_lock| *owns_lock.borrow_mut() = false);
-        
+
     LOCKED.store(false, Ordering::SeqCst);
 }
 
 pub fn log_level() -> LogLevel {
     match LOG.lock() {
-        Err(e) => println!("{}", e),
+        Err(e) => println!("error while getting log_level: {}", e),
         Ok(log) => {
             if let Some(logger) = &*log {
                 return logger.log_level;
             }
-        },
+        }
     }
-            
+
     LogLevel::None
 }
 
@@ -152,14 +146,14 @@ pub fn forward_to_appenders(log_message: LogMessage) {
     }
 
     match LOG.lock() {
-        Err(e) => println!("{}", e),
+        Err(e) => println!("error while forwarding to appenders: {}", e),
         Ok(mut log) => {
             if let Some(logger) = &mut *log {
                 if let Some(sender) = &mut logger.sender {
                     let _ = sender.send(log_message);
                 }
             }
-        },
+        }
     }
 }
 
