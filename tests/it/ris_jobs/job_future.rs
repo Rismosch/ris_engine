@@ -31,13 +31,17 @@ fn should_set_and_poll_on_different_threads() {
         const TIMEOUT: u128 = 100;
 
         let result = Arc::new(AtomicBool::new(false));
+        let was_timed_out = Arc::new(AtomicBool::new(false));
+
+
         let (mut settable, future) = SettableJobFuture::new();
 
         let set_handle = thread::spawn(move || {
             settable.set(42);
         });
 
-        let poll_result = result.clone();
+        let result_clone = result.clone();
+        let was_timed_out_clone = was_timed_out.clone();
         let poll_handle = thread::spawn(move || {
             let start = Instant::now();
             loop {
@@ -46,12 +50,13 @@ fn should_set_and_poll_on_different_threads() {
                         let now = Instant::now();
                         let duration = now - start;
                         if duration.as_millis() > TIMEOUT {
+                            was_timed_out_clone.store(true, Ordering::SeqCst);
                             break;
                         }
                     }
                     Poll::Ready(value) => {
-                        assert_eq!(42, *value);
-                        poll_result.store(true, Ordering::SeqCst);
+                        assert_eq!(42, value);
+                        result_clone.store(true, Ordering::SeqCst);
                         break;
                     }
                 }
@@ -61,6 +66,7 @@ fn should_set_and_poll_on_different_threads() {
         set_handle.join().unwrap();
         poll_handle.join().unwrap();
 
+        assert!(!was_timed_out.load(Ordering::SeqCst));
         assert!(result.load(Ordering::SeqCst));
     });
 }
