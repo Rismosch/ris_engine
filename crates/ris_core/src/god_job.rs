@@ -1,34 +1,38 @@
 use std::{thread, time::Duration};
 
+use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
 
 use crate::{
-    gameloop::{run_one_frame, GameloopState},
-    god_object::GodObject,
+    god_object::GodObject, gameloop::{output_frame::run_output, logic_frame::run_logic},
 };
 
 pub fn run(god_object: &mut GodObject) -> Result<(), String> {
-    loop {
-        let gameloop_state = run_one_frame(god_object);
+    start_up(god_object);
+    main_loop(god_object)
+}
 
-        let future = job_system::submit(|| {
-            let thread_index = job_system::thread_index();
-            ris_log::debug!("{} hoi", thread_index);
+fn start_up(god_object: &mut GodObject) {
 
-            thread::sleep(Duration::from_millis(100));
+}
 
-            format!("{} poi", thread_index)
-        });
+fn main_loop(god_object: &mut GodObject) -> Result<(), String> {
+    // loop {
+    //     let output_future = job_system::submit(|| run_output());
 
-        let result = job_system::wait(future);
-        ris_log::debug!("{}", result);
+    //     let logic_future = job_system::submit(|| run_logic());
 
-        match gameloop_state {
-            GameloopState::Running => continue,
-            GameloopState::WantsToQuit => break,
-            GameloopState::Error(error) => return Err(error),
-        }
-    }
+    //     // input
+
+    //     job_system::wait(output_future);
+    //     let gameloop_state = job_system::wait(logic_future);
+
+    //     match gameloop_state {
+    //         GameloopState::WantsToContinue => continue,
+    //         GameloopState::WantsToQuit => break,
+    //         GameloopState::Error(error) => return Err(error),
+    //     }
+    // }
 
     Ok(())
 }

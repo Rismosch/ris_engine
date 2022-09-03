@@ -40,9 +40,9 @@ impl Drop for Logger {
     }
 }
 
-pub fn init(log_level: LogLevel, appenders: Appenders) -> Option<LogGuard> {
+pub fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
-        return None;
+        return LogGuard;
     }
 
     let (sender, receiver) = channel();
@@ -58,11 +58,11 @@ pub fn init(log_level: LogLevel, appenders: Appenders) -> Option<LogGuard> {
     match LOG.lock() {
         Ok(mut log) => {
             *log = Some(logger);
-            Some(LogGuard)
+            LogGuard
         }
         Err(e) => {
             println!("error while initializing log: {}", e);
-            None
+            LogGuard
         }
     }
 }
