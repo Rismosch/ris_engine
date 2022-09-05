@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+#[derive(Clone, Copy)]
 pub struct FrameData {
     delta: Duration,
     number: usize,
@@ -8,5 +9,9 @@ pub struct FrameData {
 impl FrameData {
     pub fn new() -> Self {
         FrameData { delta: Duration::ZERO, number: 0 }
+    }
+
+    pub fn bump(&mut self) {
+
     }
 }
