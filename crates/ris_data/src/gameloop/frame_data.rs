@@ -1,28 +1,40 @@
-use std::time::{Duration, Instant};
+use std::{time::{Duration, Instant}};
 
+const DELTAS_COUNT: usize = 4;
 const MAX_DELTA: Duration = Duration::from_millis(500);
-pub const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
+const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
 #[derive(Clone, Copy)]
 pub struct FrameData {
     number: usize,
+    deltas: [Duration; DELTAS_COUNT],
     delta: Duration,
     last_bump: Instant,
 }
 
 impl FrameData {
-    pub fn new() -> Self {
-        FrameData {
-            last_bump: Instant::now(),
-            delta: Duration::ZERO,
-            number: 0,
-        }
-    }
-
     pub fn bump(&mut self) {
         self.number += 1;
+        
         let now = Instant::now();
-        self.delta = calculate_delta(now - self.last_bump);
+
+        let current_delta = now - self.last_bump;
+        let delta_to_set = if current_delta > MAX_DELTA {
+            IDEAL_DELTA
+        } else {
+            current_delta
+        };
+        
+        let index = self.number % DELTAS_COUNT;
+        self.deltas[index] = delta_to_set;
+
+        let mut nanos_sum = 0;
+        for delta in self.deltas {
+            nanos_sum += delta.as_nanos();
+        }
+        let nanos_average = nanos_sum / DELTAS_COUNT as u128;
+        self.delta = Duration::from_nanos(nanos_average as u64);
+
         self.last_bump = now;
     }
 
@@ -39,10 +51,13 @@ impl FrameData {
     }
 }
 
-fn calculate_delta(delta: Duration) -> Duration {
-    if delta > MAX_DELTA {
-        IDEAL_DELTA
-    } else {
-        delta
+impl Default for FrameData {
+    fn default() -> Self {
+        FrameData {
+            last_bump: Instant::now(),
+            deltas: [IDEAL_DELTA; DELTAS_COUNT],
+            delta: Duration::ZERO,
+            number: 0,
+        }
     }
 }
