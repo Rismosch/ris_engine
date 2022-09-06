@@ -1,11 +1,17 @@
-use std::cell::{RefMut, Ref};
+use std::cell::{Ref, RefMut};
 
-use ris_data::gameloop::{input_data::InputData, frame_data::FrameData, logic_data::LogicData, gameloop_state::GameloopState};
+use ris_data::gameloop::{
+    frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
+    logic_data::LogicData,
+};
 
 pub fn run(
     current: &mut LogicData,
     previous: &LogicData,
-    frame: &FrameData) -> GameloopState
-{
+    input: &InputData,
+    frame: &FrameData,
+) -> GameloopState {
+    
+
     GameloopState::WantsToContinue
 }
