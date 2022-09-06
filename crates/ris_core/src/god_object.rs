@@ -1,8 +1,6 @@
-use ris_data::{
-    info::{
-        app_info::{app_info, AppInfo},
-        package_info::PackageInfo,
-    },
+use ris_data::info::{
+    app_info::{app_info, AppInfo},
+    package_info::PackageInfo,
 };
 use ris_input::input::Input;
 use ris_video::video::Video;
