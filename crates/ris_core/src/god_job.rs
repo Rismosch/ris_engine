@@ -27,7 +27,7 @@ fn make<T>(value: T) -> Frame<T> {
 }
 
 pub fn run(god_object: &mut GodObject) -> Result<(), String> {
-    let frame = make(FrameData::new());
+    let frame = make(FrameData::default());
 
     let current_input = make(InputData::new());
     let previous_input = make(InputData::new());
