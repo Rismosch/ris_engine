@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Mutex, MutexGuard,
     },
     task::Poll,
     thread::{self, JoinHandle},
@@ -25,41 +25,39 @@ struct WorkerThread {
     index: usize,
 }
 
-pub struct JobSystem {
+pub struct JobSystemGuard {
     handles: Option<Vec<JoinHandle<()>>>,
     done: Arc<AtomicBool>,
 }
 
-impl JobSystem {
-    pub fn new(buffer_capacity: usize, threads: usize) -> Self {
-        let mut buffers = Vec::with_capacity(threads);
-        for _ in 0..threads {
-            buffers.push(JobBuffer::new(buffer_capacity))
-        }
-
-        let done = Arc::new(AtomicBool::new(false));
-
-        let mut handles = Vec::with_capacity(threads - 1);
-        for i in 1..threads {
-            let buffers = duplicate_buffers(&mut buffers);
-            let done_copy = done.clone();
-            handles.push(thread::spawn(move || {
-                setup_worker_thread(i, buffers);
-                run_worker_thread(i, done_copy);
-            }))
-        }
-
-        ris_log::debug!("spawned {} worker threads", handles.len());
-        let handles = Some(handles);
-
-        let buffers = duplicate_buffers(&mut buffers);
-        setup_worker_thread(0, buffers);
-
-        Self { handles, done }
+pub fn init(buffer_capacity: usize, threads: usize) -> JobSystemGuard {
+    let mut buffers = Vec::with_capacity(threads);
+    for _ in 0..threads {
+        buffers.push(JobBuffer::new(buffer_capacity))
     }
+
+    let done = Arc::new(AtomicBool::new(false));
+
+    let mut handles = Vec::with_capacity(threads - 1);
+    for i in 1..threads {
+        let buffers = duplicate_buffers(&mut buffers);
+        let done_copy = done.clone();
+        handles.push(thread::spawn(move || {
+            setup_worker_thread(i, buffers);
+            run_worker_thread(i, done_copy);
+        }))
+    }
+
+    ris_log::debug!("spawned {} worker threads", handles.len());
+    let handles = Some(handles);
+
+    let buffers = duplicate_buffers(&mut buffers);
+    setup_worker_thread(0, buffers);
+
+    JobSystemGuard { handles, done }
 }
 
-impl Drop for JobSystem {
+impl Drop for JobSystemGuard {
     fn drop(&mut self) {
         ris_log::debug!("dropping job system...");
 
@@ -135,6 +133,18 @@ pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
                 return result;
             }
         }
+    }
+}
+
+pub fn lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    loop {
+        let try_lock_result = mutex.try_lock();
+
+        if let Ok(mutex_guard) = try_lock_result {
+            return mutex_guard;
+        } 
+
+        run_pending_job();
     }
 }
 

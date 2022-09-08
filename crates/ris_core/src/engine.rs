@@ -1,5 +1,5 @@
 use ris_data::info::package_info::PackageInfo;
-use ris_jobs::job_system::JobSystem;
+use ris_jobs::job_system::{JobSystemGuard, self};
 use ris_log::log_message::LogMessage;
 
 use crate::{god_job, god_object::GodObject};
@@ -20,11 +20,11 @@ impl Engine {
 
     pub fn run(&mut self) -> Result<(), String> {
         let cpu_count = self.god_object.app_info.cpu.cpu_count as usize;
-        let job_system = JobSystem::new(1024, cpu_count);
+        let job_system_guard = job_system::init(1024, cpu_count);
 
         let result = god_job::run(&mut self.god_object);
 
-        drop(job_system);
+        drop(job_system_guard);
 
         result
     }
