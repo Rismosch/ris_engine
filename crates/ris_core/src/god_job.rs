@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::{cell::UnsafeCell, sync::Arc};
 
 use ris_data::gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData, output_data::OutputData,
 };
-use ris_jobs::{job_cell::JobCell, job_future::JobFuture, job_system};
+use ris_jobs::{job_future::JobFuture, job_system};
 use sdl2::EventPump;
 
 use crate::{
@@ -12,30 +12,26 @@ use crate::{
     god_object::GodObject,
 };
 
-type Frame<T> = Arc<JobCell<T>>;
-
-fn make<T>(value: T) -> Frame<T> {
-    Arc::new(JobCell::new(value))
-}
+type Frame<T> = Arc<UnsafeCell<T>>;
 
 pub fn run(god_object: &mut GodObject) -> Result<(), String> {
-    let frame = make(FrameData::default());
+    let frame = make_frame::<FrameData>();
 
-    let current_input = make(InputData::default());
-    let previous_input = make(InputData::default());
+    let current_input = make_frame::<InputData>();
+    let previous_input = make_frame::<InputData>();
 
-    let current_logic = make(LogicData::default());
-    let previous_logic = make(LogicData::default());
+    let current_logic = make_frame::<LogicData>();
+    let previous_logic = make_frame::<LogicData>();
 
-    let current_output = make(OutputData::default());
-    let previous_output = make(OutputData::default());
+    let current_output = make_frame::<OutputData>();
+    let previous_output = make_frame::<OutputData>();
 
     loop {
         run_frame(frame.clone());
 
-        current_input.swap(previous_input.get());
-        current_logic.swap(previous_logic.get());
-        current_output.swap(previous_output.get());
+        swap_frame_data(&current_input, get_frame_data(&previous_input));
+        swap_frame_data(&current_logic, get_frame_data(&previous_logic));
+        swap_frame_data(&current_output, get_frame_data(&previous_output));
 
         let output_future = run_output(
             current_output.clone(),
@@ -71,9 +67,9 @@ pub fn run(god_object: &mut GodObject) -> Result<(), String> {
 }
 
 fn run_frame(frame: Frame<FrameData>) {
-    let frame_data = frame.get();
+    let frame_data = get_frame_data(&frame);
     frame_data.bump();
-    frame.swap(frame_data);
+    swap_frame_data(&frame, frame_data);
 }
 
 fn run_output(
@@ -83,10 +79,10 @@ fn run_output(
     frame: Frame<FrameData>,
 ) -> JobFuture<GameloopState> {
     job_system::submit(move || {
-        let current_output_data = current_output.get();
-        let previous_output_data = previous_output.get();
-        let previous_logic_data = previous_logic.get();
-        let frame_data = frame.get();
+        let current_output_data = get_frame_data(&current_output);
+        let previous_output_data = get_frame_data(&previous_output);
+        let previous_logic_data = get_frame_data(&previous_logic);
+        let frame_data = get_frame_data(&frame);
 
         let state = output_frame::run(
             current_output_data,
@@ -95,7 +91,7 @@ fn run_output(
             frame_data,
         );
 
-        current_output.swap(current_output_data);
+        swap_frame_data(&current_output, current_output_data);
 
         state
     })
@@ -108,10 +104,10 @@ fn run_logic(
     frame: Frame<FrameData>,
 ) -> JobFuture<GameloopState> {
     job_system::submit(move || {
-        let current_logic_data = current_logic.get();
-        let previous_logic_data = previous_logic.get();
-        let previous_input_data = previous_input.get();
-        let frame_data = frame.get();
+        let current_logic_data = get_frame_data(&current_logic);
+        let previous_logic_data = get_frame_data(&previous_logic);
+        let previous_input_data = get_frame_data(&previous_input);
+        let frame_data = get_frame_data(&frame);
 
         let state = logic_frame::run(
             current_logic_data,
@@ -120,7 +116,7 @@ fn run_logic(
             frame_data,
         );
 
-        current_logic.swap(current_logic_data);
+        swap_frame_data(&current_logic, current_logic_data);
 
         state
     })
@@ -132,9 +128,9 @@ fn run_input(
     frame: Frame<FrameData>,
     event_pump: &mut EventPump,
 ) -> GameloopState {
-    let current_input_data = current_input.get();
-    let previous_input_data = previous_input.get();
-    let frame_data = frame.get();
+    let current_input_data = get_frame_data(&current_input);
+    let previous_input_data = get_frame_data(&previous_input);
+    let frame_data = get_frame_data(&frame);
 
     let state = input_frame::run(
         current_input_data,
@@ -143,7 +139,7 @@ fn run_input(
         event_pump,
     );
 
-    current_input.swap(current_input_data);
+    swap_frame_data(&current_input, current_input_data);
 
     state
 }
@@ -173,4 +169,17 @@ fn evaluate_states(
     }
 
     GameloopState::WantsToQuit
+}
+
+fn make_frame<T: Default>() -> Frame<T> {
+    Arc::new(UnsafeCell::new(T::default()))
+}
+
+#[allow(clippy::mut_from_ref)]
+fn get_frame_data<T>(frame: &UnsafeCell<T>) -> &mut T {
+    unsafe { &mut *frame.get() }
+}
+
+fn swap_frame_data<T>(frame: &UnsafeCell<T>, value: &mut T) {
+    std::mem::swap(get_frame_data(frame), value);
 }
