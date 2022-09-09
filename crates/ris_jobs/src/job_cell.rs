@@ -11,6 +11,7 @@ impl<T> JobCell<T> {
         }
     }
 
+    /// # ⚠ USE ONLY TO MOVE THINGS IN AND OUT OF A JOB ⚠
     #[allow(clippy::mut_from_ref)]
     pub fn get(&self) -> &mut T {
         unsafe { &mut *self.value.get() }
