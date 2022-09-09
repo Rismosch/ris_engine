@@ -4,7 +4,6 @@ const DELTAS_COUNT: usize = 4;
 const MAX_DELTA: Duration = Duration::from_millis(500);
 const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
-#[derive(Clone, Copy)]
 pub struct FrameData {
     number: usize,
     deltas: [Duration; DELTAS_COUNT],
