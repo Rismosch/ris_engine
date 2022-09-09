@@ -1,2 +1,2 @@
-#[derive(Default, Clone, Copy)]
+#[derive(Default)]
 pub struct OutputData {}

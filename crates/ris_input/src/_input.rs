@@ -4,7 +4,7 @@ use crate::{
     gamepad::{Gamepad, IGamepad},
     general::{General, IGeneral},
     keyboard::{IKeyboard, Keyboard},
-    mouse::{IMouse, Mouse},
+    mouse_logic::{IMouse, Mouse},
 };
 
 pub struct Input {
