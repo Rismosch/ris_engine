@@ -3,12 +3,11 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    task::Poll,
     thread,
     time::Instant,
 };
 
-use ris_jobs::job_future::SettableJobFuture;
+use ris_jobs::{job_future::SettableJobFuture, job_poll::JobPoll};
 use ris_util::testing::{repeat, retry};
 
 #[test]
@@ -19,9 +18,9 @@ fn should_set_and_poll_on_single_thread() {
 
     settable.set(String::from("hello world"));
 
-    match future.poll().clone() {
-        Poll::Pending => panic!("expected future to be reads"),
-        Poll::Ready(result) => assert_eq!(result, "hello world"),
+    match future.poll() {
+        JobPoll::Pending => panic!("expected future to be reads"),
+        JobPoll::Ready(result) => assert_eq!(result, "hello world"),
     }
 }
 
@@ -46,7 +45,7 @@ fn should_set_and_poll_on_different_threads() {
                 let start = Instant::now();
                 loop {
                     match future.poll() {
-                        Poll::Pending => {
+                        JobPoll::Pending => {
                             let now = Instant::now();
                             let duration = now - start;
                             if duration.as_millis() > TIMEOUT {
@@ -54,7 +53,7 @@ fn should_set_and_poll_on_different_threads() {
                                 break;
                             }
                         }
-                        Poll::Ready(value) => {
+                        JobPoll::Ready(value) => {
                             assert_eq!(42, value);
                             result_clone.store(true, Ordering::SeqCst);
                             break;
