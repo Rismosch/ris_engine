@@ -13,7 +13,7 @@ pub fn run(
     frame: &FrameData,
 ) -> GameloopState {
     
-    ris_log::debug!("{} {} {}", job_system::thread_index(), frame.number(), frame.fps());
+    // ris_log::debug!("{} {} {}", job_system::thread_index(), frame.number(), frame.fps());
 
     GameloopState::WantsToContinue
 }

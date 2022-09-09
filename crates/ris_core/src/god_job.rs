@@ -1,5 +1,5 @@
 use std::{
-    cell::{Cell, RefCell},
+    cell::{Cell, RefCell, UnsafeCell},
     sync::Arc,
     thread,
     time::{Duration, Instant},
@@ -12,7 +12,7 @@ use ris_data::gameloop::{
     logic_data::LogicData,
     output_data::OutputData,
 };
-use ris_jobs::{job_future::JobFuture, job_system};
+use ris_jobs::{job_future::JobFuture, job_system, job_cell::JobCell};
 use sdl2::EventPump;
 
 use crate::{
@@ -20,10 +20,10 @@ use crate::{
     god_object::GodObject,
 };
 
-type Frame<T> = Arc<Cell<T>>;
+type Frame<T> = Arc<JobCell<T>>;
 
 fn make<T>(value: T) -> Frame<T> {
-    Arc::new(Cell::new(value))
+    Arc::new(JobCell::new(value))
 }
 
 pub fn run(god_object: &mut GodObject) -> Result<(), String> {
@@ -41,9 +41,9 @@ pub fn run(god_object: &mut GodObject) -> Result<(), String> {
     loop {
         run_frame(frame.clone());
 
-        current_input.swap(&previous_input);
-        current_logic.swap(&previous_logic);
-        current_output.swap(&previous_output);
+        current_input.swap(previous_input.get());
+        current_logic.swap(previous_logic.get());
+        current_output.swap(previous_output.get());
 
         let output_future = run_output(
             current_output.clone(),
@@ -144,8 +144,6 @@ fn run_input(
     frame: Frame<FrameData>,
     event_pump: &mut EventPump
 ) -> GameloopState {
-    current_input.swap(&previous_input);
-
     let mut current_input_data = current_input.get();
     let previous_input_data = previous_input.get();
     let frame_data = frame.get();

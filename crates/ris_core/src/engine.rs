@@ -1,5 +1,5 @@
 use ris_data::info::package_info::PackageInfo;
-use ris_jobs::job_system::{JobSystemGuard, self};
+use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
 
 use crate::{god_job, god_object::GodObject};
