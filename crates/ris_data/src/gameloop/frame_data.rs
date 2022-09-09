@@ -1,4 +1,4 @@
-use std::{time::{Duration, Instant}};
+use std::time::{Duration, Instant};
 
 const DELTAS_COUNT: usize = 4;
 const MAX_DELTA: Duration = Duration::from_millis(500);
@@ -15,7 +15,7 @@ pub struct FrameData {
 impl FrameData {
     pub fn bump(&mut self) {
         self.number += 1;
-        
+
         let now = Instant::now();
 
         let current_delta = now - self.last_bump;
@@ -24,7 +24,7 @@ impl FrameData {
         } else {
             current_delta
         };
-        
+
         let index = self.number % DELTAS_COUNT;
         self.deltas[index] = delta_to_set;
 
