@@ -9,6 +9,8 @@ pub fn run(
     _frame: &FrameData,
     event_pump: &mut EventPump,
 ) -> GameloopState {
+
+    
     for event in event_pump.poll_iter() {
         ris_log::trace!("{:?}", event);
 

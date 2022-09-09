@@ -14,7 +14,7 @@ use crate::{
 
 type Frame<T> = Arc<UnsafeCell<T>>;
 
-pub fn run(god_object: &mut GodObject) -> Result<(), String> {
+pub fn run(mut god_object: GodObject) -> Result<(), String> {
     let frame = make_frame::<FrameData>();
 
     let current_input = make_frame::<InputData>();
