@@ -1,8 +1,2 @@
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct LogicData {}
-
-impl LogicData {
-    pub fn new() -> Self {
-        Self {}
-    }
-}

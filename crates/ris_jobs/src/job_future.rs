@@ -1,6 +1,4 @@
-use std::{
-    sync::{Arc, Mutex, TryLockError},
-};
+use std::sync::{Arc, Mutex, TryLockError};
 
 use crate::job_poll::JobPoll;
 

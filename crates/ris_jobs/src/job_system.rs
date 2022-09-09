@@ -11,7 +11,8 @@ use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
     job_buffer::JobBuffer,
-    job_future::{JobFuture, SettableJobFuture}, job_poll::JobPoll,
+    job_future::{JobFuture, SettableJobFuture},
+    job_poll::JobPoll,
 };
 
 thread_local! {
@@ -133,13 +134,13 @@ pub fn wait<ReturnType>(future: JobFuture<ReturnType>) -> ReturnType {
     }
 }
 
-pub fn lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     loop {
         let try_lock_result = mutex.try_lock();
 
         if let Ok(mutex_guard) = try_lock_result {
             return mutex_guard;
-        } 
+        }
 
         run_pending_job();
     }

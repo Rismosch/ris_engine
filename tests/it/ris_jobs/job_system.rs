@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ris_jobs::{job_system, job_poll::JobPoll};
+use ris_jobs::{job_poll::JobPoll, job_system};
 use ris_util::testing::{repeat, retry};
 
 #[test]
@@ -185,7 +185,7 @@ fn should_poll_on_future() {
         for i in 0..57 {
             assert!(results[i].is_pending(), "{} {:?}", i, results);
         }
-        
+
         match results[57] {
             JobPoll::Pending => panic!("expected {} to be ready {:?}", 57, results),
             JobPoll::Ready(value) => assert_eq!(value, 42),
