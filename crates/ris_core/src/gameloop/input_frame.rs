@@ -10,7 +10,7 @@ pub fn run(current: &mut InputData, previous: &InputData, frame: &FrameData, eve
     
     
     for event in event_pump.poll_iter() {
-        // ris_log::trace!("{:?}", event);
+        ris_log::trace!("{:?}", event);
 
         if let Event::Quit { .. } = event {
             return GameloopState::WantsToQuit;
