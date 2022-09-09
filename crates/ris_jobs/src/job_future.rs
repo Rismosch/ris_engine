@@ -1,9 +1,10 @@
 use std::{
     sync::{Arc, Mutex, TryLockError},
-    task::Poll,
 };
 
-type Data<T> = Arc<Mutex<Poll<T>>>;
+use crate::job_poll::JobPoll;
+
+type Data<T> = Arc<Mutex<JobPoll<T>>>;
 
 pub struct SettableJobFuture<T> {
     data: Data<T>,
@@ -15,7 +16,7 @@ pub struct JobFuture<T> {
 
 impl<T> SettableJobFuture<T> {
     pub fn new() -> (SettableJobFuture<T>, JobFuture<T>) {
-        let data = Arc::new(Mutex::new(Poll::Pending));
+        let data = Arc::new(Mutex::new(JobPoll::Pending));
 
         let settable_job_future = SettableJobFuture { data: data.clone() };
         let job_future = JobFuture { data };
@@ -26,21 +27,21 @@ impl<T> SettableJobFuture<T> {
     pub fn set(&mut self, result: T) {
         self.data.lock().map_or_else(
             |e| ris_log::error!("could not lock future: {}", e),
-            |mut data| *data = Poll::Ready(result),
+            |mut data| *data = JobPoll::Ready(result),
         );
     }
 }
 
-impl<T: Clone> JobFuture<T> {
-    pub fn poll(&self) -> Poll<T> {
+impl<T> JobFuture<T> {
+    pub fn poll(&self) -> JobPoll<T> {
         match self.data.try_lock() {
-            Ok(data) => data.clone(),
+            Ok(mut data) => data.take(),
             Err(e) => {
                 if let TryLockError::Poisoned(e) = e {
                     ris_log::error!("could not lock future: {}", e);
                 }
 
-                Poll::Pending
+                JobPoll::Pending
             }
         }
     }

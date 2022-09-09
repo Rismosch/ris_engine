@@ -4,7 +4,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex, MutexGuard,
     },
-    task::Poll,
     thread::{self, JoinHandle},
 };
 
@@ -12,7 +11,7 @@ use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
     job_buffer::JobBuffer,
-    job_future::{JobFuture, SettableJobFuture},
+    job_future::{JobFuture, SettableJobFuture}, job_poll::JobPoll,
 };
 
 thread_local! {
@@ -125,13 +124,11 @@ pub fn run_pending_job() {
     }
 }
 
-pub fn wait<ReturnType: Clone>(future: JobFuture<ReturnType>) -> ReturnType {
+pub fn wait<ReturnType>(future: JobFuture<ReturnType>) -> ReturnType {
     loop {
         match future.poll() {
-            Poll::Pending => run_pending_job(),
-            Poll::Ready(result) => {
-                return result;
-            }
+            JobPoll::Ready(result) => return result,
+            JobPoll::Pending => run_pending_job(),
         }
     }
 }

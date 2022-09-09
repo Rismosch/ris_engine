@@ -1,11 +1,10 @@
 use std::{
     sync::{Arc, Mutex},
-    task::Poll,
     thread,
     time::{Duration, Instant},
 };
 
-use ris_jobs::job_system;
+use ris_jobs::{job_system, job_poll::JobPoll};
 use ris_util::testing::{repeat, retry};
 
 #[test]
@@ -159,7 +158,7 @@ fn should_get_thread_index() {
 }
 
 #[test]
-fn should_wait_for_future() {
+fn should_poll_on_future() {
     repeat(10, || {
         let job_system = job_system::init(100, 1);
 
@@ -186,13 +185,42 @@ fn should_wait_for_future() {
         for i in 0..57 {
             assert!(results[i].is_pending(), "{} {:?}", i, results);
         }
-
-        for i in 57..100 {
-            match results[i] {
-                Poll::Pending => panic!("expected {} to be ready", i),
-                Poll::Ready(value) => assert_eq!(value, 42),
-            }
+        
+        match results[57] {
+            JobPoll::Pending => panic!("expected {} to be ready {:?}", 57, results),
+            JobPoll::Ready(value) => assert_eq!(value, 42),
         }
+
+        for i in 58..100 {
+            assert!(results[i].is_pending(), "{} {:?}", i, results);
+        }
+    });
+}
+
+#[test]
+fn should_run_jobs_while_waiting_on_future() {
+    repeat(10, || {
+        let job_system = job_system::init(100, 1);
+
+        let results = Arc::new(Mutex::new(Vec::new()));
+
+        let future = job_system::submit(|| "hello world");
+
+        for i in 0..100 {
+            let results_copy = results.clone();
+            job_system::submit(move || results_copy.lock().unwrap().push(i));
+        }
+
+        let result = job_system::wait(future);
+        let results = results.lock().unwrap();
+
+        assert_eq!(result, "hello world");
+        assert_eq!(results.len(), 100);
+        for i in 0..100 {
+            assert!(results.contains(&i));
+        }
+
+        drop(job_system);
     });
 }
 
