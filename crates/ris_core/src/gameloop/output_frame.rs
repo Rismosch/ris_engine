@@ -4,10 +4,10 @@ use ris_data::gameloop::{
 };
 
 pub fn run(
-    _current: &mut OutputData,
+    current: OutputData,
     _previous: &OutputData,
     _logic: &LogicData,
     _frame: &FrameData,
-) -> GameloopState {
-    GameloopState::WantsToContinue
+) -> (OutputData, GameloopState) {
+    (current, GameloopState::WantsToContinue)
 }
