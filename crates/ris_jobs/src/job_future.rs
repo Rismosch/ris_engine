@@ -8,6 +8,7 @@ pub struct SettableJobFuture<T> {
     data: Data<T>,
 }
 
+#[must_use]
 pub struct JobFuture<T> {
     data: Data<T>,
 }

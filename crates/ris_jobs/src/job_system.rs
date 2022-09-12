@@ -83,7 +83,7 @@ impl Drop for JobSystemGuard {
     }
 }
 
-pub fn submit<ReturnType: Clone + 'static, F: FnOnce() -> ReturnType + 'static>(
+pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     job: F,
 ) -> JobFuture<ReturnType> {
     let mut not_pushed = None;

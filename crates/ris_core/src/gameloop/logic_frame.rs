@@ -7,15 +7,14 @@ use ris_data::gameloop::{
 use ris_jobs::job_system;
 
 pub fn run(
-    _current: &mut LogicData,
+    current: LogicData,
     _previous: &LogicData,
     input: &InputData,
     frame: &FrameData,
-) -> GameloopState {
-    // ris_log::debug!("{} {} {}", job_system::thread_index(), frame.number(), frame.fps());
-    thread::sleep(Duration::from_millis(50));
+) -> (LogicData, GameloopState) {
+    // thread::sleep(Duration::from_millis(50));
 
-    ris_log::debug!("{:#034b} {} {}", input.mouse.buttons.hold(), job_system::thread_index(), frame.fps());
+    // ris_log::debug!("{:#034b} {} {}", input.mouse.buttons.hold(), job_system::thread_index(), frame.fps());
 
-    GameloopState::WantsToContinue
+    (current, GameloopState::WantsToContinue)
 }

@@ -5,18 +5,18 @@ use ris_input::mouse_logic::{pre_update_mouse, update_mouse, post_update_mouse};
 use sdl2::{event::Event, EventPump};
 
 pub fn run(
-    current: &mut InputData,
+    mut current: InputData,
     previous: &InputData,
     _frame: &FrameData,
     event_pump: &mut EventPump,
-) -> GameloopState {
+) -> (InputData, GameloopState) {
     pre_update_mouse(&mut current.mouse);
     
     for event in event_pump.poll_iter() {
-        // ris_log::trace!("{:?}", event);
+        // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
         if let Event::Quit { .. } = event {
-            return GameloopState::WantsToQuit;
+            return (current, GameloopState::WantsToQuit);
         };
 
         update_mouse(&mut current.mouse, &event);
@@ -24,5 +24,5 @@ pub fn run(
 
     post_update_mouse(&mut current.mouse, &previous.mouse, event_pump.mouse_state());
 
-    GameloopState::WantsToContinue
+    (current, GameloopState::WantsToContinue)
 }

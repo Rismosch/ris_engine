@@ -1,11 +1,10 @@
-use std::{cell::UnsafeCell, sync::Arc};
+use std::cell::UnsafeCell;
 
 use ris_data::gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData, output_data::OutputData,
 };
-use ris_jobs::{job_future::JobFuture, job_system, job_cell::JobCell};
-use sdl2::EventPump;
+use ris_jobs::job_system;
 
 use crate::{
     gameloop::{input_frame, logic_frame, output_frame},
@@ -13,158 +12,92 @@ use crate::{
 };
 
 pub fn run(mut god_object: GodObject) -> Result<(), String> {
-    let frame = JobCell::default(); // FrameData
+    let frame = UnsafeCell::<FrameData>::default();
 
-    let current_input = JobCell::default(); // InputData
-    let previous_input = JobCell::default();
+    let mut current_input = InputData::default();
+    let previous_input = UnsafeCell::default();
 
-    let current_logic = JobCell::default(); // LogicData
-    let previous_logic = JobCell::default();
+    let mut current_logic = LogicData::default();
+    let previous_logic = UnsafeCell::default();
 
-    let current_output = JobCell::default(); // output logic
-    let previous_output = JobCell::default();
+    let mut current_output = OutputData::default();
+    let previous_output = UnsafeCell::default();
 
     loop {
-        run_frame(frame.clone());
+        // update frame
+        unsafe {(*frame.get()).bump()}
 
-        current_input.swap(previous_input.get_mut());
-        current_logic.swap(previous_logic.get_mut());
-        current_output.swap(previous_output.get_mut());
+        // swap buffers
+        {
+            current_input = std::mem::replace(unsafe {&mut *previous_input.get()}, current_input);
+            current_logic = std::mem::replace(unsafe {&mut *previous_logic.get()}, current_logic);
+            current_output = std::mem::replace(unsafe {&mut *previous_output.get()}, current_output);
+        }
 
-        let output_future = run_output(
-            current_output.clone(),
-            previous_output.clone(),
-            previous_logic.clone(),
-            frame.clone(),
-        );
-        let logic_future = run_logic(
-            current_logic.clone(),
-            previous_logic.clone(),
-            previous_input.clone(),
-            frame.clone(),
-        );
+        // create references
+        let frame_for_input = unsafe {& *frame.get()};
+        let frame_for_logic = unsafe {& *frame.get()};
+        let frame_for_output = unsafe {& *frame.get()};
 
-        let input_state = run_input(
-            current_input.clone(),
-            previous_input.clone(),
-            frame.clone(),
+        let previous_input_for_input = unsafe {& *previous_input.get()};
+        let previous_input_for_logic = unsafe {& *previous_input.get()};
+
+        let previous_logic_for_logic = unsafe {& *previous_logic.get()};
+        let previous_logic_for_output = unsafe {& *previous_logic.get()};
+
+        let previous_output_for_output = unsafe {& *previous_output.get()};
+
+        // submit jobs
+        let output_future = job_system::submit(move || output_frame::run(
+            current_output,
+            previous_output_for_output,
+            previous_logic_for_output,
+            frame_for_output,
+        ));
+        
+        let logic_future = job_system::submit(move || logic_frame::run(
+            current_logic,
+            previous_logic_for_logic,
+            previous_input_for_logic,
+            frame_for_logic,
+        ));
+
+        let (new_input_data, input_state) = input_frame::run(
+            current_input,
+            previous_input_for_input,
+            frame_for_input,
             &mut god_object.event_pump,
         );
 
-        let logic_state = job_system::wait(logic_future);
-        let output_state = job_system::wait(output_future);
+        // wait for jobs
+        let (new_logic_data, logic_state) = job_system::wait(logic_future);
+        let (new_output_data, output_state) = job_system::wait(output_future);
 
-        match evaluate_states(input_state, logic_state, output_state) {
-            GameloopState::WantsToContinue => continue,
-            GameloopState::WantsToQuit => break,
-            GameloopState::Error(error) => return Err(error),
+        // update buffers
+        current_input = new_input_data;
+        current_logic = new_logic_data;
+        current_output = new_output_data;
+
+        // determine, wether to continue, return error or exit
+        if matches!(input_state, GameloopState::WantsToContinue)
+            && matches!(logic_state, GameloopState::WantsToContinue)
+            && matches!(output_state, GameloopState::WantsToContinue)
+        {
+            continue;
         }
+
+        if let GameloopState::Error(error) = input_state {
+            return Err(error);
+        }
+
+        if let GameloopState::Error(error) = logic_state {
+            return Err(error);
+        }
+
+        if let GameloopState::Error(error) = output_state {
+            return Err(error);
+        }
+
+        return Ok(());
     }
-
-    Ok(())
-}
-
-fn run_frame(frame: JobCell<FrameData>) {
-    let frame_data = frame.get_mut();
-    frame_data.bump();
-    frame.swap(frame_data);
-}
-
-fn run_output(
-    current_output: JobCell<OutputData>,
-    previous_output: JobCell<OutputData>,
-    previous_logic: JobCell<LogicData>,
-    frame: JobCell<FrameData>,
-) -> JobFuture<GameloopState> {
-    job_system::submit(move || {
-        let current_output_data = current_output.get_mut();
-        let previous_output_data = previous_output.get_mut();
-        let previous_logic_data = previous_logic.get_mut();
-        let frame_data = frame.get_mut();
-
-        let state = output_frame::run(
-            current_output_data,
-            previous_output_data,
-            previous_logic_data,
-            frame_data,
-        );
-
-        current_output.swap(current_output_data);
-
-        state
-    })
-}
-
-fn run_logic(
-    current_logic: JobCell<LogicData>,
-    previous_logic: JobCell<LogicData>,
-    previous_input: JobCell<InputData>,
-    frame: JobCell<FrameData>,
-) -> JobFuture<GameloopState> {
-    job_system::submit(move || {
-        let current_logic_data = current_logic.get_mut();
-        let previous_logic_data = previous_logic.get_mut();
-        let previous_input_data = previous_input.get_mut();
-        let frame_data = frame.get_mut();
-
-        let state = logic_frame::run(
-            current_logic_data,
-            previous_logic_data,
-            previous_input_data,
-            frame_data,
-        );
-
-        current_logic.swap(current_logic_data);
-
-        state
-    })
-}
-
-fn run_input(
-    current_input: JobCell<InputData>,
-    previous_input: JobCell<InputData>,
-    frame: JobCell<FrameData>,
-    event_pump: &mut EventPump,
-) -> GameloopState {
-    let current_input_data = current_input.get_mut();
-    let previous_input_data = previous_input.get_mut();
-    let frame_data = frame.get_mut();
-
-    let state = input_frame::run(
-        current_input_data,
-        previous_input_data,
-        frame_data,
-        event_pump,
-    );
-
-    current_input.swap(current_input_data);
-
-    state
-}
-
-fn evaluate_states(
-    input_state: GameloopState,
-    logic_state: GameloopState,
-    output_state: GameloopState,
-) -> GameloopState {
-    if matches!(input_state, GameloopState::WantsToContinue)
-        && matches!(logic_state, GameloopState::WantsToContinue)
-        && matches!(output_state, GameloopState::WantsToContinue)
-    {
-        return GameloopState::WantsToContinue;
-    }
-
-    if let GameloopState::Error(error) = input_state {
-        return GameloopState::Error(error);
-    }
-
-    if let GameloopState::Error(error) = logic_state {
-        return GameloopState::Error(error);
-    }
-
-    if let GameloopState::Error(error) = output_state {
-        return GameloopState::Error(error);
-    }
-
-    GameloopState::WantsToQuit
 }
