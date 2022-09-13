@@ -15,7 +15,9 @@ impl Engine {
         let app_info = format!("{}", god_object.app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
 
-        Ok(Engine { god_object: Some(god_object) })
+        Ok(Engine {
+            god_object: Some(god_object),
+        })
     }
 
     pub fn run(&mut self) -> Result<(), String> {

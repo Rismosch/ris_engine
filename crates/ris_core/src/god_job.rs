@@ -25,79 +25,86 @@ pub fn run(mut god_object: GodObject) -> Result<(), String> {
 
     loop {
         // update frame
-        unsafe {(*frame.get()).bump()}
+        unsafe { (*frame.get()).bump() }
 
-        // swap buffers
         {
-            current_input = std::mem::replace(unsafe {&mut *previous_input.get()}, current_input);
-            current_logic = std::mem::replace(unsafe {&mut *previous_logic.get()}, current_logic);
-            current_output = std::mem::replace(unsafe {&mut *previous_output.get()}, current_output);
+            // swap buffers
+            current_input = std::mem::replace(unsafe { &mut *previous_input.get() }, current_input);
+            current_logic = std::mem::replace(unsafe { &mut *previous_logic.get() }, current_logic);
+            current_output =
+                std::mem::replace(unsafe { &mut *previous_output.get() }, current_output);
         }
 
-        // create references
-        let frame_for_input = unsafe {& *frame.get()};
-        let frame_for_logic = unsafe {& *frame.get()};
-        let frame_for_output = unsafe {& *frame.get()};
-
-        let previous_input_for_input = unsafe {& *previous_input.get()};
-        let previous_input_for_logic = unsafe {& *previous_input.get()};
-
-        let previous_logic_for_logic = unsafe {& *previous_logic.get()};
-        let previous_logic_for_output = unsafe {& *previous_logic.get()};
-
-        let previous_output_for_output = unsafe {& *previous_output.get()};
-
-        // submit jobs
-        let output_future = job_system::submit(move || output_frame::run(
-            current_output,
-            previous_output_for_output,
-            previous_logic_for_output,
-            frame_for_output,
-        ));
-        
-        let logic_future = job_system::submit(move || logic_frame::run(
-            current_logic,
-            previous_logic_for_logic,
-            previous_input_for_logic,
-            frame_for_logic,
-        ));
-
-        let (new_input_data, input_state) = input_frame::run(
-            current_input,
-            previous_input_for_input,
-            frame_for_input,
-            &mut god_object.event_pump,
-        );
-
-        // wait for jobs
-        let (new_logic_data, logic_state) = job_system::wait(logic_future);
-        let (new_output_data, output_state) = job_system::wait(output_future);
-
-        // update buffers
-        current_input = new_input_data;
-        current_logic = new_logic_data;
-        current_output = new_output_data;
-
-        // determine, wether to continue, return error or exit
-        if matches!(input_state, GameloopState::WantsToContinue)
-            && matches!(logic_state, GameloopState::WantsToContinue)
-            && matches!(output_state, GameloopState::WantsToContinue)
         {
-            continue;
-        }
+            // create references
+            let frame_for_input = unsafe { &*frame.get() };
+            let frame_for_logic = unsafe { &*frame.get() };
+            let frame_for_output = unsafe { &*frame.get() };
 
-        if let GameloopState::Error(error) = input_state {
-            return Err(error);
-        }
+            let previous_input_for_input = unsafe { &*previous_input.get() };
+            let previous_input_for_logic = unsafe { &*previous_input.get() };
 
-        if let GameloopState::Error(error) = logic_state {
-            return Err(error);
-        }
+            let previous_logic_for_logic = unsafe { &*previous_logic.get() };
+            let previous_logic_for_output = unsafe { &*previous_logic.get() };
 
-        if let GameloopState::Error(error) = output_state {
-            return Err(error);
-        }
+            let previous_output_for_output = unsafe { &*previous_output.get() };
 
-        return Ok(());
+            // submit jobs
+            let output_future = job_system::submit(move || {
+                output_frame::run(
+                    current_output,
+                    previous_output_for_output,
+                    previous_logic_for_output,
+                    frame_for_output,
+                )
+            });
+
+            let logic_future = job_system::submit(move || {
+                logic_frame::run(
+                    current_logic,
+                    previous_logic_for_logic,
+                    previous_input_for_logic,
+                    frame_for_logic,
+                )
+            });
+
+            let (new_input_data, input_state) = input_frame::run(
+                current_input,
+                previous_input_for_input,
+                frame_for_input,
+                &mut god_object.event_pump,
+            );
+
+            // wait for jobs
+            let (new_logic_data, logic_state) = job_system::wait(logic_future);
+            let (new_output_data, output_state) = job_system::wait(output_future);
+
+            // update buffers
+            current_input = new_input_data;
+            current_logic = new_logic_data;
+            current_output = new_output_data;
+
+            // determine, whether to continue, return error or exit
+            if matches!(input_state, GameloopState::WantsToContinue)
+                && matches!(logic_state, GameloopState::WantsToContinue)
+                && matches!(output_state, GameloopState::WantsToContinue)
+            {
+                continue;
+            }
+
+            if let GameloopState::Error(error) = input_state {
+                return Err(error);
+            }
+
+            if let GameloopState::Error(error) = logic_state {
+                return Err(error);
+            }
+
+            if let GameloopState::Error(error) = output_state {
+                return Err(error);
+            }
+
+            return Ok(());
+        }
     }
 }
