@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use ris_jobs::{job_poll::JobPoll, job_system};
+use ris_jobs::job_system;
 use ris_util::testing::{repeat, retry};
 
 #[test]
@@ -16,9 +16,10 @@ fn should_submit_and_run_jobs() {
 
         for i in 0..1000 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
+            std::mem::forget(future);
         }
 
         drop(job_system);
@@ -41,13 +42,17 @@ fn should_submit_job_within_job() {
 
         for i in 0..1000 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 let results_copy_copy = results_copy.clone();
                 results_copy.lock().unwrap().push(i);
-                let _ = job_system::submit(move || {
+                let future = job_system::submit(move || {
                     results_copy_copy.lock().unwrap().push(i + 1000);
                 });
+
+                std::mem::forget(future);
             });
+
+            std::mem::forget(future);
         }
 
         drop(job_system);
@@ -69,9 +74,11 @@ fn should_run_job_when_buffer_is_full() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..200 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
+
+            std::mem::forget(future);
         }
 
         let results = results.lock().unwrap();
@@ -94,9 +101,11 @@ fn should_run_pending_job() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
+
+            std::mem::forget(future);
         }
 
         for _ in 0..50 {
@@ -117,7 +126,7 @@ fn should_run_pending_job() {
 
 #[test]
 fn should_get_thread_index() {
-    const TIMEOUT: u128 = 50;
+    const TIMEOUT: u128 = 100;
 
     retry(10, || {
         let job_system = job_system::init(10, 5);
@@ -127,13 +136,15 @@ fn should_get_thread_index() {
         let start = Instant::now();
         loop {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 results_copy
                     .lock()
                     .unwrap()
                     .push(job_system::thread_index());
                 thread::sleep(Duration::from_millis(5));
             });
+
+            std::mem::forget(future);
 
             let now = Instant::now();
             let duration = now - start;
@@ -158,46 +169,6 @@ fn should_get_thread_index() {
 }
 
 #[test]
-fn should_poll_on_future() {
-    repeat(10, || {
-        let job_system = job_system::init(100, 1);
-
-        let mut results = Vec::new();
-
-        for i in 0..42 {
-            let _ = job_system::submit(move || i);
-        }
-
-        let future = job_system::submit(|| 42);
-
-        for i in 43..100 {
-            let _ = job_system::submit(move || i);
-        }
-
-        for _ in 0..100 {
-            job_system::run_pending_job();
-            results.push(future.poll());
-        }
-
-        drop(job_system);
-
-        assert_eq!(results.len(), 100);
-        for i in 0..57 {
-            assert!(results[i].is_pending(), "{} {:?}", i, results);
-        }
-
-        match results[57] {
-            JobPoll::Pending => panic!("expected {} to be ready {:?}", 57, results),
-            JobPoll::Ready(value) => assert_eq!(value, 42),
-        }
-
-        for i in 58..100 {
-            assert!(results[i].is_pending(), "{} {:?}", i, results);
-        }
-    });
-}
-
-#[test]
 fn should_run_jobs_while_waiting_on_future() {
     repeat(10, || {
         let job_system = job_system::init(100, 1);
@@ -208,13 +179,37 @@ fn should_run_jobs_while_waiting_on_future() {
 
         for i in 0..100 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || results_copy.lock().unwrap().push(i));
+            let future = job_system::submit(move || results_copy.lock().unwrap().push(i));
+            std::mem::forget(future);
         }
 
-        let result = job_system::wait(future);
+        let result = future.wait();
         let results = results.lock().unwrap();
 
         assert_eq!(result, "hello world");
+        assert_eq!(results.len(), 100);
+        for i in 0..100 {
+            assert!(results.contains(&i));
+        }
+
+        drop(job_system);
+    });
+}
+
+#[test]
+fn should_run_jobs_when_dropping_future() {
+    repeat(10, || {
+        let job_system = job_system::init(100, 1);
+
+        let results = Arc::new(Mutex::new(Vec::new()));
+
+        for i in 0..100 {
+            let results_copy = results.clone();
+            let _ = job_system::submit(move || results_copy.lock().unwrap().push(i));
+        }
+
+        let results = results.lock().unwrap();
+
         assert_eq!(results.len(), 100);
         for i in 0..100 {
             assert!(results.contains(&i));
@@ -232,9 +227,11 @@ fn should_run_jobs_when_emptying() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
+
+            std::mem::forget(future);
         }
 
         assert_eq!(results.lock().unwrap().len(), 0);
@@ -258,9 +255,11 @@ fn should_lock_mutex() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            let _ = job_system::submit(move || {
+            let future = job_system::submit(move || {
                 job_system::lock(&results_copy).push(i);
             });
+
+            std::mem::forget(future);
         }
 
         drop(job_system);

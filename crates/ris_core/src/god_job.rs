@@ -76,8 +76,8 @@ pub fn run(mut god_object: GodObject) -> Result<(), String> {
             );
 
             // wait for jobs
-            let (new_logic_data, logic_state) = job_system::wait(logic_future);
-            let (new_output_data, output_state) = job_system::wait(output_future);
+            let (new_logic_data, logic_state) = logic_future.wait();
+            let (new_output_data, output_state) = output_future.wait();
 
             // update buffers
             current_input = new_input_data;
