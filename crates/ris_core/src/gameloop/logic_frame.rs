@@ -1,16 +1,13 @@
-use std::{thread, time::Duration};
-
 use ris_data::gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData,
 };
-use ris_jobs::job_system;
 
 pub fn run(
     current: LogicData,
     _previous: &LogicData,
-    input: &InputData,
-    frame: &FrameData,
+    _input: &InputData,
+    _frame: &FrameData,
 ) -> (LogicData, GameloopState) {
     // thread::sleep(Duration::from_millis(50));
 

@@ -16,7 +16,7 @@ fn should_submit_and_run_jobs() {
 
         for i in 0..1000 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
         }
@@ -41,10 +41,10 @@ fn should_submit_job_within_job() {
 
         for i in 0..1000 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 let results_copy_copy = results_copy.clone();
                 results_copy.lock().unwrap().push(i);
-                job_system::submit(move || {
+                let _ = job_system::submit(move || {
                     results_copy_copy.lock().unwrap().push(i + 1000);
                 });
             });
@@ -69,7 +69,7 @@ fn should_run_job_when_buffer_is_full() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..200 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
         }
@@ -94,7 +94,7 @@ fn should_run_pending_job() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
         }
@@ -127,7 +127,7 @@ fn should_get_thread_index() {
         let start = Instant::now();
         loop {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 results_copy
                     .lock()
                     .unwrap()
@@ -165,13 +165,13 @@ fn should_poll_on_future() {
         let mut results = Vec::new();
 
         for i in 0..42 {
-            job_system::submit(move || i);
+            let _ = job_system::submit(move || i);
         }
 
         let future = job_system::submit(|| 42);
 
         for i in 43..100 {
-            job_system::submit(move || i);
+            let _ = job_system::submit(move || i);
         }
 
         for _ in 0..100 {
@@ -208,7 +208,7 @@ fn should_run_jobs_while_waiting_on_future() {
 
         for i in 0..100 {
             let results_copy = results.clone();
-            job_system::submit(move || results_copy.lock().unwrap().push(i));
+            let _ = job_system::submit(move || results_copy.lock().unwrap().push(i));
         }
 
         let result = job_system::wait(future);
@@ -232,7 +232,7 @@ fn should_run_jobs_when_emptying() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
         }
@@ -258,7 +258,7 @@ fn should_lock_mutex() {
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
             let results_copy = results.clone();
-            job_system::submit(move || {
+            let _ = job_system::submit(move || {
                 job_system::lock(&results_copy).push(i);
             });
         }
