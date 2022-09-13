@@ -16,7 +16,7 @@ fn should_set_and_wait() {
             let result = Arc::new(AtomicBool::new(false));
             let done = Arc::new(AtomicBool::new(false));
 
-            let (mut settable, future) = SettableJobFuture::new();
+            let (settable, future) = SettableJobFuture::new();
 
             let set_handle = thread::spawn(move || {
                 settable.set(42);

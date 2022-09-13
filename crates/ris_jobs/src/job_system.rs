@@ -88,7 +88,7 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
 ) -> JobFuture<ReturnType> {
     let mut not_pushed = None;
 
-    let (mut settable_future, future) = SettableJobFuture::new();
+    let (settable_future, future) = SettableJobFuture::new();
 
     let job = Job::new(move || {
         let result = job();
