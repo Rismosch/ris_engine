@@ -23,7 +23,7 @@ impl<T> SettableJobFuture<T> {
         (settable_job_future, job_future)
     }
 
-    pub fn set(&mut self, result: T) {
+    pub fn set(self, result: T) {
         self.data.lock().map_or_else(
             |e| ris_log::error!("could not lock future: {}", e),
             |mut data| *data = JobPoll::Ready(Some(result)),
