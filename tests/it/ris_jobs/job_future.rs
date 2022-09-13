@@ -4,34 +4,17 @@ use std::{
         Arc,
     },
     thread,
-    time::Instant,
 };
 
-use ris_jobs::{job_future::SettableJobFuture, job_poll::JobPoll};
+use ris_jobs::job_future::SettableJobFuture;
 use ris_util::testing::{repeat, retry};
 
 #[test]
-fn should_set_and_poll_on_single_thread() {
-    let (mut settable, future) = SettableJobFuture::new();
-
-    assert!(future.poll().is_pending());
-
-    settable.set(String::from("hello world"));
-
-    match future.poll() {
-        JobPoll::Pending => panic!("expected future to be reads"),
-        JobPoll::Ready(result) => assert_eq!(result, "hello world"),
-    }
-}
-
-#[test]
-fn should_set_and_poll_on_different_threads() {
+fn should_set_and_wait() {
     retry(5, || {
         repeat(1000, || {
-            const TIMEOUT: u128 = 100;
-
             let result = Arc::new(AtomicBool::new(false));
-            let was_timed_out = Arc::new(AtomicBool::new(false));
+            let done = Arc::new(AtomicBool::new(false));
 
             let (mut settable, future) = SettableJobFuture::new();
 
@@ -40,32 +23,18 @@ fn should_set_and_poll_on_different_threads() {
             });
 
             let result_clone = result.clone();
-            let was_timed_out_clone = was_timed_out.clone();
+            let done_clone = done.clone();
             let poll_handle = thread::spawn(move || {
-                let start = Instant::now();
-                loop {
-                    match future.poll() {
-                        JobPoll::Pending => {
-                            let now = Instant::now();
-                            let duration = now - start;
-                            if duration.as_millis() > TIMEOUT {
-                                was_timed_out_clone.store(true, Ordering::SeqCst);
-                                break;
-                            }
-                        }
-                        JobPoll::Ready(value) => {
-                            assert_eq!(42, value);
-                            result_clone.store(true, Ordering::SeqCst);
-                            break;
-                        }
-                    }
-                }
+                let result = future.wait();
+                assert_eq!(42, result);
+                result_clone.store(true, Ordering::SeqCst);
+                done_clone.store(true, Ordering::SeqCst);
             });
 
             set_handle.join().unwrap();
             poll_handle.join().unwrap();
 
-            assert!(!was_timed_out.load(Ordering::SeqCst));
+            assert!(done.load(Ordering::SeqCst));
             assert!(result.load(Ordering::SeqCst));
         })
     });

@@ -12,7 +12,6 @@ use crate::{
     job::Job,
     job_buffer::JobBuffer,
     job_future::{JobFuture, SettableJobFuture},
-    job_poll::JobPoll,
 };
 
 thread_local! {
@@ -83,6 +82,7 @@ impl Drop for JobSystemGuard {
     }
 }
 
+// public methods
 pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     job: F,
 ) -> JobFuture<ReturnType> {
@@ -125,15 +125,6 @@ pub fn run_pending_job() {
     }
 }
 
-pub fn wait<ReturnType>(future: JobFuture<ReturnType>) -> ReturnType {
-    loop {
-        match future.poll() {
-            JobPoll::Ready(result) => return result,
-            JobPoll::Pending => run_pending_job(),
-        }
-    }
-}
-
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     loop {
         let try_lock_result = mutex.try_lock();
@@ -160,6 +151,7 @@ pub fn thread_index() -> i32 {
     result
 }
 
+// privat methods
 fn duplicate_buffers(buffers: &mut Vec<JobBuffer>) -> Vec<JobBuffer> {
     let mut result = Vec::new();
 
