@@ -2,14 +2,13 @@ use ris_data::info::{
     app_info::{app_info, AppInfo},
     package_info::PackageInfo,
 };
-// use ris_input::input::Input;
 use ris_video::video::Video;
-use sdl2::EventPump;
+
+use crate::gameloop::input_frame::InputFrame;
 
 pub struct GodObject {
     pub _video: Video,
-    pub event_pump: EventPump,
-    // pub input: Input,
+    pub input_frame: InputFrame,
     pub app_info: AppInfo,
 }
 
@@ -20,14 +19,13 @@ impl GodObject {
         let _video = Video::new(&sdl_context)?;
         let event_pump = sdl_context.event_pump()?;
 
-        // let input = Input::new(&sdl_context)?;
+        let input_frame = InputFrame::new(event_pump);
 
         let app_info = app_info(package_info);
 
         let god_object = GodObject {
             _video,
-            event_pump,
-            // input,
+            input_frame,
             app_info,
         };
 
