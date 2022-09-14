@@ -1,4 +1,7 @@
-use std::{sync::atomic::{AtomicBool, AtomicI32, Ordering}, ptr::NonNull};
+use std::{
+    ptr::NonNull,
+    sync::atomic::{AtomicBool, AtomicI32, Ordering},
+};
 
 use crate::job_system;
 
@@ -21,15 +24,14 @@ pub struct JobFuture<T> {
 
 impl<T> SettableJobFuture<T> {
     pub fn new() -> (SettableJobFuture<T>, JobFuture<T>) {
-
-        let boxed = Box::into_raw(Box::new(Inner{
+        let boxed = Box::into_raw(Box::new(Inner {
             is_ready: AtomicBool::new(false),
             data: None,
             refs: AtomicI32::new(1),
         }));
 
-        let inner_a = unsafe {NonNull::new_unchecked(boxed)};
-        let inner_b = unsafe {NonNull::new_unchecked(boxed)};
+        let inner_a = unsafe { NonNull::new_unchecked(boxed) };
+        let inner_b = unsafe { NonNull::new_unchecked(boxed) };
 
         let settable_job_future = SettableJobFuture { inner: inner_a };
         let job_future = JobFuture { inner: inner_b };
@@ -81,7 +83,7 @@ unsafe impl<T> Send for SettableJobFuture<T> {}
 unsafe impl<T> Send for JobFuture<T> {}
 
 fn deref_inner<T>(data: &mut InnerPtr<T>) -> &mut Inner<T> {
-    unsafe {&mut *data.as_ptr()}
+    unsafe { &mut *data.as_ptr() }
 }
 
 fn drop_inner<T>(inner: &mut InnerPtr<T>) {

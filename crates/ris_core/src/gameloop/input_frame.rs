@@ -27,8 +27,8 @@ impl InputFrame {
         previous: &'static InputData,
         _frame: &FrameData,
     ) -> (InputData, GameloopState) {
-        let mut current_mouse = current.take_mouse();
-        let current_keyboard = current.take_keyboard();
+        let mut current_mouse = current.mouse;
+        let current_keyboard = current.keyboard;
 
         pre_update_mouse(&mut current_mouse);
 
@@ -39,6 +39,8 @@ impl InputFrame {
                 ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
                 if let Event::Quit { .. } = event {
+                    current.mouse = current_mouse;
+                    current.keyboard = current_keyboard;
                     return (current, GameloopState::WantsToQuit);
                 };
 
@@ -55,7 +57,7 @@ impl InputFrame {
 
                 update_keyboard(
                     &mut keyboard,
-                    previous.get_keyboard(),
+                    &previous.keyboard,
                     keyboard_event_pump.keyboard_state(),
                 );
 
@@ -64,14 +66,14 @@ impl InputFrame {
 
             post_update_mouse(
                 &mut current_mouse,
-                previous.get_mouse(),
+                &previous.mouse,
                 mouse_event_pump.mouse_state(),
             );
 
             let new_keyboard = keyboard_future.wait();
 
-            current.set_mouse(current_mouse);
-            current.set_keyboard(new_keyboard);
+            current.mouse = current_mouse;
+            current.keyboard = new_keyboard;
 
             (current, GameloopState::WantsToContinue)
         }
