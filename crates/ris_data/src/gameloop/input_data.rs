@@ -9,14 +9,14 @@ impl InputData {
     pub fn get_mouse(&self) -> &MouseData {
         match &self.mouse {
             Some(data) => data,
-            None => panic!(),
+            None => panic!("mouse was taken"),
         }
     }
 
     pub fn take_mouse(&mut self) -> MouseData {
         match self.mouse.take() {
             Some(data) => data,
-            None => panic!(),
+            None => panic!("mouse was taken"),
         }
     }
 
@@ -27,14 +27,14 @@ impl InputData {
     pub fn get_keyboard(&self) -> &KeyboardData {
         match &self.keyboard {
             Some(data) => data,
-            None => panic!(),
+            None => panic!("keyboard was taken"),
         }
     }
 
     pub fn take_keyboard(&mut self) -> KeyboardData {
         match self.keyboard.take() {
             Some(data) => data,
-            None => panic!(),
+            None => panic!("keyboard was taken"),
         }
     }
 
