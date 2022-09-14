@@ -7,7 +7,7 @@ use ris_data::gameloop::{
 use ris_jobs::job_system;
 
 use crate::{
-    gameloop::{input_frame, logic_frame, output_frame},
+    gameloop::{logic_frame, output_frame},
     god_object::GodObject,
 };
 
@@ -68,11 +68,10 @@ pub fn run(mut god_object: GodObject) -> Result<(), String> {
                 )
             });
 
-            let (new_input_data, input_state) = input_frame::run(
+            let (new_input_data, input_state) = god_object.input_frame.run(
                 current_input,
                 previous_input_for_input,
                 frame_for_input,
-                &mut god_object.event_pump,
             );
 
             // wait for jobs
