@@ -14,7 +14,7 @@ pub fn run(
 ) -> (LogicData, GameloopState) {
     // thread::sleep(Duration::from_millis(50));
 
-    // ris_log::debug!("{:#034b} {} {}", _input.get_keyboard().buttons.down(), job_system::thread_index(), _frame.fps());
+    // ris_log::debug!("{:#034b} {} {}", _input.gamepad.buttons.down(), job_system::thread_index(), _frame.fps());
 
     (current, GameloopState::WantsToContinue)
 }

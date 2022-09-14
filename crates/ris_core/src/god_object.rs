@@ -19,7 +19,9 @@ impl GodObject {
         let _video = Video::new(&sdl_context)?;
         let event_pump = sdl_context.event_pump()?;
 
-        let input_frame = InputFrame::new(event_pump);
+        let controller_subsystem = sdl_context.game_controller()?;
+
+        let input_frame = InputFrame::new(event_pump, controller_subsystem);
 
         let app_info = app_info(package_info);
 
