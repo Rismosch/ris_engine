@@ -25,12 +25,15 @@ The current target platform is Windows x64. Found in this repo, the `./lib` dire
 
 > C:\\Users\\{Your Username}\\.rustup\\toolchains\\{current toolchain}\\lib\\rustlib\\{current toolchain}\\lib
 
-⚠️ I give no guarantees that this engine will work on other platforms⚠️  
+⚠️ I give no guarantees that this engine will work on other platforms⚠️
+
 But if you want to try, follow the install instructions [here](https://github.com/Rust-SDL2/rust-sdl2#sdl20-development-libraries).
 
-The libraries in this repo come from the `SDL2-devel-2.24.0-VC.zip` package: [Source](https://github.com/libsdl-org/SDL/releases/tag/release-2.24.0)
+All libraries in this repo come from the `SDL2-devel-2.24.0-VC.zip` package: [Source](https://github.com/libsdl-org/SDL/releases/tag/release-2.24.0)
 
-**Note:** `SDL2.dll` must be found in the same directory as the compiled `.exe`, otherwise you will encounter a runtime error that looks something like this:
+---
+
+**Note:** `SDL2.dll` must be found in the same directory as the compiled `.exe`, otherwise you will encounter a runtime error that may look something like this:
 
 > error: process didn't exit successfully: \`target\debug\ris_engine.exe\` (exit code: 0xc0000135, STATUS_DLL_NOT_FOUND)
 
