@@ -23,8 +23,8 @@ macro_rules! package_info {
 impl fmt::Display for PackageInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{} v{}", self.name, self.version)?;
-        writeln!(f, "author:  {}", self.author)?;
-        writeln!(f, "website: {}", self.website)?;
+        writeln!(f, "author:       {}", self.author)?;
+        writeln!(f, "website:      {}", self.website)?;
 
         Ok(())
     }

@@ -67,7 +67,7 @@ impl fmt::Display for BuildInfo {{
         writeln!(f, \"git repo:      {{}}\", self.git_repo)?;
         writeln!(f, \"git commit:    {{}}\", self.git_commit)?;
         writeln!(f, \"git branch:    {{}}\", self.git_branch)?;
-        writeln!(f, \"rustc version: {{}}\", self.rustc_version)?;
+        writeln!(f, \"compiler:      {{}}\", self.rustc_version)?;
         writeln!(f, \"toolchain:     {{}}\", self.rustup_toolchain)?;
         writeln!(f, \"build date:    {{}}\", self.build_date)?;
 
