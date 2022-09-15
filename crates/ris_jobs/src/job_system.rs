@@ -19,8 +19,8 @@ thread_local! {
 }
 
 struct WorkerThread {
-    local_buffer: JobBuffer,
-    steal_buffers: Vec<JobBuffer>,
+    local_buffer: Arc<JobBuffer>,
+    steal_buffers: Vec<Arc<JobBuffer>>,
     index: usize,
 }
 
@@ -152,27 +152,27 @@ pub fn thread_index() -> i32 {
 }
 
 // privat methods
-fn duplicate_buffers(buffers: &mut Vec<JobBuffer>) -> Vec<JobBuffer> {
+fn duplicate_buffers(buffers: &mut Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
     let mut result = Vec::new();
 
     for buffer in buffers {
-        result.push(buffer.duplicate());
+        result.push(buffer.clone());
     }
 
     result
 }
 
-fn setup_worker_thread(index: usize, buffers: Vec<JobBuffer>) {
+fn setup_worker_thread(index: usize, buffers: Vec<Arc<JobBuffer>>) {
     let mut buffers = buffers;
 
-    let local_buffer = buffers[index].duplicate();
+    let local_buffer = buffers[index].clone();
     let mut steal_buffers = Vec::new();
     for (i, steal_buffer) in buffers.iter_mut().enumerate() {
         if i == index {
             continue;
         }
 
-        steal_buffers.push(steal_buffer.duplicate());
+        steal_buffers.push(steal_buffer.clone());
     }
 
     WORKER_THREAD.with(move |worker_thread| {
