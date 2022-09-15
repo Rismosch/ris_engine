@@ -1,6 +1,6 @@
 # ris_engine
 
-Simply game engine, based on a thread-pool-like job system.
+Simple game engine, based on a thread-pool-like job system.
 
 ⚠️ **very WIP** ⚠️
 
