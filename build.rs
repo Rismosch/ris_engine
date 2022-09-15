@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::Local;
 
 use std::{fs::File, io::Write};
 
@@ -28,14 +28,14 @@ fn build_content() -> String {
     let git_repo = run_process("git", vec!["config", "--get", "remote.origin.url"]);
     let git_commit = run_process("git", vec!["rev-parse", "--short", "HEAD"]);
     let git_branch = run_process("git", vec!["rev-parse", "--abbrev-ref", "HEAD"]);
-    
+
     let rustc_version = run_process("rustc", vec!["--version"]);
     let rustup_toolchain = match std::env::var("RUSTUP_TOOLCHAIN") {
         Ok(toolchain) => toolchain,
         _ => run_process("rustup", vec!["show", "active-toolchain"]),
     };
 
-    let build_time = Utc::now();
+    let build_time = Local::now();
 
     let content = format!(
         "use std::fmt;
