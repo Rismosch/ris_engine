@@ -2,9 +2,13 @@ use chrono::Utc;
 
 use std::{fs::File, io::Write};
 
-const BUILD_INFO_PATH: &str = "./crates/ris_data/src/info/build_info.rs";
-
 fn main() {
+    create_build_info();
+}
+
+fn create_build_info() {
+    const BUILD_INFO_PATH: &str = "./crates/ris_data/src/info/build_info.rs";
+
     let comment = build_comment();
     let body = build_content();
 
