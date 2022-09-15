@@ -30,6 +30,6 @@ The libraries in this repo come from the `SDL2-devel-2.24.0-VC.zip` package: [So
 
 **Note:** `SDL2.dll` must be found in the same directory as the compiled `.exe`, otherwise you will encounter a runtime error that looks something like this:
 
-> error: process didn't exit successfully: `target\debug\ris_engine.exe` (exit code: 0xc0000135, STATUS_DLL_NOT_FOUND)
+> error: process didn't exit successfully: \`target\debug\ris_engine.exe\` (exit code: 0xc0000135, STATUS_DLL_NOT_FOUND)
 
 If you want to execute the standalone `.exe`, simply copy `SDL2.dll` into the same directory.
