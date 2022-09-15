@@ -47,6 +47,7 @@ pub struct BuildInfo {{
     git_branch: String,
     rustc_version: String,
     rustup_toolchain: String,
+    build_profile: String,
     build_date: String,
 }}
 
@@ -57,19 +58,31 @@ pub fn build_info() -> BuildInfo {{
         git_branch: String::from(\"{}\"),
         rustc_version: String::from(\"{}\"),
         rustup_toolchain: String::from(\"{}\"),
+        build_profile: profile(),
         build_date: String::from(\"{}\"),
     }}
+}}
+
+#[cfg(debug_assertions)]
+fn profile() -> String {{
+    String::from(\"debug\")
+}}
+
+#[cfg(not(debug_assertions))]
+fn profile() -> String {{
+    String::from(\"release\")
 }}
 
 impl fmt::Display for BuildInfo {{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {{
         writeln!(f, \"Build\")?;
-        writeln!(f, \"git repo:      {{}}\", self.git_repo)?;
-        writeln!(f, \"git commit:    {{}}\", self.git_commit)?;
-        writeln!(f, \"git branch:    {{}}\", self.git_branch)?;
-        writeln!(f, \"compiler:      {{}}\", self.rustc_version)?;
-        writeln!(f, \"toolchain:     {{}}\", self.rustup_toolchain)?;
-        writeln!(f, \"build date:    {{}}\", self.build_date)?;
+        writeln!(f, \"git repo:     {{}}\", self.git_repo)?;
+        writeln!(f, \"git commit:   {{}}\", self.git_commit)?;
+        writeln!(f, \"git branch:   {{}}\", self.git_branch)?;
+        writeln!(f, \"compiler:     {{}}\", self.rustc_version)?;
+        writeln!(f, \"toolchain:    {{}}\", self.rustup_toolchain)?;
+        writeln!(f, \"profile:      {{}}\", self.build_profile)?;
+        writeln!(f, \"build date:   {{}}\", self.build_date)?;
 
         Ok(())
     }}
