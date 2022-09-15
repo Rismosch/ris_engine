@@ -1,6 +1,5 @@
 use std::{
     cell::UnsafeCell,
-    ops::{Deref, DerefMut},
     sync::{Arc, Mutex, TryLockError},
 };
 
@@ -40,10 +39,10 @@ impl JobBuffer {
             Err(std::sync::TryLockError::Poisoned(_)) => panic_poisoned(),
         };
 
-        match *node.deref() {
+        match *node {
             Some(_) => Err(BlockedOrFull { not_pushed: job }),
             None => {
-                *node.deref_mut() = Some(job);
+                *node = Some(job);
                 *head = (*head + 1) % self.jobs.capacity();
 
                 Ok(())
@@ -62,7 +61,7 @@ impl JobBuffer {
 
         let mut node = self.jobs[new_head].lock().map_err(|_| panic_poisoned())?;
 
-        match node.deref_mut().take() {
+        match node.take() {
             None => Err(IsEmpty),
             Some(job) => {
                 *head = new_head;
@@ -78,7 +77,7 @@ impl JobBuffer {
 
         let mut node = self.jobs[old_tail].try_lock().map_err(to_steal_error)?;
 
-        match node.deref_mut().take() {
+        match node.take() {
             None => Err(BlockedOrEmpty),
             Some(job) => {
                 *tail = (old_tail + 1) % self.jobs.capacity();
@@ -94,7 +93,7 @@ unsafe impl Sync for JobBuffer {}
 
 fn panic_poisoned() -> ! {
     let poisoned_error_message = "mutex was poisoned";
-    ris_log::fatal!("{}", poisoned_error_message);
+    ris_log::error!("{}", poisoned_error_message);
     panic!("{}", poisoned_error_message);
 }
 
