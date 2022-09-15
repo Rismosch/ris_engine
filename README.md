@@ -21,7 +21,7 @@ error: could not compile `ris_engine` due to previous error
 ```
 
 
-The current target platform is Windows x64. Found in this repo, the `./lib` directory contains all required SDL2 libraries. Simply copy all `.lib` files to
+The current target platform is Windows x64. Found in this repo, the `./lib` directory contains all required SDL2 libraries. Simply copy all `.lib` files to:
 
 > C:\\Users\\{Your Username}\\.rustup\\toolchains\\{current toolchain}\\lib\\rustlib\\{current toolchain}\\lib
 
