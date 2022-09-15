@@ -28,7 +28,12 @@ fn build_content() -> String {
     let git_repo = run_process("git", vec!["config", "--get", "remote.origin.url"]);
     let git_commit = run_process("git", vec!["rev-parse", "--short", "HEAD"]);
     let git_branch = run_process("git", vec!["rev-parse", "--abbrev-ref", "HEAD"]);
+    
     let rustc_version = run_process("rustc", vec!["--version"]);
+    let rustup_toolchain = match std::env::var("RUSTUP_TOOLCHAIN") {
+        Ok(toolchain) => toolchain,
+        _ => run_process("rustup", vec!["show", "active-toolchain"]),
+    };
 
     let build_time = Utc::now();
 
@@ -41,6 +46,7 @@ pub struct BuildInfo {{
     git_commit: String,
     git_branch: String,
     rustc_version: String,
+    rustup_toolchain: String,
     build_date: String,
 }}
 
@@ -50,6 +56,7 @@ pub fn build_info() -> BuildInfo {{
         git_commit: String::from(\"{}\"),
         git_branch: String::from(\"{}\"),
         rustc_version: String::from(\"{}\"),
+        rustup_toolchain: String::from(\"{}\"),
         build_date: String::from(\"{}\"),
     }}
 }}
@@ -61,13 +68,14 @@ impl fmt::Display for BuildInfo {{
         writeln!(f, \"git commit:    {{}}\", self.git_commit)?;
         writeln!(f, \"git branch:    {{}}\", self.git_branch)?;
         writeln!(f, \"rustc version: {{}}\", self.rustc_version)?;
+        writeln!(f, \"toolchain:     {{}}\", self.rustup_toolchain)?;
         writeln!(f, \"build date:    {{}}\", self.build_date)?;
 
         Ok(())
     }}
 }}
 ",
-        git_repo, git_commit, git_branch, rustc_version, build_time
+        git_repo, git_commit, git_branch, rustc_version, rustup_toolchain, build_time
     );
 
     content
