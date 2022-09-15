@@ -83,6 +83,3 @@ impl<T> Drop for JobFuture<T> {
         self.wait_and_take();
     }
 }
-
-unsafe impl<T> Send for SettableJobFuture<T> {}
-unsafe impl<T> Send for JobFuture<T> {}
