@@ -1,6 +1,8 @@
 # ris_engine
 
-very WIP
+Simply game engine, based on a thread-pool-like job system.
+
+⚠️ **very WIP** ⚠️
 
 ## Installation
 
