@@ -21,6 +21,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,6 +100,7 @@ dependencies = [
  "ris_input",
  "ris_jobs",
  "ris_log",
+ "ris_os",
  "ris_rng",
  "ris_util",
  "ris_video",
@@ -114,6 +121,7 @@ name = "ris_jobs"
 version = "0.1.0"
 dependencies = [
  "ris_log",
+ "ris_os",
 ]
 
 [[package]]
@@ -121,6 +129,14 @@ name = "ris_log"
 version = "0.1.0"
 dependencies = [
  "chrono",
+]
+
+[[package]]
+name = "ris_os"
+version = "0.1.0"
+dependencies = [
+ "cfg-if 1.0.0",
+ "ris_log",
 ]
 
 [[package]]
@@ -156,7 +172,7 @@ version = "0.34.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41a29aa21f175b5a41a6e26da572d5e5d1ee5660d35f9f9d0913e8a802098f74"
 dependencies = [
- "cfg-if",
+ "cfg-if 0.1.10",
  "libc",
  "version-compare",
 ]
