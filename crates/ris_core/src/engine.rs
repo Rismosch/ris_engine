@@ -20,7 +20,7 @@ impl Engine {
         })
     }
 
-    pub fn run(&mut self) -> Result<(), String> {
+    pub fn run(&mut self) -> Result<i32, String> {
         let god_object = match self.god_object.take() {
             Some(god_object) => god_object,
             None => return Err(String::from("god_object was already taken")),
