@@ -29,11 +29,12 @@ impl Engine {
         let cpu_count = god_object.app_info.cpu.cpu_count as usize;
         let job_system_guard = job_system::init(1024, cpu_count);
 
-        let result = god_job::run(god_object);
+        // let result = god_job::run(god_object);
 
         drop(job_system_guard);
 
-        result
+        // result
+        Ok(())
     }
 }
 

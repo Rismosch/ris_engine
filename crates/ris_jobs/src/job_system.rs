@@ -30,6 +30,10 @@ pub struct JobSystemGuard {
 }
 
 pub fn init(buffer_capacity: usize, threads: usize) -> JobSystemGuard {
+
+    ris_os::affinity::get_affinity();
+    ris_os::affinity::set_affinity(&[1,2,3,4]);
+
     let mut buffers = Vec::with_capacity(threads);
     for _ in 0..threads {
         buffers.push(JobBuffer::new(buffer_capacity))
