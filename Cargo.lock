@@ -101,7 +101,6 @@ dependencies = [
  "ris_jobs",
  "ris_log",
  "ris_os",
- "ris_restarter",
  "ris_rng",
  "ris_util",
  "ris_video",
@@ -139,13 +138,6 @@ version = "0.1.0"
 dependencies = [
  "cfg-if 1.0.0",
  "ris_log",
-]
-
-[[package]]
-name = "ris_restarter"
-version = "0.1.0"
-dependencies = [
- "ris_data",
 ]
 
 [[package]]

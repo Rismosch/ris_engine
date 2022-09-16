@@ -35,7 +35,6 @@ ris_input = { path = "crates/ris_input" }
 ris_jobs = {path = "crates/ris_jobs"}
 ris_log = { path = "crates/ris_log" }
 ris_os = { path = "crates/ris_os" }
-ris_restarter = { path = "crates/ris_restarter" }
 ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video = { path = "crates/ris_video" }
