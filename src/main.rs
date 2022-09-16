@@ -12,9 +12,11 @@ fn main() -> Result<(), String> {
     let log_guard = log::init(LogLevel::Trace, appenders);
 
     let package_info = package_info!();
-    Engine::new(package_info)?.run()?;
+    let exit_code = Engine::new(package_info)?.run()?;
+
+    ris_log::info!("exit code: {}", exit_code);
 
     drop(log_guard);
 
-    Ok(())
+    std::process::exit(exit_code);
 }
