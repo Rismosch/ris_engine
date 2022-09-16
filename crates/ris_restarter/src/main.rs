@@ -4,9 +4,9 @@ fn main() {
     loop {
         const PROGRAM: &str = "ris_engine.exe";
 
-        let mut process = std::process::Command::new(PROGRAM);
+        let mut command = std::process::Command::new(PROGRAM);
 
-        match process.output() {
+        match command.output() {
             Ok(output) => {
                 let exit_code = if let Some(code) = output.status.code() {
                     println!("process finished with code {}", code);
@@ -27,7 +27,6 @@ fn main() {
                 } else {
                     let output_bytes = output.stderr;
                     let output_string = String::from_utf8(output_bytes);
-                    // .map_err(|e| format!("error while formatting output.stderr"));
 
                     match output_string {
                         Ok(to_print) => eprintln!("{}", to_print),
