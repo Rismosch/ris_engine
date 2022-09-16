@@ -11,7 +11,3 @@ cfg_if::cfg_if! {
 pub fn set_affinity(core_ids: &[usize]) {
     os::set_affinity(core_ids)
 }
-
-pub fn get_affinity() -> Vec<usize> {
-    os::get_affinity()
-}
