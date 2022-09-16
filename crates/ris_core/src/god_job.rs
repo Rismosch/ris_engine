@@ -1,14 +1,15 @@
 use std::cell::UnsafeCell;
 
-use ris_data::{gameloop::{
+use ris_data::gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData, output_data::OutputData,
-}, restarter::RESTART_CODE};
+};
 use ris_jobs::job_system;
 
 use crate::{
     gameloop::{logic_frame, output_frame},
     god_object::GodObject,
+    restart_code::RESTART_CODE,
 };
 
 pub fn run(mut god_object: GodObject) -> Result<i32, String> {
@@ -95,7 +96,7 @@ pub fn run(mut god_object: GodObject) -> Result<i32, String> {
                 || matches!(logic_state, GameloopState::WantsToRestart)
                 || matches!(output_state, GameloopState::WantsToRestart)
             {
-                 return Ok(RESTART_CODE);
+                return Ok(RESTART_CODE);
             }
 
             if let GameloopState::Error(error) = input_state {

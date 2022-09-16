@@ -78,13 +78,13 @@ impl InputFrame {
             let keyboard_future = job_system::submit(|| {
                 let mut keyboard = current_keyboard;
 
-                update_keyboard(
+                let gameloop_state = update_keyboard(
                     &mut keyboard,
                     &previous.keyboard,
                     keyboard_event_pump.keyboard_state(),
                 );
 
-                keyboard
+                (keyboard, gameloop_state)
             });
 
             post_update_mouse(
@@ -94,7 +94,7 @@ impl InputFrame {
             );
 
             let (new_gamepad, new_controller) = gamepad_future.wait();
-            let new_keyboard = keyboard_future.wait();
+            let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
 
             current.mouse = current_mouse;
             current.keyboard = new_keyboard;
@@ -102,7 +102,7 @@ impl InputFrame {
 
             self.controller = new_controller;
 
-            (current, GameloopState::WantsToContinue)
+            (current, new_gameloop_state)
         }
     }
 }

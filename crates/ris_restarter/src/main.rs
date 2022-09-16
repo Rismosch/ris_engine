@@ -1,38 +1,46 @@
-use std::process::ExitStatus;
+use ris_core::restart_code::RESTART_CODE;
 
-use ris_data::restarter;
-
-fn main() -> Result<(), String> {
+fn main() {
     loop {
-        let result = start_and_run_engine();
+        const PROGRAM: &str = "ris_engine.exe";
 
-        match result {
-            Ok(exit_code) => {
-                if let Some(code) = exit_code.code() {
-                    if code == restarter::RESTART_CODE {
+        let mut process = std::process::Command::new(PROGRAM);
+
+        match process.output() {
+            Ok(output) => {
+                let exit_code = if let Some(code) = output.status.code() {
+                    println!("process finished with code {}", code);
+
+                    if code == RESTART_CODE {
+                        println!("restarting...");
                         continue;
                     } else {
-                        return Ok(());
+                        Some(code)
+                    }
+                } else {
+                    println!("process finished with no code");
+                    None
+                };
+
+                if output.status.success() {
+                    return;
+                } else {
+                    let output_bytes = output.stderr;
+                    let output_string = String::from_utf8(output_bytes);
+                    // .map_err(|e| format!("error while formatting output.stderr"));
+
+                    match output_string {
+                        Ok(to_print) => eprintln!("{}", to_print),
+                        Err(error) => panic!("error while formatting output.stderr: {}", error),
+                    }
+
+                    match exit_code {
+                        Some(code) => std::process::exit(code),
+                        None => return,
                     }
                 }
-            },
-            Err(error) => return Err(error),
+            }
+            Err(error) => panic!("error while running {}: {}", PROGRAM, error),
         }
-    }
-}
-
-fn start_and_run_engine() -> Result<ExitStatus, String> {
-    let mut process = std::process::Command::new(restarter::ENGINE_NAME);
-
-    process.arg("hoi");
-    process.arg("poi");
-
-    let output = process
-        .output()
-        .map_err(|e| format!("error while running {}: {}", restarter::ENGINE_NAME, e));
-    
-    match output {
-        Ok(output) => Ok(output.status),
-        Err(error) => Err(error),
     }
 }
