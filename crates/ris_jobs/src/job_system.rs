@@ -7,6 +7,8 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+use ris_data::info::cpu_info::cpu_info;
+
 use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
@@ -30,10 +32,20 @@ pub struct JobSystemGuard {
 }
 
 pub fn init(buffer_capacity: usize, threads: usize) -> JobSystemGuard {
+    // estimate workthreads and according affinities
+    let cpu_count = cpu_info().cpu_count as usize;
+    let threads = std::cmp::min(cpu_count, threads);
 
-    ris_os::affinity::get_affinity();
-    ris_os::affinity::set_affinity(&[1,2,3,4]);
+    let mut affinities = Vec::new();
+    for _ in 0..threads {
+        affinities.push(Vec::new());
+    }
 
+    for i in 0..cpu_count {
+        affinities[i % threads].push(i);
+    }
+
+    // setup job buffers
     let mut buffers = Vec::with_capacity(threads);
     for _ in 0..threads {
         buffers.push(JobBuffer::new(buffer_capacity))
@@ -41,21 +53,25 @@ pub fn init(buffer_capacity: usize, threads: usize) -> JobSystemGuard {
 
     let done = Arc::new(AtomicBool::new(false));
 
+    // setup worker threads
     let mut handles = Vec::with_capacity(threads - 1);
-    for i in 1..threads {
-        let buffers = duplicate_buffers(&mut buffers);
+    for (i, core_ids) in affinities.iter().enumerate().take(threads).skip(1) {
+        let core_ids = core_ids.clone();
+        let buffers = duplicate_buffers(&buffers);
         let done_copy = done.clone();
         handles.push(thread::spawn(move || {
-            setup_worker_thread(i, buffers);
+            setup_worker_thread(&core_ids, buffers, i);
             run_worker_thread(i, done_copy);
         }))
     }
 
-    ris_log::debug!("spawned {} worker threads", handles.len());
+    ris_log::debug!("spawned {} additional worker threads", handles.len());
     let handles = Some(handles);
 
-    let buffers = duplicate_buffers(&mut buffers);
-    setup_worker_thread(0, buffers);
+    // setup main worker thread (this thread)
+    let core_ids = affinities[0].clone();
+    let buffers = duplicate_buffers(&buffers);
+    setup_worker_thread(&core_ids, buffers, 0);
 
     JobSystemGuard { handles, done }
 }
@@ -156,7 +172,7 @@ pub fn thread_index() -> i32 {
 }
 
 // privat methods
-fn duplicate_buffers(buffers: &mut Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
+fn duplicate_buffers(buffers: &Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
     let mut result = Vec::new();
 
     for buffer in buffers {
@@ -166,7 +182,12 @@ fn duplicate_buffers(buffers: &mut Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
     result
 }
 
-fn setup_worker_thread(index: usize, buffers: Vec<Arc<JobBuffer>>) {
+fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: usize) {
+    match ris_os::affinity::set_affinity(core_ids) {
+        Ok(()) => ris_log::trace!("set affinity {:?} for thread {}", core_ids, index),
+        Err(error) => ris_log::error!("couldn't set affinity for thread {}: {}", index, error),
+    };
+
     let mut buffers = buffers;
 
     let local_buffer = buffers[index].clone();

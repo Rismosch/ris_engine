@@ -26,15 +26,14 @@ impl Engine {
             None => return Err(String::from("god_object was already taken")),
         };
 
-        let cpu_count = god_object.app_info.cpu.cpu_count as usize;
-        let job_system_guard = job_system::init(1024, cpu_count);
+        let threads = god_object.app_info.cpu.cpu_count as usize;
+        let job_system_guard = job_system::init(1024, threads);
 
-        // let result = god_job::run(god_object);
+        let result = god_job::run(god_object);
 
         drop(job_system_guard);
 
-        // result
-        Ok(())
+        result
     }
 }
 

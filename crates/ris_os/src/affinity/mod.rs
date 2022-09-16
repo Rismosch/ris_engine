@@ -8,6 +8,6 @@ cfg_if::cfg_if! {
     }
 }
 
-pub fn set_affinity(core_ids: &[usize]) {
+pub fn set_affinity(core_ids: &[usize]) -> Result<(), String> {
     os::set_affinity(core_ids)
 }

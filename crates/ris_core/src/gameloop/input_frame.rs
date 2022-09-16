@@ -6,7 +6,7 @@ use ris_data::gameloop::{
 use ris_input::{
     gamepad_logic::update_gamepad,
     keyboard_logic::update_keyboard,
-    mouse_logic::{post_update_mouse, reset_mouse, handle_mouse_events},
+    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
 use ris_jobs::job_system;
 use sdl2::{controller::GameController, event::Event, EventPump, GameControllerSubsystem};
@@ -37,7 +37,7 @@ impl InputFrame {
         let current_gamepad = current.gamepad;
         let current_controller = self.controller.take();
 
-        reset_mouse(&mut current_mouse);
+        reset_mouse_refs(&mut current_mouse);
 
         {
             let event_pump = unsafe { &mut *self.event_pump.get() };

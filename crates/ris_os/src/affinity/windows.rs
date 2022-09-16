@@ -1,6 +1,12 @@
 use std::ffi::c_void;
 
-pub fn set_affinity(core_ids: &[usize]) {
+extern "system" {
+    fn GetCurrentThread() -> *mut c_void;
+    fn SetThreadAffinityMask(thread_handle: *mut c_void, mask: usize) -> usize;
+    fn GetLastError() -> u32;
+}
+
+pub fn set_affinity(core_ids: &[usize]) -> Result<(), String> {
     let current_thread = unsafe { GetCurrentThread() };
     let mut mask = 0usize;
 
@@ -11,8 +17,11 @@ pub fn set_affinity(core_ids: &[usize]) {
     let result = unsafe { SetThreadAffinityMask(current_thread, mask) };
     if result == 0 {
         let error = unsafe { GetLastError() };
-        ris_log::error!("SetThreadAffinityMask failed with error 0x{:x}", error);
+        Err(format!(
+            "SetThreadAffinityMask failed with error 0x{:x}",
+            error
+        ))
     } else {
-        ris_log::debug!("set affinity {:?}", core_ids);
+        Ok(())
     }
 }

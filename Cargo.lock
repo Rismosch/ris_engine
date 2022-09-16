@@ -120,6 +120,7 @@ dependencies = [
 name = "ris_jobs"
 version = "0.1.0"
 dependencies = [
+ "ris_data",
  "ris_log",
  "ris_os",
 ]

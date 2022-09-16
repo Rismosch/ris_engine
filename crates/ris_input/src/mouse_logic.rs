@@ -1,7 +1,7 @@
 use ris_data::input::mouse_data::MouseData;
 use sdl2::event::Event;
 
-pub fn reset_mouse(mouse_data: &mut MouseData) {
+pub fn reset_mouse_refs(mouse_data: &mut MouseData) {
     mouse_data.xrel = 0;
     mouse_data.yrel = 0;
     mouse_data.wheel_xrel = 0;
