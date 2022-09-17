@@ -6,22 +6,30 @@ use super::{
     cpu_info::{cpu_info, CpuInfo},
     package_info::PackageInfo,
     sdl_info::{sdl_info, SdlInfo},
+    file_info::{FileInfo, file_info},
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {
     pub package: PackageInfo,
     pub build: BuildInfo,
+    pub file: FileInfo,
     pub sdl: SdlInfo,
     pub cpu: CpuInfo,
 }
 
 pub fn app_info(package: PackageInfo) -> AppInfo {
+    let build = build_info();
+    let file = file_info(&package);
+    let sdl = sdl_info();
+    let cpu = cpu_info();
+
     AppInfo {
         package,
-        build: build_info(),
-        sdl: sdl_info(),
-        cpu: cpu_info(),
+        build,
+        file,
+        sdl,
+        cpu,
     }
 }
 
@@ -29,6 +37,7 @@ impl fmt::Display for AppInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}", self.package)?;
         writeln!(f, "{}", self.build)?;
+        writeln!(f, "{}", self.file)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
         write!(f, "Date\n{}", Local::now())?;

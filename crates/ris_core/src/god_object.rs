@@ -13,7 +13,7 @@ pub struct GodObject {
 }
 
 impl GodObject {
-    pub fn new(package_info: PackageInfo) -> Result<Self, String> {
+    pub fn new(app_info: AppInfo) -> Result<Self, String> {
         let sdl_context = sdl2::init()?;
 
         let _video = Video::new(&sdl_context)?;
@@ -22,8 +22,6 @@ impl GodObject {
         let controller_subsystem = sdl_context.game_controller()?;
 
         let input_frame = InputFrame::new(event_pump, controller_subsystem);
-
-        let app_info = app_info(package_info);
 
         let god_object = GodObject {
             _video,

@@ -1,4 +1,4 @@
-use ris_data::info::package_info::PackageInfo;
+use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
 
@@ -9,11 +9,11 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(package_info: PackageInfo) -> Result<Engine, String> {
-        let god_object = GodObject::new(package_info)?;
+    pub fn new(app_info: AppInfo) -> Result<Engine, String> {
+        let god_object = GodObject::new(app_info)?;
 
-        let app_info = format!("{}", god_object.app_info);
-        ris_log::log::forward_to_appenders(LogMessage::Plain(app_info));
+        let formatted_app_info = format!("{}", god_object.app_info);
+        ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
 
         Ok(Engine {
             god_object: Some(god_object),

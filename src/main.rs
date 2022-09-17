@@ -1,18 +1,30 @@
 use ris_core::engine::Engine;
-use ris_data::info::package_info::PackageInfo;
+use ris_data::info::app_info::AppInfo;
+use ris_data::info::{package_info::PackageInfo, app_info::app_info};
 use ris_data::package_info;
 use ris_log::{
-    appenders::console_appender::ConsoleAppender,
-    log::{self, Appenders},
+    appenders::{console_appender::ConsoleAppender, file_appender::FileAppender},
+    log::{self, Appenders, LogGuard},
     log_level::LogLevel,
 };
 
-fn main() -> Result<(), String> {
-    let appenders: Appenders = vec![ConsoleAppender::new()];
-    let log_guard = log::init(LogLevel::Trace, appenders);
+#[cfg(debug_assertions)]
+fn init_log(app_info: &AppInfo) -> LogGuard {
+    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
+    log::init(LogLevel::Trace, appenders)
+}
 
-    let package_info = package_info!();
-    let result = Engine::new(package_info)?.run();
+#[cfg(not(debug_assertions))]
+fn init_log(app_info: &AppInfo) -> LogGuard {
+    let appenders: Appenders = vec![FileAppender::new(app_info)];
+    log::init(LogLevel::Info, appenders)
+}
+
+fn main() -> Result<(), String> {
+    let app_info = app_info(package_info!());
+    let log_guard = init_log(&app_info);
+
+    let result = Engine::new(app_info)?.run();
 
     match result {
         Ok(exit_code) => ris_log::info!("exit code {}", exit_code),
