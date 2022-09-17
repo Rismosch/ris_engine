@@ -130,6 +130,8 @@ name = "ris_log"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "ris_data",
+ "sdl2",
 ]
 
 [[package]]
