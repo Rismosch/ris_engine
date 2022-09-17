@@ -1,9 +1,9 @@
 use ris_core::restart_code::RESTART_CODE;
 
+const PROGRAM: &str = "ris_engine.exe";
+
 fn main() {
     loop {
-        const PROGRAM: &str = "ris_engine.exe";
-
         let mut command = std::process::Command::new(PROGRAM);
 
         match command.output() {
