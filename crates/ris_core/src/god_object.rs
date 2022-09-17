@@ -1,7 +1,4 @@
-use ris_data::info::{
-    app_info::{app_info, AppInfo},
-    package_info::PackageInfo,
-};
+use ris_data::info::app_info::AppInfo;
 use ris_video::video::Video;
 
 use crate::gameloop::input_frame::InputFrame;

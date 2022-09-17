@@ -1,11 +1,10 @@
 use super::i_appender::IAppender;
 
-pub struct ConsoleAppender {}
+pub struct ConsoleAppender;
 
 impl ConsoleAppender {
-    pub fn new() -> Box<ConsoleAppender> {
-        let appender = ConsoleAppender {};
-        Box::new(appender)
+    pub fn new() -> Box<Self> {
+        Box::new(Self)
     }
 }
 

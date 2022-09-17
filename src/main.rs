@@ -24,15 +24,17 @@ fn main() -> Result<(), String> {
     let app_info = app_info(package_info!());
     let log_guard = init_log(&app_info);
 
-    let result = Engine::new(app_info)?.run();
+    Ok(())
 
-    match result {
-        Ok(exit_code) => ris_log::info!("exit code {}", exit_code),
-        Err(ref error) => ris_log::fatal!("exit error \"{}\"", error),
-    }
+    // let result = Engine::new(app_info)?.run();
 
-    drop(log_guard);
+    // match result {
+    //     Ok(exit_code) => ris_log::info!("exit code {}", exit_code),
+    //     Err(ref error) => ris_log::fatal!("exit error \"{}\"", error),
+    // }
 
-    let exit_code = result?;
-    std::process::exit(exit_code);
+    // drop(log_guard);
+
+    // let exit_code = result?;
+    // std::process::exit(exit_code);
 }
