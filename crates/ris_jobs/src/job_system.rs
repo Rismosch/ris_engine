@@ -188,16 +188,15 @@ fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: 
         Err(error) => ris_log::error!("couldn't set affinity for thread {}: {}", index, error),
     };
 
-    let mut buffers = buffers;
-
     let local_buffer = buffers[index].clone();
     let mut steal_buffers = Vec::new();
-    for (i, steal_buffer) in buffers.iter_mut().enumerate() {
-        if i == index {
-            continue;
-        }
 
-        steal_buffers.push(steal_buffer.clone());
+    for buffer in buffers.iter().skip(index + 1) {
+        steal_buffers.push(buffer.clone());
+    }
+
+    for buffer in buffers.iter().take(index) {
+        steal_buffers.push(buffer.clone());
     }
 
     WORKER_THREAD.with(move |worker_thread| {
