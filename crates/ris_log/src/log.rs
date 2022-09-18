@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Mutex;
 use std::thread::JoinHandle;
 
-use crate::{appenders::i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
+use crate::{i_appender::IAppender, log_level::LogLevel, log_message::LogMessage};
 use chrono::{DateTime, Local};
 
 pub type Appenders = Vec<Box<(dyn IAppender + Send + 'static)>>;

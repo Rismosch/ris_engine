@@ -7,8 +7,10 @@ edition = "2021"
 
 [dependencies]
 sdl2 = "0.34.5"
+chrono = "0.4"
 ris_data = { path = "../ris_data" }
 ris_input = { path = "../ris_input" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
+ris_util = { path = "../ris_util" }
 ris_video = { path = "../ris_video" }

@@ -44,9 +44,9 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.cpu)?;
 
         match self.args.len() {
-            0 => writeln!(f, "no args")?,
-            1 => writeln!(f, "1 arg")?,
-            len => writeln!(f, "{} args", len)?,
+            0 => writeln!(f, "no commandline args:")?,
+            1 => writeln!(f, "1 commandline arg:")?,
+            len => writeln!(f, "{} commandline args:", len)?,
         }
 
         for (i, arg) in self.args.iter().enumerate() {

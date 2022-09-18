@@ -1,4 +1,5 @@
 use ris_core::restart_code::RESTART_CODE;
+use ris_util::throw;
 
 const PROGRAM: &str = "ris_engine.exe";
 
@@ -34,7 +35,7 @@ fn main() {
 
                     match output_string {
                         Ok(to_print) => eprintln!("{}", to_print),
-                        Err(error) => panic!("error while formatting output.stderr: {}", error),
+                        Err(error) => throw!("error while formatting output.stderr: {}", error),
                     }
 
                     match exit_code {
@@ -43,7 +44,7 @@ fn main() {
                     }
                 }
             }
-            Err(error) => panic!("error while running {}: {}", PROGRAM, error),
+            Err(error) => throw!("error while running {}: {}", PROGRAM, error),
         }
     }
 }

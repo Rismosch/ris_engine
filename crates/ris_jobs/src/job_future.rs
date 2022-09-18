@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex, TryLockError};
 
+use ris_util::{throw, unwrap_or_throw};
+
 use crate::job_system;
 
 struct Inner<T> {
@@ -34,17 +36,10 @@ impl<T> SettableJobFuture<T> {
     }
 
     pub fn set(self, result: T) {
-        match self.inner.lock() {
-            Ok(mut inner) => {
-                inner.is_ready = true;
-                inner.data = Some(result);
-            }
-            Err(e) => {
-                let error_message = format!("couldn't set job future: {}", e);
-                ris_log::error!("{}", e);
-                panic!("{}", error_message);
-            }
-        }
+        let mut inner = unwrap_or_throw!(self.inner.lock(), "couldn't set job future");
+
+        inner.is_ready = true;
+        inner.data = Some(result);
     }
 }
 
@@ -66,9 +61,7 @@ impl<T> JobFuture<T> {
                 }
                 Err(e) => {
                     if let TryLockError::Poisoned(e) = e {
-                        let error_message = format!("couldn't take job future: {}", e);
-                        ris_log::error!("{}", e);
-                        panic!("{}", error_message);
+                        throw!("couldn't take job future: {}", e);
                     }
                 }
             }
