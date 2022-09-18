@@ -1,5 +1,7 @@
 use std::fmt;
 
+use ris_util::unwrap_or_throw;
+
 use super::package_info::PackageInfo;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -9,15 +11,15 @@ pub struct FileInfo {
 }
 
 pub fn file_info(package_info: &PackageInfo) -> FileInfo {
-    let base_path = match sdl2::filesystem::base_path() {
-        Ok(path) => path,
-        Err(error) => panic!("error while getting base path: {}", error),
-    };
+    let base_path = unwrap_or_throw!(
+        sdl2::filesystem::base_path(),
+        "error while getting base path"
+    );
 
-    let pref_path = match sdl2::filesystem::pref_path(&package_info.author, &package_info.name) {
-        Ok(path) => path,
-        Err(error) => panic!("error while getting pref path: {}", error),
-    };
+    let pref_path = unwrap_or_throw!(
+        sdl2::filesystem::pref_path(&package_info.author, &package_info.name),
+        "error while getting pref path"
+    );
 
     FileInfo {
         base_path,

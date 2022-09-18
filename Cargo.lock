@@ -74,10 +74,12 @@ dependencies = [
 name = "ris_core"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "ris_data",
  "ris_input",
  "ris_jobs",
  "ris_log",
+ "ris_util",
  "ris_video",
  "sdl2",
 ]
@@ -87,6 +89,7 @@ name = "ris_data"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "ris_util",
  "sdl2",
 ]
 
@@ -123,6 +126,7 @@ dependencies = [
  "ris_data",
  "ris_log",
  "ris_os",
+ "ris_util",
 ]
 
 [[package]]
@@ -130,7 +134,6 @@ name = "ris_log"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "ris_data",
  "sdl2",
 ]
 
@@ -149,6 +152,10 @@ version = "0.1.0"
 [[package]]
 name = "ris_util"
 version = "0.1.0"
+dependencies = [
+ "ris_log",
+ "sdl2",
+]
 
 [[package]]
 name = "ris_video"
