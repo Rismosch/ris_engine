@@ -6,6 +6,10 @@ fn main() {
     loop {
         let mut command = std::process::Command::new(PROGRAM);
 
+        for arg in std::env::args().into_iter().skip(1) {
+            command.arg(arg);
+        }
+
         match command.output() {
             Ok(output) => {
                 let exit_code = if let Some(code) = output.status.code() {
