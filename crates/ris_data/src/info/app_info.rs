@@ -15,6 +15,7 @@ pub struct AppInfo {
     pub file: FileInfo,
     pub sdl: SdlInfo,
     pub cpu: CpuInfo,
+    pub args: Vec<String>,
 }
 
 pub fn app_info(package: PackageInfo) -> AppInfo {
@@ -22,6 +23,7 @@ pub fn app_info(package: PackageInfo) -> AppInfo {
     let file = file_info(&package);
     let sdl = sdl_info();
     let cpu = cpu_info();
+    let args = std::env::args().collect();
 
     AppInfo {
         package,
@@ -29,6 +31,7 @@ pub fn app_info(package: PackageInfo) -> AppInfo {
         file,
         sdl,
         cpu,
+        args,
     }
 }
 
@@ -39,6 +42,16 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.file)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
+
+        match self.args.len() {
+            0 => writeln!(f, "no args")?,
+            1 => writeln!(f, "1 arg")?,
+            len => writeln!(f, "{} args", len)?,
+        }
+
+        for (i, arg) in self.args.iter().enumerate() {
+            writeln!(f, "  [{}] -> {}", i, arg)?;
+        }
 
         Ok(())
     }
