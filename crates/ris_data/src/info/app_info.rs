@@ -40,7 +40,6 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.file)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
-        write!(f, "Date\n{}", Local::now())?;
 
         Ok(())
     }

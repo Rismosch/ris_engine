@@ -1,5 +1,6 @@
-use std::path::PathBuf;
+use std::{path::{PathBuf, Path}, fs::{File, DirEntry, Metadata}, io::{Write, Error, self, BufRead}, time::SystemTime};
 
+use chrono::Local;
 use ris_data::info::app_info::AppInfo;
 
 use super::i_appender::IAppender;
@@ -7,80 +8,165 @@ use super::i_appender::IAppender;
 const LOG_DIRERCTORY_NAME: &str = "logs";
 const LOG_FILE_NAME: &str = "current.log";
 const OLD_LOG_DIRERCTORY: &str = "old";
-const OLD_LOG_COUNT: u8 = 10;
+const OLD_LOG_COUNT: usize = 10;
 
 pub struct FileAppender {
-    old_log_directory: PathBuf,
-    current_log_path: PathBuf,
+    log_file: File,
 }
 
 impl FileAppender {
     pub fn new(app_info: &AppInfo) -> Box<Self> {
-        let file_appender = Self::construct(app_info);
-        file_appender.create_old_directory();
-        file_appender.delete_expired_logs();
-        file_appender.move_current_log();
-        file_appender.create_new_log_file();
+        let (old_log_directory, current_log_path) = construct_paths(app_info);
+        create_old_directory(&old_log_directory);
+        delete_expired_logs(&old_log_directory);
+        move_current_log(&old_log_directory, &current_log_path);
+        let log_file = create_new_log_file(&current_log_path);
 
-        Box::new(file_appender)
+        let mut appender = Self {log_file};
+        let formatted_timestamp = format!("{}", Local::now());
+        appender.print(&formatted_timestamp);
+
+        Box::new(appender)
     }
 }
 
 impl IAppender for FileAppender {
     fn print(&mut self, message: &str) {
-        println!("FILEAPPENDER {}\n", message);
+        let result = writeln!(self.log_file, "{}\n", message);
+        if let Err(error) = result {
+            panic!("could not log message: {}", error);
+        }
     }
 }
 
-impl FileAppender {
-    fn construct(app_info: &AppInfo) -> Self {
-        let mut log_directory = PathBuf::new();
-        log_directory.push(&app_info.file.pref_path);
-        log_directory.push(LOG_DIRERCTORY_NAME);
+fn construct_paths(app_info: &AppInfo) -> (PathBuf, PathBuf) {
+    let mut log_directory = PathBuf::new();
+    log_directory.push(&app_info.file.pref_path);
+    log_directory.push(LOG_DIRERCTORY_NAME);
 
-        let mut current_log_path = PathBuf::new();
-        current_log_path.push(log_directory.clone());
-        current_log_path.push(LOG_FILE_NAME);
+    let mut old_log_directory = PathBuf::new();
+    old_log_directory.push(log_directory.clone());
+    old_log_directory.push(OLD_LOG_DIRERCTORY);
 
-        let mut old_log_directory = PathBuf::new();
-        old_log_directory.push(log_directory);
-        old_log_directory.push(OLD_LOG_DIRERCTORY);
+    let mut current_log_path = PathBuf::new();
+    current_log_path.push(log_directory);
+    current_log_path.push(LOG_FILE_NAME);
 
-        Self {
-            current_log_path,
-            old_log_directory,
-        }
+    (old_log_directory, current_log_path)
+}
+
+fn create_old_directory(old_log_directory: &PathBuf) {
+    if !&old_log_directory.exists() {
+        if let Err(error) = std::fs::create_dir_all(&old_log_directory) {
+            panic!("couldn't create \"{:?}\": {}", &old_log_directory, error);
+        };
     }
+}
+
+fn delete_expired_logs(old_log_directory: &PathBuf) {
+    let entries = match std::fs::read_dir(&old_log_directory) {
+        Ok(entries) => entries,
+        Err(error) => panic!("couldn't read \"{:?}\": {}", old_log_directory, error),
+    };
+
+    let mut sorted_entries: Vec<_> = entries.collect();
+    sorted_entries.sort_by(|left, right| {
+        let left = get_modified(&left);
+        let right = get_modified(&right);
+
+        right.cmp(&left)
+    });
     
-    fn create_old_directory(&self) {
-        if !&self.old_log_directory.exists() {
-            if let Err(error) = std::fs::create_dir_all(&self.old_log_directory) {
-                panic!("couldn't create \"{:?}\": {}", &self.old_log_directory, error);
-            };
-        }
-    }
-    
-    fn delete_expired_logs(&self) {
-        let entries = match std::fs::read_dir(&self.old_log_directory) {
-            Ok(entries) => entries,
-            Err(error) => panic!("couldn't read \"{:?}\": {}", self.old_log_directory, error),
+    for entry in sorted_entries.iter().skip(OLD_LOG_COUNT - 1) {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => panic!("couldn't read entry: {}", error),
         };
 
-        for entry in entries {
-            match entry {
-                Ok(entry) => {
-                    println!("{:?} {:?} {:?} {:?}\n\n", entry.file_type(), entry.file_name(), entry.metadata(), entry.path())
-                },
-                Err(error) => panic!("couldn't read old log entry: {}", error),
-            }
+        let metadata = match entry.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) => panic!("couldn't read metadata  \"{:?}\": {}", entry.path(), error),
+        };
+
+        if metadata.is_dir() {
+            let _ = std::fs::remove_dir_all(entry.path());
+        } else {
+            let _ = std::fs::remove_file(entry.path());
         }
     }
-    
-    fn move_current_log(&self) {
-    
+}
+
+fn move_current_log(old_log_directory: &PathBuf, current_log_path: &PathBuf) {
+    if !current_log_path.exists() {
+        return;
     }
-    
-    fn create_new_log_file(&self) {
-    
+
+    let file = match File::open(current_log_path) {
+        Ok(file) => file,
+        Err(error) => panic!("couldn't read \"{:?}\": {}", current_log_path, error),
+    };
+
+    let mut lines = io::BufReader::new(file).lines();
+    let first_line = match lines.next() {
+        Some(next_line) => match next_line {
+            Ok(line) => format!("{}.log", line),
+            _ => default_old_filename(),
+        },
+        _ => default_old_filename(),
+    };
+
+    let source = current_log_path;
+    let mut target = old_log_directory.clone();
+    target.push(sanitize(&first_line));
+
+    match std::fs::rename(source, target) {
+        Ok(()) => (),
+        Err(_) => {
+            let mut target = old_log_directory.clone();
+            target.push(sanitize(&default_old_filename()));
+
+            if let Err(error) = std::fs::rename(source, &target) {
+                panic!("couldn't move \"{:?}\" to \"{:?}\": {}", source, target, error);
+            }
+        },
     }
+}
+
+fn create_new_log_file(current_log_path: &PathBuf) -> File {
+    match File::create(&current_log_path) {
+        Ok(file) => file,
+        Err(error) => panic!("couldn't create \"{:?}\": {}", current_log_path, error),
+    }
+}
+
+fn get_modified(entry: &Result<DirEntry, Error>) -> SystemTime {
+    let entry = match entry {
+        Ok(entry) => entry,
+        Err(error) => panic!("couldn't read entry: {}", error),
+    };
+
+    let metadata = match entry.metadata() {
+        Ok(meta_data) => meta_data,
+        Err(error) => panic!("couldn't retreive metadata: {}", error),
+    };
+
+    match metadata.modified() {
+        Ok(modified) => modified,
+        Err(error) => panic!("couldn't retreive modified time: {}", error),
+    }
+}
+
+fn default_old_filename() -> String {
+    format!("{}.log", Local::now())
+}
+
+fn sanitize(value: &str) -> String {
+    const INVALID_CHARS: [char; 9] = ['\\','/',':','*','?','"','<','>','|'];
+
+    let mut value = String::from(value);
+    for invalid_char in INVALID_CHARS {
+        value = value.replace(invalid_char, "_");
+    }
+
+    value
 }
