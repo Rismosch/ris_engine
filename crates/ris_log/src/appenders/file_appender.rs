@@ -1,4 +1,9 @@
-use std::{path::{PathBuf, Path}, fs::{File, DirEntry, Metadata}, io::{Write, Error, self, BufRead}, time::SystemTime};
+use std::{
+    fs::{DirEntry, File},
+    io::{self, BufRead, Error, Write},
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 
 use chrono::Local;
 use ris_data::info::app_info::AppInfo;
@@ -22,7 +27,7 @@ impl FileAppender {
         move_current_log(&old_log_directory, &current_log_path);
         let log_file = create_new_log_file(&current_log_path);
 
-        let mut appender = Self {log_file};
+        let mut appender = Self { log_file };
         let formatted_timestamp = format!("{}", Local::now());
         appender.print(&formatted_timestamp);
 
@@ -71,12 +76,12 @@ fn delete_expired_logs(old_log_directory: &PathBuf) {
 
     let mut sorted_entries: Vec<_> = entries.collect();
     sorted_entries.sort_by(|left, right| {
-        let left = get_modified(&left);
-        let right = get_modified(&right);
+        let left = get_modified(left);
+        let right = get_modified(right);
 
         right.cmp(&left)
     });
-    
+
     for entry in sorted_entries.iter().skip(OLD_LOG_COUNT - 1) {
         let entry = match entry {
             Ok(entry) => entry,
@@ -96,7 +101,7 @@ fn delete_expired_logs(old_log_directory: &PathBuf) {
     }
 }
 
-fn move_current_log(old_log_directory: &PathBuf, current_log_path: &PathBuf) {
+fn move_current_log(old_log_directory: &Path, current_log_path: &Path) {
     if !current_log_path.exists() {
         return;
     }
@@ -108,27 +113,27 @@ fn move_current_log(old_log_directory: &PathBuf, current_log_path: &PathBuf) {
 
     let mut lines = io::BufReader::new(file).lines();
     let first_line = match lines.next() {
-        Some(next_line) => match next_line {
-            Ok(line) => format!("{}.log", line),
-            _ => default_old_filename(),
-        },
+        Some(Ok(line)) => format!("{}.log", line),
         _ => default_old_filename(),
     };
 
     let source = current_log_path;
-    let mut target = old_log_directory.clone();
+    let mut target = old_log_directory.to_path_buf();
     target.push(sanitize(&first_line));
 
     match std::fs::rename(source, target) {
         Ok(()) => (),
         Err(_) => {
-            let mut target = old_log_directory.clone();
+            let mut target = old_log_directory.to_path_buf();
             target.push(sanitize(&default_old_filename()));
 
             if let Err(error) = std::fs::rename(source, &target) {
-                panic!("couldn't move \"{:?}\" to \"{:?}\": {}", source, target, error);
+                panic!(
+                    "couldn't move \"{:?}\" to \"{:?}\": {}",
+                    source, target, error
+                );
             }
-        },
+        }
     }
 }
 
@@ -161,7 +166,7 @@ fn default_old_filename() -> String {
 }
 
 fn sanitize(value: &str) -> String {
-    const INVALID_CHARS: [char; 9] = ['\\','/',':','*','?','"','<','>','|'];
+    const INVALID_CHARS: [char; 9] = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
     let mut value = String::from(value);
     for invalid_char in INVALID_CHARS {

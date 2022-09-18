@@ -14,7 +14,7 @@ pub fn file_info(package_info: &PackageInfo) -> FileInfo {
         Err(error) => panic!("error while getting base path: {}", error),
     };
 
-    let pref_path = match sdl2::filesystem::pref_path(&package_info.author,&package_info.name) {
+    let pref_path = match sdl2::filesystem::pref_path(&package_info.author, &package_info.name) {
         Ok(path) => path,
         Err(error) => panic!("error while getting pref path: {}", error),
     };

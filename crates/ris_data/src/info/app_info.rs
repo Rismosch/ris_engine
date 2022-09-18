@@ -1,12 +1,11 @@
-use chrono::Local;
 use std::fmt;
 
 use super::{
     build_info::{build_info, BuildInfo},
     cpu_info::{cpu_info, CpuInfo},
+    file_info::{file_info, FileInfo},
     package_info::PackageInfo,
     sdl_info::{sdl_info, SdlInfo},
-    file_info::{FileInfo, file_info},
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
