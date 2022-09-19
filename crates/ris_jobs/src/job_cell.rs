@@ -1,4 +1,13 @@
-use std::{cell::UnsafeCell, sync::{atomic::{Ordering, AtomicUsize}, Arc}, ptr::NonNull, marker::PhantomData, ops::{Deref, DerefMut}};
+use std::{
+    cell::UnsafeCell,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    ptr::NonNull,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
 use crate::job_system;
 
@@ -7,7 +16,7 @@ pub struct JobCell<T> {
 }
 
 pub struct RefJobCell<T> {
-    value: UnsafeCell<T>,
+    value: Option<UnsafeCell<T>>,
     refs: Arc<AtomicUsize>,
 }
 
@@ -25,17 +34,24 @@ impl<T> JobCell<T> {
     }
 
     pub fn ref_cell(self) -> RefJobCell<T> {
-        RefJobCell { value: self.value, refs: Arc::new(AtomicUsize::new(0)) }
+        RefJobCell {
+            value: Some(self.value),
+            refs: Arc::new(AtomicUsize::new(0)),
+        }
     }
 }
 
-impl<T> RefJobCell<T>{
-    pub fn return_cell(self) -> JobCell<T> {
+impl<T> RefJobCell<T> {
+    /// ⚠️ this method **WILL** livelock, when not all created `Ref<T>`s are dropped ⚠️
+    pub fn return_cell(mut self) -> JobCell<T> {
         while self.refs.load(Ordering::SeqCst) > 0 {
             job_system::run_pending_job();
         }
 
-        let value = self.value;
+        let value = match self.value.take() {
+            Some(value) => value,
+            None => unreachable!(),
+        };
 
         JobCell { value }
     }
@@ -43,19 +59,26 @@ impl<T> RefJobCell<T>{
     pub fn borrow(&self) -> Ref<T> {
         self.refs.fetch_add(1, Ordering::SeqCst);
 
-        let value = unsafe { NonNull::new_unchecked(self.value.get()) };
+        let cell = match &self.value {
+            Some(cell) => cell,
+            None => unreachable!(),
+        };
+
+        let value = unsafe { NonNull::new_unchecked(cell.get()) };
 
         Ref {
-            value: value,
+            value,
             refs: self.refs.clone(),
-            _boo: PhantomData
+            _boo: PhantomData,
         }
     }
 }
 
 impl<T: Default> Default for JobCell<T> {
     fn default() -> Self {
-        Self { value: UnsafeCell::default() }
+        Self {
+            value: UnsafeCell::default(),
+        }
     }
 }
 
@@ -63,13 +86,13 @@ impl<T> Deref for JobCell<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {&*self.value.get()}
+        unsafe { &*self.value.get() }
     }
 }
 
 impl<T> DerefMut for JobCell<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {&mut *self.value.get()}
+        unsafe { &mut *self.value.get() }
     }
 }
 
@@ -85,7 +108,7 @@ impl<T> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {self.value.as_ref()}
+        unsafe { self.value.as_ref() }
     }
 }
 
@@ -95,7 +118,7 @@ impl<T> Clone for Ref<T> {
         Self {
             value: self.value,
             refs: self.refs.clone(),
-            _boo: PhantomData
+            _boo: PhantomData,
         }
     }
 }
