@@ -1,5 +1,5 @@
 use ris_core::restart_code::RESTART_CODE;
-use ris_util::throw;
+use ris_util::{throw, unwrap_or_throw};
 
 const PROGRAM: &str = "ris_engine.exe";
 
@@ -11,40 +11,38 @@ fn main() {
             command.arg(arg);
         }
 
-        match command.output() {
-            Ok(output) => {
-                let exit_code = if let Some(code) = output.status.code() {
-                    println!("process finished with code {}", code);
+        let child = unwrap_or_throw!(command.spawn(), "child could not be spawned");
+        let output = unwrap_or_throw!(child.wait_with_output(), "child could not be awaited");
 
-                    if code == RESTART_CODE {
-                        println!("restarting...");
-                        continue;
-                    } else {
-                        Some(code)
-                    }
-                } else {
-                    println!("process finished with no code");
-                    None
-                };
+        let exit_code = if let Some(code) = output.status.code() {
+            println!("process finished with code {}", code);
 
-                if output.status.success() {
-                    return;
-                } else {
-                    let output_bytes = output.stderr;
-                    let output_string = String::from_utf8(output_bytes);
-
-                    match output_string {
-                        Ok(to_print) => eprintln!("{}", to_print),
-                        Err(error) => throw!("error while formatting output.stderr: {}", error),
-                    }
-
-                    match exit_code {
-                        Some(code) => std::process::exit(code),
-                        None => return,
-                    }
-                }
+            if code == RESTART_CODE {
+                println!("restarting...");
+                continue;
+            } else {
+                Some(code)
             }
-            Err(error) => throw!("error while running {}: {}", PROGRAM, error),
+        } else {
+            println!("process finished with no code");
+            None
+        };
+
+        if output.status.success() {
+            return;
+        } else {
+            let output_bytes = output.stderr;
+            let output_string = String::from_utf8(output_bytes);
+
+            match output_string {
+                Ok(to_print) => eprintln!("{}", to_print),
+                Err(error) => throw!("error while formatting output.stderr: {}", error),
+            }
+
+            match exit_code {
+                Some(code) => std::process::exit(code),
+                None => return,
+            }
         }
     }
 }

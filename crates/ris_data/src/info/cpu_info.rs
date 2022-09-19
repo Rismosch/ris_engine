@@ -42,7 +42,7 @@ pub fn cpu_info() -> CpuInfo {
 impl fmt::Display for CpuInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "CPU")?;
-        writeln!(f, "Cache Line Size: {}", self.cpu_cache_line_size)?;
+        writeln!(f, "Cache Size:   {}", self.cpu_cache_line_size)?;
         writeln!(f, "Count:        {}", self.cpu_count)?;
         writeln!(f, "System RAM:   {}", self.system_ram)?;
         writeln!(f, "has 3d now:   {}", self.has_3d_now)?;
