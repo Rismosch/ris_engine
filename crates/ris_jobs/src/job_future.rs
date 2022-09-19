@@ -15,7 +15,6 @@ pub struct SettableJobFuture<T> {
     inner: InnerPtr<T>,
 }
 
-#[must_use]
 pub struct JobFuture<T> {
     inner: InnerPtr<T>,
 }
@@ -68,11 +67,5 @@ impl<T> JobFuture<T> {
 
             job_system::run_pending_job();
         }
-    }
-}
-
-impl<T> Drop for JobFuture<T> {
-    fn drop(&mut self) {
-        self.wait_and_take();
     }
 }

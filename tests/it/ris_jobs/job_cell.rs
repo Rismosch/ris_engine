@@ -1,7 +1,6 @@
-use core::borrow;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
-use ris_jobs::{job_cell::{JobCell, self}, job_system};
+use ris_jobs::{job_cell::JobCell, job_system};
 
 #[test]
 fn should_deref() {
@@ -39,7 +38,7 @@ fn should_reference_and_clone() {
 #[test]
 fn should_returning_to_cell() {
     let job_cell = JobCell::new(42);
-    let ref_cell =  job_cell.ref_cell();
+    let ref_cell = job_cell.ref_cell();
     let job_cell = ref_cell.return_cell();
 
     assert_eq!(*job_cell, 42);
@@ -59,7 +58,7 @@ fn should_run_jobs_when_returning_to_cell() {
         for _ in 0..100 {
             let borrowed = ref_cell.borrow();
             let results_copy = results.clone();
-            job_system::submit(move||{
+            job_system::submit(move || {
                 results_copy.lock().unwrap().push(*borrowed);
             });
         }
@@ -67,7 +66,18 @@ fn should_run_jobs_when_returning_to_cell() {
         job_cell = ref_cell.return_cell();
     }
 
-    let 
+    let results = results.lock().unwrap();
+
+    for i in 0..100 {
+        let mut count = 0;
+        for result in results.iter() {
+            if *result == i {
+                count += 1;
+            }
+        }
+
+        assert_eq!(count, 100);
+    }
 
     drop(job_system);
 }

@@ -197,29 +197,6 @@ fn should_run_jobs_while_waiting_on_future() {
 }
 
 #[test]
-fn should_run_jobs_when_dropping_future() {
-    repeat(10, || {
-        let job_system = job_system::init(100, 1);
-
-        let results = Arc::new(Mutex::new(Vec::new()));
-
-        for i in 0..100 {
-            let results_copy = results.clone();
-            let _ = job_system::submit(move || results_copy.lock().unwrap().push(i));
-        }
-
-        let results = results.lock().unwrap();
-
-        assert_eq!(results.len(), 100);
-        for i in 0..100 {
-            assert!(results.contains(&i));
-        }
-
-        drop(job_system);
-    });
-}
-
-#[test]
 fn should_run_jobs_when_emptying() {
     repeat(10, || {
         let job_system = job_system::init(100, 1);
