@@ -1,23 +1,19 @@
-use std::{cell::UnsafeCell, sync::{atomic::{AtomicIsize, Ordering}, Arc}, ptr::NonNull, marker::PhantomData, ops::{Deref, DerefMut}};
+use std::{cell::UnsafeCell, sync::{atomic::{Ordering, AtomicUsize}, Arc}, ptr::NonNull, marker::PhantomData, ops::{Deref, DerefMut}};
 
 use crate::job_system;
 
-type Refs = Arc<AtomicIsize>;
-
 pub struct JobCell<T> {
     value: UnsafeCell<T>,
-    refs: Refs,
 }
 
-pub struct RefMut<T> {
-    value: NonNull<T>,
-    refs: Refs,
-    _boo: PhantomData<T>,
+pub struct RefJobCell<T> {
+    value: UnsafeCell<T>,
+    refs: Arc<AtomicUsize>,
 }
 
 pub struct Ref<T> {
     value: NonNull<T>,
-    refs: Refs,
+    refs: Arc<AtomicUsize>,
     _boo: PhantomData<T>,
 }
 
@@ -25,66 +21,62 @@ impl<T> JobCell<T> {
     pub fn new(value: T) -> Self {
         Self {
             value: UnsafeCell::new(value),
-            refs: Arc::new(AtomicIsize::new(0)),
         }
     }
 
-    pub fn replace(&self, data: T) -> T {
-        while self.refs
-            .compare_exchange_weak(0, -1, Ordering::SeqCst, Ordering::SeqCst)
-            .is_err()
-        {
+    pub fn ref_cell(self) -> RefJobCell<T> {
+        RefJobCell { value: self.value, refs: Arc::new(AtomicUsize::new(0)) }
+    }
+}
+
+impl<T> RefJobCell<T>{
+    pub fn return_cell(self) -> JobCell<T> {
+        while self.refs.load(Ordering::SeqCst) > 0 {
             job_system::run_pending_job();
         }
 
-        let result = std::mem::replace(unsafe { &mut *self.value.get() }, data);
+        let value = self.value;
 
-        self.refs.store(0, Ordering::SeqCst);
-
-        result
+        JobCell { value }
     }
 
     pub fn borrow(&self) -> Ref<T> {
-        loop {
-            let current = self.refs.load(Ordering::SeqCst);
-
-            if current >= 0 {
-                let new = current + 1;
-    
-                if self.refs
-                    .compare_exchange_weak(current, new, Ordering::SeqCst, Ordering::SeqCst)
-                    .is_ok()
-                {
-                    break;
-                }
-            }
-
-            job_system::run_pending_job();
-        }
+        self.refs.fetch_add(1, Ordering::SeqCst);
 
         let value = unsafe { NonNull::new_unchecked(self.value.get()) };
 
         Ref {
-            value,
+            value: value,
             refs: self.refs.clone(),
             _boo: PhantomData
         }
     }
+}
 
-    pub fn borrow_mut(&self) -> RefMut<T> {
-        while self.refs
-            .compare_exchange_weak(0, -1, Ordering::SeqCst, Ordering::SeqCst)
-            .is_err()
-        {
+impl<T: Default> Default for JobCell<T> {
+    fn default() -> Self {
+        Self { value: UnsafeCell::default() }
+    }
+}
+
+impl<T> Deref for JobCell<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {&*self.value.get()}
+    }
+}
+
+impl<T> DerefMut for JobCell<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe {&mut *self.value.get()}
+    }
+}
+
+impl<T> Drop for RefJobCell<T> {
+    fn drop(&mut self) {
+        while self.refs.load(Ordering::SeqCst) > 0 {
             job_system::run_pending_job();
-        }
-
-        let value = unsafe { NonNull::new_unchecked(self.value.get()) };
-
-        RefMut {
-            value,
-            refs: self.refs.clone(),
-            _boo: PhantomData
         }
     }
 }
@@ -111,25 +103,5 @@ impl<T> Clone for Ref<T> {
 impl<T> Drop for Ref<T> {
     fn drop(&mut self) {
         self.refs.fetch_sub(1, Ordering::SeqCst);
-    }
-}
-
-impl<T> Deref for RefMut<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {self.value.as_ref()}
-    }
-}
-
-impl<T> DerefMut for RefMut<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {self.value.as_mut()}
-    }
-}
-
-impl<T> Drop for RefMut<T> {
-    fn drop(&mut self) {
-        self.refs.store(0, Ordering::SeqCst);
     }
 }
