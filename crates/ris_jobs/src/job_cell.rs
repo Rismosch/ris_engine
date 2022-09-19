@@ -39,6 +39,10 @@ impl<T> JobCell<T> {
             refs: Arc::new(AtomicUsize::new(0)),
         }
     }
+
+    pub fn replace(&mut self, value: T) -> T {
+        std::mem::replace(&mut *self, value)
+    }
 }
 
 impl<T> RefJobCell<T> {
