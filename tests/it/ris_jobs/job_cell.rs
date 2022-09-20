@@ -4,25 +4,11 @@ use ris_jobs::{job_cell::JobCell, job_system};
 
 #[test]
 fn should_deref() {
-    let mut job_cell = JobCell::new(42);
-
-    let a = *job_cell;
-    *job_cell = 13;
-    let b = *job_cell;
-
-    assert_eq!(a, 42);
-    assert_eq!(b, 13);
-}
-
-#[test]
-fn should_reference_and_clone() {
     let job_cell = JobCell::new(42);
 
-    let ref_cell = job_cell.ref_cell();
-
-    let ref1 = ref_cell.borrow();
-    let ref2 = ref_cell.borrow();
-    let ref3 = ref_cell.borrow();
+    let ref1 = job_cell.borrow();
+    let ref2 = job_cell.borrow();
+    let ref3 = job_cell.borrow();
     let clone1 = ref1.clone();
     let clone2 = ref2.clone();
     let clone3 = ref3.clone();
@@ -36,35 +22,38 @@ fn should_reference_and_clone() {
 }
 
 #[test]
-fn should_returning_to_cell() {
-    let job_cell = JobCell::new(42);
-    let ref_cell = job_cell.ref_cell();
-    let job_cell = ref_cell.return_cell();
+fn should_reference_and_clone() {
+    let mut job_cell = JobCell::new(42);
+    let mut mutable_job_cell = job_cell.as_mut();
 
-    assert_eq!(*job_cell, 42);
+    let a = *mutable_job_cell;
+    *mutable_job_cell = 13;
+    let b = *mutable_job_cell;
+
+    assert_eq!(a, 42);
+    assert_eq!(b, 13);
 }
 
 #[test]
-fn should_run_jobs_when_returning_to_cell() {
+fn should_run_jobs_when_borrowing_as_mut() {
     let job_system = job_system::init(100, 100);
     let results = Arc::new(Mutex::new(Vec::new()));
 
-    let mut job_cell = JobCell::default();
+    let mut job_cell = JobCell::new(0);
 
     for i in 0..100 {
-        *job_cell = i;
-        let ref_cell = job_cell.ref_cell();
+        *job_cell.as_mut() = i;
 
         for _ in 0..100 {
-            let borrowed = ref_cell.borrow();
+            let borrowed = job_cell.borrow();
             let results_copy = results.clone();
             job_system::submit(move || {
                 results_copy.lock().unwrap().push(*borrowed);
             });
         }
-
-        job_cell = ref_cell.return_cell();
     }
+
+    job_cell.as_mut();
 
     let results = results.lock().unwrap();
 

@@ -13,11 +13,11 @@ use crate::job_system;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,
+    refs: Arc<AtomicUsize>,
 }
 
-pub struct RefJobCell<T> {
-    value: Option<UnsafeCell<T>>,
-    refs: Arc<AtomicUsize>,
+pub struct MutableJobCell<'a, T> {
+    value: &'a UnsafeCell<T>,
 }
 
 pub struct Ref<T> {
@@ -27,48 +27,29 @@ pub struct Ref<T> {
 }
 
 impl<T> JobCell<T> {
+    /// ⚠️ don't put this in an `Rc<T>` or `Arc<T>` ⚠️
+    ///
+    /// this cell is intended to have only one owner, who can mutate it
     pub fn new(value: T) -> Self {
         Self {
             value: UnsafeCell::new(value),
-        }
-    }
-
-    pub fn ref_cell(self) -> RefJobCell<T> {
-        RefJobCell {
-            value: Some(self.value),
             refs: Arc::new(AtomicUsize::new(0)),
         }
     }
 
-    pub fn replace(&mut self, value: T) -> T {
-        std::mem::replace(&mut *self, value)
-    }
-}
-
-impl<T> RefJobCell<T> {
     /// ⚠️ this method **WILL** livelock, when not all created `Ref<T>`s are dropped ⚠️
-    pub fn return_cell(mut self) -> JobCell<T> {
+    pub fn as_mut(&mut self) -> MutableJobCell<T> {
         while self.refs.load(Ordering::SeqCst) > 0 {
             job_system::run_pending_job();
         }
 
-        let value = match self.value.take() {
-            Some(value) => value,
-            None => unreachable!(),
-        };
-
-        JobCell { value }
+        MutableJobCell { value: &self.value }
     }
 
     pub fn borrow(&self) -> Ref<T> {
         self.refs.fetch_add(1, Ordering::SeqCst);
 
-        let cell = match &self.value {
-            Some(cell) => cell,
-            None => unreachable!(),
-        };
-
-        let value = unsafe { NonNull::new_unchecked(cell.get()) };
+        let value = unsafe { NonNull::new_unchecked(self.value.get()) };
 
         Ref {
             value,
@@ -78,15 +59,13 @@ impl<T> RefJobCell<T> {
     }
 }
 
-impl<T: Default> Default for JobCell<T> {
-    fn default() -> Self {
-        Self {
-            value: UnsafeCell::default(),
-        }
+impl<T> MutableJobCell<'_, T> {
+    pub fn replace(&mut self, value: T) -> T {
+        std::mem::replace(&mut *self, value)
     }
 }
 
-impl<T> Deref for JobCell<T> {
+impl<T> Deref for MutableJobCell<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -94,17 +73,9 @@ impl<T> Deref for JobCell<T> {
     }
 }
 
-impl<T> DerefMut for JobCell<T> {
+impl<T> DerefMut for MutableJobCell<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.value.get() }
-    }
-}
-
-impl<T> Drop for RefJobCell<T> {
-    fn drop(&mut self) {
-        while self.refs.load(Ordering::SeqCst) > 0 {
-            job_system::run_pending_job();
-        }
     }
 }
 

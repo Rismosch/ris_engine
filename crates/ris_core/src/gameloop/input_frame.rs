@@ -6,7 +6,10 @@ use ris_input::{
     keyboard_logic::update_keyboard,
     mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
-use ris_jobs::{job_system, job_cell::{JobCell, Ref}};
+use ris_jobs::{
+    job_cell::{JobCell, Ref},
+    job_system,
+};
 use sdl2::{controller::GameController, event::Event, EventPump, GameControllerSubsystem};
 
 pub struct InputFrame {
@@ -37,11 +40,11 @@ impl InputFrame {
 
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
-        let previous_for_gamepad = previous.clone();
+        let previous_for_gamepad = previous;
 
         reset_mouse_refs(&mut current_mouse);
 
-        for event in self.event_pump.poll_iter() {
+        for event in self.event_pump.as_mut().poll_iter() {
             ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
             if let Event::Quit { .. } = event {
@@ -55,12 +58,9 @@ impl InputFrame {
             handle_mouse_events(&mut current_mouse, &event);
         }
 
-        let ref_event_pump = self.event_pump.ref_cell();
-        let ref_controller_subsystem = self.controller_subsystem.ref_cell();
-
-        let mouse_event_pump = ref_event_pump.borrow();
-        let keyboard_event_pump = ref_event_pump.borrow();
-        let controller_subsystem = ref_controller_subsystem.borrow();
+        let mouse_event_pump = self.event_pump.borrow();
+        let keyboard_event_pump = self.event_pump.borrow();
+        let controller_subsystem = self.controller_subsystem.borrow();
 
         let gamepad_future = job_system::submit(move || {
             let mut gamepad = current_gamepad;
@@ -101,9 +101,6 @@ impl InputFrame {
         current.gamepad = new_gamepad;
 
         self.controller = new_controller;
-
-        self.event_pump = ref_event_pump.return_cell();
-        self.controller_subsystem = ref_controller_subsystem.return_cell();
 
         (current, new_gameloop_state)
     }
