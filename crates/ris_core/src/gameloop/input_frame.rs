@@ -1,10 +1,10 @@
-use ris_data::gameloop::{
+use ris_data::{gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
-};
+}, input::rebind_matrix::RebindMatrix};
 use ris_input::{
     gamepad_logic::update_gamepad,
     keyboard_logic::update_keyboard,
-    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
+    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs}, general_logic::update_general,
 };
 use ris_jobs::{
     job_cell::{JobCell, Ref},
@@ -16,14 +16,26 @@ pub struct InputFrame {
     event_pump: JobCell<EventPump>,
     controller: Option<GameController>,
     controller_subsystem: JobCell<GameControllerSubsystem>,
+
+    rebind_matrix_mouse: RebindMatrix,
+    rebind_matrix_keyboard: RebindMatrix,
+    rebind_matrix_gamepad: RebindMatrix,
 }
 
 impl InputFrame {
     pub fn new(event_pump: EventPump, controller_subsystem: GameControllerSubsystem) -> Self {
+        let mut rebind_matrix = [0; 32];
+        for (i, row) in rebind_matrix.iter_mut().enumerate() {
+            *row = 1 << i;
+        }
+
         Self {
             event_pump: JobCell::new(event_pump),
             controller: None,
             controller_subsystem: JobCell::new(controller_subsystem),
+            rebind_matrix_mouse: rebind_matrix,
+            rebind_matrix_keyboard: rebind_matrix,
+            rebind_matrix_gamepad: rebind_matrix,
         }
     }
 
@@ -33,29 +45,29 @@ impl InputFrame {
         previous: Ref<InputData>,
         _frame: Ref<FrameData>,
     ) -> (InputData, GameloopState) {
-        let mut current_mouse = current.mouse;
         let current_keyboard = current.keyboard;
         let current_gamepad = current.gamepad;
+
         let current_controller = self.controller.take();
 
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
-        let previous_for_gamepad = previous;
+        let previous_for_gamepad = previous.clone();
+        let previous_for_general = previous;
 
-        reset_mouse_refs(&mut current_mouse);
+        reset_mouse_refs(&mut current.mouse);
 
         for event in self.event_pump.as_mut().poll_iter() {
-            ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
+            // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
             if let Event::Quit { .. } = event {
-                current.mouse = current_mouse;
                 current.keyboard = current_keyboard;
                 current.gamepad = current_gamepad;
                 self.controller = current_controller;
                 return (current, GameloopState::WantsToQuit);
             };
 
-            handle_mouse_events(&mut current_mouse, &event);
+            handle_mouse_events(&mut current.mouse, &event);
         }
 
         let mouse_event_pump = self.event_pump.borrow();
@@ -88,7 +100,7 @@ impl InputFrame {
         });
 
         post_update_mouse(
-            &mut current_mouse,
+            &mut current.mouse,
             &previous_for_mouse.mouse,
             mouse_event_pump.mouse_state(),
         );
@@ -96,7 +108,17 @@ impl InputFrame {
         let (new_gamepad, new_controller) = gamepad_future.wait();
         let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
 
-        current.mouse = current_mouse;
+        update_general(
+            &mut current.general,
+            &previous_for_general.general,
+            &current.mouse.buttons,
+            &new_keyboard.buttons,
+            &new_gamepad.buttons,
+            &self.rebind_matrix_mouse,
+            &self.rebind_matrix_keyboard,
+            &self.rebind_matrix_gamepad,
+        );
+
         current.keyboard = new_keyboard;
         current.gamepad = new_gamepad;
 
