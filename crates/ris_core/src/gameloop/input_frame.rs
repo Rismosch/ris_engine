@@ -60,7 +60,7 @@ impl InputFrame {
         reset_mouse_refs(&mut current.mouse);
 
         for event in self.event_pump.as_mut().poll_iter() {
-            // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
+            ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;
