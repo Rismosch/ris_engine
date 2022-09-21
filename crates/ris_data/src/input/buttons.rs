@@ -18,9 +18,15 @@ impl Buttons {
         self.hold
     }
 
-    pub fn update(&mut self, new_state: &u32, old_state: &u32) {
+    pub fn set(&mut self, new_state: &u32, old_state: &u32) {
         self.up = !new_state & old_state;
         self.down = new_state & !old_state;
+        self.hold = *new_state;
+    }
+
+    pub fn update(&mut self, new_state: &u32) {
+        self.up = !new_state & self.hold;
+        self.down = new_state & !self.hold;
         self.hold = *new_state;
     }
 }

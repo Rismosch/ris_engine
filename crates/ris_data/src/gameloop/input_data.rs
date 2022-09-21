@@ -1,4 +1,7 @@
-use crate::input::{gamepad_data::GamepadData, keyboard_data::KeyboardData, mouse_data::MouseData, general_data::GeneralData};
+use crate::input::{
+    gamepad_data::GamepadData, general_data::GeneralData, keyboard_data::KeyboardData,
+    mouse_data::MouseData,
+};
 
 #[derive(Default)]
 pub struct InputData {
