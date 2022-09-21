@@ -109,7 +109,7 @@ if (Test-Path $final_directory) {
     Remove-Item -Recurse -Force $final_directory
 }
 
-New-Item -Path $final_directory -ItemType Directory
+New-Item -Path $final_directory -ItemType Directory | out-null
 
 Copy-Item "$target_directory/app.exe" -Destination "$final_directory/app.exe"
 Copy-Item "$target_directory/ris_engine.exe" -Destination "$final_directory/ris_engine.exe"

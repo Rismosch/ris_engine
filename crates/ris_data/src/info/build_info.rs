@@ -9,16 +9,48 @@
 // Doc: https://git-scm.com/docs/git-update-index#_using_assume_unchanged_bit
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct BuildInfo;
+pub struct BuildInfo {
+    git_repo: String,
+    git_commit: String,
+    git_branch: String,
+    rustc_version: String,
+    rustup_toolchain: String,
+    build_profile: String,
+    build_date: String,
+}
 
 pub fn build_info() -> BuildInfo {
-    BuildInfo {}
+    BuildInfo {
+        git_repo: String::from("https://github.com/Rismosch/ris_engine.git"),
+        git_commit: String::from("32179ecac0555bffc9849307f882bd340bfc45da"),
+        git_branch: String::from("main"),
+        rustc_version: String::from("rustc 1.63.0 (4b91a6ea7 2022-08-08)"),
+        rustup_toolchain: String::from("stable-x86_64-pc-windows-msvc (default)"),
+        build_profile: profile(),
+        build_date: String::from("2022-09-21T21:04:52.7528166+02:00"),
+    }
+}
+
+#[cfg(debug_assertions)]
+fn profile() -> String {
+    String::from("debug")
+}
+
+#[cfg(not(debug_assertions))]
+fn profile() -> String {
+    String::from("release")
 }
 
 impl std::fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "Build")?;
-        writeln!(f, "build script was not run yet")?;
+        writeln!(f, "git repo:     {}", self.git_repo)?;
+        writeln!(f, "git commit:   {}", self.git_commit)?;
+        writeln!(f, "git branch:   {}", self.git_branch)?;
+        writeln!(f, "compiler:     {}", self.rustc_version)?;
+        writeln!(f, "toolchain:    {}", self.rustup_toolchain)?;
+        writeln!(f, "profile:      {}", self.build_profile)?;
+        writeln!(f, "build date:   {}", self.build_date)?;
 
         Ok(())
     }
