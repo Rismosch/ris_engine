@@ -24,15 +24,12 @@ _All SDL2 libraries in this repo come from the `SDL2-devel-2.0.12-VC.zip` packag
 
 Assuming SDL2 is installed correctly (see section above), you can now simply compile and run the engine with:
 
-```
-cargo run
-```
+    cargo run
 
 Alternatively, you can build a release-ready package, by running the build script found under:
 
-```
-./CI/build_release.ps1
-```
+> ./CI/build_release.ps1
+
 
 **Note:** The build script compiles with _ALL_ optimizations enabled, and thus may take much longer than running `cargo run`.
 
