@@ -1,25 +1,25 @@
-use ris_data::input::{general_data::GeneralData, buttons::Buttons, rebind_matrix::RebindMatrix};
+use ris_data::input::{buttons::Buttons, general_data::GeneralData, rebind_matrix::RebindMatrix};
 
+pub struct GeneralLogicArgs<'a> {
+    pub new_general_data: &'a mut GeneralData,
+    pub old_general_data: &'a GeneralData,
+    pub mouse: &'a Buttons,
+    pub keyboard: &'a Buttons,
+    pub gamepad: &'a Buttons,
+    pub rebind_matrix_mouse: &'a RebindMatrix,
+    pub rebind_matrix_keyboard: &'a RebindMatrix,
+    pub rebind_matrix_gamepad: &'a RebindMatrix,
+}
 
-
-pub fn update_general(
-    new_general_data: &mut GeneralData,
-    old_general_data: &GeneralData,
-    mouse: &Buttons,
-    keyboard: &Buttons,
-    gamepad: &Buttons,
-    rebind_matrix_mouse: &RebindMatrix,
-    rebind_matrix_keyboard: &RebindMatrix,
-    rebind_matrix_gamepad: &RebindMatrix)
-{
-    let rebound_mouse = rebind(mouse, rebind_matrix_mouse);
-    let rebound_keyboard = rebind(keyboard, rebind_matrix_keyboard);
-    let rebound_gamepad = rebind(gamepad, rebind_matrix_gamepad);
+pub fn update_general(args: GeneralLogicArgs) {
+    let rebound_mouse = rebind(args.mouse, args.rebind_matrix_mouse);
+    let rebound_keyboard = rebind(args.keyboard, args.rebind_matrix_keyboard);
+    let rebound_gamepad = rebind(args.gamepad, args.rebind_matrix_gamepad);
 
     let new_state = rebound_mouse | rebound_keyboard | rebound_gamepad;
-    let old_state = old_general_data.buttons.hold();
+    let old_state = args.old_general_data.buttons.hold();
 
-    new_general_data.buttons.update(&new_state, &old_state);
+    args.new_general_data.buttons.set(&new_state, &old_state);
 }
 
 fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {

@@ -29,7 +29,7 @@ pub fn update_keyboard(
         }
     }
 
-    new_keyboard_data.buttons.update(&new_state, &old_state);
+    new_keyboard_data.buttons.set(&new_state, &old_state);
 
     GameloopState::WantsToContinue
 }

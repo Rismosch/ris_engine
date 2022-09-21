@@ -88,7 +88,7 @@ fn compute_state(
 
     new_gamepad_data
         .buttons
-        .update(&new_state, &old_gamepad_data.buttons.hold());
+        .set(&new_state, &old_gamepad_data.buttons.hold());
     new_gamepad_data.axis[0] = left_x;
     new_gamepad_data.axis[1] = left_y;
     new_gamepad_data.axis[2] = right_x;
@@ -98,7 +98,7 @@ fn compute_state(
 }
 
 fn reset_state(gamepad: &mut GamepadData) {
-    gamepad.buttons.update(&0, &0);
+    gamepad.buttons.set(&0, &0);
     gamepad.axis[0] = 0;
     gamepad.axis[1] = 0;
     gamepad.axis[2] = 0;

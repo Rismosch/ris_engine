@@ -1,10 +1,12 @@
-use ris_data::{gameloop::{
-    frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
-}, input::rebind_matrix::RebindMatrix};
+use ris_data::{
+    gameloop::{frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData},
+    input::rebind_matrix::RebindMatrix,
+};
 use ris_input::{
     gamepad_logic::update_gamepad,
+    general_logic::{update_general, GeneralLogicArgs},
     keyboard_logic::update_keyboard,
-    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs}, general_logic::update_general,
+    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
 use ris_jobs::{
     job_cell::{JobCell, Ref},
@@ -108,16 +110,18 @@ impl InputFrame {
         let (new_gamepad, new_controller) = gamepad_future.wait();
         let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
 
-        update_general(
-            &mut current.general,
-            &previous_for_general.general,
-            &current.mouse.buttons,
-            &new_keyboard.buttons,
-            &new_gamepad.buttons,
-            &self.rebind_matrix_mouse,
-            &self.rebind_matrix_keyboard,
-            &self.rebind_matrix_gamepad,
-        );
+        let args = GeneralLogicArgs {
+            new_general_data: &mut current.general,
+            old_general_data: &previous_for_general.general,
+            mouse: &current.mouse.buttons,
+            keyboard: &new_keyboard.buttons,
+            gamepad: &new_gamepad.buttons,
+            rebind_matrix_mouse: &self.rebind_matrix_mouse,
+            rebind_matrix_keyboard: &self.rebind_matrix_keyboard,
+            rebind_matrix_gamepad: &self.rebind_matrix_gamepad,
+        };
+
+        update_general(args);
 
         current.keyboard = new_keyboard;
         current.gamepad = new_gamepad;
