@@ -7,22 +7,6 @@ use ris_log::{
     log_level::LogLevel,
 };
 
-#[cfg(debug_assertions)]
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
-
-    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
-    log::init(LogLevel::Trace, appenders)
-}
-
-#[cfg(not(debug_assertions))]
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::file_appender::FileAppender;
-
-    let appenders: Appenders = vec![FileAppender::new(app_info)];
-    log::init(LogLevel::Info, appenders)
-}
-
 fn main() -> Result<(), String> {
     let app_info = app_info(package_info!());
     let log_guard = init_log(&app_info);
@@ -38,4 +22,20 @@ fn main() -> Result<(), String> {
 
     let exit_code = result?;
     std::process::exit(exit_code);
+}
+
+#[cfg(debug_assertions)]
+fn init_log(app_info: &AppInfo) -> LogGuard {
+    use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
+
+    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
+    log::init(LogLevel::Trace, appenders)
+}
+
+#[cfg(not(debug_assertions))]
+fn init_log(app_info: &AppInfo) -> LogGuard {
+    use ris_core::appenders::file_appender::FileAppender;
+
+    let appenders: Appenders = vec![FileAppender::new(app_info)];
+    log::init(LogLevel::Info, appenders)
 }
