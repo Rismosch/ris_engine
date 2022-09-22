@@ -48,7 +48,7 @@ impl GamepadLogic {
         }
 
         if let Event::ControllerDeviceRemapped { which, .. } = event {
-            ris_log::debug!("controller \"{}\" remapped", which);
+            ris_log::info!("controller \"{}\" remapped", which);
             return true;
         }
 
@@ -63,24 +63,6 @@ impl GamepadLogic {
         } else {
             reset_state(new_gamepad_data)
         }
-
-        // if let Some(controller) = game_controller {
-        //     if controller.attached() {
-        //         compute_state(new_gamepad_data, old_gamepad_data, &controller);
-        //         return Some(controller);
-        //     } else {
-        //         game_controller = None;
-        //     }
-        // }
-
-        // reset_state(new_gamepad_data);
-
-        // match open_game_controller(subsystem) {
-        //     Ok(controller) => game_controller = controller,
-        //     Err(error) => ris_log::error!("{}", error),
-        // }
-
-        // game_controller
     }
 
     fn update_current_controller(&mut self, instance_id: u32) {
@@ -98,11 +80,12 @@ impl GamepadLogic {
     }
 
     fn add_controller(&mut self, joystick_index: u32) {
-        let game_controller = self
-            .subsystem
-            .open(joystick_index)
-            .map_err(|e| format!("could not open controller {}: {}", joystick_index, e))
-            .unwrap();
+        let controller_to_open = self.subsystem.open(joystick_index);
+
+        let game_controller = match controller_to_open {
+            Ok(game_controller) => game_controller,
+            _ => unreachable!(),
+        };
 
         let instance_id = game_controller.instance_id();
 
@@ -133,12 +116,14 @@ impl GamepadLogic {
         }
 
         if self.open_controllers.is_empty() {
-            self.last_controller_event_instance_id = u32::MAX;
             self.current_controller = None;
+            self.last_controller_event_instance_id = u32::MAX;
         } else {
-            self.last_controller_event_instance_id =
-                self.open_controllers.last().unwrap().instance_id();
             self.current_controller = Some(self.open_controllers.len() - 1);
+            self.last_controller_event_instance_id = match self.open_controllers.last() {
+                Some(last_controller) => last_controller.instance_id(),
+                None => unreachable!(),
+            };
         }
 
         ris_log::info!(
