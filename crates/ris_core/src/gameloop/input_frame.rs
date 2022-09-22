@@ -3,15 +3,16 @@ use ris_data::{
     input::rebind_matrix::RebindMatrix,
 };
 use ris_input::{
+    gamepad_logic::GamepadLogic,
     general_logic::{update_general, GeneralLogicArgs},
     keyboard_logic::update_keyboard,
-    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs}, gamepad_logic::GamepadLogic,
+    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
 use ris_jobs::{
     job_cell::{JobCell, Ref},
     job_system,
 };
-use sdl2::{controller::GameController, event::Event, EventPump, GameControllerSubsystem};
+use sdl2::{event::Event, EventPump, GameControllerSubsystem};
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
@@ -85,10 +86,7 @@ impl InputFrame {
             let mut current_gamepad = current_gamepad;
             let mut gamepad_logic = gamepad_logic;
 
-            gamepad_logic.update(
-                &mut current_gamepad,
-                &previous_for_gamepad.gamepad,
-            );
+            gamepad_logic.update(&mut current_gamepad, &previous_for_gamepad.gamepad);
 
             (current_gamepad, gamepad_logic)
         });

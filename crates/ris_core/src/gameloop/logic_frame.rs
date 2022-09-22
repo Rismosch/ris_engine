@@ -17,7 +17,7 @@ pub fn run(
 
     ris_log::debug!(
         "{:#034b} {} {}",
-        _input.general.buttons.down(),
+        _input.general.buttons.hold(),
         job_system::thread_index(),
         _frame.fps()
     );
