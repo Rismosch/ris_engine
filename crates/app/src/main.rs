@@ -1,11 +1,9 @@
 use ris_core::restart_code::RESTART_CODE;
 use ris_util::{throw, unwrap_or_throw};
 
-const PROGRAM: &str = "ris_engine.exe";
-
 fn main() {
     loop {
-        let mut command = std::process::Command::new(PROGRAM);
+        let mut command = std::process::Command::new("ris_engine.exe");
 
         for arg in std::env::args().into_iter().skip(1) {
             command.arg(arg);
