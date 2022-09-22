@@ -3,10 +3,9 @@ use ris_data::{
     input::rebind_matrix::RebindMatrix,
 };
 use ris_input::{
-    gamepad_logic::update_gamepad,
     general_logic::{update_general, GeneralLogicArgs},
     keyboard_logic::update_keyboard,
-    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
+    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs}, gamepad_logic::GamepadLogic,
 };
 use ris_jobs::{
     job_cell::{JobCell, Ref},
@@ -16,8 +15,8 @@ use sdl2::{controller::GameController, event::Event, EventPump, GameControllerSu
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
-    controller: Option<GameController>,
-    controller_subsystem: JobCell<GameControllerSubsystem>,
+
+    gamepad_logic: Option<GamepadLogic>,
 
     rebind_matrix_mouse: RebindMatrix,
     rebind_matrix_keyboard: RebindMatrix,
@@ -33,8 +32,7 @@ impl InputFrame {
 
         Self {
             event_pump: JobCell::new(event_pump),
-            controller: None,
-            controller_subsystem: JobCell::new(controller_subsystem),
+            gamepad_logic: Some(GamepadLogic::new(controller_subsystem)),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
             rebind_matrix_gamepad: rebind_matrix,
@@ -50,43 +48,49 @@ impl InputFrame {
         let current_keyboard = current.keyboard;
         let current_gamepad = current.gamepad;
 
-        let current_controller = self.controller.take();
-
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
         let previous_for_gamepad = previous.clone();
         let previous_for_general = previous;
 
+        let mut gamepad_logic = match self.gamepad_logic.take() {
+            Some(gamepad_logic) => gamepad_logic,
+            None => unreachable!(),
+        };
+
         reset_mouse_refs(&mut current.mouse);
 
         for event in self.event_pump.as_mut().poll_iter() {
-            ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
+            // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;
                 current.gamepad = current_gamepad;
-                self.controller = current_controller;
                 return (current, GameloopState::WantsToQuit);
             };
 
-            handle_mouse_events(&mut current.mouse, &event);
+            if handle_mouse_events(&mut current.mouse, &event) {
+                continue;
+            }
+
+            if gamepad_logic.handle_events(&event) {
+                continue;
+            }
         }
 
         let mouse_event_pump = self.event_pump.borrow();
         let keyboard_event_pump = self.event_pump.borrow();
-        let controller_subsystem = self.controller_subsystem.borrow();
 
         let gamepad_future = job_system::submit(move || {
-            let mut gamepad = current_gamepad;
+            let mut current_gamepad = current_gamepad;
+            let mut gamepad_logic = gamepad_logic;
 
-            let new_controller = update_gamepad(
-                &mut gamepad,
+            gamepad_logic.update(
+                &mut current_gamepad,
                 &previous_for_gamepad.gamepad,
-                current_controller,
-                &*controller_subsystem,
             );
 
-            (gamepad, new_controller)
+            (current_gamepad, gamepad_logic)
         });
 
         let keyboard_future = job_system::submit(move || {
@@ -107,7 +111,7 @@ impl InputFrame {
             mouse_event_pump.mouse_state(),
         );
 
-        let (new_gamepad, new_controller) = gamepad_future.wait();
+        let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();
         let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
 
         let args = GeneralLogicArgs {
@@ -125,8 +129,7 @@ impl InputFrame {
 
         current.keyboard = new_keyboard;
         current.gamepad = new_gamepad;
-
-        self.controller = new_controller;
+        self.gamepad_logic = Some(new_gamepad_logic);
 
         (current, new_gameloop_state)
     }
