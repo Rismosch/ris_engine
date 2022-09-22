@@ -1,5 +1,5 @@
 use ris_data::input::gamepad_data::GamepadData;
-use sdl2::{controller::GameController, GameControllerSubsystem, event::Event};
+use sdl2::{controller::GameController, event::Event, GameControllerSubsystem};
 
 use crate::gamepad_util::{get_button_index, ALL_BUTTONS};
 
@@ -26,27 +26,27 @@ impl GamepadLogic {
             self.update_current_controller(*which);
             return true;
         }
-        
+
         if let Event::ControllerButtonDown { which, .. } = event {
             self.update_current_controller(*which);
             return true;
         }
-        
+
         if let Event::ControllerButtonUp { which, .. } = event {
             self.update_current_controller(*which);
             return true;
         }
-        
+
         if let Event::ControllerDeviceAdded { which, .. } = event {
             self.add_controller(*which);
             return true;
         }
-        
+
         if let Event::ControllerDeviceRemoved { which, .. } = event {
             self.remove_controller(*which);
             return true;
         }
-        
+
         if let Event::ControllerDeviceRemapped { which, .. } = event {
             ris_log::debug!("controller \"{}\" remapped", which);
             return true;
@@ -55,15 +55,11 @@ impl GamepadLogic {
         false
     }
 
-    pub fn update(
-        &mut self,
-        new_gamepad_data: &mut GamepadData,
-        old_gamepad_data: &GamepadData,
-    ) {
+    pub fn update(&mut self, new_gamepad_data: &mut GamepadData, old_gamepad_data: &GamepadData) {
         if let Some(controller_index) = self.current_controller {
-            let controller = &self.open_controllers[controller_index];
+            let controller_to_use = &self.open_controllers[controller_index];
 
-            compute_state(new_gamepad_data, old_gamepad_data, &controller)
+            compute_state(new_gamepad_data, old_gamepad_data, controller_to_use)
         } else {
             reset_state(new_gamepad_data)
         }
@@ -76,14 +72,14 @@ impl GamepadLogic {
         //         game_controller = None;
         //     }
         // }
-    
+
         // reset_state(new_gamepad_data);
-    
+
         // match open_game_controller(subsystem) {
         //     Ok(controller) => game_controller = controller,
         //     Err(error) => ris_log::error!("{}", error),
         // }
-    
+
         // game_controller
     }
 
@@ -102,18 +98,24 @@ impl GamepadLogic {
     }
 
     fn add_controller(&mut self, joystick_index: u32) {
-        let game_controller = self.subsystem
+        let game_controller = self
+            .subsystem
             .open(joystick_index)
-            .map_err(|e| format!("could not open controller {}: {}", joystick_index, e)).unwrap();
+            .map_err(|e| format!("could not open controller {}: {}", joystick_index, e))
+            .unwrap();
 
         let instance_id = game_controller.instance_id();
-        
+
         self.open_controllers.push(game_controller);
 
         self.last_controller_event_instance_id = instance_id;
         self.current_controller = Some(self.open_controllers.len() - 1);
 
-        ris_log::info!("controller \"{}\" added, total count: {}", instance_id, self.open_controllers.len());
+        ris_log::info!(
+            "controller \"{}\" added, total count: {}",
+            instance_id,
+            self.open_controllers.len()
+        );
     }
 
     fn remove_controller(&mut self, instance_id: u32) {
@@ -130,15 +132,20 @@ impl GamepadLogic {
             self.open_controllers.remove(remove_at);
         }
 
-        if self.open_controllers.len() > 0 {
-            self.last_controller_event_instance_id = self.open_controllers.last().unwrap().instance_id();
-            self.current_controller = Some(self.open_controllers.len() - 1);
-        } else {
+        if self.open_controllers.is_empty() {
             self.last_controller_event_instance_id = u32::MAX;
             self.current_controller = None;
+        } else {
+            self.last_controller_event_instance_id =
+                self.open_controllers.last().unwrap().instance_id();
+            self.current_controller = Some(self.open_controllers.len() - 1);
         }
 
-        ris_log::info!("controller \"{}\" removed, total count: {}", instance_id, self.open_controllers.len());
+        ris_log::info!(
+            "controller \"{}\" removed, total count: {}",
+            instance_id,
+            self.open_controllers.len()
+        );
     }
 }
 
@@ -264,24 +271,4 @@ fn apply_axis_as_button(
     } else if *axis_value > gamepad.axis_button_threshhold {
         *state |= 1 << get_button_index(axis, false);
     }
-}
-
-fn open_game_controller(
-    subsystem: &GameControllerSubsystem,
-) -> Result<Option<GameController>, String> {
-    let num_joysticks = subsystem.num_joysticks()?;
-
-    for index in 0..num_joysticks {
-        if !subsystem.is_game_controller(index) {
-            continue;
-        }
-
-        let game_controller = subsystem
-            .open(index)
-            .map_err(|e| format!("could not open controller {}: {}", index, e))?;
-
-        return Ok(Some(game_controller));
-    }
-
-    Ok(None)
 }
