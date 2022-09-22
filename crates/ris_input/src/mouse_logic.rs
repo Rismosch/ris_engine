@@ -8,7 +8,7 @@ pub fn reset_mouse_refs(mouse_data: &mut MouseData) {
     mouse_data.wheel_yrel = 0;
 }
 
-pub fn handle_mouse_events(mouse_data: &mut MouseData, event: &Event) {
+pub fn handle_mouse_events(mouse_data: &mut MouseData, event: &Event) -> bool {
     if let Event::MouseMotion {
         x, y, xrel, yrel, ..
     } = event
@@ -22,6 +22,10 @@ pub fn handle_mouse_events(mouse_data: &mut MouseData, event: &Event) {
     if let Event::MouseWheel { x, y, .. } = event {
         mouse_data.wheel_xrel += x;
         mouse_data.wheel_yrel += y;
+
+        true
+    } else {
+        false
     }
 }
 
