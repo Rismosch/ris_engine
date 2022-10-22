@@ -6,7 +6,7 @@ Barebones game engine, based on a thread-pool-like job system.
 
 ## ⚙️ Requirements
 
-To compile this repo, you need a a working Rust compiler. I currently use `rustc 1.63.0`. A newer one probably works fine.
+To compile this repo, you need a working Rust compiler. I currently use `rustc 1.63.0`. A newer one probably works fine.
 
 The current target platform is Windows. So, if you are using Windows, then you have everything you need.
 
@@ -20,7 +20,7 @@ If you are **not** on Windows, I recommend to check out the install instructions
 
 If you are on Windows, and are using `rustup`, follow these instructions:
 
-1. In this repo you will find the `./SDL2-2.0.12/` directory. It contains all the required SDL2 libraries. If your OS and toolchain are 64 bit, choose the libraries in the `x64` directory. If they are 32 bit, choose the libraries in the `x86` directory.
+1. In this repo you will find the `./SDL2-2.0.12/` directory. It contains all required SDL2 libraries. If your OS and toolchain are 64 bit, choose the libraries in the `x64` directory. If they are 32 bit, choose the libraries in the `x86` directory.
 2. Copy `SDL2.dll` to the root of this repository
 3. Copy **ALL** `.lib` files to:
 

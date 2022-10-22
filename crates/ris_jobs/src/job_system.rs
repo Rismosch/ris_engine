@@ -245,7 +245,7 @@ fn steal_job() -> Result<Job, BlockedOrEmpty> {
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            for buffer in &mut worker_thread.steal_buffers {
+            for buffer in &worker_thread.steal_buffers {
                 result = buffer.steal();
                 if result.is_ok() {
                     break;
