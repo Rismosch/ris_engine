@@ -1,5 +1,3 @@
-use std::fmt;
-
 pub struct Job {
     to_invoke: Option<Box<dyn FnOnce()>>,
 }
@@ -18,8 +16,8 @@ impl Job {
     }
 }
 
-impl fmt::Debug for Job {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for Job {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let result = match self.to_invoke {
             Some(_) => "Some",
             None => "None",

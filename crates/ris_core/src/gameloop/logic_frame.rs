@@ -15,12 +15,16 @@ pub fn run(
 ) -> (LogicData, GameloopState) {
     thread::sleep(Duration::from_millis(50));
 
-    ris_log::debug!(
-        "{:#034b} {} {}",
-        _input.general.buttons.hold(),
-        job_system::thread_index(),
-        _frame.fps()
-    );
+    if _input.general.buttons.down() != 0 {
+        ris_log::fatal!(
+            "{:#034b} {} {}",
+            _input.general.buttons.down(),
+            job_system::thread_index(),
+            _frame.fps()
+        );
+    }
+
+    // ris_log::debug!("{} {}", _input.gamepad.axis[0], _input.gamepad.axis[1]);
 
     (current, GameloopState::WantsToContinue)
 }
