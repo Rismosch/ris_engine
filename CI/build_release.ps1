@@ -58,13 +58,13 @@ pub struct BuildInfo {
 
 pub fn build_info() -> BuildInfo {
     BuildInfo {
-        git_repo: String::from(`"$git_repo`"),
-        git_commit: String::from(`"$git_commit`"),
-        git_branch: String::from(`"$git_branch`"),
-        rustc_version: String::from(`"$rustc_version`"),
-        rustup_toolchain: String::from(`"$rustup_toolchain`"),
+        git_repo: String::from(r`"$git_repo`"),
+        git_commit: String::from(r`"$git_commit`"),
+        git_branch: String::from(r`"$git_branch`"),
+        rustc_version: String::from(r`"$rustc_version`"),
+        rustup_toolchain: String::from(r`"$rustup_toolchain`"),
         build_profile: profile(),
-        build_date: String::from(`"$build_date`"),
+        build_date: String::from(r`"$build_date`"),
     }
 }
 
@@ -118,3 +118,4 @@ Copy-Item $sdl2_dll -Destination "$final_directory/SDL2.dll"
 $resolved_final_directory = Resolve-Path $final_directory
 
 Write-Host "Done! Final build can be found under ``$resolved_final_directory``"
+
