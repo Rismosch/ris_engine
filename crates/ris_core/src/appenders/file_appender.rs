@@ -60,14 +60,14 @@ fn construct_paths(app_info: &AppInfo) -> (PathBuf, PathBuf) {
 
 fn create_old_directory(old_log_directory: &PathBuf) {
     if !&old_log_directory.exists() {
-        let result = std::fs::create_dir_all(&old_log_directory);
+        let result = std::fs::create_dir_all(old_log_directory);
         unwrap_or_throw!(result, "couldn't create \"{:?}\"", &old_log_directory);
     }
 }
 
 fn delete_expired_logs(old_log_directory: &PathBuf) {
     let entries = unwrap_or_throw!(
-        std::fs::read_dir(&old_log_directory),
+        std::fs::read_dir(old_log_directory),
         "couldn't read \"{:?}\"",
         old_log_directory
     );
@@ -135,7 +135,7 @@ fn move_current_log(old_log_directory: &Path, current_log_path: &Path) {
 
 fn create_new_log_file(current_log_path: &PathBuf) -> File {
     unwrap_or_throw!(
-        File::create(&current_log_path),
+        File::create(current_log_path),
         "couldn't create \"{:?}\"",
         current_log_path
     )
