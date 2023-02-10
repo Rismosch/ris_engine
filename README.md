@@ -4,6 +4,8 @@
 
 Barebones game engine, based on a thread-pool-like job system.
 
+![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
+
 ## ⚙️ Requirements
 
 To compile this repo, you need a working Rust compiler. I currently use `rustc 1.63.0`. A newer one probably works fine.
