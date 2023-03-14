@@ -1,11 +1,13 @@
 use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
+use ris_data::gameloop::gameloop_state::GameloopState;
 
 use crate::{god_job, god_object::GodObject};
 
 pub struct Engine {
     god_object: Option<GodObject>,
+    pub wants_to_restart: bool,
 }
 
 impl Engine {
@@ -17,10 +19,11 @@ impl Engine {
 
         Ok(Engine {
             god_object: Some(god_object),
+            wants_to_restart: false,
         })
     }
 
-    pub fn run(&mut self) -> Result<i32, String> {
+    pub fn run(&mut self) -> Result<(), String> {
         let god_object = match self.god_object.take() {
             Some(god_object) => god_object,
             None => return Err(String::from("god_object was already taken")),
@@ -30,10 +33,15 @@ impl Engine {
         let job_system_guard = job_system::init(1024, threads);
 
         let result = god_job::run(god_object);
+        match result{
+            GameloopState::Error(error) => return Err(error),
+            GameloopState::WantsToRestart => self.wants_to_restart = true,
+            _ => (),
+        }
 
         drop(job_system_guard);
 
-        result
+        Ok(())
     }
 }
 
