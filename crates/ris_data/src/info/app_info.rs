@@ -19,21 +19,23 @@ pub struct AppInfo {
     pub args: CliArguments,
 }
 
-pub fn app_info(package: PackageInfo) -> Result<AppInfo, String> {
-    let build = build_info();
-    let file = file_info(&package);
-    let sdl = sdl_info();
-    let cpu = cpu_info();
-    let args = CliArguments::new()?;
+impl AppInfo{
+    pub fn new(package: PackageInfo, cli_arguments: CliArguments) -> AppInfo {
+        let build = build_info();
+        let file = file_info(&package);
+        let sdl = sdl_info();
+        let cpu = cpu_info();
+        let args = cli_arguments;
 
-    Ok(AppInfo {
-        package,
-        build,
-        file,
-        sdl,
-        cpu,
-        args,
-    })
+        AppInfo {
+            package,
+            build,
+            file,
+            sdl,
+            cpu,
+            args,
+        }
+    }
 }
 
 impl fmt::Display for AppInfo {
@@ -43,7 +45,7 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.file)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
-        writeln!(f, "{}", self.args)?;
+        writeln!(f, "{:?}", self.args)?;
 
         Ok(())
     }

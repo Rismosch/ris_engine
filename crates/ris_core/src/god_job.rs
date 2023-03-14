@@ -7,10 +7,9 @@ use ris_jobs::{job_cell::JobCell, job_system};
 use crate::{
     gameloop::{logic_frame, output_frame},
     god_object::GodObject,
-    restart_code::RESTART_CODE,
 };
 
-pub fn run(mut god_object: GodObject) -> Result<i32, String> {
+pub fn run(mut god_object: GodObject) -> GameloopState {
     let mut frame = JobCell::new(FrameData::default());
 
     let mut current_input = InputData::default();
@@ -89,21 +88,21 @@ pub fn run(mut god_object: GodObject) -> Result<i32, String> {
             || matches!(logic_state, GameloopState::WantsToRestart)
             || matches!(output_state, GameloopState::WantsToRestart)
         {
-            return Ok(RESTART_CODE);
+            return GameloopState::WantsToRestart;
         }
 
-        if let GameloopState::Error(error) = input_state {
-            return Err(error);
+        if let GameloopState::Error(_) = input_state {
+            return input_state;
         }
 
-        if let GameloopState::Error(error) = logic_state {
-            return Err(error);
+        if let GameloopState::Error(_) = logic_state {
+            return logic_state;
         }
 
-        if let GameloopState::Error(error) = output_state {
-            return Err(error);
+        if let GameloopState::Error(_) = output_state {
+            return output_state;
         }
 
-        return Ok(0);
+        return GameloopState::WantsToQuit;
     }
 }

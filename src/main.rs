@@ -1,29 +1,41 @@
 use ris_core::engine::Engine;
 use ris_data::info::app_info::AppInfo;
-use ris_data::info::{app_info::app_info, package_info::PackageInfo};
-use ris_data::cli_arguments::CliArguments;
+use ris_data::info::{package_info::PackageInfo};
+use ris_data::cli_arguments::{CliArguments, NO_RESTART_ARG};
 use ris_data::package_info;
 use ris_log::{
     log::{self, Appenders, LogGuard},
     log_level::LogLevel,
 };
+use ris_util::{unwrap_or_throw, throw};
+
+pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
+    let cli_arguments_result = CliArguments::new();
+    let cli_arguments = match cli_arguments_result {
+        Ok(cli_arguments) => cli_arguments,
+        Err(error) => return Err(format!("error while parsing cli args: {}", error)),
+    };
 
-    let cli_arguments = CliArguments::new();
-    println!("cli_arguments: {}", cli_arguments.unwrap());
+    if cli_arguments.no_restart {
+        run(cli_arguments)
+    } else {
+        wrap(cli_arguments);
+        Ok(())
+    }
+}
 
-
+fn wrap(cli_arguments: CliArguments)
+{
     loop {
+        let mut command = std::process::Command::new(&cli_arguments.executable_path);
+        
+        command.arg(NO_RESTART_ARG);
 
-        println!("hello world");
-        break;
-        /*
-        let mut command = std::process::Command::new("ris_engine.exe");
-
-        for arg in std::env::args().into_iter().skip(1) {
+        /*for arg in std::env::args().into_iter().skip(1) {
             command.arg(arg);
-        }
+        }*/
 
         let child = unwrap_or_throw!(command.spawn(), "child could not be spawned");
         let output = unwrap_or_throw!(child.wait_with_output(), "child could not be awaited");
@@ -57,23 +69,32 @@ fn main() -> Result<(), String> {
                 Some(code) => std::process::exit(code),
                 None => return,
             }
-        }*/
+        }
     }
-    return Ok(());
-    /*let app_info = app_info(package_info!());
+}
+
+fn run(cli_arguments: CliArguments) -> Result<(), String>
+{
+    let package_info = package_info!();
+    let app_info = AppInfo::new(package_info, cli_arguments);
     let log_guard = init_log(&app_info);
 
-    let result = Engine::new(app_info)?.run();
+    let mut engine = Engine::new(app_info)?;
+    let result = engine.run();
 
-    match result {
-        Ok(exit_code) => ris_log::info!("exit code {}", exit_code),
-        Err(ref error) => ris_log::fatal!("exit error \"{}\"", error),
+    if let Err(error) = result {
+        ris_log::fatal!("error while running engine: \"{}\"", error);
     }
 
     drop(log_guard);
 
-    let exit_code = result?;
-    std::process::exit(exit_code);*/
+    let exit_code = if engine.wants_to_restart {
+        std::process::exit(RESTART_CODE);
+    } else {
+        0
+    };
+
+    Ok(())
 }
 
 #[cfg(debug_assertions)]
