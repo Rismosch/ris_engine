@@ -1,7 +1,7 @@
+use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
-use ris_data::gameloop::gameloop_state::GameloopState;
 
 use crate::{god_job, god_object::GodObject};
 
@@ -33,7 +33,7 @@ impl Engine {
         let job_system_guard = job_system::init(1024, threads);
 
         let result = god_job::run(god_object);
-        match result{
+        match result {
             GameloopState::Error(error) => return Err(error),
             GameloopState::WantsToRestart => self.wants_to_restart = true,
             _ => (),
