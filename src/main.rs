@@ -1,13 +1,13 @@
 use ris_core::engine::Engine;
-use ris_data::info::app_info::AppInfo;
-use ris_data::info::{package_info::PackageInfo};
 use ris_data::cli_arguments::{CliArguments, NO_RESTART_ARG};
+use ris_data::info::app_info::AppInfo;
+use ris_data::info::package_info::PackageInfo;
 use ris_data::package_info;
 use ris_log::{
     log::{self, Appenders, LogGuard},
     log_level::LogLevel,
 };
-use ris_util::{unwrap_or_throw, throw};
+use ris_util::{throw, unwrap_or_throw};
 
 pub const RESTART_CODE: i32 = 42;
 
@@ -26,11 +26,12 @@ fn main() -> Result<(), String> {
     }
 }
 
-fn wrap(cli_arguments: CliArguments)
-{
+fn wrap(cli_arguments: CliArguments) {
+    let executable_path = &cli_arguments.executable_path;
+
     loop {
-        let mut command = std::process::Command::new(&cli_arguments.executable_path);
-        
+        let mut command = std::process::Command::new(executable_path);
+
         command.arg(NO_RESTART_ARG);
 
         /*for arg in std::env::args().into_iter().skip(1) {
@@ -73,8 +74,7 @@ fn wrap(cli_arguments: CliArguments)
     }
 }
 
-fn run(cli_arguments: CliArguments) -> Result<(), String>
-{
+fn run(cli_arguments: CliArguments) -> Result<(), String> {
     let package_info = package_info!();
     let app_info = AppInfo::new(package_info, cli_arguments);
     let log_guard = init_log(&app_info);
@@ -88,7 +88,7 @@ fn run(cli_arguments: CliArguments) -> Result<(), String>
 
     drop(log_guard);
 
-    let exit_code = if engine.wants_to_restart {
+    if engine.wants_to_restart {
         std::process::exit(RESTART_CODE);
     } else {
         0

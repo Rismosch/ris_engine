@@ -1,12 +1,12 @@
 use std::fmt;
 
 use super::{
+    super::cli_arguments::CliArguments,
     build_info::{build_info, BuildInfo},
     cpu_info::{cpu_info, CpuInfo},
     file_info::{file_info, FileInfo},
     package_info::PackageInfo,
     sdl_info::{sdl_info, SdlInfo},
-    super::cli_arguments::CliArguments,
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -19,7 +19,7 @@ pub struct AppInfo {
     pub args: CliArguments,
 }
 
-impl AppInfo{
+impl AppInfo {
     pub fn new(package: PackageInfo, cli_arguments: CliArguments) -> AppInfo {
         let build = build_info();
         let file = file_info(&package);
