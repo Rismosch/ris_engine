@@ -6,6 +6,7 @@ use super::{
     file_info::{file_info, FileInfo},
     package_info::PackageInfo,
     sdl_info::{sdl_info, SdlInfo},
+    super::cli_arguments::CliArguments,
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -15,24 +16,24 @@ pub struct AppInfo {
     pub file: FileInfo,
     pub sdl: SdlInfo,
     pub cpu: CpuInfo,
-    pub args: Vec<String>,
+    pub args: CliArguments,
 }
 
-pub fn app_info(package: PackageInfo) -> AppInfo {
+pub fn app_info(package: PackageInfo) -> Result<AppInfo, String> {
     let build = build_info();
     let file = file_info(&package);
     let sdl = sdl_info();
     let cpu = cpu_info();
-    let args = std::env::args().collect();
+    let args = CliArguments::new()?;
 
-    AppInfo {
+    Ok(AppInfo {
         package,
         build,
         file,
         sdl,
         cpu,
         args,
-    }
+    })
 }
 
 impl fmt::Display for AppInfo {
@@ -42,16 +43,7 @@ impl fmt::Display for AppInfo {
         writeln!(f, "{}", self.file)?;
         writeln!(f, "{}", self.sdl)?;
         writeln!(f, "{}", self.cpu)?;
-
-        match self.args.len() {
-            0 => writeln!(f, "no commandline args:")?,
-            1 => writeln!(f, "1 commandline arg:")?,
-            len => writeln!(f, "{} commandline args:", len)?,
-        }
-
-        for (i, arg) in self.args.iter().enumerate() {
-            writeln!(f, "  [{}] -> {}", i, arg)?;
-        }
+        writeln!(f, "{}", self.args)?;
 
         Ok(())
     }
