@@ -8,7 +8,7 @@ Barebones game engine, based on a thread-pool-like job system.
 
 ## ⚙️ Requirements
 
-To compile this repo, you need a working Rust compiler. I currently use `rustc 1.63.0`. A newer one probably works fine.
+To compile this repo, you need a working Rust compiler. I currently use `rustc 1.66.0`. A newer one probably works fine.
 
 The current target platform is Windows. So, if you are using Windows, then you have everything you need.
 
