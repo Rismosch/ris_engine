@@ -45,11 +45,8 @@ Alternatively, you can build a release-ready package, by running the build scrip
 
 The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./CI/build/`:
 
-1. **app.exe**  
-This is a simple wrapper program to call `ris_engine.exe`. It forwards command args and allows the engine to restart itself. Prefer to run this instead of `ris_engine.exe`.
-
-2. **ris_engine.exe**  
+1. **ris_engine.exe**  
 This is the compiled engine. It contains all logic to run the game.
 
-3. **SDL2.dll**  
+2. **SDL2.dll**  
 This contains all functionality of SDL2. It must always be found in the same directory as `ris_engine.exe`, otherwise you will get a runtime error.
