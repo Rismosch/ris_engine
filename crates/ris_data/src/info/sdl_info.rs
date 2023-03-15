@@ -8,10 +8,18 @@ pub struct SdlInfo {
     pub revision: String,
 }
 
-pub fn sdl_info() -> SdlInfo {
-    SdlInfo {
-        version: sdl2::version::version(),
-        revision: sdl2::version::revision(),
+impl SdlInfo {
+    pub fn new() -> SdlInfo {
+        SdlInfo {
+            version: sdl2::version::version(),
+            revision: sdl2::version::revision(),
+        }
+    }
+}
+
+impl Default for SdlInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

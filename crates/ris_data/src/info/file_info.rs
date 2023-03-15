@@ -10,20 +10,22 @@ pub struct FileInfo {
     pub pref_path: String,
 }
 
-pub fn file_info(package_info: &PackageInfo) -> FileInfo {
-    let base_path = unwrap_or_throw!(
-        sdl2::filesystem::base_path(),
-        "error while getting base path"
-    );
+impl FileInfo {
+    pub fn new(package_info: &PackageInfo) -> FileInfo {
+        let base_path = unwrap_or_throw!(
+            sdl2::filesystem::base_path(),
+            "error while getting base path"
+        );
 
-    let pref_path = unwrap_or_throw!(
-        sdl2::filesystem::pref_path(&package_info.author, &package_info.name),
-        "error while getting pref path"
-    );
+        let pref_path = unwrap_or_throw!(
+            sdl2::filesystem::pref_path(&package_info.author, &package_info.name),
+            "error while getting pref path"
+        );
 
-    FileInfo {
-        base_path,
-        pref_path,
+        FileInfo {
+            base_path,
+            pref_path,
+        }
     }
 }
 

@@ -7,14 +7,14 @@ const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
 
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct CliArguments {
+pub struct ArgsInfo {
     pub raw_args: Vec<String>,
     pub executable_path: String,
     pub no_restart: bool,
     pub workers: i32,
 }
 
-impl CliArguments {
+impl ArgsInfo {
     pub fn new(cpu_info: &CpuInfo) -> Result<Self, String> {
         let raw_args: Vec<String> = env::args().collect();
 
@@ -82,7 +82,7 @@ fn get_arg(raw_args: &Vec<String>, index: usize) -> &str {
     }
 }
 
-impl std::fmt::Debug for CliArguments {
+impl std::fmt::Debug for ArgsInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.raw_args.len() {
             0 => writeln!(f, "no commandline args:")?,
@@ -98,7 +98,7 @@ impl std::fmt::Debug for CliArguments {
     }
 }
 
-impl std::fmt::Display for CliArguments {
+impl std::fmt::Display for ArgsInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{")?;
         write!(f, "executable_path:\"{}\", ", self.executable_path)?;

@@ -1,9 +1,11 @@
 use ris_core::engine::Engine;
-use ris_data::cli_arguments::CliArguments;
 use ris_data::info::app_info::AppInfo;
+use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
 use ris_data::info::cpu_info::CpuInfo;
+use ris_data::info::file_info::FileInfo;
 use ris_data::info::package_info::PackageInfo;
+use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
 use ris_log::{
     log::{self, Appenders, LogGuard},
@@ -27,19 +29,23 @@ fn main() -> Result<(), String> {
 fn get_app_info() -> Result<AppInfo, String> {
     let cpu_info = CpuInfo::new();
 
-    let cli_arguments_result = CliArguments::new(&cpu_info);
-    let cli_arguments = match cli_arguments_result {
-        Ok(cli_arguments) => cli_arguments,
+    let args_info_result = ArgsInfo::new(&cpu_info);
+    let args_info = match args_info_result {
+        Ok(args) => args,
         Err(error) => return Err(format!("error while parsing cli args: {}", error)),
     };
 
     let package_info = package_info!();
     let build_info = BuildInfo::new();
+    let file_info = FileInfo::new(&package_info);
+    let sdl_info = SdlInfo::new();
 
     Ok(AppInfo::new(
-        cli_arguments,
+        args_info,
         package_info,
         build_info,
+        file_info,
+        sdl_info,
         cpu_info,
     ))
 }
