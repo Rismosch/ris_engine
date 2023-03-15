@@ -7,8 +7,6 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use ris_data::info::cpu_info::cpu_info;
-
 use crate::{
     errors::{BlockedOrEmpty, IsEmpty},
     job::Job,
@@ -31,9 +29,8 @@ pub struct JobSystemGuard {
     done: Arc<AtomicBool>,
 }
 
-pub fn init(buffer_capacity: usize, threads: usize) -> JobSystemGuard {
+pub fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> JobSystemGuard {
     // estimate workthreads and according affinities
-    let cpu_count = cpu_info().cpu_count as usize;
     let threads = std::cmp::min(cpu_count, threads);
 
     let mut affinities = Vec::new();

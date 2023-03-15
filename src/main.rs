@@ -1,6 +1,8 @@
 use ris_core::engine::Engine;
-use ris_data::cli_arguments::{CliArguments, NO_RESTART_ARG};
+use ris_data::cli_arguments::CliArguments;
 use ris_data::info::app_info::AppInfo;
+use ris_data::info::build_info::BuildInfo;
+use ris_data::info::cpu_info::CpuInfo;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::package_info;
 use ris_log::{
@@ -12,31 +14,48 @@ use ris_util::{throw, unwrap_or_throw};
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
-    let cli_arguments_result = CliArguments::new();
+    let app_info = get_app_info()?;
+
+    if app_info.args.no_restart {
+        run(app_info)
+    } else {
+        wrap(app_info);
+        Ok(())
+    }
+}
+
+fn get_app_info() -> Result<AppInfo, String> {
+    let cpu_info = CpuInfo::new();
+
+    let cli_arguments_result = CliArguments::new(&cpu_info);
     let cli_arguments = match cli_arguments_result {
         Ok(cli_arguments) => cli_arguments,
         Err(error) => return Err(format!("error while parsing cli args: {}", error)),
     };
 
-    if cli_arguments.no_restart {
-        run(cli_arguments)
-    } else {
-        wrap(cli_arguments);
-        Ok(())
-    }
+    let package_info = package_info!();
+    let build_info = BuildInfo::new();
+
+    Ok(AppInfo::new(
+        cli_arguments,
+        package_info,
+        build_info,
+        cpu_info,
+    ))
 }
 
-fn wrap(cli_arguments: CliArguments) {
-    let executable_path = &cli_arguments.executable_path;
+fn wrap(mut app_info: AppInfo) {
+    app_info.args.no_restart = true;
+
+    let executable_path = &app_info.args.executable_path;
+    let raw_args = app_info.args.generate_raw_args();
 
     loop {
         let mut command = std::process::Command::new(executable_path);
 
-        command.arg(NO_RESTART_ARG);
-
-        /*for arg in std::env::args().into_iter().skip(1) {
+        for arg in raw_args.iter().skip(1) {
             command.arg(arg);
-        }*/
+        }
 
         let child = unwrap_or_throw!(command.spawn(), "child could not be spawned");
         let output = unwrap_or_throw!(child.wait_with_output(), "child could not be awaited");
@@ -74,9 +93,7 @@ fn wrap(cli_arguments: CliArguments) {
     }
 }
 
-fn run(cli_arguments: CliArguments) -> Result<(), String> {
-    let package_info = package_info!();
-    let app_info = AppInfo::new(package_info, cli_arguments);
+fn run(app_info: AppInfo) -> Result<(), String> {
     let log_guard = init_log(&app_info);
 
     let mut engine = Engine::new(app_info)?;
