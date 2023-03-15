@@ -1,17 +1,13 @@
 use std::fmt;
 
 use super::{
-    super::cli_arguments::CliArguments,
-    build_info::BuildInfo,
-    cpu_info::CpuInfo,
-    file_info::{file_info, FileInfo},
-    package_info::PackageInfo,
-    sdl_info::{sdl_info, SdlInfo},
+    args_info::ArgsInfo, build_info::BuildInfo, cpu_info::CpuInfo, file_info::FileInfo,
+    package_info::PackageInfo, sdl_info::SdlInfo,
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {
-    pub args: CliArguments,
+    pub args: ArgsInfo,
     pub package: PackageInfo,
     pub build: BuildInfo,
     pub file: FileInfo,
@@ -21,16 +17,14 @@ pub struct AppInfo {
 
 impl AppInfo {
     pub fn new(
-        args: CliArguments,
+        args: ArgsInfo,
         package: PackageInfo,
         build: BuildInfo,
-        cpu_info: CpuInfo,
-    ) -> AppInfo {
-        let file = file_info(&package);
-        let sdl = sdl_info();
-        let cpu = cpu_info;
-
-        AppInfo {
+        file: FileInfo,
+        sdl: SdlInfo,
+        cpu: CpuInfo,
+    ) -> Self {
+        Self {
             args,
             package,
             build,

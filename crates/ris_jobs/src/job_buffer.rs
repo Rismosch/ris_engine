@@ -30,7 +30,13 @@ impl JobBuffer {
         })
     }
 
-    pub fn push(&self, job: Job) -> Result<(), BlockedOrFull> {
+    /// # Safety
+    ///
+    /// This function is not threadsafe. If this function and `wait_and_pop()` are called by two
+    /// different threads, a race condition can concur.
+    /// * Clientcode **MUST** ensure, that these two functions are never called at the same time.
+    /// * It's highly recommended that clientcode calls these methods on the same thread.
+    pub unsafe fn push(&self, job: Job) -> Result<(), BlockedOrFull> {
         let head = unsafe { &mut *self.head.get() };
 
         let mut node = match self.jobs[*head].try_lock() {
@@ -52,7 +58,13 @@ impl JobBuffer {
         }
     }
 
-    pub fn wait_and_pop(&self) -> Result<Job, IsEmpty> {
+    /// # Safety
+    ///
+    /// This function is not threadsafe. If this function and `push()` are called by two different
+    /// threads a race condition can concur.
+    /// * Clientcode **MUST** ensure, that these two functions are never called at the same time.
+    /// * It's highly recommended that clientcode calls these methods on the same thread.
+    pub unsafe fn wait_and_pop(&self) -> Result<Job, IsEmpty> {
         let head = unsafe { &mut *self.head.get() };
 
         let new_head = if *head == 0 {

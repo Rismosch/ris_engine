@@ -114,7 +114,8 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            match worker_thread.local_buffer.push(job) {
+            let push_result = unsafe { worker_thread.local_buffer.push(job) };
+            match push_result {
                 Ok(()) => (),
                 Err(blocked_or_full) => {
                     not_pushed = Some(blocked_or_full.not_pushed);
@@ -228,7 +229,7 @@ fn pop_job() -> Result<Job, IsEmpty> {
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            result = worker_thread.local_buffer.wait_and_pop();
+            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
         } else {
             ris_log::error!("couldn't pop job, calling thread isn't a worker thread");
         }
