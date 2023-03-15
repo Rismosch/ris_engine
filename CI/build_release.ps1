@@ -99,7 +99,8 @@ impl std::fmt::Display for BuildInfo {
 
         Ok(())
     }
-}"
+}
+"
 
 Set-Content -Path $build_info_path -Value $build_info_content
 
