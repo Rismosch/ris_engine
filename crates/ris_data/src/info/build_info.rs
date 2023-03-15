@@ -11,14 +11,22 @@
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct BuildInfo;
 
-pub fn build_info() -> BuildInfo {
-    BuildInfo
+impl BuildInfo {
+    pub fn new() -> BuildInfo {
+        BuildInfo
+    }
+}
+
+impl Default for BuildInfo {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl std::fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "Build")?;
-        writeln!(f, "`build.rs` was not run yet")?;
+        writeln!(f, "build script was not run yet")?;
 
         Ok(())
     }
