@@ -56,15 +56,23 @@ pub struct BuildInfo {
     build_date: String,
 }
 
-pub fn build_info() -> BuildInfo {
-    BuildInfo {
-        git_repo: String::from(r`"$git_repo`"),
-        git_commit: String::from(r`"$git_commit`"),
-        git_branch: String::from(r`"$git_branch`"),
-        rustc_version: String::from(r`"$rustc_version`"),
-        rustup_toolchain: String::from(r`"$rustup_toolchain`"),
-        build_profile: profile(),
-        build_date: String::from(r`"$build_date`"),
+impl BuildInfo {
+    pub fn new() -> BuildInfo {
+        BuildInfo {
+            git_repo: String::from(r`"$git_repo`"),
+            git_commit: String::from(r`"$git_commit`"),
+            git_branch: String::from(r`"$git_branch`"),
+            rustc_version: String::from(r`"$rustc_version`"),
+            rustup_toolchain: String::from(r`"$rustup_toolchain`"),
+            build_profile: profile(),
+            build_date: String::from(r`"$build_date`"),
+        }
+    }
+}
+
+impl Default for BuildInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

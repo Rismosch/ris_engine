@@ -19,23 +19,31 @@ pub struct CpuInfo {
     pub system_ram: i32,
 }
 
-pub fn cpu_info() -> CpuInfo {
-    CpuInfo {
-        cpu_cache_line_size: sdl2::cpuinfo::cpu_cache_line_size(),
-        cpu_count: sdl2::cpuinfo::cpu_count(),
-        has_3d_now: sdl2::cpuinfo::has_3d_now(),
-        has_alti_vec: sdl2::cpuinfo::has_alti_vec(),
-        has_avx: sdl2::cpuinfo::has_avx(),
-        has_avx2: sdl2::cpuinfo::has_avx2(),
-        has_avx512f: sdl2::cpuinfo::has_avx512f(),
-        has_mmx: sdl2::cpuinfo::has_mmx(),
-        has_rdtsc: sdl2::cpuinfo::has_rdtsc(),
-        has_sse: sdl2::cpuinfo::has_sse(),
-        has_sse2: sdl2::cpuinfo::has_sse2(),
-        has_sse3: sdl2::cpuinfo::has_sse3(),
-        has_sse41: sdl2::cpuinfo::has_sse41(),
-        has_sse42: sdl2::cpuinfo::has_sse42(),
-        system_ram: sdl2::cpuinfo::system_ram(),
+impl CpuInfo {
+    pub fn new() -> CpuInfo {
+        CpuInfo {
+            cpu_cache_line_size: sdl2::cpuinfo::cpu_cache_line_size(),
+            cpu_count: sdl2::cpuinfo::cpu_count(),
+            has_3d_now: sdl2::cpuinfo::has_3d_now(),
+            has_alti_vec: sdl2::cpuinfo::has_alti_vec(),
+            has_avx: sdl2::cpuinfo::has_avx(),
+            has_avx2: sdl2::cpuinfo::has_avx2(),
+            has_avx512f: sdl2::cpuinfo::has_avx512f(),
+            has_mmx: sdl2::cpuinfo::has_mmx(),
+            has_rdtsc: sdl2::cpuinfo::has_rdtsc(),
+            has_sse: sdl2::cpuinfo::has_sse(),
+            has_sse2: sdl2::cpuinfo::has_sse2(),
+            has_sse3: sdl2::cpuinfo::has_sse3(),
+            has_sse41: sdl2::cpuinfo::has_sse41(),
+            has_sse42: sdl2::cpuinfo::has_sse42(),
+            system_ram: sdl2::cpuinfo::system_ram(),
+        }
+    }
+}
+
+impl Default for CpuInfo {
+    fn default() -> Self {
+        CpuInfo::new()
     }
 }
 

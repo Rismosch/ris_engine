@@ -1,21 +1,26 @@
 use ris_util::throw;
 use std::env;
 
-pub const NO_RESTART_ARG: &str = "--no-restart";
+use crate::info::cpu_info::CpuInfo;
+
+const NO_RESTART_ARG: &str = "--no-restart";
+const WORKERS_ARG: &str = "--workers";
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct CliArguments {
     pub raw_args: Vec<String>,
     pub executable_path: String,
     pub no_restart: bool,
+    pub workers: i32,
 }
 
 impl CliArguments {
-    pub fn new() -> Result<Self, String> {
+    pub fn new(cpu_info: &CpuInfo) -> Result<Self, String> {
         let raw_args: Vec<String> = env::args().collect();
 
         let executable_path = String::from(get_arg(&raw_args, 0));
         let mut no_restart = false;
+        let mut workers = cpu_info.cpu_count;
 
         let mut i = 1;
         let len = raw_args.len();
@@ -28,6 +33,14 @@ impl CliArguments {
 
             match arg {
                 NO_RESTART_ARG => no_restart = true,
+                WORKERS_ARG => {
+                    i += 1;
+                    let second_arg = get_arg(&raw_args, i);
+                    match second_arg.parse::<i32>() {
+                        Ok(value) => workers = value,
+                        Err(error) => return Err(format!("could not parse workers: {}", error)),
+                    }
+                }
                 _ => return Err(format!("unexpected argument: [{}] -> {}", i, arg)),
             };
 
@@ -38,7 +51,23 @@ impl CliArguments {
             raw_args,
             executable_path,
             no_restart,
+            workers,
         })
+    }
+
+    pub fn generate_raw_args(&self) -> Vec<String> {
+        let mut result = Vec::new();
+
+        result.push(self.executable_path.clone());
+
+        if self.no_restart {
+            result.push(String::from(NO_RESTART_ARG));
+        }
+
+        result.push(String::from(WORKERS_ARG));
+        result.push(format!("{}", self.workers));
+
+        result
     }
 }
 
