@@ -95,6 +95,10 @@ pub fn get_timestamp() -> DateTime<Local> {
 }
 
 pub fn can_log(priority: LogLevel) -> bool {
+    if matches!(priority, LogLevel::None) {
+        return false;
+    }
+
     let priority = priority as u8;
     let log_level = log_level() as u8;
     priority >= log_level

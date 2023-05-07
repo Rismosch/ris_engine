@@ -31,7 +31,7 @@ impl Engine {
 
         let cpu_count = god_object.app_info.cpu.cpu_count as usize;
         let workers = god_object.app_info.args.workers as usize;
-        let job_system_guard = job_system::init(1024, cpu_count, workers);
+        let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers) };
 
         let result = god_job::run(god_object);
         match result {

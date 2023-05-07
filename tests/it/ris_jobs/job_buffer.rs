@@ -22,10 +22,10 @@ fn should_push_and_pop() {
     let moved_data = data.clone();
     let job = Job::new(move || *moved_data.borrow_mut() = 42);
 
-    let push = job_buffer.push(job);
+    let push = unsafe { job_buffer.push(job) };
     assert!(push.is_ok());
 
-    let job = job_buffer.wait_and_pop();
+    let job = unsafe { job_buffer.wait_and_pop() };
     assert!(job.is_ok());
     job.unwrap().invoke();
     assert_eq!(*data.borrow(), 42);
@@ -39,7 +39,7 @@ fn should_push_and_steal() {
     let moved_data = data.clone();
     let job = Job::new(move || *moved_data.borrow_mut() = 42);
 
-    let push = job_buffer.push(job);
+    let push = unsafe { job_buffer.push(job) };
     assert!(push.is_ok());
 
     let job = job_buffer.steal();
@@ -61,9 +61,9 @@ fn should_push_till_full() {
     let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
     let job3 = Job::new(move || *moved_data3.borrow_mut() = 3);
 
-    let push1 = job_buffer.push(job1);
-    let push2 = job_buffer.push(job2);
-    let push3 = job_buffer.push(job3);
+    let push1 = unsafe { job_buffer.push(job1) };
+    let push2 = unsafe { job_buffer.push(job2) };
+    let push3 = unsafe { job_buffer.push(job3) };
 
     assert!(push1.is_ok());
     assert!(push2.is_ok());
@@ -84,12 +84,12 @@ fn should_pop_till_empty() {
     let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
     let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
 
-    let _ = job_buffer.push(job1);
-    let _ = job_buffer.push(job2);
+    let _ = unsafe { job_buffer.push(job1) };
+    let _ = unsafe { job_buffer.push(job2) };
 
-    let pop1 = job_buffer.wait_and_pop();
-    let pop2 = job_buffer.wait_and_pop();
-    let pop3 = job_buffer.wait_and_pop();
+    let pop1 = unsafe { job_buffer.wait_and_pop() };
+    let pop2 = unsafe { job_buffer.wait_and_pop() };
+    let pop3 = unsafe { job_buffer.wait_and_pop() };
 
     assert!(pop1.is_ok());
     assert!(pop2.is_ok());
@@ -112,8 +112,8 @@ fn should_steal_till_empty() {
     let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
     let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
 
-    let _ = job_buffer.push(job1);
-    let _ = job_buffer.push(job2);
+    let _ = unsafe { job_buffer.push(job1) };
+    let _ = unsafe { job_buffer.push(job2) };
 
     let steal1 = job_buffer.steal();
     let steal2 = job_buffer.steal();
@@ -149,12 +149,12 @@ fn should_push_pop_and_steal_multiple_times() {
         let job5 = Job::new(move || *moved_data5.borrow_mut() = 5);
         let job6 = Job::new(move || *moved_data6.borrow_mut() = 6);
 
-        let push1 = job_buffer.push(job1);
-        let push2 = job_buffer.push(job2);
-        let push3 = job_buffer.push(job3);
-        let push4 = job_buffer.push(job4);
-        let push5 = job_buffer.push(job5);
-        let push6 = job_buffer.push(job6);
+        let push1 = unsafe { job_buffer.push(job1) };
+        let push2 = unsafe { job_buffer.push(job2) };
+        let push3 = unsafe { job_buffer.push(job3) };
+        let push4 = unsafe { job_buffer.push(job4) };
+        let push5 = unsafe { job_buffer.push(job5) };
+        let push6 = unsafe { job_buffer.push(job6) };
 
         assert!(push1.is_ok());
         assert!(push2.is_ok());
@@ -167,11 +167,11 @@ fn should_push_pop_and_steal_multiple_times() {
         assert_eq!(*data.borrow(), 6);
 
         let steal1 = job_buffer.steal();
-        let pop2 = job_buffer.wait_and_pop();
+        let pop2 = unsafe { job_buffer.wait_and_pop() };
         let steal3 = job_buffer.steal();
-        let pop4 = job_buffer.wait_and_pop();
+        let pop4 = unsafe { job_buffer.wait_and_pop() };
         let steal5 = job_buffer.steal();
-        let pop6 = job_buffer.wait_and_pop();
+        let pop6 = unsafe { job_buffer.wait_and_pop() };
         let steal7 = job_buffer.steal();
 
         assert!(steal1.is_ok());
@@ -207,13 +207,13 @@ fn should_push_to_original_and_pop_from_duplicate() {
     let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
     let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
 
-    let push1 = original_buffer.push(job1);
-    let push2 = original_buffer.push(job2);
+    let push1 = unsafe { original_buffer.push(job1) };
+    let push2 = unsafe { original_buffer.push(job2) };
 
     assert!(push1.is_ok());
     assert!(push2.is_ok());
 
-    let pop1 = duplicated_buffer.wait_and_pop();
+    let pop1 = unsafe { duplicated_buffer.wait_and_pop() };
     let steal2 = duplicated_buffer.steal();
 
     assert!(pop1.is_ok());
@@ -237,14 +237,14 @@ fn should_push_to_duplicate_and_pop_from_original() {
     let job1 = Job::new(move || *moved_data1.borrow_mut() = 1);
     let job2 = Job::new(move || *moved_data2.borrow_mut() = 2);
 
-    let push1 = duplicated_buffer.push(job1);
-    let push2 = duplicated_buffer.push(job2);
+    let push1 = unsafe { duplicated_buffer.push(job1) };
+    let push2 = unsafe { duplicated_buffer.push(job2) };
 
     assert!(push1.is_ok());
     assert!(push2.is_ok());
 
     let pop1 = original_buffer.steal();
-    let steal2 = original_buffer.wait_and_pop();
+    let steal2 = unsafe { original_buffer.wait_and_pop() };
 
     assert!(pop1.is_ok());
     assert!(steal2.is_ok());
@@ -287,7 +287,7 @@ fn should_steal_from_empty_buffer_from_multiple_threads() {
     }
 
     let mut unsuccessful_steals = 0;
-    while buffer.wait_and_pop().is_ok() {
+    while unsafe { buffer.wait_and_pop() }.is_ok() {
         unsuccessful_steals += 1;
     }
 
@@ -303,7 +303,7 @@ fn should_steal_from_full_buffer_from_multiple_threads() {
 
         for _ in 0..1000 {
             let job = Job::new(|| {});
-            buffer.push(job).unwrap();
+            unsafe { buffer.push(job) }.unwrap();
         }
 
         for _ in 0..1000 {
@@ -330,7 +330,7 @@ fn should_steal_from_full_buffer_from_multiple_threads() {
         }
 
         let mut unsuccessful_steals = 0;
-        while buffer.wait_and_pop().is_ok() {
+        while unsafe { buffer.wait_and_pop() }.is_ok() {
             unsuccessful_steals += 1;
         }
 
@@ -351,7 +351,7 @@ fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
 
     for _ in 0..50 {
         let job = Job::new(|| {});
-        buffer.push(job).unwrap();
+        unsafe { buffer.push(job) }.unwrap();
     }
 
     for _ in 0..1000 {
@@ -378,7 +378,7 @@ fn should_steal_from_partially_filled_buffer_from_multiple_threads() {
     }
 
     let mut unsuccessful_steals = 0;
-    while buffer.wait_and_pop().is_ok() {
+    while unsafe { buffer.wait_and_pop() }.is_ok() {
         unsuccessful_steals += 1;
     }
 
@@ -397,7 +397,7 @@ fn should_push_from_one_thread_while_one_is_stealing_on_empty_buffer() {
         let push_results_copy = push_results.clone();
         let push_handle = thread::spawn(move || {
             for _ in 0..1000 {
-                let result = push_buffer.push(Job::new(|| {}));
+                let result = unsafe { push_buffer.push(Job::new(|| {})) };
                 push_results_copy.lock().unwrap().push(result.is_ok());
             }
         });
@@ -453,14 +453,14 @@ fn should_push_from_one_thread_while_one_is_stealing_on_full_buffer() {
         let steal_results = Arc::new(Mutex::new(Vec::new()));
 
         for _ in 0..1000 {
-            buffer.push(Job::new(|| {})).unwrap();
+            unsafe { buffer.push(Job::new(|| {})) }.unwrap();
         }
 
         let push_buffer = buffer.clone();
         let push_results_copy = push_results.clone();
         let push_handle = thread::spawn(move || {
             for _ in 0..1000 {
-                let result = push_buffer.push(Job::new(|| {}));
+                let result = unsafe { push_buffer.push(Job::new(|| {})) };
                 push_results_copy.lock().unwrap().push(result.is_ok());
             }
         });
@@ -516,7 +516,7 @@ fn should_push_from_one_thread_while_multiple_are_stealing_on_empty_buffer() {
         let push_results_copy = push_results.clone();
         let push_handle = thread::spawn(move || {
             for _ in 0..1000 {
-                let result = push_buffer.push(Job::new(|| {}));
+                let result = unsafe { push_buffer.push(Job::new(|| {})) };
                 push_results_copy.lock().unwrap().push(result.is_ok());
             }
         });
@@ -578,14 +578,14 @@ fn should_push_from_one_thread_while_multiple_are_stealing_on_full_buffer() {
         let steal_results = Arc::new(Mutex::new(Vec::new()));
 
         for _ in 0..1000 {
-            buffer.push(Job::new(|| {})).unwrap();
+            unsafe { buffer.push(Job::new(|| {})) }.unwrap();
         }
 
         let push_buffer = buffer.clone();
         let push_results_copy = push_results.clone();
         let push_handle = thread::spawn(move || {
             for _ in 0..1000 {
-                let result = push_buffer.push(Job::new(|| {}));
+                let result = unsafe { push_buffer.push(Job::new(|| {})) };
                 push_results_copy.lock().unwrap().push(result.is_ok());
             }
         });
@@ -646,7 +646,7 @@ fn should_pop_from_one_thread_while_one_is_stealing_on_empty_buffer() {
     let pop_results_copy = pop_results.clone();
     let pop_handle = thread::spawn(move || {
         for _ in 0..1000 {
-            let result = pop_buffer.wait_and_pop();
+            let result = unsafe { pop_buffer.wait_and_pop() };
             pop_results_copy.lock().unwrap().push(result.is_err());
         }
     });
@@ -682,14 +682,14 @@ fn should_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
     let steal_results = Arc::new(Mutex::new(Vec::new()));
 
     for _ in 0..1000 {
-        buffer.push(Job::new(|| {})).unwrap();
+        unsafe { buffer.push(Job::new(|| {})) }.unwrap();
     }
 
     let pop_buffer = buffer.clone();
     let pop_results_copy = pop_results.clone();
     let pop_handle = thread::spawn(move || {
         for _ in 0..1000 {
-            let result = pop_buffer.wait_and_pop();
+            let result = unsafe { pop_buffer.wait_and_pop() };
             pop_results_copy.lock().unwrap().push(result.is_err());
         }
     });
@@ -742,7 +742,7 @@ fn should_pop_from_one_thread_while_multiple_are_stealing_on_empty_buffer() {
     let pop_results_copy = pop_results.clone();
     let pop_handle = thread::spawn(move || {
         for _ in 0..1000 {
-            let result = pop_buffer.wait_and_pop();
+            let result = unsafe { pop_buffer.wait_and_pop() };
             pop_results_copy.lock().unwrap().push(result.is_err());
         }
     });
@@ -785,14 +785,14 @@ fn should_pop_from_one_thread_while_multiple_are_stealing_on_full_buffer() {
     let steal_results = Arc::new(Mutex::new(Vec::new()));
 
     for _ in 0..1000 {
-        buffer.push(Job::new(|| {})).unwrap();
+        unsafe { buffer.push(Job::new(|| {})) }.unwrap();
     }
 
     let pop_buffer = buffer.clone();
     let pop_results_copy = pop_results.clone();
     let pop_handle = thread::spawn(move || {
         for _ in 0..1000 {
-            let result = pop_buffer.wait_and_pop();
+            let result = unsafe { pop_buffer.wait_and_pop() };
             pop_results_copy.lock().unwrap().push(result.is_err());
         }
     });
@@ -856,12 +856,12 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_empty_buffer() {
         let push_pop_handle = thread::spawn(move || {
             for _ in 0..100 {
                 for _ in 0..10 {
-                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    let result = unsafe { push_pop_buffer.push(Job::new(|| {})) };
                     push_results_copy.lock().unwrap().push(result.is_ok());
                 }
 
                 for _ in 0..10 {
-                    let result = push_pop_buffer.wait_and_pop();
+                    let result = unsafe { push_pop_buffer.wait_and_pop() };
                     pop_results_copy.lock().unwrap().push(result.is_ok());
                 }
             }
@@ -926,7 +926,7 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
         let steal_results = Arc::new(Mutex::new(Vec::new()));
 
         for _ in 0..1000 {
-            buffer.push(Job::new(|| {})).unwrap();
+            unsafe { buffer.push(Job::new(|| {})) }.unwrap();
         }
 
         let push_pop_buffer = buffer.clone();
@@ -935,12 +935,12 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
         let push_pop_handle = thread::spawn(move || {
             for _ in 0..100 {
                 for _ in 0..10 {
-                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    let result = unsafe { push_pop_buffer.push(Job::new(|| {})) };
                     push_results_copy.lock().unwrap().push(result.is_ok());
                 }
 
                 for _ in 0..10 {
-                    let result = push_pop_buffer.wait_and_pop();
+                    let result = unsafe { push_pop_buffer.wait_and_pop() };
                     pop_results_copy.lock().unwrap().push(result.is_ok());
                 }
             }
@@ -1013,12 +1013,12 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_empty_buff
         let push_pop_handle = thread::spawn(move || {
             for _ in 0..100 {
                 for _ in 0..10 {
-                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    let result = unsafe { push_pop_buffer.push(Job::new(|| {})) };
                     push_results_copy.lock().unwrap().push(result.is_ok());
                 }
 
                 for _ in 0..10 {
-                    let result = push_pop_buffer.wait_and_pop();
+                    let result = unsafe { push_pop_buffer.wait_and_pop() };
                     pop_results_copy.lock().unwrap().push(result.is_ok());
                 }
             }
@@ -1093,7 +1093,7 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffe
         let steal_results = Arc::new(Mutex::new(Vec::new()));
 
         for _ in 0..1000 {
-            buffer.push(Job::new(|| {})).unwrap();
+            unsafe { buffer.push(Job::new(|| {})).unwrap() };
         }
 
         let push_pop_buffer = buffer.clone();
@@ -1102,12 +1102,12 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffe
         let push_pop_handle = thread::spawn(move || {
             for _ in 0..100 {
                 for _ in 0..10 {
-                    let result = push_pop_buffer.push(Job::new(|| {}));
+                    let result = unsafe { push_pop_buffer.push(Job::new(|| {})) };
                     push_results_copy.lock().unwrap().push(result.is_ok());
                 }
 
                 for _ in 0..10 {
-                    let result = push_pop_buffer.wait_and_pop();
+                    let result = unsafe { push_pop_buffer.wait_and_pop() };
                     pop_results_copy.lock().unwrap().push(result.is_ok());
                 }
             }
@@ -1156,7 +1156,7 @@ fn should_push_and_pop_from_one_thread_while_mutliple_are_stealing_on_full_buffe
         }
 
         let mut unsuccessful_pops = 0;
-        while buffer.wait_and_pop().is_ok() {
+        while unsafe { buffer.wait_and_pop() }.is_ok() {
             unsuccessful_pops += 1;
         }
 

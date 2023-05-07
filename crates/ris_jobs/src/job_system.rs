@@ -29,7 +29,10 @@ pub struct JobSystemGuard {
     done: Arc<AtomicBool>,
 }
 
-pub fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> JobSystemGuard {
+/// # Safety
+///
+/// The JobSystem is a global system. Initialize it only once.
+pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> JobSystemGuard {
     // estimate workthreads and according affinities
     let threads = std::cmp::min(cpu_count, threads);
 
