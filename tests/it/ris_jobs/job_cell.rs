@@ -36,7 +36,8 @@ fn should_reference_and_clone() {
 
 #[test]
 fn should_run_jobs_when_borrowing_as_mut() {
-    let job_system = job_system::init(100, 100);
+    let job_system =
+        unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 100) };
     let results = Arc::new(Mutex::new(Vec::new()));
 
     let mut job_cell = JobCell::new(0);

@@ -113,9 +113,7 @@ fn run(app_info: AppInfo) -> Result<(), String> {
 
     if engine.wants_to_restart {
         std::process::exit(RESTART_CODE);
-    } else {
-        0
-    };
+    }
 
     Ok(())
 }
