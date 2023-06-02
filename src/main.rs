@@ -21,8 +21,7 @@ fn main() -> Result<(), String> {
     if app_info.args.no_restart {
         run(app_info)
     } else {
-        wrap(app_info);
-        Ok(())
+        wrap(app_info)
     }
 }
 
@@ -50,7 +49,26 @@ fn get_app_info() -> Result<AppInfo, String> {
     ))
 }
 
-fn wrap(mut app_info: AppInfo) {
+fn run(app_info: AppInfo) -> Result<(), String> {
+    let log_guard = init_log(&app_info);
+
+    let mut engine = Engine::new(app_info)?;
+    let result = engine.run();
+
+    if let Err(error) = result {
+        ris_log::fatal!("error while running engine: \"{}\"", error);
+    }
+
+    drop(log_guard);
+
+    if engine.wants_to_restart {
+        std::process::exit(RESTART_CODE);
+    }
+
+    Ok(())
+}
+
+fn wrap(mut app_info: AppInfo) -> Result<(), String> {
     app_info.args.no_restart = true;
 
     let executable_path = &app_info.args.executable_path;
@@ -81,7 +99,7 @@ fn wrap(mut app_info: AppInfo) {
         };
 
         if output.status.success() {
-            return;
+            return Ok(());
         } else {
             let output_bytes = output.stderr;
             let output_string = String::from_utf8(output_bytes);
@@ -93,29 +111,10 @@ fn wrap(mut app_info: AppInfo) {
 
             match exit_code {
                 Some(code) => std::process::exit(code),
-                None => return,
+                None => return Err(String::from("no code to exit from")),
             }
         }
     }
-}
-
-fn run(app_info: AppInfo) -> Result<(), String> {
-    let log_guard = init_log(&app_info);
-
-    let mut engine = Engine::new(app_info)?;
-    let result = engine.run();
-
-    if let Err(error) = result {
-        ris_log::fatal!("error while running engine: \"{}\"", error);
-    }
-
-    drop(log_guard);
-
-    if engine.wants_to_restart {
-        std::process::exit(RESTART_CODE);
-    }
-
-    Ok(())
 }
 
 #[cfg(debug_assertions)]

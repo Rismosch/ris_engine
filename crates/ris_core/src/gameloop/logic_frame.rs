@@ -13,10 +13,10 @@ pub fn run(
     _input: Ref<InputData>,
     _frame: Ref<FrameData>,
 ) -> (LogicData, GameloopState) {
-    thread::sleep(Duration::from_millis(50));
+    // thread::sleep(Duration::from_millis(50));
 
     if _input.general.buttons.down() != 0 {
-        ris_log::fatal!(
+        ris_log::debug!(
             "{:#034b} {} {}",
             _input.general.buttons.down(),
             job_system::thread_index(),
