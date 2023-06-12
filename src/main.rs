@@ -8,7 +8,7 @@ use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
 use ris_log::{
-    log::{self, Appenders, LogGuard},
+    log::{self, Appenders},
     log_level::LogLevel,
 };
 use ris_util::{throw, unwrap_or_throw};
@@ -50,11 +50,17 @@ fn get_app_info() -> Result<AppInfo, String> {
 }
 
 fn run(app_info: AppInfo) -> Result<(), String> {
-    let log_guard = init_log(&app_info);
+    // init log
+    use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
 
+    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
+    let log_guard = log::init(LogLevel::Trace, appenders);
+
+    // init and run engine
     let mut engine = Engine::new(app_info)?;
     let result = engine.run();
 
+    // handle return
     if let Err(error) = result {
         ris_log::fatal!("error while running engine: \"{}\"", error);
     }
@@ -117,18 +123,3 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
     }
 }
 
-#[cfg(debug_assertions)]
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
-
-    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
-    log::init(LogLevel::Trace, appenders)
-}
-
-#[cfg(not(debug_assertions))]
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::file_appender::FileAppender;
-
-    let appenders: Appenders = vec![FileAppender::new(app_info)];
-    log::init(LogLevel::Info, appenders)
-}
