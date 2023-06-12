@@ -8,10 +8,7 @@ use ris_input::{
     keyboard_logic::update_keyboard,
     mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
-use ris_jobs::{
-    job_cell::{JobCell, Ref},
-    job_system,
-};
+use ris_jobs::job_system;
 use sdl2::{event::Event, EventPump, GameControllerSubsystem};
 
 pub struct InputFrame {

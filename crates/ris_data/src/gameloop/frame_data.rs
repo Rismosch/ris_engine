@@ -1,42 +1,55 @@
 use std::time::{Duration, Instant};
 
-const DELTAS_COUNT: usize = 4;
+const DELTAS_COUNT: usize = 1024;
 const MAX_DELTA: Duration = Duration::from_millis(500);
 const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
+#[derive(Default)]
+pub struct FrameDataCalculator{
+    current: FrameData,
+}
+
+#[derive(Clone, Copy)]
 pub struct FrameData {
     number: usize,
-    deltas: [Duration; DELTAS_COUNT],
+    all_deltas: [Duration; DELTAS_COUNT],
     delta: Duration,
     last_bump: Instant,
 }
 
-impl FrameData {
-    pub fn bump(&mut self) {
-        self.number += 1;
+impl FrameDataCalculator{
+    pub fn bump(&mut self){
+        let current = &mut self.current;
+        current.number += 1;
 
         let now = Instant::now();
 
-        let current_delta = now - self.last_bump;
+        let current_delta = now - current.last_bump;
         let delta_to_set = if current_delta > MAX_DELTA {
             IDEAL_DELTA
         } else {
             current_delta
         };
 
-        let index = self.number % DELTAS_COUNT;
-        self.deltas[index] = delta_to_set;
+        let index = current.number % DELTAS_COUNT;
+        current.all_deltas[index] = delta_to_set;
 
         let mut nanos_sum = 0;
-        for delta in self.deltas {
+        for delta in current.all_deltas {
             nanos_sum += delta.as_nanos();
         }
         let nanos_average = nanos_sum / DELTAS_COUNT as u128;
-        self.delta = Duration::from_nanos(nanos_average as u64);
+        current.delta = Duration::from_nanos(nanos_average as u64);
 
-        self.last_bump = now;
+        current.last_bump = now;
     }
 
+    pub fn current(&self) -> &FrameData{
+        &self.current
+    }
+}
+
+impl FrameData {
     pub fn number(&self) -> usize {
         self.number
     }
@@ -54,7 +67,7 @@ impl Default for FrameData {
     fn default() -> Self {
         FrameData {
             last_bump: Instant::now(),
-            deltas: [IDEAL_DELTA; DELTAS_COUNT],
+            all_deltas: [IDEAL_DELTA; DELTAS_COUNT],
             delta: Duration::ZERO,
             number: 0,
         }

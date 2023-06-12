@@ -1,8 +1,8 @@
 use ris_data::gameloop::{
-    frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
+    frame_data::FrameData, frame_data::FrameDataCalculator, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData, output_data::OutputData,
 };
-use ris_jobs::{job_cell::JobCell, job_system};
+use ris_jobs::job_system;
 
 use crate::{
     gameloop::{logic_frame, output_frame},
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn run(mut god_object: GodObject) -> GameloopState {
-    let mut frame = JobCell::new(FrameData::default());
+    let mut frame_data_calculator = FrameDataCalculator::default();
 
     let mut current_input = InputData::default();
     let mut previous_input = JobCell::new(InputData::default());
@@ -23,7 +23,8 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
 
     loop {
         // update frame
-        frame.as_mut().bump();
+        frame_data_calculator.bump();
+        let current_frame = frame_data_calculator.current();
 
         // swap buffers
         current_input = previous_input.as_mut().replace(current_input);
