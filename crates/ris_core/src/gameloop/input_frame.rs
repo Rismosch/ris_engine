@@ -12,7 +12,7 @@ use ris_jobs::job_system;
 use sdl2::{event::Event, EventPump, GameControllerSubsystem};
 
 pub struct InputFrame {
-    event_pump: JobCell<EventPump>,
+    event_pump: EventPump,
 
     gamepad_logic: Option<GamepadLogic>,
 
@@ -29,7 +29,7 @@ impl InputFrame {
         }
 
         Self {
-            event_pump: JobCell::new(event_pump),
+            event_pump,
             gamepad_logic: Some(GamepadLogic::new(controller_subsystem)),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
@@ -40,8 +40,8 @@ impl InputFrame {
     pub fn run(
         &mut self,
         mut current: InputData,
-        previous: Ref<InputData>,
-        _frame: Ref<FrameData>,
+        previous: &InputData,
+        _frame: &FrameData,
     ) -> (InputData, GameloopState) {
         let current_keyboard = current.keyboard;
         let current_gamepad = current.gamepad;
@@ -58,7 +58,7 @@ impl InputFrame {
 
         reset_mouse_refs(&mut current.mouse);
 
-        for event in self.event_pump.as_mut().poll_iter() {
+        for event in self.event_pump.poll_iter() {
             // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
             if let Event::Quit { .. } = event {
@@ -76,8 +76,8 @@ impl InputFrame {
             }
         }
 
-        let mouse_event_pump = self.event_pump.borrow();
-        let keyboard_event_pump = self.event_pump.borrow();
+        let mouse_state = self.event_pump.mouse_state();
+        let keyboard_state= self.event_pump.keyboard_state();
 
         let gamepad_future = job_system::submit(move || {
             let mut current_gamepad = current_gamepad;
@@ -94,7 +94,7 @@ impl InputFrame {
             let gameloop_state = update_keyboard(
                 &mut keyboard,
                 &previous_for_keyboard.keyboard,
-                keyboard_event_pump.keyboard_state(),
+                keyboard_state
             );
 
             (keyboard, gameloop_state)
@@ -103,7 +103,7 @@ impl InputFrame {
         post_update_mouse(
             &mut current.mouse,
             &previous_for_mouse.mouse,
-            mouse_event_pump.mouse_state(),
+            mouse_state
         );
 
         let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();

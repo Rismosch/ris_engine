@@ -8,9 +8,9 @@ use ris_jobs::job_system;
 
 pub fn run(
     current: LogicData,
-    _previous: LogicData,
-    _input: InputData,
-    _frame: FrameData,
+    _previous: &LogicData,
+    _input: &InputData,
+    _frame: &FrameData,
 ) -> (LogicData, GameloopState) {
     // thread::sleep(Duration::from_millis(50));
 

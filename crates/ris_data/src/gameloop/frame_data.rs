@@ -9,7 +9,7 @@ pub struct FrameDataCalculator{
     current: FrameData,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct FrameData {
     number: usize,
     all_deltas: [Duration; DELTAS_COUNT],

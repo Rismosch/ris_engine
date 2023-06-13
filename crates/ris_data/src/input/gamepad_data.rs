@@ -1,5 +1,6 @@
 use super::buttons::Buttons;
 
+#[derive(Clone)]
 pub struct GamepadData {
     pub buttons: Buttons,
     pub axis: [i16; 6],

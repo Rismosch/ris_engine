@@ -1,6 +1,6 @@
 use super::buttons::Buttons;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct MouseData {
     pub buttons: Buttons,
     pub x: i32,

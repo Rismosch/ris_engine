@@ -1,5 +1,5 @@
 use ris_data::gameloop::{
-    frame_data::FrameData, frame_data::FrameDataCalculator, gameloop_state::GameloopState, input_data::InputData,
+    frame_data::FrameDataCalculator, gameloop_state::GameloopState, input_data::InputData,
     logic_data::LogicData, output_data::OutputData,
 };
 use ris_jobs::job_system;
@@ -13,60 +13,50 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
     let mut frame_data_calculator = FrameDataCalculator::default();
 
     let mut current_input = InputData::default();
-    let mut previous_input = JobCell::new(InputData::default());
-
     let mut current_logic = LogicData::default();
-    let mut previous_logic = JobCell::new(LogicData::default());
-
     let mut current_output = OutputData::default();
-    let mut previous_output = JobCell::new(OutputData::default());
 
     loop {
         // update frame
         frame_data_calculator.bump();
         let current_frame = frame_data_calculator.current();
 
-        // swap buffers
-        current_input = previous_input.as_mut().replace(current_input);
-        current_logic = previous_logic.as_mut().replace(current_logic);
-        current_output = previous_output.as_mut().replace(current_output);
+        // create copies
+        let frame_for_input = current_frame.clone();
+        let frame_for_logic = current_frame.clone();
+        let frame_for_output = current_frame.clone();
 
-        // create references
-        let frame_for_input = frame.borrow();
-        let frame_for_logic = frame.borrow();
-        let frame_for_output = frame.borrow();
+        let previous_input_for_input = current_input.clone();
+        let previous_input_for_logic = current_input.clone();
 
-        let previous_input_for_input = previous_input.borrow();
-        let previous_input_for_logic = previous_input.borrow();
+        let previous_logic_for_logic = current_logic.clone();
+        let previous_logic_for_output = current_logic.clone();
 
-        let previous_logic_for_logic = previous_logic.borrow();
-        let previous_logic_for_output = previous_logic.borrow();
-
-        let previous_output_for_output = previous_output.borrow();
+        let previous_output_for_output = current_output.clone();
 
         // submit jobs
         let output_future = job_system::submit(move || {
             output_frame::run(
                 current_output,
-                previous_output_for_output,
-                previous_logic_for_output,
-                frame_for_output,
+                &previous_output_for_output,
+                &previous_logic_for_output,
+                &frame_for_output,
             )
         });
 
         let logic_future = job_system::submit(move || {
             logic_frame::run(
                 current_logic,
-                previous_logic_for_logic,
-                previous_input_for_logic,
-                frame_for_logic,
+                &previous_logic_for_logic,
+                &previous_input_for_logic,
+                &frame_for_logic,
             )
         });
 
         let (new_input_data, input_state) =
             god_object
                 .input_frame
-                .run(current_input, previous_input_for_input, frame_for_input);
+                .run(current_input, &previous_input_for_input, &frame_for_input);
 
         // wait for jobs
         let (new_logic_data, logic_state) = logic_future.wait();
