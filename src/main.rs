@@ -122,4 +122,3 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
         }
     }
 }
-

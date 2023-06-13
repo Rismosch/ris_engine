@@ -5,7 +5,7 @@ const MAX_DELTA: Duration = Duration::from_millis(500);
 const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
 #[derive(Default)]
-pub struct FrameDataCalculator{
+pub struct FrameDataCalculator {
     current: FrameData,
 }
 
@@ -17,8 +17,8 @@ pub struct FrameData {
     last_bump: Instant,
 }
 
-impl FrameDataCalculator{
-    pub fn bump(&mut self){
+impl FrameDataCalculator {
+    pub fn bump(&mut self) {
         let current = &mut self.current;
         current.number += 1;
 
@@ -44,7 +44,7 @@ impl FrameDataCalculator{
         current.last_bump = now;
     }
 
-    pub fn current(&self) -> &FrameData{
+    pub fn current(&self) -> &FrameData {
         &self.current
     }
 }

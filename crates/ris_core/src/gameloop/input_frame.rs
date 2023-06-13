@@ -29,7 +29,7 @@ impl InputFrame {
         }
 
         Self {
-            event_pump: unsafe {JobCell::new(event_pump)},
+            event_pump: unsafe { JobCell::new(event_pump) },
             gamepad_logic: Some(GamepadLogic::new(controller_subsystem)),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
