@@ -5,9 +5,9 @@ use ris_data::gameloop::{
 
 pub fn run(
     current: OutputData,
-    previous: &OutputData,
-    logic: &LogicData,
-    frame: &FrameData,
+    _previous: &OutputData,
+    _logic: &LogicData,
+    _frame: &FrameData,
 ) -> (OutputData, GameloopState) {
     (current, GameloopState::WantsToContinue)
 }

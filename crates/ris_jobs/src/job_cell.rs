@@ -1,3 +1,4 @@
+use ris_util::throw;
 use std::{
     cell::UnsafeCell,
     marker::PhantomData,
@@ -8,7 +9,6 @@ use std::{
         Arc,
     },
 };
-use ris_util::throw;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,
@@ -40,7 +40,10 @@ impl<T> JobCell<T> {
     pub fn as_mut(&mut self) -> JobCellRefMut<T> {
         let existing_refs = self.refs.load(Ordering::SeqCst);
         if existing_refs > 0 {
-            throw!("JobCell: attempted to create a mutable reference, while {} references exist", existing_refs);
+            throw!(
+                "JobCell: attempted to create a mutable reference, while {} references exist",
+                existing_refs
+            );
         }
 
         JobCellRefMut { value: &self.value }
@@ -49,7 +52,7 @@ impl<T> JobCell<T> {
     pub fn borrow(&self) -> JobCellRef<T> {
         self.refs.fetch_add(1, Ordering::SeqCst);
 
-        let value = unsafe { NonNull::new_unchecked(self.value.get())};
+        let value = unsafe { NonNull::new_unchecked(self.value.get()) };
 
         JobCellRef {
             value,
@@ -65,18 +68,17 @@ impl<T> Drop for JobCell<T> {
     }
 }
 
-
 impl<T> Deref for JobCellRefMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {&*self.value.get() }
+        unsafe { &*self.value.get() }
     }
 }
 
 impl<T> DerefMut for JobCellRefMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {&mut *self.value.get() }
+        unsafe { &mut *self.value.get() }
     }
 }
 
@@ -89,13 +91,13 @@ impl<T> Deref for JobCellRef<T> {
             throw!("JobCell: attempted to deref, while owner was dropped");
         }
 
-        unsafe {self.value.as_ref() }
+        unsafe { self.value.as_ref() }
     }
 }
 
 impl<T> Clone for JobCellRef<T> {
     fn clone(&self) -> Self {
-        let owner_was_dropped = self.refs.load(Ordering::SeqCst) < 0; 
+        let owner_was_dropped = self.refs.load(Ordering::SeqCst) < 0;
         if owner_was_dropped {
             throw!("JobCell: attempted to clone, while owner was dropped");
         }
