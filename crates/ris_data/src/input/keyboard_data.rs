@@ -4,6 +4,7 @@ use sdl2::keyboard::Scancode;
 
 use super::buttons::Buttons;
 
+#[derive(Clone)]
 pub struct KeyboardData {
     pub buttons: Buttons,
     pub keymask: [Scancode; 32],

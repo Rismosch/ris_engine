@@ -3,7 +3,7 @@ use crate::input::{
     mouse_data::MouseData,
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct InputData {
     pub mouse: MouseData,
     pub keyboard: KeyboardData,
