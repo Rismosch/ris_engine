@@ -97,11 +97,6 @@ impl<T> Deref for JobCellRef<T> {
 
 impl<T> Clone for JobCellRef<T> {
     fn clone(&self) -> Self {
-        let owner_was_dropped = self.refs.load(Ordering::SeqCst) < 0;
-        if owner_was_dropped {
-            throw!("JobCell: attempted to clone, while owner was dropped");
-        }
-
         self.refs.fetch_add(1, Ordering::SeqCst);
         Self {
             value: self.value,
