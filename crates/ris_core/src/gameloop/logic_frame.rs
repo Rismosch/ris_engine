@@ -15,7 +15,7 @@ pub fn run(
             "{:#034b} {} {}",
             _input.general.buttons.down(),
             job_system::thread_index(),
-            _frame.delta().as_nanos()
+            _frame.fps()
         );
     }
 

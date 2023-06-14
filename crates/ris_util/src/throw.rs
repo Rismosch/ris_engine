@@ -1,5 +1,7 @@
 use sdl2::messagebox::MessageBoxFlag;
 
+pub static mut SHOW_MESSAGE_BOX_ON_THROW: bool = true;
+
 #[macro_export]
 macro_rules! throw {
     ($($arg:tt)*) => {
@@ -30,6 +32,10 @@ pub fn log_fatal(message: &str) {
 }
 
 pub fn show_panic_message_box(message: &str) {
+    if unsafe { !SHOW_MESSAGE_BOX_ON_THROW } {
+        return;
+    }
+
     let _ = sdl2::messagebox::show_simple_message_box(
         MessageBoxFlag::ERROR,
         "Fatal Error",
