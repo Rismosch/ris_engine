@@ -12,38 +12,44 @@ use ris_log::{
     log_level::LogLevel,
 };
 use ris_util::{throw, unwrap_or_throw};
-use vulkano::VulkanLibrary;
-use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::device::QueueFlags;
 use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo};
+use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::VulkanLibrary;
 
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
     let app_info = get_app_info()?;
-//
-//    if app_info.args.no_restart {
-//        run(app_info)
-//    } else {
-//        wrap(app_info)
-//    }
+    //
+    //    if app_info.args.no_restart {
+    //        run(app_info)
+    //    } else {
+    //        wrap(app_info)
+    //    }
 
     let log_guard = init_log(&app_info);
 
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
-    let instance = Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
-    let mut physical_devices = instance.enumerate_physical_devices().expect("could not enumerate devices");
+    let instance =
+        Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
+    let mut physical_devices = instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate devices");
 
     ris_log::debug!("hello world");
 
-//    for (i, physical_device) in physical_devices.into_iter().enumerate() {
-//        ris_log::debug!("{} {:?}", i, physical_device.properties().device_name);
-//    }
+    //    for (i, physical_device) in physical_devices.into_iter().enumerate() {
+    //        ris_log::debug!("{} {:?}", i, physical_device.properties().device_name);
+    //    }
 
     let physical_device = physical_devices.next().expect("no devices available");
 
     for family in physical_device.queue_family_properties() {
-        ris_log::debug!("found a queue family with {:?} queue(s)", family.queue_count);
+        ris_log::debug!(
+            "found a queue family with {:?} queue(s)",
+            family.queue_count
+        );
     }
 
     let queue_family_index = physical_device
@@ -51,7 +57,9 @@ fn main() -> Result<(), String> {
         .iter()
         .enumerate()
         .position(|(_queue_family_index, queue_family_properties)| {
-           queue_family_properties.queue_flags.contains(QueueFlags::GRAPHICS)
+            queue_family_properties
+                .queue_flags
+                .contains(QueueFlags::GRAPHICS)
         })
         .expect("couldn't find a graphical queue family") as u32;
 
@@ -65,7 +73,7 @@ fn main() -> Result<(), String> {
                 ..Default::default()
             }],
             ..Default::default()
-        }
+        },
     )
     .expect("failed to create device");
 
@@ -169,8 +177,7 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
     }
 }
 
-fn init_log(app_info: &AppInfo) -> LogGuard
-{
+fn init_log(app_info: &AppInfo) -> LogGuard {
     use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
 
     let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
