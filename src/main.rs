@@ -16,6 +16,10 @@ use vulkano::device::QueueFlags;
 use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::VulkanLibrary;
+use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage};
+use vulkano::buffer::BufferContents;
 
 pub const RESTART_CODE: i32 = 42;
 
@@ -79,9 +83,69 @@ fn main() -> Result<(), String> {
 
     let queue = queues.next().unwrap();
 
+    let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+
+    // let data: i32 = 12;
+    // let buffer = Buffer::from_data(
+    //     &memory_allocator,
+    //     BufferCreateInfo {
+    //         usage: BufferUsage::UNIFORM_BUFFER,
+    //         ..Default::default()
+    //     },
+    //     AllocationCreateInfo {
+    //         usage: MemoryUsage::Upload,
+    //         ..Default::default()
+    //     },
+    //     data,
+    // )
+    // .expect("failed to create buffer");
+
+    // #[derive(BufferContents)]
+    // #[repr(C)]
+    // struct MyStruct {
+    //     a: u32,
+    //     b: u32,
+    // }
+    // 
+    // let data = MyStruct { a: 13, b: 42 };
+    // 
+    // let buffer = Buffer::from_data(
+    //     &memory_allocator,
+    //     BufferCreateInfo {
+    //         usage: BufferUsage::UNIFORM_BUFFER,
+    //         ..Default::default()
+    //     },
+    //     AllocationCreateInfo {
+    //         usage: MemoryUsage::Upload,
+    //         ..Default::default()
+    //     },
+    //     data,
+    // )
+    // .unwrap();
+
+    let iter = 0..128;
+    let buffer = Buffer::from_iter(
+        &memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::UNIFORM_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        iter,
+    )
+    .unwrap();
+
+    let mut content = buffer.write().unwrap();
+    content[12] = 83;
+    content[7] = 3;
+
+    ris_log::debug!("content {:?}", content);
+
     ris_log::debug!("we have reached the end");
     drop(log_guard);
-
     Ok(())
 }
 
