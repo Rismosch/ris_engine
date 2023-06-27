@@ -401,8 +401,8 @@ dependencies = [
  "ris_util",
  "ris_video",
  "sdl2",
+ "shaderc",
  "vulkano",
- "vulkano-shaders",
 ]
 
 [[package]]
@@ -687,21 +687,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "vulkano-shaders"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f8cf18e9becbc6d39f1c39e26bcf69546c93989553eb5748cd734a8a697a6e5"
-dependencies = [
- "ahash",
- "heck",
- "proc-macro2",
- "quote",
- "shaderc",
- "syn 1.0.109",
- "vulkano",
 ]
 
 [[package]]
