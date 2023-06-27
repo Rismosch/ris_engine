@@ -112,7 +112,7 @@ cargo build -r
 Write-Host "moving files..."
 
 $target_directory = "$PSScriptRoot/../target/release"
-$final_directory = "$PSScriptRoot/build"
+$final_directory = "$PSScriptRoot/../release"
 
 if (Test-Path $final_directory) {
     Remove-Item -Recurse -Force $final_directory
