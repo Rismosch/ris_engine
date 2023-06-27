@@ -20,6 +20,13 @@ use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage};
 use vulkano::buffer::BufferContents;
+use vulkano::command_buffer::allocator::{
+    StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo
+};
+use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
+use vulkano::sync::{self, GpuFuture};
+
+
 
 pub const RESTART_CODE: i32 = 42;
 
@@ -123,26 +130,92 @@ fn main() -> Result<(), String> {
     // )
     // .unwrap();
 
-    let iter = 0..128;
-    let buffer = Buffer::from_iter(
+    // let iter = 0..128;
+    // let buffer = Buffer::from_iter(
+    //     &memory_allocator,
+    //     BufferCreateInfo {
+    //         usage: BufferUsage::UNIFORM_BUFFER,
+    //         ..Default::default()
+    //     },
+    //     AllocationCreateInfo {
+    //         usage: MemoryUsage::Upload,
+    //         ..Default::default()
+    //     },
+    //     iter,
+    // )
+    // .unwrap();
+
+    // let mut content = buffer.write().unwrap();
+    // content[12] = 83;
+    // content[7] = 3;
+
+    // ris_log::debug!("content {:?}", content);
+
+    let source_content: Vec<i32> = (0..64).collect();
+    let destination_content: Vec<i32> = (0..64).map(|_| 0).collect();
+
+    ris_log::debug!("source: {:?}", source_content);
+    ris_log::debug!("target: {:?}", destination_content);
+
+    let source = Buffer::from_iter(
         &memory_allocator,
         BufferCreateInfo {
-            usage: BufferUsage::UNIFORM_BUFFER,
+            usage: BufferUsage::TRANSFER_SRC,
             ..Default::default()
         },
         AllocationCreateInfo {
             usage: MemoryUsage::Upload,
             ..Default::default()
         },
-        iter,
+        source_content,
+    )
+    .expect("failed to create source buffer");
+
+    let destination = Buffer::from_iter(
+        &memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::TRANSFER_DST,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Download,
+            ..Default::default()
+        },
+        destination_content,
+    )
+    .expect("failed to create destination buffer");
+
+    let command_buffer_allocator = StandardCommandBufferAllocator::new(
+        device.clone(),
+        StandardCommandBufferAllocatorCreateInfo::default()
+    );
+
+    let mut builder = AutoCommandBufferBuilder::primary(
+        &command_buffer_allocator,
+        queue_family_index,
+        CommandBufferUsage::OneTimeSubmit,
     )
     .unwrap();
 
-    let mut content = buffer.write().unwrap();
-    content[12] = 83;
-    content[7] = 3;
+    builder
+        .copy_buffer(CopyBufferInfo::buffers(source.clone(), destination.clone()))
+        .unwrap();
 
-    ris_log::debug!("content {:?}", content);
+    let command_buffer = builder.build().unwrap();
+
+    let future = sync::now(device.clone())
+        .then_execute(queue.clone(), command_buffer)
+        .unwrap()
+        .then_signal_fence_and_flush()
+        .unwrap();
+
+    future.wait(None).unwrap();
+
+    let src_content = source.read().unwrap();
+    let destination_content = destination.read().unwrap();
+
+    ris_log::debug!("source: {:?}", &*src_content);
+    ris_log::debug!("target: {:?}", &*destination_content);
 
     ris_log::debug!("we have reached the end");
     drop(log_guard);
