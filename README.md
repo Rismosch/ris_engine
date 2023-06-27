@@ -18,7 +18,7 @@ This engine is using various 3rd party libraries. Trying to compile it without t
 
 In this repo you will find the `./external/` directory. It contains all required 3rd party libraries. To install them, follow these instructions:
 
-1. Copy `./external/bin/SDL2.dll` to the root of this repository.
+1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
 2. Move `./external/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
 3. Copy _EVERY_ `*.lib` in `./external/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
 
