@@ -217,6 +217,41 @@ fn main() -> Result<(), String> {
     ris_log::debug!("source: {:?}", &*src_content);
     ris_log::debug!("target: {:?}", &*destination_content);
 
+    let data_iter = 0..65536u32;
+    let data_buffer = Buffer::from_iter(
+        &memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::STORAGE_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: MemoryUsage::Upload,
+            ..Default::default()
+        },
+        data_iter,
+    )
+    .expect("failed to create buffer");
+
+    mod cs {
+        vulkano_shaders::shader! {
+            ty: "compute",
+            src: "
+                #version 460
+                
+                layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+                
+                layout(set = 0, binding = 0) buffer Data {
+                    uint data[];
+                } buf;
+                
+                void main() {
+                    uint idx = gl_GlobalInvocationID.x;
+                    buf.data[idx] *= 12;
+                }
+            "
+        }
+    }
+
     ris_log::debug!("we have reached the end");
     drop(log_guard);
     Ok(())
