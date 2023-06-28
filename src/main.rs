@@ -19,7 +19,6 @@ use vulkano::VulkanLibrary;
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage};
-use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::{
     StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo
 };
@@ -29,7 +28,7 @@ use vulkano::pipeline::ComputePipeline;
 use vulkano::pipeline::Pipeline;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-
+use vulkano::pipeline::PipelineBindPoint;
 
 
 pub const RESTART_CODE: i32 = 42;
@@ -53,10 +52,6 @@ fn main() -> Result<(), String> {
         .expect("could not enumerate devices");
 
     ris_log::debug!("hello world");
-
-    //    for (i, physical_device) in physical_devices.into_iter().enumerate() {
-    //        ris_log::debug!("{} {:?}", i, physical_device.properties().device_name);
-    //    }
 
     let physical_device = physical_devices.next().expect("no devices available");
 
@@ -96,131 +91,6 @@ fn main() -> Result<(), String> {
 
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
 
-    // let data: i32 = 12;
-    // let buffer = Buffer::from_data(
-    //     &memory_allocator,
-    //     BufferCreateInfo {
-    //         usage: BufferUsage::UNIFORM_BUFFER,
-    //         ..Default::default()
-    //     },
-    //     AllocationCreateInfo {
-    //         usage: MemoryUsage::Upload,
-    //         ..Default::default()
-    //     },
-    //     data,
-    // )
-    // .expect("failed to create buffer");
-
-    // #[derive(BufferContents)]
-    // #[repr(C)]
-    // struct MyStruct {
-    //     a: u32,
-    //     b: u32,
-    // }
-    // 
-    // let data = MyStruct { a: 13, b: 42 };
-    // 
-    // let buffer = Buffer::from_data(
-    //     &memory_allocator,
-    //     BufferCreateInfo {
-    //         usage: BufferUsage::UNIFORM_BUFFER,
-    //         ..Default::default()
-    //     },
-    //     AllocationCreateInfo {
-    //         usage: MemoryUsage::Upload,
-    //         ..Default::default()
-    //     },
-    //     data,
-    // )
-    // .unwrap();
-
-    // let iter = 0..128;
-    // let buffer = Buffer::from_iter(
-    //     &memory_allocator,
-    //     BufferCreateInfo {
-    //         usage: BufferUsage::UNIFORM_BUFFER,
-    //         ..Default::default()
-    //     },
-    //     AllocationCreateInfo {
-    //         usage: MemoryUsage::Upload,
-    //         ..Default::default()
-    //     },
-    //     iter,
-    // )
-    // .unwrap();
-
-    // let mut content = buffer.write().unwrap();
-    // content[12] = 83;
-    // content[7] = 3;
-
-    // ris_log::debug!("content {:?}", content);
-
-    let source_content: Vec<i32> = (0..64).collect();
-    let destination_content: Vec<i32> = (0..64).map(|_| 0).collect();
-
-    ris_log::debug!("source: {:?}", source_content);
-    ris_log::debug!("target: {:?}", destination_content);
-
-    let source = Buffer::from_iter(
-        &memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::TRANSFER_SRC,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Upload,
-            ..Default::default()
-        },
-        source_content,
-    )
-    .expect("failed to create source buffer");
-
-    let destination = Buffer::from_iter(
-        &memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::TRANSFER_DST,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            usage: MemoryUsage::Download,
-            ..Default::default()
-        },
-        destination_content,
-    )
-    .expect("failed to create destination buffer");
-
-    let command_buffer_allocator = StandardCommandBufferAllocator::new(
-        device.clone(),
-        StandardCommandBufferAllocatorCreateInfo::default()
-    );
-
-    let mut builder = AutoCommandBufferBuilder::primary(
-        &command_buffer_allocator,
-        queue_family_index,
-        CommandBufferUsage::OneTimeSubmit,
-    )
-    .unwrap();
-
-    builder
-        .copy_buffer(CopyBufferInfo::buffers(source.clone(), destination.clone()))
-        .unwrap();
-
-    let command_buffer = builder.build().unwrap();
-
-    let future = sync::now(device.clone())
-        .then_execute(queue.clone(), command_buffer)
-        .unwrap()
-        .then_signal_fence_and_flush()
-        .unwrap();
-
-    future.wait(None).unwrap();
-
-    let src_content = source.read().unwrap();
-    let destination_content = destination.read().unwrap();
-
-    ris_log::debug!("source: {:?}", &*src_content);
-    ris_log::debug!("target: {:?}", &*destination_content);
-
     let data_iter = 0..65536u32;
     let data_buffer = Buffer::from_iter(
         &memory_allocator,
@@ -236,29 +106,6 @@ fn main() -> Result<(), String> {
     )
     .expect("failed to create buffer");
 
-    // mod cs {
-    //     vulkano_shaders::shader!{
-    //         ty: "compute",
-    //         src: r"
-    //             #version 460
-
-    //             layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-
-    //             layout(set = 0, binding = 0) buffer Data {
-    //                 uint data[];
-    //             } buf;
-
-    //             void main() {
-    //                 uint idx = gl_GlobalInvocationID.x;
-    //                 buf.data[idx] *= 12;
-    //             }
-    //         ",
-    //     }
-    // }
-    // 
-    // let shader = cs::load(device.clone())
-    //     .expect("failed to create shader module");
-    
     let source = "
         #version 460
 
@@ -313,6 +160,44 @@ fn main() -> Result<(), String> {
         [WriteDescriptorSet::buffer(0, data_buffer.clone())],
     )
     .unwrap();
+
+    let command_buffer_allocator = StandardCommandBufferAllocator::new(
+        device.clone(),
+        StandardCommandBufferAllocatorCreateInfo::default(),
+    );
+
+    let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
+        &command_buffer_allocator,
+        queue.queue_family_index(),
+        CommandBufferUsage::OneTimeSubmit,
+    )
+    .unwrap();
+
+    let work_group_counts = [1024, 1, 1];
+
+    command_buffer_builder
+        .bind_pipeline_compute(compute_pipeline.clone())
+        .bind_descriptor_sets(
+            PipelineBindPoint::Compute,
+            compute_pipeline.layout().clone(),
+            descriptor_set_layout_index as u32,
+            descriptor_set,
+        )
+        .dispatch(work_group_counts)
+        .unwrap();
+
+    let command_buffer = command_buffer_builder.build().unwrap();
+
+    let future = sync::now(device.clone())
+        .then_execute(queue.clone(), command_buffer)
+        .unwrap()
+        .then_signal_fence_and_flush()
+        .unwrap();
+
+    future.wait(None).unwrap();
+
+    let content = data_buffer.read().unwrap();
+    ris_log::debug!("result: {:?}", &*content);
 
     ris_log::debug!("we have reached the end");
     drop(log_guard);
