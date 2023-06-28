@@ -26,7 +26,9 @@ use vulkano::command_buffer::allocator::{
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferInfo};
 use vulkano::sync::{self, GpuFuture};
 use vulkano::pipeline::ComputePipeline;
-use shaderc;
+use vulkano::pipeline::Pipeline;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 
 
 
@@ -296,6 +298,21 @@ fn main() -> Result<(), String> {
         |_| {},
     )
     .expect("failed to create compute pipeline");
+
+    let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
+    let pipeline_layout = compute_pipeline.layout();
+    let descriptor_set_layouts = pipeline_layout.set_layouts();
+
+    let descriptor_set_layout_index = 0;
+    let descriptor_set_layout = descriptor_set_layouts
+        .get(descriptor_set_layout_index)
+        .unwrap();
+    let descriptor_set = PersistentDescriptorSet::new(
+        &descriptor_set_allocator,
+        descriptor_set_layout.clone(),
+        [WriteDescriptorSet::buffer(0, data_buffer.clone())],
+    )
+    .unwrap();
 
     ris_log::debug!("we have reached the end");
     drop(log_guard);
