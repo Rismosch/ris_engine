@@ -257,30 +257,45 @@ fn main() -> Result<(), String> {
     // let shader = cs::load(device.clone())
     //     .expect("failed to create shader module");
     
-    let source = "#version 310 es\n void EP() {}";
+    let source = "
+        #version 460
+
+        layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+        layout(set = 0, binding = 0) buffer Data {
+            uint data[];
+        } buf;
+
+        void main() {
+            uint idx = gl_GlobalInvocationID.x;
+            buf.data[idx] *= 12;
+        }
+    ";
 
     let mut compiler = shaderc::Compiler::new().expect("could not create compiler");
     let mut options = shaderc::CompileOptions::new().expect("coult not create options");
     options.add_macro_definition("EP", Some("main"));
     let binary_result = compiler.compile_into_spirv(
-        source, shaderc::ShaderKind::Vertex,
+        source, shaderc::ShaderKind::Compute,
         "shader.glsl", "main", Some(&options)).expect("could not compile into spirv");
 
-    let text_result = compiler.compile_into_spirv_assembly(
-        source, shaderc::ShaderKind::Vertex,
-        "shader.glsl", "main", Some(&options)).expect("could not compile into spirv assembly");
-
     ris_log::debug!("binary: {:?}", binary_result.as_binary());
-    ris_log::debug!("assembly: {:?}", text_result.as_text());
 
-    // let compute_pipeline = ComputePipeline::new(
-    //     device.clone(),
-    //     shader.entry_point("main").unwrap(),
-    //     &(),
-    //     None,
-    //     |_| {},
-    // )
-    // .expect("failed to create compute pipeline");
+    let words: &[u32] = binary_result.as_binary();
+    let shader_module = unsafe {vulkano::shader::ShaderModule::from_words(
+        device.clone(),
+        words
+    )}.expect("could not load shader module");
+    let entry_point = shader_module.entry_point("main").unwrap();
+
+    let compute_pipeline = ComputePipeline::new(
+        device.clone(),
+        entry_point,
+        &(),
+        None,
+        |_| {},
+    )
+    .expect("failed to create compute pipeline");
 
     ris_log::debug!("we have reached the end");
     drop(log_guard);
