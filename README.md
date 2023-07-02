@@ -22,7 +22,7 @@ In this repo you will find the `./external/` directory. It contains all required
 2. Move `./external/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
 3. Copy _EVERY_ `*.lib` in `./external/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
 
-> C:\\Users\\\<Your Username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
+> C:\\Users\\\<your username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
 
 For information where I got these libraries come from, read [external_sources.md](external_sources.md).
 
