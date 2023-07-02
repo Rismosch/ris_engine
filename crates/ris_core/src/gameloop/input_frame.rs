@@ -39,12 +39,12 @@ impl InputFrame {
 
     pub fn run(
         &mut self,
-        mut current: InputData,
+        current: &mut InputData,
         previous: &InputData,
         _frame: &FrameData,
-    ) -> (InputData, GameloopState) {
-        let current_keyboard = current.keyboard;
-        let current_gamepad = current.gamepad;
+    ) -> GameloopState {
+        let current_keyboard = current.keyboard.clone();
+        let current_gamepad = current.gamepad.clone();
 
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
@@ -64,7 +64,7 @@ impl InputFrame {
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;
                 current.gamepad = current_gamepad;
-                return (current, GameloopState::WantsToQuit);
+                return GameloopState::WantsToQuit;
             };
 
             if handle_mouse_events(&mut current.mouse, &event) {
@@ -126,6 +126,6 @@ impl InputFrame {
         current.gamepad = new_gamepad;
         self.gamepad_logic = Some(new_gamepad_logic);
 
-        (current, new_gameloop_state)
+        new_gameloop_state
     }
 }

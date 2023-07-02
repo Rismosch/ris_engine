@@ -50,28 +50,30 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
         });
 
         let logic_future = job_system::submit(move || {
-            logic_frame::run(
-                current_logic,
+            let mut current_logic = current_logic;
+            let gameloop_state = logic_frame::run(
+                &mut current_logic,
                 &previous_logic_for_logic,
                 &previous_input_for_logic,
                 &frame_for_logic,
-            )
+            );
+
+            (current_logic, gameloop_state)
         });
 
-        let (new_input_data, input_state) =
+        let input_state =
             god_object
                 .input_frame
-                .run(current_input, &previous_input_for_input, &frame_for_input);
+                .run(&mut current_input, &previous_input_for_input, &frame_for_input);
 
         // wait for jobs
         let (new_logic_data, logic_state) = logic_future.wait();
         let (new_output_frame, new_output_data, output_state) = output_future.wait();
 
         // update buffers
-        god_object.output_frame = new_output_frame;
-        current_input = new_input_data;
         current_logic = new_logic_data;
         current_output = new_output_data;
+        god_object.output_frame = new_output_frame;
 
         // determine, whether to continue, return error or exit
         if matches!(input_state, GameloopState::WantsToContinue)
