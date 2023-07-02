@@ -13,12 +13,11 @@ use ris_log::{
 };
 use ris_util::{throw, unwrap_or_throw};
 
-
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
     let app_info = get_app_info()?;
-    
+
     if app_info.args.no_restart {
         run(app_info)
     } else {

@@ -5,7 +5,7 @@ use ris_data::gameloop::{
 use ris_jobs::job_system;
 
 pub fn run(
-    current: &mut LogicData,
+    _current: &mut LogicData,
     _previous: &LogicData,
     _input: &InputData,
     _frame: &FrameData,

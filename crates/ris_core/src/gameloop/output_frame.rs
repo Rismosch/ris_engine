@@ -6,19 +6,20 @@ use vulkano::pipeline::Pipeline;
 use vulkano::sync::GpuFuture;
 
 pub struct OutputFrame {
-
+    _device: std::sync::Arc<vulkano::device::Device>,
+    _queue: std::sync::Arc<vulkano::device::Queue>,
 }
 
 impl OutputFrame {
-    pub fn new() -> Result<Self,String> {
+    pub fn new() -> Result<Self, String> {
         // init vulkan
         let library = vulkano::VulkanLibrary::new().map_err(|_| "no local Vulkan library/DLL")?;
         let instance = vulkano::instance::Instance::new(
             library,
-            vulkano::instance::InstanceCreateInfo::default()
+            vulkano::instance::InstanceCreateInfo::default(),
         )
         .map_err(|_| "failed to create instance")?;
-        
+
         // create device
         let mut physical_devices = instance
             .enumerate_physical_devices()
@@ -34,7 +35,8 @@ impl OutputFrame {
                     .queue_flags
                     .contains(vulkano::device::QueueFlags::GRAPHICS)
             })
-            .ok_or("could not find a graphical queue family")? as u32;
+            .ok_or("could not find a graphical queue family")?
+            as u32;
 
         let (device, mut queues) = vulkano::device::Device::new(
             physical_device,
@@ -51,8 +53,10 @@ impl OutputFrame {
         let queue = queues.next().ok_or("no queues available")?;
 
         // allocators
-        let memory_allocator = vulkano::memory::allocator::StandardMemoryAllocator::new_default(device.clone());
-        let descriptor_set_allocator = vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator::new(device.clone());
+        let memory_allocator =
+            vulkano::memory::allocator::StandardMemoryAllocator::new_default(device.clone());
+        let descriptor_set_allocator =
+            vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator::new(device.clone());
         let command_buffer_allocator = vulkano::command_buffer::allocator::StandardCommandBufferAllocator::new(
             device.clone(),
             vulkano::command_buffer::allocator::StandardCommandBufferAllocatorCreateInfo::default()
@@ -75,23 +79,23 @@ impl OutputFrame {
         ";
 
         let compiler = shaderc::Compiler::new().ok_or("could not initialize shaderc compiler")?;
-        let options = shaderc::CompileOptions::new().ok_or("could not initialize shaderc options")?;
+        let options =
+            shaderc::CompileOptions::new().ok_or("could not initialize shaderc options")?;
 
-        let binary_result = compiler.compile_into_spirv(
-            source,
-            shaderc::ShaderKind::Compute,
-            "shader.glsl",
-            "main",
-            Some(&options)
-        )
-        .map_err(|_| "could not compile shader")?;
+        let binary_result = compiler
+            .compile_into_spirv(
+                source,
+                shaderc::ShaderKind::Compute,
+                "shader.glsl",
+                "main",
+                Some(&options),
+            )
+            .map_err(|_| "could not compile shader")?;
 
         let words: &[u32] = binary_result.as_binary();
-        let shader_module = unsafe {vulkano::shader::ShaderModule::from_words(
-            device.clone(),
-            words
-        )}
-        .map_err(|_| "could not load shader module")?;
+        let shader_module =
+            unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), words) }
+                .map_err(|_| "could not load shader module")?;
         let entry_point = shader_module.entry_point("main").unwrap();
 
         // data buffer
@@ -110,16 +114,10 @@ impl OutputFrame {
         )
         .map_err(|_| "failed to create data buffer")?;
 
-
         // compute pipeline
-        let compute_pipeline = vulkano::pipeline::ComputePipeline::new(
-            device.clone(),
-            entry_point,
-            &(),
-            None,
-            |_|{},
-        )
-        .map_err(|_| "failed to create compute pipeline")?;
+        let compute_pipeline =
+            vulkano::pipeline::ComputePipeline::new(device.clone(), entry_point, &(), None, |_| {})
+                .map_err(|_| "failed to create compute pipeline")?;
 
         let pipeline_layout = compute_pipeline.layout();
         let descriptor_set_layouts = pipeline_layout.set_layouts();
@@ -131,7 +129,10 @@ impl OutputFrame {
         let descriptor_set = vulkano::descriptor_set::PersistentDescriptorSet::new(
             &descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            [vulkano::descriptor_set::WriteDescriptorSet::buffer(0, data_buffer.clone())],
+            [vulkano::descriptor_set::WriteDescriptorSet::buffer(
+                0,
+                data_buffer.clone(),
+            )],
         )
         .map_err(|_| "could not create descriptor set")?;
 
@@ -157,7 +158,9 @@ impl OutputFrame {
             .map_err(|_| "could not execute pipeline")?;
 
         // execute
-        let command_buffer = builder.build().map_err(|_| "could not build command buffer")?;
+        let command_buffer = builder
+            .build()
+            .map_err(|_| "could not build command buffer")?;
         let future = vulkano::sync::now(device.clone())
             .then_execute(queue.clone(), command_buffer)
             .map_err(|_| "could not execute command buffer")?
@@ -168,12 +171,15 @@ impl OutputFrame {
         let content = data_buffer.read().map_err(|_| "could not read buffer")?;
         ris_log::debug!("hello: {:?}", &*content);
 
-        Ok(Self{})
+        Ok(Self {
+            _device: device,
+            _queue: queue,
+        })
     }
 
     pub fn run(
         &mut self,
-        current: &mut OutputData,
+        _current: &mut OutputData,
         _previous: &OutputData,
         _logic: &LogicData,
         _frame: &FrameData,
@@ -181,4 +187,3 @@ impl OutputFrame {
         GameloopState::WantsToContinue
     }
 }
-
