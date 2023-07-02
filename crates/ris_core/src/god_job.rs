@@ -4,10 +4,7 @@ use ris_data::gameloop::{
 };
 use ris_jobs::job_system;
 
-use crate::{
-    gameloop::logic_frame,
-    god_object::GodObject,
-};
+use crate::{gameloop::logic_frame, god_object::GodObject};
 
 pub fn run(mut god_object: GodObject) -> GameloopState {
     let mut frame_data_calculator = FrameDataCalculator::default();
@@ -38,8 +35,7 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
             let mut current_output = current_output;
-            let gameloop_state = output_frame
-                .run(
+            let gameloop_state = output_frame.run(
                 &mut current_output,
                 &previous_output_for_output,
                 &previous_logic_for_output,
@@ -61,10 +57,11 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
             (current_logic, gameloop_state)
         });
 
-        let input_state =
-            god_object
-                .input_frame
-                .run(&mut current_input, &previous_input_for_input, &frame_for_input);
+        let input_state = god_object.input_frame.run(
+            &mut current_input,
+            &previous_input_for_input,
+            &frame_for_input,
+        );
 
         // wait for jobs
         let (new_logic_data, logic_state) = logic_future.wait();
