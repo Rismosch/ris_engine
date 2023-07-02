@@ -166,7 +166,7 @@ impl OutputFrame {
         future.wait(None).unwrap();
 
         let content = data_buffer.read().map_err(|_| "could not read buffer")?;
-        ris_log::debug!("result: {:?}", &*content);
+        ris_log::debug!("hello: {:?}", &*content);
 
         Ok(Self{})
     }
@@ -178,7 +178,7 @@ impl OutputFrame {
         _logic: &LogicData,
         _frame: &FrameData,
     ) -> GameloopState {
-        GameloopState::WantsToQuit
+        GameloopState::WantsToContinue
     }
 }
 
