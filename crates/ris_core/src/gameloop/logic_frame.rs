@@ -5,19 +5,19 @@ use ris_data::gameloop::{
 use ris_jobs::job_system;
 
 pub fn run(
-    current: LogicData,
+    _current: &mut LogicData,
     _previous: &LogicData,
     _input: &InputData,
     _frame: &FrameData,
-) -> (LogicData, GameloopState) {
+) -> GameloopState {
     if _input.general.buttons.down() != 0 {
         ris_log::debug!(
             "{:#034b} {} {}",
             _input.general.buttons.down(),
             job_system::thread_index(),
-            _frame.fps()
+            _frame.delta().as_nanos()
         );
     }
 
-    (current, GameloopState::WantsToContinue)
+    GameloopState::WantsToContinue
 }

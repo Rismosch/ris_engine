@@ -1,4 +1,4 @@
 /target
 /.vscode
-/SDL2.dll
-/CI/build
+/*.dll
+/release

@@ -4,10 +4,7 @@ use ris_data::gameloop::{
 };
 use ris_jobs::job_system;
 
-use crate::{
-    gameloop::{logic_frame, output_frame},
-    god_object::GodObject,
-};
+use crate::{gameloop::logic_frame, god_object::GodObject};
 
 pub fn run(mut god_object: GodObject) -> GameloopState {
     let mut frame_data_calculator = FrameDataCalculator::default();
@@ -36,36 +33,44 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
 
         // submit jobs
         let output_future = job_system::submit(move || {
-            output_frame::run(
-                current_output,
+            let mut output_frame = god_object.output_frame;
+            let mut current_output = current_output;
+            let gameloop_state = output_frame.run(
+                &mut current_output,
                 &previous_output_for_output,
                 &previous_logic_for_output,
                 &frame_for_output,
-            )
+            );
+
+            (output_frame, current_output, gameloop_state)
         });
 
         let logic_future = job_system::submit(move || {
-            logic_frame::run(
-                current_logic,
+            let mut current_logic = current_logic;
+            let gameloop_state = logic_frame::run(
+                &mut current_logic,
                 &previous_logic_for_logic,
                 &previous_input_for_logic,
                 &frame_for_logic,
-            )
+            );
+
+            (current_logic, gameloop_state)
         });
 
-        let (new_input_data, input_state) =
-            god_object
-                .input_frame
-                .run(current_input, &previous_input_for_input, &frame_for_input);
+        let input_state = god_object.input_frame.run(
+            &mut current_input,
+            &previous_input_for_input,
+            &frame_for_input,
+        );
 
         // wait for jobs
         let (new_logic_data, logic_state) = logic_future.wait();
-        let (new_output_data, output_state) = output_future.wait();
+        let (new_output_frame, new_output_data, output_state) = output_future.wait();
 
         // update buffers
-        current_input = new_input_data;
         current_logic = new_logic_data;
         current_output = new_output_data;
+        god_object.output_frame = new_output_frame;
 
         // determine, whether to continue, return error or exit
         if matches!(input_state, GameloopState::WantsToContinue)

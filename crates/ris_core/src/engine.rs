@@ -12,10 +12,10 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(app_info: AppInfo) -> Result<Engine, String> {
-        let god_object = GodObject::new(app_info)?;
-
-        let formatted_app_info = format!("{}", god_object.app_info);
+        let formatted_app_info = format!("{}", &app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
+
+        let god_object = GodObject::new(app_info)?;
 
         Ok(Engine {
             god_object: Some(god_object),

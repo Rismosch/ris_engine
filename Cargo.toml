@@ -27,8 +27,10 @@ members = [
 ]
 
 [dependencies]
-sdl2 = "0.34.5"
 chrono = "0.4"
+sdl2 = "0.34.5"
+vulkano = "0.33.0"
+shaderc = "0.8"
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
 ris_input = { path = "crates/ris_input" }
