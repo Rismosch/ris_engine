@@ -24,7 +24,7 @@ In this repo you will find the `./external/` directory. It contains all required
 
 > C:\\Users\\\<your username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
 
-For information where I got these libraries come from, read [external_sources.md](external_sources.md).
+For information where I got these libraries come from, read [external_sources.md](EXTERNAL_SOURCES.md).
 
 
 ## 🔨 Building
