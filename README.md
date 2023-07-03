@@ -8,7 +8,7 @@
 
 To compile this repo, you need a working Rust compiler. I currently use `rustc 1.70.0`. A newer one probably works fine.
 
-The current target platform is Windows 64-bit. Other platform probably wont work and I give no guarantees.
+The current target platform is Windows 64-bit. Other platforms probably wont work and I give no guarantees.
 
 ## 🔧 Installation
 
