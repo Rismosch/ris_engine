@@ -1,7 +1,5 @@
 # ris_engine
 
-Barebones game engine. Home made passion project.
-
 🏗️ **Don't expect this repo to be stable, as I am constantly pushing breaking changes.** 👷
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
