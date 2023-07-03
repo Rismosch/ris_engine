@@ -14,7 +14,7 @@ The current target platform is Windows 64-bit. Other platform most likely wont w
 
 ## 🔧 Installation
 
-This engine is using various 3rd party libraries. Trying to compile it without these will most definitely result in diverse build, compile and linker errors.
+This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile and linker errors.
 
 In this repo you will find the `./external/` directory. It contains all required 3rd party libraries. To install them, follow these instructions:
 
