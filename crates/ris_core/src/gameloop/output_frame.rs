@@ -2,10 +2,10 @@ use ris_data::gameloop::{
     frame_data::FrameData, gameloop_state::GameloopState, logic_data::LogicData,
     output_data::OutputData,
 };
-use vulkano::pipeline::Pipeline;
-use vulkano::sync::GpuFuture;
 use vulkano::buffer::BufferContents;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
+use vulkano::pipeline::Pipeline;
+use vulkano::sync::GpuFuture;
 
 pub struct OutputFrame {
     _device: std::sync::Arc<vulkano::device::Device>,
@@ -70,11 +70,17 @@ impl OutputFrame {
             device.clone(),
             vulkano::command_buffer::allocator::StandardCommandBufferAllocatorCreateInfo::default()
         );
-        
+
         // triangle
-        let vertex1 = MyVertex { position: [0.0, -0.5] };
-        let vertex2 = MyVertex { position: [-0.5, 0.5] };
-        let vertex3 = MyVertex { position: [0.5, 0.5] };
+        let vertex1 = MyVertex {
+            position: [0.0, -0.5],
+        };
+        let vertex2 = MyVertex {
+            position: [-0.5, 0.5],
+        };
+        let vertex3 = MyVertex {
+            position: [0.5, 0.5],
+        };
 
         let vertex_buffer = vulkano::buffer::Buffer::from_iter(
             &memory_allocator,
@@ -110,7 +116,7 @@ impl OutputFrame {
                 f_color = vec4(1.0, 0.0, 0.0, 1.0);
             }
         ";
-        
+
         let compiler = shaderc::Compiler::new().ok_or("could not initialize shaderc compiler")?;
         let options =
             shaderc::CompileOptions::new().ok_or("could not initialize shaderc options")?;
@@ -237,16 +243,18 @@ impl OutputFrame {
             .map_err(|_| "could not begin render pass")?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, vertex_buffer.clone())
-            .draw(
-                3, 1, 0, 0,
-            )
+            .draw(3, 1, 0, 0)
             .map_err(|_| "could not draw pipeline")?
             .end_render_pass()
             .map_err(|_| "could not end render pass")?
-            .copy_image_to_buffer(vulkano::command_buffer::CopyImageToBufferInfo::image_buffer(image, buf.clone()))
+            .copy_image_to_buffer(
+                vulkano::command_buffer::CopyImageToBufferInfo::image_buffer(image, buf.clone()),
+            )
             .map_err(|_| "could not copy image to buffer")?;
 
-        let command_buffer = builder.build().map_err(|_| "could not build command buffer")?;
+        let command_buffer = builder
+            .build()
+            .map_err(|_| "could not build command buffer")?;
         let future = vulkano::sync::now(device.clone())
             .then_execute(queue.clone(), command_buffer)
             .map_err(|_| "could not execute command buffer")?
@@ -256,9 +264,12 @@ impl OutputFrame {
 
         // dont forget to delete image from toml
         let buffer_content = buf.read().map_err(|_| "could not read buffer")?;
-        let image = image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(1024, 1024, &buffer_content[..])
-            .ok_or("could not create image buffer")?;
-        image.save("image.png").map_err(|_| "could not safe image")?;
+        let image =
+            image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(1024, 1024, &buffer_content[..])
+                .ok_or("could not create image buffer")?;
+        image
+            .save("image.png")
+            .map_err(|_| "could not safe image")?;
 
         ris_log::debug!("i just rendered a triangle");
 
