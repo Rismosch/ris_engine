@@ -2,13 +2,13 @@
 
 🏗️ **very WIP** 👷
 
-Barebones game engine, based on a thread-pool-like job system.
+Barebones game engine. Home made passion project. Don't expect this repo to be stable, as I am constantly pushing breaking changes.
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
 
 ## ⚙️ Requirements
 
-To compile this repo, you need a working Rust compiler. I currently use `rustc 1.66.0`. A newer one probably works fine.
+To compile this repo, you need a working Rust compiler. I currently use `rustc 1.70.0`. A newer one probably works fine.
 
 The current target platform is Windows 64-bit. Other platform most likely wont work and I give no guarantees.
 
