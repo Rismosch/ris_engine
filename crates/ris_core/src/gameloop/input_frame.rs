@@ -43,8 +43,8 @@ impl InputFrame {
         previous: &InputData,
         _frame: &FrameData,
     ) -> GameloopState {
-        let current_keyboard = current.keyboard.clone();
-        let current_gamepad = current.gamepad.clone();
+        let current_keyboard = std::mem::take(&mut current.keyboard);
+        let current_gamepad = std::mem::take(&mut current.gamepad);
 
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
