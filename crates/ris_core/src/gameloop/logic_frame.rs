@@ -12,10 +12,11 @@ pub fn run(
 ) -> GameloopState {
     if _input.general.buttons.down() != 0 {
         ris_log::debug!(
-            "{:#034b} {} {}",
+            "{:#034b} worker: {}, {}ns ({}fps)",
             _input.general.buttons.down(),
             job_system::thread_index(),
-            _frame.delta().as_nanos()
+            _frame.delta().as_nanos(),
+            _frame.fps(),
         );
     }
 

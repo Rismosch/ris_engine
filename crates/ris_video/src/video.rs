@@ -4,13 +4,14 @@ use vulkano::device::{
     Device,
     DeviceExtensions,
     DeviceCreateInfo,
-    physical::{PhysicalDevice, PhysicalDeviceType},
+    physical::PhysicalDeviceType,
     QueueCreateInfo,
     QueueFlags
 };
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
-use vulkano::image::ImageUsage;
-use vulkano::swapchain::{CompositeAlpha, Surface, SurfaceApi, Swapchain, SwapchainCreateInfo};
+use vulkano::image::{ImageUsage, SwapchainImage, view::ImageView};
+use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo};
+use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo};
 
 pub struct Video {
     _window: Window,
@@ -30,7 +31,7 @@ impl Video {
         // instance
         let library = VulkanLibrary::new().map_err(|_| "no local vulkano library/dll")?;
         let instance_extensions = InstanceExtensions::from_iter(
-            window.vulkan_instance_extensions().map_err(|_| "could not get vulkan instance extensions")?
+            window.vulkan_instance_extensions().map_err(|_| "failed to get vulkan instance extensions")?
         );
         let instance = Instance::new(
             library,
@@ -43,7 +44,7 @@ impl Video {
         // surface
         let surface_handle = window
             .vulkan_create_surface(instance.handle().as_raw() as _)
-            .map_err(|_| "could not create vulkan surface handle")?;
+            .map_err(|_| "failed to create vulkan surface handle")?;
         let surface = unsafe {
             Surface::from_handle(
                 instance.clone(),
@@ -61,7 +62,7 @@ impl Video {
         };
         let (physical_device, queue_family_index) = instance
             .enumerate_physical_devices()
-            .map_err(|_| "could not enumerate devices")?
+            .map_err(|_| "failed to enumerate devices")?
             .filter(|p| p.supported_extensions().contains(&device_extensions))
             .filter_map(|p| {
                 p.queue_family_properties()
@@ -109,7 +110,7 @@ impl Video {
         let image_format = Some(
             physical_device
                 .surface_formats(&surface, Default::default())
-                .map_err(|_| "could not get surface formats")?[0]
+                .map_err(|_| "failed to get surface formats")?[0]
                 .0,
         );
         let (swapchain, images) = Swapchain::new(
@@ -125,6 +126,59 @@ impl Video {
             },
         )
         .map_err(|_| "failed to create swapchain")?;
+
+        // render pass
+        let render_pass = vulkano::single_pass_renderpass!(
+            device.clone(),
+            attachments: {
+                color: {
+                    load: Clear,
+                    store: Store,
+                    format: swapchain.image_format(),
+                    samples: 1,
+                },
+            },
+            pass : {
+                color: [color],
+                depth_stencil: {},
+            },
+        ).map_err(|_| "failed to create render pass")?;
+
+        // framebuffers
+        let mut framebuffers = Vec::new();
+        for image in images {
+            let view = ImageView::new_default(image.clone()).map_err(|_| "failed to create image view")?;
+            let framebuffer = Framebuffer::new(
+                render_pass.clone(),
+                FramebufferCreateInfo {
+                    attachments: vec![view],
+                    ..Default::default()
+                },
+            ).map_err(|_| "failed to create frame buffer")?;
+
+            framebuffers.push(framebuffer);
+        }
+        let framebuffers = framebuffers;
+
+        // vertex buffer
+        
+
+        
+        // shaders
+        
+
+        
+        // viewport
+        
+
+
+        // pipeline
+        
+
+
+        // command buffers
+
+
 
         let video = Video { _window: window };
         Ok(video)
