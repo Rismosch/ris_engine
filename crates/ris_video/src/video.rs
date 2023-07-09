@@ -1,17 +1,27 @@
 use sdl2::{video::Window, Sdl};
-use vulkano::{Handle, VulkanLibrary, VulkanObject};
-use vulkano::device::{
-    Device,
-    DeviceExtensions,
-    DeviceCreateInfo,
-    physical::PhysicalDeviceType,
-    QueueCreateInfo,
-    QueueFlags
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::command_buffer::{
+    allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
+    AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents,
 };
+use vulkano::device::{
+    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
+    QueueFlags,
+};
+use vulkano::image::{view::ImageView, ImageUsage};
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
-use vulkano::image::{ImageUsage, SwapchainImage, view::ImageView};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::pipeline::{
+    graphics::{
+        input_assembly::InputAssemblyState,
+        vertex_input::Vertex,
+        viewport::{Viewport, ViewportState},
+    },
+    GraphicsPipeline,
+};
+use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, Subpass};
 use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo};
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo};
+use vulkano::{Handle, VulkanLibrary, VulkanObject};
 
 pub struct Video {
     _window: Window,
@@ -31,7 +41,9 @@ impl Video {
         // instance
         let library = VulkanLibrary::new().map_err(|_| "no local vulkano library/dll")?;
         let instance_extensions = InstanceExtensions::from_iter(
-            window.vulkan_instance_extensions().map_err(|_| "failed to get vulkan instance extensions")?
+            window
+                .vulkan_instance_extensions()
+                .map_err(|_| "failed to get vulkan instance extensions")?,
         );
         let instance = Instance::new(
             library,
@@ -39,7 +51,8 @@ impl Video {
                 enabled_extensions: instance_extensions,
                 ..Default::default()
             },
-        ).map_err(|_| "failed to create instance")?;
+        )
+        .map_err(|_| "failed to create instance")?;
 
         // surface
         let surface_handle = window
@@ -96,6 +109,7 @@ impl Video {
             },
         )
         .map_err(|_| "failed to create device")?;
+        let queue = queues.next().ok_or("no queues available")?;
 
         // swapchain
         let capabilities = physical_device
@@ -142,44 +156,180 @@ impl Video {
                 color: [color],
                 depth_stencil: {},
             },
-        ).map_err(|_| "failed to create render pass")?;
+        )
+        .map_err(|_| "failed to create render pass")?;
 
         // framebuffers
         let mut framebuffers = Vec::new();
         for image in images {
-            let view = ImageView::new_default(image.clone()).map_err(|_| "failed to create image view")?;
+            let view =
+                ImageView::new_default(image.clone()).map_err(|_| "failed to create image view")?;
             let framebuffer = Framebuffer::new(
                 render_pass.clone(),
                 FramebufferCreateInfo {
                     attachments: vec![view],
                     ..Default::default()
                 },
-            ).map_err(|_| "failed to create frame buffer")?;
+            )
+            .map_err(|_| "failed to create frame buffer")?;
 
             framebuffers.push(framebuffer);
         }
         let framebuffers = framebuffers;
 
+        // allocators
+        let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+        let command_buffer_allocator = StandardCommandBufferAllocator::new(
+            device.clone(),
+            StandardCommandBufferAllocatorCreateInfo::default(),
+        );
+
         // vertex buffer
-        
+        #[derive(BufferContents, Vertex)]
+        #[repr(C)]
+        struct MyVertex {
+            #[format(R32G32_SFLOAT)]
+            position: [f32; 2],
+        }
 
-        
+        let vertex1 = MyVertex {
+            position: [0.0, 0.5],
+        };
+        let vertex2 = MyVertex {
+            position: [-0.5, -0.5],
+        };
+        let vertex3 = MyVertex {
+            position: [0.5, -0.5],
+        };
+
+        let vertex_buffer = Buffer::from_iter(
+            &memory_allocator,
+            BufferCreateInfo {
+                usage: BufferUsage::VERTEX_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
+            vec![vertex1, vertex2, vertex3],
+        )
+        .map_err(|_| "failed to create vertex buffer")?;
+
         // shaders
-        
+        let vertex_source = "
+            #version 460
 
-        
+            layout(location = 0) in vec2 position;
+
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        ";
+
+        let fragment_source = "
+            #version 460
+
+            layout(location = 0) out vec4 f_color;
+
+            void main() {
+                f_color = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        ";
+
+        let compiler = shaderc::Compiler::new().ok_or("failed to initialize shaderc compiler")?;
+        let options =
+            shaderc::CompileOptions::new().ok_or("coulr not initialize shaderc options")?;
+
+        let vertex_artifact = compiler
+            .compile_into_spirv(
+                vertex_source,
+                shaderc::ShaderKind::Vertex,
+                "vertex.glsl",
+                "main",
+                Some(&options),
+            )
+            .map_err(|_| "failed to compile vertex shader")?;
+        let vertex_words: &[u32] = vertex_artifact.as_binary();
+        let vertex_module =
+            unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), vertex_words) }
+                .map_err(|_| "failed to load vertex shader module")?;
+        let vertex_entry_point = vertex_module
+            .entry_point("main")
+            .ok_or("failed to find vertex entry point")?;
+
+        let fragment_artifact = compiler
+            .compile_into_spirv(
+                fragment_source,
+                shaderc::ShaderKind::Fragment,
+                "fragment.glsl",
+                "main",
+                Some(&options),
+            )
+            .map_err(|_| "failed to compile fragment shader")?;
+        let fragment_words: &[u32] = fragment_artifact.as_binary();
+        let fragment_module =
+            unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), fragment_words) }
+                .map_err(|_| "failed to load fragment shader module")?;
+        let fragment_entry_point = fragment_module
+            .entry_point("main")
+            .ok_or("failed to find fragment entry point")?;
+
         // viewport
-        
-
+        let (w, h) = window.vulkan_drawable_size();
+        let viewport = Viewport {
+            origin: [0.0, 0.0],
+            dimensions: [w as f32, h as f32],
+            depth_range: 0.0..1.0,
+        };
 
         // pipeline
-        
-
+        let pipeline = GraphicsPipeline::start()
+            .vertex_input_state(MyVertex::per_vertex())
+            .vertex_shader(vertex_entry_point, ())
+            .input_assembly_state(InputAssemblyState::new())
+            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
+            .fragment_shader(fragment_entry_point, ())
+            .render_pass(Subpass::from(render_pass, 0).ok_or("failed to create render subpass")?)
+            .build(device.clone())
+            .map_err(|_| "failed to build graphics pipeline")?;
 
         // command buffers
+        let mut command_buffers = Vec::new();
+        for framebuffer in framebuffers {
+            let mut builder = AutoCommandBufferBuilder::primary(
+                &command_buffer_allocator,
+                queue.queue_family_index(),
+                CommandBufferUsage::MultipleSubmit,
+            )
+            .map_err(|_| "failed to create auto command buffer builder")?;
 
+            builder
+                .begin_render_pass(
+                    RenderPassBeginInfo {
+                        clear_values: vec![Some([0.1, 0.1, 0.1, 0.1].into())],
+                        ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
+                    },
+                    SubpassContents::Inline,
+                )
+                .map_err(|_| "failed to begin render pass")?
+                .bind_pipeline_graphics(pipeline.clone())
+                .bind_vertex_buffers(0, vertex_buffer.clone())
+                .draw(vertex_buffer.len() as u32, 1, 0, 0)
+                .map_err(|_| "failed to draw")?
+                .end_render_pass()
+                .map_err(|_| "failed to end render pass")?;
 
+            let command_buffer = std::sync::Arc::new(
+                builder
+                    .build()
+                    .map_err(|_| "failed to build command buffer")?,
+            );
 
+            command_buffers.push(command_buffer);
+        }
+
+        // initialization finished
         let video = Video { _window: window };
         Ok(video)
     }

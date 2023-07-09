@@ -274,8 +274,8 @@ impl OutputFrame {
         //    _device: device,
         //    _queue: queue,
         //})
-        
-        Ok(Self{})
+
+        Ok(Self {})
     }
 
     pub fn run(
