@@ -9,4 +9,6 @@ pub struct InputData {
     pub keyboard: KeyboardData,
     pub gamepad: GamepadData,
     pub general: GeneralData,
+
+    pub window_size_changed: Option<(i32, i32)>,
 }

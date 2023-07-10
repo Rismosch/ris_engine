@@ -9,7 +9,7 @@ use ris_input::{
     mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
 };
 use ris_jobs::{job_cell::JobCell, job_system};
-use sdl2::{event::Event, EventPump, GameControllerSubsystem};
+use sdl2::{event::{Event, WindowEvent}, EventPump, GameControllerSubsystem};
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
@@ -58,6 +58,8 @@ impl InputFrame {
 
         reset_mouse_refs(&mut current.mouse);
 
+        current.window_size_changed = None;
+
         for event in self.event_pump.as_mut().poll_iter() {
             // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
 
@@ -66,6 +68,11 @@ impl InputFrame {
                 current.gamepad = current_gamepad;
                 return GameloopState::WantsToQuit;
             };
+
+            if let Event::Window { win_event: WindowEvent::SizeChanged(w, h), .. } = event {
+                current.window_size_changed = Some((w, h));
+                ris_log::trace!("window changed size to {}x{}", w, h);
+            }
 
             if handle_mouse_events(&mut current.mouse, &event) {
                 continue;

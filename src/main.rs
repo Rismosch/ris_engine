@@ -121,5 +121,5 @@ fn init_log(app_info: &AppInfo) -> LogGuard {
     use ris_core::appenders::{console_appender::ConsoleAppender, file_appender::FileAppender};
 
     let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
-    log::init(LogLevel::Debug, appenders)
+    log::init(LogLevel::Trace, appenders)
 }

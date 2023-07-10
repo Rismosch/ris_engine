@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use sdl2::{video::Window, Sdl};
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::{
@@ -8,7 +9,7 @@ use vulkano::device::{
     physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
     QueueFlags,
 };
-use vulkano::image::{view::ImageView, ImageUsage};
+use vulkano::image::{view::ImageView, ImageUsage, SwapchainImage};
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::{
@@ -19,12 +20,15 @@ use vulkano::pipeline::{
     },
     GraphicsPipeline,
 };
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, Subpass};
-use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo};
+use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo, SwapchainCreationError};
 use vulkano::{Handle, VulkanLibrary, VulkanObject};
 
 pub struct Video {
-    _window: Window,
+    window: Window,
+    swapchain: Arc<Swapchain>,
+    render_pass: Arc<RenderPass>,
+    viewport: Viewport,
 }
 
 impl Video {
@@ -33,6 +37,7 @@ impl Video {
         let video_subsystem = sdl_context.video()?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
+            .resizable()
             .position_centered()
             .vulkan()
             .build()
@@ -66,7 +71,7 @@ impl Video {
                 None,
             )
         };
-        let surface = std::sync::Arc::new(surface);
+        let surface = Arc::new(surface);
 
         // physical device
         let device_extensions = DeviceExtensions {
@@ -160,22 +165,7 @@ impl Video {
         .map_err(|_| "failed to create render pass")?;
 
         // framebuffers
-        let mut framebuffers = Vec::new();
-        for image in images {
-            let view =
-                ImageView::new_default(image.clone()).map_err(|_| "failed to create image view")?;
-            let framebuffer = Framebuffer::new(
-                render_pass.clone(),
-                FramebufferCreateInfo {
-                    attachments: vec![view],
-                    ..Default::default()
-                },
-            )
-            .map_err(|_| "failed to create frame buffer")?;
-
-            framebuffers.push(framebuffer);
-        }
-        let framebuffers = framebuffers;
+        let framebuffers = get_framebuffers(&images, &render_pass)?;
 
         // allocators
         let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
@@ -239,7 +229,7 @@ impl Video {
 
         let compiler = shaderc::Compiler::new().ok_or("failed to initialize shaderc compiler")?;
         let options =
-            shaderc::CompileOptions::new().ok_or("coulr not initialize shaderc options")?;
+            shaderc::CompileOptions::new().ok_or("could not initialize shaderc options")?;
 
         let vertex_artifact = compiler
             .compile_into_spirv(
@@ -288,9 +278,9 @@ impl Video {
             .vertex_input_state(MyVertex::per_vertex())
             .vertex_shader(vertex_entry_point, ())
             .input_assembly_state(InputAssemblyState::new())
-            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
+            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport.clone()]))
             .fragment_shader(fragment_entry_point, ())
-            .render_pass(Subpass::from(render_pass, 0).ok_or("failed to create render subpass")?)
+            .render_pass(Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?)
             .build(device.clone())
             .map_err(|_| "failed to build graphics pipeline")?;
 
@@ -320,7 +310,7 @@ impl Video {
                 .end_render_pass()
                 .map_err(|_| "failed to end render pass")?;
 
-            let command_buffer = std::sync::Arc::new(
+            let command_buffer = Arc::new(
                 builder
                     .build()
                     .map_err(|_| "failed to build command buffer")?,
@@ -330,7 +320,61 @@ impl Video {
         }
 
         // initialization finished
-        let video = Video { _window: window };
+        let video = Video {
+            window,
+            swapchain,
+            render_pass,
+            viewport,
+        };
         Ok(video)
     }
+
+    pub fn recreate_swapchain(&mut self) -> Result<(), String> {
+        ris_log::trace!("recreate swapchain...");
+
+        let new_dimensions = self.window.vulkan_drawable_size();
+        let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
+            image_extent: [new_dimensions.0, new_dimensions.1],
+            ..self.swapchain.create_info()
+        }) {
+            Ok(r) => r,
+            Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
+            Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
+        };
+
+        let new_framebuffers = get_framebuffers(&new_images, &self.render_pass);
+        self.viewport.dimensions = [new_dimensions.0 as f32, new_dimensions.1 as f32];
+        let new_pipeline = get_pipeline();
+        let command_buffers = get_command_buffers();
+
+        self.swapchain = new_swapchain;
+        self.pipeline = new_pipeline;
+        self.command_buffers = new_command_buffers;
+
+        ris_log::debug!("recreated swapchain!");
+        Ok(())
+    }
+}
+
+fn get_framebuffers(
+    images: &[Arc<SwapchainImage>],
+    render_pass: &Arc<RenderPass>,
+) -> Result<Vec<Arc<Framebuffer>>, String> {
+    let mut framebuffers = Vec::new();
+    for image in images {
+        let view =
+            ImageView::new_default(image.clone()).map_err(|_| "failed to create image view")?;
+        let framebuffer = Framebuffer::new(
+            render_pass.clone(),
+            FramebufferCreateInfo {
+                attachments: vec![view],
+                ..Default::default()
+            },
+        )
+        .map_err(|_| "failed to create frame buffer")?;
+
+        framebuffers.push(framebuffer);
+    }
+
+    Ok(framebuffers)
 }

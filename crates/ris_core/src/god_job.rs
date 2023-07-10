@@ -25,6 +25,7 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
 
         let previous_input_for_input = current_input.clone();
         let previous_input_for_logic = current_input.clone();
+        let previous_input_for_output = current_input.clone();
 
         let previous_logic_for_logic = current_logic.clone();
         let previous_logic_for_output = current_logic.clone();
@@ -38,6 +39,7 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
             let gameloop_state = output_frame.run(
                 &mut current_output,
                 &previous_output_for_output,
+                &previous_input_for_output,
                 &previous_logic_for_output,
                 &frame_for_output,
             );
