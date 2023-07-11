@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use sdl2::{video::Window, Sdl};
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::{
     allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-    AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents,
+    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents,
 };
 use vulkano::device::{
     physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
+    Queue,
     QueueFlags,
 };
 use vulkano::image::{view::ImageView, ImageUsage, SwapchainImage};
@@ -23,12 +24,27 @@ use vulkano::pipeline::{
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo, SwapchainCreationError};
 use vulkano::{Handle, VulkanLibrary, VulkanObject};
+use vulkano::shader::ShaderModule;
+
+#[derive(BufferContents, Vertex)]
+#[repr(C)]
+struct MyVertex {
+    #[format(R32G32_SFLOAT)]
+    position: [f32; 2],
+}
 
 pub struct Video {
     window: Window,
+    device: Arc<Device>,
+    queue: Arc<Queue>,
     swapchain: Arc<Swapchain>,
+    command_buffer_allocator: StandardCommandBufferAllocator,
     render_pass: Arc<RenderPass>,
+    vertex_buffer: Subbuffer<[MyVertex]>,
+    vertex_shader: Arc<ShaderModule>,
+    fragment_shader: Arc<ShaderModule>,
     viewport: Viewport,
+    command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
 }
 
 impl Video {
@@ -175,13 +191,6 @@ impl Video {
         );
 
         // vertex buffer
-        #[derive(BufferContents, Vertex)]
-        #[repr(C)]
-        struct MyVertex {
-            #[format(R32G32_SFLOAT)]
-            position: [f32; 2],
-        }
-
         let vertex1 = MyVertex {
             position: [0.0, 0.5],
         };
@@ -241,12 +250,9 @@ impl Video {
             )
             .map_err(|_| "failed to compile vertex shader")?;
         let vertex_words: &[u32] = vertex_artifact.as_binary();
-        let vertex_module =
+        let vertex_shader =
             unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), vertex_words) }
                 .map_err(|_| "failed to load vertex shader module")?;
-        let vertex_entry_point = vertex_module
-            .entry_point("main")
-            .ok_or("failed to find vertex entry point")?;
 
         let fragment_artifact = compiler
             .compile_into_spirv(
@@ -258,12 +264,9 @@ impl Video {
             )
             .map_err(|_| "failed to compile fragment shader")?;
         let fragment_words: &[u32] = fragment_artifact.as_binary();
-        let fragment_module =
+        let fragment_shader =
             unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), fragment_words) }
                 .map_err(|_| "failed to load fragment shader module")?;
-        let fragment_entry_point = fragment_module
-            .entry_point("main")
-            .ok_or("failed to find fragment entry point")?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();
@@ -274,59 +277,37 @@ impl Video {
         };
 
         // pipeline
-        let pipeline = GraphicsPipeline::start()
-            .vertex_input_state(MyVertex::per_vertex())
-            .vertex_shader(vertex_entry_point, ())
-            .input_assembly_state(InputAssemblyState::new())
-            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport.clone()]))
-            .fragment_shader(fragment_entry_point, ())
-            .render_pass(Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?)
-            .build(device.clone())
-            .map_err(|_| "failed to build graphics pipeline")?;
+        let pipeline = get_pipeline(
+            device.clone(),
+            vertex_shader.clone(),
+            fragment_shader.clone(),
+            render_pass.clone(),
+            viewport.clone(),
+        )?;
 
         // command buffers
-        let mut command_buffers = Vec::new();
-        for framebuffer in framebuffers {
-            let mut builder = AutoCommandBufferBuilder::primary(
-                &command_buffer_allocator,
-                queue.queue_family_index(),
-                CommandBufferUsage::MultipleSubmit,
-            )
-            .map_err(|_| "failed to create auto command buffer builder")?;
-
-            builder
-                .begin_render_pass(
-                    RenderPassBeginInfo {
-                        clear_values: vec![Some([0.1, 0.1, 0.1, 0.1].into())],
-                        ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-                    },
-                    SubpassContents::Inline,
-                )
-                .map_err(|_| "failed to begin render pass")?
-                .bind_pipeline_graphics(pipeline.clone())
-                .bind_vertex_buffers(0, vertex_buffer.clone())
-                .draw(vertex_buffer.len() as u32, 1, 0, 0)
-                .map_err(|_| "failed to draw")?
-                .end_render_pass()
-                .map_err(|_| "failed to end render pass")?;
-
-            let command_buffer = Arc::new(
-                builder
-                    .build()
-                    .map_err(|_| "failed to build command buffer")?,
-            );
-
-            command_buffers.push(command_buffer);
-        }
+        let command_buffers = get_command_buffers(
+            &command_buffer_allocator,
+            &queue,
+            &pipeline,
+            &framebuffers,
+            &vertex_buffer,
+        )?;
 
         // initialization finished
-        let video = Video {
+        Ok(Video {
             window,
+            device,
+            queue,
             swapchain,
             render_pass,
+            command_buffer_allocator,
+            vertex_buffer,
+            vertex_shader,
+            fragment_shader,
             viewport,
-        };
-        Ok(video)
+            command_buffers,
+        })
     }
 
     pub fn recreate_swapchain(&mut self) -> Result<(), String> {
@@ -342,13 +323,24 @@ impl Video {
             Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
         };
 
-        let new_framebuffers = get_framebuffers(&new_images, &self.render_pass);
+        let new_framebuffers = get_framebuffers(&new_images, &self.render_pass)?;
         self.viewport.dimensions = [new_dimensions.0 as f32, new_dimensions.1 as f32];
-        let new_pipeline = get_pipeline();
-        let command_buffers = get_command_buffers();
+        let new_pipeline = get_pipeline(
+            self.device.clone(),
+            self.vertex_shader.clone(),
+            self.fragment_shader.clone(),
+            self.render_pass.clone(),
+            self.viewport.clone()
+        )?;
+        let command_buffers = get_command_buffers(
+            &self.command_buffer_allocator,
+            &self.queue,
+            &new_pipeline,
+            &new_framebuffers,
+            &self.vertex_buffer,
+        )?;
 
         self.swapchain = new_swapchain;
-        self.pipeline = new_pipeline;
         self.command_buffers = new_command_buffers;
 
         ris_log::debug!("recreated swapchain!");
@@ -377,4 +369,74 @@ fn get_framebuffers(
     }
 
     Ok(framebuffers)
+}
+
+fn get_pipeline(
+    device: Arc<Device>,
+    vertex_shader: Arc<ShaderModule>,
+    fragment_shader: Arc<ShaderModule>,
+    render_pass: Arc<RenderPass>,
+    viewport: Viewport,
+) -> Result<Arc<GraphicsPipeline>,String> {
+    let pipeline = GraphicsPipeline::start()
+        .vertex_input_state(MyVertex::per_vertex())
+        .vertex_shader(
+            vertex_shader.entry_point("main").ok_or("failed to locate vertex entry point")?,
+            ()
+        )
+        .input_assembly_state(InputAssemblyState::new())
+        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport.clone()]))
+        .fragment_shader(
+            fragment_shader.entry_point("main").ok_or("failed to locate fragment entry point")?,
+            ()
+        )
+        .render_pass(Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?)
+        .build(device.clone())
+        .map_err(|_| "failed to build graphics pipeline")?;
+
+    Ok(pipeline)
+}
+
+fn get_command_buffers(
+    command_buffer_allocator: &StandardCommandBufferAllocator,
+    queue: &Arc<Queue>,
+    pipeline: &Arc<GraphicsPipeline>,
+    framebuffers: &Vec<Arc<Framebuffer>>,
+    vertex_buffer: &Arc<Subbuffer<[MyVertex]>>,
+) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String> {
+    let mut command_buffers = Vec::new();
+    for framebuffer in framebuffers {
+        let mut builder = AutoCommandBufferBuilder::primary(
+            command_buffer_allocator,
+            queue.queue_family_index(),
+            CommandBufferUsage::MultipleSubmit,
+        )
+        .map_err(|_| "failed to create auto command buffer builder")?;
+
+        builder
+            .begin_render_pass(
+                RenderPassBeginInfo {
+                    clear_values: vec![Some([0.1, 0.1, 0.1, 0.1].into())],
+                    ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
+                },
+                SubpassContents::Inline,
+            )
+            .map_err(|_| "failed to begin render pass")?
+            .bind_pipeline_graphics(pipeline.clone())
+            .bind_vertex_buffers(0, vertex_buffer.clone())
+            .draw(vertex_buffer.len() as u32, 1, 0, 0)
+            .map_err(|_| "failed to draw")?
+            .end_render_pass()
+            .map_err(|_| "failed to end render pass")?;
+
+        let command_buffer = Arc::new(
+            builder
+                .build()
+                .map_err(|_| "failed to build command buffer")?,
+        );
+
+        command_buffers.push(command_buffer);
+    }
+
+    Ok(command_buffers)
 }
