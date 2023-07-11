@@ -89,15 +89,18 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
             return GameloopState::WantsToRestart;
         }
 
-        if let GameloopState::Error(_) = input_state {
+        if let GameloopState::Error(ref e) = input_state {
+            ris_log::fatal!("gameloop input encountered an error: {}", e);
             return input_state;
         }
 
-        if let GameloopState::Error(_) = logic_state {
+        if let GameloopState::Error(ref e) = logic_state {
+            ris_log::fatal!("gameloop logic encountered an error: {}", e);
             return logic_state;
         }
 
-        if let GameloopState::Error(_) = output_state {
+        if let GameloopState::Error(ref e) = output_state {
+            ris_log::fatal!("gameloop output encountered an error: {}", e);
             return output_state;
         }
 

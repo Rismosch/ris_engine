@@ -22,15 +22,22 @@ use vulkano::pipeline::{
     GraphicsPipeline,
 };
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
-use vulkano::swapchain::{Surface, SurfaceApi, Swapchain, SwapchainCreateInfo, SwapchainCreationError};
+use vulkano::swapchain::{self, AcquireError, SwapchainPresentInfo, Surface, SurfaceApi, Swapchain, SwapchainCreateInfo, SwapchainCreationError};
 use vulkano::{Handle, VulkanLibrary, VulkanObject};
 use vulkano::shader::ShaderModule;
+use vulkano::sync::{self, FlushError, GpuFuture, future::FenceSignalFuture};
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
 struct MyVertex {
     #[format(R32G32_SFLOAT)]
     position: [f32; 2],
+}
+
+pub enum DrawState {
+    Ok,
+    RecreateSwapchain,
+    Err(String),
 }
 
 pub struct Video {
@@ -310,7 +317,15 @@ impl Video {
         })
     }
 
-    pub fn recreate_swapchain(&mut self) -> Result<(), String> {
+    pub fn recreate_swapchain(
+        &mut self,
+        window_size_changed: bool,
+        recreate_swapchain: bool
+    ) -> Result<(), String> {
+        if !window_size_changed && !recreate_swapchain {
+            return Ok(());
+        }
+
         ris_log::trace!("recreate swapchain...");
 
         let new_dimensions = self.window.vulkan_drawable_size();
@@ -323,28 +338,68 @@ impl Video {
             Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
         };
 
-        let new_framebuffers = get_framebuffers(&new_images, &self.render_pass)?;
-        self.viewport.dimensions = [new_dimensions.0 as f32, new_dimensions.1 as f32];
-        let new_pipeline = get_pipeline(
-            self.device.clone(),
-            self.vertex_shader.clone(),
-            self.fragment_shader.clone(),
-            self.render_pass.clone(),
-            self.viewport.clone()
-        )?;
-        let command_buffers = get_command_buffers(
-            &self.command_buffer_allocator,
-            &self.queue,
-            &new_pipeline,
-            &new_framebuffers,
-            &self.vertex_buffer,
-        )?;
+        if window_size_changed {
+            let new_framebuffers = get_framebuffers(&new_images, &self.render_pass)?;
+            self.viewport.dimensions = [new_dimensions.0 as f32, new_dimensions.1 as f32];
+            let new_pipeline = get_pipeline(
+                self.device.clone(),
+                self.vertex_shader.clone(),
+                self.fragment_shader.clone(),
+                self.render_pass.clone(),
+                self.viewport.clone()
+            )?;
+            let new_command_buffers = get_command_buffers(
+                &self.command_buffer_allocator,
+                &self.queue,
+                &new_pipeline,
+                &new_framebuffers,
+                &self.vertex_buffer,
+            )?;
+
+            self.command_buffers = new_command_buffers;
+        }
 
         self.swapchain = new_swapchain;
-        self.command_buffers = new_command_buffers;
 
         ris_log::debug!("recreated swapchain!");
         Ok(())
+    }
+
+    pub fn draw(&mut self) -> DrawState {
+        let (image_i, suboptimal, acquire_future) =
+            match swapchain::acquire_next_image(self.swapchain.clone(), None) {
+                Ok(r) => r,
+                Err(AcquireError::OutOfDate) => return DrawState::RecreateSwapchain,
+                Err(e) => return DrawState::Err(format!("failed to acquire next image: {}", e)),
+            };
+
+        if suboptimal {
+            return DrawState::RecreateSwapchain;
+        }
+
+        let execution = match sync::now(self.device.clone())
+            .join(acquire_future)
+            .then_execute(self.queue.clone(), self.command_buffers[image_i as usize].clone()) {
+                Ok(x) => x,
+                Err(_) => return DrawState::Err(String::from("failed to execute command buffer")),
+            }
+            .then_swapchain_present(
+                self.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
+            )
+            .then_signal_fence_and_flush();
+
+        match execution {
+            Ok(future) => {
+                if let Err(e) = future.wait(None) {
+                    DrawState::Err(format!("failed to wait on future: {}", e))
+                } else {
+                    DrawState::Ok
+                }
+            },
+            Err(FlushError::OutOfDate) => DrawState::RecreateSwapchain,
+            Err(e) => DrawState::Err(format!("failed to flush future: {}", e)),
+        }
     }
 }
 
@@ -402,7 +457,7 @@ fn get_command_buffers(
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
     framebuffers: &Vec<Arc<Framebuffer>>,
-    vertex_buffer: &Arc<Subbuffer<[MyVertex]>>,
+    vertex_buffer: &Subbuffer<[MyVertex]>,
 ) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String> {
     let mut command_buffers = Vec::new();
     for framebuffer in framebuffers {
