@@ -1,4 +1,5 @@
 use sdl2::{video::Window, Sdl};
+use sdl2_sys::SDL_WindowFlags;
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::{
@@ -340,17 +341,14 @@ impl Video {
         })
     }
 
-    pub fn recreate_swapchain(
-        &mut self,
-        window_size_changed: bool,
-        recreate_swapchain: bool,
-    ) -> Result<(), String> {
-        if !window_size_changed && !recreate_swapchain {
-            return Ok(());
-        }
+    pub fn can_draw(&self) -> bool {
+        let window_flags = self.window.window_flags();
+        let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
 
-        ris_log::trace!("recreate swapchain...");
+        !is_minimized
+    }
 
+    pub fn recreate_swapchain(&mut self, window_size_changed: bool) -> Result<(), String> {
         let new_dimensions = self.window.vulkan_drawable_size();
         let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
             image_extent: [new_dimensions.0, new_dimensions.1],
@@ -384,7 +382,6 @@ impl Video {
 
         self.swapchain = new_swapchain;
 
-        ris_log::debug!("recreated swapchain!");
         Ok(())
     }
 

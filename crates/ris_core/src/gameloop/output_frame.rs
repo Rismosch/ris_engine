@@ -25,17 +25,26 @@ impl OutputFrame {
         _logic: &LogicData,
         _frame: &FrameData,
     ) -> GameloopState {
-        if let Err(error) = self
-            .video
-            .recreate_swapchain(input.window_size_changed.is_some(), self.recreate_swapchain)
-        {
-            return GameloopState::Error(error);
-        }
+        if self.video.can_draw() {
+            let window_size_changed = input.window_size_changed.is_some();
+            let recreate_swapchain = self.recreate_swapchain;
+            if window_size_changed || recreate_swapchain {
+                ris_log::trace!("recreate swapchain...");
 
-        match self.video.draw() {
-            DrawState::Ok => (),
-            DrawState::WantsToRecreateSwapchain => self.recreate_swapchain = true,
-            DrawState::Err(e) => return GameloopState::Error(e),
+                if let Err(error) = self.video.recreate_swapchain(window_size_changed) {
+                    return GameloopState::Error(error);
+                }
+
+                self.recreate_swapchain = false;
+
+                ris_log::debug!("swapchain recreated");
+            }
+
+            match self.video.draw() {
+                DrawState::Ok => (),
+                DrawState::WantsToRecreateSwapchain => self.recreate_swapchain = true,
+                DrawState::Err(e) => return GameloopState::Error(e),
+            }
         }
 
         GameloopState::WantsToContinue
