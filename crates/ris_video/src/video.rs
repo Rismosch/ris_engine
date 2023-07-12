@@ -1,14 +1,14 @@
-use std::sync::Arc;
 use sdl2::{video::Window, Sdl};
+use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::{
     allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents,
+    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
+    PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents,
 };
 use vulkano::device::{
-    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
-    Queue,
-    QueueFlags,
+    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
+    QueueCreateInfo, QueueFlags,
 };
 use vulkano::image::{view::ImageView, ImageUsage, SwapchainImage};
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
@@ -22,10 +22,17 @@ use vulkano::pipeline::{
     GraphicsPipeline,
 };
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
-use vulkano::swapchain::{self, AcquireError, SwapchainPresentInfo, Surface, SurfaceApi, Swapchain, SwapchainCreateInfo, SwapchainCreationError};
-use vulkano::{Handle, VulkanLibrary, VulkanObject};
 use vulkano::shader::ShaderModule;
-use vulkano::sync::{self, FlushError, GpuFuture, future::FenceSignalFuture};
+use vulkano::swapchain::{
+    self, AcquireError, PresentFuture, Surface, SurfaceApi, Swapchain, SwapchainAcquireFuture,
+    SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
+};
+use vulkano::sync::{
+    self,
+    future::{FenceSignalFuture, JoinFuture},
+    FlushError, GpuFuture,
+};
+use vulkano::{Handle, VulkanLibrary, VulkanObject};
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -36,12 +43,16 @@ struct MyVertex {
 
 pub enum DrawState {
     Ok,
-    RecreateSwapchain,
+    WantsToRecreateSwapchain,
     Err(String),
 }
 
+type Fence = FenceSignalFuture<
+    PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
+>;
+
 pub struct Video {
-    window: Window,
+    pub window: Window,
     device: Arc<Device>,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain>,
@@ -52,6 +63,9 @@ pub struct Video {
     fragment_shader: Arc<ShaderModule>,
     viewport: Viewport,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
+
+    fences: Vec<Option<Arc<Fence>>>,
+    previous_fence_i: i32,
 }
 
 impl Video {
@@ -60,7 +74,6 @@ impl Video {
         let video_subsystem = sdl_context.video()?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
-            .resizable()
             .position_centered()
             .vulkan()
             .build()
@@ -120,7 +133,8 @@ impl Video {
                 PhysicalDeviceType::IntegratedGpu => 1,
                 PhysicalDeviceType::VirtualGpu => 2,
                 PhysicalDeviceType::Cpu => 3,
-                _ => 4,
+                PhysicalDeviceType::Other => 4,
+                _ => 5,
             })
             .ok_or("no devices available")?;
 
@@ -157,7 +171,7 @@ impl Video {
         );
         let (swapchain, images) = Swapchain::new(
             device.clone(),
-            surface.clone(),
+            surface,
             SwapchainCreateInfo {
                 min_image_count: capabilities.min_image_count + 1,
                 image_format,
@@ -301,6 +315,11 @@ impl Video {
             &vertex_buffer,
         )?;
 
+        // fences
+        let frames_in_flight = images.len();
+        let fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
+        let previous_fence_i = 0;
+
         // initialization finished
         Ok(Video {
             window,
@@ -314,13 +333,15 @@ impl Video {
             fragment_shader,
             viewport,
             command_buffers,
+            fences,
+            previous_fence_i,
         })
     }
 
     pub fn recreate_swapchain(
         &mut self,
         window_size_changed: bool,
-        recreate_swapchain: bool
+        recreate_swapchain: bool,
     ) -> Result<(), String> {
         if !window_size_changed && !recreate_swapchain {
             return Ok(());
@@ -346,7 +367,7 @@ impl Video {
                 self.vertex_shader.clone(),
                 self.fragment_shader.clone(),
                 self.render_pass.clone(),
-                self.viewport.clone()
+                self.viewport.clone(),
             )?;
             let new_command_buffers = get_command_buffers(
                 &self.command_buffer_allocator,
@@ -366,39 +387,63 @@ impl Video {
     }
 
     pub fn draw(&mut self) -> DrawState {
+        let mut wants_to_recreate_swapchain = false;
+
         let (image_i, suboptimal, acquire_future) =
             match swapchain::acquire_next_image(self.swapchain.clone(), None) {
                 Ok(r) => r,
-                Err(AcquireError::OutOfDate) => return DrawState::RecreateSwapchain,
+                Err(AcquireError::OutOfDate) => return DrawState::WantsToRecreateSwapchain,
                 Err(e) => return DrawState::Err(format!("failed to acquire next image: {}", e)),
             };
 
         if suboptimal {
-            return DrawState::RecreateSwapchain;
+            wants_to_recreate_swapchain = true;
         }
 
-        let execution = match sync::now(self.device.clone())
-            .join(acquire_future)
-            .then_execute(self.queue.clone(), self.command_buffers[image_i as usize].clone()) {
-                Ok(x) => x,
-                Err(_) => return DrawState::Err(String::from("failed to execute command buffer")),
+        if let Some(image_fence) = &self.fences[image_i as usize] {
+            if let Err(e) = image_fence.wait(None) {
+                return DrawState::Err(format!("failed to wait on fence: {}", e));
             }
-            .then_swapchain_present(
-                self.queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
-            )
-            .then_signal_fence_and_flush();
+        }
 
-        match execution {
-            Ok(future) => {
-                if let Err(e) = future.wait(None) {
-                    DrawState::Err(format!("failed to wait on future: {}", e))
-                } else {
-                    DrawState::Ok
-                }
-            },
-            Err(FlushError::OutOfDate) => DrawState::RecreateSwapchain,
-            Err(e) => DrawState::Err(format!("failed to flush future: {}", e)),
+        let previous_future = match self.fences[self.previous_fence_i as usize].clone() {
+            None => {
+                let mut now = sync::now(self.device.clone());
+                now.cleanup_finished();
+                now.boxed()
+            }
+            Some(fence) => fence.boxed(),
+        };
+
+        let future = match previous_future.join(acquire_future).then_execute(
+            self.queue.clone(),
+            self.command_buffers[image_i as usize].clone(),
+        ) {
+            Ok(x) => x,
+            Err(_) => return DrawState::Err(String::from("failedto execute command buffer")),
+        }
+        .then_swapchain_present(
+            self.queue.clone(),
+            SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
+        )
+        .then_signal_fence_and_flush();
+
+        self.fences[image_i as usize] = match future {
+            Ok(value) => Some(Arc::new(value)),
+            Err(FlushError::OutOfDate) => {
+                wants_to_recreate_swapchain = true;
+                None
+            }
+            Err(e) => {
+                ris_log::warning!("failed to flush future: {}", e);
+                None
+            }
+        };
+
+        if wants_to_recreate_swapchain {
+            DrawState::WantsToRecreateSwapchain
+        } else {
+            DrawState::Ok
         }
     }
 }
@@ -432,21 +477,25 @@ fn get_pipeline(
     fragment_shader: Arc<ShaderModule>,
     render_pass: Arc<RenderPass>,
     viewport: Viewport,
-) -> Result<Arc<GraphicsPipeline>,String> {
+) -> Result<Arc<GraphicsPipeline>, String> {
     let pipeline = GraphicsPipeline::start()
         .vertex_input_state(MyVertex::per_vertex())
         .vertex_shader(
-            vertex_shader.entry_point("main").ok_or("failed to locate vertex entry point")?,
-            ()
+            vertex_shader
+                .entry_point("main")
+                .ok_or("failed to locate vertex entry point")?,
+            (),
         )
         .input_assembly_state(InputAssemblyState::new())
-        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport.clone()]))
+        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
         .fragment_shader(
-            fragment_shader.entry_point("main").ok_or("failed to locate fragment entry point")?,
-            ()
+            fragment_shader
+                .entry_point("main")
+                .ok_or("failed to locate fragment entry point")?,
+            (),
         )
-        .render_pass(Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?)
-        .build(device.clone())
+        .render_pass(Subpass::from(render_pass, 0).ok_or("failed to create render subpass")?)
+        .build(device)
         .map_err(|_| "failed to build graphics pipeline")?;
 
     Ok(pipeline)
