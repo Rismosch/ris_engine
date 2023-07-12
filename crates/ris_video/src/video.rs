@@ -24,8 +24,8 @@ use vulkano::pipeline::{
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{
-    self, AcquireError, PresentFuture, Surface, SurfaceApi, Swapchain, SwapchainAcquireFuture,
-    SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
+    self, AcquireError, PresentFuture, PresentMode, Surface, SurfaceApi, Swapchain,
+    SwapchainAcquireFuture, SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
 };
 use vulkano::sync::{
     self,
@@ -74,6 +74,7 @@ impl Video {
         let video_subsystem = sdl_context.video()?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
+            //.resizable()
             .position_centered()
             .vulkan()
             .build()
@@ -178,6 +179,7 @@ impl Video {
                 image_extent: [dimensions.0, dimensions.1],
                 image_usage: ImageUsage::COLOR_ATTACHMENT,
                 composite_alpha,
+                present_mode: PresentMode::Immediate,
                 ..Default::default()
             },
         )

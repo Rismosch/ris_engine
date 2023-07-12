@@ -106,7 +106,7 @@ Set-Content -Path $build_info_path -Value $build_info_content
 
 Write-Host "compiling workspace..."
 
-cargo clean
+# cargo clean
 cargo build -r
 
 Write-Host "moving files..."

@@ -34,8 +34,9 @@ shaderc = "0.8"
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
 ris_input = { path = "crates/ris_input" }
-ris_jobs = {path = "crates/ris_jobs"}
+ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }
+ris_math = { path = "crates/ris_math" }
 ris_os = { path = "crates/ris_os" }
 ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }

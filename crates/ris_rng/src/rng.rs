@@ -32,6 +32,10 @@ impl Rng {
         self.pcg.next()
     }
 
+    pub fn next_b(&mut self) -> bool {
+        (self.next_u() & 1) == 1
+    }
+
     pub fn next_f(&mut self) -> f32 {
         f32::from_bits(0x3F80_0000 | (self.next_u() & 0x7F_FFFF)) - 1.
     }
