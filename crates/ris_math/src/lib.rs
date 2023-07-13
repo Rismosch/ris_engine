@@ -1,3 +1,4 @@
+pub mod matrix4x4;
 pub mod quaternion;
 pub mod vector3;
 
