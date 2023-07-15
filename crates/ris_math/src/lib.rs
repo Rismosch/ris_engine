@@ -2,9 +2,13 @@ pub mod matrix4x4;
 pub mod quaternion;
 pub mod vector3;
 
-pub const MIN_NORM: f32 = 0.000_000_1f32;
+pub const MIN_NORM: f32 = 0.000_001f32;
 pub const DEG2RAD: f32 = std::f32::consts::PI * 2. / 360.;
 pub const RAD2DEG: f32 = 1. / DEG2RAD;
+
+pub fn f_eq(a: f32, b: f32) -> bool {
+    abs(a - b) < MIN_NORM
+}
 
 pub fn sin(f: f32) -> f32 {
     f32::sin(f)
