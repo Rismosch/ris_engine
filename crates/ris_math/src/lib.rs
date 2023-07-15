@@ -3,7 +3,14 @@ pub mod quaternion;
 pub mod vector3;
 
 pub const MIN_NORM: f32 = 0.000_001f32;
-pub const DEG2RAD: f32 = std::f32::consts::PI * 2. / 360.;
+
+pub const PI: f32 = std::f32::consts::PI;
+pub const PI_2: f32 = PI * 2.;
+pub const PI_0_5: f32 = PI * 0.5;
+pub const PI_0_25: f32 = PI * 0.25;
+pub const PI_0_125: f32 = PI * 0.125;
+
+pub const DEG2RAD: f32 = PI * 2. / 360.;
 pub const RAD2DEG: f32 = 1. / DEG2RAD;
 
 pub fn f_eq(a: f32, b: f32) -> bool {

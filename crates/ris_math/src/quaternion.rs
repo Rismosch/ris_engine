@@ -1,4 +1,5 @@
 use crate::matrix4x4::Matrix4x4;
+use crate::vector3::Vector3;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Quaternion {
@@ -65,6 +66,33 @@ impl Quaternion {
             z: q[2],
             w: q[3],
         }
+    }
+
+    pub fn from_angle_axis(angle: f32, axis: Vector3) -> Self {
+        let n = axis.normalized();
+        let t = angle * 0.5;
+        let re = super::cos(t);
+        let im = super::sin(t);
+
+        Self {
+            w: re,
+            x: n.x * im,
+            y: n.y * im,
+            z: n.z * im,
+        }
+    }
+
+    pub fn to_angle_axis(&self) -> (f32, Vector3) {
+        let t_half = super::acos(self.w);
+        let t = 2. * t_half;
+        let im = super::sin(t_half);
+        let n = Vector3{
+            x: self.x / im,
+            y: self.y / im,
+            z: self.z / im,
+        };
+
+        (t, n)
     }
 
     // utility

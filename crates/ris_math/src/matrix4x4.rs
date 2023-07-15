@@ -49,12 +49,12 @@ impl Matrix4x4 {
             m11: 1. - (xx + zz),
             m12: yz - wx,
             m13: 0.,
-            
+
             m20: xz - wy,
             m21: yz + wx,
             m22: 1. - (xx + yy),
             m23: 0.,
-            
+
             m30: 0.,
             m31: 0.,
             m32: 0.,
@@ -63,8 +63,8 @@ impl Matrix4x4 {
     }
 
     pub fn get(&self, m: usize, n: usize) -> f32 {
-        assert!(m >= 0 && m < 4);
-        assert!(n >= 0 && n < 4);
+        assert!(m < 4);
+        assert!(n < 4);
 
         match (m, n) {
             (0, 0) => self.m00,
