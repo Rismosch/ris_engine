@@ -4,21 +4,32 @@ use ris_data::gameloop::{
 };
 use ris_jobs::job_system;
 
-pub fn run(
-    _current: &mut LogicData,
-    _previous: &LogicData,
-    _input: &InputData,
-    _frame: &FrameData,
-) -> GameloopState {
-    if _input.general.buttons.down() != 0 {
-        ris_log::debug!(
-            "{:#034b} worker: {}, {}ns ({}fps)",
-            _input.general.buttons.down(),
-            job_system::thread_index(),
-            _frame.delta().as_nanos(),
-            _frame.fps(),
-        );
-    }
-
-    GameloopState::WantsToContinue
+#[derive(Default)]
+pub struct LogicFrame{
+    camera_horizontal_angle: f32,
+    camera_vertical_angle: f32,
 }
+
+impl LogicFrame {
+    pub fn run(
+        &mut self,
+        _current: &mut LogicData,
+        _previous: &LogicData,
+        input: &InputData,
+        frame: &FrameData,
+    ) -> GameloopState {
+
+        if input.general.buttons.down() != 0 {
+            ris_log::debug!(
+                "{:#010x} worker: {}, {}ns ({}fps)",
+                input.general.buttons.down(),
+                job_system::thread_index(),
+                frame.delta().as_nanos(),
+                frame.fps(),
+            );
+        }
+
+        GameloopState::WantsToContinue
+    }
+}
+

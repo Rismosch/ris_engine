@@ -13,13 +13,19 @@ pub struct KeyboardData {
     pub restart_timestamp: Instant,
 }
 
-impl Default for KeyboardData {
-    fn default() -> Self {
+impl KeyboardData {
+    pub fn new(keymask: [Scancode; 32]) -> Self {
         Self {
             buttons: Buttons::default(),
-            keymask: [Scancode::A; 32],
+            keymask,
             crash_timestamp: Instant::now(),
             restart_timestamp: Instant::now(),
         }
+    }
+}
+
+impl Default for KeyboardData {
+    fn default() -> Self {
+        Self::new([Scancode::A; 32])
     }
 }

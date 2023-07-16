@@ -1,3 +1,4 @@
+pub mod action;
 pub mod buttons;
 pub mod gamepad_data;
 pub mod general_data;
