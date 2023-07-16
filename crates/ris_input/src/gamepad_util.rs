@@ -18,28 +18,28 @@ pub static ALL_BUTTONS: [sdl2::controller::Button; 15] = [
 
 pub fn get_button_index(axis: sdl2::controller::Axis, value_is_negative: bool) -> usize {
     match axis {
-        sdl2::controller::Axis::LeftX => {
+        sdl2::controller::Axis::LeftY => {
             if value_is_negative {
                 15
             } else {
                 16
             }
         }
-        sdl2::controller::Axis::LeftY => {
+        sdl2::controller::Axis::LeftX => {
             if value_is_negative {
                 17
             } else {
                 18
             }
         }
-        sdl2::controller::Axis::RightX => {
+        sdl2::controller::Axis::RightY => {
             if value_is_negative {
                 19
             } else {
                 20
             }
         }
-        sdl2::controller::Axis::RightY => {
+        sdl2::controller::Axis::RightX => {
             if value_is_negative {
                 21
             } else {

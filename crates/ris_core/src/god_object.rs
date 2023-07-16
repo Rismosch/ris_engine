@@ -39,10 +39,10 @@ impl GodObject {
         let logic_data = LogicData::default();
         let output_data = OutputData::default();
 
-        input_data.keyboard.keymask[11] = Scancode::Up;
-        input_data.keyboard.keymask[12] = Scancode::Down;
-        input_data.keyboard.keymask[13] = Scancode::Left;
-        input_data.keyboard.keymask[14] = Scancode::Right;
+        input_data.keyboard.keymask[19] = Scancode::Up;
+        input_data.keyboard.keymask[20] = Scancode::Down;
+        input_data.keyboard.keymask[21] = Scancode::Left;
+        input_data.keyboard.keymask[22] = Scancode::Right;
 
         let god_object = GodObject {
             app_info,

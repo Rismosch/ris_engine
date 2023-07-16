@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-const DELTAS_COUNT: usize = 1024;
+const DELTAS_COUNT: usize = 60;
 const MAX_DELTA: Duration = Duration::from_millis(500);
 const IDEAL_DELTA: Duration = Duration::from_millis(1000 / 60);
 
@@ -13,7 +13,8 @@ pub struct FrameDataCalculator {
 pub struct FrameData {
     number: usize,
     all_deltas: [Duration; DELTAS_COUNT],
-    delta: Duration,
+    delta_seconds: f32,
+    fps: u128,
     last_bump: Instant,
 }
 
@@ -39,7 +40,10 @@ impl FrameDataCalculator {
             nanos_sum += delta.as_nanos();
         }
         let nanos_average = nanos_sum / DELTAS_COUNT as u128;
-        current.delta = Duration::from_nanos(nanos_average as u64);
+        let average_delta = Duration::from_nanos(nanos_average as u64);
+
+        current.delta_seconds = duration_to_fseconds(average_delta);
+        current.fps = duration_to_fps(average_delta);
 
         current.last_bump = now;
     }
@@ -54,12 +58,12 @@ impl FrameData {
         self.number
     }
 
-    pub fn delta(&self) -> Duration {
-        self.delta
+    pub fn delta(&self) -> f32 {
+        self.delta_seconds
     }
 
     pub fn fps(&self) -> u128 {
-        1_000_000_000 / self.delta.as_nanos()
+        self.fps
     }
 }
 
@@ -68,8 +72,17 @@ impl Default for FrameData {
         FrameData {
             last_bump: Instant::now(),
             all_deltas: [IDEAL_DELTA; DELTAS_COUNT],
-            delta: Duration::ZERO,
+            delta_seconds: duration_to_fseconds(IDEAL_DELTA),
+            fps: duration_to_fps(IDEAL_DELTA),
             number: 0,
         }
     }
+}
+
+fn duration_to_fseconds(duration: Duration) -> f32 {
+    duration.as_nanos() as f32 / 1_000_000_000f32
+}
+
+fn duration_to_fps(duration: Duration) -> u128 {
+    1_000_000_000 / duration.as_nanos()
 }

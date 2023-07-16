@@ -18,6 +18,18 @@ impl Buttons {
         self.hold
     }
 
+    pub fn is_up(&self, actions: u32) -> bool {
+        self.up & actions != 0
+    }
+
+    pub fn is_down(&self, actions: u32) -> bool {
+        self.down & actions != 0
+    }
+
+    pub fn is_hold(&self, actions: u32) -> bool {
+        self.hold & actions != 0
+    }
+
     pub fn set(&mut self, new_state: &u32, old_state: &u32) {
         self.up = !new_state & old_state;
         self.down = new_state & !old_state;
