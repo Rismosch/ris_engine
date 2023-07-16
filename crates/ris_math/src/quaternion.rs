@@ -82,11 +82,11 @@ impl Quaternion {
         }
     }
 
-    pub fn to_angle_axis(&self) -> (f32, Vector3) {
-        let mut q = *self;
+    pub fn to_angle_axis(self) -> (f32, Vector3) {
+        let mut q = self;
 
         // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
-        if q.w > 1. {
+        if super::abs(q.w) > 1. {
             q = q.normalized();
         }
 
@@ -111,20 +111,11 @@ impl Quaternion {
     }
 
     // utility
-    pub fn multiply(p: Quaternion, q: Quaternion) -> Self {
-        Self {
-            w: p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z,
-            x: p.x * q.w + p.w * q.x + p.y * q.z + p.z * q.y,
-            y: p.y * q.w + p.w * q.y + p.z * q.x + p.x * q.z,
-            z: p.z * q.w + p.w * q.z + p.x * q.y + p.y * q.x,
-        }
-    }
-
     pub fn dot(p: Quaternion, q: Quaternion) -> f32 {
         p.w * q.w + p.x * q.x + p.y * q.y + p.z * q.z
     }
 
-    pub fn conjugate(&self) -> Self {
+    pub fn conjugate(self) -> Self {
         Self {
             w: self.w,
             x: -self.x,
@@ -133,7 +124,7 @@ impl Quaternion {
         }
     }
 
-    pub fn normalized(&self) -> Self {
+    pub fn normalized(self) -> Self {
         let magnitude = self.magnitude();
         Self {
             w: self.w / magnitude,
@@ -143,17 +134,53 @@ impl Quaternion {
         }
     }
 
-    pub fn magnitude_squared(&self) -> f32 {
-        Self::dot(*self, *self)
+    pub fn magnitude_squared(self) -> f32 {
+        Self::dot(self, self)
     }
 
-    pub fn magnitude(&self) -> f32 {
+    pub fn magnitude(self) -> f32 {
         super::sqrt(self.magnitude_squared())
+    }
+
+    // 3d transformation stuff
+    pub fn rotate(self, p: Vector3) -> Vector3 {
+        let r = self;
+        let r_ = self.conjugate();
+        let p = Quaternion{
+            w: 0.,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+        };
+
+        let p_ = r * p * r_;
+
+        Vector3 {
+            x: p_.x,
+            y: p_.y,
+            z: p_.z,
+        }
     }
 }
 
 impl Default for Quaternion {
     fn default() -> Self {
         Self::identity()
+    }
+}
+
+// Hamilton Product: https://en.wikipedia.org/wiki/Quaternion#Hamilton_product
+impl std::ops::Mul<Quaternion> for Quaternion {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        let p = self;
+        let q = rhs;
+
+        Self {
+            w: p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z,
+            x: p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y,
+            y: p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x,
+            z: p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w ,
+        }
     }
 }

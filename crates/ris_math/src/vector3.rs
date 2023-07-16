@@ -57,7 +57,7 @@ impl Vector3 {
         a.x * b.x + a.y * b.y + a.z * b.z
     }
 
-    pub fn normalized(&self) -> Self {
+    pub fn normalized(self) -> Self {
         let magnitude = self.magnitude();
         Self {
             x: self.x / magnitude,
@@ -66,11 +66,11 @@ impl Vector3 {
         }
     }
 
-    pub fn magnitude_squared(&self) -> f32 {
-        Self::dot(*self, *self)
+    pub fn magnitude_squared(self) -> f32 {
+        Self::dot(self, self)
     }
 
-    pub fn magnitude(&self) -> f32 {
+    pub fn magnitude(self) -> f32 {
         super::sqrt(self.magnitude_squared())
     }
 }
