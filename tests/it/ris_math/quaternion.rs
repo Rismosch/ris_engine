@@ -1,7 +1,8 @@
 use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
-use ris_math::vector3::Vector3;
+use ris_math::vector3::{self, Vector3};
 use ris_rng::rng::Rng;
+use ris_util::assert;
 use ris_util::testing;
 
 #[test]
@@ -19,7 +20,7 @@ fn should_normalize_quaternion() {
         let expected_magnitude = 1.;
         let actual_magnitude = normalized_quaternion.magnitude();
 
-        assert!(ris_math::f_eq(expected_magnitude, actual_magnitude));
+        assert!(ris_math::abs(expected_magnitude - actual_magnitude) < ris_math::MIN_NORM);
     });
 }
 
@@ -34,13 +35,13 @@ fn should_convert_quaternion_to_matrix_and_back() {
 
         let quaternion = Quaternion { w, x, y, z }.normalized();
 
-        let matrix = Matrix4x4::from_quaternion(quaternion);
+        let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
         let copy = Quaternion::from_matrix(matrix);
 
-        assert!(ris_math::f_eq(quaternion.w, copy.w));
-        assert!(ris_math::f_eq(quaternion.x, copy.x));
-        assert!(ris_math::f_eq(quaternion.y, copy.y));
-        assert!(ris_math::f_eq(quaternion.z, copy.z));
+        assert!(ris_math::abs(quaternion.w - copy.w) < ris_math::MIN_NORM);
+        assert!(ris_math::abs(quaternion.x - copy.x) < ris_math::MIN_NORM);
+        assert!(ris_math::abs(quaternion.y - copy.y) < ris_math::MIN_NORM);
+        assert!(ris_math::abs(quaternion.z - copy.z) < ris_math::MIN_NORM);
     });
 }
 
@@ -48,7 +49,7 @@ fn should_convert_quaternion_to_matrix_and_back() {
 fn should_convert_angleaxis_to_quaternion_and_back() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new().unwrap()));
     testing::repeat(1_000_000, move || {
-        let angle = rng.borrow_mut().range_f(0., ris_math::PI_2);
+        let angle = rng.borrow_mut().range_f(0.1, ris_math::PI_2 - 0.1);
         let x = rng.borrow_mut().next_f();
         let y = rng.borrow_mut().next_f();
         let z = rng.borrow_mut().next_f();
@@ -57,11 +58,45 @@ fn should_convert_angleaxis_to_quaternion_and_back() {
         let quaternion = Quaternion::from_angle_axis(angle, axis);
         let (angle_copy, axis_copy) = quaternion.to_angle_axis();
 
-        assert!(ris_math::f_eq(angle, angle_copy));
-        assert!(ris_math::f_eq(axis.x, axis_copy.x));
-        assert!(ris_math::f_eq(axis.y, axis_copy.y));
-        assert!(ris_math::f_eq(axis.z, axis_copy.z));
-
-        oha
+        assert::feq(angle, angle_copy, 0.000_1);
+        assert::feq(axis.x, axis_copy.x, 0.000_1);
+        assert::feq(axis.y, axis_copy.y, 0.000_1);
+        assert::feq(axis.z, axis_copy.z, 0.000_1);
     });
+}
+
+#[test]
+fn should_convert_angleaxis_to_quaternion_at_angle_0() {
+    let mut rng = Rng::new().unwrap();
+    let angle = 0.;
+    let x = rng.next_f();
+    let y = rng.next_f();
+    let z = rng.next_f();
+    let axis = Vector3{x,y,z}.normalized();
+
+    let quaternion = Quaternion::from_angle_axis(angle, axis);
+    let (angle_copy, axis_copy) = quaternion.to_angle_axis();
+
+    assert::feq(angle, angle_copy, ris_math::MIN_NORM);
+    assert::feq(axis_copy.x, 1., ris_math::MIN_NORM);
+    assert::feq(axis_copy.y, 0., ris_math::MIN_NORM);
+    assert::feq(axis_copy.z, 0., ris_math::MIN_NORM);
+}
+
+#[test]
+fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
+    let mut rng = Rng::new().unwrap();
+    let angle = ris_math::PI_2;
+    let x = rng.next_f();
+    let y = rng.next_f();
+    let z = rng.next_f();
+    let axis = Vector3{x,y,z}.normalized();
+
+    let quaternion = Quaternion::from_angle_axis(angle, axis);
+    let (angle_copy, axis_copy) = quaternion.to_angle_axis();
+
+    assert::feq(angle, angle_copy, ris_math::MIN_NORM);
+    assert::feq(axis_copy.x, 1., ris_math::MIN_NORM);
+    assert::feq(axis_copy.y, 0., ris_math::MIN_NORM);
+    assert::feq(axis_copy.z, 0., ris_math::MIN_NORM);
 }

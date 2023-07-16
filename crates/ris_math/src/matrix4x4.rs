@@ -1,4 +1,5 @@
 use crate::quaternion::Quaternion;
+use crate::vector3::Vector3;
 
 // m00 m01 m02 m03
 // m10 m11 m12 m13
@@ -25,35 +26,35 @@ pub struct Matrix4x4 {
 }
 
 impl Matrix4x4 {
-    pub fn from_quaternion(q: Quaternion) -> Self {
-        let x2 = q.x + q.x;
-        let y2 = q.y + q.y;
-        let z2 = q.z + q.z;
-        let xx = q.x * x2;
-        let xy = q.x * y2;
-        let xz = q.x * z2;
-        let yy = q.y * y2;
-        let yz = q.y * z2;
-        let zz = q.z * z2;
-        let wx = q.w * x2;
-        let wy = q.w * y2;
-        let wz = q.w * z2;
+    pub fn transformation(rotation: Quaternion, translation: Vector3) -> Self {
+        let x2 = rotation.x + rotation.x;
+        let y2 = rotation.y + rotation.y;
+        let z2 = rotation.z + rotation.z;
+        let xx = rotation.x * x2;
+        let xy = rotation.x * y2;
+        let xz = rotation.x * z2;
+        let yy = rotation.y * y2;
+        let yz = rotation.y * z2;
+        let zz = rotation.z * z2;
+        let wx = rotation.w * x2;
+        let wy = rotation.w * y2;
+        let wz = rotation.w * z2;
 
         Self {
             m00: 1. - (yy + zz),
             m01: xy - wz,
             m02: xz + wy,
-            m03: 0.,
+            m03: translation.x,
 
             m10: xy + wz,
             m11: 1. - (xx + zz),
             m12: yz - wx,
-            m13: 0.,
+            m13: translation.y,
 
             m20: xz - wy,
             m21: yz + wx,
             m22: 1. - (xx + yy),
-            m23: 0.,
+            m23: translation.z,
 
             m30: 0.,
             m31: 0.,
@@ -86,4 +87,6 @@ impl Matrix4x4 {
             _ => unreachable!(),
         }
     }
+
+
 }

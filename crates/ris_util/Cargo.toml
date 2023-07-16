@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 sdl2 = "0.34.5"
 ris_log = { path = "../ris_log" }
+ris_math = { path = "../ris_math" }

@@ -83,13 +83,28 @@ impl Quaternion {
     }
 
     pub fn to_angle_axis(&self) -> (f32, Vector3) {
-        let t_half = super::acos(self.w);
-        let t = 2. * t_half;
-        let im = super::sin(t_half);
-        let n = Vector3{
-            x: self.x / im,
-            y: self.y / im,
-            z: self.z / im,
+        let mut q = *self;
+
+        // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
+        if q.w > 1. {
+            q = q.normalized();
+        }
+
+        let t = 2. * super::acos(q.w);
+        let s = super::sqrt(1. - q.w * q.w);
+
+        let n = if s < 0.001 {
+            Vector3{
+                x: 1.,
+                y: 0.,
+                z: 0.,
+            }
+        } else {
+            Vector3 {
+                x: q.x / s,
+                y: q.y / s,
+                z: q.z / s,
+            }
         };
 
         (t, n)
