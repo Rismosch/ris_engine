@@ -1,4 +1,5 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 
 const DELTAS_COUNT: usize = 60;
 const MAX_DELTA: Duration = Duration::from_millis(500);

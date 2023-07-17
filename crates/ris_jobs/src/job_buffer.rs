@@ -1,14 +1,15 @@
-use std::{
-    cell::UnsafeCell,
-    sync::{Arc, Mutex, TryLockError},
-};
+use std::cell::UnsafeCell;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::TryLockError;
 
-use ris_util::{throw, unwrap_or_throw};
+use ris_util::throw;
+use ris_util::unwrap_or_throw;
 
-use crate::{
-    errors::{BlockedOrEmpty, BlockedOrFull, IsEmpty},
-    job::Job,
-};
+use crate::errors::BlockedOrEmpty;
+use crate::errors::BlockedOrFull;
+use crate::errors::IsEmpty;
+use crate::job::Job;
 
 pub struct JobBuffer {
     head: UnsafeCell<usize>,

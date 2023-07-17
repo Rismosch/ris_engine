@@ -1,9 +1,11 @@
 use std::fmt;
 
-use super::{
-    args_info::ArgsInfo, build_info::BuildInfo, cpu_info::CpuInfo, file_info::FileInfo,
-    package_info::PackageInfo, sdl_info::SdlInfo,
-};
+use super::args_info::ArgsInfo;
+use super::build_info::BuildInfo;
+use super::cpu_info::CpuInfo;
+use super::file_info::FileInfo;
+use super::package_info::PackageInfo;
+use super::sdl_info::SdlInfo;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {

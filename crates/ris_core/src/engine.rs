@@ -3,7 +3,8 @@ use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
 
-use crate::{god_job, god_object::GodObject};
+use crate::god_job;
+use crate::god_object::GodObject;
 
 pub struct Engine {
     god_object: Option<GodObject>,

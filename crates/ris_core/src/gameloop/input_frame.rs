@@ -1,18 +1,20 @@
-use ris_data::{
-    gameloop::{frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData},
-    input::rebind_matrix::RebindMatrix,
-};
-use ris_input::{
-    gamepad_logic::GamepadLogic,
-    general_logic::{update_general, GeneralLogicArgs},
-    keyboard_logic::update_keyboard,
-    mouse_logic::{handle_mouse_events, post_update_mouse, reset_mouse_refs},
-};
-use ris_jobs::{job_cell::JobCell, job_system};
-use sdl2::{
-    event::{Event, WindowEvent},
-    EventPump, GameControllerSubsystem,
-};
+use ris_data::gameloop::frame_data::FrameData;
+use ris_data::gameloop::gameloop_state::GameloopState;
+use ris_data::gameloop::input_data::InputData;
+use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_input::gamepad_logic::GamepadLogic;
+use ris_input::general_logic::update_general;
+use ris_input::general_logic::GeneralLogicArgs;
+use ris_input::keyboard_logic::update_keyboard;
+use ris_input::mouse_logic::handle_mouse_events;
+use ris_input::mouse_logic::post_update_mouse;
+use ris_input::mouse_logic::reset_mouse_refs;
+use ris_jobs::job_cell::JobCell;
+use ris_jobs::job_system;
+use sdl2::event::Event;
+use sdl2::event::WindowEvent;
+use sdl2::EventPump;
+use sdl2::GameControllerSubsystem;
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,

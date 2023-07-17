@@ -1,7 +1,7 @@
-use crate::input::{
-    gamepad_data::GamepadData, general_data::GeneralData, keyboard_data::KeyboardData,
-    mouse_data::MouseData,
-};
+use crate::input::gamepad_data::GamepadData;
+use crate::input::general_data::GeneralData;
+use crate::input::keyboard_data::KeyboardData;
+use crate::input::mouse_data::MouseData;
 
 #[derive(Default, Clone)]
 pub struct InputData {

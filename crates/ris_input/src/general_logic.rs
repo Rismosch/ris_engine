@@ -1,4 +1,6 @@
-use ris_data::input::{buttons::Buttons, general_data::GeneralData, rebind_matrix::RebindMatrix};
+use ris_data::input::buttons::Buttons;
+use ris_data::input::general_data::GeneralData;
+use ris_data::input::rebind_matrix::RebindMatrix;
 
 pub struct GeneralLogicArgs<'a> {
     pub new_general_data: &'a mut GeneralData,

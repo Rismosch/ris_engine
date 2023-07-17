@@ -1,18 +1,18 @@
-use std::{
-    cell::RefCell,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex, MutexGuard,
-    },
-    thread::{self, JoinHandle},
-};
+use std::cell::RefCell;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::thread;
+use std::thread::JoinHandle;
 
-use crate::{
-    errors::{BlockedOrEmpty, IsEmpty},
-    job::Job,
-    job_buffer::JobBuffer,
-    job_future::{JobFuture, SettableJobFuture},
-};
+use crate::errors::BlockedOrEmpty;
+use crate::errors::IsEmpty;
+use crate::job::Job;
+use crate::job_buffer::JobBuffer;
+use crate::job_future::JobFuture;
+use crate::job_future::SettableJobFuture;
 
 thread_local! {
     static WORKER_THREAD: RefCell<Option<WorkerThread>> = RefCell::new(None);

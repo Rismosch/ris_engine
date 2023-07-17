@@ -1,4 +1,5 @@
-use chrono::{DateTime, Local};
+use chrono::DateTime;
+use chrono::Local;
 
 use crate::log_level::LogLevel;
 

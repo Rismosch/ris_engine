@@ -1,14 +1,12 @@
 use ris_util::throw;
-use std::{
-    cell::UnsafeCell,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-    ptr::NonNull,
-    sync::{
-        atomic::{AtomicIsize, Ordering},
-        Arc,
-    },
-};
+use std::cell::UnsafeCell;
+use std::marker::PhantomData;
+use std::ops::Deref;
+use std::ops::DerefMut;
+use std::ptr::NonNull;
+use std::sync::atomic::AtomicIsize;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,

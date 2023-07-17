@@ -1,39 +1,63 @@
-use sdl2::{video::Window, Sdl};
+use sdl2::video::Window;
+use sdl2::Sdl;
 use sdl2_sys::SDL_WindowFlags;
 use std::sync::Arc;
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
-use vulkano::command_buffer::{
-    allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-    AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
-    PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents,
-};
-use vulkano::device::{
-    physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
-    QueueCreateInfo, QueueFlags,
-};
+use vulkano::buffer::Buffer;
+use vulkano::buffer::BufferContents;
+use vulkano::buffer::BufferCreateInfo;
+use vulkano::buffer::BufferUsage;
+use vulkano::buffer::Subbuffer;
+use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::command_buffer::allocator::StandardCommandBufferAllocatorCreateInfo;
+use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBufferExecFuture;
+use vulkano::command_buffer::CommandBufferUsage;
+use vulkano::command_buffer::PrimaryAutoCommandBuffer;
+use vulkano::command_buffer::RenderPassBeginInfo;
+use vulkano::command_buffer::SubpassContents;
+use vulkano::device::physical::PhysicalDeviceType;
+use vulkano::device::Device;
+use vulkano::device::DeviceCreateInfo;
+use vulkano::device::DeviceExtensions;
+use vulkano::device::Queue;
+use vulkano::device::QueueCreateInfo;
+use vulkano::device::QueueFlags;
 use vulkano::image::{view::ImageView, ImageUsage, SwapchainImage};
-use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
-use vulkano::pipeline::{
-    graphics::{
-        input_assembly::InputAssemblyState,
-        vertex_input::Vertex,
-        viewport::{Viewport, ViewportState},
-    },
-    GraphicsPipeline,
-};
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::instance::Instance;
+use vulkano::instance::InstanceCreateInfo;
+use vulkano::instance::InstanceExtensions;
+use vulkano::memory::allocator::AllocationCreateInfo;
+use vulkano::memory::allocator::MemoryUsage;
+use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
+use vulkano::pipeline::graphics::viewport::Viewport;
+use vulkano::pipeline::graphics::viewport::ViewportState;
+use vulkano::pipeline::GraphicsPipeline;
+use vulkano::render_pass::Framebuffer;
+use vulkano::render_pass::FramebufferCreateInfo;
+use vulkano::render_pass::RenderPass;
+use vulkano::render_pass::Subpass;
 use vulkano::shader::ShaderModule;
-use vulkano::swapchain::{
-    self, AcquireError, PresentFuture, PresentMode, Surface, SurfaceApi, Swapchain,
-    SwapchainAcquireFuture, SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
-};
-use vulkano::sync::{
-    self,
-    future::{FenceSignalFuture, JoinFuture},
-    FlushError, GpuFuture,
-};
-use vulkano::{Handle, VulkanLibrary, VulkanObject};
+use vulkano::swapchain;
+use vulkano::swapchain::AcquireError;
+use vulkano::swapchain::PresentFuture;
+use vulkano::swapchain::PresentMode;
+use vulkano::swapchain::Surface;
+use vulkano::swapchain::SurfaceApi;
+use vulkano::swapchain::Swapchain;
+use vulkano::swapchain::SwapchainAcquireFuture;
+use vulkano::swapchain::SwapchainCreateInfo;
+use vulkano::swapchain::SwapchainCreationError;
+use vulkano::swapchain::SwapchainPresentInfo;
+use vulkano::sync;
+use vulkano::sync::future::FenceSignalFuture;
+use vulkano::sync::future::JoinFuture;
+use vulkano::sync::FlushError;
+use vulkano::sync::GpuFuture;
+use vulkano::Handle;
+use vulkano::VulkanLibrary;
+use vulkano::VulkanObject;
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]

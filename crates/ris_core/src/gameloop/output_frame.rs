@@ -1,8 +1,11 @@
-use ris_data::gameloop::{
-    frame_data::FrameData, gameloop_state::GameloopState, input_data::InputData,
-    logic_data::LogicData, output_data::OutputData,
-};
-use ris_video::video::{DrawState, Video};
+use ris_data::gameloop::frame_data::FrameData;
+use ris_data::gameloop::gameloop_state::GameloopState;
+use ris_data::gameloop::input_data::InputData;
+use ris_data::gameloop::logic_data::LogicData;
+use ris_data::gameloop::output_data::OutputData;
+use ris_math::matrix4x4::Matrix4x4;
+use ris_video::video::DrawState;
+use ris_video::video::Video;
 
 pub struct OutputFrame {
     video: Video,
@@ -22,7 +25,7 @@ impl OutputFrame {
         _current: &mut OutputData,
         _previous: &OutputData,
         input: &InputData,
-        _logic: &LogicData,
+        logic: &LogicData,
         _frame: &FrameData,
     ) -> GameloopState {
         if self.video.can_draw() {
@@ -39,6 +42,14 @@ impl OutputFrame {
 
                 ris_log::debug!("swapchain recreated");
             }
+
+            // 1. local to world space => model matrix
+            // 2. world to view space => view matrix
+            // 3. view to clip space => projection matrix
+            // 4. clip to screen space => viewport transform
+
+            let camera_transformation =
+                Matrix4x4::transformation(logic.camera_rotation, logic.camera_position);
 
             match self.video.draw() {
                 DrawState::Ok => (),

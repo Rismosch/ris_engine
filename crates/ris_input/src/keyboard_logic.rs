@@ -1,6 +1,7 @@
 use std::time::Instant;
 
-use ris_data::{gameloop::gameloop_state::GameloopState, input::keyboard_data::KeyboardData};
+use ris_data::gameloop::gameloop_state::GameloopState;
+use ris_data::input::keyboard_data::KeyboardData;
 use sdl2::keyboard::Scancode;
 
 pub fn update_keyboard(
@@ -12,7 +13,6 @@ pub fn update_keyboard(
     let old_state = old_keyboard_data.buttons.hold();
 
     for (scancode, value) in keyboard_state.scancodes() {
-
         if !value {
             reset_manual_crash(new_keyboard_data, scancode);
             continue;
@@ -54,7 +54,7 @@ fn manual_crash(
                 ris_log::fatal!("manual crash reqeusted");
                 return GameloopState::Error(String::from("manual crash"));
             }
-        },
+        }
         Scancode::F10 => {
             new_keyboard_data.restart_timestamp = old_keyboard_data.restart_timestamp;
 
@@ -65,17 +65,14 @@ fn manual_crash(
                 ris_log::fatal!("restart reqeusted");
                 return GameloopState::WantsToRestart;
             }
-        },
+        }
         _ => (),
     }
 
     GameloopState::WantsToContinue
 }
 
-fn reset_manual_crash(
-    new_keyboard_data: &mut KeyboardData,
-    scancode: Scancode,
-) {
+fn reset_manual_crash(new_keyboard_data: &mut KeyboardData, scancode: Scancode) {
     match scancode {
         Scancode::F12 => new_keyboard_data.crash_timestamp = Instant::now(),
         Scancode::F10 => new_keyboard_data.crash_timestamp = Instant::now(),

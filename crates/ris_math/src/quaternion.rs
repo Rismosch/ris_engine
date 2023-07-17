@@ -94,7 +94,7 @@ impl Quaternion {
         let s = super::sqrt(1. - q.w * q.w);
 
         let n = if s < 0.001 {
-            Vector3{
+            Vector3 {
                 x: 1.,
                 y: 0.,
                 z: 0.,
@@ -146,7 +146,7 @@ impl Quaternion {
     pub fn rotate(self, p: Vector3) -> Vector3 {
         let r = self;
         let r_ = self.conjugate();
-        let p = Quaternion{
+        let p = Quaternion {
             w: 0.,
             x: p.x,
             y: p.y,
@@ -180,7 +180,7 @@ impl std::ops::Mul<Quaternion> for Quaternion {
             w: p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z,
             x: p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y,
             y: p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x,
-            z: p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w ,
+            z: p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w,
         }
     }
 }

@@ -1,5 +1,7 @@
 use ris_data::input::gamepad_data::GamepadData;
-use sdl2::{controller::GameController, event::Event, GameControllerSubsystem};
+use sdl2::controller::GameController;
+use sdl2::event::Event;
+use sdl2::GameControllerSubsystem;
 
 use crate::gamepad_util::{get_button_index, ALL_BUTTONS};
 

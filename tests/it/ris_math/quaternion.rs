@@ -53,7 +53,7 @@ fn should_convert_angleaxis_to_quaternion_and_back() {
         let x = rng.borrow_mut().next_f();
         let y = rng.borrow_mut().next_f();
         let z = rng.borrow_mut().next_f();
-        let axis = Vector3{x,y,z}.normalized();
+        let axis = Vector3 { x, y, z }.normalized();
 
         let quaternion = Quaternion::from_angle_axis(angle, axis);
         let (angle_copy, axis_copy) = quaternion.to_angle_axis();
@@ -72,7 +72,7 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
     let x = rng.next_f();
     let y = rng.next_f();
     let z = rng.next_f();
-    let axis = Vector3{x,y,z}.normalized();
+    let axis = Vector3 { x, y, z }.normalized();
 
     let quaternion = Quaternion::from_angle_axis(angle, axis);
     let (angle_copy, axis_copy) = quaternion.to_angle_axis();
@@ -90,7 +90,7 @@ fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
     let x = rng.next_f();
     let y = rng.next_f();
     let z = rng.next_f();
-    let axis = Vector3{x,y,z}.normalized();
+    let axis = Vector3 { x, y, z }.normalized();
 
     let quaternion = Quaternion::from_angle_axis(angle, axis);
     let (angle_copy, axis_copy) = quaternion.to_angle_axis();
