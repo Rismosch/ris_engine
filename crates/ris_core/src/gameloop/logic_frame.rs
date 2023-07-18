@@ -10,6 +10,9 @@ use ris_math::vector3;
 pub struct LogicFrame {
     camera_horizontal_angle: f32,
     camera_vertical_angle: f32,
+
+    debug_x: i32,
+    debug_y: i32,
 }
 
 impl LogicFrame {
@@ -56,6 +59,39 @@ impl LogicFrame {
 
         //let forward = current.camera_rotation.rotate(vector3::FORWARD);
         //ris_log::debug!("{:?}", forward);
+        
+        if input.general.buttons.is_down(action::CAMERA_UP) {
+            self.debug_y += 1;
+        }
+
+        if input.general.buttons.is_down(action::CAMERA_DOWN) {
+            self.debug_y -= 1;
+        }
+        
+        if input.general.buttons.is_down(action::CAMERA_LEFT) {
+            self.debug_x -= 1;
+        }
+
+        if input.general.buttons.is_down(action::CAMERA_RIGHT) {
+            self.debug_x += 1;
+        }
+
+        if self.debug_x < 0 {
+            self.debug_x = 0
+        }
+        if self.debug_x > 3 {
+            self.debug_x = 3
+        }
+        if self.debug_y < 0 {
+            self.debug_y = 0
+        }
+        if self.debug_y > 3 {
+            self.debug_y = 3
+        }
+
+        if input.general.buttons.is_down(action::ANY) {
+            ris_log::debug!("{} {}", self.debug_x, self.debug_y);
+        }
 
         GameloopState::WantsToContinue
     }

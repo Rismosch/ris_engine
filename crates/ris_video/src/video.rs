@@ -15,10 +15,20 @@ use vulkano::command_buffer::CommandBufferUsage;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::command_buffer::RenderPassBeginInfo;
 use vulkano::command_buffer::SubpassContents;
-use vulkano::device::physical::PhysicalDeviceType;
+use vulkano::descriptor_set::pool::DescriptorPool;
+use vulkano::descriptor_set::pool::DescriptorPoolCreateInfo;
+use vulkano::descriptor_set::layout::DescriptorSetLayout;
+use vulkano::descriptor_set::layout::DescriptorSetLayoutBinding;
+use vulkano::descriptor_set::layout::DescriptorSetLayoutCreateInfo;
+use vulkano::descriptor_set::layout::DescriptorType;
+use vulkano::descriptor_set::DescriptorBindingResources;
+use vulkano::descriptor_set::DescriptorSetResources;
+use vulkano::descriptor_set::DescriptorSetsCollection;
+use vulkano::shader::DescriptorBindingRequirements;
 use vulkano::device::Device;
 use vulkano::device::DeviceCreateInfo;
 use vulkano::device::DeviceExtensions;
+use vulkano::device::physical::PhysicalDeviceType;
 use vulkano::device::Queue;
 use vulkano::device::QueueCreateInfo;
 use vulkano::device::QueueFlags;
@@ -29,11 +39,13 @@ use vulkano::instance::InstanceExtensions;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
 use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::pipeline::graphics::GraphicsPipeline;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::graphics::viewport::ViewportState;
-use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::PipelineBindPoint;
+use vulkano::pipeline::Pipeline;
 use vulkano::render_pass::Framebuffer;
 use vulkano::render_pass::FramebufferCreateInfo;
 use vulkano::render_pass::RenderPass;
@@ -58,6 +70,9 @@ use vulkano::sync::GpuFuture;
 use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
+
+use std::collections::btree_map::BTreeMap;
+use std::collections::HashMap;
 
 use ris_math::matrix4x4::Matrix4x4;
 
@@ -269,27 +284,32 @@ impl Video {
         let vertex_source = "
             #version 460
 
-            layout(binding = 0) uniform UniformBufferObject {
-                mat4 model;
-                mat4 view;
-                mat4 proj;
-
+            layout(set = 13, binding = 42) uniform UniformBufferObject {
+                int debug_x;
+                int debug_y;
             } ubo;
         
             layout(location = 0) in vec2 position;
 
+            layout(location = 0) out vec3 fragColor;
+
             void main() {
-                gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 0.0, 1.0);
+                float x = ubo.debug_x / 3.0;
+                float y = ubo.debug_y / 3.0;
+                gl_Position = vec4(position, 0.0, 1.0);
+                fragColor = vec3(x, y, 1.0);
             }
         ";
 
         let fragment_source = "
             #version 460
 
+            layout(location = 0) in vec3 fragColor;
+
             layout(location = 0) out vec4 f_color;
 
             void main() {
-                f_color = vec4(1.0, 0.0, 0.0, 1.0);
+                f_color = vec4(fragColor, 1.0);
             }
         ";
 
@@ -305,7 +325,7 @@ impl Video {
                 "main",
                 Some(&options),
             )
-            .map_err(|_| "failed to compile vertex shader")?;
+            .map_err(|e| format!("failed to compile vertex shader: {}", e))?;
         let vertex_words: &[u32] = vertex_artifact.as_binary();
         let vertex_shader =
             unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), vertex_words) }
@@ -319,7 +339,7 @@ impl Video {
                 "main",
                 Some(&options),
             )
-            .map_err(|_| "failed to compile fragment shader")?;
+            .map_err(|e| format!("failed to compile fragment shader: {}", e))?;
         let fragment_words: &[u32] = fragment_artifact.as_binary();
         let fragment_shader =
             unsafe { vulkano::shader::ShaderModule::from_words(device.clone(), fragment_words) }
@@ -333,35 +353,56 @@ impl Video {
             depth_range: 0.0..1.0,
         };
 
-        // descriptor set layout
-        use vulkano::descriptor_set::layout::DescriptorSetLayout;
-        use vulkano::descriptor_set::layout::DescriptorSetLayoutBinding;
-        use vulkano::descriptor_set::layout::DescriptorSetLayoutCreateInfo;
-        use std::collections::btree_map::BTreeMap;
-        use vulkano::shader::DescriptorBindingRequirements;
-
-        let binding = vertex_shader.clone();
-        let vertex_binding = binding.entry_point("main").ok_or("failed to locate vertex entry point")?;
-        let descriptor_binding_requirements = vertex_binding.descriptor_binding_requirements();
-
-        let mut descriptor_bindings = BTreeMap::new();
-
-        for (i, requirement) in descriptor_binding_requirements.enumerate() {
-            let test = DescriptorSetLayoutBinding::from(requirement.1);
-            descriptor_bindings.insert(i as u32, test);
-        }
-
-        let descriptor_set_layout = DescriptorSetLayout::new(
+        // descriptor pool
+        let mut pool_sizes: HashMap<DescriptorType, u32, ahash::RandomState> = HashMap::default();
+        pool_sizes.insert(DescriptorType::UniformBuffer, 8_u32);
+        let descriptor_pool = DescriptorPool::new(
             device.clone(),
-            DescriptorSetLayoutCreateInfo{
-                bindings: descriptor_bindings,
+            DescriptorPoolCreateInfo{
+                max_sets: 1,
+                pool_sizes,
                 ..Default::default()
             },
-        );
+        )
+        .map_err(|e| format!("failed to create descriptor pool: {}", e))?;
 
-        ris_log::debug!("after descriptor set creation: {:?}", descriptor_set_layout);
+        store pool, allocate buffer in compute buffer step, and bind descriptor sets
+        
+        // descriptor set layout
+        //let binding = vertex_shader.clone();
+        //let vertex_binding = binding.entry_point("main").ok_or("failed to locate vertex entry point")?;
+        //let descriptor_binding_requirements = vertex_binding.descriptor_binding_requirements();
 
+        //let mut descriptor_bindings = BTreeMap::new();
 
+        //let requirements_len = descriptor_binding_requirements.len() as u32;
+        //ris_log::trace!("requirements len: {}", requirements_len);
+
+        //for requirement in descriptor_binding_requirements {
+        //    let (_set, binding) = requirement.0;
+        //    let requirement = requirement.1;
+        //    let descriptor_set_layout_binding = DescriptorSetLayoutBinding::from(requirement);
+        //    descriptor_bindings.insert(binding, descriptor_set_layout_binding);
+        //}
+
+        //let descriptor_set_layout = DescriptorSetLayout::new(
+        //    device.clone(),
+        //    DescriptorSetLayoutCreateInfo{
+        //        bindings: descriptor_bindings,
+        //        ..Default::default()
+        //    },
+        //)
+        //.map_err(|e| format!("failed to create descriptor set layout: {}", e))?;
+
+        //let descriptor_set_resources = DescriptorSetResources::new(
+        //    &descriptor_set_layout,
+        //    0,
+        //);
+        //
+        //let test = descriptor_set_resources.binding(42).ok_or("failed to retreive binding")?;
+        //if let DescriptorBindingResources::Buffer(buf) = test {
+        //    ris_log::debug!("hey, this is really a buffer O.o");
+        //}
 
         // graphics pipeline
         let pipeline = get_pipeline(
@@ -572,6 +613,11 @@ fn get_command_buffers(
 ) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String> {
     let mut command_buffers = Vec::new();
     for framebuffer in framebuffers {
+
+        let pipeline_layout = pipeline.layout();
+        let descriptor_set_layouts = pipeline_layout.set_layouts();
+        ris_log::debug!("bruh: {}", descriptor_set_layouts.len());
+
         let mut builder = AutoCommandBufferBuilder::primary(
             command_buffer_allocator,
             queue.queue_family_index(),
@@ -590,7 +636,12 @@ fn get_command_buffers(
             .map_err(|_| "failed to begin render pass")?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, vertex_buffer.clone())
-            //.bind_descriptor_sets()
+            //.bind_descriptor_sets(
+            //    PipelineBindPoint::Graphics,
+            //    pipeline.layout().clone(),
+            //    0,
+            //    descriptor_set_layout.clone()
+            //)
             .draw(vertex_buffer.len() as u32, 1, 0, 0)
             .map_err(|x| format!("failed to draw ({:?})", x))?
             .end_render_pass()
