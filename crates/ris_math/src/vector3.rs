@@ -59,10 +59,14 @@ impl Vector3 {
 
     pub fn normalized(self) -> Self {
         let magnitude = self.magnitude();
-        Self {
-            x: self.x / magnitude,
-            y: self.y / magnitude,
-            z: self.z / magnitude,
+        if magnitude < super::MIN_NORM {
+            ZERO
+        } else {
+            Self {
+                x: self.x / magnitude,
+                y: self.y / magnitude,
+                z: self.z / magnitude,
+            }
         }
     }
 

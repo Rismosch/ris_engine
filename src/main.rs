@@ -52,7 +52,13 @@ fn get_app_info() -> Result<AppInfo, String> {
 fn run(app_info: AppInfo) -> Result<(), String> {
     let log_guard = init_log(&app_info);
 
-    let mut engine = Engine::new(app_info)?;
+    let mut engine = match Engine::new(app_info) {
+        Ok(x) => x,
+        Err(x) => {
+            ris_log::fatal!("error while initializing engine: \"{}\"", x);
+            return Err(x);
+        },
+    };
     let result = engine.run();
 
     if let Err(error) = result {

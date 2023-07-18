@@ -59,6 +59,8 @@ use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
+use ris_math::matrix4x4::Matrix4x4;
+
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
 struct MyVertex {
@@ -267,10 +269,17 @@ impl Video {
         let vertex_source = "
             #version 460
 
+            layout(binding = 0) uniform UniformBufferObject {
+                mat4 model;
+                mat4 view;
+                mat4 proj;
+
+            } ubo;
+        
             layout(location = 0) in vec2 position;
 
             void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
+                gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 0.0, 1.0);
             }
         ";
 
@@ -324,7 +333,37 @@ impl Video {
             depth_range: 0.0..1.0,
         };
 
-        // pipeline
+        // descriptor set layout
+        use vulkano::descriptor_set::layout::DescriptorSetLayout;
+        use vulkano::descriptor_set::layout::DescriptorSetLayoutBinding;
+        use vulkano::descriptor_set::layout::DescriptorSetLayoutCreateInfo;
+        use std::collections::btree_map::BTreeMap;
+        use vulkano::shader::DescriptorBindingRequirements;
+
+        let binding = vertex_shader.clone();
+        let vertex_binding = binding.entry_point("main").ok_or("failed to locate vertex entry point")?;
+        let descriptor_binding_requirements = vertex_binding.descriptor_binding_requirements();
+
+        let mut descriptor_bindings = BTreeMap::new();
+
+        for (i, requirement) in descriptor_binding_requirements.enumerate() {
+            let test = DescriptorSetLayoutBinding::from(requirement.1);
+            descriptor_bindings.insert(i as u32, test);
+        }
+
+        let descriptor_set_layout = DescriptorSetLayout::new(
+            device.clone(),
+            DescriptorSetLayoutCreateInfo{
+                bindings: descriptor_bindings,
+                ..Default::default()
+            },
+        );
+
+        ris_log::debug!("after descriptor set creation: {:?}", descriptor_set_layout);
+
+
+
+        // graphics pipeline
         let pipeline = get_pipeline(
             device.clone(),
             vertex_shader.clone(),
@@ -409,7 +448,7 @@ impl Video {
         Ok(())
     }
 
-    pub fn draw(&mut self) -> DrawState {
+    pub fn draw(&mut self, view_matrix: Matrix4x4) -> DrawState {
         let mut wants_to_recreate_swapchain = false;
 
         let (image_i, suboptimal, acquire_future) =
@@ -551,8 +590,9 @@ fn get_command_buffers(
             .map_err(|_| "failed to begin render pass")?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, vertex_buffer.clone())
+            //.bind_descriptor_sets()
             .draw(vertex_buffer.len() as u32, 1, 0, 0)
-            .map_err(|_| "failed to draw")?
+            .map_err(|x| format!("failed to draw ({:?})", x))?
             .end_render_pass()
             .map_err(|_| "failed to end render pass")?;
 

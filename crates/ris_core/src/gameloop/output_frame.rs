@@ -48,10 +48,10 @@ impl OutputFrame {
             // 3. view to clip space => projection matrix
             // 4. clip to screen space => viewport transform
 
-            let camera_transformation =
+            let view_matrix =
                 Matrix4x4::transformation(logic.camera_rotation, logic.camera_position);
 
-            match self.video.draw() {
+            match self.video.draw(view_matrix) {
                 DrawState::Ok => (),
                 DrawState::WantsToRecreateSwapchain => self.recreate_swapchain = true,
                 DrawState::Err(e) => return GameloopState::Error(e),

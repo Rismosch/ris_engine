@@ -126,11 +126,15 @@ impl Quaternion {
 
     pub fn normalized(self) -> Self {
         let magnitude = self.magnitude();
-        Self {
-            w: self.w / magnitude,
-            x: self.x / magnitude,
-            y: self.y / magnitude,
-            z: self.z / magnitude,
+        if magnitude < super::MIN_NORM {
+            Self::identity()
+        } else {
+            Self {
+                w: self.w / magnitude,
+                x: self.x / magnitude,
+                y: self.y / magnitude,
+                z: self.z / magnitude,
+            }
         }
     }
 

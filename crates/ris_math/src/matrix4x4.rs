@@ -54,7 +54,7 @@ impl Matrix4x4 {
         }
     }
 
-    pub fn transpose(self) -> Self {
+    pub fn transposed(self) -> Self {
         Self {
             m00: self.m00,
             m01: self.m10,

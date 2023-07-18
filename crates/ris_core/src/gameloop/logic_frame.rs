@@ -54,8 +54,8 @@ impl LogicFrame {
         let rotation2 = Quaternion::from_angle_axis(self.camera_vertical_angle, vector3::RIGHT);
         current.camera_rotation = rotation1 * rotation2;
 
-        let forward = current.camera_rotation.rotate(vector3::FORWARD);
-        ris_log::debug!("{:?}", forward);
+        //let forward = current.camera_rotation.rotate(vector3::FORWARD);
+        //ris_log::debug!("{:?}", forward);
 
         GameloopState::WantsToContinue
     }
