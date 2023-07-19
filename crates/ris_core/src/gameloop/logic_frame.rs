@@ -90,8 +90,11 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_down(action::ANY) {
-            ris_log::debug!("{} {}", self.debug_x, self.debug_y);
+            ris_log::debug!("{} {} | {}s {}fps", self.debug_x, self.debug_y, frame.delta(), frame.fps());
         }
+
+        current.debug_x = self.debug_x;
+        current.debug_y = self.debug_y;
 
         GameloopState::WantsToContinue
     }

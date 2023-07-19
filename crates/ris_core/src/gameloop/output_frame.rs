@@ -51,7 +51,7 @@ impl OutputFrame {
             let view_matrix =
                 Matrix4x4::transformation(logic.camera_rotation, logic.camera_position);
 
-            match self.video.draw(view_matrix) {
+            match self.video.draw(view_matrix, logic.debug_x, logic.debug_y) {
                 DrawState::Ok => (),
                 DrawState::WantsToRecreateSwapchain => self.recreate_swapchain = true,
                 DrawState::Err(e) => return GameloopState::Error(e),

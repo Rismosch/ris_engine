@@ -24,6 +24,9 @@ use vulkano::descriptor_set::layout::DescriptorType;
 use vulkano::descriptor_set::DescriptorBindingResources;
 use vulkano::descriptor_set::DescriptorSetResources;
 use vulkano::descriptor_set::DescriptorSetsCollection;
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::PersistentDescriptorSet;
+use vulkano::descriptor_set::WriteDescriptorSet;
 use vulkano::shader::DescriptorBindingRequirements;
 use vulkano::device::Device;
 use vulkano::device::DeviceCreateInfo;
@@ -76,6 +79,15 @@ use std::collections::HashMap;
 
 use ris_math::matrix4x4::Matrix4x4;
 
+type Uniform = (Subbuffer<UniformBufferObject>, Arc<PersistentDescriptorSet>);
+
+#[derive(Default, BufferContents)]
+#[repr(C)]
+struct UniformBufferObject {
+    debug_x: i32, 
+    debug_y: i32,
+}
+
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
 struct MyVertex {
@@ -104,8 +116,8 @@ pub struct Video {
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
     viewport: Viewport,
+    uniforms: Vec<Uniform>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
-
     fences: Vec<Option<Arc<Fence>>>,
     previous_fence_i: i32,
 }
@@ -250,6 +262,7 @@ impl Video {
 
         // allocators
         let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
+        let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device.clone(),
             StandardCommandBufferAllocatorCreateInfo::default(),
@@ -284,7 +297,7 @@ impl Video {
         let vertex_source = "
             #version 460
 
-            layout(set = 13, binding = 42) uniform UniformBufferObject {
+            layout(set = 0, binding = 0) uniform UniformBufferObject {
                 int debug_x;
                 int debug_y;
             } ubo;
@@ -297,7 +310,7 @@ impl Video {
                 float x = ubo.debug_x / 3.0;
                 float y = ubo.debug_y / 3.0;
                 gl_Position = vec4(position, 0.0, 1.0);
-                fragColor = vec3(x, y, 1.0);
+                fragColor = vec3(x, y, 0.0);
             }
         ";
 
@@ -353,57 +366,6 @@ impl Video {
             depth_range: 0.0..1.0,
         };
 
-        // descriptor pool
-        let mut pool_sizes: HashMap<DescriptorType, u32, ahash::RandomState> = HashMap::default();
-        pool_sizes.insert(DescriptorType::UniformBuffer, 8_u32);
-        let descriptor_pool = DescriptorPool::new(
-            device.clone(),
-            DescriptorPoolCreateInfo{
-                max_sets: 1,
-                pool_sizes,
-                ..Default::default()
-            },
-        )
-        .map_err(|e| format!("failed to create descriptor pool: {}", e))?;
-
-        store pool, allocate buffer in compute buffer step, and bind descriptor sets
-        
-        // descriptor set layout
-        //let binding = vertex_shader.clone();
-        //let vertex_binding = binding.entry_point("main").ok_or("failed to locate vertex entry point")?;
-        //let descriptor_binding_requirements = vertex_binding.descriptor_binding_requirements();
-
-        //let mut descriptor_bindings = BTreeMap::new();
-
-        //let requirements_len = descriptor_binding_requirements.len() as u32;
-        //ris_log::trace!("requirements len: {}", requirements_len);
-
-        //for requirement in descriptor_binding_requirements {
-        //    let (_set, binding) = requirement.0;
-        //    let requirement = requirement.1;
-        //    let descriptor_set_layout_binding = DescriptorSetLayoutBinding::from(requirement);
-        //    descriptor_bindings.insert(binding, descriptor_set_layout_binding);
-        //}
-
-        //let descriptor_set_layout = DescriptorSetLayout::new(
-        //    device.clone(),
-        //    DescriptorSetLayoutCreateInfo{
-        //        bindings: descriptor_bindings,
-        //        ..Default::default()
-        //    },
-        //)
-        //.map_err(|e| format!("failed to create descriptor set layout: {}", e))?;
-
-        //let descriptor_set_resources = DescriptorSetResources::new(
-        //    &descriptor_set_layout,
-        //    0,
-        //);
-        //
-        //let test = descriptor_set_resources.binding(42).ok_or("failed to retreive binding")?;
-        //if let DescriptorBindingResources::Buffer(buf) = test {
-        //    ris_log::debug!("hey, this is really a buffer O.o");
-        //}
-
         // graphics pipeline
         let pipeline = get_pipeline(
             device.clone(),
@@ -413,6 +375,37 @@ impl Video {
             viewport.clone(),
         )?;
 
+        // descriptor sets
+        let mut uniforms = Vec::new();
+        for _ in 0..images.len()
+        {
+            let ubo = UniformBufferObject::default();
+            //let data = unsafe { any_as_u8_slice(&ubo) };
+
+            let buffer = Buffer::from_data(
+                &memory_allocator,
+                BufferCreateInfo {
+                    usage: BufferUsage::UNIFORM_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    usage: MemoryUsage::Upload,
+                    ..Default::default()
+                },
+                ubo,
+            )
+            .map_err(|e| format!("failed to create uniform buffer: {}", e))?;
+
+            let descriptor_set = PersistentDescriptorSet::new(
+                &descriptor_set_allocator,
+                pipeline.layout().set_layouts().get(0).ok_or("failed to get descriptor set layout")?.clone(),
+                [WriteDescriptorSet::buffer(0, buffer.clone())],
+            )
+            .map_err(|e| format!("failed to create persistent descriptor set: {}", e))?;
+
+            uniforms.push((buffer, descriptor_set));
+        }
+
         // command buffers
         let command_buffers = get_command_buffers(
             &command_buffer_allocator,
@@ -420,6 +413,7 @@ impl Video {
             &pipeline,
             &framebuffers,
             &vertex_buffer,
+            &uniforms,
         )?;
 
         // fences
@@ -439,6 +433,7 @@ impl Video {
             vertex_shader,
             fragment_shader,
             viewport,
+            uniforms,
             command_buffers,
             fences,
             previous_fence_i,
@@ -479,6 +474,7 @@ impl Video {
                 &new_pipeline,
                 &new_framebuffers,
                 &self.vertex_buffer,
+                &self.uniforms,
             )?;
 
             self.command_buffers = new_command_buffers;
@@ -489,7 +485,7 @@ impl Video {
         Ok(())
     }
 
-    pub fn draw(&mut self, view_matrix: Matrix4x4) -> DrawState {
+    pub fn draw(&mut self, view_matrix: Matrix4x4, debug_x: i32, debug_y: i32) -> DrawState {
         let mut wants_to_recreate_swapchain = false;
 
         let (image_i, suboptimal, acquire_future) =
@@ -507,6 +503,18 @@ impl Video {
             if let Err(e) = image_fence.wait(None) {
                 return DrawState::Err(format!("failed to wait on fence: {}", e));
             }
+        }
+        
+        {
+            let mut uniform = match self.uniforms[image_i as usize]
+            .0
+            .write() {
+                Ok(x) => x,
+                Err(e) => return DrawState::Err(String::from("failed to update uniform")),
+            };
+
+            uniform.debug_x = debug_x;
+            uniform.debug_y = debug_y;
         }
 
         let previous_future = match self.fences[self.previous_fence_i as usize].clone() {
@@ -610,9 +618,11 @@ fn get_command_buffers(
     pipeline: &Arc<GraphicsPipeline>,
     framebuffers: &Vec<Arc<Framebuffer>>,
     vertex_buffer: &Subbuffer<[MyVertex]>,
+    uniforms: &Vec<Uniform>,
+
 ) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String> {
     let mut command_buffers = Vec::new();
-    for framebuffer in framebuffers {
+    for (i, framebuffer) in framebuffers.iter().enumerate() {
 
         let pipeline_layout = pipeline.layout();
         let descriptor_set_layouts = pipeline_layout.set_layouts();
@@ -636,12 +646,12 @@ fn get_command_buffers(
             .map_err(|_| "failed to begin render pass")?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, vertex_buffer.clone())
-            //.bind_descriptor_sets(
-            //    PipelineBindPoint::Graphics,
-            //    pipeline.layout().clone(),
-            //    0,
-            //    descriptor_set_layout.clone()
-            //)
+            .bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                pipeline.layout().clone(),
+                0,
+                uniforms[i].1.clone(),
+            )
             .draw(vertex_buffer.len() as u32, 1, 0, 0)
             .map_err(|x| format!("failed to draw ({:?})", x))?
             .end_render_pass()
@@ -658,3 +668,4 @@ fn get_command_buffers(
 
     Ok(command_buffers)
 }
+
