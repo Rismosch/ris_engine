@@ -75,7 +75,7 @@ fn manual_crash(
 fn reset_manual_crash(new_keyboard_data: &mut KeyboardData, scancode: Scancode) {
     match scancode {
         Scancode::F12 => new_keyboard_data.crash_timestamp = Instant::now(),
-        Scancode::F10 => new_keyboard_data.crash_timestamp = Instant::now(),
+        Scancode::F10 => new_keyboard_data.restart_timestamp = Instant::now(),
         _ => (),
     }
 }

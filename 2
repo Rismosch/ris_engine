@@ -1,0 +1,34 @@
+use std::sync::Arc;
+
+use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBufferUsage;
+use vulkano::command_buffer::PrimaryAutoCommandBuffer;
+use vulkano::device::Queue;
+use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::Pipeline;
+use vulkano::render_pass::Framebuffer;
+
+pub fn create_command_buffers(
+    allocators: &crate::allocators::Allocators,
+    queue: &Arc<Queue>,
+    pipeline: &Arc<GraphicsPipeline>,
+    framebuffers: &Vec<Arc<Framebuffer>>,
+    buffers: &crate::buffers::Buffers,
+) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String>
+{
+    let mut command_buffers = Vec::new();
+
+    for (i, framebuffer) in framebuffers.iter().enumerate() {
+        let pipeline_layout = pipeline.layout();
+        let descriptor_set_layouts = pipeline_layout.set_layouts();
+
+        let mut builder = AutoCommandBufferBuilder::primary(
+            &allocators.command_buffer,
+            queue.queue_family_index(),
+            CommandBufferUsage::MultipleSubmit,
+        )
+        .map_err(|e| format!("failed to create auto command buffer builder: {}", e))?;
+    }
+
+    Ok(command_buffers)
+}
