@@ -8,9 +8,15 @@ pub struct UniformBufferObject {
     pub debug_y: i32,
 }
 
-#[derive(BufferContents, Vertex)]
+#[derive(BufferContents, Vertex, Default)]
 #[repr(C)]
-pub struct RisVertex {
+pub struct Vertex2d {
     #[format(R32G32_SFLOAT)]
     pub position: [f32; 2],
+}
+
+#[derive(Default)]
+pub struct Scene {
+    pub vertex: Vertex2d,
+    pub ubo: UniformBufferObject,
 }

@@ -1,4 +1,5 @@
 use sdl2::Sdl;
+use sdl2_sys::SDL_WindowFlags;
 use std::sync::Arc;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
@@ -30,17 +31,22 @@ impl Video {
         })
     }
 
-    pub fn update(&mut self) -> Result<(), String> {
-        skip when window minimized
+    pub fn update(&mut self, scene: &crate::gpu_objects::Scene) -> Result<(), String> {
+        let window_flags = self.renderer.window.window_flags();
+        let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
+
+        if is_minimized {
+            return Ok(());
+        }
 
         if self.window_resized {
             self.window_resized = false;
             self.recreate_swapchain = false;
-            self.renderer.recreate_viewport();
+            self.renderer.recreate_viewport()?;
         }
 
         if self.recreate_swapchain {
-            self.renderer.recreate_swapchain();
+            self.renderer.recreate_swapchain()?;
             self.recreate_swapchain = false;
         }
 
@@ -62,10 +68,10 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        self.renderer.update_uniform(image_i);
+        self.renderer.update_uniform(image_i as usize, &scene.ubo);
 
         let use_gpu_resources = false;
-        let previous_future = match self.fences[self.previous_fence_i as usize] {
+        let previous_future = match self.fences[self.previous_fence_i as usize].clone() {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
@@ -81,7 +87,7 @@ impl Video {
 
         let result = self
             .renderer
-            .flush_next_future(previous_future, acquire_future, image_i);
+            .flush_next_future(previous_future, acquire_future, image_i)?;
 
         self.fences[image_i as usize] = match result {
             Ok(fence) => Some(Arc::new(fence)),

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use vulkano::device::Device;
 use vulkano::pipeline::GraphicsPipeline;
-use vulkano::pipeline::graphics::input_assembly::InputAssemblyState
+use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::graphics::viewport::ViewportState;
@@ -10,18 +10,18 @@ use vulkano::render_pass::RenderPass;
 use vulkano::render_pass::Subpass;
 use vulkano::shader::ShaderModule;
 
-use crate::gpu_objects::RisVertex;
+use crate::gpu_objects::Vertex2d;
 
 pub fn create_pipeline(
     device: &Arc<Device>,
     vertex_shader: &Arc<ShaderModule>,
     fragment_shader: &Arc<ShaderModule>,
     render_pass: &Arc<RenderPass>,
-    viewport: Viewport,
+    viewport: &Viewport,
 ) -> Result<Arc<GraphicsPipeline>, String> {
     Ok(
         GraphicsPipeline::start()
-        .vertex_input_state(RisVertex::per_vertex())
+        .vertex_input_state(Vertex2d::per_vertex())
         .vertex_shader(
             vertex_shader.clone()
             .entry_point("main")
@@ -29,7 +29,7 @@ pub fn create_pipeline(
             (),
         )
         .input_assembly_state(InputAssemblyState::new())
-        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport]))
+        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([viewport.clone()]))
         .fragment_shader(
             fragment_shader.clone()
             .entry_point("main")

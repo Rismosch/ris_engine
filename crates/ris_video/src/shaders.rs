@@ -17,7 +17,7 @@ pub fn compile_shaders(device: &Arc<Device>)
 
         layout(location = 0) in vec2 position;
 
-        lacout(location = 0) out vec3 fragColor;
+        layout(location = 0) out vec3 fragColor;
 
         void main() {
             float x = ubo.debug_x / 3.0;

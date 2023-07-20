@@ -11,13 +11,13 @@ use vulkano::pipeline::Pipeline;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
 
-use crate::gpu_objects::RisVertex;
+use crate::gpu_objects::Vertex2d;
 use crate::gpu_objects::UniformBufferObject;
 
 pub type Uniform<U> = (Subbuffer<U>, Arc<PersistentDescriptorSet>);
 
 pub struct Buffers {
-    pub vertex: Subbuffer<[RisVertex]>,
+    pub vertex: Subbuffer<[Vertex2d]>,
     //pub index: Subbuffer<[u16]>,
     pub uniforms: Vec<Uniform<UniformBufferObject>>,
 }
@@ -29,13 +29,13 @@ impl Buffers {
         pipeline: &Arc<GraphicsPipeline>,
     ) -> Result<Self, String> {
         // vertex
-        let vertex1 = RisVertex{
+        let vertex1 = Vertex2d{
             position: [0.0, -0.5],
         };
-        let vertex2 = RisVertex{
+        let vertex2 = Vertex2d{
             position: [0.5, 0.5],
         };
-        let vertex3 = RisVertex{
+        let vertex3 = Vertex2d{
             position: [-0.5, 0.5],
         };
 

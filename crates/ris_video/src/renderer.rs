@@ -19,12 +19,17 @@ use vulkano::pipeline::GraphicsPipeline;
 use vulkano::render_pass::Framebuffer;
 use vulkano::render_pass::RenderPass;
 use vulkano::shader::ShaderModule;
+use vulkano::swapchain;
 use vulkano::swapchain::AcquireError;
 use vulkano::swapchain::PresentFuture;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceApi;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainAcquireFuture;
+use vulkano::swapchain::SwapchainCreateInfo;
+use vulkano::swapchain::SwapchainCreationError;
+use vulkano::swapchain::SwapchainPresentInfo;
+use vulkano::sync;
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::future::JoinFuture;
 use vulkano::sync::future::NowFuture;
@@ -159,7 +164,7 @@ impl Renderer {
             &vertex_shader,
             &fragment_shader,
             &render_pass,
-            viewport,
+            &viewport,
         )?;
 
         // allocators
@@ -201,22 +206,63 @@ impl Renderer {
         })
     }
 
-    pub fn recreate_swapchain(&mut self) {
+    pub fn recreate_swapchain(&mut self) -> Result<(), String> {
+        let new_dimensions = self.window.vulkan_drawable_size();
+        let (new_swapchain, new_images) = match self.swapchain.recreate(
+            SwapchainCreateInfo {
+                image_extent: [new_dimensions.0, new_dimensions.1],
+                ..self.swapchain.create_info()
+            }) {
+            Ok(r) => r,
+            Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
+            Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
+        };
+
+        self.swapchain = new_swapchain;
+        self.framebuffers = crate::swapchain::create_framebuffers(
+            &new_images,
+            &self.render_pass,
+        )?;
+
+        Ok(())
     }
 
-    pub fn recreate_viewport(&mut self) {
+    pub fn recreate_viewport(&mut self) -> Result<(), String> {
+        self.recreate_swapchain()?;
+        let (w, h) = self.window.vulkan_drawable_size();
+        self.viewport.dimensions = [w as f32, h as f32];
+
+        self.pipeline = crate::pipeline::create_pipeline(
+            &self.device,
+            &self.vertex_shader,
+            &self.fragment_shader,
+            &self.render_pass,
+            &self.viewport,
+        )?;
+
+        self.command_buffers = crate::command_buffers::create_command_buffers(
+            &self.allocators,
+            &self.queue,
+            &self.pipeline,
+            &self.framebuffers,
+            &self.buffers,
+        )?;
+
+        Ok(())
     }
 
     pub fn get_image_count(&self) -> usize {
-
+        self.images.len()
     }
 
     pub fn acquire_swapchain_image(&self) -> Result<(u32, bool, SwapchainAcquireFuture), AcquireError> {
-
+        swapchain::acquire_next_image(self.swapchain.clone(), None)
     }
 
     pub fn synchronize(&self) -> NowFuture {
-
+        let mut now = sync::now(self.device.clone());
+        now.cleanup_finished();
+        now
     }
 
     pub fn flush_next_future(
@@ -224,10 +270,34 @@ impl Renderer {
         previous_future: Box<dyn GpuFuture>,
         swqapchain_acquire_future: SwapchainAcquireFuture,
         image_i: u32,
-    ) -> Result<Fence, FlushError> {
-
+    ) -> Result<Result<Fence, FlushError>, String> {
+        Ok(previous_future
+            .join(swqapchain_acquire_future)
+            .then_execute(
+                self.queue.clone(),
+                self.command_buffers[image_i as usize].clone(),
+            )
+            .map_err(|e| format!("failed to execute command buffer: {}", e))?
+            .then_swapchain_present(
+                self.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
+            )
+            .then_signal_fence_and_flush())
     }
 
-    pub fn update_uniform(&self, index: u32) {
+    pub fn update_uniform(
+        &self,
+        index: usize,
+        ubo: &crate::gpu_objects::UniformBufferObject
+    ) -> Result<(), String> {
+        let mut uniform_content = self.buffers.uniforms[index]
+            .0
+            .write()
+            .map_err(|e| format!("failed to update uniform: {}", e))?;
+
+        uniform_content.debug_x = ubo.debug_x;
+        uniform_content.debug_y = ubo.debug_y;
+
+        Ok(())
     }
 }
