@@ -1,3 +1,5 @@
+use vulkano::buffer::BufferContents;
+
 use crate::quaternion::Quaternion;
 use crate::vector3::Vector3;
 
@@ -5,7 +7,8 @@ use crate::vector3::Vector3;
 // m10 m11 m12 m13
 // m20 m21 m22 m23
 // m30 m31 m32 m33
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, BufferContents)]
+#[repr(C)]
 pub struct Matrix4x4 {
     pub m00: f32,
     pub m01: f32,

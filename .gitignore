@@ -6,7 +6,7 @@
 Cargo.lock
 
 # build script
-/release
+/build
 
 # vs code
 /.vscode

@@ -1,5 +1,5 @@
 pub const NONE: u32 = 0x0;
-pub const A0: u32 = 0x1; // a
+pub const OK: u32 = 0x1; // a
 pub const A1: u32 = 0x2; // b
 pub const A2: u32 = 0x4; // x
 pub const A3: u32 = 0x8; // y

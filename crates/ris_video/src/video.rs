@@ -6,6 +6,7 @@ use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
+use ris_math::matrix4x4::Matrix4x4;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -73,9 +74,12 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
+        let view_matrix = Matrix4x4::transformation(scene.camera_rotation, scene.camera_position);
+
         let ubo = UniformBufferObject {
             debug_x: scene.debug_x,
             debug_y: scene.debug_y,
+            view_matrix,
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
 

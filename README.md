@@ -38,7 +38,7 @@ Alternatively, you can build a release-ready package, by running the build scrip
 
 **Note:** The build script compiles with _ALL_ optimizations enabled, and thus may take much much longer than running `cargo run`.
 
-The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./release/`:
+The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./build/`:
 
 1. **ris_engine.exe**  
 This is the compiled engine. It contains all logic to run the game.
