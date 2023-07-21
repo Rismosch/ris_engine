@@ -6,7 +6,7 @@
 
 ## ⚙️ Requirements
 
-To compile this repo, you need a working Rust compiler. I currently use `rustc 1.70.0`. A newer one probably works fine.
+To compile this repo, you need a working Rust compiler. I currently use `cargo` and `rustc 1.70.0`. A newer one probably works fine.
 
 The current target platform is Windows 64-bit. Other platforms probably wont work and I give no guarantees.
 
@@ -33,7 +33,7 @@ Assuming everything is installed correctly, you can now simply compile and run t
 
 Alternatively, you can build a release-ready package, by running the build script found under:
 
-> ./CI/build_release.ps1
+> ./ci/build_release.ps1
 
 
 **Note:** The build script compiles with _ALL_ optimizations enabled, and thus may take much much longer than running `cargo run`.
