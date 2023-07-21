@@ -5,8 +5,8 @@
 /target
 Cargo.lock
 
-# build script
+# build custom
 /build
 
-# vs code
+# vscode
 /.vscode

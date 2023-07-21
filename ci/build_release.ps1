@@ -1,11 +1,77 @@
+$ErrorActionPreference = "Stop"
+
 Write-Host "checking preconditions..."
 
 $sdl2_dll = "$PSScriptRoot/../SDL2.dll"
+$shaderc_dll = "$PSScriptRoot/../shaderc_shared.dll"
 
 $sdl2_dll_exists = Test-Path $sdl2_dll
+$shaderc_dll_exists = Test-Path $shaderc_dll
 
 if (!$sdl2_dll_exists) {
     throw "could not find ``SDL2.dll`` in the root directory"
+}
+
+if (!$shaderc_dll_exists) {
+    throw "could not find ``shaderc_shared.dll`` in the root directory"
+}
+
+Write-Host "clearing destination directory..."
+
+$final_directory = "$PSScriptRoot/../build"
+
+if (Test-Path $final_directory) {
+    Remove-Item -Recurse -Force $final_directory
+}
+
+New-Item -Path $final_directory -ItemType Directory | out-null
+
+Write-Host "parsing cli args..."
+
+$cli_cargo_clean = "--cargo-clean"
+$cli_no_cargo_clean = "--no-cargo-clean"
+$cli_cargo_clean_value = $false;
+
+$cli_debug = "--debug"
+$cli_release = "--release"
+$cli_release_value = $true
+
+if ($args.length -eq 0) {
+    Write-Host ""
+    Write-Host "INFO: you may skip user input, by providing cli args."
+    Write-Host ""
+    Write-Host "available args:"
+    Write-Host "    $cli_cargo_clean     executes ``cargo clean`` before building"
+    Write-Host "    $cli_no_cargo_clean  does not execute ``cargo clean`` (default)"
+    Write-Host ""
+    Write-Host "    $cli_debug           builds as debug"
+    Write-Host "    $cli_release         builds as release (default)"
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+    Write-Host ""
+
+    $user_input = Read-Host "should ``cargo clean`` be executed before building? (y/N)"
+    if ($user_input.ToLower() -eq "y") {
+        $cli_cargo_clean_value = $true
+    }
+
+    $user_input = Read-Host "should be build as release? (Y/n)"
+    if ($user_input.ToLower() -eq "n") {
+        $cli_release_value = $false
+    }
+} else {
+    for($i = 0; $i -lt $args.length; ++$i) {
+        $arg = $args[$i]
+        switch ($arg) {
+            $cli_cargo_clean { $cli_cargo_clean_value = $true }
+            $cli_no_cargo_clean { $cli_cargo_clean_value = $false }
+            $cli_debug { $cli_release_value = $false }
+            $cli_release { $cli_release_value = $true }
+            default { throw "unkown cli arg: $arg" }
+        }
+    }
 }
 
 Write-Host "generating build info..."
@@ -106,24 +172,27 @@ Set-Content -Path $build_info_path -Value $build_info_content
 
 Write-Host "compiling workspace..."
 
-# cargo clean
-cargo build -r
+if ($cli_cargo_clean_value -eq $true) {
+    cargo clean
+}
+
+if ($cli_release_value -eq $true) {
+    cargo build -r
+    $build_profile = "release"
+} else {
+    cargo build
+    $build_profile = "debug"
+}
 
 Write-Host "moving files..."
 
-$target_directory = "$PSScriptRoot/../target/release"
-$final_directory = "$PSScriptRoot/../build"
-
-if (Test-Path $final_directory) {
-    Remove-Item -Recurse -Force $final_directory
-}
-
-New-Item -Path $final_directory -ItemType Directory | out-null
+$target_directory = "$PSScriptRoot/../target/$build_profile"
 
 Copy-Item "$target_directory/ris_engine.exe" -Destination "$final_directory/ris_engine.exe"
 Copy-Item $sdl2_dll -Destination "$final_directory/SDL2.dll"
+Copy-Item $shaderc_dll -Destination "$final_directory/shaderc_shared.dll"
 
 $resolved_final_directory = Resolve-Path $final_directory
 
-Write-Host "Done! Final build can be found under ``$resolved_final_directory``"
+Write-Host "done! final build can be found under ``$resolved_final_directory``"
 
