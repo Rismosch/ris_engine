@@ -33,7 +33,7 @@ Assuming everything is installed correctly, you can now simply compile and run t
 
 Alternatively, you can build a release-ready package, by running the build script found under:
 
-> ./ci/build_release.ps1
+> ./ci/build.ps1
 
 
 The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./build/`:
