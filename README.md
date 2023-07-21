@@ -42,4 +42,7 @@ The build script will generate building information, compile the entire workspac
 This is the compiled engine. It contains all logic to run the game.
 
 2. **SDL2.dll**  
-This contains all functionality of SDL2. It must always be found in the same directory as `ris_engine.exe`, otherwise you will get a runtime error.
+This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and graphics.
+
+3. **shaderc_shared.dll**
+This library is a compiler, which compiles [GLSL](https://www.khronos.org/opengl/wiki/Core_Language_(GLSL))/[HLSL](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl) to [SPIR-V](https://www.khronos.org/spir/).
