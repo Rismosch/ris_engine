@@ -6,7 +6,7 @@
 
 ## ⚙️ Requirements
 
-To compile this repo, you need a working Rust compiler. I currently use `cargo` and `rustc 1.70.0`. A newer one probably works fine.
+To compile this repo, you need a working Rust compiler. I currently use `cargo` and `rustc 1.70.0`. A newer compiler probably works fine.
 
 The current target platform is Windows 64-bit. Other platforms probably wont work and I give no guarantees.
 
