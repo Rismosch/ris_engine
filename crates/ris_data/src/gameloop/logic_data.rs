@@ -1,6 +1,7 @@
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3::Vector3;
-use super::super::output::gpu_objects::Scene;
+
+use super::super::scene::Scene;
 
 #[derive(Default, Clone)]
 pub struct LogicData {

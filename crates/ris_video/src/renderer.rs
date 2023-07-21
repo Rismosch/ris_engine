@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use sdl2::Sdl;
 use sdl2::video::Window;
+use sdl2::Sdl;
 use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::device::Device;
@@ -9,7 +9,6 @@ use vulkano::device::DeviceCreateInfo;
 use vulkano::device::DeviceExtensions;
 use vulkano::device::Queue;
 use vulkano::device::QueueCreateInfo;
-use vulkano::Handle;
 use vulkano::image::SwapchainImage;
 use vulkano::instance::Instance;
 use vulkano::instance::InstanceCreateInfo;
@@ -35,6 +34,7 @@ use vulkano::sync::future::JoinFuture;
 use vulkano::sync::future::NowFuture;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
+use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
@@ -63,7 +63,9 @@ pub struct Renderer {
 impl Renderer {
     pub fn initialize(sdl_context: &Sdl) -> Result<Self, String> {
         // window
-        let video_subsystem = sdl_context.video().map_err(|e| format!("failed to get video subsystem: {}", e))?;
+        let video_subsystem = sdl_context
+            .video()
+            .map_err(|e| format!("failed to get video subsystem: {}", e))?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
             //.resizable()
@@ -73,11 +75,12 @@ impl Renderer {
             .map_err(|e| format!("failed to build window: {}", e))?;
 
         // instance
-        let library = VulkanLibrary::new().map_err(|e| format!("no local vulkano library: {}", e))?;
+        let library =
+            VulkanLibrary::new().map_err(|e| format!("no local vulkano library: {}", e))?;
         let instance_extensions = InstanceExtensions::from_iter(
             window
-            .vulkan_instance_extensions()
-            .map_err(|e| format!("failed to get vulkan instance extensions: {}", e))?
+                .vulkan_instance_extensions()
+                .map_err(|e| format!("failed to get vulkan instance extensions: {}", e))?,
         );
         let instance = Instance::new(
             library,
@@ -85,7 +88,8 @@ impl Renderer {
                 enabled_extensions: instance_extensions,
                 ..Default::default()
             },
-        ).map_err(|e| format!("failed to create instance: {}", e))?;
+        )
+        .map_err(|e| format!("failed to create instance: {}", e))?;
 
         // surface
         let surface_handle = window
@@ -102,7 +106,7 @@ impl Renderer {
         let surface = Arc::new(surface);
 
         // physical device
-        let device_extensions = DeviceExtensions{
+        let device_extensions = DeviceExtensions {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
         };
@@ -115,8 +119,8 @@ impl Renderer {
         // device
         let (device, mut queues) = Device::new(
             physical_device.clone(),
-            DeviceCreateInfo{
-                queue_create_infos: vec![QueueCreateInfo{
+            DeviceCreateInfo {
+                queue_create_infos: vec![QueueCreateInfo {
                     queue_family_index,
                     ..Default::default()
                 }],
@@ -128,24 +132,14 @@ impl Renderer {
         let queue = queues.next().ok_or("no queues available")?;
 
         // swapchain
-        let (swapchain, images) = crate::swapchain::create_swapchain(
-            &physical_device,
-            &window,
-            &device,
-            &surface,
-        )?;
+        let (swapchain, images) =
+            crate::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
 
         // render pass
-        let render_pass = crate::render_pass::create_render_pass(
-            &device,
-            &swapchain,
-        )?;
+        let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
 
         // frame buffers
-        let framebuffers = crate::swapchain::create_framebuffers(
-            &images,
-            &render_pass,
-        )?;
+        let framebuffers = crate::swapchain::create_framebuffers(&images, &render_pass)?;
 
         // shaders
         let (vertex_shader, fragment_shader) = crate::shaders::compile_shaders(&device)?;
@@ -171,11 +165,7 @@ impl Renderer {
         let allocators = crate::allocators::Allocators::new(&device);
 
         // buffers
-        let buffers = crate::buffers::Buffers::new(
-            &allocators,
-            images.len(),
-            &pipeline,
-        )?;
+        let buffers = crate::buffers::Buffers::new(&allocators, images.len(), &pipeline)?;
 
         // command buffers
         let command_buffers = crate::command_buffers::create_command_buffers(
@@ -187,7 +177,7 @@ impl Renderer {
         )?;
 
         // return
-        Ok(Self{
+        Ok(Self {
             _instance: instance,
             window,
             device,
@@ -202,27 +192,23 @@ impl Renderer {
             fragment_shader,
             viewport,
             pipeline,
-            command_buffers
+            command_buffers,
         })
     }
 
     pub fn recreate_swapchain(&mut self) -> Result<(), String> {
         let new_dimensions = self.window.vulkan_drawable_size();
-        let (new_swapchain, new_images) = match self.swapchain.recreate(
-            SwapchainCreateInfo {
-                image_extent: [new_dimensions.0, new_dimensions.1],
-                ..self.swapchain.create_info()
-            }) {
+        let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
+            image_extent: [new_dimensions.0, new_dimensions.1],
+            ..self.swapchain.create_info()
+        }) {
             Ok(r) => r,
             Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
             Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
         };
 
         self.swapchain = new_swapchain;
-        self.framebuffers = crate::swapchain::create_framebuffers(
-            &new_images,
-            &self.render_pass,
-        )?;
+        self.framebuffers = crate::swapchain::create_framebuffers(&new_images, &self.render_pass)?;
 
         Ok(())
     }
@@ -255,7 +241,9 @@ impl Renderer {
         self.images.len()
     }
 
-    pub fn acquire_swapchain_image(&self) -> Result<(u32, bool, SwapchainAcquireFuture), AcquireError> {
+    pub fn acquire_swapchain_image(
+        &self,
+    ) -> Result<(u32, bool, SwapchainAcquireFuture), AcquireError> {
         swapchain::acquire_next_image(self.swapchain.clone(), None)
     }
 
@@ -288,7 +276,7 @@ impl Renderer {
     pub fn update_uniform(
         &self,
         index: usize,
-        ubo: &crate::gpu_objects::UniformBufferObject
+        ubo: &crate::gpu_objects::UniformBufferObject,
     ) -> Result<(), String> {
         let mut uniform_content = self.buffers.uniforms[index]
             .0

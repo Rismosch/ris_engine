@@ -10,8 +10,8 @@ use vulkano::swapchain::Surface;
 pub fn select_physical_device(
     instance: &Arc<Instance>,
     surface: &Arc<Surface>,
-    device_extensions: &DeviceExtensions
-    ) -> Result<(Arc<PhysicalDevice>, u32), String> {
+    device_extensions: &DeviceExtensions,
+) -> Result<(Arc<PhysicalDevice>, u32), String> {
     Ok(instance
         .enumerate_physical_devices()
         .map_err(|e| format!("failed to enumerate_physical_devices: {}", e))?
@@ -24,7 +24,7 @@ pub fn select_physical_device(
                     q.queue_flags.contains(QueueFlags::GRAPHICS)
                         && p.surface_support(i as u32, surface).unwrap_or(false)
                 })
-            .map(|q| (p, q as u32))
+                .map(|q| (p, q as u32))
         })
         .min_by_key(|(p, _)| match p.properties().device_type {
             PhysicalDeviceType::DiscreteGpu => 0,
@@ -34,6 +34,5 @@ pub fn select_physical_device(
             PhysicalDeviceType::Other => 4,
             _ => 5,
         })
-        .ok_or("no devices available")?
-    )
+        .ok_or("no devices available")?)
 }

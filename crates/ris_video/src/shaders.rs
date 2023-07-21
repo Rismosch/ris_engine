@@ -5,8 +5,7 @@ use vulkano::shader::ShaderModule;
 
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 
-pub fn compile_shaders(device: &Arc<Device>)
--> Result<Shaders, String>{
+pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
     let vertex_source = "
         #version 460
 
@@ -40,8 +39,7 @@ pub fn compile_shaders(device: &Arc<Device>)
     ";
 
     let compiler = shaderc::Compiler::new().ok_or("failed to initialize shaderc compiler")?;
-    let options =
-        shaderc::CompileOptions::new().ok_or("failed to initialize shaderc options")?;
+    let options = shaderc::CompileOptions::new().ok_or("failed to initialize shaderc options")?;
 
     let vertex_artifact = compiler
         .compile_into_spirv(
@@ -53,8 +51,7 @@ pub fn compile_shaders(device: &Arc<Device>)
         )
         .map_err(|e| format!("failed to compile vertex shader: {}", e))?;
     let vertex_words: &[u32] = vertex_artifact.as_binary();
-    let vertex_shader = 
-        unsafe {ShaderModule::from_words(device.clone(), vertex_words) }
+    let vertex_shader = unsafe { ShaderModule::from_words(device.clone(), vertex_words) }
         .map_err(|e| format!("failed to load vertex shader module: {}", e))?;
 
     let fragment_artifact = compiler
@@ -67,9 +64,8 @@ pub fn compile_shaders(device: &Arc<Device>)
         )
         .map_err(|e| format!("failed to compile fragment shader: {}", e))?;
     let fragment_words: &[u32] = fragment_artifact.as_binary();
-    let fragment_shader = 
-        unsafe {ShaderModule::from_words(device.clone(), fragment_words) }
-        .map_err(|e| format!("failed to lad fragment shader module"))?;
+    let fragment_shader = unsafe { ShaderModule::from_words(device.clone(), fragment_words) }
+        .map_err(|e| format!("failed to lad fragment shader module: {}", e))?;
 
     Ok((vertex_shader, fragment_shader))
 }

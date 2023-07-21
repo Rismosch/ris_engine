@@ -8,7 +8,7 @@ pub fn create_render_pass(
     device: &Arc<Device>,
     swapchain: &Arc<Swapchain>,
 ) -> Result<Arc<RenderPass>, String> {
-    Ok(vulkano::single_pass_renderpass!(
+    vulkano::single_pass_renderpass!(
         device.clone(),
         attachments: {
             color: {
@@ -23,5 +23,5 @@ pub fn create_render_pass(
             depth_stencil: {},
         },
     )
-    .map_err(|e| format!("failed to create render pass: {}", e))?)
+    .map_err(|e| format!("failed to create render pass: {}", e))
 }

@@ -14,9 +14,3 @@ pub struct Vertex2d {
     #[format(R32G32_SFLOAT)]
     pub position: [f32; 2],
 }
-
-#[derive(Default)]
-pub struct Scene {
-    pub vertex: Vertex2d,
-    pub ubo: UniformBufferObject,
-}

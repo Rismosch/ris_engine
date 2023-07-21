@@ -3,7 +3,6 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
-use ris_math::matrix4x4::Matrix4x4;
 use ris_video::video::Video;
 
 pub struct OutputFrame {
@@ -12,9 +11,7 @@ pub struct OutputFrame {
 
 impl OutputFrame {
     pub fn new(video: Video) -> Result<Self, String> {
-        Ok(Self {
-            video,
-        })
+        Ok(Self { video })
     }
 
     pub fn run(
@@ -29,7 +26,7 @@ impl OutputFrame {
             self.video.on_window_resize();
         }
 
-        match self.video.update() {
+        match self.video.update(&logic.scene) {
             Ok(()) => GameloopState::WantsToContinue,
             Err(e) => GameloopState::Error(e),
         }

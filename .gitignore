@@ -1,4 +1,12 @@
-/target
+# install
 /*.dll
-/release
+
+# build
+/target
 Cargo.lock
+
+# build script
+/release
+
+# vs code
+/.vscode

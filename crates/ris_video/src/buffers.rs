@@ -6,13 +6,13 @@ use vulkano::buffer::BufferUsage;
 use vulkano::buffer::Subbuffer;
 use vulkano::descriptor_set::PersistentDescriptorSet;
 use vulkano::descriptor_set::WriteDescriptorSet;
-use vulkano::pipeline::GraphicsPipeline;
-use vulkano::pipeline::Pipeline;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
+use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::Pipeline;
 
-use crate::gpu_objects::Vertex2d;
 use crate::gpu_objects::UniformBufferObject;
+use crate::gpu_objects::Vertex2d;
 
 pub type Uniform<U> = (Subbuffer<U>, Arc<PersistentDescriptorSet>);
 
@@ -29,13 +29,13 @@ impl Buffers {
         pipeline: &Arc<GraphicsPipeline>,
     ) -> Result<Self, String> {
         // vertex
-        let vertex1 = Vertex2d{
+        let vertex1 = Vertex2d {
             position: [0.0, -0.5],
         };
-        let vertex2 = Vertex2d{
+        let vertex2 = Vertex2d {
             position: [0.5, 0.5],
         };
-        let vertex3 = Vertex2d{
+        let vertex3 = Vertex2d {
             position: [-0.5, 0.5],
         };
 
@@ -49,7 +49,7 @@ impl Buffers {
                 usage: MemoryUsage::Upload,
                 ..Default::default()
             },
-            vec![vertex1,vertex2, vertex3],
+            vec![vertex1, vertex2, vertex3],
         )
         .map_err(|e| format!("failed to create vertex buffer: {}", e))?;
 
@@ -74,7 +74,12 @@ impl Buffers {
 
             let descriptor_set = PersistentDescriptorSet::new(
                 &allocators.descriptor_set,
-                pipeline.layout().set_layouts().get(0).ok_or("failed to get descriptor set layout")?.clone(),
+                pipeline
+                    .layout()
+                    .set_layouts()
+                    .get(0)
+                    .ok_or("failed to get descriptor set layout")?
+                    .clone(),
                 [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
             )
             .map_err(|e| format!("failed to create persistent descriptor set: {}", e))?;
@@ -82,9 +87,6 @@ impl Buffers {
             uniforms.push((uniform_buffer, descriptor_set));
         }
 
-        Ok(Self{
-            vertex,
-            uniforms,
-        })
+        Ok(Self { vertex, uniforms })
     }
 }

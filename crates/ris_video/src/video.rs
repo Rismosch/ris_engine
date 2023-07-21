@@ -5,6 +5,9 @@ use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
+use ris_data::scene::Scene;
+
+use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
 use crate::renderer::Renderer;
 
@@ -31,7 +34,7 @@ impl Video {
         })
     }
 
-    pub fn update(&mut self, scene: &crate::gpu_objects::Scene) -> Result<(), String> {
+    pub fn update(&mut self, scene: &Scene) -> Result<(), String> {
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
 
@@ -55,7 +58,7 @@ impl Video {
             Err(AcquireError::OutOfDate) => {
                 self.recreate_swapchain = true;
                 return Ok(());
-            },
+            }
             Err(e) => return Err(format!("failed to acquire next image: {}", e)),
         };
 
@@ -64,18 +67,26 @@ impl Video {
         }
 
         if let Some(image_fence) = &self.fences[image_i as usize] {
-            image_fence.wait(None).map_err(|e| format!("failed to wait on fence: {}", e))?;
+            image_fence
+                .wait(None)
+                .map_err(|e| format!("failed to wait on fence: {}", e))?;
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        self.renderer.update_uniform(image_i as usize, &scene.ubo);
+        let ubo = UniformBufferObject {
+            debug_x: scene.debug_x,
+            debug_y: scene.debug_y,
+        };
+        self.renderer.update_uniform(image_i as usize, &ubo)?;
 
         let use_gpu_resources = false;
         let previous_future = match self.fences[self.previous_fence_i as usize].clone() {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
-                    fence.wait(None).map_err(|e| format!("failed to wait on fence: {}", e))?;
+                    fence
+                        .wait(None)
+                        .map_err(|e| format!("failed to wait on fence: {}", e))?;
                 }
                 fence.boxed()
             }
@@ -94,7 +105,7 @@ impl Video {
             Err(FlushError::OutOfDate) => {
                 self.recreate_swapchain = true;
                 None
-            },
+            }
             Err(e) => {
                 ris_log::warning!("failed to flush future: {}", e);
                 None

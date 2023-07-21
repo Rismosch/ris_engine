@@ -57,7 +57,7 @@ fn run(app_info: AppInfo) -> Result<(), String> {
         Err(x) => {
             ris_log::fatal!("error while initializing engine: \"{}\"", x);
             return Err(x);
-        },
+        }
     };
     let result = engine.run();
 

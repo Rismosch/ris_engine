@@ -15,15 +15,13 @@ pub fn create_command_buffers(
     allocators: &crate::allocators::Allocators,
     queue: &Arc<Queue>,
     pipeline: &Arc<GraphicsPipeline>,
-    framebuffers: &Vec<Arc<Framebuffer>>,
+    framebuffers: &[Arc<Framebuffer>],
     buffers: &crate::buffers::Buffers,
-) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String>
-{
+) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, String> {
     let mut command_buffers = Vec::new();
 
     for (i, framebuffer) in framebuffers.iter().enumerate() {
         let pipeline_layout = pipeline.layout();
-        let descriptor_set_layouts = pipeline_layout.set_layouts();
 
         let mut builder = AutoCommandBufferBuilder::primary(
             &allocators.command_buffer,

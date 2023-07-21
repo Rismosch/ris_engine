@@ -18,7 +18,7 @@ pub fn create_swapchain(
     window: &Window,
     device: &Arc<Device>,
     surface: &Arc<Surface>,
-    ) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), String> {
+) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), String> {
     let capabilities = physical_device
         .surface_capabilities(surface, Default::default())
         .map_err(|e| format!("failed to get surface capabilities: {}", e))?;
@@ -30,25 +30,24 @@ pub fn create_swapchain(
         .ok_or("failed to get supported composite alpha")?;
     let image_format = Some(
         physical_device
-        .surface_formats(surface, Default::default())
-        .map_err(|e| "failed to get surface formats")?[0]
-        .0,
+            .surface_formats(surface, Default::default())
+            .map_err(|e| format!("failed to get surface formats: {}", e))?[0]
+            .0,
     );
-    Ok(Swapchain::new(
-            device.clone(),
-            surface.clone(),
-            SwapchainCreateInfo {
-                min_image_count: capabilities.min_image_count,
-                image_format,
-                image_extent: [dimensions.0, dimensions.1],
-                image_usage: ImageUsage::COLOR_ATTACHMENT,
-                composite_alpha,
-                present_mode: vulkano::swapchain::PresentMode::Immediate,
-                ..Default::default()
-            },
-        )
-        .map_err(|e| format!("failed to create swapchain: {}", e))?
+    Swapchain::new(
+        device.clone(),
+        surface.clone(),
+        SwapchainCreateInfo {
+            min_image_count: capabilities.min_image_count,
+            image_format,
+            image_extent: [dimensions.0, dimensions.1],
+            image_usage: ImageUsage::COLOR_ATTACHMENT,
+            composite_alpha,
+            present_mode: vulkano::swapchain::PresentMode::Immediate,
+            ..Default::default()
+        },
     )
+    .map_err(|e| format!("failed to create swapchain: {}", e))
 }
 
 pub fn create_framebuffers(
@@ -59,7 +58,7 @@ pub fn create_framebuffers(
 
     for image in images {
         let view = ImageView::new_default(image.clone())
-            .map_err(|e| format!("failed to create image view"))?;
+            .map_err(|e| format!("failed to create image view: {}", e))?;
         let framebuffer = Framebuffer::new(
             render_pass.clone(),
             FramebufferCreateInfo {
@@ -67,11 +66,10 @@ pub fn create_framebuffers(
                 ..Default::default()
             },
         )
-        .map_err(|e| format!("failed to create frame buffer"))?;
+        .map_err(|e| format!("failed to create frame buffer: {}", e))?;
 
         framebuffers.push(framebuffer);
     }
 
     Ok(framebuffers)
 }
-
