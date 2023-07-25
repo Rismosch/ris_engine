@@ -101,20 +101,20 @@ impl Matrix4x4 {
 
     pub fn multiply_vector4(m: Matrix4x4, v: Vector4) -> Vector4 {
         [
-            m.m00 * v[1] + m.m01 * v[2] + m.m02 * v[3] + m.m03 * v[0],
-            m.m10 * v[1] + m.m11 * v[2] + m.m12 * v[3] + m.m13 * v[0],
-            m.m20 * v[1] + m.m21 * v[2] + m.m22 * v[3] + m.m23 * v[0],
-            m.m30 * v[1] + m.m31 * v[2] + m.m32 * v[3] + m.m33 * v[0],
+            m.m00 * v[0] + m.m01 * v[1] + m.m02 * v[2] + m.m03 * v[3],
+            m.m10 * v[0] + m.m11 * v[1] + m.m12 * v[2] + m.m13 * v[3],
+            m.m20 * v[0] + m.m21 * v[1] + m.m22 * v[2] + m.m23 * v[3],
+            m.m30 * v[0] + m.m31 * v[1] + m.m32 * v[2] + m.m33 * v[3],
         ]
     }
 
     pub fn multiply_vector3(m: Matrix4x4, v: Vector3, w: f32) -> Vector3 {
-        let v4 = [w, v.x, v.y, v.z];
+        let v4 = [v.x, v.y, v.z, w];
         let result = Self::multiply_vector4(m, v4);
         Vector3 {
-            x: result[1],
-            y: result[2],
-            z: result[3],
+            x: result[0],
+            y: result[1],
+            z: result[2],
         }
     }
 

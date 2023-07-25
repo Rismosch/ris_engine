@@ -10,7 +10,7 @@ use vulkano::render_pass::RenderPass;
 use vulkano::render_pass::Subpass;
 use vulkano::shader::ShaderModule;
 
-use crate::gpu_objects::Vertex2d;
+use crate::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
     device: &Arc<Device>,
@@ -20,7 +20,7 @@ pub fn create_pipeline(
     viewport: &Viewport,
 ) -> Result<Arc<GraphicsPipeline>, String> {
     GraphicsPipeline::start()
-        .vertex_input_state(Vertex2d::per_vertex())
+        .vertex_input_state(Vertex3d::per_vertex())
         .vertex_shader(
             vertex_shader
                 .clone()

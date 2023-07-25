@@ -3,8 +3,10 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::input::action;
+use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
+use ris_math::vector3::Vector3;
 
 #[derive(Default)]
 pub struct LogicFrame {}
@@ -91,10 +93,18 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_hold(action::ANY) {
+            let quaternion = scene.camera_rotation;
+            let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
+            let my_vector = Vector3::new(0.0,1.0,0.0);
+            let rotated1 = quaternion.rotate(my_vector);
+            let rotated2 = matrix.rotate(my_vector);
+
             ris_log::debug!(
-                "horizontal: {} vertical: {} | {}s {}fps",
+                "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} | {}s {}fps",
                 current.camera_horizontal_angle,
                 current.camera_vertical_angle,
+                rotated1,
+                rotated2,
                 frame.delta(),
                 frame.fps()
             );

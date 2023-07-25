@@ -7,6 +7,7 @@ use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
+use ris_math::quaternion::Quaternion;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -74,7 +75,14 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view_matrix = Matrix4x4::transformation(scene.camera_rotation, scene.camera_position);
+        let rotation = Quaternion{
+            w: -scene.camera_rotation.w,
+            x: scene.camera_rotation.x,
+            y: -scene.camera_rotation.z,
+            z: scene.camera_rotation.y,
+        };
+        let position = scene.camera_position;
+        let view_matrix = Matrix4x4::transformation(rotation, position);
 
         let ubo = UniformBufferObject {
             debug_x: scene.debug_x,
