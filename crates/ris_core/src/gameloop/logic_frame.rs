@@ -24,27 +24,33 @@ impl LogicFrame {
         current.scene = previous.scene.clone();
         let scene = &mut current.scene;
 
-        let camera_speed = 2.;
+        let rotation_speed = 2. * frame.delta();
+        let movement_speed = 2. * frame.delta();
+        let mouse_speed = 20. * frame.delta();
 
-        if input.general.buttons.is_down(action::OK) {
+        if input.mouse.buttons.is_hold(action::OK) {
+            current.camera_vertical_angle += mouse_speed * input.mouse.yrel as f32;
+            current.camera_horizontal_angle += mouse_speed * input.mouse.xrel as f32;
+        } else if input.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
+            scene.camera_position = vector3::ZERO;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
-            current.camera_vertical_angle += camera_speed * frame.delta();
+            current.camera_vertical_angle += rotation_speed;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_DOWN) {
-            current.camera_vertical_angle -= camera_speed * frame.delta();
+            current.camera_vertical_angle -= rotation_speed;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_LEFT) {
-            current.camera_horizontal_angle += camera_speed * frame.delta();
+            current.camera_horizontal_angle += rotation_speed;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_RIGHT) {
-            current.camera_horizontal_angle -= camera_speed * frame.delta();
+            current.camera_horizontal_angle -= rotation_speed;
         }
 
         while current.camera_horizontal_angle < 0. {
@@ -63,33 +69,22 @@ impl LogicFrame {
         let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
         scene.camera_rotation = rotation1 * rotation2;
 
-        if input.general.buttons.is_down(action::CAMERA_UP) {
-            scene.debug_y += 1;
+        if input.general.buttons.is_hold(action::MOVE_UP) {
+            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+            scene.camera_position += movement_speed * forward;
         }
 
-        if input.general.buttons.is_down(action::CAMERA_DOWN) {
-            scene.debug_y -= 1;
+        if input.general.buttons.is_hold(action::MOVE_DOWN) {
+            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+            scene.camera_position -= movement_speed * forward;
         }
 
-        if input.general.buttons.is_down(action::CAMERA_LEFT) {
-            scene.debug_x -= 1;
+        if input.general.buttons.is_hold(action::MOVE_LEFT) {
+
         }
 
-        if input.general.buttons.is_down(action::CAMERA_RIGHT) {
-            scene.debug_x += 1;
-        }
+        if input.general.buttons.is_hold(action::MOVE_RIGHT) {
 
-        if scene.debug_x < 0 {
-            scene.debug_x = 0
-        }
-        if scene.debug_x > 3 {
-            scene.debug_x = 3
-        }
-        if scene.debug_y < 0 {
-            scene.debug_y = 0
-        }
-        if scene.debug_y > 3 {
-            scene.debug_y = 3
         }
 
         if input.general.buttons.is_hold(action::ANY) {
@@ -100,11 +95,12 @@ impl LogicFrame {
             let rotated2 = matrix.rotate(my_vector);
 
             ris_log::debug!(
-                "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} | {}s {}fps",
+                "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} position: {:?} | {}s {}fps",
                 current.camera_horizontal_angle,
                 current.camera_vertical_angle,
                 rotated1,
                 rotated2,
+                scene.camera_position,
                 frame.delta(),
                 frame.fps()
             );

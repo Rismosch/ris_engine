@@ -49,9 +49,9 @@ pub const DOWN: Vector3 = Vector3 {
 impl Vector3 {
     // initialization
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
+        Self{x,y,z}
     }
-
+    
     // utility
     pub fn dot(a: Vector3, b: Vector3) -> f32 {
         a.x * b.x + a.y * b.y + a.z * b.z
@@ -76,5 +76,54 @@ impl Vector3 {
 
     pub fn magnitude(self) -> f32 {
         super::sqrt(self.magnitude_squared())
+    }
+}
+
+impl std::ops::Add<Vector3> for Vector3 {
+    type Output = Self;
+    fn add(self, rhs: Vector3) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl std::ops::AddAssign<Vector3> for Vector3 {
+    fn add_assign(&mut self, rhs: Vector3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl std::ops::Sub<Vector3> for Vector3 {
+    type Output = Self;
+    fn sub(self, rhs: Vector3) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl std::ops::SubAssign<Vector3> for Vector3 {
+    fn sub_assign(&mut self, rhs: Vector3) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+    }
+}
+
+impl std::ops::Mul<Vector3> for f32 {
+    type Output = Vector3;
+    fn mul(self, rhs: Vector3) -> Self::Output {
+        Vector3 {
+            x: self * rhs.x,
+            y: self * rhs.y,
+            z: self * rhs.z,
+        }
     }
 }

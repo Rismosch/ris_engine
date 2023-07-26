@@ -85,8 +85,8 @@ impl Video {
         let view_matrix = Matrix4x4::transformation(rotation, position);
 
         let ubo = UniformBufferObject {
-            debug_x: scene.debug_x,
-            debug_y: scene.debug_y,
+            debug_x: 0,
+            debug_y: 0,
             view_matrix,
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
