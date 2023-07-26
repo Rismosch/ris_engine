@@ -29,17 +29,36 @@ impl Buffers {
         pipeline: &Arc<GraphicsPipeline>,
     ) -> Result<Self, String> {
         // vertex
+        let red = [1.0, 0.0, 0.0];
+        let green = [0.0, 1.0, 0.0];
+        let blue = [0.0, 0.0, 1.0];
+        let cyan = [0.0, 1.0, 1.0];
+        let magenta = [1.0, 0.0, 1.0];
+        let yellow = [1.0, 1.0, 0.0];
+
         let vertex1 = Vertex3d {
-            position: [0.0, -0.5, 0.0],
-            color: [1.0, 0.0, 0.0],
+            position: [-0.5, -0.5, -0.5],
+            color: magenta,
         };
         let vertex2 = Vertex3d {
-            position: [0.5, 0.5, 0.0],
-            color: [0.0, 1.0, 0.0],
+            position: [ 0.5, -0.5, -0.5],
+            color: magenta,
         };
         let vertex3 = Vertex3d {
-            position: [-0.5, 0.5, 0.0],
-            color: [0.0, 0.0, 1.0],
+            position: [-0.5, -0.5,  0.5],
+            color: magenta,
+        };
+        let vertex4 = Vertex3d {
+            position: [ 0.5, -0.5,  0.5],
+            color: magenta,
+        };
+        let vertex5 = Vertex3d {
+            position: [-0.5, -0.5,  0.5],
+            color: magenta,
+        };
+        let vertex6 = Vertex3d {
+            position: [ 0.5, -0.5, -0.5],
+            color: magenta,
         };
 
         let vertex = Buffer::from_iter(
@@ -52,7 +71,7 @@ impl Buffers {
                 usage: MemoryUsage::Upload,
                 ..Default::default()
             },
-            vec![vertex1, vertex2, vertex3],
+            vec![vertex1, vertex2, vertex3, vertex4, vertex5, vertex6],
         )
         .map_err(|e| format!("failed to create vertex buffer: {}", e))?;
 

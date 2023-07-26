@@ -156,6 +156,59 @@ impl Matrix4x4 {
         }
     }
 
+    pub fn view(rotation: Quaternion, position: Vector3) -> Self {
+        Self {
+            m00: 1.,
+            m01: 0.,
+            m02: 0.,
+            m03: -position.x,
+            m10: 0.,
+            m11: 1.,
+            m12: 0.,
+            m13: -position.y,
+            m20: 0.,
+            m21: 0.,
+            m22: 1.,
+            m23: -position.z,
+            m30: 0.,
+            m31: 0.,
+            m32: 0.,
+            m33: 1.,
+        }
+    }
+
+    pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self
+    {
+        let tan = super::tan(fovy / 2.);
+        let far_near = far - near;
+
+        let focal_length = 1. / super::tan(fovy / 2.);
+        let x = focal_length / aspect_ratio;
+        let y = -focal_length;
+        let a = near / (far - near);
+        let b = far * a;
+
+
+        Self{
+            m00: x,
+            m01: 0.,
+            m02: 0.,
+            m03: 0.,
+            m10: 0.,
+            m11: y,
+            m12: 0.,
+            m13: 0.,
+            m20: 0.,
+            m21: 0.,
+            m22: a,
+            m23: b,
+            m30: 0.,
+            m31: 0.,
+            m32: -1.,
+            m33: 0.,
+        }
+    }
+
     pub fn rotate(self, v: Vector3) -> Vector3 {
         Self::multiply_vector3(self, v, 0.)
     }

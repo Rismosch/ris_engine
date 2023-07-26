@@ -8,6 +8,7 @@ use vulkano::sync::GpuFuture;
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
+use ris_math::vector3::Vector3;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -76,18 +77,30 @@ impl Video {
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
         let rotation = Quaternion{
-            w: -scene.camera_rotation.w,
+            w: scene.camera_rotation.w,
             x: scene.camera_rotation.x,
-            y: -scene.camera_rotation.z,
-            z: scene.camera_rotation.y,
+            y: scene.camera_rotation.y,
+            z: scene.camera_rotation.z,
         };
-        let position = scene.camera_position;
-        let view_matrix = Matrix4x4::transformation(rotation, position);
+        let position = Vector3{
+            x: scene.camera_position.x,
+            y: -scene.camera_position.z,
+            z: scene.camera_position.y,
+        };
+        let view_matrix = Matrix4x4::view(rotation, position);
+
+        let fovy = 60. * ris_math::DEG2RAD;
+        let (w, h) = self.renderer.window.vulkan_drawable_size();
+        let aspect_ratio = w as f32 / h as f32;
+        let near = 0.1;
+        let far = 10.;
+        let projection_matrix = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
 
         let ubo = UniformBufferObject {
             debug_x: 0,
             debug_y: 0,
             view_matrix,
+            projection_matrix,
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
 

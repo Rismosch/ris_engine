@@ -34,7 +34,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
-            scene.camera_position = vector3::ZERO;
+            scene.camera_position = Vector3::new(0., -2., 0.);
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -80,30 +80,41 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
-
+            let right = scene.camera_rotation.rotate(vector3::RIGHT);
+            scene.camera_position += movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-
+            let right = scene.camera_rotation.rotate(vector3::RIGHT);
+            scene.camera_position -= movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::ANY) {
-            let quaternion = scene.camera_rotation;
-            let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
-            let my_vector = Vector3::new(0.0,1.0,0.0);
-            let rotated1 = quaternion.rotate(my_vector);
-            let rotated2 = matrix.rotate(my_vector);
+            //let quaternion = scene.camera_rotation;
+            //let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
+            //let my_vector = Vector3::new(0.0,1.0,0.0);
+            //let rotated1 = quaternion.rotate(my_vector);
+            //let rotated2 = matrix.rotate(my_vector);
 
-            ris_log::debug!(
-                "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} position: {:?} | {}s {}fps",
-                current.camera_horizontal_angle,
-                current.camera_vertical_angle,
-                rotated1,
-                rotated2,
-                scene.camera_position,
-                frame.delta(),
-                frame.fps()
-            );
+            //ris_log::debug!(
+            //    "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} position: {:?} | {}s {}fps",
+            //    current.camera_horizontal_angle,
+            //    current.camera_vertical_angle,
+            //    rotated1,
+            //    rotated2,
+            //    scene.camera_position,
+            //    frame.delta(),
+            //    frame.fps()
+            //);
+            
+            let rotation = scene.camera_rotation;
+            let position = scene.camera_position;
+
+            let matrix = Matrix4x4::view(rotation, position);
+            let position_zero = matrix.rotate_and_transform(position);
+
+            ris_log::debug!("{:?} {:?}", position, rotation);
+
         }
 
         GameloopState::WantsToContinue

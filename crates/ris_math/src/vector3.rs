@@ -57,6 +57,16 @@ impl Vector3 {
         a.x * b.x + a.y * b.y + a.z * b.z
     }
 
+    /// Think of `a` as the thumb of your right hand and of `b` as the index finger of your right
+    /// hand. The result will be the middle finger.
+    pub fn cross(a: Vector3, b: Vector3) -> Self {
+        Self {
+            x: a.y * b.z - b.y * a.z,
+            y: a.z * b.x - b.z * a.x,
+            z: a.x * b.y - b.x * a.y,
+        }
+    }
+
     pub fn normalized(self) -> Self {
         let magnitude = self.magnitude();
         if magnitude < super::MIN_NORM {

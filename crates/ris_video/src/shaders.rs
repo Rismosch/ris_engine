@@ -10,7 +10,8 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         #version 460
 
         layout(set = 0, binding = 0) uniform UniformBufferObject {
-            mat4 view_matrix;
+            mat4 view;
+            mat4 proj;
 
             int debug_x;
             int debug_y;
@@ -22,12 +23,9 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         layout(location = 0) out vec3 fragColor;
 
         void main() {
-            //fragColor = color;
+            fragColor = color;
 
-            vec4 test = ubo.view_matrix * vec4(position, 1.0);
-            //test.z += 0.5;
-            gl_Position = test;
-            fragColor = vec3(test.xyz);
+            gl_Position = /*ubo.proj * */ubo.view * vec4(position, 1.0);
         }
     ";
 
