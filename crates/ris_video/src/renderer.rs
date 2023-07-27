@@ -286,7 +286,10 @@ impl Renderer {
         uniform_content.debug_x = ubo.debug_x;
         uniform_content.debug_y = ubo.debug_y;
         uniform_content.view_matrix = ubo.view_matrix;
-        //uniform_content.projection_matrix = ubo.projection_matrix;
+        uniform_content.projection_matrix = ubo.projection_matrix;
+
+        uniform_content.view_matrix.m12 = 1.;
+        uniform_content.projection_matrix.m12 = 0.5;
 
         Ok(())
     }

@@ -33,6 +33,27 @@ type Vector4 = [f32; 4];
 
 impl Matrix4x4 {
     // standard matrix stuff
+    pub fn identity() -> Self {
+        Self {
+            m00: 1.,
+            m01: 0.,
+            m02: 0.,
+            m03: 0.,
+            m10: 0.,
+            m11: 1.,
+            m12: 0.,
+            m13: 0.,
+            m20: 0.,
+            m21: 0.,
+            m22: 1.,
+            m23: 0.,
+            m30: 0.,
+            m31: 0.,
+            m32: 0.,
+            m33: 1.,
+        }
+    }
+
     pub fn get(self, m: usize, n: usize) -> f32 {
         assert!(m < 4);
         assert!(n < 4);
@@ -185,7 +206,7 @@ impl Matrix4x4 {
     {
         let focal_length = 1. / super::tan(fovy / 2.);
         let x = focal_length / aspect_ratio;
-        let y = -focal_length;
+        let y = focal_length;
         let a = near / (far - near);
         let b = far * a;
 

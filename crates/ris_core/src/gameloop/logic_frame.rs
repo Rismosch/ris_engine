@@ -68,26 +68,27 @@ impl LogicFrame {
         let rotation1 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
         scene.camera_rotation = rotation1 * rotation2;
+        scene.camera_position = scene.camera_rotation.rotate(0.5 * vector3::BACKWARD);
 
-        if input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position += movement_speed * forward;
-        }
+        //if input.general.buttons.is_hold(action::MOVE_UP) {
+        //    let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+        //    scene.camera_position += movement_speed * forward;
+        //}
 
-        if input.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position -= movement_speed * forward;
-        }
+        //if input.general.buttons.is_hold(action::MOVE_DOWN) {
+        //    let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+        //    scene.camera_position -= movement_speed * forward;
+        //}
 
-        if input.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = scene.camera_rotation.rotate(vector3::RIGHT);
-            scene.camera_position += movement_speed * right;
-        }
+        //if input.general.buttons.is_hold(action::MOVE_LEFT) {
+        //    let right = scene.camera_rotation.rotate(vector3::RIGHT);
+        //    scene.camera_position += movement_speed * right;
+        //}
 
-        if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = scene.camera_rotation.rotate(vector3::RIGHT);
-            scene.camera_position -= movement_speed * right;
-        }
+        //if input.general.buttons.is_hold(action::MOVE_RIGHT) {
+        //    let right = scene.camera_rotation.rotate(vector3::RIGHT);
+        //    scene.camera_position -= movement_speed * right;
+        //}
 
         if input.general.buttons.is_hold(action::ANY) {
             //let quaternion = scene.camera_rotation;
@@ -113,7 +114,11 @@ impl LogicFrame {
             let matrix = Matrix4x4::view(rotation, position);
             let position_zero = matrix.rotate_and_transform(position);
 
-            ris_log::debug!("{:?} {:?}", position, position_zero);
+            ris_log::debug!("{:?} {:?} {:?}",
+                            current.camera_horizontal_angle,
+                            current.camera_vertical_angle,
+                            scene.camera_rotation,
+                            );
 
         }
 

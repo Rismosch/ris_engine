@@ -77,30 +77,31 @@ impl Video {
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
         let rotation = Quaternion{
-            w: -scene.camera_rotation.w,
+            w: scene.camera_rotation.w,
             x: scene.camera_rotation.x,
-            y: -scene.camera_rotation.z,
-            z: scene.camera_rotation.y,
+            y: scene.camera_rotation.y,
+            z: scene.camera_rotation.z,
         };
         let position = Vector3{
             x: scene.camera_position.x,
-            y: scene.camera_position.z,
-            z: scene.camera_position.y,
+            y: scene.camera_position.y,
+            z: scene.camera_position.z,
         };
         let view_matrix = Matrix4x4::view(rotation, position);
 
-        let fovy = 60. * ris_math::DEG2RAD;
-        let (w, h) = self.renderer.window.vulkan_drawable_size();
-        let aspect_ratio = w as f32 / h as f32;
-        let near = 0.1;
-        let far = 10.;
-        let projection_matrix = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
+        //let fovy = 60. * ris_math::DEG2RAD;
+        //let (w, h) = self.renderer.window.vulkan_drawable_size();
+        //let aspect_ratio = w as f32 / h as f32;
+        //let near = 0.01;
+        //let far = 1000.;
+        //let projection_matrix = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
+        let projection_matrix = Matrix4x4::identity();
 
         let ubo = UniformBufferObject {
             debug_x: 0,
             debug_y: 0,
             view_matrix,
-            ..Default::default()
+            projection_matrix,
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
 
