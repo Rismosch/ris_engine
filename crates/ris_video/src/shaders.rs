@@ -25,7 +25,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         void main() {
             fragColor = color;
 
-            gl_Position = /*ubo.proj * */ubo.view * vec4(position, 1.0);
+            gl_Position = ubo.view * vec4(position, 1.0);
         }
     ";
 

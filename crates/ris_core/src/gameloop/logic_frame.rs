@@ -53,17 +53,17 @@ impl LogicFrame {
             current.camera_horizontal_angle -= rotation_speed;
         }
 
-        while current.camera_horizontal_angle < 0. {
-            current.camera_horizontal_angle += ris_math::PI_2;
-        }
-        while current.camera_horizontal_angle > ris_math::PI_2 {
-            current.camera_horizontal_angle -= ris_math::PI_2;
-        }
-        current.camera_vertical_angle = ris_math::clamp(
-            current.camera_vertical_angle,
-            -ris_math::PI_0_5,
-            ris_math::PI_0_5,
-        );
+        //while current.camera_horizontal_angle < 0. {
+        //    current.camera_horizontal_angle += ris_math::PI_2;
+        //}
+        //while current.camera_horizontal_angle > ris_math::PI_2 {
+        //    current.camera_horizontal_angle -= ris_math::PI_2;
+        //}
+        //current.camera_vertical_angle = ris_math::clamp(
+        //    current.camera_vertical_angle,
+        //    -ris_math::PI_0_5,
+        //    ris_math::PI_0_5,
+        //);
 
         let rotation1 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
@@ -113,7 +113,7 @@ impl LogicFrame {
             let matrix = Matrix4x4::view(rotation, position);
             let position_zero = matrix.rotate_and_transform(position);
 
-            ris_log::debug!("{:?} {:?}", position, rotation);
+            ris_log::debug!("{:?} {:?}", position, position_zero);
 
         }
 

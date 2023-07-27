@@ -77,14 +77,14 @@ impl Video {
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
         let rotation = Quaternion{
-            w: scene.camera_rotation.w,
+            w: -scene.camera_rotation.w,
             x: scene.camera_rotation.x,
-            y: scene.camera_rotation.y,
-            z: scene.camera_rotation.z,
+            y: -scene.camera_rotation.z,
+            z: scene.camera_rotation.y,
         };
         let position = Vector3{
             x: scene.camera_position.x,
-            y: -scene.camera_position.z,
+            y: scene.camera_position.z,
             z: scene.camera_position.y,
         };
         let view_matrix = Matrix4x4::view(rotation, position);
@@ -100,7 +100,7 @@ impl Video {
             debug_x: 0,
             debug_y: 0,
             view_matrix,
-            projection_matrix,
+            ..Default::default()
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
 

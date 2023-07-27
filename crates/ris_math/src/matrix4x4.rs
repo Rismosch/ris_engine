@@ -1,6 +1,7 @@
 use vulkano::buffer::BufferContents;
 
 use crate::quaternion::Quaternion;
+use crate::vector3;
 use crate::vector3::Vector3;
 
 // m00 m01 m02 m03
@@ -157,19 +158,22 @@ impl Matrix4x4 {
     }
 
     pub fn view(rotation: Quaternion, position: Vector3) -> Self {
+        let right = rotation.rotate(vector3::RIGHT);
+        let up = rotation.rotate(vector3::UP);
+        let forward = rotation.rotate(vector3::FORWARD);
         Self {
-            m00: 1.,
-            m01: 0.,
-            m02: 0.,
-            m03: -position.x,
-            m10: 0.,
-            m11: 1.,
-            m12: 0.,
-            m13: -position.y,
-            m20: 0.,
-            m21: 0.,
-            m22: 1.,
-            m23: -position.z,
+            m00: right.x,
+            m01: right.y,
+            m02: right.z,
+            m03: - right.x * position.x - right.y * position.y - right.z * position.z,
+            m10: up.x,
+            m11: up.y,
+            m12: up.z,
+            m13: - up.x * position.x - up.y * position.y - up.z * position.z,
+            m20: forward.x,
+            m21: forward.y,
+            m22: forward.z,
+            m23: - forward.x * position.x - forward.y * position.y - forward.z * position.z,
             m30: 0.,
             m31: 0.,
             m32: 0.,
@@ -179,15 +183,11 @@ impl Matrix4x4 {
 
     pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self
     {
-        let tan = super::tan(fovy / 2.);
-        let far_near = far - near;
-
         let focal_length = 1. / super::tan(fovy / 2.);
         let x = focal_length / aspect_ratio;
         let y = -focal_length;
         let a = near / (far - near);
         let b = far * a;
-
 
         Self{
             m00: x,
