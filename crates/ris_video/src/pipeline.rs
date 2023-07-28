@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use vulkano::device::Device;
-use vulkano::pipeline::graphics::depth_stencil::CompareOp;
-use vulkano::pipeline::graphics::depth_stencil::DepthState;
-use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
+//use vulkano::pipeline::graphics::depth_stencil::CompareOp;
+//use vulkano::pipeline::graphics::depth_stencil::DepthState;
+//use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::CullMode;
 use vulkano::pipeline::graphics::rasterization::FrontFace;
@@ -46,11 +46,11 @@ pub fn create_pipeline(
                 .ok_or("failed to locate fragment entry point")?,
             (),
         )
-        //.rasterization_state(RasterizationState{
-        //    front_face: StateMode::Fixed(FrontFace::Clockwise),
-        //    cull_mode: StateMode::Fixed(CullMode::Back),
-        //    ..Default::default()
-        //})
+        .rasterization_state(RasterizationState {
+            front_face: StateMode::Fixed(FrontFace::Clockwise),
+            cull_mode: StateMode::Fixed(CullMode::Back),
+            ..Default::default()
+        })
         //.depth_stencil_state(
         //    DepthStencilState{
         //        depth: Some(DepthState{

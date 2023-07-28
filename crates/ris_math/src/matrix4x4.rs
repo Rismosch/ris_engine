@@ -149,15 +149,15 @@ impl Matrix4x4 {
             m00: right.x,
             m01: right.y,
             m02: right.z,
-            m03: - right.x * position.x - right.y * position.y - right.z * position.z,
+            m03: -right.x * position.x - right.y * position.y - right.z * position.z,
             m10: up.x,
             m11: up.y,
             m12: up.z,
-            m13: - up.x * position.x - up.y * position.y - up.z * position.z,
+            m13: -up.x * position.x - up.y * position.y - up.z * position.z,
             m20: forward.x,
             m21: forward.y,
             m22: forward.z,
-            m23: - forward.x * position.x - forward.y * position.y - forward.z * position.z,
+            m23: -forward.x * position.x - forward.y * position.y - forward.z * position.z,
             m30: 0.,
             m31: 0.,
             m32: 0.,
@@ -165,15 +165,14 @@ impl Matrix4x4 {
         }
     }
 
-    pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self
-    {
+    pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self {
         let focal_length = 1. / super::tan(fovy / 2.);
         let x = focal_length / aspect_ratio;
         let y = focal_length;
         let a = near / (far - near);
         let b = far * a;
 
-        Self{
+        Self {
             m00: x,
             m01: 0.,
             m02: 0.,

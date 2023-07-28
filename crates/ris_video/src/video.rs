@@ -7,8 +7,6 @@ use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
-use ris_math::quaternion::Quaternion;
-use ris_math::vector3::Vector3;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -76,42 +74,16 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let rotation = Quaternion{
-            w: scene.camera_rotation.w,
-            x: scene.camera_rotation.x,
-            y: scene.camera_rotation.y,
-            z: scene.camera_rotation.z,
-        };
-        let position = Vector3{
-            x: scene.camera_position.x,
-            y: scene.camera_position.y,
-            z: scene.camera_position.z,
-        };
-        let view_matrix = Matrix4x4::look_at(rotation, position).transposed();
-        //view_matrix.m00 = 0.10;
-        //view_matrix.m01 = 0.15;
-        //view_matrix.m02 = 0.20;
-        //view_matrix.m03 = 0.25;
-        //view_matrix.m10 = 0.30;
-        //view_matrix.m11 = 0.35;
-        //view_matrix.m12 = 0.40;
-        //view_matrix.m13 = 0.45;
-        //view_matrix.m20 = 0.50;
-        //view_matrix.m21 = 0.55;
-        //view_matrix.m22 = 0.60;
-        //view_matrix.m23 = 0.65;
-        //view_matrix.m30 = 0.70;
-        //view_matrix.m31 = 0.75;
-        //view_matrix.m32 = 0.80;
-        //view_matrix.m33 = 0.85;
+        let view_matrix =
+            Matrix4x4::look_at(scene.camera_rotation, scene.camera_position).transposed();
 
-        //let fovy = 60. * ris_math::DEG2RAD;
-        //let (w, h) = self.renderer.window.vulkan_drawable_size();
-        //let aspect_ratio = w as f32 / h as f32;
-        //let near = 0.01;
-        //let far = 1000.;
-        //let projection_matrix = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
-        let projection_matrix = Matrix4x4::identity();
+        let fovy = 60. * ris_math::DEG2RAD;
+        let (w, h) = self.renderer.window.vulkan_drawable_size();
+        let aspect_ratio = w as f32 / h as f32;
+        let near = 0.01;
+        let far = 1000.;
+        let projection_matrix =
+            Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far).transposed();
 
         let ubo = UniformBufferObject {
             debug_x: scene.debug_x,

@@ -49,9 +49,9 @@ pub const DOWN: Vector3 = Vector3 {
 impl Vector3 {
     // initialization
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self{x,y,z}
+        Self { x, y, z }
     }
-    
+
     // utility
     pub fn dot(a: Vector3, b: Vector3) -> f32 {
         a.x * b.x + a.y * b.y + a.z * b.z
