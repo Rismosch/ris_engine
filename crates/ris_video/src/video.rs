@@ -87,7 +87,7 @@ impl Video {
             y: scene.camera_position.y,
             z: scene.camera_position.z,
         };
-        let mut view_matrix = Matrix4x4::view(rotation, position).transposed();
+        let view_matrix = Matrix4x4::look_at(rotation, position).transposed();
         //view_matrix.m00 = 0.10;
         //view_matrix.m01 = 0.15;
         //view_matrix.m02 = 0.20;

@@ -141,120 +141,28 @@ impl Matrix4x4 {
     }
 
     // 3d transformation stuff
-    pub fn transformation(rotation: Quaternion, translation: Vector3) -> Self {
-        let x2 = rotation.x + rotation.x;
-        let y2 = rotation.y + rotation.y;
-        let z2 = rotation.z + rotation.z;
-        let xx = rotation.x * x2;
-        let xy = rotation.x * y2;
-        let xz = rotation.x * z2;
-        let yy = rotation.y * y2;
-        let yz = rotation.y * z2;
-        let zz = rotation.z * z2;
-        let wx = rotation.w * x2;
-        let wy = rotation.w * y2;
-        let wz = rotation.w * z2;
-
+    pub fn look_at(rotation: Quaternion, position: Vector3) -> Self {
+        let right = rotation.rotate(vector3::RIGHT);
+        let up = rotation.rotate(vector3::UP);
+        let forward = rotation.rotate(vector3::FORWARD);
         Self {
-            m00: 1. - (yy + zz),
-            m01: xy - wz,
-            m02: xz + wy,
-            m03: translation.x,
-
-            m10: xy + wz,
-            m11: 1. - (xx + zz),
-            m12: yz - wx,
-            m13: translation.y,
-
-            m20: xz - wy,
-            m21: yz + wx,
-            m22: 1. - (xx + yy),
-            m23: translation.z,
-
+            m00: right.x,
+            m01: right.y,
+            m02: right.z,
+            m03: - right.x * position.x - right.y * position.y - right.z * position.z,
+            m10: up.x,
+            m11: up.y,
+            m12: up.z,
+            m13: - up.x * position.x - up.y * position.y - up.z * position.z,
+            m20: forward.x,
+            m21: forward.y,
+            m22: forward.z,
+            m23: - forward.x * position.x - forward.y * position.y - forward.z * position.z,
             m30: 0.,
             m31: 0.,
             m32: 0.,
             m33: 1.,
         }
-    }
-
-    pub fn view(rotation: Quaternion, position: Vector3) -> Self {
-        let r = rotation.rotate(vector3::RIGHT);
-        let u = rotation.rotate(vector3::UP);
-        let d = rotation.rotate(vector3::FORWARD);
-        let c = position;
-
-        Self {
-            m00: r.x,
-            m01: u.x,
-            m02: d.x,
-            m03: -c.x,
-            m10: r.y,
-            m11: u.y,
-            m12: d.y,
-            m13: -c.y,
-            m20: r.z,
-            m21: u.z,
-            m22: d.z,
-            m23: -c.z,
-            m30: 0.,
-            m31: 0.,
-            m32: 0.,
-            m33: 1.,
-        }
-
-        //let xx2 = r.x * r.x * 2.;
-        //let yy2 = r.y * r.y * 2.;
-        //let zz2 = r.z * r.z * 2.;
-        //let xy2 = r.x * r.y * 2.;
-        //let xz2 = r.x * r.z * 2.;
-        //let xw2 = r.x * r.w * 2.;
-        //let yz2 = r.y * r.z * 2.;
-        //let yw2 = r.y * r.w * 2.;
-        //let zw2 = r.z * r.w * 2.;
-        //Self {
-        //    m00: 1. - yy2 - zz2,
-        //    m01: xy2 - zw2,
-        //    m02: xz2 + yw2,
-        //    m03: 0.,
-        //    m10: xy2 + zw2,
-        //    m11: 1. - xx2 - zz2,
-        //    m12: yz2 - xw2,
-        //    m13: 0.,
-        //    m20: xz2 - yw2,
-        //    m21: yz2 + xw2,
-        //    m22: 1. - xx2 - yy2,
-        //    m23: 0.,
-        //    m30: 0.,
-        //    m31: 0.,
-        //    m32: 0.,
-        //    m33: 1.,
-        //}
-
-        //let right = rotation.rotate(vector3::RIGHT);
-        //let up = rotation.rotate(vector3::UP);
-        //let forward = rotation.rotate(vector3::FORWARD);
-        //Self {
-        //    m00: right.x,
-        //    m01: up.x,
-        //    m02: forward.x,
-        //    //m03: - right.x * position.x - right.y * position.y - right.z * position.z,
-        //    m03: -position.x,
-        //    m10: right.y,
-        //    m11: up.y,
-        //    m12: forward.y,
-        //    //m13: - up.x * position.x - up.y * position.y - up.z * position.z,
-        //    m13: -position.y,
-        //    m20: right.z,
-        //    m21: up.z,
-        //    m22: forward.z,
-        //    //m23: - forward.x * position.x - forward.y * position.y - forward.z * position.z,
-        //    m23: -position.z,
-        //    m30: 0.,
-        //    m31: 0.,
-        //    m32: 0.,
-        //    m33: 1.,
-        //}
     }
 
     pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self

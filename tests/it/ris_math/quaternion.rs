@@ -35,7 +35,7 @@ fn should_convert_quaternion_to_matrix_and_back() {
 
         let quaternion = Quaternion { w, x, y, z }.normalized();
 
-        let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
+        let matrix = Matrix4x4::look_at(quaternion, vector3::ZERO);
         let copy = Quaternion::from_matrix(matrix);
 
         assert_feq(quaternion.w, copy.w, ris_math::MIN_NORM);
