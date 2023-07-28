@@ -179,53 +179,57 @@ impl Matrix4x4 {
     }
 
     pub fn view(rotation: Quaternion, position: Vector3) -> Self {
-        let r = rotation;
-        let p = position;
-        let xx2 = r.x * r.x * 2.;
-        let yy2 = r.y * r.y * 2.;
-        let zz2 = r.z * r.z * 2.;
-        let xy2 = r.x * r.y * 2.;
-        let xz2 = r.x * r.z * 2.;
-        let xw2 = r.x * r.w * 2.;
-        let yz2 = r.y * r.z * 2.;
-        let yw2 = r.y * r.w * 2.;
-        let zw2 = r.z * r.w * 2.;
-        //Self {
-        //    m00: 1. - yy2 - zz2,
-        //    m01: xy2 - zw2,
-        //    m02: xz2 + yw2,
-        //    m03: -p.x,
-        //    m10: xy2 + zw2,
-        //    m11: 1. - xx2 - zz2,
-        //    m12: yz2 - xw2,
-        //    m13: -p.y,
-        //    m20: xz2 - yw2,
-        //    m21: yz2 + xw2,
-        //    m22: 1. - xx2 - yy2,
-        //    m23: -p.z,
-        //    m30: 0.,
-        //    m31: 0.,
-        //    m32: 0.,
-        //    m33: 1.,
-        //}
+        let r = rotation.rotate(vector3::RIGHT);
+        let u = rotation.rotate(vector3::UP);
+        let d = rotation.rotate(vector3::FORWARD);
+        let c = position;
+
         Self {
-            m00: 1. - yy2 - zz2,
-            m01: xy2 - zw2,
-            m02: xz2 + yw2,
-            m03: -p.x,
-            m10: xy2 + zw2,
-            m11: 1. - xx2 - zz2,
-            m12: yz2 - xw2,
-            m13: -p.y,
-            m20: xz2 - yw2,
-            m21: yz2 + xw2,
-            m22: 1. - xx2 - yy2,
-            m23: -p.z,
+            m00: r.x,
+            m01: u.x,
+            m02: d.x,
+            m03: -c.x,
+            m10: r.y,
+            m11: u.y,
+            m12: d.y,
+            m13: -c.y,
+            m20: r.z,
+            m21: u.z,
+            m22: d.z,
+            m23: -c.z,
             m30: 0.,
             m31: 0.,
             m32: 0.,
             m33: 1.,
         }
+
+        //let xx2 = r.x * r.x * 2.;
+        //let yy2 = r.y * r.y * 2.;
+        //let zz2 = r.z * r.z * 2.;
+        //let xy2 = r.x * r.y * 2.;
+        //let xz2 = r.x * r.z * 2.;
+        //let xw2 = r.x * r.w * 2.;
+        //let yz2 = r.y * r.z * 2.;
+        //let yw2 = r.y * r.w * 2.;
+        //let zw2 = r.z * r.w * 2.;
+        //Self {
+        //    m00: 1. - yy2 - zz2,
+        //    m01: xy2 - zw2,
+        //    m02: xz2 + yw2,
+        //    m03: 0.,
+        //    m10: xy2 + zw2,
+        //    m11: 1. - xx2 - zz2,
+        //    m12: yz2 - xw2,
+        //    m13: 0.,
+        //    m20: xz2 - yw2,
+        //    m21: yz2 + xw2,
+        //    m22: 1. - xx2 - yy2,
+        //    m23: 0.,
+        //    m30: 0.,
+        //    m31: 0.,
+        //    m32: 0.,
+        //    m33: 1.,
+        //}
 
         //let right = rotation.rotate(vector3::RIGHT);
         //let up = rotation.rotate(vector3::UP);

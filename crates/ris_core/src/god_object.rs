@@ -48,6 +48,10 @@ impl GodObject {
         input_data.keyboard.keymask[20] = Scancode::Down;
         input_data.keyboard.keymask[21] = Scancode::Left;
         input_data.keyboard.keymask[22] = Scancode::Right;
+        input_data.keyboard.keymask[28] = Scancode::Kp8;
+        input_data.keyboard.keymask[29] = Scancode::Kp2;
+        input_data.keyboard.keymask[30] = Scancode::Kp4;
+        input_data.keyboard.keymask[31] = Scancode::Kp6;
 
         let god_object = GodObject {
             app_info,

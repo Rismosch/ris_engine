@@ -87,7 +87,23 @@ impl Video {
             y: scene.camera_position.y,
             z: scene.camera_position.z,
         };
-        let view_matrix = Matrix4x4::view(rotation, position);
+        let mut view_matrix = Matrix4x4::view(rotation, position).transposed();
+        //view_matrix.m00 = 0.10;
+        //view_matrix.m01 = 0.15;
+        //view_matrix.m02 = 0.20;
+        //view_matrix.m03 = 0.25;
+        //view_matrix.m10 = 0.30;
+        //view_matrix.m11 = 0.35;
+        //view_matrix.m12 = 0.40;
+        //view_matrix.m13 = 0.45;
+        //view_matrix.m20 = 0.50;
+        //view_matrix.m21 = 0.55;
+        //view_matrix.m22 = 0.60;
+        //view_matrix.m23 = 0.65;
+        //view_matrix.m30 = 0.70;
+        //view_matrix.m31 = 0.75;
+        //view_matrix.m32 = 0.80;
+        //view_matrix.m33 = 0.85;
 
         //let fovy = 60. * ris_math::DEG2RAD;
         //let (w, h) = self.renderer.window.vulkan_drawable_size();
@@ -98,8 +114,8 @@ impl Video {
         let projection_matrix = Matrix4x4::identity();
 
         let ubo = UniformBufferObject {
-            debug_x: 0,
-            debug_y: 0,
+            debug_x: scene.debug_x,
+            debug_y: scene.debug_y,
             view_matrix,
             projection_matrix,
         };

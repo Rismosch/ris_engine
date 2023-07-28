@@ -36,7 +36,7 @@ impl Buffers {
         let magenta = [1.0, 0.0, 1.0];
         let yellow = [1.0, 1.0, 0.0];
 
-        let pos = 0.08;
+        let pos = 0.25;
         let v1 = Vertex3d {
             position: [-pos, -pos, -pos],
             color: magenta,

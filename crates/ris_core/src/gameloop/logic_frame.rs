@@ -28,14 +28,36 @@ impl LogicFrame {
         let movement_speed = 2. * frame.delta();
         let mouse_speed = 20. * frame.delta();
 
-        if input.mouse.buttons.is_hold(action::OK) {
-            current.camera_vertical_angle += mouse_speed * input.mouse.yrel as f32;
-            current.camera_horizontal_angle += mouse_speed * input.mouse.xrel as f32;
-        } else if input.general.buttons.is_down(action::OK) {
+        //if input.mouse.buttons.is_hold(action::OK) {
+        //    current.camera_vertical_angle += mouse_speed * input.mouse.yrel as f32;
+        //    current.camera_horizontal_angle += mouse_speed * input.mouse.xrel as f32;
+        //} else if input.general.buttons.is_down(action::OK) {
+        //    current.camera_horizontal_angle = 0.0;
+        //    current.camera_vertical_angle = 0.0;
+        //    scene.camera_position = Vector3::new(0., -2., 0.);
+        //}
+        
+        if input.keyboard.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
-            scene.camera_position = Vector3::new(0., -2., 0.);
+            scene.camera_position = Vector3::new(0., 0., 0.);
         }
+
+        //if input.general.buttons.is_hold(action::MOVE_UP) {
+        //    scene.camera_position += movement_speed * vector3::FORWARD;
+        //}
+
+        //if input.general.buttons.is_hold(action::MOVE_DOWN) {
+        //    scene.camera_position += movement_speed * vector3::BACKWARD;
+        //}
+
+        //if input.general.buttons.is_hold(action::MOVE_LEFT) {
+        //    scene.camera_position += movement_speed * vector3::LEFT;
+        //}
+
+        //if input.general.buttons.is_hold(action::MOVE_RIGHT) {
+        //    scene.camera_position += movement_speed * vector3::RIGHT;
+        //}
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
             current.camera_vertical_angle += rotation_speed;
@@ -53,6 +75,36 @@ impl LogicFrame {
             current.camera_horizontal_angle -= rotation_speed;
         }
 
+        if input.general.buttons.is_down(action::DEBUG_UP) {
+            scene.debug_y -= 1;
+        }
+
+        if input.general.buttons.is_down(action::DEBUG_DOWN) {
+            scene.debug_y += 1;
+        }
+
+        if input.general.buttons.is_down(action::DEBUG_LEFT) {
+            scene.debug_x -= 1;
+        }
+
+        if input.general.buttons.is_down(action::DEBUG_RIGHT) {
+            scene.debug_x += 1;
+        }
+
+        if scene.debug_x < 0 {
+            scene.debug_x = 0;
+        }
+        if scene.debug_x > 3 {
+            scene.debug_x = 3;
+        }
+
+        if scene.debug_y < 0 {
+            scene.debug_y = 0;
+        }
+        if scene.debug_y > 3 {
+            scene.debug_y = 3;
+        }
+
         //while current.camera_horizontal_angle < 0. {
         //    current.camera_horizontal_angle += ris_math::PI_2;
         //}
@@ -67,59 +119,31 @@ impl LogicFrame {
 
         let rotation1 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
-        scene.camera_rotation = rotation1 * rotation2;
-        scene.camera_position = scene.camera_rotation.rotate(1. * vector3::BACKWARD);
+        scene.camera_rotation = rotation2 * rotation1;
+        //scene.camera_position = scene.camera_rotation.conjugate().rotate(1. * vector3::FORWARD);
 
-        //if input.general.buttons.is_hold(action::MOVE_UP) {
-        //    let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-        //    scene.camera_position += movement_speed * forward;
-        //}
+        if input.general.buttons.is_hold(action::MOVE_UP) {
+            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+            scene.camera_position += movement_speed * forward;
+        }
 
-        //if input.general.buttons.is_hold(action::MOVE_DOWN) {
-        //    let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-        //    scene.camera_position -= movement_speed * forward;
-        //}
+        if input.general.buttons.is_hold(action::MOVE_DOWN) {
+            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
+            scene.camera_position -= movement_speed * forward;
+        }
 
-        //if input.general.buttons.is_hold(action::MOVE_LEFT) {
-        //    let right = scene.camera_rotation.rotate(vector3::RIGHT);
-        //    scene.camera_position += movement_speed * right;
-        //}
+        if input.general.buttons.is_hold(action::MOVE_LEFT) {
+            let right = scene.camera_rotation.rotate(vector3::RIGHT);
+            scene.camera_position += movement_speed * right;
+        }
 
-        //if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-        //    let right = scene.camera_rotation.rotate(vector3::RIGHT);
-        //    scene.camera_position -= movement_speed * right;
-        //}
+        if input.general.buttons.is_hold(action::MOVE_RIGHT) {
+            let right = scene.camera_rotation.rotate(vector3::RIGHT);
+            scene.camera_position -= movement_speed * right;
+        }
 
         if input.general.buttons.is_hold(action::ANY) {
-            //let quaternion = scene.camera_rotation;
-            //let matrix = Matrix4x4::transformation(quaternion, vector3::ZERO);
-            //let my_vector = Vector3::new(0.0,1.0,0.0);
-            //let rotated1 = quaternion.rotate(my_vector);
-            //let rotated2 = matrix.rotate(my_vector);
-
-            //ris_log::debug!(
-            //    "horizontal: {} vertical: {} | rotated1: {:?} rotated2: {:?} position: {:?} | {}s {}fps",
-            //    current.camera_horizontal_angle,
-            //    current.camera_vertical_angle,
-            //    rotated1,
-            //    rotated2,
-            //    scene.camera_position,
-            //    frame.delta(),
-            //    frame.fps()
-            //);
-            
-            let rotation = scene.camera_rotation;
-            let position = scene.camera_position;
-
-            let matrix = Matrix4x4::view(rotation, position);
-            let position_zero = matrix.rotate_and_transform(position);
-
-            ris_log::debug!("{:?} {:?} {:?}",
-                            current.camera_horizontal_angle,
-                            current.camera_vertical_angle,
-                            scene.camera_rotation,
-                            );
-
+            ris_log::debug!("{:?} | {}", scene.camera_position, scene.camera_position.magnitude());
         }
 
         GameloopState::WantsToContinue
