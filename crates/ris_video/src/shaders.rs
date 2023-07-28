@@ -25,7 +25,6 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         void main() {
             vec3 p = vec3(position.x, position.y, -position.z);
 
-            mat4 _test = ubo.proj * ubo.view; // to prevent dead code elimination of the ubo
             gl_Position = ubo.proj * ubo.view * vec4(p, 1.0);
 
             if ((ubo.debug_x % 2) == 1) {
