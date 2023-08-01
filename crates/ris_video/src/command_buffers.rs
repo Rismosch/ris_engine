@@ -41,13 +41,14 @@ pub fn create_command_buffers(
             .map_err(|e| format!("failed to begin render pass: {}", e))?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, buffers.vertex.clone())
+            .bind_index_buffer(buffers.index.clone())
             .bind_descriptor_sets(
                 PipelineBindPoint::Graphics,
                 pipeline_layout.clone(),
                 0,
                 buffers.uniforms[i].1.clone(),
             )
-            .draw(buffers.vertex.len() as u32, 1, 0, 0)
+            .draw_indexed(buffers.index.len() as u32, 1, 0, 0, 0)
             .map_err(|e| format!("failed to draw: {}", e))?
             .end_render_pass()
             .map_err(|e| format!("failed to end render pass: {}", e))?;
