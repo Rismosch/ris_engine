@@ -4,7 +4,9 @@ use sdl2::video::Window;
 use vulkano::device::physical::PhysicalDevice;
 use vulkano::device::Device;
 use vulkano::image::view::ImageView;
+use vulkano::image::AttachmentImage;
 use vulkano::image::ImageUsage;
+use vulkano::image::ImageViewAbstract;
 use vulkano::image::SwapchainImage;
 use vulkano::render_pass::Framebuffer;
 use vulkano::render_pass::FramebufferCreateInfo;
@@ -51,18 +53,29 @@ pub fn create_swapchain(
 }
 
 pub fn create_framebuffers(
+    allocators: &crate::allocators::Allocators,
+    dimensions: [u32; 2],
     images: &[Arc<SwapchainImage>],
     render_pass: &Arc<RenderPass>,
 ) -> Result<Vec<Arc<Framebuffer>>, String> {
-    let mut framebuffers = Vec::new();
+    let depth_buffer =
+        AttachmentImage::transient(&allocators.memory, dimensions, super::DEPTH_FORMAT)
+            .map_err(|e| format!("failed to create frame buffer: {}", e))?;
 
+    let mut framebuffers = Vec::new();
     for image in images {
-        let view = ImageView::new_default(image.clone())
+        let image_view = ImageView::new_default(image.clone())
             .map_err(|e| format!("failed to create image view: {}", e))?;
+
+        let depth_view = ImageView::new_default(depth_buffer.clone())
+            .map_err(|e| format!("failed to create depth view: {}", e))?;
+
+        let attachments: Vec<Arc<dyn ImageViewAbstract>> = vec![image_view, depth_view];
+
         let framebuffer = Framebuffer::new(
             render_pass.clone(),
             FramebufferCreateInfo {
-                attachments: vec![view],
+                attachments,
                 ..Default::default()
             },
         )

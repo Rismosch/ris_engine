@@ -9,3 +9,7 @@ pub mod renderer;
 pub mod shaders;
 pub mod swapchain;
 pub mod video;
+
+use vulkano::format::Format;
+
+pub const DEPTH_FORMAT: Format = Format::D24_UNORM_S8_UINT;

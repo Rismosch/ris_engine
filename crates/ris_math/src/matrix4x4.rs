@@ -8,7 +8,7 @@ use crate::vector3::Vector3;
 // m10 m11 m12 m13
 // m20 m21 m22 m23
 // m30 m31 m32 m33
-#[derive(Debug, Copy, Clone, Default, BufferContents)]
+#[derive(Debug, Copy, Clone, BufferContents)]
 #[repr(C)]
 pub struct Matrix4x4 {
     pub m00: f32,
@@ -219,5 +219,11 @@ impl Matrix4x4 {
             m32: self.m32,
             m33: self.m33,
         }
+    }
+}
+
+impl Default for Matrix4x4 {
+    fn default() -> Self {
+        Self::identity()
     }
 }

@@ -17,10 +17,16 @@ pub fn create_render_pass(
                 format: swapchain.image_format(),
                 samples: 1,
             },
+            depth: {
+                load: Clear,
+                store: DontCare,
+                format: super::DEPTH_FORMAT,
+                samples: 1,
+            },
         },
         pass: {
             color: [color],
-            depth_stencil: {},
+            depth_stencil: {depth},
         },
     )
     .map_err(|e| format!("failed to create render pass: {}", e))

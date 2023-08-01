@@ -138,9 +138,6 @@ impl Renderer {
         // render pass
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
 
-        // frame buffers
-        let framebuffers = crate::swapchain::create_framebuffers(&images, &render_pass)?;
-
         // shaders
         let (vertex_shader, fragment_shader) = crate::shaders::compile_shaders(&device)?;
 
@@ -152,6 +149,13 @@ impl Renderer {
             depth_range: 0.0..1.0,
         };
 
+        // allocators
+        let allocators = crate::allocators::Allocators::new(&device);
+
+        // frame buffers
+        let framebuffers =
+            crate::swapchain::create_framebuffers(&allocators, [w, h], &images, &render_pass)?;
+
         // pipeline
         let pipeline = crate::pipeline::create_pipeline(
             &device,
@@ -160,9 +164,6 @@ impl Renderer {
             &render_pass,
             &viewport,
         )?;
-
-        // allocators
-        let allocators = crate::allocators::Allocators::new(&device);
 
         // buffers
         let buffers = crate::buffers::Buffers::new(&allocators, images.len(), &pipeline)?;
@@ -208,7 +209,13 @@ impl Renderer {
         };
 
         self.swapchain = new_swapchain;
-        self.framebuffers = crate::swapchain::create_framebuffers(&new_images, &self.render_pass)?;
+        let (w, h) = self.window.vulkan_drawable_size();
+        self.framebuffers = crate::swapchain::create_framebuffers(
+            &self.allocators,
+            [w, h],
+            &new_images,
+            &self.render_pass,
+        )?;
 
         Ok(())
     }

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use vulkano::device::Device;
-//use vulkano::pipeline::graphics::depth_stencil::CompareOp;
-//use vulkano::pipeline::graphics::depth_stencil::DepthState;
-//use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
+use vulkano::pipeline::graphics::depth_stencil::CompareOp;
+use vulkano::pipeline::graphics::depth_stencil::DepthState;
+use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::CullMode;
 use vulkano::pipeline::graphics::rasterization::FrontFace;
@@ -51,16 +51,14 @@ pub fn create_pipeline(
             cull_mode: StateMode::Fixed(CullMode::Back),
             ..Default::default()
         })
-        //.depth_stencil_state(
-        //    DepthStencilState{
-        //        depth: Some(DepthState{
-        //            enable_dynamic: false,
-        //            compare_op: StateMode::Fixed(CompareOp::Greater),
-        //            write_enable: StateMode::Fixed(false),
-        //        }),
-        //        ..Default::default()
-        //    }
-        //)
+        .depth_stencil_state(DepthStencilState {
+            depth: Some(DepthState {
+                enable_dynamic: false,
+                compare_op: StateMode::Fixed(CompareOp::Greater),
+                write_enable: StateMode::Fixed(true),
+            }),
+            ..Default::default()
+        })
         .render_pass(
             Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?,
         )
