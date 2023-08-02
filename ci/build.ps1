@@ -1,9 +1,10 @@
 $ErrorActionPreference = "Stop"
+Import-Module "$PSScriptRoot/util.ps1" -force
 
 Write-Host "checking preconditions..."
 
-$sdl2_dll = "$PSScriptRoot/../SDL2.dll"
-$shaderc_dll = "$PSScriptRoot/../shaderc_shared.dll"
+$sdl2_dll = "$root_dir/SDL2.dll"
+$shaderc_dll = "$root_dir/shaderc_shared.dll"
 
 $sdl2_dll_exists = Test-Path $sdl2_dll
 $shaderc_dll_exists = Test-Path $shaderc_dll
@@ -18,13 +19,7 @@ if (!$shaderc_dll_exists) {
 
 Write-Host "clearing destination directory..."
 
-$final_directory = "$PSScriptRoot/../build"
-
-if (Test-Path $final_directory) {
-    Remove-Item -Recurse -Force $final_directory
-}
-
-New-Item -Path $final_directory -ItemType Directory | out-null
+$final_directory = GetAndClearCiOutDir
 
 Write-Host "parsing cli args..."
 
@@ -186,13 +181,12 @@ if ($cli_release_value -eq $true) {
 
 Write-Host "moving files..."
 
-$target_directory = "$PSScriptRoot/../target/$build_profile"
+$target_directory = Resolve-Path "$root_dir/target/$build_profile"
+$source_exe = Resolve-Path "$target_directory/ris_engine.exe"
 
-Copy-Item "$target_directory/ris_engine.exe" -Destination "$final_directory/ris_engine.exe"
+Copy-Item $source_exe -Destination "$final_directory/ris_engine.exe"
 Copy-Item $sdl2_dll -Destination "$final_directory/SDL2.dll"
 Copy-Item $shaderc_dll -Destination "$final_directory/shaderc_shared.dll"
 
-$resolved_final_directory = Resolve-Path $final_directory
-
-Write-Host "done! final build can be found under ``$resolved_final_directory``"
+Write-Host "done! final build can be found under ``$final_directory``"
 

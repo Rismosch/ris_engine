@@ -5,8 +5,8 @@
 /target
 Cargo.lock
 
-# build custom
-/build
-
 # vscode
 /.vscode
+
+# ci out
+/ci_out
