@@ -18,13 +18,13 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 In this repo you will find the `./3rd_party/` directory. It contains all required 3rd party libraries.
 
-For information where I got these libraries come from, read [3RD_PARTY_SOURCES.md](3RD_PARTY_SOURCES.md).
+For information where I got these libraries from, read [3RD_PARTY_SOURCES.md](3RD_PARTY_SOURCES.md).
 
 ### Instructions
 
 #### 1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
 
-`cargo run` expects all necessary dlls to be in the root directory. Also, the `./ci/build.ps1` expects these to be in the root directory as well.
+`cargo run` expects all necessary dlls to be in the root directory. Also, the `./ci/build.ps1` script expects these to be in the root directory as well.
 
 #### 2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
 
