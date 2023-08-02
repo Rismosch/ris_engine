@@ -1,4 +1,4 @@
-All files in `./external/` come from 3rd parties and are licensed under their respective licenses. Listed below are all the sources, where I got these files from.
+All files in `./3rd_party/` are not mine and are licensed under their respective licenses. Listed below are all the sources, where I got these files from.
 
 ## SDL2-2.0.12
 repository: https://github.com/libsdl-org/SDL/  

@@ -14,13 +14,13 @@ The current target platform is Windows 64-bit. Other platforms probably wont wor
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile and linker errors.
 
-In this repo you will find the `./external/` directory. It contains all required 3rd party libraries. To install them, follow these instructions:
+In this repo you will find the `./3rd_party/` directory. It contains all required 3rd party libraries. To install them, follow these instructions:
 
-1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
-2. Move `./external/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
-3. Copy _EVERY_ `*.lib` in `./external/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
+1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
+2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
+3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
 
-> C:\\Users\\\<your username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
+    C:\\Users\\\<your username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
 
 For information where I got these libraries come from, read [external_sources.md](EXTERNAL_SOURCES.md).
 
@@ -33,7 +33,7 @@ Assuming everything is installed correctly, you can now simply compile and run t
 
 Alternatively, you can build a release-ready package, by running the build script found under:
 
-> ./ci/build.ps1
+    ./ci/build.ps1
 
 
 The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./ci_out/build/`:

@@ -23,9 +23,11 @@ $final_directory = GetAndClearCiOutDir
 
 Write-Host "parsing cli args..."
 
+$cli_default = "--default"
+
 $cli_cargo_clean = "--cargo-clean"
 $cli_no_cargo_clean = "--no-cargo-clean"
-$cli_cargo_clean_value = $false;
+$cli_cargo_clean_value = $false
 
 $cli_debug = "--debug"
 $cli_release = "--release"
@@ -36,6 +38,8 @@ if ($args.length -eq 0) {
     Write-Host "INFO: you may skip user input, by providing cli args."
     Write-Host ""
     Write-Host "available args:"
+    Write-Host "    $cli_default         skips user input and uses default values for everything below"
+    Write-Host ""
     Write-Host "    $cli_cargo_clean     executes ``cargo clean`` before building"
     Write-Host "    $cli_no_cargo_clean  does not execute ``cargo clean`` (default)"
     Write-Host ""
@@ -60,6 +64,7 @@ if ($args.length -eq 0) {
     for($i = 0; $i -lt $args.length; ++$i) {
         $arg = $args[$i]
         switch ($arg) {
+            $cli_default { break }
             $cli_cargo_clean { $cli_cargo_clean_value = $true }
             $cli_no_cargo_clean { $cli_cargo_clean_value = $false }
             $cli_debug { $cli_release_value = $false }
