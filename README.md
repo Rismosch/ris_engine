@@ -28,7 +28,7 @@ For information where I got these libraries from, read [3RD_PARTY_SOURCES.md](3R
 
 #### 2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
 
-[shaderc](https://crates.io/crates/shaderc) requires this dll during build time. It has a niche feature to store shader code in Rust source code, and compile them at build time using macros. Gimmickey and probably intended for small demo projects, but useless bloat if you ask me.
+[shaderc](https://crates.io/crates/shaderc) requires this dll during build time. It has a niche feature to store shader code in Rust source code, and compile them at build time using macros. Gimmicky and probably intended for small demo projects, but useless bloat if you ask me.
 
 Nevertheless it does try to try to search the dll, and one directory it's searching is the environment variable `SHADERC_LIB_DIR`. 
 
@@ -38,7 +38,7 @@ If you are on Windows, and are using `rustup`, this directory probably is:
 
     C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 
-Rust still needs to link. And this directory is the one that `cargo` searches.
+Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
 
 
 ## 🔨 Building
