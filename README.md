@@ -20,9 +20,9 @@ In this repo you will find the `./3rd_party/` directory. It contains all require
 2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
 3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
 
-    C:\\Users\\\<your username\>\\.rustup\\toolchains\\\<current toolchain\>\\lib\\rustlib\\\<current toolchain\>\\lib
+        C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 
-For information where I got these libraries come from, read [external_sources.md](EXTERNAL_SOURCES.md).
+For information where I got these libraries come from, read [3RD_PARTY_SOURCES.md](3RD_PARTY_SOURCES.md).
 
 
 ## 🔨 Building
