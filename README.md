@@ -36,7 +36,7 @@ Alternatively, you can build a release-ready package, by running the build scrip
 > ./ci/build.ps1
 
 
-The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./build/`:
+The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./ci_out/build/`:
 
 1. **ris_engine.exe**  
 This is the compiled engine. It contains all logic to run the game.
