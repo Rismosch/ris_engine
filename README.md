@@ -4,25 +4,41 @@
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
 
+
 ## ⚙️ Requirements
 
 To compile this repo, you need a working Rust compiler. I currently use `cargo` and `rustc 1.70.0`. A newer compiler probably works fine.
 
 The current target platform is Windows 64-bit. Other platforms probably wont work and I give no guarantees.
 
+
 ## 🔧 Installation
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile and linker errors.
 
-In this repo you will find the `./3rd_party/` directory. It contains all required 3rd party libraries. To install them, follow these instructions:
-
-1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
-2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
-3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.  If you are on Windows, and are using `rustup`, this directory probably is:
-
-        C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
+In this repo you will find the `./3rd_party/` directory. It contains all required 3rd party libraries.
 
 For information where I got these libraries come from, read [3RD_PARTY_SOURCES.md](3RD_PARTY_SOURCES.md).
+
+### Instructions
+
+#### 1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
+
+`cargo run` expects all necessary dlls to be in the root directory. Also, the `./ci/build.ps1` expects these to be in the root directory as well.
+
+#### 2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
+
+[shaderc](https://crates.io/crates/shaderc) requires this dll during build time. It has a niche feature to store shader code in Rust source code, and compile them at build time using macros. Gimmickey and probably intended for small demo projects, but useless bloat if you ask me.
+
+Nevertheless it does try to try to search the dll, and one directory it's searching is the environment variable `SHADERC_LIB_DIR`. 
+
+#### 3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.
+
+If you are on Windows, and are using `rustup`, this directory probably is:
+
+    C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
+
+Rust still needs to link. And this directory is the one that `cargo` searches.
 
 
 ## 🔨 Building
