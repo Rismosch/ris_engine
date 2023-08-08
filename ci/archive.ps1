@@ -33,11 +33,11 @@ if ($args.length -eq 0) {
     Write-Host "    $cli_clean           cleans the workspace by running a combination of `git` commands"
     Write-Host "    $cli_no_clean        does not clean the workspace (default)"
     Write-Host ""
-    Write-Host "    $cli_vendor          downloads dependencies using `cargo vendor` and prepares the workspace accordingly"
+    Write-Host "    $cli_vendor          downloads dependencies using ``cargo vendor`` and prepares the workspace accordingly"
     Write-Host "    $cli_no_vendor       does not download dependencies (default)"
     Write-Host ""
-    Write-Host "    $cli_include_git     include the `./.git` directory in the resulting archive"
-    Write-Host "    $cli_no_include_git  does not include the `./.git` directory in the resulting archive (default)"
+    Write-Host "    $cli_include_git     include the ``./.git`` directory in the resulting archive"
+    Write-Host "    $cli_no_include_git  does not include the ``./.git`` directory in the resulting archive (default)"
     Write-Host ""
     Write-Host "Default values are chosen to make minimal to no changes to the workspace. I recommend calling this script with these settings:"
     Write-Host "    $cli_clean"
@@ -59,7 +59,7 @@ if ($args.length -eq 0) {
         $cli_vendor_value = $true
     }
 
-    $user_input = Read-Host "should the `./.git` directory should be included in the resulting archive? (y/N)"
+    $user_input = Read-Host "should the ``./.git`` directory should be included in the resulting archive? (y/N)"
     if ($user_input.ToLower() -eq "y") {
         $cli_include_git_value = $true
     }
@@ -79,18 +79,18 @@ if ($args.length -eq 0) {
     }
 }
 
-#if ($cli_clean_value -eq $true) {
-#    Write-Host "cleaning workspace..."
-#
-#    Write-Host "git reset ."
-#    git reset .
-#
-#    Write-Host "git checkout -- ."
-#    git checkout -- .
-#
-#    Write-Host "git clean -dxf"
-#    git clean -dxf
-#}
+if ($cli_clean_value -eq $true) {
+    Write-Host "cleaning workspace..."
+
+    Write-Host "git reset ."
+    git reset .
+
+    Write-Host "git checkout -- ."
+    git checkout -- .
+
+    Write-Host "git clean -dxf"
+    git clean -dxf
+}
 
 if ($cli_vendor_value -eq $true) {
     Write-Host "clearing cargo config directory..."
@@ -133,14 +133,16 @@ Write-Host "prepare compression..."
 
 $target_path = "$final_directory/ris_engine.zip"
 
-Write-Host $target_path
-
 $compress = @{
 LiteralPath= $items_to_compress
 CompressionLevel = "Optimal"
-DestinationPath = "C:\Archives\Draft.zip"
+DestinationPath = $target_path
 }
 
 Write-Host "compressing..."
 
+Compress-Archive @compress
 
+$destination = Resolve-Path $target_path
+
+Write-Host "done! final archive can be found under ``$destination``"
