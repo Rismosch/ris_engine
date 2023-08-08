@@ -39,10 +39,12 @@ if ($args.length -eq 0) {
     Write-Host "    $cli_include_git     include the ``./.git`` directory in the resulting archive"
     Write-Host "    $cli_no_include_git  does not include the ``./.git`` directory in the resulting archive (default)"
     Write-Host ""
-    Write-Host "Default values are chosen to make minimal to no changes to the workspace. I recommend calling this script with these settings:"
+    Write-Host ""
+    Write-Host "Default values are chosen to make minimal to no changes to the workspace."
+    Write-Host "I recommend calling this script with these settings:"
     Write-Host "    $cli_clean"
-    Write-Host "    $cli_no_include_git"
     Write-Host "    $cli_vendor"
+    Write-Host "    $cli_no_include_git"
     Write-Host ""
     Write-Host ""
     Write-Host ""
@@ -59,7 +61,7 @@ if ($args.length -eq 0) {
         $cli_vendor_value = $true
     }
 
-    $user_input = Read-Host "should the ``./.git`` directory should be included in the resulting archive? (y/N)"
+    $user_input = Read-Host "should the ``./.git`` directory be included in the resulting archive? (y/N)"
     if ($user_input.ToLower() -eq "y") {
         $cli_include_git_value = $true
     }
