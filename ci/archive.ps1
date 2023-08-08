@@ -136,7 +136,8 @@ foreach($item in $all_items) {
 
 Write-Host "prepare compression..."
 
-$target_path = "$final_directory/ris_engine.zip"
+$archive_date = Get-Date -Format "yyyy_dd_MM"
+$target_path = "$final_directory/ris_engine_$archive_date.zip"
 
 $compress = @{
 LiteralPath= $items_to_compress
