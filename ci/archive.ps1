@@ -92,5 +92,24 @@ if ($args.length -eq 0) {
 #    git clean -dxf
 #}
 
-Write-Host $cli_vendor_value
+if ($cli_vendor_value -eq $true) {
+    Write-Host "clearing cargo config directory..."
+    if (Test-Path $cargo_config_directory) {
+        Remove-Item -Recurse -Force $cargo_config_directory
+    }
+
+    Write-Host "downloading dependencies..."
+    $vendor_output = cargo vendor | Out-String
+
+    Write-Host $vendor_output
+
+    Write-Host "preparing workspace for offline use..."
+    $cargo_config_path = ".cargo/config.toml";
+    $cargo_config_directory = Split-Path -parent $cargo_config_path
+
+    New-Item -Path $cargo_config_directory -ItemType Directory | out-null
+    New-Item -Path $cargo_config_path -ItemType File | out-null
+    Set-Content -Path $cargo_config_path -Value $vendor_output
+}
+
 Write-Host $cli_include_git_value
