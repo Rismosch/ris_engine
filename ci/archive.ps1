@@ -1,4 +1,4 @@
-# This script downloads all dependencies from the internet and zips all necessary files into one package.
+# This script is used to archive the entire workspace.
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
@@ -94,20 +94,20 @@ if ($cli_clean_value -eq $true) {
 
 if ($cli_vendor_value -eq $true) {
     Write-Host "clearing cargo config directory..."
+    $cargo_config_path = ".cargo/config.toml";
+    $cargo_config_directory = Split-Path -parent $cargo_config_path
+
     if (Test-Path $cargo_config_directory) {
         Remove-Item -Recurse -Force $cargo_config_directory
     }
+
+    New-Item -Path $cargo_config_directory -ItemType Directory | out-null
 
     Write-Host "downloading dependencies..."
     $vendor_output = cargo vendor | Out-String
 
     Write-Host $vendor_output
 
-    Write-Host "preparing workspace for offline use..."
-    $cargo_config_path = ".cargo/config.toml";
-    $cargo_config_directory = Split-Path -parent $cargo_config_path
-
-    New-Item -Path $cargo_config_directory -ItemType Directory | out-null
     New-Item -Path $cargo_config_path -ItemType File | out-null
     Set-Content -Path $cargo_config_path -Value $vendor_output
 }
