@@ -90,6 +90,9 @@ if ($cli_clean_value -eq $true) {
 
     Write-Host "git clean -dxf"
     git clean -dxf
+
+    Write-Host "creating destination directory..."
+    $final_directory = GetAndClearCiOutDir
 }
 
 if ($cli_vendor_value -eq $true) {
