@@ -79,18 +79,18 @@ if ($args.length -eq 0) {
     }
 }
 
-if ($cli_clean_value -eq $true) {
-    Write-Host "cleaning workspace..."
-
-    Write-Host "git reset ."
-    git reset .
-
-    Write-Host "git checkout -- ."
-    git checkout -- .
-
-    Write-Host "git clean -dxf"
-    git clean -dxf
-}
+#if ($cli_clean_value -eq $true) {
+#    Write-Host "cleaning workspace..."
+#
+#    Write-Host "git reset ."
+#    git reset .
+#
+#    Write-Host "git checkout -- ."
+#    git checkout -- .
+#
+#    Write-Host "git clean -dxf"
+#    git clean -dxf
+#}
 
 Write-Host $cli_vendor_value
 Write-Host $cli_include_git_value
