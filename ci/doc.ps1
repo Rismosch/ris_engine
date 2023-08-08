@@ -1,3 +1,6 @@
+# This script generates docs and moves them to another folder.
+# This prevents `cargo clean` to delete the docs. In case the workspace doesn't compile, having the docs available is invaluable.
+
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
 

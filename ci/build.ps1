@@ -1,3 +1,5 @@
+# This script generates build info and compiles the workspace as a release ready package.
+
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
 
