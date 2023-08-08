@@ -23,7 +23,7 @@ if ($LASTEXITCODE -eq 0) {
 
     start "$target_directory/ris_engine/index.html"
 
-    Write-Host "done! final documentation can be found unfer ``$target_directory``"
+    Write-Host "done! final documentation can be found under ``$target_directory``"
 } else {
     Write-Host "cargo doc was unsuccessful"
 }
