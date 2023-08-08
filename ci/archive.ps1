@@ -112,4 +112,35 @@ if ($cli_vendor_value -eq $true) {
     Set-Content -Path $cargo_config_path -Value $vendor_output
 }
 
-Write-Host $cli_include_git_value
+Write-Host "find items to compress..."
+
+$all_items = Get-ChildItem -Path $root_dir -Name -Force
+$items_to_compress = @()
+
+foreach($item in $all_items) {
+    if ($item -eq "ci_out") {
+        continue
+    }
+
+    if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
+        continue
+    }
+
+    $items_to_compress += $item
+}
+
+Write-Host "prepare compression..."
+
+$target_path = "$final_directory/ris_engine.zip"
+
+Write-Host $target_path
+
+$compress = @{
+LiteralPath= $items_to_compress
+CompressionLevel = "Optimal"
+DestinationPath = "C:\Archives\Draft.zip"
+}
+
+Write-Host "compressing..."
+
+
