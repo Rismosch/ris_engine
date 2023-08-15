@@ -4,6 +4,8 @@
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
 
+---
+
 ## ⚙️ Requirements
 
 To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
@@ -19,11 +21,11 @@ Tested Systems:
 | Windows 10 64 Bit | AMD Ryzen 5 3600    | NVIDIA GeForce RTX       | 32 GB |
 | Arch Linux        | Intel Core i5-1235U | Intel Alder Lake-UP3 GT2 | 16 GB |
 
+---
+
 ## 🔧 Installation
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors.
-
-### Instructions
 
 #### 🐧 Linux
 
@@ -66,6 +68,8 @@ If you are using `rustup`, this directory probably is:
     C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 
 Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
+
+---
 
 ## 🔨 Building
 
