@@ -18,7 +18,7 @@ Tested Systems:
 
 | OS                | CPU                 | GPU                      | RAM   |
 | ----------------- | ------------------- | ------------------------ | ----- |
-| Windows 10 64 Bit | AMD Ryzen 5 3600    | NVIDIA GeForce RTX       | 32 GB |
+| Windows 10 64 Bit | AMD Ryzen 5 3600    | NVIDIA GeForce RTX 2060  | 32 GB |
 | Arch Linux        | Intel Core i5-1235U | Intel Alder Lake-UP3 GT2 | 16 GB |
 
 ---
