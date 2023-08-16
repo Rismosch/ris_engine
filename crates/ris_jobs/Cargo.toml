@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cfg-if = "1"
 ris_data = { path = "../ris_data" }
 ris_log = { path = "../ris_log" }
-ris_os = { path = "../ris_os" }
 ris_util = { path = "../ris_util" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "^0.2.30"

@@ -184,7 +184,7 @@ fn duplicate_buffers(buffers: &Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
 }
 
 fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: usize) {
-    match ris_os::affinity::set_affinity(core_ids) {
+    match crate::affinity::set_affinity(core_ids) {
         Ok(()) => ris_log::trace!("set affinity {:?} for thread {}", core_ids, index),
         Err(error) => ris_log::error!("couldn't set affinity for thread {}: {}", index, error),
     };
