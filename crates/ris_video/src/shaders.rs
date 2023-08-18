@@ -27,12 +27,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
 
             gl_Position = ubo.proj * ubo.view * vec4(p, 1.0);
 
-            if ((ubo.debug_x % 2) == 1) {
-                fragColor = vec3(gl_Position.zzz);
-            } else {
-                fragColor = color;
-            }
-            //fragColor = vec3(ubo.view[ubo.debug_y][ubo.debug_x]);
+            fragColor = color;
         }
     ";
 

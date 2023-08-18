@@ -96,16 +96,16 @@ impl LogicFrame {
 
         let rotation1 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
-        scene.camera_rotation = rotation1 * rotation2;
+        scene.camera_rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
             let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position -= movement_speed * forward;
+            scene.camera_position += movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_DOWN) {
             let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position += movement_speed * forward;
+            scene.camera_position -= movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
@@ -119,9 +119,13 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_hold(action::ANY) {
+            let camera_forward = scene.camera_rotation.rotate(vector3::FORWARD);
             ris_log::debug!(
-                "{:?} | {}s {}fps",
+                "{:?} {:?} | {} {} | {}s {}fps",
                 scene.camera_position,
+                camera_forward,
+                current.camera_horizontal_angle,
+                current.camera_vertical_angle,
                 frame.delta(),
                 frame.fps()
             );
