@@ -94,8 +94,8 @@ impl LogicFrame {
             ris_math::PI_0_5,
         );
 
-        let rotation1 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
-        let rotation2 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
+        let rotation1 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
+        let rotation2 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         scene.camera_rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
