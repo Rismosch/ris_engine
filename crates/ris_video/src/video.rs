@@ -74,8 +74,12 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view_matrix =
-            Matrix4x4::look_at(scene.camera_rotation, scene.camera_position);
+        //let view_matrix =
+        //    Matrix4x4::look_at(scene.camera_rotation, scene.camera_position);
+        let view_matrix = Matrix4x4::view(
+            scene.camera_position,
+            scene.camera_rotation,
+        );
 
         let fovy = 60. * ris_math::DEG2RAD;
         let (w, h) = self.renderer.window.vulkan_drawable_size();

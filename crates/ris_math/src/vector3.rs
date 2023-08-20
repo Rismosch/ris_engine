@@ -80,6 +80,10 @@ impl Vector3 {
         }
     }
 
+    pub fn inverted(self) -> Self {
+        -1. * self
+    }
+
     pub fn magnitude_squared(self) -> f32 {
         Self::dot(self, self)
     }

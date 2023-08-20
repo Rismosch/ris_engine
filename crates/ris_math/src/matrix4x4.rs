@@ -32,7 +32,7 @@ pub struct Matrix4x4 {
 type Vector4 = [f32; 4];
 
 impl Matrix4x4 {
-    // standard matrix stuff
+    // initialization
     pub fn identity() -> Self {
         Self {
             m00: 1.,
@@ -54,6 +54,20 @@ impl Matrix4x4 {
         }
     }
 
+    pub fn translation(v: Vector3) -> Self {
+        Self {
+            m00: 1.,
+            m11: 1.,
+            m22: 1.,
+            m33: 1.,
+            m03: v.x,
+            m13: v.y,
+            m23: v.z,
+            ..Default::default()
+        }
+    }
+
+    // standard matrix stuff
     pub fn get(self, m: usize, n: usize) -> f32 {
         assert!(m < 4);
         assert!(n < 4);
@@ -141,6 +155,13 @@ impl Matrix4x4 {
     }
 
     // 3d transformation stuff
+    pub fn view(camera_position: Vector3, camera_roration: Quaternion) -> Self {
+        let translation = camera_position.inverted();
+        let rotation = camera_roration.conjugate();
+
+        Matrix4x4::translation(translation)
+    }
+
     pub fn look_at(rotation: Quaternion, position: Vector3) -> Self {
         let right = rotation.rotate(vector3::RIGHT);
         let up = rotation.rotate(vector3::UP);

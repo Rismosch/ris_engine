@@ -33,7 +33,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
-            scene.camera_position = Vector3::new(0., 2., 0.);
+            scene.camera_position = Vector3::new(0., 0., -1.);
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
