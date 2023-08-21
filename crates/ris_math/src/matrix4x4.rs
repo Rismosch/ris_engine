@@ -76,36 +76,6 @@ impl Matrix4x4 {
     }
 
     pub fn rotation(q: Quaternion) -> Self {
-        //let x2 = q.x * q.x;
-        //let y2 = q.y * q.y;
-        //let z2 = q.z * q.z;
-        //let xx = q.x * x2;
-        //let xy = q.x * y2;
-        //let xz = q.x * z2;
-        //let yy = q.y * y2;
-        //let yz = q.y * z2;
-        //let zz = q.z * z2;
-        //let wx = q.w * x2;
-        //let wy = q.w * y2;
-        //let wz = q.w * z2;
-        //Self {
-        //    m00: 1. - (yy + zz),
-        //    m01: xy - wz,
-        //    m02: xz + wy,
-        //    m03: 0.,
-        //    m10: xy + wz,
-        //    m11: 1. - (xx + zz),
-        //    m12: yz - wx,
-        //    m13: 0.,
-        //    m20: xz - wy,
-        //    m21: yz + wx,
-        //    m22: 1. - (xx + yy),
-        //    m23: 0.,
-        //    m30: 0.,
-        //    m31: 0.,
-        //    m32: 0.,
-        //    m33: 1.,
-        //}
         let sqw = q.w * q.w;
         let sqx = q.x * q.x;
         let sqy = q.y * q.y;
@@ -206,50 +176,22 @@ impl Matrix4x4 {
         ]
     }
 
-    //pub fn multiply_vector3(m: Matrix4x4, v: Vector3, w: f32) -> Vector3 {
-    //    let v4 = [v.x, v.y, v.z, w];
-    //    let result = Self::multiply_vector4(m, v4);
-    //    Vector3 {
-    //        x: result[0],
-    //        y: result[1],
-    //        z: result[2],
-    //    }
-    //}
-
     // 3d transformation stuff
     pub fn view(camera_position: Vector3, camera_roration: Quaternion) -> Self {
+        // My coordinate system is x => right, y => forward and z => upward.
+        // Vulkans coordinat system is x => right, y => down and z => forward.
+        // Both are right handed coordinate systems, therefore all relationships are equal.
+        // Only a single default rotation is necessary, to convert my system to vulkan.
+        let default_rotation = Quaternion::from_angle_axis(super::PI_0_5, vector3::RIGHT);
+        let camera_rotation = camera_roration.conjugate();
+        let rotation = default_rotation * camera_rotation;
         let translation = camera_position.inverted();
-        let rotation = camera_roration.conjugate();
 
         let translation_matrix = Matrix4x4::translation(translation);
         let rotation_matrix = Matrix4x4::rotation(rotation);
 
         rotation_matrix * translation_matrix
     }
-
-    //pub fn look_at(position: Vector3, rotation: Quaternion) -> Self {
-    //    let right = rotation.rotate(vector3::RIGHT);
-    //    let up = rotation.rotate(vector3::UP);
-    //    let forward = rotation.rotate(vector3::FORWARD);
-    //    Self {
-    //        m00: right.x,
-    //        m01: right.y,
-    //        m02: right.z,
-    //        m03: -right.x * position.x - right.y * position.y - right.z * position.z,
-    //        m10: up.x,
-    //        m11: up.y,
-    //        m12: up.z,
-    //        m13: -up.x * position.x - up.y * position.y - up.z * position.z,
-    //        m20: forward.x,
-    //        m21: forward.y,
-    //        m22: forward.z,
-    //        m23: -forward.x * position.x - forward.y * position.y - forward.z * position.z,
-    //        m30: 0.,
-    //        m31: 0.,
-    //        m32: 0.,
-    //        m33: 1.,
-    //    }
-    //}
 
     pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self {
         let focal_length = 1. / super::tan(fovy / 2.);

@@ -48,13 +48,13 @@ pub fn create_pipeline(
         )
         .rasterization_state(RasterizationState {
             front_face: StateMode::Fixed(FrontFace::CounterClockwise),
-            cull_mode: StateMode::Fixed(CullMode::None),
+            cull_mode: StateMode::Fixed(CullMode::Back),
             ..Default::default()
         })
         .depth_stencil_state(DepthStencilState {
             depth: Some(DepthState {
                 enable_dynamic: false,
-                compare_op: StateMode::Fixed(CompareOp::Always),
+                compare_op: StateMode::Fixed(CompareOp::Less),
                 write_enable: StateMode::Fixed(true),
             }),
             ..Default::default()
