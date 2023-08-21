@@ -25,7 +25,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         void main() {
             vec3 p = vec3(position.x, position.y, position.z);
 
-            gl_Position = vec4(p, 1.0) * ubo.view;
+            gl_Position = vec4(p, 1.0) * ubo.view * ubo.proj;
 
             fragColor = color;
         }

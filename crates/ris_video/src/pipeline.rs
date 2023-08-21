@@ -54,7 +54,7 @@ pub fn create_pipeline(
         .depth_stencil_state(DepthStencilState {
             depth: Some(DepthState {
                 enable_dynamic: false,
-                compare_op: StateMode::Fixed(CompareOp::Less),
+                compare_op: StateMode::Fixed(CompareOp::Greater),
                 write_enable: StateMode::Fixed(true),
             }),
             ..Default::default()

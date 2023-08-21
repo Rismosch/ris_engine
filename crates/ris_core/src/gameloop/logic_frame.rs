@@ -30,7 +30,7 @@ impl LogicFrame {
 
         if input.mouse.buttons.is_hold(action::OK) {
             current.camera_vertical_angle -= mouse_speed * input.mouse.yrel as f32;
-            current.camera_horizontal_angle += mouse_speed * input.mouse.xrel as f32;
+            current.camera_horizontal_angle -= mouse_speed * input.mouse.xrel as f32;
         } else if input.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
