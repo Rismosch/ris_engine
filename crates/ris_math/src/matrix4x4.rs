@@ -82,8 +82,8 @@ impl Matrix4x4 {
         let sqz = q.z * q.z;
 
         let m00 = sqx - sqy - sqz + sqw;
-        let m11 =-sqx + sqy - sqz + sqw;
-        let m22 =-sqx - sqy + sqz + sqw;
+        let m11 = -sqx + sqy - sqz + sqw;
+        let m22 = -sqx - sqy + sqz + sqw;
 
         let temp1 = q.x * q.y;
         let temp2 = q.z * q.w;

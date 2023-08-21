@@ -123,7 +123,8 @@ impl LogicFrame {
             let rotation_matrix = Matrix4x4::rotation(scene.camera_rotation);
             let camera_forward_matrix = rotation_matrix.rotate(vector3::FORWARD);
             let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
-            let camera_forward_view = Matrix4x4::view(scene.camera_position, scene.camera_rotation).rotate(vector3::FORWARD);
+            let camera_forward_view = Matrix4x4::view(scene.camera_position, scene.camera_rotation)
+                .rotate(vector3::FORWARD);
             ris_log::debug!(
                 "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
                 scene.camera_position,

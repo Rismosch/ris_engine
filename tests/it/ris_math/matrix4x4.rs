@@ -15,17 +15,29 @@ fn should_rotate_like_quaternion() {
         let z = rng.borrow_mut().next_f();
         let quaternion = Quaternion { w, x, y, z }.normalized();
         let matrix = Matrix4x4::rotation(quaternion);
-        
+
         let x = rng.borrow_mut().next_f();
         let y = rng.borrow_mut().next_f();
         let z = rng.borrow_mut().next_f();
-        let vector = Vector3 {x, y, z}.normalized();
+        let vector = Vector3 { x, y, z }.normalized();
 
         let rotated_by_quaternion = quaternion.rotate(vector);
         let rotated_by_matrix = matrix.rotate(vector);
 
-        assert_feq(rotated_by_quaternion.x, rotated_by_matrix.x, ris_math::MIN_NORM);
-        assert_feq(rotated_by_quaternion.y, rotated_by_matrix.y, ris_math::MIN_NORM);
-        assert_feq(rotated_by_quaternion.z, rotated_by_matrix.z, ris_math::MIN_NORM);
+        assert_feq(
+            rotated_by_quaternion.x,
+            rotated_by_matrix.x,
+            ris_math::MIN_NORM,
+        );
+        assert_feq(
+            rotated_by_quaternion.y,
+            rotated_by_matrix.y,
+            ris_math::MIN_NORM,
+        );
+        assert_feq(
+            rotated_by_quaternion.z,
+            rotated_by_matrix.z,
+            ris_math::MIN_NORM,
+        );
     });
 }

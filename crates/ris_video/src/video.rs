@@ -74,18 +74,14 @@ impl Video {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view_matrix = Matrix4x4::view(
-            scene.camera_position,
-            scene.camera_rotation,
-        );
+        let view_matrix = Matrix4x4::view(scene.camera_position, scene.camera_rotation);
 
         let fovy = 60. * ris_math::DEG2RAD;
         let (w, h) = self.renderer.window.vulkan_drawable_size();
         let aspect_ratio = w as f32 / h as f32;
         let near = 0.01;
         let far = 0.1;
-        let projection_matrix =
-            Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
+        let projection_matrix = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
 
         let ubo = UniformBufferObject {
             debug_x: scene.debug_x,

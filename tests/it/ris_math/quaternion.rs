@@ -61,7 +61,7 @@ fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
 }
 
 #[test]
-fn shoulf_rotate_around_up(){
+fn should_rotate_around_up() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::UP);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x < 0.);
@@ -70,7 +70,7 @@ fn shoulf_rotate_around_up(){
 }
 
 #[test]
-fn shoulf_rotate_around_down(){
+fn should_rotate_around_down() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::DOWN);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x > 0.);
@@ -79,7 +79,7 @@ fn shoulf_rotate_around_down(){
 }
 
 #[test]
-fn shoulf_rotate_around_left(){
+fn should_rotate_around_left() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::LEFT);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x == 0.);
@@ -88,7 +88,7 @@ fn shoulf_rotate_around_left(){
 }
 
 #[test]
-fn shoulf_rotate_around_right(){
+fn should_rotate_around_right() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::RIGHT);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x == 0.);
@@ -97,7 +97,7 @@ fn shoulf_rotate_around_right(){
 }
 
 #[test]
-fn shoulf_rotate_around_forward(){
+fn should_rotate_around_forward() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::FORWARD);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x == 0.);
@@ -106,11 +106,10 @@ fn shoulf_rotate_around_forward(){
 }
 
 #[test]
-fn shoulf_rotate_around_backward(){
+fn should_rotate_around_backward() {
     let rotation = Quaternion::from_angle_axis(ris_math::PI_0_25, vector3::BACKWARD);
     let result = rotation.rotate(vector3::FORWARD);
     assert!(result.x == 0.);
     assert!(result.y == 1.);
     assert!(result.z == 0.);
 }
-
