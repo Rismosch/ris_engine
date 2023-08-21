@@ -79,11 +79,11 @@ Assuming everything is installed correctly, you can now simply compile and run t
 
 Alternatively, you can build a release-ready package, by running a build script found under `./ci/`.
 
-Powershell:
+Windows:
 
     ./ci/build.ps1
 
-Bash:
+Linux:
 
     TODO
 
