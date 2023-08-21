@@ -47,14 +47,14 @@ pub fn create_pipeline(
             (),
         )
         .rasterization_state(RasterizationState {
-            front_face: StateMode::Fixed(FrontFace::Clockwise),
-            cull_mode: StateMode::Fixed(CullMode::Back),
+            front_face: StateMode::Fixed(FrontFace::CounterClockwise),
+            cull_mode: StateMode::Fixed(CullMode::None),
             ..Default::default()
         })
         .depth_stencil_state(DepthStencilState {
             depth: Some(DepthState {
                 enable_dynamic: false,
-                compare_op: StateMode::Fixed(CompareOp::Greater),
+                compare_op: StateMode::Fixed(CompareOp::Always),
                 write_enable: StateMode::Fixed(true),
             }),
             ..Default::default()

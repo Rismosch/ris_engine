@@ -57,13 +57,96 @@ impl Matrix4x4 {
     pub fn translation(v: Vector3) -> Self {
         Self {
             m00: 1.,
-            m11: 1.,
-            m22: 1.,
-            m33: 1.,
+            m01: 0.,
+            m02: 0.,
             m03: v.x,
+            m10: 0.,
+            m11: 1.,
+            m12: 0.,
             m13: v.y,
+            m20: 0.,
+            m21: 0.,
+            m22: 1.,
             m23: v.z,
-            ..Default::default()
+            m30: 0.,
+            m31: 0.,
+            m32: 0.,
+            m33: 1.,
+        }
+    }
+
+    pub fn rotation(q: Quaternion) -> Self {
+        //let x2 = q.x * q.x;
+        //let y2 = q.y * q.y;
+        //let z2 = q.z * q.z;
+        //let xx = q.x * x2;
+        //let xy = q.x * y2;
+        //let xz = q.x * z2;
+        //let yy = q.y * y2;
+        //let yz = q.y * z2;
+        //let zz = q.z * z2;
+        //let wx = q.w * x2;
+        //let wy = q.w * y2;
+        //let wz = q.w * z2;
+        //Self {
+        //    m00: 1. - (yy + zz),
+        //    m01: xy - wz,
+        //    m02: xz + wy,
+        //    m03: 0.,
+        //    m10: xy + wz,
+        //    m11: 1. - (xx + zz),
+        //    m12: yz - wx,
+        //    m13: 0.,
+        //    m20: xz - wy,
+        //    m21: yz + wx,
+        //    m22: 1. - (xx + yy),
+        //    m23: 0.,
+        //    m30: 0.,
+        //    m31: 0.,
+        //    m32: 0.,
+        //    m33: 1.,
+        //}
+        let sqw = q.w * q.w;
+        let sqx = q.x * q.x;
+        let sqy = q.y * q.y;
+        let sqz = q.z * q.z;
+
+        let m00 = sqx - sqy - sqz + sqw;
+        let m11 =-sqx + sqy - sqz + sqw;
+        let m22 =-sqx - sqy + sqz + sqw;
+
+        let temp1 = q.x * q.y;
+        let temp2 = q.z * q.w;
+        let m10 = 2. * (temp1 + temp2);
+        let m01 = 2. * (temp1 - temp2);
+
+        let temp1 = q.x * q.z;
+        let temp2 = q.y * q.w;
+        let m20 = 2. * (temp1 - temp2);
+        let m02 = 2. * (temp1 + temp2);
+
+        let temp1 = q.y * q.z;
+        let temp2 = q.x * q.w;
+        let m21 = 2. * (temp1 + temp2);
+        let m12 = 2. * (temp1 - temp2);
+
+        Self {
+            m00,
+            m01,
+            m02,
+            m03: 0.,
+            m10,
+            m11,
+            m12,
+            m13: 0.,
+            m20,
+            m21,
+            m22,
+            m23: 0.,
+            m30: 0.,
+            m31: 0.,
+            m32: 0.,
+            m33: 1.,
         }
     }
 
@@ -114,27 +197,6 @@ impl Matrix4x4 {
         }
     }
 
-    pub fn multiply(a: Self, b: Self) -> Self {
-        Self {
-            m00: a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30,
-            m01: a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21 + a.m03 * b.m31,
-            m02: a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22 + a.m03 * b.m32,
-            m03: a.m00 * b.m03 + a.m01 * b.m13 + a.m02 * b.m23 + a.m03 * b.m33,
-            m10: a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20 + a.m13 * b.m30,
-            m11: a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31,
-            m12: a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32,
-            m13: a.m10 * b.m03 + a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33,
-            m20: a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20 + a.m23 * b.m30,
-            m21: a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31,
-            m22: a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32,
-            m23: a.m20 * b.m03 + a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33,
-            m30: a.m30 * b.m00 + a.m31 * b.m10 + a.m32 * b.m20 + a.m33 * b.m30,
-            m31: a.m30 * b.m01 + a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31,
-            m32: a.m30 * b.m02 + a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32,
-            m33: a.m30 * b.m03 + a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33,
-        }
-    }
-
     pub fn multiply_vector4(m: Matrix4x4, v: Vector4) -> Vector4 {
         [
             m.m00 * v[0] + m.m01 * v[1] + m.m02 * v[2] + m.m03 * v[3],
@@ -144,47 +206,50 @@ impl Matrix4x4 {
         ]
     }
 
-    pub fn multiply_vector3(m: Matrix4x4, v: Vector3, w: f32) -> Vector3 {
-        let v4 = [v.x, v.y, v.z, w];
-        let result = Self::multiply_vector4(m, v4);
-        Vector3 {
-            x: result[0],
-            y: result[1],
-            z: result[2],
-        }
-    }
+    //pub fn multiply_vector3(m: Matrix4x4, v: Vector3, w: f32) -> Vector3 {
+    //    let v4 = [v.x, v.y, v.z, w];
+    //    let result = Self::multiply_vector4(m, v4);
+    //    Vector3 {
+    //        x: result[0],
+    //        y: result[1],
+    //        z: result[2],
+    //    }
+    //}
 
     // 3d transformation stuff
     pub fn view(camera_position: Vector3, camera_roration: Quaternion) -> Self {
         let translation = camera_position.inverted();
         let rotation = camera_roration.conjugate();
 
-        Matrix4x4::translation(translation)
+        let translation_matrix = Matrix4x4::translation(translation);
+        let rotation_matrix = Matrix4x4::rotation(rotation);
+
+        rotation_matrix * translation_matrix
     }
 
-    pub fn look_at(rotation: Quaternion, position: Vector3) -> Self {
-        let right = rotation.rotate(vector3::RIGHT);
-        let up = rotation.rotate(vector3::UP);
-        let forward = rotation.rotate(vector3::FORWARD);
-        Self {
-            m00: right.x,
-            m01: right.y,
-            m02: right.z,
-            m03: -right.x * position.x - right.y * position.y - right.z * position.z,
-            m10: up.x,
-            m11: up.y,
-            m12: up.z,
-            m13: -up.x * position.x - up.y * position.y - up.z * position.z,
-            m20: forward.x,
-            m21: forward.y,
-            m22: forward.z,
-            m23: -forward.x * position.x - forward.y * position.y - forward.z * position.z,
-            m30: 0.,
-            m31: 0.,
-            m32: 0.,
-            m33: 1.,
-        }
-    }
+    //pub fn look_at(position: Vector3, rotation: Quaternion) -> Self {
+    //    let right = rotation.rotate(vector3::RIGHT);
+    //    let up = rotation.rotate(vector3::UP);
+    //    let forward = rotation.rotate(vector3::FORWARD);
+    //    Self {
+    //        m00: right.x,
+    //        m01: right.y,
+    //        m02: right.z,
+    //        m03: -right.x * position.x - right.y * position.y - right.z * position.z,
+    //        m10: up.x,
+    //        m11: up.y,
+    //        m12: up.z,
+    //        m13: -up.x * position.x - up.y * position.y - up.z * position.z,
+    //        m20: forward.x,
+    //        m21: forward.y,
+    //        m22: forward.z,
+    //        m23: -forward.x * position.x - forward.y * position.y - forward.z * position.z,
+    //        m30: 0.,
+    //        m31: 0.,
+    //        m32: 0.,
+    //        m33: 1.,
+    //    }
+    //}
 
     pub fn perspective_projection(fovy: f32, aspect_ratio: f32, near: f32, far: f32) -> Self {
         let focal_length = 1. / super::tan(fovy / 2.);
@@ -214,11 +279,23 @@ impl Matrix4x4 {
     }
 
     pub fn rotate(self, v: Vector3) -> Vector3 {
-        Self::multiply_vector3(self, v, 0.)
+        let v4 = [v.x, v.y, v.z, 0.];
+        let result = Self::multiply_vector4(self, v4);
+        Vector3 {
+            x: result[0],
+            y: result[1],
+            z: result[2],
+        }
     }
 
     pub fn rotate_and_transform(self, v: Vector3) -> Vector3 {
-        Self::multiply_vector3(self, v, 1.)
+        let v4 = [v.x, v.y, v.z, 1.];
+        let result = Self::multiply_vector4(self, v4);
+        Vector3 {
+            x: result[0],
+            y: result[1],
+            z: result[2],
+        }
     }
 
     pub fn invert(self) -> Self {
@@ -246,5 +323,31 @@ impl Matrix4x4 {
 impl Default for Matrix4x4 {
     fn default() -> Self {
         Self::identity()
+    }
+}
+
+impl std::ops::Mul<Matrix4x4> for Matrix4x4 {
+    type Output = Self;
+    fn mul(self, rhs: Matrix4x4) -> Self::Output {
+        let a = self;
+        let b = rhs;
+        Self {
+            m00: a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30,
+            m01: a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21 + a.m03 * b.m31,
+            m02: a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22 + a.m03 * b.m32,
+            m03: a.m00 * b.m03 + a.m01 * b.m13 + a.m02 * b.m23 + a.m03 * b.m33,
+            m10: a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20 + a.m13 * b.m30,
+            m11: a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31,
+            m12: a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32,
+            m13: a.m10 * b.m03 + a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33,
+            m20: a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20 + a.m23 * b.m30,
+            m21: a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31,
+            m22: a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32,
+            m23: a.m20 * b.m03 + a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33,
+            m30: a.m30 * b.m00 + a.m31 * b.m10 + a.m32 * b.m20 + a.m33 * b.m30,
+            m31: a.m30 * b.m01 + a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31,
+            m32: a.m30 * b.m02 + a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32,
+            m33: a.m30 * b.m03 + a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33,
+        }
     }
 }

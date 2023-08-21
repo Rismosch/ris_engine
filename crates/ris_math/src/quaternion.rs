@@ -20,53 +20,53 @@ impl Quaternion {
         }
     }
 
-    pub fn from_matrix(m: Matrix4x4) -> Self {
-        let mut q = [0.; 4];
+    //pub fn from_matrix(m: Matrix4x4) -> Self {
+    //    let mut q = [0.; 4];
 
-        let nxt = [1, 2, 0];
-        let tr = m.m00 + m.m11 + m.m22;
+    //    let nxt = [1, 2, 0];
+    //    let tr = m.m00 + m.m11 + m.m22;
 
-        // check the diagonal
-        if tr > 0. {
-            let s = super::sqrt(tr + 1.);
-            q[3] = s / 2.;
-            let s = 0.5 / s;
-            q[0] = (m.m21 - m.m12) * s;
-            q[1] = (m.m02 - m.m20) * s;
-            q[2] = (m.m10 - m.m01) * s;
-        } else {
-            // diagonal is negative
-            let mut i = 0;
-            if m.m11 > m.m00 {
-                i = 1;
-            }
-            if m.m22 > m.get(i, i) {
-                i = 2;
-            }
+    //    // check the diagonal
+    //    if tr > 0. {
+    //        let s = super::sqrt(tr + 1.);
+    //        q[3] = s / 2.;
+    //        let s = 0.5 / s;
+    //        q[0] = (m.m21 - m.m12) * s;
+    //        q[1] = (m.m02 - m.m20) * s;
+    //        q[2] = (m.m10 - m.m01) * s;
+    //    } else {
+    //        // diagonal is negative
+    //        let mut i = 0;
+    //        if m.m11 > m.m00 {
+    //            i = 1;
+    //        }
+    //        if m.m22 > m.get(i, i) {
+    //            i = 2;
+    //        }
 
-            let j = nxt[i];
-            let k = nxt[j];
+    //        let j = nxt[i];
+    //        let k = nxt[j];
 
-            let mut s = super::sqrt((m.get(i, i) - m.get(j, j) - m.get(k, k)) + 1.);
+    //        let mut s = super::sqrt((m.get(i, i) - m.get(j, j) - m.get(k, k)) + 1.);
 
-            q[i] = s * 0.5;
+    //        q[i] = s * 0.5;
 
-            if s != 0.0 {
-                s = 0.5 / s;
-            }
+    //        if s != 0.0 {
+    //            s = 0.5 / s;
+    //        }
 
-            q[3] = (m.get(k, j) - m.get(j, k)) * s;
-            q[j] = (m.get(i, j) + m.get(j, i)) * s;
-            q[k] = (m.get(i, k) + m.get(k, i)) * s;
-        }
+    //        q[3] = (m.get(k, j) - m.get(j, k)) * s;
+    //        q[j] = (m.get(i, j) + m.get(j, i)) * s;
+    //        q[k] = (m.get(i, k) + m.get(k, i)) * s;
+    //    }
 
-        Self {
-            x: q[0],
-            y: q[1],
-            z: q[2],
-            w: q[3],
-        }
-    }
+    //    Self {
+    //        x: q[0],
+    //        y: q[1],
+    //        z: q[2],
+    //        w: q[3],
+    //    }
+    //}
 
     pub fn from_angle_axis(angle: f32, axis: Vector3) -> Self {
         let n = axis.normalized();

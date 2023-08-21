@@ -3,6 +3,7 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::input::action;
+use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -33,7 +34,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
-            scene.camera_position = Vector3::new(0., 0., -1.);
+            scene.camera_position = Vector3::new(0., -1., 0.);
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -88,11 +89,11 @@ impl LogicFrame {
         while current.camera_horizontal_angle > ris_math::PI_2 {
             current.camera_horizontal_angle -= ris_math::PI_2;
         }
-        current.camera_vertical_angle = ris_math::clamp(
-            current.camera_vertical_angle,
-            -ris_math::PI_0_5,
-            ris_math::PI_0_5,
-        );
+        //current.camera_vertical_angle = ris_math::clamp(
+        //    current.camera_vertical_angle,
+        //    -ris_math::PI_0_5,
+        //    ris_math::PI_0_5,
+        //);
 
         let rotation1 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
         let rotation2 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
@@ -119,11 +120,16 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_hold(action::ANY) {
-            let camera_forward = scene.camera_rotation.rotate(vector3::FORWARD);
+            let rotation_matrix = Matrix4x4::rotation(scene.camera_rotation);
+            let camera_forward_matrix = rotation_matrix.rotate(vector3::FORWARD);
+            let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
+            let camera_forward_view = Matrix4x4::view(scene.camera_position, scene.camera_rotation).rotate(vector3::FORWARD);
             ris_log::debug!(
-                "{:?} {:?} | {} {} | {}s {}fps",
+                "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
                 scene.camera_position,
-                camera_forward,
+                camera_forward_matrix,
+                camera_forward_quaternion,
+                camera_forward_view,
                 current.camera_horizontal_angle,
                 current.camera_vertical_angle,
                 frame.delta(),
