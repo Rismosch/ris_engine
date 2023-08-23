@@ -290,10 +290,11 @@ impl Renderer {
             .write()
             .map_err(|e| format!("failed to update uniform: {}", e))?;
 
+        uniform_content.view = ubo.view.transposed();
+        uniform_content.proj = ubo.proj.transposed();
+        uniform_content.view_proj = ubo.view_proj.transposed();
         uniform_content.debug_x = ubo.debug_x;
         uniform_content.debug_y = ubo.debug_y;
-        uniform_content.view_matrix = ubo.view_matrix;
-        uniform_content.projection_matrix = ubo.projection_matrix;
 
         Ok(())
     }

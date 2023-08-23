@@ -6,8 +6,9 @@ use ris_math::matrix4x4::Matrix4x4;
 #[derive(BufferContents, Default)]
 #[repr(C)]
 pub struct UniformBufferObject {
-    pub view_matrix: Matrix4x4,
-    pub projection_matrix: Matrix4x4,
+    pub view: Matrix4x4,
+    pub proj: Matrix4x4,
+    pub view_proj: Matrix4x4,
     pub debug_x: i32,
     pub debug_y: i32,
 }
