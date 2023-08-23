@@ -1,9 +1,11 @@
 # install
 /*.dll
 
-# build
+# cargo
 /target
 Cargo.lock
+/.cargo
+/vendor
 
 # vscode
 /.vscode

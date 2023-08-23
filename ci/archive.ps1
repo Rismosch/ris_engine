@@ -1,4 +1,4 @@
-# This script is used to archive the entire workspace.
+$purpose = "This script is used to archive the entire workspace."
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
@@ -24,6 +24,8 @@ $cli_no_include_git = "--no-include-git"
 $cli_include_git_value = $false
 
 if ($args.length -eq 0) {
+    Write-Host ""
+    Write-Host $purpose
     Write-Host ""
     Write-Host "INFO: you may skip user input, by providing cli args."
     Write-Host ""

@@ -1,4 +1,4 @@
-# This script generates build info and compiles the workspace as a release ready package.
+$purpose = "This script generates build info and compiles the workspace as a release ready package."
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
@@ -36,6 +36,8 @@ $cli_release = "--release"
 $cli_release_value = $true
 
 if ($args.length -eq 0) {
+    Write-Host ""
+    Write-Host $purpose
     Write-Host ""
     Write-Host "INFO: you may skip user input, by providing cli args."
     Write-Host ""
