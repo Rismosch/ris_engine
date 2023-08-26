@@ -26,7 +26,7 @@ impl OutputFrame {
             self.video.on_window_resize();
         }
 
-        match self.video.update(&logic.scene) {
+        match self.video.update(&logic.scene, input) {
             Ok(()) => GameloopState::WantsToContinue,
             Err(e) => GameloopState::Error(e),
         }

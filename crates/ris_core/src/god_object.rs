@@ -1,10 +1,15 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
+use sdl2::keyboard::Scancode;
+
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::info::app_info::AppInfo;
+use ris_debug::imgui::Imgui;
 use ris_video::video::Video;
-use sdl2::keyboard::Scancode;
 
 use crate::gameloop::input_frame::InputFrame;
 use crate::gameloop::logic_frame::LogicFrame;
@@ -23,14 +28,19 @@ pub struct GodObject {
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> Result<Self, String> {
+        // sdl
         let sdl_context = sdl2::init()?;
-
-        let video = Video::new(&sdl_context)?;
         let event_pump = sdl_context.event_pump()?;
-
         let controller_subsystem = sdl_context.game_controller()?;
 
-        let input_frame = InputFrame::new(event_pump, controller_subsystem);
+        // imgui
+        let imgui = Arc::new(Mutex::new(Imgui::new(&app_info)));
+
+        // video
+        let video = Video::new(&sdl_context, imgui.clone())?;
+
+        // gameloop
+        let input_frame = InputFrame::new(event_pump, controller_subsystem, imgui.clone());
         let logic_frame = LogicFrame::default();
         let output_frame = OutputFrame::new(video)?;
 
@@ -53,6 +63,7 @@ impl GodObject {
         input_data.keyboard.keymask[30] = Scancode::Kp4;
         input_data.keyboard.keymask[31] = Scancode::Kp6;
 
+        // god object
         let god_object = GodObject {
             app_info,
             frame_data_calculator,

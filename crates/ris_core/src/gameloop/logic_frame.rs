@@ -46,11 +46,11 @@ impl LogicFrame {
         }
 
         if input.general.buttons.is_hold(action::CAMERA_LEFT) {
-            current.camera_horizontal_angle -= rotation_speed;
+            current.camera_horizontal_angle += rotation_speed;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_RIGHT) {
-            current.camera_horizontal_angle += rotation_speed;
+            current.camera_horizontal_angle -= rotation_speed;
         }
 
         if input.general.buttons.is_down(action::DEBUG_UP) {
@@ -125,17 +125,17 @@ impl LogicFrame {
             let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
             let camera_forward_view = Matrix4x4::view(scene.camera_position, scene.camera_rotation)
                 .rotate(vector3::FORWARD);
-            ris_log::debug!(
-                "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
-                scene.camera_position,
-                camera_forward_matrix,
-                camera_forward_quaternion,
-                camera_forward_view,
-                current.camera_horizontal_angle,
-                current.camera_vertical_angle,
-                frame.delta(),
-                frame.fps()
-            );
+            //ris_log::debug!(
+            //    "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
+            //    scene.camera_position,
+            //    camera_forward_matrix,
+            //    camera_forward_quaternion,
+            //    camera_forward_view,
+            //    current.camera_horizontal_angle,
+            //    current.camera_vertical_angle,
+            //    frame.delta(),
+            //    frame.fps()
+            //);
         }
 
         GameloopState::WantsToContinue

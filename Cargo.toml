@@ -28,12 +28,14 @@ members = [
 
 [dependencies]
 chrono = "0.4"
+imgui = "0.11.0"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 vulkano = "0.33.0"
 shaderc = "0.8"
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
+ris_debug = { path = "crates/ris_debug" }
 ris_input = { path = "crates/ris_input" }
 ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }

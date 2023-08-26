@@ -9,6 +9,7 @@ edition = "2021"
 chrono = "0.4"
 sdl2 = "0.34.5"
 ris_data = { path = "../ris_data" }
+ris_debug = { path = "../ris_debug" }
 ris_input = { path = "../ris_input" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }

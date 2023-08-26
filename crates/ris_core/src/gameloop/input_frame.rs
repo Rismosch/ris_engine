@@ -1,7 +1,16 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
+use sdl2::event::Event;
+use sdl2::event::WindowEvent;
+use sdl2::EventPump;
+use sdl2::GameControllerSubsystem;
+
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_debug::imgui::Imgui;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::general_logic::GeneralLogicArgs;
@@ -11,10 +20,6 @@ use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
 use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_system;
-use sdl2::event::Event;
-use sdl2::event::WindowEvent;
-use sdl2::EventPump;
-use sdl2::GameControllerSubsystem;
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
@@ -24,10 +29,15 @@ pub struct InputFrame {
     rebind_matrix_mouse: RebindMatrix,
     rebind_matrix_keyboard: RebindMatrix,
     rebind_matrix_gamepad: RebindMatrix,
+
+    imgui: Arc<Mutex<Imgui>>,
 }
 
 impl InputFrame {
-    pub fn new(event_pump: EventPump, controller_subsystem: GameControllerSubsystem) -> Self {
+    pub fn new(
+        event_pump: EventPump,
+        controller_subsystem: GameControllerSubsystem,
+        imgui: Arc<Mutex<Imgui>>) -> Self {
         let mut rebind_matrix = [0; 32];
         for (i, row) in rebind_matrix.iter_mut().enumerate() {
             *row = 1 << i;
@@ -39,6 +49,7 @@ impl InputFrame {
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
             rebind_matrix_gamepad: rebind_matrix,
+            imgui,
         }
     }
 
@@ -66,7 +77,10 @@ impl InputFrame {
         current.window_size_changed = None;
 
         for event in self.event_pump.as_mut().poll_iter() {
-            // ris_log::trace!("fps: {} event: {:?}", _frame.fps(), event);
+            {
+                let mut imgui_guard = job_system::lock(&self.imgui);
+                imgui_guard.handle_event(&event);
+            }
 
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;

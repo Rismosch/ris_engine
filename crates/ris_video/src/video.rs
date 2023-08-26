@@ -1,12 +1,17 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use sdl2::Sdl;
 use sdl2_sys::SDL_WindowFlags;
-use std::sync::Arc;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
+use ris_data::gameloop::input_data::InputData;
+use ris_debug::imgui::Imgui;
 use ris_math::matrix4x4::Matrix4x4;
+use ris_jobs::job_system;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -18,10 +23,11 @@ pub struct Video {
     window_resized: bool,
     fences: Vec<Option<Arc<Fence>>>,
     previous_fence_i: u32,
+    imgui: Arc<Mutex<Imgui>>,
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl) -> Result<Video, String> {
+    pub fn new(sdl_context: &Sdl, imgui: Arc<Mutex<Imgui>>) -> Result<Video, String> {
         let renderer = Renderer::initialize(sdl_context)?;
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
@@ -32,10 +38,11 @@ impl Video {
             window_resized: false,
             fences,
             previous_fence_i: 0,
+            imgui,
         })
     }
 
-    pub fn update(&mut self, scene: &Scene) -> Result<(), String> {
+    pub fn update(&mut self, scene: &Scene, input: &InputData) -> Result<(), String> {
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
 
@@ -71,6 +78,27 @@ impl Video {
             image_fence
                 .wait(None)
                 .map_err(|e| format!("failed to wait on fence: {}", e))?;
+        }
+
+        // imgui
+        {
+            let mut imgui_guard = job_system::lock(&self.imgui);
+            let mut ui = imgui_guard.prepare_and_create_new_frame(
+                &self.renderer.window,
+                &input.mouse
+            );
+
+            ui.text("Hello world!");
+            ui.text("こんにちは世界！");
+            ui.text("This...is...imgui-rs!");
+            ui.separator();
+            let mouse_pos = ui.io().mouse_pos;
+            ui.text(format!(
+                "Mouse Position: ({:.1},{:.1})",
+                mouse_pos[0], mouse_pos[1]
+            ));
+
+            imgui_guard.render(); // don't forget to put this after the frame was rendered!
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)

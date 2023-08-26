@@ -6,7 +6,17 @@ use super::package_info::PackageInfo;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FileInfo {
+    /// The directory in which the executable sits. Used to locate directories/files that sit
+    /// in the same directory as the executable.
     pub base_path: String,
+
+    /// The directory where local files are being stored. Used for settings, logs and save files.
+    ///
+    /// On Windows, this is usually:
+    /// > C:\\Users\\\<your username\>\\AppData\\Roaming\\Rismosch\\ris_engine\\
+    ///
+    /// On Linux, this is usually:
+    /// > /home/\<your username\>/.local/share/Rismosch/ris_engine/
     pub pref_path: String,
 }
 
