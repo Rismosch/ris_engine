@@ -60,6 +60,7 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
             &mut current_input,
             &previous_input_for_input,
             &frame_for_input,
+            &mut god_object.imgui,
         );
 
         // wait for jobs
@@ -72,6 +73,9 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
 
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
+
+        god_object.output_frame.render_imgui(&mut god_object.imgui, &current_input);
+
 
         // determine, whether to continue, return error or exit
         if matches!(input_state, GameloopState::WantsToContinue)

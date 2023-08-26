@@ -15,6 +15,7 @@ use sdl2::video::Window;
 
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::mouse_data::MouseData;
+use ris_video::video::Video;
 
 fn handle_key(io: &mut Io, key: &Scancode, pressed: bool) {
     let igkey = match key {
@@ -201,9 +202,10 @@ pub struct Imgui {
 }
 
 impl Imgui {
-    pub fn new(app_info: &AppInfo) -> Self {
+    pub fn new(app_info: &AppInfo, video: &Video) -> Result<Self, String> {
         let mut context = Context::create();
 
+        // platform
         context.set_ini_filename(None);
         context.set_log_filename(None);
 
@@ -227,11 +229,16 @@ impl Imgui {
             app_info.package.version
         )));
 
-        Self {
+        // renderer
+        let vs = crate::imgui_shaders::vertex_shader()?;
+        let fs = crate::imgui_shaders::fragment_shader()?;
+        
+
+        Ok(Self {
             context,
             cursor_instance: None,
             last_frame: Instant::now(),
-        }
+        })
     }
 
     pub fn handle_event(&mut self, event: &Event) -> bool {
@@ -342,8 +349,34 @@ impl Imgui {
         self.context.new_frame()
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, video: &Video) -> Result<(), String> {
         let draw_data = self.context.render();
-        render
+
+        let fb_width = draw_data.display_size[0] * draw_data.framebuffer_scale[0];
+        let fb_height = draw_data.display_size[1] * draw_data.framebuffer_scale[1];
+        if fb_width < 0.0 || fb_height < 0.0 {
+            return Ok(());
+        }
+        let left = draw_data.display_pos[0];
+        let right = left + draw_data.display_size[0];
+        let top = draw_data.display_pos[1];
+        let bottom = top + draw_data.display_size[1];
+
+        //let pc = shader::vs::ty::VertPC {
+        //    matrix : [
+        //        [(2.0 / (right - left)), 0.0, 0.0, 0.0],
+        //        [0.0, (2.0 / (bottom - top)), 0.0, 0.0],
+        //        [0.0, 0.0, -1.0, 0.0],
+        //        [
+        //            (right + left) / (left - right),
+        //            (top + bottom) / (top - bottom),
+        //            0.0,
+        //            1.0,
+        //        ],
+        //    ]
+        //};
+
+
+        Ok(())
     }
 }

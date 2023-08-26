@@ -29,15 +29,12 @@ pub struct InputFrame {
     rebind_matrix_mouse: RebindMatrix,
     rebind_matrix_keyboard: RebindMatrix,
     rebind_matrix_gamepad: RebindMatrix,
-
-    imgui: Arc<Mutex<Imgui>>,
 }
 
 impl InputFrame {
     pub fn new(
         event_pump: EventPump,
-        controller_subsystem: GameControllerSubsystem,
-        imgui: Arc<Mutex<Imgui>>) -> Self {
+        controller_subsystem: GameControllerSubsystem) -> Self {
         let mut rebind_matrix = [0; 32];
         for (i, row) in rebind_matrix.iter_mut().enumerate() {
             *row = 1 << i;
@@ -49,7 +46,6 @@ impl InputFrame {
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
             rebind_matrix_gamepad: rebind_matrix,
-            imgui,
         }
     }
 
@@ -58,6 +54,7 @@ impl InputFrame {
         current: &mut InputData,
         previous: &InputData,
         _frame: &FrameData,
+        imgui: &mut Imgui,
     ) -> GameloopState {
         let current_keyboard = std::mem::take(&mut current.keyboard);
         let current_gamepad = std::mem::take(&mut current.gamepad);
@@ -77,10 +74,7 @@ impl InputFrame {
         current.window_size_changed = None;
 
         for event in self.event_pump.as_mut().poll_iter() {
-            {
-                let mut imgui_guard = job_system::lock(&self.imgui);
-                imgui_guard.handle_event(&event);
-            }
+            imgui.handle_event(&event);
 
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;

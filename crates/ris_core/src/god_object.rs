@@ -24,6 +24,7 @@ pub struct GodObject {
     pub input_data: InputData,
     pub logic_data: LogicData,
     pub output_data: OutputData,
+    pub imgui: Imgui,
 }
 
 impl GodObject {
@@ -34,13 +35,13 @@ impl GodObject {
         let controller_subsystem = sdl_context.game_controller()?;
 
         // imgui
-        let imgui = Arc::new(Mutex::new(Imgui::new(&app_info)));
+        let imgui = Imgui::new(&app_info);
 
         // video
-        let video = Video::new(&sdl_context, imgui.clone())?;
+        let video = Video::new(&sdl_context)?;
 
         // gameloop
-        let input_frame = InputFrame::new(event_pump, controller_subsystem, imgui.clone());
+        let input_frame = InputFrame::new(event_pump, controller_subsystem);
         let logic_frame = LogicFrame::default();
         let output_frame = OutputFrame::new(video)?;
 
@@ -73,6 +74,7 @@ impl GodObject {
             input_data,
             logic_data,
             output_data,
+            imgui,
         };
 
         Ok(god_object)

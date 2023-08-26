@@ -51,7 +51,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         .compile_into_spirv(
             vertex_source,
             shaderc::ShaderKind::Vertex,
-            "vertex.glsl",
+            "standard.vert",
             "main",
             Some(&options),
         )
@@ -64,7 +64,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         .compile_into_spirv(
             fragment_source,
             shaderc::ShaderKind::Fragment,
-            "fragment.glsl",
+            "standard.vert",
             "main",
             Some(&options),
         )
