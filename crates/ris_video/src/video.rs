@@ -1,19 +1,13 @@
 use std::sync::Arc;
-use std::sync::Mutex;
 
 use sdl2::Sdl;
-use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
-use vulkano::device::Device;
-use vulkano::device::Queue;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
-use ris_data::gameloop::input_data::InputData;
 use ris_math::matrix4x4::Matrix4x4;
-use ris_jobs::job_system;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -40,22 +34,6 @@ impl Video {
             fences,
             previous_fence_i: 0,
         })
-    }
-
-    pub fn window(&self) -> &Window {
-        &self.renderer.window
-    }
-
-    pub fn device(&self) -> &Arc<Device> {
-        &self.renderer.device
-    }
-
-    pub fn queue(&self) -> &Arc<Queue> {
-        &self.renderer.queue
-    }
-
-    pub fn allocators(&self) -> &crate::allocators::Allocators {
-        &self.renderer.allocators
     }
 
     pub fn update(&mut self, scene: &Scene) -> Result<(), String> {

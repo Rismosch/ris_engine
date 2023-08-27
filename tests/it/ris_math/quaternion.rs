@@ -1,4 +1,3 @@
-use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3::{self, Vector3};
 use ris_rng::rng::Rng;

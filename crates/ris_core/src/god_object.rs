@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-
 use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame_data::FrameDataCalculator;
@@ -8,7 +5,6 @@ use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::info::app_info::AppInfo;
-use ris_debug::imgui::Imgui;
 use ris_video::video::Video;
 
 use crate::gameloop::input_frame::InputFrame;
@@ -24,7 +20,6 @@ pub struct GodObject {
     pub input_data: InputData,
     pub logic_data: LogicData,
     pub output_data: OutputData,
-    pub imgui: Imgui,
 }
 
 impl GodObject {
@@ -36,9 +31,6 @@ impl GodObject {
 
         // video
         let video = Video::new(&sdl_context)?;
-        
-        // imgui
-        let imgui = Imgui::new(&app_info, &video)?;
 
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);
@@ -74,7 +66,6 @@ impl GodObject {
             input_data,
             logic_data,
             output_data,
-            imgui,
         };
 
         Ok(god_object)
