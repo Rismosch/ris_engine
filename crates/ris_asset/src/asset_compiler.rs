@@ -7,8 +7,8 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-// "ris_assets\0"
-const MAGIC: [u8; 11] = [0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00]; 
+// "ris_assets\0\0\0\0\0"
+const MAGIC: [u8; 15] = [0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00]; 
 const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
 /// compiles a directory from a .ris_asset file
@@ -111,9 +111,11 @@ pub fn compile(source: &str, target: &str) -> Result<(), String> {
     seek(&mut target, SeekFrom::Start(addr_current))?;
 
     for asset in assets {
-        let original_path = asset.to_str().ok_or(String::from("asset path is not valid UTF8"))?;
-        let original_path_bytes = original_path.as_bytes();
-        write(&mut target, original_path_bytes)?;
+        let mut original_path = String::from(asset.to_str().ok_or(String::from("asset path is not valid UTF8"))?);
+        original_path.replace_range(0..source.len() + 1, "");
+        let original_path = original_path.replace('\\', "/");
+        let relative_path_bytes = original_path.as_bytes();
+        write(&mut target, relative_path_bytes)?;
         write(&mut target, &[0])?; // seperate paths with \0
     }
 
