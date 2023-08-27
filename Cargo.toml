@@ -19,10 +19,15 @@ default-run = "ris_engine"
 
 [workspace]
 members = [
+    "crates/ris_asset",
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_input",
+    "crates/ris_jobs",
+    "crates/ris_log",
+    "crates/ris_math",
     "crates/ris_rng",
+    "crates/ris_util",
     "crates/ris_video",
 ]
 
@@ -32,6 +37,7 @@ sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 vulkano = "0.33.0"
 shaderc = "0.8"
+ris_asset = { path = "crates/ris_asset" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
 ris_input = { path = "crates/ris_input" }

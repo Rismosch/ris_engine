@@ -159,13 +159,13 @@ fn profile() -> String {
 impl std::fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, `"Build`")?;
-        writeln!(f, `"git repo:     {}`", self.git_repo)?;
-        writeln!(f, `"git commit:   {}`", self.git_commit)?;
-        writeln!(f, `"git branch:   {}`", self.git_branch)?;
-        writeln!(f, `"compiler:     {}`", self.rustc_version)?;
-        writeln!(f, `"toolchain:    {}`", self.rustup_toolchain)?;
-        writeln!(f, `"profile:      {}`", self.build_profile)?;
-        writeln!(f, `"build date:   {}`", self.build_date)?;
+        writeln!(f, `"git repo:            {}`", self.git_repo)?;
+        writeln!(f, `"git commit:          {}`", self.git_commit)?;
+        writeln!(f, `"git branch:          {}`", self.git_branch)?;
+        writeln!(f, `"compiler:            {}`", self.rustc_version)?;
+        writeln!(f, `"toolchain:           {}`", self.rustup_toolchain)?;
+        writeln!(f, `"profile:             {}`", self.build_profile)?;
+        writeln!(f, `"build date:          {}`", self.build_date)?;
 
         Ok(())
     }

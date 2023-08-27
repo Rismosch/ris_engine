@@ -38,7 +38,7 @@ impl<T> SettableJobFuture<T> {
     }
 
     pub fn set(self, result: T) {
-        let mut inner = unwrap_or_throw!(self.inner.lock(), "couldn't set job future");
+        let mut inner = job_system::lock(&self.inner);
 
         inner.is_ready = true;
         inner.data = Some(result);

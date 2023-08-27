@@ -50,21 +50,21 @@ impl Default for CpuInfo {
 impl fmt::Display for CpuInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "CPU")?;
-        writeln!(f, "Cache Size:   {}", self.cpu_cache_line_size)?;
-        writeln!(f, "Count:        {}", self.cpu_count)?;
-        writeln!(f, "System RAM:   {}", self.system_ram)?;
-        writeln!(f, "has 3d now:   {}", self.has_3d_now)?;
-        writeln!(f, "has alti vec: {}", self.has_alti_vec)?;
-        writeln!(f, "has avx:      {}", self.has_avx)?;
-        writeln!(f, "has avx2:     {}", self.has_avx2)?;
-        writeln!(f, "has avx512f:  {}", self.has_avx512f)?;
-        writeln!(f, "has mmx:      {}", self.has_mmx)?;
-        writeln!(f, "has rdtsc:    {}", self.has_rdtsc)?;
-        writeln!(f, "has sse:      {}", self.has_sse)?;
-        writeln!(f, "has sse2:     {}", self.has_sse2)?;
-        writeln!(f, "has sse3:     {}", self.has_sse3)?;
-        writeln!(f, "has sse41:    {}", self.has_sse41)?;
-        writeln!(f, "has sse42:    {}", self.has_sse42)?;
+        writeln!(f, "cpu_cache_line_size: {}", self.cpu_cache_line_size)?;
+        writeln!(f, "cpu_count:           {}", self.cpu_count)?;
+        writeln!(f, "system_ram:          {}", self.system_ram)?;
+        writeln!(f, "has_3d_now:          {}", self.has_3d_now)?;
+        writeln!(f, "has_alti_vec:        {}", self.has_alti_vec)?;
+        writeln!(f, "has_avx:             {}", self.has_avx)?;
+        writeln!(f, "has_avx2:            {}", self.has_avx2)?;
+        writeln!(f, "has_avx512f:         {}", self.has_avx512f)?;
+        writeln!(f, "has_mmx:             {}", self.has_mmx)?;
+        writeln!(f, "has_rdtsc:           {}", self.has_rdtsc)?;
+        writeln!(f, "has_sse:             {}", self.has_sse)?;
+        writeln!(f, "has_sse2:            {}", self.has_sse2)?;
+        writeln!(f, "has_sse3:            {}", self.has_sse3)?;
+        writeln!(f, "has_sse41:           {}", self.has_sse41)?;
+        writeln!(f, "has_sse42:           {}", self.has_sse42)?;
 
         Ok(())
     }

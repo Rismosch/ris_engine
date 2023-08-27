@@ -42,8 +42,8 @@ impl FileInfo {
 impl fmt::Display for FileInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "File")?;
-        writeln!(f, "Base Path:    {}", &self.base_path)?;
-        writeln!(f, "Pref Path:    {}", &self.pref_path)?;
+        writeln!(f, "Base Path:           {}", &self.base_path)?;
+        writeln!(f, "Pref Path:           {}", &self.pref_path)?;
 
         Ok(())
     }

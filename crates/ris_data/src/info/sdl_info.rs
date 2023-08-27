@@ -26,8 +26,8 @@ impl Default for SdlInfo {
 impl fmt::Display for SdlInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "SDL2")?;
-        writeln!(f, "Version:      {}", self.version)?;
-        writeln!(f, "Revision:     {}", self.revision)?;
+        writeln!(f, "Version:             {}", self.version)?;
+        writeln!(f, "Revision:            {}", self.revision)?;
 
         Ok(())
     }
