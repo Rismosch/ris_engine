@@ -7,8 +7,8 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-// "ris_assets\0\0\0\0\0"
-const MAGIC: [u8; 15] = [0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00]; 
+// "ris_assets\0\0\0\0\0\0"
+const MAGIC: [u8; 16] = [0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]; 
 const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
 /// compiles a directory from a .ris_asset file
@@ -67,7 +67,6 @@ pub fn compile(source: &str, target: &str) -> Result<(), String> {
     seek(&mut target, SeekFrom::Start(0))?;
 
     write(&mut target, &MAGIC)?;
-    write(&mut target, &[1])?; // 1 meaning these are compiled assets
     
     let addr_original_paths = seek(&mut target, SeekFrom::Current(0))?;
     write(&mut target, &[0; ADDR_SIZE])?; // placeholder
