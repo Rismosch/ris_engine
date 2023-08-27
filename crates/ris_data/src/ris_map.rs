@@ -1,4 +1,9 @@
+// inspired by the mask-step-index (MSI) hash table by Chris Wellons:
 // https://nullprogram.com/blog/2022/08/08/
+//
+// while interesting, benchmarking revealed that this implementation is about 10x slower than
+// std::collections::HashMap. as such, i will use the standard HashMap, but i keep this
+// implementation in case i feel adventurous and want to optimize it.
 
 fn ht_lookup(hash: u64, exp: usize, idx: usize) -> usize {
     let mask: usize = ((1u32 << exp) - 1) as usize;

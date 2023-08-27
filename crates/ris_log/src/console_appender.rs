@@ -1,4 +1,4 @@
-use ris_log::i_appender::IAppender;
+use crate::i_appender::IAppender;
 
 pub struct ConsoleAppender;
 

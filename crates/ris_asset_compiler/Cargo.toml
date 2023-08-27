@@ -1,11 +1,11 @@
 [package]
-name = "ris_asset"
+name = "ris_asset_compiler"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ris_asset = { path = "../ris_asset" }
 ris_data = { path = "../ris_data" }
-ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }

@@ -1,3 +1,4 @@
+pub mod console_appender;
 pub mod constructed_log_message;
 pub mod i_appender;
 pub mod log;
