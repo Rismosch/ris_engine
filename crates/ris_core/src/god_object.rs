@@ -34,11 +34,11 @@ impl GodObject {
         let event_pump = sdl_context.event_pump()?;
         let controller_subsystem = sdl_context.game_controller()?;
 
-        // imgui
-        let imgui = Imgui::new(&app_info);
-
         // video
         let video = Video::new(&sdl_context)?;
+        
+        // imgui
+        let imgui = Imgui::new(&app_info, &video)?;
 
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);

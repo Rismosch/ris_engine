@@ -4,6 +4,8 @@ use std::sync::Mutex;
 use sdl2::Sdl;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
+use vulkano::device::Device;
+use vulkano::device::Queue;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
@@ -42,6 +44,18 @@ impl Video {
 
     pub fn window(&self) -> &Window {
         &self.renderer.window
+    }
+
+    pub fn device(&self) -> &Arc<Device> {
+        &self.renderer.device
+    }
+
+    pub fn queue(&self) -> &Arc<Queue> {
+        &self.renderer.queue
+    }
+
+    pub fn allocators(&self) -> &crate::allocators::Allocators {
+        &self.renderer.allocators
     }
 
     pub fn update(&mut self, scene: &Scene) -> Result<(), String> {

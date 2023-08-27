@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Instant;
 
 use imgui::BackendFlags;
@@ -5,6 +6,8 @@ use imgui::ConfigFlags;
 use imgui::Context;
 use imgui::Io;
 use imgui::MouseCursor;
+use imgui::Textures;
+use imgui::TextureId;
 use imgui::Ui;
 use sdl2::event::Event;
 use sdl2::keyboard::Mod;
@@ -12,6 +15,23 @@ use sdl2::keyboard::Scancode;
 use sdl2::mouse::Cursor;
 use sdl2::mouse::SystemCursor;
 use sdl2::video::Window;
+use vulkano::buffer::BufferContents;
+use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBufferUsage;
+use vulkano::image::ImmutableImage;
+use vulkano::image::ImageDimensions;
+use vulkano::image::view::ImageView;
+use vulkano::image::view::ImageViewAbstract;
+use vulkano::image::view::ImageViewCreateInfo;
+use vulkano::image::traits::ImageAccess;
+use vulkano::render_pass::Subpass;
+use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
+use vulkano::pipeline::graphics::viewport::ViewportState;
+use vulkano::pipeline::graphics::color_blend::ColorBlendState;
+use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
+use vulkano::sampler::Sampler;
+use vulkano::sampler::SamplerCreateInfo;
 
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::mouse_data::MouseData;
@@ -199,6 +219,7 @@ pub struct Imgui {
     context: Context,
     cursor_instance: Option<Cursor>, /* to avoid dropping cursor instances */
     last_frame: Instant,
+    renderer: crate::imgui_renderer::ImguiRenderer,
 }
 
 impl Imgui {
@@ -209,9 +230,7 @@ impl Imgui {
         context.set_ini_filename(None);
         context.set_log_filename(None);
 
-        let font_atlas = context.fonts();
-        font_atlas.add_font(&[imgui::FontSource::DefaultFontData{config: None}]);
-        let texture = font_atlas.build_rgba32_texture();
+        context.fonts().add_font(&[imgui::FontSource::DefaultFontData{config: None}]);
 
         let io = context.io_mut();
 
@@ -230,14 +249,13 @@ impl Imgui {
         )));
 
         // renderer
-        let vs = crate::imgui_shaders::vertex_shader()?;
-        let fs = crate::imgui_shaders::fragment_shader()?;
-        
+        let renderer = crate::imgui_renderer::ImguiRenderer::new(&mut context, video)?;
 
         Ok(Self {
             context,
             cursor_instance: None,
             last_frame: Instant::now(),
+            renderer
         })
     }
 
@@ -350,33 +368,6 @@ impl Imgui {
     }
 
     pub fn render(&mut self, video: &Video) -> Result<(), String> {
-        let draw_data = self.context.render();
-
-        let fb_width = draw_data.display_size[0] * draw_data.framebuffer_scale[0];
-        let fb_height = draw_data.display_size[1] * draw_data.framebuffer_scale[1];
-        if fb_width < 0.0 || fb_height < 0.0 {
-            return Ok(());
-        }
-        let left = draw_data.display_pos[0];
-        let right = left + draw_data.display_size[0];
-        let top = draw_data.display_pos[1];
-        let bottom = top + draw_data.display_size[1];
-
-        //let pc = shader::vs::ty::VertPC {
-        //    matrix : [
-        //        [(2.0 / (right - left)), 0.0, 0.0, 0.0],
-        //        [0.0, (2.0 / (bottom - top)), 0.0, 0.0],
-        //        [0.0, 0.0, -1.0, 0.0],
-        //        [
-        //            (right + left) / (left - right),
-        //            (top + bottom) / (top - bottom),
-        //            0.0,
-        //            1.0,
-        //        ],
-        //    ]
-        //};
-
-
-        Ok(())
+        self.renderer.render(&mut self.context, video)
     }
 }
