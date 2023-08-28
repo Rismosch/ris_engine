@@ -5,7 +5,7 @@ use ris_log::console_appender::ConsoleAppender;
 fn main() {
     let appenders: ris_log::log::Appenders = vec![ConsoleAppender::new()];
     let log_guard = ris_log::log::init(
-        ris_log::log_level::LogLevel::None,
+        ris_log::log_level::LogLevel::Trace,
         appenders,
     );
 

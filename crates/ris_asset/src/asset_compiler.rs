@@ -87,9 +87,6 @@ pub fn compile(source: &str, target: &str) -> Result<(), String> {
         let mut file_content = vec![0; file_size];
         seek(&mut file, SeekFrom::Start(0))?;
         let read_byte_count = read(&mut file, &mut file_content)?;
-        if read_byte_count != file_size {
-            return Err(format!("expected to read {} bytes, but only read {}", file_size, read_byte_count));
-        }
 
         let addr_asset = seek(&mut target, SeekFrom::Current(0))?;
         write(&mut target, &file_content)?;
@@ -109,13 +106,16 @@ pub fn compile(source: &str, target: &str) -> Result<(), String> {
     write(&mut target, &addr_current_bytes)?;
     seek(&mut target, SeekFrom::Start(addr_current))?;
 
-    for asset in assets {
+    for (i, asset) in assets.iter().enumerate() {
         let mut original_path = String::from(asset.to_str().ok_or(String::from("asset path is not valid UTF8"))?);
         original_path.replace_range(0..source.len() + 1, "");
         let original_path = original_path.replace('\\', "/");
         let relative_path_bytes = original_path.as_bytes();
         write(&mut target, relative_path_bytes)?;
-        write(&mut target, &[0])?; // seperate paths with \0
+
+        if i != assets.len() - 1 {
+            write(&mut target, &[0])?; // seperate paths with \0
+        }
     }
 
     Ok(())
@@ -126,6 +126,50 @@ pub fn compile(source: &str, target: &str) -> Result<(), String> {
 /// - `target`: the path to the final directory. if this directory exists already, it will be
 /// cleared
 pub fn decompile(source: &str, target: &str) -> Result<(), String> {
+    let mut source = File::open(source).map_err(|e| format!("failed to open source file \"{:?}\": {}", source, e))?;
+
+    seek(&mut source, SeekFrom::Start(MAGIC.len() as u64))?;
+    
+    let mut addr_original_paths_bytes = [0u8; ADDR_SIZE];
+    read(&mut source, &mut addr_original_paths_bytes)?;
+    let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
+
+    let mut lookup_len_bytes = [0u8; ADDR_SIZE];
+    read(&mut source, &mut lookup_len_bytes)?;
+    let lookup_len = u64::from_le_bytes(lookup_len_bytes);
+
+    let mut lookup = Vec::with_capacity(lookup_len as usize);
+
+    for _ in 0..lookup_len {
+        let mut addr_asset_bytes = [0u8; ADDR_SIZE];
+        read(&mut source, &mut addr_asset_bytes)?;
+        let addr_asset = u64::from_le_bytes(addr_asset_bytes);
+        lookup.push(addr_asset);
+    }
+
+    let file_end = seek(&mut source, SeekFrom::End(0))?;
+    seek(&mut source, SeekFrom::Start(addr_original_paths))?;
+    let orig_paths_len = file_end - addr_original_paths;
+
+    let mut original_paths = Vec::with_capacity(orig_paths_len as usize);
+    let read_bytes = source.read_to_end(&mut original_paths).map_err(|e| format!("failed to read to the end: {}", e))?;
+    if read_bytes != orig_paths_len as usize {
+        return Err(format!("expected to read {} bytes but actually read{}", orig_paths_len, read_bytes));
+    }
+
+    let original_paths_string = String::from_utf8(original_paths).map_err(|e| format!("could not convert original paths to a string: {}", e))?;
+    let mut original_paths: Vec<String> = original_paths_string.split('\0').map(String::from).collect();
+    let placeholder_len = lookup_len as i64 - original_paths.len() as i64;
+    if placeholder_len > 0 {
+        for i in 0..placeholder_len {
+            original_paths.push(format!("unnamed_asset_{}", i));
+        }
+    }
+
+    for (addr_asset, original_path) in lookup.iter().zip(original_paths.iter()) {
+        ris_log::trace!("decompiling {} to {}", addr_asset, original_path);
+    }
+
     Ok(())
 }
 
@@ -134,9 +178,19 @@ fn seek(file: &mut File, pos: SeekFrom) -> Result<u64, String> {
 }
 
 fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, String> {
-    file.read(buf).map_err(|e| format!("failed to read: {}", e))
+    let read_bytes = file.read(buf).map_err(|e| format!("failed to read: {}", e))?;
+    if read_bytes != buf.len() {
+        Err(format!("expected to read {} bytes but actually read {}", buf.len(), read_bytes))
+    } else {
+        Ok(read_bytes)
+    }
 }
 
 fn write(file: &mut File, buf: &[u8]) -> Result<usize, String> {
-    file.write(buf).map_err(|e| format!("failed to write: {}", e))
+    let written_bytes = file.write(buf).map_err(|e| format!("failed to write: {}", e))?;
+    if written_bytes != buf.len() {
+        Err(format!("expected to write {} bytes but actually wrote {}", buf.len(), written_bytes))
+    } else {
+        Ok(written_bytes)
+    }
 }
