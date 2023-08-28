@@ -124,8 +124,8 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
 }
 
 fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_log::console_appender::ConsoleAppender;
     use ris_core::appenders::file_appender::FileAppender;
+    use ris_log::console_appender::ConsoleAppender;
 
     let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
     log::init(LogLevel::Debug, appenders)

@@ -8,18 +8,15 @@ use crate::asset_id::AssetId;
 
 pub const ASSET_FILE_NAME: &str = ".ris_asset";
 
-pub struct AssetLoader{
-}
+pub struct AssetLoader {}
 
-impl AssetLoader{
+impl AssetLoader {
     pub fn new(app_info: &AppInfo) -> Self {
         let mut asset_path = PathBuf::new();
         asset_path.push(&app_info.file.base_path);
         asset_path.push(ASSET_FILE_NAME);
 
-
-
-        Self{}
+        Self {}
     }
 
     //pub fn load(id: AssetId) -> JobFuture<Box<[u8]>> {

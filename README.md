@@ -10,7 +10,7 @@
 
 To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
 
-You also require an internet connect, to download dependencies from [crates.io](https://crates.io/). If you do not have access to the internet, you can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required dependencies.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you do not have access to the internet, you can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required dependencies.
 
 The current target platform is x86_64, both Windows and Linux.
 
@@ -25,25 +25,7 @@ Tested Systems:
 
 ## 🔧 Installation
 
-This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors.
-
-#### 🐧 Linux
-
-Examples use the `pacman` package manager from Arch.
-
-##### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
-
-    sudo pacman -S sdl2
-
-##### 2. Install [shaderc](https://archlinux.org/packages/extra/x86_64/shaderc/)
-
-    sudo pacman -S shaderc
-
-##### 3. Install [Vulkan](https://wiki.archlinux.org/title/Vulkan)
-
-Depending on your graphics card, you need to install a different package. Follow the instructions in the link below:
-
-https://wiki.archlinux.org/title/Vulkan
+This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Follow the instructions below:
 
 #### 🪟 Windows
 
@@ -68,6 +50,24 @@ If you are using `rustup`, this directory probably is:
     C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 
 Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
+
+#### 🐧 Linux
+
+Examples use the `pacman` package manager from Arch.
+
+##### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
+
+    sudo pacman -S sdl2
+
+##### 2. Install [shaderc](https://archlinux.org/packages/extra/x86_64/shaderc/)
+
+    sudo pacman -S shaderc
+
+##### 3. Install [Vulkan](https://wiki.archlinux.org/title/Vulkan)
+
+Depending on your graphics card, you need to install a different package. Follow the instructions in the link below:
+
+https://wiki.archlinux.org/title/Vulkan#Installation
 
 ---
 

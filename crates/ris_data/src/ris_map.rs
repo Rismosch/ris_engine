@@ -28,15 +28,13 @@ const GRAVESTONE: &str = "__deleted__";
 pub struct OutOfMemory;
 pub struct NotFound;
 
-impl std::fmt::Debug for OutOfMemory
-{
+impl std::fmt::Debug for OutOfMemory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "OutOfMemory")
     }
 }
 
-impl std::fmt::Debug for NotFound
-{
+impl std::fmt::Debug for NotFound {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "NotFound")
     }
@@ -47,7 +45,7 @@ struct Ht {
     len: i32,
 }
 
-impl Ht{
+impl Ht {
     fn intern(&mut self, key: &str) -> Result<usize, OutOfMemory> {
         let h = hash(key);
         let mut i = h as usize;
@@ -57,7 +55,7 @@ impl Ht{
 
             if self.ht[i].is_none() {
                 // empty, insert here
-                
+
                 if self.len + 1 == 1 << EXP {
                     return Err(OutOfMemory);
                 }
@@ -66,7 +64,7 @@ impl Ht{
                     Some(index) => index,
                     None => i,
                 };
-                
+
                 self.len += 1;
                 self.ht[index] = Some(String::from(key));
 
@@ -110,7 +108,7 @@ pub struct RisMap<T> {
     buf: Vec<Option<T>>,
 }
 
-impl<T> RisMap<T>{
+impl<T> RisMap<T> {
     /// inserts the key and assigns the item to it. overwrites the item that is already assigned to
     /// that key
     pub fn assign(&mut self, key: &str, item: T) -> Result<(), OutOfMemory> {
@@ -149,11 +147,10 @@ impl<T> RisMap<T>{
 
 impl<T: Copy> Default for RisMap<T> {
     fn default() -> Self {
-        let mut ht_init = Vec::with_capacity(1<<EXP);
-        let mut buf_init = Vec::with_capacity(1<<EXP);
+        let mut ht_init = Vec::with_capacity(1 << EXP);
+        let mut buf_init = Vec::with_capacity(1 << EXP);
 
-        for _ in 0..1<<EXP
-        {
+        for _ in 0..1 << EXP {
             ht_init.push(None);
             buf_init.push(None);
         }
