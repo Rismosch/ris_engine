@@ -118,24 +118,25 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-        //if input.general.buttons.is_hold(action::ANY) {
-        //    let rotation_matrix = Matrix4x4::rotation(scene.camera_rotation);
-        //    let camera_forward_matrix = rotation_matrix.rotate(vector3::FORWARD);
-        //    let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
-        //    let camera_forward_view = Matrix4x4::view(scene.camera_position, scene.camera_rotation)
-        //        .rotate(vector3::FORWARD);
-        //    ris_log::debug!(
-        //        "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
-        //        scene.camera_position,
-        //        camera_forward_matrix,
-        //        camera_forward_quaternion,
-        //        camera_forward_view,
-        //        current.camera_horizontal_angle,
-        //        current.camera_vertical_angle,
-        //        frame.delta(),
-        //        frame.fps()
-        //    );
-        //}
+        if input.general.buttons.is_hold(action::ANY) {
+            let rotation_matrix = ris_math::matrix4x4::Matrix4x4::rotation(scene.camera_rotation);
+            let camera_forward_matrix = rotation_matrix.rotate(vector3::FORWARD);
+            let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
+            let camera_forward_view =
+                ris_math::matrix4x4::Matrix4x4::view(scene.camera_position, scene.camera_rotation)
+                    .rotate(vector3::FORWARD);
+            ris_log::debug!(
+                "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
+                scene.camera_position,
+                camera_forward_matrix,
+                camera_forward_quaternion,
+                camera_forward_view,
+                current.camera_horizontal_angle,
+                current.camera_vertical_angle,
+                frame.delta(),
+                frame.fps()
+            );
+        }
 
         GameloopState::WantsToContinue
     }

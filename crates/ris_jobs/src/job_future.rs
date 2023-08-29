@@ -3,7 +3,6 @@ use std::sync::Mutex;
 use std::sync::TryLockError;
 
 use ris_util::throw;
-use ris_util::unwrap_or_throw;
 
 use crate::job_system;
 

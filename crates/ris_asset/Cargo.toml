@@ -9,3 +9,4 @@ edition = "2021"
 ris_data = { path = "../ris_data" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
+ris_util = { path = "../ris_util" }

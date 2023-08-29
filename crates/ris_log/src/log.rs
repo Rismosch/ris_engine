@@ -16,12 +16,6 @@ pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
 
 pub struct LogGuard;
 
-pub struct Logger {
-    log_level: LogLevel,
-    sender: Option<Sender<LogMessage>>,
-    thread_handle: Option<JoinHandle<()>>,
-}
-
 impl Drop for LogGuard {
     fn drop(&mut self) {
         match LOG.lock() {
@@ -31,6 +25,12 @@ impl Drop for LogGuard {
             }
         }
     }
+}
+
+pub struct Logger {
+    log_level: LogLevel,
+    sender: Option<Sender<LogMessage>>,
+    thread_handle: Option<JoinHandle<()>>,
 }
 
 impl Drop for Logger {
