@@ -38,6 +38,8 @@ use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
+use ris_util::ris_error::RisError;
+
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
 >;
@@ -61,40 +63,37 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(sdl_context: &Sdl) -> Result<Self, String> {
+    pub fn initialize(sdl_context: &Sdl) -> Result<Self, RisError> {
         // window
-        let video_subsystem = sdl_context
-            .video()
-            .map_err(|e| format!("failed to get video subsystem: {}", e))?;
-        let window = video_subsystem
+        let video_subsystem = sdl_context.video().map_err(|e| ris_util::new_err!("failed to get video subsystem: {}", e))?;
+        let window = ris_util::unroll!(video_subsystem
             .window("ris_engine", 640, 480)
             //.resizable()
             .position_centered()
             .vulkan()
-            .build()
-            .map_err(|e| format!("failed to build window: {}", e))?;
+            .build(),
+            "failed to build window")?;
 
         // instance
-        let library =
-            VulkanLibrary::new().map_err(|e| format!("no local vulkano library: {}", e))?;
+        let library = ris_util::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
         let instance_extensions = InstanceExtensions::from_iter(
-            window
-                .vulkan_instance_extensions()
-                .map_err(|e| format!("failed to get vulkan instance extensions: {}", e))?,
+            window.vulkan_instance_extensions().map_err(|e| ris_util::new_err!("failed to get vulkan instance extensions"))?
         );
-        let instance = Instance::new(
+        
+        let instance = ris_util::unroll!(Instance::new(
             library,
             InstanceCreateInfo {
                 enabled_extensions: instance_extensions,
                 ..Default::default()
             },
-        )
-        .map_err(|e| format!("failed to create instance: {}", e))?;
+        ),
+        "failed to create instance"
+        )?;
 
         // surface
         let surface_handle = window
             .vulkan_create_surface(instance.handle().as_raw() as _)
-            .map_err(|e| format!("failed to create instance: {}", e))?;
+            .map_err(|e| ris_util::new_err!("failed to create instance: {}", e))?;
         let surface = unsafe {
             Surface::from_handle(
                 instance.clone(),
@@ -117,7 +116,7 @@ impl Renderer {
         )?;
 
         // device
-        let (device, mut queues) = Device::new(
+        let (device, mut queues) = ris_util::unroll!(Device::new(
             physical_device.clone(),
             DeviceCreateInfo {
                 queue_create_infos: vec![QueueCreateInfo {
@@ -127,13 +126,17 @@ impl Renderer {
                 enabled_extensions: device_extensions,
                 ..Default::default()
             },
-        )
-        .map_err(|e| format!("failed to create device: {}", e))?;
-        let queue = queues.next().ok_or("no queues available")?;
+        ),
+        "failed to create device")?;
+        let queue = ris_util::unroll_option!(queues.next(), "no queues available")?;
 
         // swapchain
-        let (swapchain, images) =
-            crate::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
+        let (swapchain, images) = crate::swapchain::create_swapchain(
+            &physical_device,
+            &window,
+            &device,
+            &surface,
+        )?;
 
         // render pass
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;

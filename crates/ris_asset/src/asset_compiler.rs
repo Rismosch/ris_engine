@@ -46,7 +46,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
             } else if metadata.is_dir() {
                 directories.push(entry_path);
             } else {
-                return ris_util::new_err!(
+                return ris_util::result_err!(
                     "entry \"{:?}\" is neither a file, nor a directory",
                     entry_path
                 );
@@ -192,7 +192,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
         "failed to read to the end"
     )?;
     if read_bytes != orig_paths_len as usize {
-        return ris_util::new_err!(
+        return ris_util::result_err!(
             "expected to read {} bytes but actually read{}",
             orig_paths_len,
             read_bytes
@@ -262,7 +262,7 @@ fn seek(file: &mut File, pos: SeekFrom) -> Result<u64, RisError> {
 fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, RisError> {
     let read_bytes = ris_util::unroll!(file.read(buf), "failed to read")?;
     if read_bytes != buf.len() {
-        ris_util::new_err!(
+        ris_util::result_err!(
             "expected to read {} bytes but actually read {}",
             buf.len(),
             read_bytes,
@@ -275,7 +275,7 @@ fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, RisError> {
 fn write(file: &mut File, buf: &[u8]) -> Result<usize, RisError> {
     let written_bytes = ris_util::unroll!(file.write(buf), "failed to write")?;
     if written_bytes != buf.len() {
-        ris_util::new_err!(
+        ris_util::result_err!(
             "expected to write {} bytes but actually wrote {}",
             buf.len(),
             written_bytes,

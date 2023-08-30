@@ -11,6 +11,8 @@ use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
 
+use ris_util::ris_error::RisError;
+
 use crate::gpu_objects::UniformBufferObject;
 use crate::gpu_objects::Vertex3d;
 
@@ -27,7 +29,7 @@ impl Buffers {
         allocators: &crate::allocators::Allocators,
         uniform_buffer_count: usize,
         pipeline: &Arc<GraphicsPipeline>,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, RisError> {
         // vertex
         let red = [1.0, 0.0, 0.0];
         let green = [0.0, 1.0, 0.0];
@@ -245,7 +247,7 @@ impl Buffers {
             color: red,
         };
 
-        let vertex = Buffer::from_iter(
+        let vertex = ris_util::unroll!(Buffer::from_iter(
             &allocators.memory,
             BufferCreateInfo {
                 usage: BufferUsage::VERTEX_BUFFER,
@@ -271,11 +273,11 @@ impl Buffers {
                 v17_2, v18_2, v19_2, v20_2, // cyan
                 v21_2, v22_2, v23_2, v24_2, // red
             ],
-        )
-        .map_err(|e| format!("failed to create vertex buffer: {}", e))?;
+        ),
+        "failed to create vertex buffer")?;
 
         // index
-        let index = Buffer::from_iter(
+        let index = ris_util::unroll!(Buffer::from_iter(
             &allocators.memory,
             BufferCreateInfo {
                 usage: BufferUsage::INDEX_BUFFER,
@@ -301,15 +303,15 @@ impl Buffers {
                 40, 41, 42, 43, 42, 41, // cyan
                 44, 45, 46, 47, 46, 45, // red
             ],
-        )
-        .map_err(|e| format!("failed to create index buffer: {}", e))?;
+        ),
+        "failed to create index buffer")?;
 
         // uniform
         let mut uniforms = Vec::new();
         for _ in 0..uniform_buffer_count {
             let ubo = UniformBufferObject::default();
 
-            let uniform_buffer = Buffer::from_data(
+            let uniform_buffer = ris_util::unroll!(Buffer::from_data(
                 &allocators.memory,
                 BufferCreateInfo {
                     usage: BufferUsage::UNIFORM_BUFFER,
@@ -320,20 +322,15 @@ impl Buffers {
                     ..Default::default()
                 },
                 ubo,
-            )
-            .map_err(|e| format!("failed to create uniform buffer: {}", e))?;
+            ),
+            "failed to create uniform buffer")?;
 
-            let descriptor_set = PersistentDescriptorSet::new(
+            let descriptor_set = ris_util::unroll!(PersistentDescriptorSet::new(
                 &allocators.descriptor_set,
-                pipeline
-                    .layout()
-                    .set_layouts()
-                    .get(0)
-                    .ok_or("failed to get descriptor set layout")?
-                    .clone(),
+                ris_util::unroll_option!(pipeline.layout().set_layouts().get(0),"failed to get descriptor set layout")?.clone(),
                 [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
-            )
-            .map_err(|e| format!("failed to create persistent descriptor set: {}", e))?;
+            ),
+            "failed to create persistent descriptor set")?;
 
             uniforms.push((uniform_buffer, descriptor_set));
         }

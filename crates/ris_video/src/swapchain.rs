@@ -15,28 +15,32 @@ use vulkano::swapchain::Surface;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainCreateInfo;
 
+use ris_util::ris_error::RisError;
+
 pub fn create_swapchain(
     physical_device: &Arc<PhysicalDevice>,
     window: &Window,
     device: &Arc<Device>,
     surface: &Arc<Surface>,
-) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), String> {
-    let capabilities = physical_device
-        .surface_capabilities(surface, Default::default())
-        .map_err(|e| format!("failed to get surface capabilities: {}", e))?;
+) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), RisError> {
+    let capabilities = ris_util::unroll!(
+        physical_device.surface_capabilities(surface, Default::default()),
+        "failed to get surface capabilities"
+    )?;
     let dimensions = window.vulkan_drawable_size();
-    let composite_alpha = capabilities
+    let composite_alpha = ris_util::unroll_option!(capabilities
         .supported_composite_alpha
         .into_iter()
-        .next()
-        .ok_or("failed to get supported composite alpha")?;
+        .next(),
+        "failed to get supported composite alpha"
+    )?;
     let image_format = Some(
-        physical_device
-            .surface_formats(surface, Default::default())
-            .map_err(|e| format!("failed to get surface formats: {}", e))?[0]
-            .0,
+        ris_util::unroll!(
+            physical_device.surface_formats(surface, Default::default()),
+            "failed to get surface formats"
+        )?[0].0,
     );
-    Swapchain::new(
+    ris_util::unroll!(Swapchain::new(
         device.clone(),
         surface.clone(),
         SwapchainCreateInfo {
@@ -48,8 +52,8 @@ pub fn create_swapchain(
             present_mode: vulkano::swapchain::PresentMode::Immediate,
             ..Default::default()
         },
-    )
-    .map_err(|e| format!("failed to create swapchain: {}", e))
+    ),
+    "failed to create swapchain")
 }
 
 pub fn create_framebuffers(
@@ -57,29 +61,35 @@ pub fn create_framebuffers(
     dimensions: [u32; 2],
     images: &[Arc<SwapchainImage>],
     render_pass: &Arc<RenderPass>,
-) -> Result<Vec<Arc<Framebuffer>>, String> {
-    let depth_buffer =
-        AttachmentImage::transient(&allocators.memory, dimensions, super::DEPTH_FORMAT)
-            .map_err(|e| format!("failed to create frame buffer: {}", e))?;
+) -> Result<Vec<Arc<Framebuffer>>, RisError> {
+    let depth_buffer = ris_util::unroll!(
+        AttachmentImage::transient(&allocators.memory, dimensions, super::DEPTH_FORMAT),
+        "failed to create frame buffer"
+    )?;
 
     let mut framebuffers = Vec::new();
     for image in images {
-        let image_view = ImageView::new_default(image.clone())
-            .map_err(|e| format!("failed to create image view: {}", e))?;
+        let image_view = ris_util::unroll!(
+            ImageView::new_default(image.clone()),
+            "failed to create image view"
+        )?;
 
-        let depth_view = ImageView::new_default(depth_buffer.clone())
-            .map_err(|e| format!("failed to create depth view: {}", e))?;
+        let depth_view = ris_util::unroll!(
+            ImageView::new_default(depth_buffer.clone()),
+            "failed to create depth view"
+        )?;
 
         let attachments: Vec<Arc<dyn ImageViewAbstract>> = vec![image_view, depth_view];
 
-        let framebuffer = Framebuffer::new(
+        let framebuffer = ris_util::unroll!(Framebuffer::new(
             render_pass.clone(),
             FramebufferCreateInfo {
                 attachments,
                 ..Default::default()
             },
-        )
-        .map_err(|e| format!("failed to create frame buffer: {}", e))?;
+        ),
+        "failed to create frame buffer"
+        )?;
 
         framebuffers.push(framebuffer);
     }

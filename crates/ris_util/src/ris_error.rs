@@ -116,7 +116,15 @@ macro_rules! new_err {
             let message = format!($($arg)*);
             let file = String::from(file!());
             let line = line!();
-            let result = ris_util::ris_error::RisError::new(source, message, file, line);
+            ris_util::ris_error::RisError::new(source, message, file, line)
+        }
+    };
+}
+#[macro_export]
+macro_rules! result_err {
+    ($($arg:tt)*) => {
+        {
+            let result = ris_util::new_err!($($arg)*);
             Err(result)
         }
     };
