@@ -55,7 +55,7 @@ fn run(app_info: AppInfo) -> Result<(), String> {
     let mut engine = match Engine::new(app_info) {
         Ok(x) => x,
         Err(x) => {
-            ris_log::fatal!("error while initializing engine: \"{}\"", x);
+            ris_log::fatal!("error while initializing engine: {}", x);
             return Err(x.to_string());
         }
     };
