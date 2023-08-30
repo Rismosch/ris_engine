@@ -1,7 +1,8 @@
 use std::error::Error;
 
-pub type SourceError = Option<Box<dyn Error + 'static>>;
+pub type SourceError = Option<std::sync::Arc<dyn Error + 'static>>;
 
+#[derive(Clone)]
 pub struct RisError {
     source: SourceError,
     message: String,
@@ -80,7 +81,7 @@ macro_rules! unroll {
         match $result {
             Ok(value) => Ok(value),
             Err(error) => {
-                let source: ris_util::ris_error::SourceError = Some(Box::new(error));
+                let source: ris_util::ris_error::SourceError = Some(std::sync::Arc::new(error));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
@@ -97,7 +98,7 @@ macro_rules! unroll_option {
         match $result {
             Some(value) => Ok(value),
             None => {
-                let source: ris_util::ris_error::SourceError = Some(Box::new(ris_util::ris_error::OptionError));
+                let source: ris_util::ris_error::SourceError = Some(std::sync::Arc::new(ris_util::ris_error::OptionError));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();

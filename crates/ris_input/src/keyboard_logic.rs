@@ -1,8 +1,9 @@
 use std::time::Instant;
 
+use sdl2::keyboard::Scancode;
+
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::input::keyboard_data::KeyboardData;
-use sdl2::keyboard::Scancode;
 
 pub fn update_keyboard(
     new_keyboard_data: &mut KeyboardData,
@@ -52,7 +53,7 @@ fn manual_crash(
 
             if seconds >= TIMEOUT {
                 ris_log::fatal!("manual crash reqeusted");
-                return GameloopState::Error(String::from("manual crash"));
+                return GameloopState::Error(ris_util::new_err!("manual crash"));
             }
         }
         Scancode::F10 => {

@@ -5,6 +5,7 @@ use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::info::app_info::AppInfo;
+use ris_util::ris_error::RisError;
 use ris_video::video::Video;
 
 use crate::gameloop::input_frame::InputFrame;
@@ -23,11 +24,16 @@ pub struct GodObject {
 }
 
 impl GodObject {
-    pub fn new(app_info: AppInfo) -> Result<Self, String> {
+    pub fn new(app_info: AppInfo) -> Result<Self, RisError> {
         // sdl
-        let sdl_context = sdl2::init()?;
-        let event_pump = sdl_context.event_pump()?;
-        let controller_subsystem = sdl_context.game_controller()?;
+        let sdl_context =
+            sdl2::init().map_err(|e| ris_util::new_err!("failed to init sdl2: {}", e))?;
+        let event_pump = sdl_context
+            .event_pump()
+            .map_err(|e| ris_util::new_err!("failed to get event pump: {}", e))?;
+        let controller_subsystem = sdl_context
+            .game_controller()
+            .map_err(|e| ris_util::new_err!("failed to get controller subsystem: {}", e))?;
 
         // video
         let video = Video::new(&sdl_context)?;
@@ -35,7 +41,7 @@ impl GodObject {
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);
         let logic_frame = LogicFrame::default();
-        let output_frame = OutputFrame::new(video)?;
+        let output_frame = OutputFrame::new(video);
 
         let frame_data_calculator = FrameDataCalculator::default();
         let mut input_data = InputData::default();

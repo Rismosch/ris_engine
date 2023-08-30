@@ -10,8 +10,8 @@ pub struct OutputFrame {
 }
 
 impl OutputFrame {
-    pub fn new(video: Video) -> Result<Self, String> {
-        Ok(Self { video })
+    pub fn new(video: Video) -> Self {
+        Self { video }
     }
 
     pub fn run(

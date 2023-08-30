@@ -247,90 +247,102 @@ impl Buffers {
             color: red,
         };
 
-        let vertex = ris_util::unroll!(Buffer::from_iter(
-            &allocators.memory,
-            BufferCreateInfo {
-                usage: BufferUsage::VERTEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                usage: MemoryUsage::Upload,
-                ..Default::default()
-            },
-            vec![
-                // cube 1
-                v1, v2, v3, v4, // magenta
-                v5, v6, v7, v8, // green
-                v9, v10, v11, v12, // yellow
-                v13, v14, v15, v16, // blue
-                v17, v18, v19, v20, // cyan
-                v21, v22, v23, v24, // red
-                // cube 2
-                v1_2, v2_2, v3_2, v4_2, // magenta
-                v5_2, v6_2, v7_2, v8_2, // green
-                v9_2, v10_2, v11_2, v12_2, // yellow
-                v13_2, v14_2, v15_2, v16_2, // blue
-                v17_2, v18_2, v19_2, v20_2, // cyan
-                v21_2, v22_2, v23_2, v24_2, // red
-            ],
-        ),
-        "failed to create vertex buffer")?;
-
-        // index
-        let index = ris_util::unroll!(Buffer::from_iter(
-            &allocators.memory,
-            BufferCreateInfo {
-                usage: BufferUsage::INDEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                usage: MemoryUsage::Upload,
-                ..Default::default()
-            },
-            vec![
-                // cube 1
-                0, 1, 2, 3, 2, 1, // magenta
-                4, 5, 6, 7, 6, 5, // green
-                8, 9, 10, 11, 10, 9, // yellow
-                12, 13, 14, 15, 14, 13, // blue
-                16, 17, 18, 19, 18, 17, // cyan
-                20, 21, 22, 23, 22, 21, // red
-                // cube 2
-                24, 25, 26, 27, 26, 25, // magenta
-                28, 29, 30, 31, 30, 29, // green
-                32, 33, 34, 35, 34, 33, // yellow
-                36, 37, 38, 39, 38, 37, // blue
-                40, 41, 42, 43, 42, 41, // cyan
-                44, 45, 46, 47, 46, 45, // red
-            ],
-        ),
-        "failed to create index buffer")?;
-
-        // uniform
-        let mut uniforms = Vec::new();
-        for _ in 0..uniform_buffer_count {
-            let ubo = UniformBufferObject::default();
-
-            let uniform_buffer = ris_util::unroll!(Buffer::from_data(
+        let vertex = ris_util::unroll!(
+            Buffer::from_iter(
                 &allocators.memory,
                 BufferCreateInfo {
-                    usage: BufferUsage::UNIFORM_BUFFER,
+                    usage: BufferUsage::VERTEX_BUFFER,
                     ..Default::default()
                 },
                 AllocationCreateInfo {
                     usage: MemoryUsage::Upload,
                     ..Default::default()
                 },
-                ubo,
+                vec![
+                    // cube 1
+                    v1, v2, v3, v4, // magenta
+                    v5, v6, v7, v8, // green
+                    v9, v10, v11, v12, // yellow
+                    v13, v14, v15, v16, // blue
+                    v17, v18, v19, v20, // cyan
+                    v21, v22, v23, v24, // red
+                    // cube 2
+                    v1_2, v2_2, v3_2, v4_2, // magenta
+                    v5_2, v6_2, v7_2, v8_2, // green
+                    v9_2, v10_2, v11_2, v12_2, // yellow
+                    v13_2, v14_2, v15_2, v16_2, // blue
+                    v17_2, v18_2, v19_2, v20_2, // cyan
+                    v21_2, v22_2, v23_2, v24_2, // red
+                ],
             ),
-            "failed to create uniform buffer")?;
+            "failed to create vertex buffer"
+        )?;
 
-            let descriptor_set = ris_util::unroll!(PersistentDescriptorSet::new(
-                &allocators.descriptor_set,
-                ris_util::unroll_option!(pipeline.layout().set_layouts().get(0),"failed to get descriptor set layout")?.clone(),
-                [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
+        // index
+        let index = ris_util::unroll!(
+            Buffer::from_iter(
+                &allocators.memory,
+                BufferCreateInfo {
+                    usage: BufferUsage::INDEX_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    usage: MemoryUsage::Upload,
+                    ..Default::default()
+                },
+                vec![
+                    // cube 1
+                    0, 1, 2, 3, 2, 1, // magenta
+                    4, 5, 6, 7, 6, 5, // green
+                    8, 9, 10, 11, 10, 9, // yellow
+                    12, 13, 14, 15, 14, 13, // blue
+                    16, 17, 18, 19, 18, 17, // cyan
+                    20, 21, 22, 23, 22, 21, // red
+                    // cube 2
+                    24, 25, 26, 27, 26, 25, // magenta
+                    28, 29, 30, 31, 30, 29, // green
+                    32, 33, 34, 35, 34, 33, // yellow
+                    36, 37, 38, 39, 38, 37, // blue
+                    40, 41, 42, 43, 42, 41, // cyan
+                    44, 45, 46, 47, 46, 45, // red
+                ],
             ),
-            "failed to create persistent descriptor set")?;
+            "failed to create index buffer"
+        )?;
+
+        // uniform
+        let mut uniforms = Vec::new();
+        for _ in 0..uniform_buffer_count {
+            let ubo = UniformBufferObject::default();
+
+            let uniform_buffer = ris_util::unroll!(
+                Buffer::from_data(
+                    &allocators.memory,
+                    BufferCreateInfo {
+                        usage: BufferUsage::UNIFORM_BUFFER,
+                        ..Default::default()
+                    },
+                    AllocationCreateInfo {
+                        usage: MemoryUsage::Upload,
+                        ..Default::default()
+                    },
+                    ubo,
+                ),
+                "failed to create uniform buffer"
+            )?;
+
+            let descriptor_set = ris_util::unroll!(
+                PersistentDescriptorSet::new(
+                    &allocators.descriptor_set,
+                    ris_util::unroll_option!(
+                        pipeline.layout().set_layouts().get(0),
+                        "failed to get descriptor set layout"
+                    )?
+                    .clone(),
+                    [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
+                ),
+                "failed to create persistent descriptor set"
+            )?;
 
             uniforms.push((uniform_buffer, descriptor_set));
         }

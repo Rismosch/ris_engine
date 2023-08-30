@@ -17,6 +17,8 @@ use vulkano::render_pass::RenderPass;
 use vulkano::render_pass::Subpass;
 use vulkano::shader::ShaderModule;
 
+use ris_util::ris_error::RisError;
+
 use crate::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
@@ -25,43 +27,46 @@ pub fn create_pipeline(
     fragment_shader: &Arc<ShaderModule>,
     render_pass: &Arc<RenderPass>,
     viewport: &Viewport,
-) -> Result<Arc<GraphicsPipeline>, String> {
-    GraphicsPipeline::start()
-        .vertex_input_state(Vertex3d::per_vertex())
-        .vertex_shader(
-            vertex_shader
-                .clone()
-                .entry_point("main")
-                .ok_or("failed to locate vertex entry point")?,
-            (),
-        )
-        .input_assembly_state(InputAssemblyState::new())
-        .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([
-            viewport.clone()
-        ]))
-        .fragment_shader(
-            fragment_shader
-                .clone()
-                .entry_point("main")
-                .ok_or("failed to locate fragment entry point")?,
-            (),
-        )
-        .rasterization_state(RasterizationState {
-            front_face: StateMode::Fixed(FrontFace::CounterClockwise),
-            cull_mode: StateMode::Fixed(CullMode::Back),
-            ..Default::default()
-        })
-        .depth_stencil_state(DepthStencilState {
-            depth: Some(DepthState {
-                enable_dynamic: false,
-                compare_op: StateMode::Fixed(CompareOp::Greater),
-                write_enable: StateMode::Fixed(true),
-            }),
-            ..Default::default()
-        })
-        .render_pass(
-            Subpass::from(render_pass.clone(), 0).ok_or("failed to create render subpass")?,
-        )
-        .build(device.clone())
-        .map_err(|e| format!("failed to build graphics pipeline: {}", e))
+) -> Result<Arc<GraphicsPipeline>, RisError> {
+    ris_util::unroll!(
+        GraphicsPipeline::start()
+            .vertex_input_state(Vertex3d::per_vertex())
+            .vertex_shader(
+                ris_util::unroll_option!(
+                    vertex_shader.clone().entry_point("main"),
+                    "failed to locate vertex entry point"
+                )?,
+                (),
+            )
+            .input_assembly_state(InputAssemblyState::new())
+            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([
+                viewport.clone()
+            ]))
+            .fragment_shader(
+                ris_util::unroll_option!(
+                    fragment_shader.clone().entry_point("main"),
+                    "failed to locate fragment entry point"
+                )?,
+                (),
+            )
+            .rasterization_state(RasterizationState {
+                front_face: StateMode::Fixed(FrontFace::CounterClockwise),
+                cull_mode: StateMode::Fixed(CullMode::Back),
+                ..Default::default()
+            })
+            .depth_stencil_state(DepthStencilState {
+                depth: Some(DepthState {
+                    enable_dynamic: false,
+                    compare_op: StateMode::Fixed(CompareOp::Greater),
+                    write_enable: StateMode::Fixed(true),
+                }),
+                ..Default::default()
+            })
+            .render_pass(ris_util::unroll_option!(
+                Subpass::from(render_pass.clone(), 0),
+                "failed to create render subpass"
+            )?,)
+            .build(device.clone()),
+        "failed to build graphics pipeline"
+    )
 }

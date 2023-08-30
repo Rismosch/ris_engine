@@ -8,6 +8,7 @@ use vulkano::sync::GpuFuture;
 
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
+use ris_util::ris_error::RisError;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -22,7 +23,7 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl) -> Result<Video, String> {
+    pub fn new(sdl_context: &Sdl) -> Result<Video, RisError> {
         let renderer = Renderer::initialize(sdl_context)?;
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
@@ -36,7 +37,7 @@ impl Video {
         })
     }
 
-    pub fn update(&mut self, scene: &Scene) -> Result<(), String> {
+    pub fn update(&mut self, scene: &Scene) -> Result<(), RisError> {
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
 
@@ -61,7 +62,7 @@ impl Video {
                 self.recreate_swapchain = true;
                 return Ok(());
             }
-            Err(e) => return Err(format!("failed to acquire next image: {}", e)),
+            Err(e) => return ris_util::result_err!("failed to acquire next image: {}", e),
         };
 
         if suboptimal {
@@ -69,9 +70,7 @@ impl Video {
         }
 
         if let Some(image_fence) = &self.fences[image_i as usize] {
-            image_fence
-                .wait(None)
-                .map_err(|e| format!("failed to wait on fence: {}", e))?;
+            ris_util::unroll!(image_fence.wait(None), "failed to wait on fence")?;
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
@@ -100,9 +99,7 @@ impl Video {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
-                    fence
-                        .wait(None)
-                        .map_err(|e| format!("failed to wait on fence: {}", e))?;
+                    ris_util::unroll!(fence.wait(None), "failed to wait on fence")?;
                 }
                 fence.boxed()
             }

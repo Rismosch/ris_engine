@@ -3,6 +3,8 @@ use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_system;
 use ris_log::log_message::LogMessage;
 
+use ris_util::ris_error::RisError;
+
 use crate::god_job;
 use crate::god_object::GodObject;
 
@@ -12,7 +14,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(app_info: AppInfo) -> Result<Engine, String> {
+    pub fn new(app_info: AppInfo) -> Result<Engine, RisError> {
         let formatted_app_info = format!("{}", &app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
 
@@ -24,10 +26,10 @@ impl Engine {
         })
     }
 
-    pub fn run(&mut self) -> Result<(), String> {
+    pub fn run(&mut self) -> Result<(), RisError> {
         let god_object = match self.god_object.take() {
             Some(god_object) => god_object,
-            None => return Err(String::from("god_object was already taken")),
+            None => return ris_util::result_err!("god_object was already taken"),
         };
 
         let cpu_count = god_object.app_info.cpu.cpu_count as usize;

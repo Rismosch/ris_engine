@@ -3,9 +3,11 @@ use std::sync::Arc;
 use vulkano::device::Device;
 use vulkano::shader::ShaderModule;
 
+use ris_util::ris_error::RisError;
+
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 
-pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
+pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
     let vertex_source = "
         #version 460
 
@@ -44,34 +46,46 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, String> {
         }
     ";
 
-    let compiler = shaderc::Compiler::new().ok_or("failed to initialize shaderc compiler")?;
-    let options = shaderc::CompileOptions::new().ok_or("failed to initialize shaderc options")?;
+    let compiler = ris_util::unroll_option!(
+        shaderc::Compiler::new(),
+        "failed to initialize shaderc compiler"
+    )?;
+    let options = ris_util::unroll_option!(
+        shaderc::CompileOptions::new(),
+        "failed to initialize shaderc options"
+    )?;
 
-    let vertex_artifact = compiler
-        .compile_into_spirv(
+    let vertex_artifact = ris_util::unroll!(
+        compiler.compile_into_spirv(
             vertex_source,
             shaderc::ShaderKind::Vertex,
             "standard.vert",
             "main",
             Some(&options),
-        )
-        .map_err(|e| format!("failed to compile vertex shader: {}", e))?;
+        ),
+        "failed to compile vertex shader"
+    )?;
     let vertex_words: &[u32] = vertex_artifact.as_binary();
-    let vertex_shader = unsafe { ShaderModule::from_words(device.clone(), vertex_words) }
-        .map_err(|e| format!("failed to load vertex shader module: {}", e))?;
+    let vertex_shader = ris_util::unroll!(
+        unsafe { ShaderModule::from_words(device.clone(), vertex_words) },
+        "failed to load vertex shader module"
+    )?;
 
-    let fragment_artifact = compiler
-        .compile_into_spirv(
+    let fragment_artifact = ris_util::unroll!(
+        compiler.compile_into_spirv(
             fragment_source,
             shaderc::ShaderKind::Fragment,
             "standard.vert",
             "main",
             Some(&options),
-        )
-        .map_err(|e| format!("failed to compile fragment shader: {}", e))?;
+        ),
+        "failed to compile fragment shader"
+    )?;
     let fragment_words: &[u32] = fragment_artifact.as_binary();
-    let fragment_shader = unsafe { ShaderModule::from_words(device.clone(), fragment_words) }
-        .map_err(|e| format!("failed to lad fragment shader module: {}", e))?;
+    let fragment_shader = ris_util::unroll!(
+        unsafe { ShaderModule::from_words(device.clone(), fragment_words) },
+        "failed to lad fragment shader module"
+    )?;
 
     Ok((vertex_shader, fragment_shader))
 }

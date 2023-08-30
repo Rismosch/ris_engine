@@ -65,29 +65,35 @@ pub struct Renderer {
 impl Renderer {
     pub fn initialize(sdl_context: &Sdl) -> Result<Self, RisError> {
         // window
-        let video_subsystem = sdl_context.video().map_err(|e| ris_util::new_err!("failed to get video subsystem: {}", e))?;
-        let window = ris_util::unroll!(video_subsystem
-            .window("ris_engine", 640, 480)
-            //.resizable()
-            .position_centered()
-            .vulkan()
-            .build(),
-            "failed to build window")?;
+        let video_subsystem = sdl_context
+            .video()
+            .map_err(|e| ris_util::new_err!("failed to get video subsystem: {}", e))?;
+        let window = ris_util::unroll!(
+            video_subsystem
+                .window("ris_engine", 640, 480)
+                //.resizable()
+                .position_centered()
+                .vulkan()
+                .build(),
+            "failed to build window"
+        )?;
 
         // instance
         let library = ris_util::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
-        let instance_extensions = InstanceExtensions::from_iter(
-            window.vulkan_instance_extensions().map_err(|e| ris_util::new_err!("failed to get vulkan instance extensions"))?
-        );
-        
-        let instance = ris_util::unroll!(Instance::new(
-            library,
-            InstanceCreateInfo {
-                enabled_extensions: instance_extensions,
-                ..Default::default()
-            },
-        ),
-        "failed to create instance"
+        let instance_extensions =
+            InstanceExtensions::from_iter(window.vulkan_instance_extensions().map_err(|e| {
+                ris_util::new_err!("failed to get vulkan instance extensions: {}", e)
+            })?);
+
+        let instance = ris_util::unroll!(
+            Instance::new(
+                library,
+                InstanceCreateInfo {
+                    enabled_extensions: instance_extensions,
+                    ..Default::default()
+                },
+            ),
+            "failed to create instance"
         )?;
 
         // surface
@@ -116,27 +122,25 @@ impl Renderer {
         )?;
 
         // device
-        let (device, mut queues) = ris_util::unroll!(Device::new(
-            physical_device.clone(),
-            DeviceCreateInfo {
-                queue_create_infos: vec![QueueCreateInfo {
-                    queue_family_index,
+        let (device, mut queues) = ris_util::unroll!(
+            Device::new(
+                physical_device.clone(),
+                DeviceCreateInfo {
+                    queue_create_infos: vec![QueueCreateInfo {
+                        queue_family_index,
+                        ..Default::default()
+                    }],
+                    enabled_extensions: device_extensions,
                     ..Default::default()
-                }],
-                enabled_extensions: device_extensions,
-                ..Default::default()
-            },
-        ),
-        "failed to create device")?;
+                },
+            ),
+            "failed to create device"
+        )?;
         let queue = ris_util::unroll_option!(queues.next(), "no queues available")?;
 
         // swapchain
-        let (swapchain, images) = crate::swapchain::create_swapchain(
-            &physical_device,
-            &window,
-            &device,
-            &surface,
-        )?;
+        let (swapchain, images) =
+            crate::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
 
         // render pass
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
@@ -200,7 +204,7 @@ impl Renderer {
         })
     }
 
-    pub fn recreate_swapchain(&mut self) -> Result<(), String> {
+    pub fn recreate_swapchain(&mut self) -> Result<(), RisError> {
         let new_dimensions = self.window.vulkan_drawable_size();
         let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
             image_extent: [new_dimensions.0, new_dimensions.1],
@@ -208,7 +212,7 @@ impl Renderer {
         }) {
             Ok(r) => r,
             Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
-            Err(e) => return Err(format!("failed to recreate swapchain: {}", e)),
+            Err(e) => return ris_util::result_err!("failed to recreate swapchain: {}", e),
         };
 
         self.swapchain = new_swapchain;
@@ -223,7 +227,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn recreate_viewport(&mut self) -> Result<(), String> {
+    pub fn recreate_viewport(&mut self) -> Result<(), RisError> {
         self.recreate_swapchain()?;
         let (w, h) = self.window.vulkan_drawable_size();
         self.viewport.dimensions = [w as f32, h as f32];
@@ -268,14 +272,14 @@ impl Renderer {
         previous_future: Box<dyn GpuFuture>,
         swqapchain_acquire_future: SwapchainAcquireFuture,
         image_i: u32,
-    ) -> Result<Result<Fence, FlushError>, String> {
+    ) -> Result<Result<Fence, FlushError>, RisError> {
         Ok(previous_future
             .join(swqapchain_acquire_future)
             .then_execute(
                 self.queue.clone(),
                 self.command_buffers[image_i as usize].clone(),
             )
-            .map_err(|e| format!("failed to execute command buffer: {}", e))?
+            .map_err(|e| ris_util::new_err!("failed to execute command buffer: {}", e))?
             .then_swapchain_present(
                 self.queue.clone(),
                 SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
@@ -287,11 +291,11 @@ impl Renderer {
         &self,
         index: usize,
         ubo: &crate::gpu_objects::UniformBufferObject,
-    ) -> Result<(), String> {
-        let mut uniform_content = self.buffers.uniforms[index]
-            .0
-            .write()
-            .map_err(|e| format!("failed to update uniform: {}", e))?;
+    ) -> Result<(), RisError> {
+        let mut uniform_content = ris_util::unroll!(
+            self.buffers.uniforms[index].0.write(),
+            "failed to update uniform"
+        )?;
 
         uniform_content.view = ubo.view.transposed();
         uniform_content.proj = ubo.proj.transposed();

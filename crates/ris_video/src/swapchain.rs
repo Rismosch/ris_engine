@@ -28,32 +28,33 @@ pub fn create_swapchain(
         "failed to get surface capabilities"
     )?;
     let dimensions = window.vulkan_drawable_size();
-    let composite_alpha = ris_util::unroll_option!(capabilities
-        .supported_composite_alpha
-        .into_iter()
-        .next(),
+    let composite_alpha = ris_util::unroll_option!(
+        capabilities.supported_composite_alpha.into_iter().next(),
         "failed to get supported composite alpha"
     )?;
     let image_format = Some(
         ris_util::unroll!(
             physical_device.surface_formats(surface, Default::default()),
             "failed to get surface formats"
-        )?[0].0,
+        )?[0]
+            .0,
     );
-    ris_util::unroll!(Swapchain::new(
-        device.clone(),
-        surface.clone(),
-        SwapchainCreateInfo {
-            min_image_count: capabilities.min_image_count,
-            image_format,
-            image_extent: [dimensions.0, dimensions.1],
-            image_usage: ImageUsage::COLOR_ATTACHMENT,
-            composite_alpha,
-            present_mode: vulkano::swapchain::PresentMode::Immediate,
-            ..Default::default()
-        },
-    ),
-    "failed to create swapchain")
+    ris_util::unroll!(
+        Swapchain::new(
+            device.clone(),
+            surface.clone(),
+            SwapchainCreateInfo {
+                min_image_count: capabilities.min_image_count,
+                image_format,
+                image_extent: [dimensions.0, dimensions.1],
+                image_usage: ImageUsage::COLOR_ATTACHMENT,
+                composite_alpha,
+                present_mode: vulkano::swapchain::PresentMode::Immediate,
+                ..Default::default()
+            },
+        ),
+        "failed to create swapchain"
+    )
 }
 
 pub fn create_framebuffers(
@@ -81,14 +82,15 @@ pub fn create_framebuffers(
 
         let attachments: Vec<Arc<dyn ImageViewAbstract>> = vec![image_view, depth_view];
 
-        let framebuffer = ris_util::unroll!(Framebuffer::new(
-            render_pass.clone(),
-            FramebufferCreateInfo {
-                attachments,
-                ..Default::default()
-            },
-        ),
-        "failed to create frame buffer"
+        let framebuffer = ris_util::unroll!(
+            Framebuffer::new(
+                render_pass.clone(),
+                FramebufferCreateInfo {
+                    attachments,
+                    ..Default::default()
+                },
+            ),
+            "failed to create frame buffer"
         )?;
 
         framebuffers.push(framebuffer);
