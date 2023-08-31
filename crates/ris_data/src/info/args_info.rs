@@ -1,10 +1,13 @@
-use ris_util::throw;
 use std::env;
+
+use ris_util::ris_error::RisError;
+use ris_util::throw;
 
 use crate::info::cpu_info::CpuInfo;
 
 const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
+const ASSETS_ARG: &str = "--assets";
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ArgsInfo {
@@ -12,15 +15,19 @@ pub struct ArgsInfo {
     pub executable_path: String,
     pub no_restart: bool,
     pub workers: i32,
+    pub assets: String,
 }
 
 impl ArgsInfo {
-    pub fn new(cpu_info: &CpuInfo) -> Result<Self, String> {
+    pub fn new(cpu_info: &CpuInfo) -> Result<Self, RisError> {
         let raw_args: Vec<String> = env::args().collect();
 
         let executable_path = String::from(get_arg(&raw_args, 0));
+
+        // default values
         let mut no_restart = false;
         let mut workers = cpu_info.cpu_count;
+        let mut assets = String::from("compiled.ris_assets");
 
         let mut i = 1;
         let len = raw_args.len();
@@ -38,10 +45,15 @@ impl ArgsInfo {
                     let second_arg = get_arg(&raw_args, i);
                     match second_arg.parse::<i32>() {
                         Ok(value) => workers = value,
-                        Err(error) => return Err(format!("could not parse workers: {}", error)),
+                        Err(error) => return ris_util::result_err!("could not parse workers: {}", error),
                     }
+                },
+                ASSETS_ARG => {
+                    i += 1;
+                    let second_arg = get_arg(&raw_args, i);
+                    assets = String::from(second_arg);
                 }
-                _ => return Err(format!("unexpected argument: [{}] -> {}", i, arg)),
+                _ => return ris_util::result_err!("unexpected argument: [{}] -> {}", i, arg),
             };
 
             i += 1;
@@ -52,6 +64,7 @@ impl ArgsInfo {
             executable_path,
             no_restart,
             workers,
+            assets,
         })
     }
 
@@ -66,6 +79,9 @@ impl ArgsInfo {
 
         result.push(String::from(WORKERS_ARG));
         result.push(format!("{}", self.workers));
+
+        result.push(String::from(ASSETS_ARG));
+        result.push(String::from(&self.assets));
 
         result
     }
@@ -103,6 +119,7 @@ impl std::fmt::Display for ArgsInfo {
         write!(f, "{{")?;
         write!(f, "executable_path:\"{}\", ", self.executable_path)?;
         write!(f, "no_restart: {}", self.no_restart)?;
+        write!(f, "assets: {}", self.assets)?;
         write!(f, "}}")?;
         Ok(())
     }
