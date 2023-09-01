@@ -18,86 +18,6 @@ pub struct ArgsInfo {
     pub assets: String,
 }
 
-impl ArgsInfo {
-    pub fn new(cpu_info: &CpuInfo) -> Result<Self, RisError> {
-        let raw_args: Vec<String> = env::args().collect();
-
-        let executable_path = String::from(get_arg(&raw_args, 0));
-
-        // default values
-        let mut no_restart = false;
-        let mut workers = cpu_info.cpu_count;
-        let mut assets = String::from("compiled.ris_assets");
-
-        let mut i = 1;
-        let len = raw_args.len();
-        loop {
-            if i >= len {
-                break;
-            }
-
-            let arg = &get_arg(&raw_args, i).to_lowercase()[..];
-
-            match arg {
-                NO_RESTART_ARG => no_restart = true,
-                WORKERS_ARG => {
-                    i += 1;
-                    let second_arg = get_arg(&raw_args, i);
-                    match second_arg.parse::<i32>() {
-                        Ok(value) => workers = value,
-                        Err(error) => return ris_util::result_err!("could not parse workers: {}", error),
-                    }
-                },
-                ASSETS_ARG => {
-                    i += 1;
-                    let second_arg = get_arg(&raw_args, i);
-                    assets = String::from(second_arg);
-                }
-                _ => return ris_util::result_err!("unexpected argument: [{}] -> {}", i, arg),
-            };
-
-            i += 1;
-        }
-
-        Ok(Self {
-            raw_args,
-            executable_path,
-            no_restart,
-            workers,
-            assets,
-        })
-    }
-
-    pub fn generate_raw_args(&self) -> Vec<String> {
-        let mut result = Vec::new();
-
-        result.push(self.executable_path.clone());
-
-        if self.no_restart {
-            result.push(String::from(NO_RESTART_ARG));
-        }
-
-        result.push(String::from(WORKERS_ARG));
-        result.push(format!("{}", self.workers));
-
-        result.push(String::from(ASSETS_ARG));
-        result.push(String::from(&self.assets));
-
-        result
-    }
-}
-
-fn get_arg(raw_args: &Vec<String>, index: usize) -> &str {
-    match raw_args.get(index) {
-        Some(arg) => arg,
-        None => throw!(
-            "index is out of bounds, index: {}, bounds: 0..{}",
-            index,
-            raw_args.len() - 1
-        ),
-    }
-}
-
 impl std::fmt::Debug for ArgsInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.raw_args.len() {
@@ -124,3 +44,91 @@ impl std::fmt::Display for ArgsInfo {
         Ok(())
     }
 }
+
+impl ArgsInfo {
+    pub fn new(cpu_info: &CpuInfo) -> Result<Self, RisError> {
+        let raw_args: Vec<String> = env::args().collect();
+        let executable_path = String::from(&raw_args[0]);
+
+        let mut result = Self::create_with_default_values(
+            raw_args,
+            executable_path,
+            cpu_info,
+        );
+
+        let mut i = 1;
+        let len = result.raw_args.len();
+        loop {
+            if i >= len {
+                break;
+            }
+
+            let arg = &result.get_arg(i).to_lowercase()[..];
+
+            match arg {
+                NO_RESTART_ARG => result.no_restart = true,
+                WORKERS_ARG => {
+                    i += 1;
+                    let second_arg = &result.get_arg(i);
+                    match second_arg.parse::<i32>() {
+                        Ok(value) => result.workers = value,
+                        Err(error) => return ris_util::result_err!("could not parse workers: {}", error),
+                    }
+                },
+                ASSETS_ARG => {
+                    i += 1;
+                    let second_arg = result.get_arg(i);
+                    result.assets = String::from(second_arg);
+                }
+                _ => return ris_util::result_err!("unexpected argument: [{}] -> {}", i, arg),
+            };
+
+            i += 1;
+        }
+
+        Ok(result)
+    }
+
+    pub fn generate_raw_args(&self) -> Vec<String> {
+        let mut result = Vec::new();
+
+        result.push(self.executable_path.clone());
+
+        if self.no_restart {
+            result.push(String::from(NO_RESTART_ARG));
+        }
+
+        result.push(String::from(WORKERS_ARG));
+        result.push(format!("{}", self.workers));
+
+        result.push(String::from(ASSETS_ARG));
+        result.push(String::from(&self.assets));
+
+        result
+    }
+
+    fn create_with_default_values(
+        raw_args: Vec<String>,
+        executable_path: String,
+        cpu_info: &CpuInfo) -> Self {
+        Self {
+            raw_args,
+            executable_path,
+            no_restart: false,
+            workers: cpu_info.cpu_count,
+            assets: String::from("compiled.ris_assets"),
+        }
+    }
+
+    fn get_arg(&self, index: usize) -> &str {
+        match self.raw_args.get(index) {
+            Some(arg) => arg,
+            None => throw!(
+                "index is out of bounds, index: {}, bounds: 0..{}",
+                index,
+                self.raw_args.len() - 1
+            ),
+        }
+    }
+}
+
