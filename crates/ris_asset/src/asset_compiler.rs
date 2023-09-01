@@ -125,7 +125,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
             asset.to_str(),
             "asset path is not valid UTF8"
         )?);
-        original_path.replace_range(0..source.len() + 1, "");
+        original_path.replace_range(0..source.len(), "");
         let original_path = original_path.replace('\\', "/");
         let relative_path_bytes = original_path.as_bytes();
         write(&mut target, relative_path_bytes)?;
