@@ -1,4 +1,4 @@
 pub enum AssetId {
-    Compiled(usize),
+    Compiled(u32),
     Directory(String),
 }
