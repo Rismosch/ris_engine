@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
-use std::sync::Mutex;
-use std::thread::JoinHandle;
 
 use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_future::JobFuture;
@@ -15,18 +13,47 @@ use crate::asset_id::AssetId;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 
-enum InternalLoader{
+enum InternalLoader {
     Compiled(AssetLoaderCompiled),
     Directory(AssetLoaderDirectory),
 }
 
+pub struct Request {
+    id: AssetId,
+    future: SettableJobFuture<Response>,
+}
+
+pub type Response = Result<Box<[u8]>, LoadError>;
+
+#[derive(Debug)]
+pub enum LoadError {
+    InvalidId,
+    AssetNotFound,
+    SendFailed,
+}
+
+impl std::error::Error for LoadError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+}
+
+impl std::fmt::Display for LoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidId => write!(f, "the wrong id has been passed to the currently loaded loader"),
+            Self::AssetNotFound => write!(f, "no asset was found under the provided id"),
+            Self::SendFailed => write!(f, "the request was not able to be send to the loading thread. this usually occurs when the loading thread doesn't exist anymore"),
+        }
+    }
+}
+
 pub struct AssetLoader {
-    sender: Sender<AssetId>,
+    sender: Sender<Request>,
 }
 
 impl AssetLoader {
     pub fn new(app_info: &AppInfo) -> Result<Self, RisError> {
-
         let asset_path;
 
         // search for assets relative
@@ -45,7 +72,10 @@ impl AssetLoader {
             if path.exists() {
                 asset_path = path;
             } else {
-                return ris_util::result_err!("failed to find assets \"{}\"", &app_info.args.assets);
+                return ris_util::result_err!(
+                    "failed to find assets \"{}\"",
+                    &app_info.args.assets
+                );
             }
         }
 
@@ -63,39 +93,51 @@ impl AssetLoader {
 
         // set up thread
         let (sender, receiver) = channel();
-        let _  = std::thread::spawn(|| load_asset_thread(receiver, internal));
+        let _ = std::thread::spawn(|| load_asset_thread(receiver, internal));
 
-        Ok(Self{
-            sender,
-        })
+        Ok(Self { sender })
     }
 
-    //pub fn load(id: AssetId) -> JobFuture<Box<[u8]>> {
-    //    let (job_future, settable_job_future) = SettableJobFuture::new();
-    //    job_future
-    //}
+    pub fn load(&self, id: AssetId) -> JobFuture<Response> {
+        let (settable_job_future, job_future) = SettableJobFuture::new();
+        let request = Request {
+            id,
+            future: settable_job_future,
+        };
+        let result = self.sender.send(request);
+        if let Err(send_error) = result {
+            let error = Err(LoadError::SendFailed);
+            let request = send_error.0;
+            request.future.set(error);
+        }
+        job_future
+    }
 }
 
-fn load_asset_thread(receiver: Receiver<AssetId>, loader: InternalLoader){
+fn load_asset_thread(receiver: Receiver<Request>, loader: InternalLoader) {
     match loader {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
-                if let AssetId::Compiled(id) = request {
+                if let AssetId::Compiled(id) = request.id {
                     let result = loader.load(id);
+                    request.future.set(result);
                 } else {
-                    // error
+                    let error = Err(LoadError::InvalidId);
+                    request.future.set(error);
                 }
             }
-        },
+        }
         InternalLoader::Directory(loader) => {
             for request in receiver.iter() {
-                if let AssetId::Directory(id) = request {
+                if let AssetId::Directory(id) = request.id {
                     let result = loader.load(id);
+                    request.future.set(result);
                 } else {
-                    // error
+                    let error = Err(LoadError::InvalidId);
+                    request.future.set(error);
                 }
             }
-        },
+        }
     }
 
     ris_log::info!("load asset thread ended");

@@ -50,11 +50,7 @@ impl ArgsInfo {
         let raw_args: Vec<String> = env::args().collect();
         let executable_path = String::from(&raw_args[0]);
 
-        let mut result = Self::create_with_default_values(
-            raw_args,
-            executable_path,
-            cpu_info,
-        );
+        let mut result = Self::create_with_default_values(raw_args, executable_path, cpu_info);
 
         let mut i = 1;
         let len = result.raw_args.len();
@@ -72,9 +68,11 @@ impl ArgsInfo {
                     let second_arg = &result.get_arg(i);
                     match second_arg.parse::<i32>() {
                         Ok(value) => result.workers = value,
-                        Err(error) => return ris_util::result_err!("could not parse workers: {}", error),
+                        Err(error) => {
+                            return ris_util::result_err!("could not parse workers: {}", error)
+                        }
                     }
-                },
+                }
                 ASSETS_ARG => {
                     i += 1;
                     let second_arg = result.get_arg(i);
@@ -110,7 +108,8 @@ impl ArgsInfo {
     fn create_with_default_values(
         raw_args: Vec<String>,
         executable_path: String,
-        cpu_info: &CpuInfo) -> Self {
+        cpu_info: &CpuInfo,
+    ) -> Self {
         Self {
             raw_args,
             executable_path,
@@ -131,4 +130,3 @@ impl ArgsInfo {
         }
     }
 }
-

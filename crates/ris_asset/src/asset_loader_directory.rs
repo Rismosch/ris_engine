@@ -1,15 +1,16 @@
 use std::path::Path;
 
-use ris_util::ris_error::RisError;
+use crate::asset_loader::LoadError;
+use crate::asset_loader::Response;
 
-pub struct AssetLoaderDirectory{}
+pub struct AssetLoaderDirectory {}
 
-impl AssetLoaderDirectory{
-    pub fn new(asset_path: &Path) -> Self {
-        Self{}
+impl AssetLoaderDirectory {
+    pub fn new(_asset_path: &Path) -> Self {
+        Self {}
     }
 
-    pub fn load(id: String) -> Result<Box<[u8]>, RisError> {
-        ris_util::result_err!("not implemented")
+    pub fn load(&self, _id: String) -> Response {
+        Err(LoadError::AssetNotFound)
     }
 }
