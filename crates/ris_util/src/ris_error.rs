@@ -121,6 +121,7 @@ macro_rules! new_err {
         }
     };
 }
+
 #[macro_export]
 macro_rules! result_err {
     ($($arg:tt)*) => {

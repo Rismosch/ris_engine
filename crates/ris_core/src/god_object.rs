@@ -1,5 +1,6 @@
 use sdl2::keyboard::Scancode;
 
+use ris_asset::asset_loader::AssetLoader;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
@@ -14,6 +15,7 @@ use crate::gameloop::output_frame::OutputFrame;
 
 pub struct GodObject {
     pub app_info: AppInfo,
+    pub asset_loader: AssetLoader,
     pub frame_data_calculator: FrameDataCalculator,
     pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
@@ -37,6 +39,9 @@ impl GodObject {
 
         // video
         let video = Video::new(&sdl_context)?;
+
+        // asset loader
+        let asset_loader = AssetLoader::new(&app_info)?;
 
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);
@@ -65,6 +70,7 @@ impl GodObject {
         // god object
         let god_object = GodObject {
             app_info,
+            asset_loader,
             frame_data_calculator,
             input_frame,
             logic_frame,

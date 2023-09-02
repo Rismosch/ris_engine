@@ -9,13 +9,17 @@ use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::ris_error::RisError;
 
-use crate::asset_id::AssetId;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
     Directory(AssetLoaderDirectory),
+}
+
+pub enum AssetId {
+    Compiled(u32),
+    Directory(String),
 }
 
 pub struct Request {
@@ -82,7 +86,7 @@ impl AssetLoader {
         // create internal loader
         let metadata = ris_util::unroll!(asset_path.metadata(), "failed to get metadata")?;
         let internal = if metadata.is_file() {
-            let loader = AssetLoaderCompiled::new(asset_path);
+            let loader = AssetLoaderCompiled::new(asset_path)?;
             InternalLoader::Compiled(loader)
         } else if metadata.is_dir() {
             let loader = AssetLoaderDirectory::new(asset_path);
