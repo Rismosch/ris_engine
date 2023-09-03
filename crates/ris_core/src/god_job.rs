@@ -28,6 +28,8 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
 
         let previous_output_for_output = current_output.clone();
 
+        let asset_loader = god_object.asset_loader.clone();
+
         // submit jobs
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
@@ -51,6 +53,7 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
                 &previous_logic_for_logic,
                 &previous_input_for_logic,
                 &frame_for_logic,
+                &asset_loader,
             );
 
             (logic_frame, current_logic, gameloop_state)

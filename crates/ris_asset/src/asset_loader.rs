@@ -18,7 +18,7 @@ enum InternalLoader {
 }
 
 pub enum AssetId {
-    Compiled(u32),
+    Compiled(usize),
     Directory(String),
 }
 
@@ -27,7 +27,7 @@ pub struct Request {
     future: SettableJobFuture<Response>,
 }
 
-pub type Response = Result<Box<[u8]>, LoadError>;
+pub type Response = Result<Vec<u8>, LoadError>;
 
 #[derive(Debug)]
 pub enum LoadError {
@@ -54,6 +54,7 @@ impl std::fmt::Display for LoadError {
     }
 }
 
+#[derive(Clone)]
 pub struct AssetLoader {
     sender: Sender<Request>,
 }

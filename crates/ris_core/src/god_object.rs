@@ -27,6 +27,9 @@ pub struct GodObject {
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> Result<Self, RisError> {
+        // assets
+        let asset_loader = AssetLoader::new(&app_info)?;
+
         // sdl
         let sdl_context =
             sdl2::init().map_err(|e| ris_util::new_err!("failed to init sdl2: {}", e))?;
@@ -39,9 +42,6 @@ impl GodObject {
 
         // video
         let video = Video::new(&sdl_context)?;
-
-        // asset loader
-        let asset_loader = AssetLoader::new(&app_info)?;
 
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);

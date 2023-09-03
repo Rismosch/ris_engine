@@ -1,3 +1,5 @@
+use ris_asset::asset_loader::AssetLoader;
+use ris_asset::asset_loader::AssetId;
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
@@ -17,6 +19,7 @@ impl LogicFrame {
         previous: &LogicData,
         input: &InputData,
         frame: &FrameData,
+        asset_loader: &AssetLoader,
     ) -> GameloopState {
         current.camera_horizontal_angle = previous.camera_horizontal_angle;
         current.camera_vertical_angle = previous.camera_vertical_angle;
@@ -34,6 +37,20 @@ impl LogicFrame {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
             scene.camera_position = Vector3::new(0., -1., 0.);
+
+            let id = AssetId::Compiled(0);
+            let future = asset_loader.load(id);
+            let result = future.wait();
+            match result {
+                Err(error) => ris_log::error!("failed to load asset: {}", error),
+                Ok(bytes) => {
+                    let string_result = String::from_utf8(bytes);
+                    match string_result {
+                        Err(error) => ris_log::error!("asset is not a valid ut8 string"),
+                        Ok(string) => ris_log::info!("asset loaded: {}", string),
+                    }
+                },
+            }
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
