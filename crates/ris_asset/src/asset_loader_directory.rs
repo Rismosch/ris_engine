@@ -10,7 +10,7 @@ impl AssetLoaderDirectory {
         Self {}
     }
 
-    pub fn load(&self, _id: String) -> Response {
+    pub fn load(&mut self, _id: String) -> Response {
         Err(LoadError::AssetNotFound)
     }
 }

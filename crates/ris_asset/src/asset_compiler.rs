@@ -10,10 +10,10 @@ use std::path::PathBuf;
 use ris_util::ris_error::RisError;
 
 // "ris_assets\0\0\0\0\0\0"
-const MAGIC: [u8; 16] = [
+pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
-const ADDR_SIZE: usize = std::mem::size_of::<u64>();
+pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
 /// compiles a directory from a .ris_asset file
 /// - `source`: the directory to be compiled

@@ -34,6 +34,7 @@ pub enum LoadError {
     InvalidId,
     AssetNotFound,
     SendFailed,
+    FileReadFailed,
 }
 
 impl std::error::Error for LoadError {
@@ -48,6 +49,7 @@ impl std::fmt::Display for LoadError {
             Self::InvalidId => write!(f, "the wrong id has been passed to the currently loaded loader"),
             Self::AssetNotFound => write!(f, "no asset was found under the provided id"),
             Self::SendFailed => write!(f, "the request was not able to be send to the loading thread. this usually occurs when the loading thread doesn't exist anymore"),
+            Self::FileReadFailed => write!(f, "file could not be read. the file may be corrupted or doesn't exist"),
         }
     }
 }
@@ -86,7 +88,10 @@ impl AssetLoader {
         // create internal loader
         let metadata = ris_util::unroll!(asset_path.metadata(), "failed to get metadata")?;
         let internal = if metadata.is_file() {
-            let loader = AssetLoaderCompiled::new(asset_path)?;
+            let loader = ris_util::unroll!(
+                AssetLoaderCompiled::new(asset_path),
+                "failed to create compiled asset loader"
+            )?;
             InternalLoader::Compiled(loader)
         } else if metadata.is_dir() {
             let loader = AssetLoaderDirectory::new(asset_path);
@@ -118,8 +123,8 @@ impl AssetLoader {
     }
 }
 
-fn load_asset_thread(receiver: Receiver<Request>, loader: InternalLoader) {
-    match loader {
+fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
+    match &mut loader {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
                 if let AssetId::Compiled(id) = request.id {

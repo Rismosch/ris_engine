@@ -15,6 +15,14 @@ use ris_util::{throw, unwrap_or_throw};
 
 pub const RESTART_CODE: i32 = 42;
 
+fn init_log(app_info: &AppInfo) -> LogGuard {
+    use ris_core::appenders::file_appender::FileAppender;
+    use ris_log::console_appender::ConsoleAppender;
+
+    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
+    log::init(LogLevel::Trace, appenders)
+}
+
 fn main() -> Result<(), String> {
     let app_info = get_app_info()?;
 
@@ -121,12 +129,4 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
             }
         }
     }
-}
-
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::file_appender::FileAppender;
-    use ris_log::console_appender::ConsoleAppender;
-
-    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
-    log::init(LogLevel::Debug, appenders)
 }
