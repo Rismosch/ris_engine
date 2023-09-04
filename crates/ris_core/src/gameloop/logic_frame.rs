@@ -38,7 +38,7 @@ impl LogicFrame {
             current.camera_vertical_angle = 0.0;
             scene.camera_position = Vector3::new(0., -1., 0.);
 
-            let id = AssetId::Compiled(0);
+            let id = AssetId::Directory(String::from("hello world"));
             let future = asset_loader.load(id);
             let result = future.wait();
             match result {
@@ -46,7 +46,7 @@ impl LogicFrame {
                 Ok(bytes) => {
                     let string_result = String::from_utf8(bytes);
                     match string_result {
-                        Err(error) => ris_log::error!("asset is not a valid ut8 string"),
+                        Err(error) => ris_log::error!("asset is not a valid utf8 string"),
                         Ok(string) => ris_log::info!("asset loaded: {}", string),
                     }
                 },

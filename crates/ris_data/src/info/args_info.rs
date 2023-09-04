@@ -9,6 +9,36 @@ const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
 const ASSETS_ARG: &str = "--assets";
 
+#[cfg(debug_assertions)]
+fn create_with_default_values(
+    raw_args: Vec<String>,
+    executable_path: String,
+    cpu_info: &CpuInfo,
+) -> ArgsInfo {
+    ArgsInfo {
+        raw_args,
+        executable_path,
+        no_restart: false,
+        workers: cpu_info.cpu_count,
+        assets: String::from("assets"),
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn create_with_default_values(
+    raw_args: Vec<String>,
+    executable_path: String,
+    cpu_info: &CpuInfo,
+) -> ArgsInfo {
+    ArgsInfo {
+        raw_args,
+        executable_path,
+        no_restart: false,
+        workers: cpu_info.cpu_count,
+        assets: String::from("compiled.ris_assets"),
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ArgsInfo {
     pub raw_args: Vec<String>,
@@ -50,7 +80,7 @@ impl ArgsInfo {
         let raw_args: Vec<String> = env::args().collect();
         let executable_path = String::from(&raw_args[0]);
 
-        let mut result = Self::create_with_default_values(raw_args, executable_path, cpu_info);
+        let mut result = create_with_default_values(raw_args, executable_path, cpu_info);
 
         let mut i = 1;
         let len = result.raw_args.len();
@@ -103,20 +133,6 @@ impl ArgsInfo {
         result.push(String::from(&self.assets));
 
         result
-    }
-
-    fn create_with_default_values(
-        raw_args: Vec<String>,
-        executable_path: String,
-        cpu_info: &CpuInfo,
-    ) -> Self {
-        Self {
-            raw_args,
-            executable_path,
-            no_restart: false,
-            workers: cpu_info.cpu_count,
-            assets: String::from("compiled.ris_assets"),
-        }
     }
 
     fn get_arg(&self, index: usize) -> &str {

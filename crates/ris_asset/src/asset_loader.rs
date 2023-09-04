@@ -93,9 +93,11 @@ impl AssetLoader {
                 AssetLoaderCompiled::new(asset_path),
                 "failed to create compiled asset loader"
             )?;
+            ris_log::debug!("compiled asset loader was created");
             InternalLoader::Compiled(loader)
         } else if metadata.is_dir() {
             let loader = AssetLoaderDirectory::new(asset_path);
+            ris_log::debug!("directory asset loader was created");
             InternalLoader::Directory(loader)
         } else {
             return ris_util::result_err!("assets are neither a file nor a directory");
