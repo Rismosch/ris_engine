@@ -38,7 +38,7 @@ impl LogicFrame {
             current.camera_vertical_angle = 0.0;
             scene.camera_position = Vector3::new(0., -1., 0.);
 
-            let id = AssetId::Directory(String::from("hello world"));
+            let id = AssetId::Directory(String::from("copy_pasta/navy_seal.txt"));
             let future = asset_loader.load(id);
             let result = future.wait();
             match result {

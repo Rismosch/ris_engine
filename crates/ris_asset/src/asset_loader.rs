@@ -24,17 +24,14 @@ pub enum AssetId {
 
 pub struct Request {
     id: AssetId,
-    future: SettableJobFuture<Response>,
+    future: SettableJobFuture<Result<Vec<u8>, LoadError>>,
 }
-
-pub type Response = Result<Vec<u8>, LoadError>;
 
 #[derive(Debug)]
 pub enum LoadError {
     InvalidId,
-    AssetNotFound,
     SendFailed,
-    FileReadFailed,
+    LoadFailed,
 }
 
 impl std::error::Error for LoadError {
@@ -47,9 +44,8 @@ impl std::fmt::Display for LoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidId => write!(f, "the wrong id has been passed to the currently loaded loader"),
-            Self::AssetNotFound => write!(f, "no asset was found under the provided id"),
             Self::SendFailed => write!(f, "the request was not able to be send to the loading thread. this usually occurs when the loading thread doesn't exist anymore"),
-            Self::FileReadFailed => write!(f, "file could not be read. the file may be corrupted or doesn't exist"),
+            Self::LoadFailed => write!(f, "asset could not be loaded. this may be because it doesn't exist, or because an io error occured when reading the file"),
         }
     }
 }
@@ -110,7 +106,7 @@ impl AssetLoader {
         Ok(Self { sender })
     }
 
-    pub fn load(&self, id: AssetId) -> JobFuture<Response> {
+    pub fn load(&self, id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
         let (settable_job_future, job_future) = SettableJobFuture::new();
         let request = Request {
             id,
@@ -131,7 +127,11 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
                 if let AssetId::Compiled(id) = request.id {
-                    let result = loader.load(id);
+                    let result = loader.load(id)
+                        .map_err(|e| {
+                            ris_log::error!("{}", e);
+                            LoadError::LoadFailed
+                        });
                     request.future.set(result);
                 } else {
                     let error = Err(LoadError::InvalidId);
@@ -142,7 +142,11 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
         InternalLoader::Directory(loader) => {
             for request in receiver.iter() {
                 if let AssetId::Directory(id) = request.id {
-                    let result = loader.load(id);
+                    let result = loader.load(id)
+                        .map_err(|e| {
+                            ris_log::error!("{}", e);
+                            LoadError::LoadFailed
+                        });
                     request.future.set(result);
                 } else {
                     let error = Err(LoadError::InvalidId);

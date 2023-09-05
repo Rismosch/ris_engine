@@ -1,11 +1,8 @@
 use std::fs::File;
-use std::io::Read;
-use std::io::Seek;
 use std::io::SeekFrom;
 use std::path::Path;
 
-use crate::asset_loader::LoadError;
-use crate::asset_loader::Response;
+use ris_util::ris_error::RisError;
 
 struct AssetEntry {
     addr: u64,
@@ -18,24 +15,24 @@ pub struct AssetLoaderCompiled {
 }
 
 impl AssetLoaderCompiled {
-    pub fn new(asset_path: &Path) -> Result<Self, LoadError> {
-        let mut file = File::open(asset_path).map_err(|_| LoadError::FileReadFailed)?;
+    pub fn new(asset_path: &Path) -> Result<Self, RisError> {
+        let mut file = ris_util::unroll!(File::open(asset_path), "could not open compiled asset file")?;
         let f = &mut file;
 
-        let file_size = seek(f, SeekFrom::End(0))?;
-        seek(f, SeekFrom::Start(0))?;
+        let file_size = crate::util::seek(f, SeekFrom::End(0))?;
+        crate::util::seek(f, SeekFrom::Start(0))?;
 
         let mut version_bytes = [0u8; 16];
-        read(f, &mut version_bytes)?;
+        crate::util::read(f, &mut version_bytes)?;
 
         // TODO compare version
 
         let mut addr_original_paths_bytes = [0u8; 8];
-        read(f, &mut addr_original_paths_bytes)?;
+        crate::util::read(f, &mut addr_original_paths_bytes)?;
         let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
 
         let mut lookup_len_bytes = [0u8; 8];
-        read(f, &mut lookup_len_bytes)?;
+        crate::util::read(f, &mut lookup_len_bytes)?;
         let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
         if lookup_len <= 1 {
@@ -46,7 +43,7 @@ impl AssetLoaderCompiled {
         let mut lookup = Vec::with_capacity(lookup_len as usize);
 
         let mut next_addr_bytes = [0u8; 8];
-        read(f, &mut next_addr_bytes)?;
+        crate::util::read(f, &mut next_addr_bytes)?;
         let mut next_addr = u64::from_le_bytes(next_addr_bytes);
         for i in 0..lookup_len {
             let addr = next_addr;
@@ -54,18 +51,16 @@ impl AssetLoaderCompiled {
                 addr_original_paths
             } else {
                 let mut next_addr_bytes = [0u8; 8];
-                read(f, &mut next_addr_bytes)?;
+                crate::util::read(f, &mut next_addr_bytes)?;
                 u64::from_le_bytes(next_addr_bytes)
             };
 
             if next_addr > file_size {
-                ris_log::error!("asset is supposedly bigger than file size. this is impossible, therefore asset size is incorrect");
-                return Err(LoadError::FileReadFailed);
+                return ris_util::result_err!("asset was larger than file size");
             }
 
             if addr > next_addr {
-                ris_log::error!("current addr is larger than next addr. this should not be possible. assets may be corrupted");
-                return Err(LoadError::FileReadFailed);
+                return ris_util::result_err!("current addr {} was larger than next addr {}", addr, next_addr);
             }
 
             let len = (next_addr - addr) as usize;
@@ -78,30 +73,13 @@ impl AssetLoaderCompiled {
         Ok(Self { file, lookup })
     }
 
-    pub fn load(&mut self, id: usize) -> Response {
-        let entry = self.lookup.get(id).ok_or(LoadError::AssetNotFound)?;
+    pub fn load(&mut self, id: usize) -> Result<Vec<u8>, RisError> {
+        let entry = self.lookup.get(id).ok_or(ris_util::new_err!("asset does not exist"))?;
         let f = &mut self.file;
         let mut bytes = vec![0u8; entry.len];
-        seek(f, SeekFrom::Start(entry.addr))?;
-        read(f, &mut bytes)?;
+        crate::util::seek(f, SeekFrom::Start(entry.addr))?;
+        crate::util::read(f, &mut bytes)?;
         Ok(bytes)
     }
 }
 
-fn seek(file: &mut File, pos: SeekFrom) -> Result<u64, LoadError> {
-    file.seek(pos).map_err(|_| LoadError::FileReadFailed)
-}
-
-fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, LoadError> {
-    let read_bytes = file.read(buf).map_err(|_| LoadError::FileReadFailed)?;
-    if read_bytes != buf.len() {
-        ris_log::error!(
-            "expected to read {} bytes but actually read {}",
-            buf.len(),
-            read_bytes
-        );
-        Err(LoadError::FileReadFailed)
-    } else {
-        Ok(read_bytes)
-    }
-}

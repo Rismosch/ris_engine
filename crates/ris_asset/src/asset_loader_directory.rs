@@ -1,9 +1,9 @@
-use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
+use std::io::SeekFrom;
+use std::fs::File;
 
-use crate::asset_loader::LoadError;
-use crate::asset_loader::Response;
+use ris_util::ris_error::RisError;
 
 pub struct AssetLoaderDirectory {
     base_path: PathBuf,
@@ -17,16 +17,17 @@ impl AssetLoaderDirectory {
         }
     }
 
-    pub fn load(&self, id: String) -> Response {
+    pub fn load(&self, id: String) -> Result<Vec<u8>, RisError> {
         let mut path = PathBuf::new();
         path.push(&self.base_path);
         path.push(id);
 
-        let mut file = File::open(path).map_err(|_| LoadError::FileReadFailed)?;
-        let file_size = 
-            put seek, read and write in util function
-            combine engine new and run to single function
+        let mut file = ris_util::unroll!(File::open(&path), "failed to open file \"{:?}\"", &path)?;
+        let file_size = crate::util::seek(&mut file, SeekFrom::End(0))? as usize;
+        let mut file_content = vec![0; file_size];
+        crate::util::seek(&mut file, SeekFrom::Start(0))?;
+        crate::util::read(&mut file, &mut file_content)?;
         
-        Err(LoadError::AssetNotFound)
+        Ok(file_content)
     }
 }
