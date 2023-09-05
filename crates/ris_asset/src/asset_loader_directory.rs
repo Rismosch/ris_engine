@@ -1,7 +1,7 @@
+use std::fs::File;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::SeekFrom;
-use std::fs::File;
 
 use ris_util::ris_error::RisError;
 
@@ -12,9 +12,7 @@ pub struct AssetLoaderDirectory {
 impl AssetLoaderDirectory {
     pub fn new(asset_path: &Path) -> Self {
         let base_path = asset_path.to_path_buf();
-        Self {
-            base_path,
-        }
+        Self { base_path }
     }
 
     pub fn load(&self, id: String) -> Result<Vec<u8>, RisError> {
@@ -27,7 +25,7 @@ impl AssetLoaderDirectory {
         let mut file_content = vec![0; file_size];
         crate::util::seek(&mut file, SeekFrom::Start(0))?;
         crate::util::read(&mut file, &mut file_content)?;
-        
+
         Ok(file_content)
     }
 }

@@ -252,4 +252,3 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
 
     Ok(())
 }
-

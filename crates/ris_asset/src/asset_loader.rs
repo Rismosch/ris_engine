@@ -127,11 +127,10 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
                 if let AssetId::Compiled(id) = request.id {
-                    let result = loader.load(id)
-                        .map_err(|e| {
-                            ris_log::error!("{}", e);
-                            LoadError::LoadFailed
-                        });
+                    let result = loader.load(id).map_err(|e| {
+                        ris_log::error!("{}", e);
+                        LoadError::LoadFailed
+                    });
                     request.future.set(result);
                 } else {
                     let error = Err(LoadError::InvalidId);
@@ -142,11 +141,10 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
         InternalLoader::Directory(loader) => {
             for request in receiver.iter() {
                 if let AssetId::Directory(id) = request.id {
-                    let result = loader.load(id)
-                        .map_err(|e| {
-                            ris_log::error!("{}", e);
-                            LoadError::LoadFailed
-                        });
+                    let result = loader.load(id).map_err(|e| {
+                        ris_log::error!("{}", e);
+                        LoadError::LoadFailed
+                    });
                     request.future.set(result);
                 } else {
                     let error = Err(LoadError::InvalidId);

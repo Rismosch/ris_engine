@@ -16,7 +16,8 @@ pub struct AssetLoaderCompiled {
 
 impl AssetLoaderCompiled {
     pub fn new(asset_path: &Path) -> Result<Self, RisError> {
-        let mut file = ris_util::unroll!(File::open(asset_path), "could not open compiled asset file")?;
+        let mut file =
+            ris_util::unroll!(File::open(asset_path), "could not open compiled asset file")?;
         let f = &mut file;
 
         let file_size = crate::util::seek(f, SeekFrom::End(0))?;
@@ -60,7 +61,11 @@ impl AssetLoaderCompiled {
             }
 
             if addr > next_addr {
-                return ris_util::result_err!("current addr {} was larger than next addr {}", addr, next_addr);
+                return ris_util::result_err!(
+                    "current addr {} was larger than next addr {}",
+                    addr,
+                    next_addr
+                );
             }
 
             let len = (next_addr - addr) as usize;
@@ -74,7 +79,10 @@ impl AssetLoaderCompiled {
     }
 
     pub fn load(&mut self, id: usize) -> Result<Vec<u8>, RisError> {
-        let entry = self.lookup.get(id).ok_or(ris_util::new_err!("asset does not exist"))?;
+        let entry = self
+            .lookup
+            .get(id)
+            .ok_or(ris_util::new_err!("asset does not exist"))?;
         let f = &mut self.file;
         let mut bytes = vec![0u8; entry.len];
         crate::util::seek(f, SeekFrom::Start(entry.addr))?;
@@ -82,4 +90,3 @@ impl AssetLoaderCompiled {
         Ok(bytes)
     }
 }
-

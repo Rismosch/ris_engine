@@ -1,5 +1,5 @@
-use ris_asset::asset_loader::AssetLoader;
 use ris_asset::asset_loader::AssetId;
+use ris_asset::asset_loader::AssetLoader;
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
@@ -46,10 +46,10 @@ impl LogicFrame {
                 Ok(bytes) => {
                     let string_result = String::from_utf8(bytes);
                     match string_result {
-                        Err(error) => ris_log::error!("asset is not a valid utf8 string"),
+                        Err(_error) => ris_log::error!("asset is not a valid utf8 string"),
                         Ok(string) => ris_log::info!("asset loaded: {}", string),
                     }
-                },
+                }
             }
         }
 

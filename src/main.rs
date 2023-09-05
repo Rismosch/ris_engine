@@ -1,4 +1,3 @@
-use ris_core::engine::Engine;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -60,26 +59,25 @@ fn get_app_info() -> Result<AppInfo, String> {
 fn run(app_info: AppInfo) -> Result<(), String> {
     let log_guard = init_log(&app_info);
 
-    let mut engine = match Engine::new(app_info) {
-        Ok(x) => x,
-        Err(x) => {
-            ris_log::fatal!("error while initializing engine: {}", x);
-            return Err(x.to_string());
+    let result = ris_core::engine::run(app_info);
+
+    let return_value = match result {
+        Ok(engine) => {
+            if engine.wants_to_restart {
+                std::process::exit(RESTART_CODE);
+            }
+
+            Ok(())
+        }
+        Err(error) => {
+            ris_log::fatal!("error while running engine: {}", error);
+            Err(error.to_string())
         }
     };
-    let result = engine.run();
-
-    if let Err(error) = result {
-        ris_log::fatal!("error while running engine: \"{}\"", error);
-    }
 
     drop(log_guard);
 
-    if engine.wants_to_restart {
-        std::process::exit(RESTART_CODE);
-    }
-
-    Ok(())
+    return_value
 }
 
 fn wrap(mut app_info: AppInfo) -> Result<(), String> {
