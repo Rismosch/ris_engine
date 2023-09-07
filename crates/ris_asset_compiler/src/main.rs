@@ -1,4 +1,5 @@
 use ris_asset::asset_compiler;
+use ris_asset::asset_importer;
 use ris_log::console_appender::ConsoleAppender;
 use std::env;
 
@@ -14,13 +15,18 @@ fn main() {
 
     let command_raw = &raw_args[1];
     let command = command_raw.to_lowercase();
-    let source = raw_args[2].to_lowercase();
-    let target = raw_args[3].to_lowercase();
+    let source = &raw_args[2];
+    let target = &raw_args[3];
 
     let result = if command.eq("compile") {
-        asset_compiler::compile(&source, &target)
+        asset_compiler::compile(source, target)
     } else if command.eq("decompile") {
-        asset_compiler::decompile(&source, &target)
+        asset_compiler::decompile(source, target)
+    } else if command.eq("import") {
+        asset_importer::import(source, target)
+    } else if command.eq("importall") {
+        println!("TODO not implemented yet");
+        Ok(())
     } else {
         println!("unkown command: {}", command_raw);
         println!();
@@ -41,16 +47,32 @@ fn print_help() {
     let name = env!("CARGO_PKG_NAME");
 
     println!("correct usage: ");
-    println!("  > {} <compile/decompile> <source> <target>", name);
+    println!("  > {} <command> <source> <target>", name);
     println!();
-    println!("<source> and <target> depend on whether you compile or decompile.");
+    println!("<source> and <target> depend on what <command> you've entered.");
     println!();
-    println!("When compiling, <source> is the path to a directory. This directory");
-    println!("is then recursively searched and all found files will be compiled");
-    println!("into a single file to <target>. If <target> already exists, it will");
-    println!("be overwritten.");
+    println!("Available commands:");
     println!();
-    println!("When decompiling, <source> is the path to a compiled ris_asset file.");
-    println!("<target> is a directory, where all decompiled files will be saved to.");
-    println!("If <target> already exists, it will be cleared.");
+    println!("compile");
+    println!("    <source> is the path to a directory. This directory");
+    println!("    is then recursively searched and all found files will be compiled");
+    println!("    into a single file to <target>. If <target> already exists, it will");
+    println!("    be overwritten.");
+    println!();
+    println!("decompile");
+    println!("    <source> is the path to a compiled ris_asset file.");
+    println!("    <target> is a directory, where all decompiled files will be saved to.");
+    println!("    If <target> already exists, it will be cleared.");
+    println!();
+    println!("import");
+    println!("    The importer is used to convert files into new formats, that the");
+    println!("    engine is capable to use.");
+    println!("    <source> is the path to a file to be imported. <target> is the path");
+    println!("    where the imported file will be stored. If <target> exists, it will");
+    println!("    be overwritten.");
+    println!();
+    println!("importall");
+    println!("    Like import, but <source> and <target> are directories.");
+    println!("    <target> will be searched recursively and every file will be");
+    println!("    attempted to be imported. <target> will be cleared and overwritten.");
 }
