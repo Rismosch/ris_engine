@@ -1,7 +1,9 @@
+use std::env;
+use std::path::PathBuf;
+
 use ris_asset::asset_compiler;
 use ris_asset::asset_importer;
 use ris_log::console_appender::ConsoleAppender;
-use std::env;
 
 fn main() {
     let appenders: ris_log::log::Appenders = vec![ConsoleAppender::new()];
@@ -23,7 +25,12 @@ fn main() {
     } else if command.eq("decompile") {
         asset_compiler::decompile(source, target)
     } else if command.eq("import") {
-        asset_importer::import(source, target)
+        let deduce_importer_info = asset_importer::DeduceImporterInfo{
+            source_file_path: PathBuf::from(source),
+            target_directory: PathBuf::from(target),
+        };
+        let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(deduce_importer_info);
+        asset_importer::import(importer_info)
     } else if command.eq("importall") {
         println!("TODO not implemented yet");
         Ok(())

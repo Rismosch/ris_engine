@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::path::Path;
 use std::path::PathBuf;
 
 use ris_util::ris_error::RisError;
@@ -7,7 +6,6 @@ use ris_util::ris_error::RisError;
 use crate::importer::*;
 
 pub enum ImporterKind{
-    Unkown(String),
     GLSL,
 }
 
@@ -51,48 +49,53 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
                 source_extension
             )?;
             let source_extension = source_extension.to_lowercase();
+
+            let source_stem = ris_util::unroll_option!(
+                source_path.file_stem(),
+                "failed to find file stem from {:?}",
+                source_path
+            )?;
+            let source_stem = ris_util::unroll_option!(
+                source_stem.to_str(),
+                "failed to convert stem {:?} to string",
+                source_stem,
+            )?;
+            let source_stem = String::from(source_stem);
+
             let (importer, target_extension) = match source_extension.as_str() {
                 glsl_importer::IN_EXT => (ImporterKind::GLSL, glsl_importer::OUT_EXT),
-                _ => (ImporterKind::Unkown(source_extension), ""),
+                // insert new inporter here...
+                _ => return ris_util::result_err!(
+                    "failed to deduce importer. unkown extension: {}",
+                    source_extension
+                ),
             };
 
-            return ris_util::result_err!("not implemented yet");
+            let mut target_path = PathBuf::new();
+            target_path.push(target_directory);
+            target_path.push(format!("{source_stem}.{target_extension}"));
+
+            (
+                source_path,
+                target_path,
+                importer,
+            )
         },
     };
 
+    // make dir and create target file
+
+    let mut file = ris_util::unroll!(
+        File::open(&source_path),
+        "failed to open file {:?}",
+        source_path
+    )?;
+
+    let imported_bytes = match importer {
+        ImporterKind::GLSL => glsl_importer::import(file)?, // pass source and target file to
+                                                            // importer
+    };
+
     Ok(())
-
-    //let importer_kind = match importer {
-    //    kind => kind,
-    //    ImporterKind::DeduceFromFileName => {
-    //        let extension = ris_util::unroll_option!(
-    //            source.extension(),
-    //            "failed to find extension from source {:?}",
-    //            source
-    //        )?;
-    //        let extension = ris_util::unroll_option!(
-    //            extension.to_str(),
-    //            "failed to convert extension {:?} to string",
-    //            extension
-    //        )?;
-    //        let extension = extension.to_lowercase();
-
-    //        match extension.as_str() {
-    //            "glsl" => ImporterKind::GLSL,
-    //            _ => return ris_util::result_err!("unsupported extension \"{}\"", extension),
-    //        }
-    //    },
-    //};
-
-    //let file = ris_util::unroll!(File::open(source), "failed to open file to import: {:?}", &source)?;
-
-    //match importer_kind {
-    //    ImporterKind::GLSL => {
-    //        (1,2)
-    //    },
-    //    ImporterKind::DeduceFromFileName => unreachable!(),
-    //}
-
-    //Ok(())
 }
 
