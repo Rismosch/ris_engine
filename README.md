@@ -1,6 +1,10 @@
 # ris_engine
 
+Barebones game engine. Home made passion project. 
+
 🏗️ **Don't expect this repo to be stable, as I am constantly pushing breaking changes.** 👷
+
+
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
 
@@ -10,16 +14,15 @@
 
 To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
 
+
+
 The current target platform is x86_64, both Windows and Linux.
 
-Tested Systems:
 
-| OS                | CPU                 | GPU                      | RAM   |
-| ----------------- | ------------------- | ------------------------ | ----- |
-| Windows 10 64 Bit | AMD Ryzen 5 3600    | NVIDIA GeForce RTX 2060  | 32 GB |
-| Arch Linux        | Intel Core i5-1235U | Intel Alder Lake-UP3 GT2 | 16 GB |
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have internet access, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, continue reading this section.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, continue reading this section.
+
+
 
 You can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required packages. Alternatively, while you have internet access, you can use `cargo vendor` to download all dependencies: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
 
@@ -37,7 +40,7 @@ Then create the file `./cargo/config.toml` with this content:
     [source.vendored-sources]
     directory = "vendor"
 
-This tells `cargo` to use the packages in `./vendor/`, instead of searching the internet.
+This tells `cargo` to use the packages in `./vendor/` instead of searching the internet.
 
 ---
 
