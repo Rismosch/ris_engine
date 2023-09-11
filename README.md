@@ -37,7 +37,7 @@ Then create the file `./cargo/config.toml` with this content:
     [source.vendored-sources]
     directory = "vendor"
 
-This tells `cargo` to use the packages in `./vendor/`, and not search the internet.
+This tells `cargo` to use the packages in `./vendor/`, instead of searching the internet.
 
 ---
 
