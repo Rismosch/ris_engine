@@ -5,6 +5,9 @@ use ris_util::ris_error::RisError;
 
 use crate::importer::*;
 
+pub const DEFAULT_SOURCE_DIRECTORY: &str = "raw_assets";
+pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/__imported_raw_assets";
+
 pub enum ImporterKind {
     GLSL,
 }
@@ -121,4 +124,9 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
         ),
         // insert more importers here...
     }
+}
+
+pub fn import_all(source_directory: PathBuf, target_directory: PathBuf) -> Result<(), RisError> {
+    ris_log::debug!("hi mom {:?} {:?}", source_directory, target_directory);
+    Ok(())
 }

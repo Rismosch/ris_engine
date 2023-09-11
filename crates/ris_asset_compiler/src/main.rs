@@ -32,8 +32,9 @@ fn main() {
         let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(deduce_importer_info);
         asset_importer::import(importer_info)
     } else if command.eq("importall") {
-        println!("TODO not implemented yet");
-        Ok(())
+        let source_directory = PathBuf::from(source);
+        let target_directory = PathBuf::from(target);
+        asset_importer::import_all(source_directory, target_directory)
     } else {
         println!("unkown command: {}", command_raw);
         println!();
