@@ -19,7 +19,7 @@ Tested Systems:
 | Windows 10 64 Bit | AMD Ryzen 5 3600    | NVIDIA GeForce RTX 2060  | 32 GB |
 | Arch Linux        | Intel Core i5-1235U | Intel Alder Lake-UP3 GT2 | 16 GB |
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have internet access, you can jump straight to [Installation](## 🔧 Installation). If you do not have access to the internet, continue reading this section.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have internet access, you can jump straight to [Installation](## Installation). If you do not have access to the internet, continue reading this section.
 
 You can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required packages. Alternatively, while you have internet access, you can use `cargo vendor` to download all dependencies: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
 
