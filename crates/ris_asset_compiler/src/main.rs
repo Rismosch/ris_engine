@@ -25,7 +25,7 @@ fn main() {
     } else if command.eq("decompile") {
         asset_compiler::decompile(source, target)
     } else if command.eq("import") {
-        let deduce_importer_info = asset_importer::DeduceImporterInfo{
+        let deduce_importer_info = asset_importer::DeduceImporterInfo {
             source_file_path: PathBuf::from(source),
             target_directory: PathBuf::from(target),
         };

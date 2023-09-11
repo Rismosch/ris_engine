@@ -5,7 +5,7 @@ use ris_util::ris_error::RisError;
 
 use crate::importer::*;
 
-pub enum ImporterKind{
+pub enum ImporterKind {
     GLSL,
 }
 
@@ -28,12 +28,8 @@ pub enum ImporterInfo {
 pub fn import(info: ImporterInfo) -> Result<(), RisError> {
     let (source_path, target_path, importer) = match info {
         ImporterInfo::Specific(info) => {
-            (
-                info.source_file_path,
-                info.target_file_path,
-                info.importer,
-            )
-        },
+            (info.source_file_path, info.target_file_path, info.importer)
+        }
         ImporterInfo::DeduceFromFileName(info) => {
             let source_path = info.source_file_path;
             let target_directory = info.target_directory;
@@ -65,37 +61,55 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
             let (importer, target_extension) = match source_extension.as_str() {
                 glsl_importer::IN_EXT => (ImporterKind::GLSL, glsl_importer::OUT_EXT),
                 // insert new inporter here...
-                _ => return ris_util::result_err!(
-                    "failed to deduce importer. unkown extension: {}",
-                    source_extension
-                ),
+                _ => {
+                    return ris_util::result_err!(
+                        "failed to deduce importer. unkown extension: {}",
+                        source_extension
+                    )
+                }
             };
 
             let mut target_path = PathBuf::new();
             target_path.push(target_directory);
             target_path.push(format!("{source_stem}.{target_extension}"));
 
-            (
-                source_path,
-                target_path,
-                importer,
-            )
-        },
+            (source_path, target_path, importer)
+        }
     };
 
-    // make dir and create target file
+    let parent = target_path.parent();
+    if let Some(parent) = parent {
+        if !parent.exists() {
+            ris_util::unroll!(
+                std::fs::create_dir_all(parent),
+                "failed to create target directory {:?}",
+                parent
+            )?;
+        }
+    }
 
-    let mut file = ris_util::unroll!(
+    if target_path.exists() {
+        ris_util::unroll!(
+            std::fs::remove_file(&target_path),
+            "failed to delete target file {:?}",
+            target_path,
+        )?;
+    }
+
+    let mut source_file = ris_util::unroll!(
         File::open(&source_path),
         "failed to open file {:?}",
-        source_path
+        source_path,
     )?;
 
-    let imported_bytes = match importer {
-        ImporterKind::GLSL => glsl_importer::import(file)?, // pass source and target file to
-                                                            // importer
-    };
+    let mut target_file = ris_util::unroll!(
+        File::create(&target_path),
+        "failed to create target file {:?}",
+        target_path,
+    )?;
 
-    Ok(())
+    match importer {
+        ImporterKind::GLSL => glsl_importer::import(&mut source_file, &mut target_file),
+        // insert more importers here...
+    }
 }
-
