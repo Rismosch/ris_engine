@@ -6,11 +6,11 @@ use std::io::Write;
 
 use ris_util::ris_error::RisError;
 
-pub fn seek(file: &mut File, pos: SeekFrom) -> Result<u64, RisError> {
+pub fn seek(file: &mut impl Seek, pos: SeekFrom) -> Result<u64, RisError> {
     ris_util::unroll!(file.seek(pos), "failed to seek")
 }
 
-pub fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, RisError> {
+pub fn read(file: &mut impl Read, buf: &mut [u8]) -> Result<usize, RisError> {
     let read_bytes = ris_util::unroll!(file.read(buf), "failed to read")?;
     if read_bytes != buf.len() {
         ris_util::result_err!(
@@ -23,7 +23,7 @@ pub fn read(file: &mut File, buf: &mut [u8]) -> Result<usize, RisError> {
     }
 }
 
-pub fn write(file: &mut (impl Write + Seek), buf: &[u8]) -> Result<usize, RisError> {
+pub fn write(file: &mut impl Write, buf: &[u8]) -> Result<usize, RisError> {
     let written_bytes = ris_util::unroll!(file.write(buf), "failed to write")?;
     if written_bytes != buf.len() {
         ris_util::result_err!(

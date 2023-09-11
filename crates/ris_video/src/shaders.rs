@@ -10,6 +10,7 @@ pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
     let vertex_source = "
         #version 460
+        #pragma shader_stage(vertex)
 
         layout(set = 0, binding = 0) uniform UniformBufferObject {
             mat4 view;
@@ -36,6 +37,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
 
     let fragment_source = "
         #version 460
+        #pragma shader_stage(fragment)
 
         layout(location = 0) in vec3 fragColor;
 
@@ -58,7 +60,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
     let vertex_artifact = ris_util::unroll!(
         compiler.compile_into_spirv(
             vertex_source,
-            shaderc::ShaderKind::Vertex,
+            shaderc::ShaderKind::InferFromSource,
             "standard.vert",
             "main",
             Some(&options),
@@ -74,7 +76,7 @@ pub fn compile_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
     let fragment_artifact = ris_util::unroll!(
         compiler.compile_into_spirv(
             fragment_source,
-            shaderc::ShaderKind::Fragment,
+            shaderc::ShaderKind::InferFromSource,
             "standard.vert",
             "main",
             Some(&options),
