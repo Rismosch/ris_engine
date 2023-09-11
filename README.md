@@ -6,7 +6,7 @@
 
 ---
 
-## ⚙️ Requirements
+## Requirements
 
 To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
 
@@ -45,7 +45,7 @@ This tells `cargo` to use the packages in `./vendor/`, and not search the intern
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Depending on your platform, follow the instructions below.
 
-### 🪟 Windows
+### Windows
 
 In this repo you will find the   `./3rd_party/` directory. It contains all required 3rd party libraries for Windows.
 
@@ -69,7 +69,9 @@ If you are using `rustup`, this directory probably is:
 
 Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
 
-### 🐧 Linux
+---
+
+### Linux
 
 Examples use the `pacman` package manager from Arch.
 
@@ -89,7 +91,7 @@ https://wiki.archlinux.org/title/Vulkan#Installation
 
 ---
 
-## 🔨 Building
+## Building
 
 Assuming everything is installed correctly, you can now simply compile and run the engine with:
 
