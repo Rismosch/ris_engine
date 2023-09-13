@@ -36,11 +36,6 @@ impl AssetLoaderCompiled {
         crate::util::read(f, &mut lookup_len_bytes)?;
         let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
-        if lookup_len <= 1 {
-            // TODO lookup has only 1 or no elements
-            // requires special handling as loop below only works for the general case
-        }
-
         let mut lookup = Vec::with_capacity(lookup_len as usize);
 
         let mut next_addr_bytes = [0u8; 8];

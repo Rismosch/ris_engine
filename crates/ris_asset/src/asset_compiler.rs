@@ -20,17 +20,15 @@ pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     let mut assets = Vec::new();
     let mut assets_lookup = HashMap::new();
-    let mut directories = Vec::new();
+    let mut directories = std::collections::VecDeque::new();
     let source_path = PathBuf::from(source);
-    directories.push(source_path);
+    directories.push_back(source_path);
 
-    let mut index = 0;
-    while index < directories.len() {
-        let current_directory = &directories[index];
+    while let Some(current) = directories.pop_front() {
         let entries = ris_util::unroll!(
-            std::fs::read_dir(current_directory),
+            std::fs::read_dir(&current),
             "failed to read directory \"{:?}\"",
-            current_directory
+            current
         )?;
 
         for entry in entries {
@@ -42,7 +40,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
                 assets_lookup.insert(entry_path.clone(), assets.len());
                 assets.push(entry_path);
             } else if metadata.is_dir() {
-                directories.push(entry_path);
+                directories.push_back(entry_path);
             } else {
                 return ris_util::result_err!(
                     "entry \"{:?}\" is neither a file, nor a directory",
@@ -50,8 +48,6 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
                 );
             }
         }
-
-        index += 1;
     }
 
     ris_log::trace!("found {} assets:", assets.len());
