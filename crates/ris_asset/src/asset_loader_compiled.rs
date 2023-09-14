@@ -23,10 +23,12 @@ impl AssetLoaderCompiled {
         let file_size = crate::util::seek(f, SeekFrom::End(0))?;
         crate::util::seek(f, SeekFrom::Start(0))?;
 
-        let mut version_bytes = [0u8; 16];
-        crate::util::read(f, &mut version_bytes)?;
+        let mut magic_bytes = [0u8; 16];
+        crate::util::read(f, &mut magic_bytes)?;
 
-        // TODO compare version
+        if crate::util::bytes_equal(&magic_bytes, &crate::asset_compiler::MAGIC) {
+            return ris_util::result_err!("unkown magic value: {:?}", magic_bytes);
+        }
 
         let mut addr_original_paths_bytes = [0u8; 8];
         crate::util::read(f, &mut addr_original_paths_bytes)?;

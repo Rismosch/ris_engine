@@ -10,21 +10,43 @@ fn main() {
     let log_guard = ris_log::log::init(ris_log::log_level::LogLevel::Trace, appenders);
 
     let raw_args: Vec<String> = env::args().collect();
-    if raw_args.len() != 4 {
+    if raw_args.len() != 4 || raw_args.len() != 2 {
+        println!("incorrect number of argument");
         print_help();
         return;
     }
 
     let command_raw = &raw_args[1];
     let command = command_raw.to_lowercase();
-    let source = &raw_args[2];
-    let target = &raw_args[3];
+    let source_target = if raw_args.len() == 4 {
+        Some((&raw_args[2], &raw_args[3]))
+    } else {
+        None
+    };
 
     let result = if command.eq("compile") {
-        asset_compiler::compile(source, target)
+        match source_target {
+            Some((target, source)) => asset_compiler::compile(&source, &target),
+            None => asset_compiler::compile(
+                asset_compiler::DEFAULT_ASSET_DIRECTORY,
+                asset_compiler::DEFAULT_COMPILED_FILE,
+            ),
+        }
+        
     } else if command.eq("decompile") {
-        asset_compiler::decompile(source, target)
+        match source_target {
+            Some((target, source)) => asset_compiler::decompile(&source, &target),
+            None => asset_compiler::decompile(
+                asset_compiler::DEFAULT_COMPILED_FILE,
+                asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
+            ),
+        }
+        
     } else if command.eq("import") {
+        match source_target {
+            Some((target, source)) => ,
+            None => ,
+        }
         let deduce_importer_info = asset_importer::DeduceImporterInfo {
             source_file_path: PathBuf::from(source),
             target_directory: PathBuf::from(target),
@@ -32,6 +54,11 @@ fn main() {
         let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(deduce_importer_info);
         asset_importer::import(importer_info)
     } else if command.eq("importall") {
+        match source_target {
+            Some((target, source)) => ,
+            None => ,
+        }
+        turn the pathbufs into &str
         let source_directory = PathBuf::from(source);
         let target_directory = PathBuf::from(target);
         asset_importer::import_all(source_directory, target_directory)
@@ -54,6 +81,7 @@ fn main() {
 fn print_help() {
     let name = env!("CARGO_PKG_NAME");
 
+    println!();
     println!("correct usage: ");
     println!("  > {} <command> <source> <target>", name);
     println!();
@@ -67,10 +95,18 @@ fn print_help() {
     println!("    into a single file to <target>. If <target> already exists, it will");
     println!("    be overwritten.");
     println!();
+    println!("    If <source> and <target> are omitted, it takes following default values:");
+    println!("        <source> {}", asset_compiler::DEFAULT_ASSET_DIRECTORY);
+    println!("        <target> {}", asset_compiler::DEFAULT_COMPILED_FILE);
+    println!();
     println!("decompile");
     println!("    <source> is the path to a compiled ris_asset file.");
     println!("    <target> is a directory, where all decompiled files will be saved to.");
     println!("    If <target> already exists, it will be cleared.");
+    println!();
+    println!("    If <source> and <target> are omitted, it takes following default values:");
+    println!("        <source> {}", asset_compiler::DEFAULT_COMPILED_FILE);
+    println!("        <target> {}", asset_compiler::DEFAULT_DECOMPILED_DIRECTORY);
     println!();
     println!("import");
     println!("    The importer is used to convert files into new formats, that the");
@@ -83,4 +119,10 @@ fn print_help() {
     println!("    Like import, but <source> and <target> are directories.");
     println!("    <target> will be searched recursively and every file will be");
     println!("    attempted to be imported. <target> will be cleared and overwritten.");
+    println!();
+    println!("    If <source> and <target> are omitted, it takes following default values:");
+    println!("        <source> {}", asset_importer::DEFAULT_SOURCE_DIRECTORY);
+    println!("        <target> {}", asset_importer::DEFAULT_TARGET_DIRECTORY);
+    println!();
+
 }

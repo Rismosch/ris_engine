@@ -13,6 +13,10 @@ pub const MAGIC: [u8; 16] = [
 ];
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
+pub const DEFAULT_ASSET_DIRECTORY: &str = "asset";
+pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_asset";
+pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled";
+
 /// compiles a directory from a .ris_asset file
 /// - `source`: the directory to be compiled
 /// - `target`: the path to the final compiled file. if this file exists already, it will be
@@ -141,19 +145,19 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
     if target.exists() {
         ris_util::unroll!(
             std::fs::remove_dir_all(target),
-            "failed to delete target \"{:?}\"",
+            "failed to delete target {:?}",
             target
         )?;
     }
     ris_util::unroll!(
         std::fs::create_dir_all(target),
-        "failed to create target \"{:?}\"",
+        "failed to create target {:?}",
         target
     )?;
 
     let mut source = ris_util::unroll!(
         File::open(source),
-        "failed to open source file \"{:?}\"",
+        "failed to open source file {:?}",
         source
     )?;
 
