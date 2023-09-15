@@ -12,3 +12,7 @@ Cargo.lock
 
 # ci out
 /ci_out
+
+# assets
+compiled.ris_assets
+assets/__imported_raw_assets/

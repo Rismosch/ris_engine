@@ -10,7 +10,7 @@ fn main() {
     let log_guard = ris_log::log::init(ris_log::log_level::LogLevel::Trace, appenders);
 
     let raw_args: Vec<String> = env::args().collect();
-    if raw_args.len() != 4 || raw_args.len() != 2 {
+    if raw_args.len() != 4 && raw_args.len() != 2 {
         println!("incorrect number of argument");
         print_help();
         return;
@@ -44,24 +44,24 @@ fn main() {
         
     } else if command.eq("import") {
         match source_target {
-            Some((target, source)) => ,
-            None => ,
+            Some((target, source)) => {
+                let info = asset_importer::DeduceImporterInfo {
+                    source_file_path: PathBuf::from(source),
+                    target_directory: PathBuf::from(target),
+                };
+                let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(info);
+                asset_importer::import(importer_info)
+            },
+            None => {
+                ris_util::result_err!("import has no default values. did you mean \"importall\"?")
+            },
         }
-        let deduce_importer_info = asset_importer::DeduceImporterInfo {
-            source_file_path: PathBuf::from(source),
-            target_directory: PathBuf::from(target),
-        };
-        let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(deduce_importer_info);
-        asset_importer::import(importer_info)
     } else if command.eq("importall") {
         match source_target {
-            Some((target, source)) => ,
-            None => ,
+            Some((target, source)) => asset_importer::import_all(source, target),
+            None => asset_importer::import_all(asset_importer::DEFAULT_SOURCE_DIRECTORY, asset_importer::DEFAULT_TARGET_DIRECTORY),
         }
-        turn the pathbufs into &str
-        let source_directory = PathBuf::from(source);
-        let target_directory = PathBuf::from(target);
-        asset_importer::import_all(source_directory, target_directory)
+        
     } else {
         println!("unkown command: {}", command_raw);
         println!();

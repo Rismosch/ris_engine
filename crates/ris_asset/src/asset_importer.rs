@@ -126,7 +126,7 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
     }
 }
 
-pub fn import_all(source_directory: PathBuf, target_directory: PathBuf) -> Result<(), RisError> {
+pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), RisError> {
     ris_log::debug!("hi mom {:?} {:?}", source_directory, target_directory);
     Ok(())
 }

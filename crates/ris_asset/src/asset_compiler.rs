@@ -13,8 +13,8 @@ pub const MAGIC: [u8; 16] = [
 ];
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
-pub const DEFAULT_ASSET_DIRECTORY: &str = "asset";
-pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_asset";
+pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
+pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled";
 
 /// compiles a directory from a .ris_asset file
