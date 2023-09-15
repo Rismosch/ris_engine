@@ -237,7 +237,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
             "asset does not have a parent directory"
         )?;
         ris_util::unroll!(
-            std::fs::create_dir_all(parent),
+            std::fs::create_dir_all(parent), this throws for some reason
             "failed to create asset parent \"{:?}\"",
             parent
         )?;

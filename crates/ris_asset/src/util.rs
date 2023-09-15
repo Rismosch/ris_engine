@@ -1,8 +1,10 @@
-use std::fs::File;
+use std::collections::VecDeque;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 
 use ris_util::ris_error::RisError;
 
@@ -51,4 +53,21 @@ pub fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
     }
 
     true
+}
+
+pub fn create_dir_all(path: &Path) -> std::io::Result<()> {
+    let mut to_create = VecDeque::new();
+    
+    let mut parent = path.parent();
+    while let Some(directory) = parent {
+        let directory_to_create = PathBuf::from(directory);
+        to_create.push_back(directory_to_create);
+        parent = directory.parent();
+    }
+
+    while let Some(directory) = to_create.pop_back() {
+        std::fs::create_dir(directory)?
+    }
+
+    Ok(())
 }
