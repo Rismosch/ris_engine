@@ -30,8 +30,9 @@ pub fn import(
         shaderc::CompileOptions::new(),
         "failed to initialize shaderc options"
     )?;
-    options.set_optimization_level(shaderc::OptimizationLevel::Performance);
     options.set_warnings_as_errors();
+    // vulkano doesn't support optimized shaders?
+    // options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
     let artifact = ris_util::unroll!(
         compiler.compile_into_spirv(

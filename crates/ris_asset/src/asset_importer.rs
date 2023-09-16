@@ -119,8 +119,7 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
     match importer {
         ImporterKind::GLSL => {
             glsl_importer::import(source_path, &mut source_file, &mut target_file)
-        }
-        // insert more importers here...
+        } // insert more importers here...
     }
 }
 
@@ -141,6 +140,7 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), 
             let metadata = ris_util::unroll!(entry.metadata(), "failed to read metadata")?;
             let entry_path = entry.path();
             if metadata.is_file() {
+                ris_log::debug!("import {:?} to {}", entry_path, target_directory);
                 let info = DeduceImporterInfo {
                     source_file_path: entry_path,
                     target_directory: PathBuf::from(target_directory),

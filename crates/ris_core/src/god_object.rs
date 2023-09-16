@@ -1,6 +1,7 @@
 use sdl2::keyboard::Scancode;
 
-use ris_asset::asset_loader::AssetLoader;
+use ris_asset::asset_loader;
+use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
@@ -22,7 +23,6 @@ use crate::gameloop::output_frame::OutputFrame;
 
 pub struct GodObject {
     pub app_info: AppInfo,
-    pub asset_loader: AssetLoader,
     pub frame_data_calculator: FrameDataCalculator,
     pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
@@ -32,6 +32,7 @@ pub struct GodObject {
     pub output_data: OutputData,
 
     // guards
+    pub asset_loader_guard: AssetLoaderGuard,
     pub job_system_guard: JobSystemGuard,
     pub log_guard: LogGuard,
 }
@@ -44,7 +45,6 @@ impl GodObject {
         let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
         let log_guard = log::init(LogLevel::Trace, appenders);
 
-        // app info
         let formatted_app_info = format!("{}", &app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
 
@@ -54,7 +54,7 @@ impl GodObject {
         let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers) };
 
         // assets
-        let asset_loader = AssetLoader::new(&app_info)?;
+        let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // sdl
         let sdl_context =
@@ -96,7 +96,6 @@ impl GodObject {
         // god object
         let god_object = GodObject {
             app_info,
-            asset_loader,
             frame_data_calculator,
             input_frame,
             logic_frame,
@@ -106,6 +105,7 @@ impl GodObject {
             output_data,
 
             // guards
+            asset_loader_guard,
             job_system_guard,
             log_guard,
         };

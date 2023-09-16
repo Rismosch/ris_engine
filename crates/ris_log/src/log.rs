@@ -63,13 +63,13 @@ pub fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
     match LOG.lock() {
         Ok(mut log) => {
             *log = Some(logger);
-            LogGuard
         }
         Err(e) => {
             println!("error while initializing log: {}", e);
-            LogGuard
         }
-    }
+    };
+
+    LogGuard
 }
 
 fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {

@@ -1,5 +1,5 @@
+use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetId;
-use ris_asset::asset_loader::AssetLoader;
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
@@ -19,7 +19,6 @@ impl LogicFrame {
         previous: &LogicData,
         input: &InputData,
         frame: &FrameData,
-        asset_loader: &AssetLoader,
     ) -> GameloopState {
         current.camera_horizontal_angle = previous.camera_horizontal_angle;
         current.camera_vertical_angle = previous.camera_vertical_angle;
@@ -39,7 +38,7 @@ impl LogicFrame {
             scene.camera_position = Vector3::new(0., -1., 0.);
 
             let id = AssetId::Directory(String::from("copy_pasta/navy_seal.txt"));
-            let future = asset_loader.load(id);
+            let future = asset_loader::load(id);
             let result = future.wait();
             match result {
                 Err(error) => ris_log::error!("failed to load asset: {}", error),
