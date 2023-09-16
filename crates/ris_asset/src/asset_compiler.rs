@@ -15,7 +15,7 @@ pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
 pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_assets";
-pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled";
+pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
 
 /// compiles a directory from a .ris_asset file
 /// - `source`: the directory to be compiled
@@ -70,26 +70,26 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         )?;
     }
 
-    let mut target = ris_util::unroll!(
+    let mut target_file = ris_util::unroll!(
         File::create(target_path),
         "failed to create \"{:?}\"",
         target_path
     )?;
 
-    crate::util::seek(&mut target, SeekFrom::Start(0))?;
+    crate::util::seek(&mut target_file, SeekFrom::Start(0))?;
 
-    crate::util::write(&mut target, &MAGIC)?;
+    crate::util::write(&mut target_file, &MAGIC)?;
 
-    let addr_original_paths = crate::util::seek(&mut target, SeekFrom::Current(0))?;
-    crate::util::write(&mut target, &[0; ADDR_SIZE])?; // placeholder
+    let addr_original_paths = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
+    crate::util::write(&mut target_file, &[0; ADDR_SIZE])?; // placeholder
 
     let asset_count = assets.len() as u64;
     let asset_count_bytes = u64::to_le_bytes(asset_count);
-    crate::util::write(&mut target, &asset_count_bytes)?;
+    crate::util::write(&mut target_file, &asset_count_bytes)?;
 
-    let addr_lookup = crate::util::seek(&mut target, SeekFrom::Current(0))?;
+    let addr_lookup = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
     let lookup_size = ADDR_SIZE * asset_count as usize;
-    crate::util::write(&mut target, &vec![0; lookup_size])?; // placeholder
+    crate::util::write(&mut target_file, &vec![0; lookup_size])?; // placeholder
 
     for (i, asset) in assets.iter().enumerate() {
         let mut file =
@@ -100,23 +100,23 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::seek(&mut file, SeekFrom::Start(0))?;
         crate::util::read(&mut file, &mut file_content)?;
 
-        let addr_asset = crate::util::seek(&mut target, SeekFrom::Current(0))?;
-        crate::util::write(&mut target, &file_content)?;
-        let addr_current = crate::util::seek(&mut target, SeekFrom::Current(0))?;
+        let addr_asset = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
+        crate::util::write(&mut target_file, &file_content)?;
+        let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
 
         let addr_lookup_entry = addr_lookup + (ADDR_SIZE * i) as u64;
-        crate::util::seek(&mut target, SeekFrom::Start(addr_lookup_entry))?;
+        crate::util::seek(&mut target_file, SeekFrom::Start(addr_lookup_entry))?;
         let addr_asset_bytes = u64::to_le_bytes(addr_asset);
-        crate::util::write(&mut target, &addr_asset_bytes)?;
+        crate::util::write(&mut target_file, &addr_asset_bytes)?;
 
-        crate::util::seek(&mut target, SeekFrom::Start(addr_current))?;
+        crate::util::seek(&mut target_file, SeekFrom::Start(addr_current))?;
     }
 
-    let addr_current = crate::util::seek(&mut target, SeekFrom::Current(0))?;
-    crate::util::seek(&mut target, SeekFrom::Start(addr_original_paths))?;
+    let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
+    crate::util::seek(&mut target_file, SeekFrom::Start(addr_original_paths))?;
     let addr_current_bytes = u64::to_le_bytes(addr_current);
-    crate::util::write(&mut target, &addr_current_bytes)?;
-    crate::util::seek(&mut target, SeekFrom::Start(addr_current))?;
+    crate::util::write(&mut target_file, &addr_current_bytes)?;
+    crate::util::seek(&mut target_file, SeekFrom::Start(addr_current))?;
 
     for (i, asset) in assets.iter().enumerate() {
         let mut original_path = String::from(ris_util::unroll_option!(
@@ -124,12 +124,17 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
             "asset path is not valid UTF8"
         )?);
         original_path.replace_range(0..source.len(), "");
-        let original_path = original_path.replace('\\', "/");
+        let mut original_path = original_path.replace('\\', "/");
+        if original_path.starts_with('/') {
+            original_path.remove(0);
+        }
+
+        ris_log::debug!("saving original path {:?}", original_path);
         let relative_path_bytes = original_path.as_bytes();
-        crate::util::write(&mut target, relative_path_bytes)?;
+        crate::util::write(&mut target_file, relative_path_bytes)?;
 
         if i != assets.len() - 1 {
-            crate::util::write(&mut target, &[0])?; // seperate paths with \0
+            crate::util::write(&mut target_file, &[0])?; // seperate paths with \0
         }
     }
 
@@ -237,7 +242,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
             "asset does not have a parent directory"
         )?;
         ris_util::unroll!(
-            std::fs::create_dir_all(parent), this throws for some reason
+            std::fs::create_dir_all(parent),
             "failed to create asset parent \"{:?}\"",
             parent
         )?;

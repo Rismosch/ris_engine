@@ -127,6 +127,37 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
 }
 
 pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), RisError> {
-    ris_log::debug!("hi mom {:?} {:?}", source_directory, target_directory);
+    let mut directories = std::collections::VecDeque::new();
+    let source_path = PathBuf::from(source_directory);
+    directories.push_back(source_path);
+
+    while let Some(current) = directories.pop_front() {
+        let entries = ris_util::unroll!(
+            std::fs::read_dir(&current),
+            "failed to read directory \"{:?}\"",
+            current,
+        )?;
+
+        for entry in entries {
+            let entry = ris_util::unroll!(entry, "failed to read entry")?;
+            let metadata = ris_util::unroll!(entry.metadata(), "failed to read metadata")?;
+            let entry_path = entry.path();
+            if metadata.is_file() {
+                let info = DeduceImporterInfo {
+                    source_file_path: entry_path,
+                    target_directory: PathBuf::from(target_directory),
+                };
+                let importer_info = ImporterInfo::DeduceFromFileName(info);
+                import(importer_info)?;
+            } else if metadata.is_dir() {
+                directories.push_back(entry_path);
+            } else {
+                return ris_util::result_err!(
+                    "entry {:?} is neither a file nor a directory",
+                    entry_path,
+                );
+            }
+        }
+    }
     Ok(())
 }

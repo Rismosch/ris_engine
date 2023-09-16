@@ -26,7 +26,7 @@ fn main() {
 
     let result = if command.eq("compile") {
         match source_target {
-            Some((target, source)) => asset_compiler::compile(&source, &target),
+            Some((target, source)) => asset_compiler::compile(source, target),
             None => asset_compiler::compile(
                 asset_compiler::DEFAULT_ASSET_DIRECTORY,
                 asset_compiler::DEFAULT_COMPILED_FILE,
@@ -35,7 +35,7 @@ fn main() {
         
     } else if command.eq("decompile") {
         match source_target {
-            Some((target, source)) => asset_compiler::decompile(&source, &target),
+            Some((target, source)) => asset_compiler::decompile(source, target),
             None => asset_compiler::decompile(
                 asset_compiler::DEFAULT_COMPILED_FILE,
                 asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
@@ -53,7 +53,7 @@ fn main() {
                 asset_importer::import(importer_info)
             },
             None => {
-                ris_util::result_err!("import has no default values. did you mean \"importall\"?")
+                ris_util::result_err!("import has no default values. did you mean `importall`?")
             },
         }
     } else if command.eq("importall") {
