@@ -6,6 +6,13 @@ use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::info::app_info::AppInfo;
+use ris_jobs::job_system;
+use ris_jobs::job_system::JobSystemGuard;
+use ris_log::log;
+use ris_log::log::Appenders;
+use ris_log::log::LogGuard;
+use ris_log::log_level::LogLevel;
+use ris_log::log_message::LogMessage;
 use ris_util::ris_error::RisError;
 use ris_video::video::Video;
 
@@ -23,10 +30,29 @@ pub struct GodObject {
     pub input_data: InputData,
     pub logic_data: LogicData,
     pub output_data: OutputData,
+
+    // guards
+    pub job_system_guard: JobSystemGuard,
+    pub log_guard: LogGuard,
 }
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> Result<Self, RisError> {
+        // log
+        use crate::appenders::file_appender::FileAppender;
+        use ris_log::console_appender::ConsoleAppender;
+        let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
+        let log_guard = log::init(LogLevel::Trace, appenders);
+
+        // app info
+        let formatted_app_info = format!("{}", &app_info);
+        ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
+
+        // job system
+        let cpu_count = app_info.cpu.cpu_count as usize;
+        let workers = app_info.args.workers as usize;
+        let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers) };
+
         // assets
         let asset_loader = AssetLoader::new(&app_info)?;
 
@@ -78,6 +104,10 @@ impl GodObject {
             input_data,
             logic_data,
             output_data,
+
+            // guards
+            job_system_guard,
+            log_guard,
         };
 
         Ok(god_object)

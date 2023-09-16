@@ -80,6 +80,10 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
             appender.print(&to_print);
         }
     }
+
+    for appender in &mut appenders {
+        appender.print("log thread ended");
+    }
 }
 
 pub fn log_level() -> LogLevel {

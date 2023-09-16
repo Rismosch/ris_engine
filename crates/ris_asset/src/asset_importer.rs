@@ -110,18 +110,16 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
         "failed to create target file {:?}",
         target_path,
     )?;
-    
+
     let source_path = ris_util::unroll_option!(
         source_path.to_str(),
         "failed to convert source path to &str"
     )?;
 
     match importer {
-        ImporterKind::GLSL => glsl_importer::import(
-            source_path,
-            &mut source_file,
-            &mut target_file
-        ),
+        ImporterKind::GLSL => {
+            glsl_importer::import(source_path, &mut source_file, &mut target_file)
+        }
         // insert more importers here...
     }
 }

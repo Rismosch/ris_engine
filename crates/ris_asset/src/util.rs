@@ -57,7 +57,7 @@ pub fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
 
 pub fn create_dir_all(path: &Path) -> std::io::Result<()> {
     let mut to_create = VecDeque::new();
-    
+
     let mut parent = path.parent();
     while let Some(directory) = parent {
         let directory_to_create = PathBuf::from(directory);

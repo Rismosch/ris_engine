@@ -7,7 +7,7 @@ use ris_log::console_appender::ConsoleAppender;
 
 fn main() {
     let appenders: ris_log::log::Appenders = vec![ConsoleAppender::new()];
-    let log_guard = ris_log::log::init(ris_log::log_level::LogLevel::Trace, appenders);
+    let log_guard = ris_log::log::init(ris_log::log_level::LogLevel::None, appenders);
 
     let raw_args: Vec<String> = env::args().collect();
     if raw_args.len() != 4 && raw_args.len() != 2 {
@@ -32,7 +32,6 @@ fn main() {
                 asset_compiler::DEFAULT_COMPILED_FILE,
             ),
         }
-        
     } else if command.eq("decompile") {
         match source_target {
             Some((target, source)) => asset_compiler::decompile(source, target),
@@ -41,7 +40,6 @@ fn main() {
                 asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
             ),
         }
-        
     } else if command.eq("import") {
         match source_target {
             Some((target, source)) => {
@@ -51,17 +49,19 @@ fn main() {
                 };
                 let importer_info = asset_importer::ImporterInfo::DeduceFromFileName(info);
                 asset_importer::import(importer_info)
-            },
+            }
             None => {
                 ris_util::result_err!("import has no default values. did you mean `importall`?")
-            },
+            }
         }
     } else if command.eq("importall") {
         match source_target {
             Some((target, source)) => asset_importer::import_all(source, target),
-            None => asset_importer::import_all(asset_importer::DEFAULT_SOURCE_DIRECTORY, asset_importer::DEFAULT_TARGET_DIRECTORY),
+            None => asset_importer::import_all(
+                asset_importer::DEFAULT_SOURCE_DIRECTORY,
+                asset_importer::DEFAULT_TARGET_DIRECTORY,
+            ),
         }
-        
     } else {
         println!("unkown command: {}", command_raw);
         println!();
@@ -96,7 +96,10 @@ fn print_help() {
     println!("    be overwritten.");
     println!();
     println!("    If <source> and <target> are omitted, it takes following default values:");
-    println!("        <source> {}", asset_compiler::DEFAULT_ASSET_DIRECTORY);
+    println!(
+        "        <source> {}",
+        asset_compiler::DEFAULT_ASSET_DIRECTORY
+    );
     println!("        <target> {}", asset_compiler::DEFAULT_COMPILED_FILE);
     println!();
     println!("decompile");
@@ -106,7 +109,10 @@ fn print_help() {
     println!();
     println!("    If <source> and <target> are omitted, it takes following default values:");
     println!("        <source> {}", asset_compiler::DEFAULT_COMPILED_FILE);
-    println!("        <target> {}", asset_compiler::DEFAULT_DECOMPILED_DIRECTORY);
+    println!(
+        "        <target> {}",
+        asset_compiler::DEFAULT_DECOMPILED_DIRECTORY
+    );
     println!();
     println!("import");
     println!("    The importer is used to convert files into new formats, that the");
@@ -121,8 +127,13 @@ fn print_help() {
     println!("    attempted to be imported. <target> will be cleared and overwritten.");
     println!();
     println!("    If <source> and <target> are omitted, it takes following default values:");
-    println!("        <source> {}", asset_importer::DEFAULT_SOURCE_DIRECTORY);
-    println!("        <target> {}", asset_importer::DEFAULT_TARGET_DIRECTORY);
+    println!(
+        "        <source> {}",
+        asset_importer::DEFAULT_SOURCE_DIRECTORY
+    );
+    println!(
+        "        <target> {}",
+        asset_importer::DEFAULT_TARGET_DIRECTORY
+    );
     println!();
-
 }

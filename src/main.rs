@@ -1,3 +1,6 @@
+use ris_core::god_job;
+use ris_core::god_object::GodObject;
+use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -6,21 +9,10 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
-use ris_log::{
-    log::{self, Appenders, LogGuard},
-    log_level::LogLevel,
-};
-use ris_util::{throw, unwrap_or_throw};
+use ris_util::throw;
+use ris_util::unwrap_or_throw;
 
 pub const RESTART_CODE: i32 = 42;
-
-fn init_log(app_info: &AppInfo) -> LogGuard {
-    use ris_core::appenders::file_appender::FileAppender;
-    use ris_log::console_appender::ConsoleAppender;
-
-    let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(app_info)];
-    log::init(LogLevel::Trace, appenders)
-}
 
 fn main() -> Result<(), String> {
     let app_info = get_app_info()?;
@@ -57,27 +49,19 @@ fn get_app_info() -> Result<AppInfo, String> {
 }
 
 fn run(app_info: AppInfo) -> Result<(), String> {
-    let log_guard = init_log(&app_info);
+    let god_object = GodObject::new(app_info).map_err(|e| e.to_string())?;
+    let result = god_job::run(god_object);
 
-    let result = ris_core::engine::run(app_info);
-
-    let return_value = match result {
-        Ok(engine) => {
-            if engine.wants_to_restart {
-                std::process::exit(RESTART_CODE);
-            }
-
-            Ok(())
+    match result {
+        GameloopState::Error(error) => Err(error.to_string()),
+        GameloopState::WantsToRestart => {
+            std::process::exit(RESTART_CODE);
         }
-        Err(error) => {
-            ris_log::fatal!("error while running engine: {}", error);
-            Err(error.to_string())
-        }
-    };
-
-    drop(log_guard);
-
-    return_value
+        GameloopState::WantsToQuit => Ok(()),
+        GameloopState::WantsToContinue => Err(String::from(
+            "god job returned but wants to continue? i don't know how this is supposed to happen",
+        )),
+    }
 }
 
 fn wrap(mut app_info: AppInfo) -> Result<(), String> {
