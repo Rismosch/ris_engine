@@ -9,8 +9,12 @@ use ris_util::ris_error::RisError;
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 
 pub fn load_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
-    let vertex_id = AssetId::Directory(String::from("__imported_raw_assets/default.vert.spirv"));
-    let fragmend_id = AssetId::Directory(String::from("__imported_raw_assets/default.frag.spirv"));
+    let vertex_id = AssetId::Directory(String::from(
+        "__imported_raw_assets/shaders/default.vert.spirv",
+    ));
+    let fragmend_id = AssetId::Directory(String::from(
+        "__imported_raw_assets/shaders/default.frag.spirv",
+    ));
 
     let vertex_future = ris_asset::asset_loader::load(vertex_id);
     let fragment_future = ris_asset::asset_loader::load(fragmend_id);

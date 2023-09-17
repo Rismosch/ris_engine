@@ -18,7 +18,7 @@ use vulkano::shader::ShaderModule;
 
 use ris_util::ris_error::RisError;
 
-use crate::gpu_objects::CustomVertexDefinition;
+use crate::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
     device: &Arc<Device>,
@@ -29,7 +29,7 @@ pub fn create_pipeline(
 ) -> Result<Arc<GraphicsPipeline>, RisError> {
     ris_util::unroll!(
         GraphicsPipeline::start()
-            .vertex_input_state(CustomVertexDefinition)
+            .vertex_input_state(Vertex3d::input_state())
             .vertex_shader(
                 ris_util::unroll_option!(
                     vertex_shader.clone().entry_point("main"),

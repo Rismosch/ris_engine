@@ -128,6 +128,14 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), 
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
 
+    let target_directory_path = PathBuf::from(target_directory);
+    if target_directory_path.exists() {
+        ris_util::unroll!(
+            std::fs::remove_dir_all(target_directory_path),
+            "failed to delete target directory"
+        )?;
+    }
+
     while let Some(current) = directories.pop_front() {
         let entries = ris_util::unroll!(
             std::fs::read_dir(&current),
@@ -139,11 +147,36 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), 
             let entry = ris_util::unroll!(entry, "failed to read entry")?;
             let metadata = ris_util::unroll!(entry.metadata(), "failed to read metadata")?;
             let entry_path = entry.path();
+
             if metadata.is_file() {
-                ris_log::debug!("import {:?} to {}", entry_path, target_directory);
+                let mut source_directory = source_directory.replace('\\', "/");
+                let mut target_directory = target_directory.replace('\\', "/");
+
+                if !source_directory.ends_with('/') {
+                    source_directory.push('/');
+                }
+
+                if !target_directory.ends_with('/') {
+                    target_directory.push('/');
+                }
+
+                let source_path = ris_util::unroll_option!(
+                    entry_path.to_str(),
+                    "failed to convert path to string"
+                )?;
+                let mut target_path_part = source_path.replace('\\', "/");
+                target_path_part.replace_range(0..source_directory.len(), "");
+
+                let mut target_path = PathBuf::new();
+                target_path.push(target_directory.clone());
+                target_path.push(&target_path_part);
+                let target_path = PathBuf::from(target_path.parent().unwrap());
+
+                ris_log::debug!("import {:?} to {:?}", entry_path, target_path);
+
                 let info = DeduceImporterInfo {
                     source_file_path: entry_path,
-                    target_directory: PathBuf::from(target_directory),
+                    target_directory: target_path,
                 };
                 let importer_info = ImporterInfo::DeduceFromFileName(info);
                 import(importer_info)?;
