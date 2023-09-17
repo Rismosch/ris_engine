@@ -8,7 +8,6 @@ use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::CullMode;
 use vulkano::pipeline::graphics::rasterization::FrontFace;
 use vulkano::pipeline::graphics::rasterization::RasterizationState;
-use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::graphics::viewport::ViewportState;
 use vulkano::pipeline::GraphicsPipeline;
@@ -19,7 +18,7 @@ use vulkano::shader::ShaderModule;
 
 use ris_util::ris_error::RisError;
 
-use crate::gpu_objects::Vertex3d;
+use crate::gpu_objects::CustomVertexDefinition;
 
 pub fn create_pipeline(
     device: &Arc<Device>,
@@ -30,7 +29,7 @@ pub fn create_pipeline(
 ) -> Result<Arc<GraphicsPipeline>, RisError> {
     ris_util::unroll!(
         GraphicsPipeline::start()
-            .vertex_input_state(Vertex3d::per_vertex())
+            .vertex_input_state(CustomVertexDefinition)
             .vertex_shader(
                 ris_util::unroll_option!(
                     vertex_shader.clone().entry_point("main"),
@@ -65,7 +64,7 @@ pub fn create_pipeline(
             .render_pass(ris_util::unroll_option!(
                 Subpass::from(render_pass.clone(), 0),
                 "failed to create render subpass"
-            )?,)
+            )?)
             .build(device.clone()),
         "failed to build graphics pipeline"
     )

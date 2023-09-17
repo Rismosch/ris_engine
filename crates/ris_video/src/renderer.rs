@@ -146,7 +146,7 @@ impl Renderer {
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
 
         // shaders
-        let (vertex_shader, fragment_shader) = crate::shaders::compile_shaders(&device)?;
+        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device)?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();
