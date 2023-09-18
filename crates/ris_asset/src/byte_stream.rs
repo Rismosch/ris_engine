@@ -76,10 +76,6 @@ impl Seek for ByteStream {
             pointer as usize
         };
 
-        if self.pointer > self.bytes.len() {
-            self.pointer = self.bytes.len();
-        }
-
         Ok(self.pointer as u64)
     }
 }
