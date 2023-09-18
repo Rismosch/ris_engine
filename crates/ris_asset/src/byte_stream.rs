@@ -44,13 +44,16 @@ impl Write for ByteStream {
         let overwrite = usize::min(existing, buf.len());
         let remaining = buf.len() - overwrite;
 
+        println!("hoi {} {}", overwrite, remaining);
+
         for i in 0..overwrite {
             let pointer = self.pointer + i;
             self.bytes[pointer] = buf[i]
         }
 
-        for i in overwrite..remaining {
-            self.bytes.push(buf[i]);
+        for i in 0..remaining {
+            let pointer = overwrite + i;
+            self.bytes.push(buf[pointer]);
         }
 
         self.pointer += buf.len();
@@ -65,17 +68,25 @@ impl Write for ByteStream {
 
 impl Seek for ByteStream {
     fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
-        match pos {
+        let pointer = match pos {
             SeekFrom::Start(pos) => {
-                self.pointer = pos as usize;
+                pos as isize
             },
             SeekFrom::End(pos) => {
-                self.pointer = self.bytes.len() + pos as usize;
+                self.bytes.len() as isize + pos as isize
             },
             SeekFrom::Current(pos) => {
-                self.pointer += pos as usize;
+                self.pointer as isize + pos as isize
             },
-        }
+        };
+
+        self.pointer = if pointer < 0 {
+            0
+        } else if pointer as usize > self.bytes.len() {
+            self.bytes.len()
+        } else {
+            pointer as usize
+        };
 
         if self.pointer > self.bytes.len() {
             self.pointer = self.bytes.len();
