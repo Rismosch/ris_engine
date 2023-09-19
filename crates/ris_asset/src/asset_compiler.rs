@@ -103,7 +103,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::seek(&mut file, SeekFrom::Start(0))?;
         crate::util::read(&mut file, &mut file_content)?;
 
-        // change ids here
+        // TODO: change ids here
 
         let addr_asset = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
         crate::util::write(&mut target_file, &file_content)?;
