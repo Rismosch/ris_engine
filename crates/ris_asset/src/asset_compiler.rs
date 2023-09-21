@@ -80,6 +80,9 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     crate::util::seek(&mut target_file, SeekFrom::Start(0))?;
     crate::util::write(&mut target_file, &MAGIC)?;
 
+    // write references (none, but still doing for consistency between "ris_" files
+    crate::util::write(&mut target_file, &[0; 2 * ADDR_SIZE])?;
+
     // write addr of original paths
     let addr_original_paths = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
     crate::util::write(&mut target_file, &[0; ADDR_SIZE])?; // placeholder
