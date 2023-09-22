@@ -10,3 +10,17 @@ pub mod util;
 
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 pub const FAT_ADDR_SIZE: usize = 2 * ADDR_SIZE;
+
+#[derive(Debug)]
+pub enum AssetId {
+    Compiled(usize),
+    Directory(String),
+}
+
+#[derive(Debug)]
+pub struct RisAsset{
+    pub magic: [u8; crate::FAT_ADDR_SIZE],
+    pub references: Vec<AssetId>,
+    pub content: Vec<u8>,
+}
+

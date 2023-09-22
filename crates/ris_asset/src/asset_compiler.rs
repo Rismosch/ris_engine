@@ -7,7 +7,8 @@ use std::path::PathBuf;
 
 use ris_util::ris_error::RisError;
 
-use crate::byte_stream::ByteStream;
+use crate::loader::ris_loader::RisLoaderError;
+use crate::loader::ris_loader;
 
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
@@ -108,10 +109,17 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::read(&mut file, &mut file_content)?;
 
         // change directory ids to compiled ids
-        let mut stream = ByteStream::new(file_content);
-        let modified_file_content = match crate::loader::ris_loader::load(&mut stream) {
-            Ok(ris_asset) => panic!(),
-            Err(_error) => stream.to_bytes(),
+        //let mut stream = ByteStream::new(file_content);
+        let modified_file_content = match ris_loader::load(&file_content) {
+            Ok(ris_asset) => {
+                ris_log::debug!("ris_asset: {:?}", ris_asset);
+
+                panic!("schmäggit");
+            },
+            Err(error) => match error {
+                RisLoaderError::NotRisAsset => file_content,
+                RisLoaderError::IOError(error) => return Err(error),
+            },
         };
 
         // write to compiled file

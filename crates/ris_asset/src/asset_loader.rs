@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
@@ -12,17 +11,13 @@ use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::ris_error::RisError;
 
+use crate::AssetId;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
     Directory(AssetLoaderDirectory),
-}
-
-pub enum AssetId {
-    Compiled(usize),
-    Directory(String),
 }
 
 pub struct Request {
