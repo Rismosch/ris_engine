@@ -13,8 +13,6 @@ use crate::byte_stream::ByteStream;
 pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
-pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
-pub const FAT_ADDR_SIZE: usize = 2 * ADDR_SIZE;
 
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
 pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_assets";
@@ -84,11 +82,11 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     crate::util::write(&mut target_file, &MAGIC)?;
 
     // write references (none, but still doing for consistency between "ris_" files
-    crate::util::write(&mut target_file, &[0; 2 * ADDR_SIZE])?;
+    crate::util::write(&mut target_file, &[0; 2 * crate::ADDR_SIZE])?;
 
     // write addr of original paths
     let addr_original_paths = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-    crate::util::write(&mut target_file, &[0; ADDR_SIZE])?; // placeholder
+    crate::util::write(&mut target_file, &[0; crate::ADDR_SIZE])?; // placeholder
 
     // write lookup
     let asset_count = assets.len() as u64;
@@ -96,7 +94,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     crate::util::write(&mut target_file, &asset_count_bytes)?;
 
     let addr_lookup = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-    let lookup_size = ADDR_SIZE * asset_count as usize;
+    let lookup_size = crate::ADDR_SIZE * asset_count as usize;
     crate::util::write(&mut target_file, &vec![0; lookup_size])?; // placeholder
 
     // compile assets
@@ -111,36 +109,17 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
 
         // change directory ids to compiled ids
         let mut stream = ByteStream::new(file_content);
-        let mut magic_bytes = [0; FAT_ADDR_SIZE];
-        crate::util::read(&mut stream, &mut magic_bytes)?;
-        if magic_bytes[0] == 0x72 && // r
-            magic_bytes[1] == 0x69 && // i
-            magic_bytes[2] == 0x73 && // s
-            magic_bytes[3] == 0x5f { // _
-
-            // probably a better method would be to store lenght and then read entry to entry
-            // because then we can simply read the seperate parts of the file without seeking
-            let mut reference_addr_bytes = [0; ADDR_SIZE];
-            let mut reference_len_bytes = [0; ADDR_SIZE];
-            crate::util::read(&mut stream, &mut reference_addr_bytes)?;
-            crate::util::read(&mut stream, &mut reference_len_bytes)?;
-            
-            let reference_addr = u64::from_le_bytes(reference_addr_bytes);
-            let reference_len = u64::from_le_bytes(reference_len_bytes);
-
-            let mut reference_bytes = vec![0; reference_len as usize];
-            crate::util::seek(&mut stream, SeekFrom::Start(reference_addr))?;
-            crate::util::read(&mut stream,);
-        }
-
-        let modified_file_content = stream.to_bytes();
+        let modified_file_content = match crate::loader::ris_loader::load(&mut stream) {
+            Ok(ris_asset) => panic!(),
+            Err(_error) => stream.to_bytes(),
+        };
 
         // write to compiled file
         let addr_asset = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
         crate::util::write(&mut target_file, &modified_file_content)?;
         let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
 
-        let addr_lookup_entry = addr_lookup + (ADDR_SIZE * i) as u64;
+        let addr_lookup_entry = addr_lookup + (crate::ADDR_SIZE * i) as u64;
         crate::util::seek(&mut target_file, SeekFrom::Start(addr_lookup_entry))?;
         let addr_asset_bytes = u64::to_le_bytes(addr_asset);
         crate::util::write(&mut target_file, &addr_asset_bytes)?;
@@ -207,18 +186,18 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
 
     crate::util::seek(&mut source, SeekFrom::Start(MAGIC.len() as u64))?;
 
-    let mut addr_original_paths_bytes = [0u8; ADDR_SIZE];
+    let mut addr_original_paths_bytes = [0u8; crate::ADDR_SIZE];
     crate::util::read(&mut source, &mut addr_original_paths_bytes)?;
     let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
 
-    let mut lookup_len_bytes = [0u8; ADDR_SIZE];
+    let mut lookup_len_bytes = [0u8; crate::ADDR_SIZE];
     crate::util::read(&mut source, &mut lookup_len_bytes)?;
     let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
     let mut lookup = Vec::with_capacity(lookup_len as usize);
 
     for _ in 0..lookup_len {
-        let mut addr_asset_bytes = [0u8; ADDR_SIZE];
+        let mut addr_asset_bytes = [0u8; crate::ADDR_SIZE];
         crate::util::read(&mut source, &mut addr_asset_bytes)?;
         let addr_asset = u64::from_le_bytes(addr_asset_bytes);
         lookup.push(addr_asset);
