@@ -7,11 +7,14 @@ use std::path::PathBuf;
 
 use ris_util::ris_error::RisError;
 
+use crate::byte_stream::ByteStream;
+
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
+pub const FAT_ADDR_SIZE: usize = 2 * ADDR_SIZE;
 
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
 pub const DEFAULT_COMPILED_FILE: &str = "compiled.ris_assets";
@@ -106,10 +109,35 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::seek(&mut file, SeekFrom::Start(0))?;
         crate::util::read(&mut file, &mut file_content)?;
 
-        // TODO: change ids here
+        // change directory ids to compiled ids
+        let mut stream = ByteStream::new(file_content);
+        let mut magic_bytes = [0; FAT_ADDR_SIZE];
+        crate::util::read(&mut stream, &mut magic_bytes)?;
+        if magic_bytes[0] == 0x72 && // r
+            magic_bytes[1] == 0x69 && // i
+            magic_bytes[2] == 0x73 && // s
+            magic_bytes[3] == 0x5f { // _
 
+            // probably a better method would be to store lenght and then read entry to entry
+            // because then we can simply read the seperate parts of the file without seeking
+            let mut reference_addr_bytes = [0; ADDR_SIZE];
+            let mut reference_len_bytes = [0; ADDR_SIZE];
+            crate::util::read(&mut stream, &mut reference_addr_bytes)?;
+            crate::util::read(&mut stream, &mut reference_len_bytes)?;
+            
+            let reference_addr = u64::from_le_bytes(reference_addr_bytes);
+            let reference_len = u64::from_le_bytes(reference_len_bytes);
+
+            let mut reference_bytes = vec![0; reference_len as usize];
+            crate::util::seek(&mut stream, SeekFrom::Start(reference_addr))?;
+            crate::util::read(&mut stream,);
+        }
+
+        let modified_file_content = stream.to_bytes();
+
+        // write to compiled file
         let addr_asset = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-        crate::util::write(&mut target_file, &file_content)?;
+        crate::util::write(&mut target_file, &modified_file_content)?;
         let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
 
         let addr_lookup_entry = addr_lookup + (ADDR_SIZE * i) as u64;

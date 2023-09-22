@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
