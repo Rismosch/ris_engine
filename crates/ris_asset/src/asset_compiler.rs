@@ -8,8 +8,8 @@ use std::path::PathBuf;
 
 use ris_util::ris_error::RisError;
 
-use crate::loader::ris_loader::RisLoaderError;
 use crate::loader::ris_loader;
+use crate::loader::ris_loader::RisLoaderError;
 
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
@@ -113,39 +113,45 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         // change directory ids to compiled ids
         let modified_file_content = match ris_loader::load(&file_content) {
             Ok(ris_asset) => {
-                ris_log::debug!("ris_asset: {:?}", ris_asset);
+                ris_log::trace!("{:?}", ris_asset);
 
                 let mut asset_bytes = Cursor::new(Vec::new());
                 crate::util::write(&mut asset_bytes, &ris_asset.magic)?;
                 crate::util::write(&mut asset_bytes, &[1])?;
 
-                let reference_count = ris_asset.references.len()as u32;
+                let reference_count = ris_asset.references.len() as u32;
                 let reference_count_bytes = u32::to_le_bytes(reference_count);
                 crate::util::write(&mut asset_bytes, &reference_count_bytes)?;
 
                 for reference in ris_asset.references {
                     match reference {
                         crate::AssetId::Compiled(_id) => {
-                            return ris_util::result_err!("attempted to compile an already compiled asset");
-                        },
+                            return ris_util::result_err!(
+                                "attempted to compile an already compiled asset"
+                            );
+                        }
                         crate::AssetId::Directory(id) => {
                             let mut id_path = PathBuf::from(&source_path);
                             id_path.push(id);
                             let lookup_value = assets_lookup.get(&id_path);
 
-                            let compiled_id = ris_util::unroll_option!(lookup_value, "asset references another asset that doesn't exist: {:?}", id_path)?;
+                            let compiled_id = ris_util::unroll_option!(
+                                lookup_value,
+                                "asset references another asset that doesn't exist: {:?}",
+                                id_path
+                            )?;
 
                             let id_to_write = *compiled_id as u32;
                             let id_bytes = u32::to_le_bytes(id_to_write);
                             crate::util::write(&mut asset_bytes, &id_bytes)?;
-                        },
+                        }
                     }
                 }
 
                 crate::util::write(&mut asset_bytes, &ris_asset.content)?;
 
                 asset_bytes.into_inner()
-            },
+            }
             Err(error) => match error {
                 RisLoaderError::NotRisAsset => file_content,
                 RisLoaderError::IOError(error) => return Err(error),

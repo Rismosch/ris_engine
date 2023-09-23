@@ -17,9 +17,8 @@ pub enum AssetId {
 }
 
 #[derive(Debug)]
-pub struct RisAsset{
+pub struct RisAsset {
     pub magic: [u8; crate::FAT_ADDR_SIZE],
     pub references: Vec<AssetId>,
     pub content: Vec<u8>,
 }
-

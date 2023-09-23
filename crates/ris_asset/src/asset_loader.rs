@@ -11,9 +11,9 @@ use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::ris_error::RisError;
 
-use crate::AssetId;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
+use crate::AssetId;
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),

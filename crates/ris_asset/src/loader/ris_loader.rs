@@ -20,7 +20,9 @@ pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
     if magic[0] != 0x72 || // r
         magic[1] != 0x69 || // i
         magic[2] != 0x73 || // s
-        magic[3] != 0x5f { // _
+        magic[3] != 0x5f
+    {
+        // _
         return Err(RisLoaderError::NotRisAsset);
     }
 
@@ -40,10 +42,9 @@ pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
             let mut reference_bytes = vec![0; reference_len as usize];
             read(input, &mut reference_bytes)?;
 
-            let reference_string = String::from_utf8(reference_bytes)
-                .map_err(|e| RisLoaderError::IOError(
-                        ris_util::new_err!("failed to get reference string: {}", e)
-                ))?;
+            let reference_string = String::from_utf8(reference_bytes).map_err(|e| {
+                RisLoaderError::IOError(ris_util::new_err!("failed to get reference string: {}", e))
+            })?;
 
             let references = reference_string
                 .split('\0')
@@ -57,25 +58,27 @@ pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
             let mut content = vec![0; content_len as usize];
             read(input, &mut content)?;
 
-            Ok(RisAsset{
+            Ok(RisAsset {
                 magic,
                 references,
                 content,
             })
-        },
+        }
         1 => {
             // compiled
             panic!("compiled")
-        },
-        byte => Err(RisLoaderError::IOError(ris_util::new_err!("invalid reference type {}", byte))),
+        }
+        byte => Err(RisLoaderError::IOError(ris_util::new_err!(
+            "invalid reference type {}",
+            byte
+        ))),
     }
 }
 
-fn read(file: &mut impl Read, buf: &mut [u8]) -> Result<usize, RisLoaderError>{
-    crate::util::read(file, buf).map_err(|e| RisLoaderError::IOError(e))
+fn read(file: &mut impl Read, buf: &mut [u8]) -> Result<usize, RisLoaderError> {
+    crate::util::read(file, buf).map_err(RisLoaderError::IOError)
 }
 
 fn seek(file: &mut impl Seek, pos: SeekFrom) -> Result<u64, RisLoaderError> {
-    crate::util::seek(file, pos).map_err(|e| RisLoaderError::IOError(e))
+    crate::util::seek(file, pos).map_err(RisLoaderError::IOError)
 }
-
