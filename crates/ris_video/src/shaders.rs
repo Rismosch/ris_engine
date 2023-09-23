@@ -3,7 +3,7 @@ use std::sync::Arc;
 use vulkano::device::Device;
 use vulkano::shader::ShaderModule;
 
-use ris_asset::asset_loader::AssetId;
+use ris_asset::AssetId;
 use ris_util::ris_error::RisError;
 
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);

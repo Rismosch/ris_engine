@@ -26,7 +26,7 @@ fn main() {
 
     let result = if command.eq("compile") {
         match source_target {
-            Some((target, source)) => asset_compiler::compile(source, target),
+            Some((source, target)) => asset_compiler::compile(source, target),
             None => asset_compiler::compile(
                 asset_compiler::DEFAULT_ASSET_DIRECTORY,
                 asset_compiler::DEFAULT_COMPILED_FILE,
@@ -34,7 +34,7 @@ fn main() {
         }
     } else if command.eq("decompile") {
         match source_target {
-            Some((target, source)) => asset_compiler::decompile(source, target),
+            Some((source, target)) => asset_compiler::decompile(source, target),
             None => asset_compiler::decompile(
                 asset_compiler::DEFAULT_COMPILED_FILE,
                 asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
@@ -42,7 +42,7 @@ fn main() {
         }
     } else if command.eq("import") {
         match source_target {
-            Some((target, source)) => {
+            Some((source, target)) => {
                 let info = asset_importer::DeduceImporterInfo {
                     source_file_path: PathBuf::from(source),
                     target_directory: PathBuf::from(target),
@@ -56,7 +56,7 @@ fn main() {
         }
     } else if command.eq("importall") {
         match source_target {
-            Some((target, source)) => asset_importer::import_all(source, target),
+            Some((source, target)) => asset_importer::import_all(source, target),
             None => asset_importer::import_all(
                 asset_importer::DEFAULT_SOURCE_DIRECTORY,
                 asset_importer::DEFAULT_TARGET_DIRECTORY,
