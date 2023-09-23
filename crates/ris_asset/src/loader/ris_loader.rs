@@ -12,8 +12,7 @@ pub enum RisLoaderError {
     IOError(RisError),
 }
 
-pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
-    let input = &mut std::io::Cursor::new(input);
+pub fn load(input: &mut (impl Read + Seek)) -> Result<RisAsset, RisLoaderError> {
     let mut magic = [0; crate::FAT_ADDR_SIZE];
     read(input, &mut magic)?;
 
@@ -22,14 +21,13 @@ pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
         magic[2] != 0x73 || // s
         magic[3] != 0x5f
     {
-        // _
         return Err(RisLoaderError::NotRisAsset);
     }
 
     let mut reference_type = [0];
     read(input, &mut reference_type)?;
 
-    match reference_type[0] {
+    let references = match reference_type[0] {
         0 => {
             // directory
             let mut content_addr_bytes = [0; crate::ADDR_SIZE];
@@ -46,33 +44,47 @@ pub fn load(input: &[u8]) -> Result<RisAsset, RisLoaderError> {
                 RisLoaderError::IOError(ris_util::new_err!("failed to get reference string: {}", e))
             })?;
 
-            let references = reference_string
+            reference_string
                 .split('\0')
                 .map(|x| AssetId::Directory(String::from(x)))
-                .collect();
-
-            let content_addr = seek(input, SeekFrom::Current(0))?;
-            let stream_len = seek(input, SeekFrom::End(0))?;
-            seek(input, SeekFrom::Start(0))?;
-            let content_len = stream_len - content_addr;
-            let mut content = vec![0; content_len as usize];
-            read(input, &mut content)?;
-
-            Ok(RisAsset {
-                magic,
-                references,
-                content,
-            })
+                .collect()
         }
         1 => {
             // compiled
-            panic!("compiled")
+            let mut reference_count_bytes = [0; 4];
+            read(input, &mut reference_count_bytes)?;
+            let reference_count = u32::from_le_bytes(reference_count_bytes);
+
+            let mut references = Vec::with_capacity(reference_count as usize);
+            for _ in 0..reference_count {
+                let mut reference_bytes = [0; 4];
+                read(input, &mut reference_bytes)?;
+                let reference_id = u32::from_le_bytes(reference_bytes);
+                let reference = AssetId::Compiled(reference_id as usize);
+
+                references.push(reference);
+            }
+
+            references
         }
-        byte => Err(RisLoaderError::IOError(ris_util::new_err!(
+        byte => return Err(RisLoaderError::IOError(ris_util::new_err!(
             "invalid reference type {}",
             byte
         ))),
-    }
+    };
+
+    let content_addr = seek(input, SeekFrom::Current(0))?;
+    let stream_len = seek(input, SeekFrom::End(0))?;
+    seek(input, SeekFrom::Start(0))?;
+    let content_len = stream_len - content_addr;
+    let mut content = vec![0; content_len as usize];
+    read(input, &mut content)?;
+
+    Ok(RisAsset {
+        magic,
+        references,
+        content,
+    })
 }
 
 fn read(file: &mut impl Read, buf: &mut [u8]) -> Result<usize, RisLoaderError> {
