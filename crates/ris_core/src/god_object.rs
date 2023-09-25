@@ -1,7 +1,10 @@
 use sdl2::keyboard::Scancode;
 
+use ris_asset::AssetId;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
+use ris_asset::loader::scenes_loader;
+use ris_asset::loader::scenes_loader::Scenes;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
@@ -21,6 +24,16 @@ use crate::gameloop::input_frame::InputFrame;
 use crate::gameloop::logic_frame::LogicFrame;
 use crate::gameloop::output_frame::OutputFrame;
 
+#[cfg(debug_assertions)]
+fn scenes_id() -> AssetId {
+    AssetId::Directory(String::from("root.ris_scenes"))
+}
+
+#[cfg(not(debug_assertions))]
+fn scenes_id() -> AssetId {
+    AssetId::Compiled(0)
+}
+
 pub struct GodObject {
     pub app_info: AppInfo,
     pub frame_data_calculator: FrameDataCalculator,
@@ -30,6 +43,7 @@ pub struct GodObject {
     pub input_data: InputData,
     pub logic_data: LogicData,
     pub output_data: OutputData,
+    pub scenes: Scenes,
 
     // guards
     pub asset_loader_guard: AssetLoaderGuard,
@@ -93,6 +107,17 @@ impl GodObject {
         input_data.keyboard.keymask[30] = Scancode::Kp4;
         input_data.keyboard.keymask[31] = Scancode::Kp6;
 
+        // scenes
+        let scenes_id = scenes_id();
+        let scenes_bytes = ris_util::unroll!(
+            asset_loader::load(scenes_id).wait(),
+            "failed to load ris_scenes"
+        )?;
+        let scenes = scenes_loader::load(&scenes_bytes)?;
+
+        ris_log::debug!("{:?}", scenes_bytes);
+
+
         // god object
         let god_object = GodObject {
             app_info,
@@ -103,6 +128,7 @@ impl GodObject {
             input_data,
             logic_data,
             output_data,
+            scenes,
 
             // guards
             asset_loader_guard,

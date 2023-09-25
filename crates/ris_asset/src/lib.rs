@@ -10,7 +10,7 @@ pub mod util;
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 pub const FAT_ADDR_SIZE: usize = 2 * ADDR_SIZE;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AssetId {
     Compiled(usize),
     Directory(String),
