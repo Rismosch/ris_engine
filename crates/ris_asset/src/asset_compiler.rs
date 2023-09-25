@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use ris_util::ris_error::RisError;
 
 use crate::loader::ris_loader;
-use crate::loader::ris_loader::RisLoaderError;
 
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
@@ -83,10 +82,6 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     crate::util::seek(&mut target_file, SeekFrom::Start(0))?;
     crate::util::write(&mut target_file, &MAGIC)?;
 
-    // write references (none, but still doing for consistency between "ris_" files
-    crate::util::write(&mut target_file, &[1])?;
-    crate::util::write(&mut target_file, &u32::to_le_bytes(0))?;
-
     // write addr of original paths
     let addr_original_paths = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
     crate::util::write(&mut target_file, &[0; crate::ADDR_SIZE])?; // placeholder
@@ -112,8 +107,9 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
 
         // change directory ids to compiled ids
         let mut file_stream = std::io::Cursor::new(&file_content);
-        let modified_file_content = match ris_loader::load(&mut file_stream) {
-            Ok(ris_asset) => {
+        let modified_file_content = match ris_loader::load(&mut file_stream)? 
+        {
+            Some(ris_asset) => {
                 ris_log::trace!("{:?}", ris_asset);
 
                 let mut asset_bytes = Cursor::new(Vec::new());
@@ -149,14 +145,16 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
                     }
                 }
 
-                crate::util::write(&mut asset_bytes, &ris_asset.content)?;
+                let stream_len = crate::util::seek(&mut file_stream, SeekFrom::End(0))?;
+                let content_len = stream_len - ris_asset.content_addr;
+                let mut content = vec![0; content_len as usize];
+                crate::util::seek(&mut file_stream, SeekFrom::Start(ris_asset.content_addr))?;
+                crate::util::read(&mut file_stream, &mut content)?;
+                crate::util::write(&mut asset_bytes, &content)?;
 
                 asset_bytes.into_inner()
             }
-            Err(error) => match error {
-                RisLoaderError::NotRisAsset => file_content,
-                RisLoaderError::IOError(error) => return Err(error),
-            },
+            None => file_content,
         };
 
         // write to compiled file
@@ -230,51 +228,40 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
         source
     )?;
 
-    // load ris_asset
-    let ris_asset = match ris_loader::load_magic_and_references(&mut source) {
-        Ok(ris_asset) => ris_asset,
-        Err(RisLoaderError::NotRisAsset) => return ris_util::result_err!("attempted to decompile a non ris_asset"),
-        Err(RisLoaderError::IOError(e)) => return Err(e),
-    };
-
-    if !crate::util::bytes_equal(&MAGIC, &ris_asset.magic) {
-        return ris_util::result_err!("expected magic value {:?} but was {:?}", MAGIC, ris_asset.magic);
+    // read magic
+    let mut magic = [0; 16];
+    crate::util::read(&mut source, &mut magic)?;
+    if !crate::util::bytes_equal(&magic, &MAGIC) {
+        return ris_util::result_err!("expected magic to be {:?} but was {:?}", magic, MAGIC);
     }
-
-    let reference_len = ris_asset.references.len();
-    if reference_len > 0 {
-        ris_log::warning!("ris_assets referenced {} other assets. these will be ignored, as the assets stored in this file do not reference them at any point", reference_len);
-    }
-
-    //let mut content = std::io::Cursor::new(ris_asset.content);
 
     // get original paths addr
     let mut addr_original_paths_bytes = [0u8; crate::ADDR_SIZE];
-    crate::util::read(&mut content, &mut addr_original_paths_bytes)?;
+    crate::util::read(&mut source, &mut addr_original_paths_bytes)?;
     let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
 
     // read lookup
     let mut lookup_len_bytes = [0u8; crate::ADDR_SIZE];
-    crate::util::read(&mut content, &mut lookup_len_bytes)?;
+    crate::util::read(&mut source, &mut lookup_len_bytes)?;
     let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
     let mut lookup = Vec::with_capacity(lookup_len as usize);
     for _ in 0..lookup_len {
         let mut addr_asset_bytes = [0u8; crate::ADDR_SIZE];
-        crate::util::read(&mut content, &mut addr_asset_bytes)?;
+        crate::util::read(&mut source, &mut addr_asset_bytes)?;
         let addr_asset = u64::from_le_bytes(addr_asset_bytes);
         lookup.push(addr_asset);
     }
 
     // read original paths
-    let file_end = crate::util::seek(&mut content, SeekFrom::End(0))?;
-    crate::util::seek(&mut content, SeekFrom::Start(addr_original_paths))?;
+    let file_end = crate::util::seek(&mut source, SeekFrom::End(0))?;
+    crate::util::seek(&mut source, SeekFrom::Start(addr_original_paths))?;
     ris_log::fatal!("schmoi {} {}", file_end, addr_original_paths);
     let orig_paths_len = file_end - addr_original_paths;
 
     let mut original_paths = Vec::with_capacity(orig_paths_len as usize);
     let read_bytes = ris_util::unroll!(
-        content.read_to_end(&mut original_paths),
+        source.read_to_end(&mut original_paths),
         "failed to read to the end"
     )?;
     if read_bytes != orig_paths_len as usize {
@@ -312,12 +299,21 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
         };
         let asset_len = addr_next_asset - addr_asset;
 
-        crate::util::seek(&mut content, SeekFrom::Start(addr_asset))?;
+        crate::util::seek(&mut source, SeekFrom::Start(addr_asset))?;
         let mut file_bytes = vec![0u8; asset_len as usize];
-        crate::util::read(&mut content, &mut file_bytes)?;
+        crate::util::read(&mut source, &mut file_bytes)?;
 
-        // TODO: reassign ids
+        // reassign ids
+        let mut file_stream = Cursor::new(&file_bytes);
+        let modified_file_bytes = match ris_loader::load(&mut file_stream)? {
+            Some(ris_asset) => {
+                
+                //panic!()
+            },
+            None => file_bytes,
+        };
 
+        // create and write file
         let mut asset_path = PathBuf::new();
         asset_path.push(target);
         asset_path.push(original_path);
@@ -336,7 +332,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
             "failed to create asset \"{:?}\"",
             asset_path.clone()
         )?;
-        crate::util::write(&mut asset_file, &file_bytes)?;
+        crate::util::write(&mut asset_file, &modified_file_bytes)?;
     }
 
     Ok(())
