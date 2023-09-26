@@ -1,10 +1,10 @@
 use sdl2::keyboard::Scancode;
 
-use ris_asset::AssetId;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::loader::scenes_loader;
 use ris_asset::loader::scenes_loader::Scenes;
+use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
@@ -80,8 +80,16 @@ impl GodObject {
             .game_controller()
             .map_err(|e| ris_util::new_err!("failed to get controller subsystem: {}", e))?;
 
+        // scenes
+        let scenes_id = scenes_id();
+        let scenes_bytes = ris_util::unroll!(
+            asset_loader::load(scenes_id).wait(),
+            "failed to load ris_scenes"
+        )?;
+        let scenes = scenes_loader::load(&scenes_bytes)?;
+
         // video
-        let video = Video::new(&sdl_context)?;
+        let video = Video::new(&sdl_context, scenes.material.clone())?;
 
         // gameloop
         let input_frame = InputFrame::new(event_pump, controller_subsystem);
@@ -106,17 +114,6 @@ impl GodObject {
         input_data.keyboard.keymask[29] = Scancode::Kp2;
         input_data.keyboard.keymask[30] = Scancode::Kp4;
         input_data.keyboard.keymask[31] = Scancode::Kp6;
-
-        // scenes
-        let scenes_id = scenes_id();
-        let scenes_bytes = ris_util::unroll!(
-            asset_loader::load(scenes_id).wait(),
-            "failed to load ris_scenes"
-        )?;
-        let scenes = scenes_loader::load(&scenes_bytes)?;
-
-        ris_log::debug!("{:?}", scenes_bytes);
-
 
         // god object
         let god_object = GodObject {

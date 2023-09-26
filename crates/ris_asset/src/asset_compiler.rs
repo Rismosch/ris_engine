@@ -106,9 +106,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::read(&mut file, &mut file_content)?;
 
         // change directory ids to compiled ids
-        let mut file_stream = std::io::Cursor::new(&file_content);
-        let modified_file_content = match ris_loader::load(&mut file_stream)? 
-        {
+        let modified_file_content = match ris_loader::load(&file_content)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
                 crate::util::write(&mut asset_bytes, &ris_asset.magic)?;
@@ -143,6 +141,7 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
                     }
                 }
 
+                let mut file_stream = Cursor::new(file_content);
                 let stream_len = crate::util::seek(&mut file_stream, SeekFrom::End(0))?;
                 let content_len = stream_len - ris_asset.content_addr;
                 let mut content = vec![0; content_len as usize];
@@ -302,8 +301,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
         crate::util::read(&mut source, &mut file_bytes)?;
 
         // reassign ids
-        let mut file_stream = Cursor::new(file_bytes);
-        let modified_file_bytes = match ris_loader::load(&mut file_stream)? {
+        let modified_file_bytes = match ris_loader::load(&file_bytes)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
                 crate::util::write(&mut asset_bytes, &ris_asset.magic)?;
@@ -338,6 +336,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
                 crate::util::write(&mut asset_bytes, &content_addr_bytes)?;
                 crate::util::seek(&mut asset_bytes, SeekFrom::Start(content_addr))?;
 
+                let mut file_stream = Cursor::new(file_bytes);
                 let stream_len = crate::util::seek(&mut file_stream, SeekFrom::End(0))?;
                 let content_len = stream_len - ris_asset.content_addr;
                 let mut content = vec![0; content_len as usize];
@@ -346,8 +345,8 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
                 crate::util::write(&mut asset_bytes, &content)?;
 
                 asset_bytes.into_inner()
-            },
-            None => file_stream.into_inner(),
+            }
+            None => file_bytes,
         };
 
         // create and write file

@@ -6,6 +6,7 @@ use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
+use ris_asset::loader::scenes_loader::Material;
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_util::ris_error::RisError;
@@ -23,8 +24,8 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl) -> Result<Video, RisError> {
-        let renderer = Renderer::initialize(sdl_context)?;
+    pub fn new(sdl_context: &Sdl, material: Material) -> Result<Video, RisError> {
+        let renderer = Renderer::initialize(sdl_context, material)?;
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
 

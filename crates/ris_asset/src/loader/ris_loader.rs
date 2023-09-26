@@ -1,5 +1,4 @@
-use std::io::Read;
-use std::io::Seek;
+use std::io::Cursor;
 use std::io::SeekFrom;
 
 use ris_util::ris_error::RisError;
@@ -7,7 +6,8 @@ use ris_util::ris_error::RisError;
 use crate::AssetId;
 use crate::RisAssetData;
 
-pub fn load(input: &mut (impl Read + Seek)) -> Result<Option<RisAssetData>, RisError> {
+pub fn load(bytes: &[u8]) -> Result<Option<RisAssetData>, RisError> {
+    let input = &mut Cursor::new(bytes);
     let mut magic = [0; crate::FAT_ADDR_SIZE];
     crate::util::read(input, &mut magic)?;
 
@@ -63,10 +63,7 @@ pub fn load(input: &mut (impl Read + Seek)) -> Result<Option<RisAssetData>, RisE
 
             references
         }
-        byte => return ris_util::result_err!(
-            "invalid reference type {}",
-            byte
-        ),
+        byte => return ris_util::result_err!("invalid reference type {}", byte),
     };
 
     let content_addr = crate::util::seek(input, SeekFrom::Current(0))?;
@@ -77,4 +74,3 @@ pub fn load(input: &mut (impl Read + Seek)) -> Result<Option<RisAssetData>, RisE
         content_addr,
     }))
 }
-

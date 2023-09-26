@@ -38,6 +38,7 @@ use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
+use ris_asset::loader::scenes_loader::Material;
 use ris_util::ris_error::RisError;
 
 pub type Fence = FenceSignalFuture<
@@ -63,7 +64,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(sdl_context: &Sdl) -> Result<Self, RisError> {
+    pub fn initialize(sdl_context: &Sdl, material: Material) -> Result<Self, RisError> {
         // window
         let video_subsystem = sdl_context
             .video()
@@ -146,7 +147,7 @@ impl Renderer {
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
 
         // shaders
-        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device)?;
+        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device, material)?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();

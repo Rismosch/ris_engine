@@ -49,9 +49,6 @@ ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video = { path = "crates/ris_video" }
 
-[build-dependencies]
-chrono = "0.4"
-
 [profile.dev]
 opt-level = 0
 debug = true

@@ -3,18 +3,16 @@ use std::sync::Arc;
 use vulkano::device::Device;
 use vulkano::shader::ShaderModule;
 
-use ris_asset::AssetId;
+use ris_asset::loader::scenes_loader::Material;
 use ris_util::ris_error::RisError;
 
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 
-pub fn load_shaders(device: &Arc<Device>) -> Result<Shaders, RisError> {
-    let vertex_id = AssetId::Directory(String::from(
-        "__imported_raw_assets/shaders/default.vert.spirv",
-    ));
-    let fragmend_id = AssetId::Directory(String::from(
-        "__imported_raw_assets/shaders/default.frag.spirv",
-    ));
+pub fn load_shaders(device: &Arc<Device>, material: Material) -> Result<Shaders, RisError> {
+    let vertex_id = material.vertex_shader;
+    let fragmend_id = material.fragment_shader;
+
+    ris_log::trace!("vert: {:?} frag {:?}", vertex_id, fragmend_id);
 
     let vertex_future = ris_asset::asset_loader::load(vertex_id);
     let fragment_future = ris_asset::asset_loader::load(fragmend_id);
