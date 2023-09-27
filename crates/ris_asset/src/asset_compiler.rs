@@ -253,7 +253,6 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
     // read original paths
     let file_end = crate::util::seek(&mut source, SeekFrom::End(0))?;
     crate::util::seek(&mut source, SeekFrom::Start(addr_original_paths))?;
-    ris_log::fatal!("schmoi {} {}", file_end, addr_original_paths);
     let orig_paths_len = file_end - addr_original_paths;
 
     let mut original_paths = Vec::with_capacity(orig_paths_len as usize);

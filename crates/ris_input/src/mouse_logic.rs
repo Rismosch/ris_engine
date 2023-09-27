@@ -36,5 +36,5 @@ pub fn post_update_mouse(
 ) {
     let new_state = mouse_state.to_sdl_state();
     let old_state = old_mouse_data.buttons.hold();
-    new_mouse_data.buttons.set(&new_state, &old_state);
+    new_mouse_data.buttons.set(new_state, old_state);
 }

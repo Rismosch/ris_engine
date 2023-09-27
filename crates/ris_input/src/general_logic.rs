@@ -21,7 +21,7 @@ pub fn update_general(args: GeneralLogicArgs) {
     let new_state = rebound_mouse | rebound_keyboard | rebound_gamepad;
     let old_state = args.old_general_data.buttons.hold();
 
-    args.new_general_data.buttons.set(&new_state, &old_state);
+    args.new_general_data.buttons.set(new_state, old_state);
 }
 
 fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {

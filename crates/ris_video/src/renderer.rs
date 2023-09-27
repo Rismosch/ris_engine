@@ -301,8 +301,6 @@ impl Renderer {
         uniform_content.view = ubo.view.transposed();
         uniform_content.proj = ubo.proj.transposed();
         uniform_content.view_proj = ubo.view_proj.transposed();
-        uniform_content.debug_x = ubo.debug_x;
-        uniform_content.debug_y = ubo.debug_y;
 
         Ok(())
     }

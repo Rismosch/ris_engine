@@ -37,7 +37,7 @@ impl TestContext {
         }
 
         Self {
-            new_general: new_general,
+            new_general,
             old_general,
             mouse,
             keyboard,
@@ -84,7 +84,7 @@ fn should_forward_buttons_by_default() {
     for i in 0..32 {
         let input = i << 1;
 
-        context.mouse.update(&input);
+        context.mouse.update(input);
 
         context.update();
 
@@ -103,7 +103,7 @@ fn can_block_buttons() {
 
     for i in 0..32 {
         let input = i << 1;
-        context.keyboard.update(&input);
+        context.keyboard.update(input);
 
         context.update();
 
@@ -120,7 +120,7 @@ fn should_rebind_buttons() {
         let input_index = context.rng.range_i(0, 32);
         let input = 1 << input_index as u32;
 
-        context.gamepad.update(&input);
+        context.gamepad.update(input);
 
         let rebind_matrix = context.generate_rebindmatrix();
 
@@ -139,9 +139,9 @@ fn should_rebind_buttons() {
 fn should_bitwise_or_all_inputs() {
     let mut context = TestContext::new();
 
-    context.mouse.update(&0b0000_0000_0000_1111);
-    context.keyboard.update(&0b0000_0000_1111_0000);
-    context.gamepad.update(&0b0000_1111_0000_0000);
+    context.mouse.update(0b0000_0000_0000_1111);
+    context.keyboard.update(0b0000_0000_1111_0000);
+    context.gamepad.update(0b0000_1111_0000_0000);
 
     context.update();
 
@@ -154,21 +154,21 @@ fn should_bitwise_or_all_inputs() {
 fn should_not_be_down_when_other_input_holds() {
     let mut context = TestContext::new();
 
-    context.mouse.update(&1);
+    context.mouse.update(1);
     context.update();
     assert_eq!(context.old_general.buttons.down(), 1);
 
     for _ in 0..100 {
-        context.gamepad.update(&1);
+        context.gamepad.update(1);
         context.update();
         assert_eq!(context.old_general.buttons.down(), 0);
 
-        context.gamepad.update(&0);
+        context.gamepad.update(0);
         context.update();
         assert_eq!(context.old_general.buttons.down(), 0);
     }
 
-    context.mouse.update(&0);
+    context.mouse.update(0);
     context.update();
     assert_eq!(context.old_general.buttons.down(), 0);
 }
@@ -177,21 +177,21 @@ fn should_not_be_down_when_other_input_holds() {
 fn should_not_be_up_when_other_input_holds() {
     let mut context = TestContext::new();
 
-    context.mouse.update(&1);
+    context.mouse.update(1);
     context.update();
     assert_eq!(context.old_general.buttons.up(), 0);
 
     for _ in 0..100 {
-        context.gamepad.update(&1);
+        context.gamepad.update(1);
         context.update();
         assert_eq!(context.old_general.buttons.up(), 0);
 
-        context.gamepad.update(&0);
+        context.gamepad.update(0);
         context.update();
         assert_eq!(context.old_general.buttons.up(), 0);
     }
 
-    context.mouse.update(&0);
+    context.mouse.update(0);
     context.update();
     assert_eq!(context.old_general.buttons.up(), 1);
 }

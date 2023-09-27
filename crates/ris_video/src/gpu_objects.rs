@@ -13,8 +13,6 @@ pub struct UniformBufferObject {
     pub view: Matrix4x4,
     pub proj: Matrix4x4,
     pub view_proj: Matrix4x4,
-    pub debug_x: i32,
-    pub debug_y: i32,
 }
 
 #[derive(BufferContents, Default)]

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use ris_asset::asset_loader;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameData;
@@ -9,8 +11,19 @@ use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
 
-#[derive(Default)]
-pub struct LogicFrame {}
+pub struct LogicFrame {
+    crash_timestamp: Instant,
+    restart_timestamp: Instant,
+}
+
+impl Default for LogicFrame {
+    fn default() -> Self {
+        Self {
+            crash_timestamp: Instant::now(),
+            restart_timestamp: Instant::now(),
+        }
+    }
+}
 
 impl LogicFrame {
     pub fn run(
@@ -66,36 +79,6 @@ impl LogicFrame {
 
         if input.general.buttons.is_hold(action::CAMERA_RIGHT) {
             current.camera_horizontal_angle -= rotation_speed;
-        }
-
-        if input.general.buttons.is_down(action::DEBUG_UP) {
-            scene.debug_y -= 1;
-        }
-
-        if input.general.buttons.is_down(action::DEBUG_DOWN) {
-            scene.debug_y += 1;
-        }
-
-        if input.general.buttons.is_down(action::DEBUG_LEFT) {
-            scene.debug_x -= 1;
-        }
-
-        if input.general.buttons.is_down(action::DEBUG_RIGHT) {
-            scene.debug_x += 1;
-        }
-
-        if scene.debug_x < 0 {
-            scene.debug_x = 0;
-        }
-        if scene.debug_x > 3 {
-            scene.debug_x = 3;
-        }
-
-        if scene.debug_y < 0 {
-            scene.debug_y = 0;
-        }
-        if scene.debug_y > 3 {
-            scene.debug_y = 3;
         }
 
         while current.camera_horizontal_angle < 0. {

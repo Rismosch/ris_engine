@@ -90,8 +90,6 @@ impl Video {
             view,
             proj,
             view_proj,
-            debug_x: scene.debug_x,
-            debug_y: scene.debug_y,
         };
         self.renderer.update_uniform(image_i as usize, &ubo)?;
 

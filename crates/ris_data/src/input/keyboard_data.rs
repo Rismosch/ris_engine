@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use sdl2::keyboard::Scancode;
 
 use super::buttons::Buttons;
@@ -8,9 +6,6 @@ use super::buttons::Buttons;
 pub struct KeyboardData {
     pub buttons: Buttons,
     pub keymask: [Scancode; 32],
-
-    pub crash_timestamp: Instant,
-    pub restart_timestamp: Instant,
 }
 
 impl KeyboardData {
@@ -18,8 +13,6 @@ impl KeyboardData {
         Self {
             buttons: Buttons::default(),
             keymask,
-            crash_timestamp: Instant::now(),
-            restart_timestamp: Instant::now(),
         }
     }
 }
