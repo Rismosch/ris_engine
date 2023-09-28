@@ -1,7 +1,7 @@
 #[derive(Default, Clone)]
 pub struct Buttons {
-    state: u32,
     prev: u32,
+    state: u32,
 }
 
 impl Buttons {
@@ -30,8 +30,8 @@ impl Buttons {
     }
 
     pub fn set(&mut self, new_state: u32, old_state: u32) {
-        self.state = new_state;
         self.prev = old_state;
+        self.state = new_state;
     }
 
     pub fn update(&mut self, new_state: u32) {
