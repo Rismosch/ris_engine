@@ -206,6 +206,8 @@ impl Renderer {
     }
 
     pub fn recreate_swapchain(&mut self) -> Result<(), RisError> {
+        ris_log::trace!("recreating swapchain...");
+
         let new_dimensions = self.window.vulkan_drawable_size();
         let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
             image_extent: [new_dimensions.0, new_dimensions.1],
@@ -225,10 +227,13 @@ impl Renderer {
             &self.render_pass,
         )?;
 
+        ris_log::trace!("swapcain recreated!");
         Ok(())
     }
 
     pub fn recreate_viewport(&mut self) -> Result<(), RisError> {
+        ris_log::trace!("recreating viewport...");
+
         self.recreate_swapchain()?;
         let (w, h) = self.window.vulkan_drawable_size();
         self.viewport.dimensions = [w as f32, h as f32];
@@ -249,6 +254,7 @@ impl Renderer {
             &self.buffers,
         )?;
 
+        ris_log::trace!("viewport recreated!");
         Ok(())
     }
 

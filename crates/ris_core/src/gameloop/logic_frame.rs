@@ -37,7 +37,6 @@ impl LogicFrame {
         input: &InputData,
         frame: &FrameData,
     ) -> GameloopState {
-
         // manual restart
         if input.keyboard.keys.is_hold(Scancode::F1) {
             let duration = Instant::now() - self.restart_timestamp;
@@ -62,6 +61,13 @@ impl LogicFrame {
             }
         } else {
             self.crash_timestamp = Instant::now();
+        }
+
+        // reload shaders
+        current.new_viewport_requested = false;
+        if input.keyboard.keys.is_down(Scancode::F6) {
+            ris_log::debug!("reload shaders");
+            current.new_viewport_requested = true;
         }
 
         // game logic

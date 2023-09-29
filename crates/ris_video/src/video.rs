@@ -18,7 +18,7 @@ use crate::renderer::Renderer;
 pub struct Video {
     renderer: Renderer,
     recreate_swapchain: bool,
-    window_resized: bool,
+    recreate_viewport: bool,
     fences: Vec<Option<Arc<Fence>>>,
     previous_fence_i: u32,
 }
@@ -32,7 +32,7 @@ impl Video {
         Ok(Self {
             renderer,
             recreate_swapchain: false,
-            window_resized: false,
+            recreate_viewport: false,
             fences,
             previous_fence_i: 0,
         })
@@ -46,15 +46,15 @@ impl Video {
             return Ok(());
         }
 
-        if self.window_resized {
-            self.window_resized = false;
+        if self.recreate_viewport {
+            self.recreate_viewport = false;
             self.recreate_swapchain = false;
             self.renderer.recreate_viewport()?;
         }
 
         if self.recreate_swapchain {
-            self.renderer.recreate_swapchain()?;
             self.recreate_swapchain = false;
+            self.renderer.recreate_swapchain()?;
         }
 
         let (image_i, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
@@ -129,7 +129,7 @@ impl Video {
         Ok(())
     }
 
-    pub fn on_window_resize(&mut self) {
-        self.window_resized = true;
+    pub fn recreate_viewport(&mut self) {
+        self.recreate_viewport = true;
     }
 }

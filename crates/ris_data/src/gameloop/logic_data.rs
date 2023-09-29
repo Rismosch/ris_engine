@@ -6,4 +6,6 @@ pub struct LogicData {
     pub camera_vertical_angle: f32,
 
     pub scene: Scene,
+
+    pub new_viewport_requested: bool,
 }

@@ -20,6 +20,7 @@ impl Default for Keys {
 }
 
 impl Keys {
+    #[allow(clippy::needless_range_loop)]
     pub fn up(&self) -> KeyState {
         let mut result = [false; KEY_STATE_SIZE];
         for i in 0..KEY_STATE_SIZE {
@@ -31,6 +32,7 @@ impl Keys {
         result
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn down(&self) -> KeyState {
         let mut result = [false; KEY_STATE_SIZE];
         for i in 0..KEY_STATE_SIZE {
@@ -64,7 +66,7 @@ impl Keys {
 
     pub fn is_hold(&self, scancode: Scancode) -> bool {
         let index = scancode as usize;
-        
+
         self.state[index]
     }
 
