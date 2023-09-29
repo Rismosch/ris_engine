@@ -1,55 +1,138 @@
+use sdl2::keyboard::Scancode;
+
 use ris_data::input::keys::Keys;
-use ris_data::input::keys::KeyState;
 
 #[test]
 fn should_calculate_up() {
-    let mut buttons = Buttons::default();
+    let mut keys = Keys::default();
 
-    let state1 = 0b0000_0000_0000_0000_0000_0000_0000_0000;
-    let state2 = 0b0110_1111_1100_0101_1011_0011_0011_0111;
-    let state3 = 0b1011_1000_0010_1110_0110_0111_0010_0111;
+    assert!(!keys.is_up(Scancode::A));
+    assert!(!keys.is_up(Scancode::B));
+    assert!(!keys.is_up(Scancode::C));
+    assert!(!keys.is_up(Scancode::D));
+    assert!(!keys.is_up(Scancode::E));
 
-    assert_eq!(buttons.up(), 0b0000_0000_0000_0000_0000_0000_0000_0000);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::A);
+    keys.set(Scancode::B);
+    keys.set(Scancode::C);
+    assert!(!keys.is_up(Scancode::A));
+    assert!(!keys.is_up(Scancode::B));
+    assert!(!keys.is_up(Scancode::C));
+    assert!(!keys.is_up(Scancode::D));
+    assert!(!keys.is_up(Scancode::E));
 
-    buttons.set(state2, state1);
-    assert_eq!(buttons.up(), 0b0000_0000_0000_0000_0000_0000_0000_0000);
-
-    buttons.set(state3, state2);
-    assert_eq!(buttons.up(), 0b0100_0111_1100_0001_1001_0000_0001_0000);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::C);
+    keys.set(Scancode::D);
+    keys.set(Scancode::E);
+    assert!(keys.is_up(Scancode::A));
+    assert!(keys.is_up(Scancode::B));
+    assert!(!keys.is_up(Scancode::C));
+    assert!(!keys.is_up(Scancode::D));
+    assert!(!keys.is_up(Scancode::E));
 }
 
 #[test]
 fn should_calculate_down() {
-    panic!();
-    //let mut buttons = Buttons::default();
+    let mut keys = Keys::default();
 
-    //let state1 = 0b0000_0000_0000_0000_0000_0000_0000_0000;
-    //let state2 = 0b0110_1111_1100_0101_1011_0011_0011_0111;
-    //let state3 = 0b1011_1000_0010_1110_0110_0111_0010_0111;
+    assert!(!keys.is_down(Scancode::A));
+    assert!(!keys.is_down(Scancode::B));
+    assert!(!keys.is_down(Scancode::C));
+    assert!(!keys.is_down(Scancode::D));
+    assert!(!keys.is_down(Scancode::E));
 
-    //assert_eq!(buttons.down(), 0b0000_0000_0000_0000_0000_0000_0000_0000);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::A);
+    keys.set(Scancode::B);
+    keys.set(Scancode::C);
+    assert!(keys.is_down(Scancode::A));
+    assert!(keys.is_down(Scancode::B));
+    assert!(keys.is_down(Scancode::C));
+    assert!(!keys.is_down(Scancode::D));
+    assert!(!keys.is_down(Scancode::E));
 
-    //buttons.set(state2, state1);
-    //assert_eq!(buttons.down(), 0b0110_1111_1100_0101_1011_0011_0011_0111);
-
-    //buttons.set(state3, state2);
-    //assert_eq!(buttons.down(), 0b1001_0000_0010_1010_0100_0100_0000_0000);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::C);
+    keys.set(Scancode::D);
+    keys.set(Scancode::E);
+    assert!(!keys.is_down(Scancode::A));
+    assert!(!keys.is_down(Scancode::B));
+    assert!(!keys.is_down(Scancode::C));
+    assert!(keys.is_down(Scancode::D));
+    assert!(keys.is_down(Scancode::E));
 }
 
 #[test]
 fn should_calculate_hold() {
-    panic!();
-    //let mut buttons = Buttons::default();
+    let mut keys = Keys::default();
 
-    //let state1 = 0b0000_0000_0000_0000_0000_0000_0000_0000;
-    //let state2 = 0b0110_1111_1100_0101_1011_0011_0011_0111;
-    //let state3 = 0b1011_1000_0010_1110_0110_0111_0010_0111;
+    assert!(!keys.is_hold(Scancode::A));
+    assert!(!keys.is_hold(Scancode::B));
+    assert!(!keys.is_hold(Scancode::C));
+    assert!(!keys.is_hold(Scancode::D));
+    assert!(!keys.is_hold(Scancode::E));
 
-    //assert_eq!(buttons.hold(), 0b0000_0000_0000_0000_0000_0000_0000_0000);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::A);
+    keys.set(Scancode::B);
+    keys.set(Scancode::C);
+    assert!(keys.is_hold(Scancode::A));
+    assert!(keys.is_hold(Scancode::B));
+    assert!(keys.is_hold(Scancode::C));
+    assert!(!keys.is_hold(Scancode::D));
+    assert!(!keys.is_hold(Scancode::E));
 
-    //buttons.set(state2, state1);
-    //assert_eq!(buttons.hold(), 0b0110_1111_1100_0101_1011_0011_0011_0111);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::C);
+    keys.set(Scancode::D);
+    keys.set(Scancode::E);
+    assert!(!keys.is_hold(Scancode::A));
+    assert!(!keys.is_hold(Scancode::B));
+    assert!(keys.is_hold(Scancode::C));
+    assert!(keys.is_hold(Scancode::D));
+    assert!(keys.is_hold(Scancode::E));
+}
 
-    //buttons.set(state3, state2);
-    //assert_eq!(buttons.hold(), 0b1011_1000_0010_1110_0110_0111_0010_0111);
+#[test]
+fn should_check_key_combination() {
+    let mut keys = Keys::default();
+    let key_combination = [Scancode::LCtrl, Scancode::LAlt, Scancode::Delete];
+
+    assert!(!keys.check_combination(&key_combination));
+
+    // all down
+    keys.set(Scancode::LCtrl);
+    keys.set(Scancode::LAlt);
+    keys.set(Scancode::Delete);
+    assert!(keys.check_combination(&key_combination));
+
+    // all hold
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::LCtrl);
+    keys.set(Scancode::LAlt);
+    keys.set(Scancode::Delete);
+    assert!(!keys.check_combination(&key_combination));
+
+    // last up
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::LCtrl);
+    keys.set(Scancode::LAlt);
+    assert!(!keys.check_combination(&key_combination));
+
+    // last down
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::LCtrl);
+    keys.set(Scancode::LAlt);
+    keys.set(Scancode::Delete);
+    assert!(keys.check_combination(&key_combination));
+
+    // only last down
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::LCtrl);
+    keys.set(Scancode::LAlt);
+    keys.set_old_and_clear(keys.hold());
+    keys.set(Scancode::Delete);
+    assert!(!keys.check_combination(&key_combination));
 }

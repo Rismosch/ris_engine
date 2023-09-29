@@ -1,11 +1,13 @@
 use sdl2::keyboard::Scancode;
 
-use super::buttons::Buttons;
+use crate::input::buttons::Buttons;
+use crate::input::keys::Keys;
 
 #[derive(Clone)]
 pub struct KeyboardData {
     pub buttons: Buttons,
     pub keymask: [Scancode; 32],
+    pub keys: Keys,
 }
 
 impl KeyboardData {
@@ -13,6 +15,7 @@ impl KeyboardData {
         Self {
             buttons: Buttons::default(),
             keymask,
+            keys: Keys::default(),
         }
     }
 }

@@ -6,66 +6,28 @@ pub fn update_keyboard(
     old_keyboard_data: &KeyboardData,
     keyboard_state: sdl2::keyboard::KeyboardState,
 ) -> GameloopState {
-    let mut new_state = 0;
-    let old_state = old_keyboard_data.buttons.hold();
+    let old_key_state = old_keyboard_data.keys.hold();
+    new_keyboard_data.keys.set_old_and_clear(old_key_state);
+
+    let mut new_button_state = 0;
+    let old_button_state = old_keyboard_data.buttons.hold();
 
     for (scancode, value) in keyboard_state.scancodes() {
         if !value {
             continue;
         }
 
+        new_keyboard_data.keys.set(scancode);
+
         for i in 0..32 {
             if new_keyboard_data.keymask[i] == scancode {
-                new_state |= 1 << i;
+                new_button_state |= 1 << i;
             }
         }
     }
 
-    new_keyboard_data.buttons.set(new_state, old_state);
+    new_keyboard_data.buttons.set(new_button_state, old_button_state);
 
     GameloopState::WantsToContinue
 }
 
-//fn manual_crash(
-//    new_keyboard_data: &mut KeyboardData,
-//    old_keyboard_data: &KeyboardData,
-//    scancode: Scancode,
-//) -> GameloopState {
-//    const TIMEOUT: u64 = 5;
-//
-//    match scancode {
-//        Scancode::F3 => {
-//            new_keyboard_data.crash_timestamp = old_keyboard_data.crash_timestamp;
-//
-//            let duration = Instant::now() - old_keyboard_data.crash_timestamp;
-//            let seconds = duration.as_secs();
-//
-//            if seconds >= TIMEOUT {
-//                ris_log::fatal!("manual crash reqeusted");
-//                return GameloopState::Error(ris_util::new_err!("manual crash"));
-//            }
-//        }
-//        Scancode::F4 => {
-//            new_keyboard_data.restart_timestamp = old_keyboard_data.restart_timestamp;
-//
-//            let duration = Instant::now() - old_keyboard_data.restart_timestamp;
-//            let seconds = duration.as_secs();
-//
-//            if seconds >= TIMEOUT {
-//                ris_log::fatal!("restart reqeusted");
-//                return GameloopState::WantsToRestart;
-//            }
-//        }
-//        _ => (),
-//    }
-//
-//    GameloopState::WantsToContinue
-//}
-//
-//fn reset_manual_crash(new_keyboard_data: &mut KeyboardData, scancode: Scancode) {
-//    match scancode {
-//        Scancode::F12 => new_keyboard_data.crash_timestamp = Instant::now(),
-//        Scancode::F10 => new_keyboard_data.restart_timestamp = Instant::now(),
-//        _ => (),
-//    }
-//}

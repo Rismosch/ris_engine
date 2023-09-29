@@ -4,12 +4,6 @@ const KEY_STATE_SIZE: usize = Scancode::Num as usize;
 
 pub type KeyState = [bool; KEY_STATE_SIZE];
 
-impl Default for KeyState {
-    fn default() -> Self {
-        [false; KEY_STATE_SIZE]
-    }
-}
-
 #[derive(Clone)]
 pub struct Keys {
     prev: KeyState,
@@ -19,8 +13,8 @@ pub struct Keys {
 impl Default for Keys {
     fn default() -> Self {
         Self {
-            state: KeyState::default(),
-            prev: KeyState::default(),
+            state: [false; KEY_STATE_SIZE],
+            prev: [false; KEY_STATE_SIZE],
         }
     }
 }
@@ -74,8 +68,25 @@ impl Keys {
         self.state[index]
     }
 
-    pub fn set(&mut self, new_state: KeyState, old_state: KeyState) {
+    pub fn set_old_and_clear(&mut self, old_state: KeyState) {
         self.prev = old_state;
-        self.state = new_state;
+        self.state = [false; KEY_STATE_SIZE];
+    }
+
+    pub fn set(&mut self, scancode: Scancode) {
+        let index = scancode as usize;
+        self.state[index] = true;
+    }
+
+    pub fn check_combination(&self, combination: &[Scancode]) -> bool {
+        let hold_count = combination.len() - 1;
+        for scancode in combination.iter().take(hold_count) {
+            if !self.is_hold(*scancode) {
+                return false;
+            }
+        }
+
+        let last = combination[hold_count];
+        self.is_down(last)
     }
 }

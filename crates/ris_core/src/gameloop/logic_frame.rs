@@ -25,6 +25,51 @@ impl Default for LogicFrame {
     }
 }
 
+
+//fn manual_crash(
+//    new_keyboard_data: &mut KeyboardData,
+//    old_keyboard_data: &KeyboardData,
+//    scancode: Scancode,
+//) -> GameloopState {
+//    const TIMEOUT: u64 = 5;
+//
+//    match scancode {
+//        Scancode::F3 => {
+//            new_keyboard_data.crash_timestamp = old_keyboard_data.crash_timestamp;
+//
+//            let duration = Instant::now() - old_keyboard_data.crash_timestamp;
+//            let seconds = duration.as_secs();
+//
+//            if seconds >= TIMEOUT {
+//                ris_log::fatal!("manual crash reqeusted");
+//                return GameloopState::Error(ris_util::new_err!("manual crash"));
+//            }
+//        }
+//        Scancode::F4 => {
+//            new_keyboard_data.restart_timestamp = old_keyboard_data.restart_timestamp;
+//
+//            let duration = Instant::now() - old_keyboard_data.restart_timestamp;
+//            let seconds = duration.as_secs();
+//
+//            if seconds >= TIMEOUT {
+//                ris_log::fatal!("restart reqeusted");
+//                return GameloopState::WantsToRestart;
+//            }
+//        }
+//        _ => (),
+//    }
+//
+//    GameloopState::WantsToContinue
+//}
+//
+//fn reset_manual_crash(new_keyboard_data: &mut KeyboardData, scancode: Scancode) {
+//    match scancode {
+//        Scancode::F12 => new_keyboard_data.crash_timestamp = Instant::now(),
+//        Scancode::F10 => new_keyboard_data.restart_timestamp = Instant::now(),
+//        _ => (),
+//    }
+//}
+
 impl LogicFrame {
     pub fn run(
         &mut self,
