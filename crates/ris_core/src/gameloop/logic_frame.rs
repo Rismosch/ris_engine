@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use sdl2::keyboard::Scancode;
+
 use ris_asset::asset_loader;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameData;
@@ -11,9 +13,11 @@ use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
 
+const CRASH_TIMEOUT_IN_SECS: u64 = 5;
+
 pub struct LogicFrame {
-    crash_timestamp: Instant,
     restart_timestamp: Instant,
+    crash_timestamp: Instant,
 }
 
 impl Default for LogicFrame {
@@ -25,51 +29,6 @@ impl Default for LogicFrame {
     }
 }
 
-
-//fn manual_crash(
-//    new_keyboard_data: &mut KeyboardData,
-//    old_keyboard_data: &KeyboardData,
-//    scancode: Scancode,
-//) -> GameloopState {
-//    const TIMEOUT: u64 = 5;
-//
-//    match scancode {
-//        Scancode::F3 => {
-//            new_keyboard_data.crash_timestamp = old_keyboard_data.crash_timestamp;
-//
-//            let duration = Instant::now() - old_keyboard_data.crash_timestamp;
-//            let seconds = duration.as_secs();
-//
-//            if seconds >= TIMEOUT {
-//                ris_log::fatal!("manual crash reqeusted");
-//                return GameloopState::Error(ris_util::new_err!("manual crash"));
-//            }
-//        }
-//        Scancode::F4 => {
-//            new_keyboard_data.restart_timestamp = old_keyboard_data.restart_timestamp;
-//
-//            let duration = Instant::now() - old_keyboard_data.restart_timestamp;
-//            let seconds = duration.as_secs();
-//
-//            if seconds >= TIMEOUT {
-//                ris_log::fatal!("restart reqeusted");
-//                return GameloopState::WantsToRestart;
-//            }
-//        }
-//        _ => (),
-//    }
-//
-//    GameloopState::WantsToContinue
-//}
-//
-//fn reset_manual_crash(new_keyboard_data: &mut KeyboardData, scancode: Scancode) {
-//    match scancode {
-//        Scancode::F12 => new_keyboard_data.crash_timestamp = Instant::now(),
-//        Scancode::F10 => new_keyboard_data.restart_timestamp = Instant::now(),
-//        _ => (),
-//    }
-//}
-
 impl LogicFrame {
     pub fn run(
         &mut self,
@@ -78,6 +37,34 @@ impl LogicFrame {
         input: &InputData,
         frame: &FrameData,
     ) -> GameloopState {
+
+        // manual restart
+        if input.keyboard.keys.is_hold(Scancode::F1) {
+            let duration = Instant::now() - self.restart_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual restart reqeusted");
+                return GameloopState::WantsToRestart;
+            }
+        } else {
+            self.restart_timestamp = Instant::now();
+        }
+
+        // manual crash
+        if input.keyboard.keys.is_hold(Scancode::F4) {
+            let duration = Instant::now() - self.crash_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual crash requested");
+                return GameloopState::Error(ris_util::new_err!("manual crash"));
+            }
+        } else {
+            self.crash_timestamp = Instant::now();
+        }
+
+        // game logic
         current.camera_horizontal_angle = previous.camera_horizontal_angle;
         current.camera_vertical_angle = previous.camera_vertical_angle;
         current.scene = previous.scene.clone();

@@ -84,7 +84,7 @@ fn wrap(mut app_info: AppInfo) -> Result<(), String> {
             println!("process finished with code {}", code);
 
             if code == RESTART_CODE {
-                println!("restarting...");
+                println!("restarting...\n");
                 continue;
             } else {
                 Some(code)
