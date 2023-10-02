@@ -8,9 +8,9 @@ use ris_util::ris_error::RisError;
 
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 
-pub fn load_shaders(device: &Arc<Device>, material: Material) -> Result<Shaders, RisError> {
-    let vertex_id = material.vertex_shader;
-    let fragmend_id = material.fragment_shader;
+pub fn load_shaders(device: &Arc<Device>, material: &Material) -> Result<Shaders, RisError> {
+    let vertex_id = material.vertex_shader.clone();
+    let fragmend_id = material.fragment_shader.clone();
 
     ris_log::trace!("vert: {:?} frag {:?}", vertex_id, fragmend_id);
 

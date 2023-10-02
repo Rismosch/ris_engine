@@ -6,17 +6,11 @@ Import-Module "$PSScriptRoot/util.ps1" -force
 Write-Host "checking preconditions..."
 
 $sdl2_dll = "$root_dir/SDL2.dll"
-$shaderc_dll = "$root_dir/shaderc_shared.dll"
 
 $sdl2_dll_exists = Test-Path $sdl2_dll
-$shaderc_dll_exists = Test-Path $shaderc_dll
 
 if (!$sdl2_dll_exists) {
     throw "could not find ``SDL2.dll`` in the root directory"
-}
-
-if (!$shaderc_dll_exists) {
-    throw "could not find ``shaderc_shared.dll`` in the root directory"
 }
 
 Write-Host "clearing destination directory..."
@@ -195,7 +189,6 @@ $source_exe = Resolve-Path "$target_directory/ris_engine.exe"
 
 Copy-Item $source_exe -Destination "$final_directory/ris_engine.exe"
 Copy-Item $sdl2_dll -Destination "$final_directory/SDL2.dll"
-Copy-Item $shaderc_dll -Destination "$final_directory/shaderc_shared.dll"
 
 Write-Host "done! final build can be found under ``$final_directory``"
 

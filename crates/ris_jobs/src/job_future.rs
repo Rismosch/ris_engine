@@ -71,3 +71,14 @@ impl<T> JobFuture<T> {
         }
     }
 }
+
+impl<T: Default> JobFuture<T> {
+    pub fn done() -> Self {
+        let inner = Arc::new(Mutex::new(Inner {
+            is_ready: true,
+            data: Some(T::default()),
+        }));
+
+        Self {inner}
+    }
+}

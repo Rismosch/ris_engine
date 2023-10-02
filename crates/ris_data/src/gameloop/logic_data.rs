@@ -7,5 +7,5 @@ pub struct LogicData {
 
     pub scene: Scene,
 
-    pub new_viewport_requested: bool,
+    pub reload_shaders: bool,
 }

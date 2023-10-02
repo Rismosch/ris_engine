@@ -15,10 +15,14 @@ use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
 use crate::renderer::Renderer;
 
+struct RecreateViewport {
+    reload_shaders: bool,
+}
+
 pub struct Video {
     renderer: Renderer,
     recreate_swapchain: bool,
-    recreate_viewport: bool,
+    recreate_viewport: Option<RecreateViewport>,
     fences: Vec<Option<Arc<Fence>>>,
     previous_fence_i: u32,
 }
@@ -32,7 +36,7 @@ impl Video {
         Ok(Self {
             renderer,
             recreate_swapchain: false,
-            recreate_viewport: false,
+            recreate_viewport: None,
             fences,
             previous_fence_i: 0,
         })
@@ -41,20 +45,24 @@ impl Video {
     pub fn update(&mut self, scene: &Scene) -> Result<(), RisError> {
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
-
         if is_minimized {
             return Ok(());
         }
 
-        if self.recreate_viewport {
-            self.recreate_viewport = false;
-            self.recreate_swapchain = false;
+        if let Some(recreate_viewport) = &self.recreate_viewport {
+            if recreate_viewport.reload_shaders {
+                self.renderer.reload_shaders()?;
+            }
+
             self.renderer.recreate_viewport()?;
+
+            self.recreate_swapchain = false;
+            self.recreate_viewport = None;
         }
 
         if self.recreate_swapchain {
-            self.recreate_swapchain = false;
             self.renderer.recreate_swapchain()?;
+            self.recreate_swapchain = false;
         }
 
         let (image_i, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
@@ -129,7 +137,7 @@ impl Video {
         Ok(())
     }
 
-    pub fn recreate_viewport(&mut self) {
-        self.recreate_viewport = true;
+    pub fn recreate_viewport(&mut self, reload_shaders: bool) {
+        self.recreate_viewport = Some(RecreateViewport{reload_shaders})
     }
 }

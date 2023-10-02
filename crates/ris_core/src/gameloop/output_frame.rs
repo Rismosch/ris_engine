@@ -22,8 +22,11 @@ impl OutputFrame {
         logic: &LogicData,
         _frame: &FrameData,
     ) -> GameloopState {
-        if input.window_size_changed.is_some() || logic.new_viewport_requested {
-            self.video.recreate_viewport();
+        if logic.reload_shaders {
+            self.video.recreate_viewport(true);
+        }
+        else if input.window_size_changed.is_some() {
+            self.video.recreate_viewport(false);
         }
 
         match self.video.update(&logic.scene) {

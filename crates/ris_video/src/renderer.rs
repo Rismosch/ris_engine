@@ -58,6 +58,7 @@ pub struct Renderer {
     buffers: crate::buffers::Buffers,
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
+    material: Material,
     viewport: Viewport,
     pipeline: Arc<GraphicsPipeline>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
@@ -147,7 +148,7 @@ impl Renderer {
         let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
 
         // shaders
-        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device, material)?;
+        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device, &material)?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();
@@ -199,6 +200,7 @@ impl Renderer {
             buffers,
             vertex_shader,
             fragment_shader,
+            material,
             viewport,
             pipeline,
             command_buffers,
@@ -255,6 +257,17 @@ impl Renderer {
         )?;
 
         ris_log::trace!("viewport recreated!");
+        Ok(())
+    }
+
+    pub fn reload_shaders(&mut self) -> Result<(), RisError> {
+        ris_log::trace!("reloading shaders...");
+
+        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&self.device, &self.material)?;
+        self.vertex_shader = vertex_shader;
+        self.fragment_shader = fragment_shader;
+
+        ris_log::trace!("shaders reloaded!");
         Ok(())
     }
 

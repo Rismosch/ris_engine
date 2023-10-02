@@ -9,6 +9,7 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::input::action;
+use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -64,10 +65,11 @@ impl LogicFrame {
         }
 
         // reload shaders
-        current.new_viewport_requested = false;
+        current.reload_shaders = false;
+        let mut import_shader_future = None;
         if input.keyboard.keys.is_down(Scancode::F6) {
-            ris_log::debug!("reload shaders");
-            current.new_viewport_requested = true;
+            let future = reload_shaders(current);
+            import_shader_future = Some(future);
         }
 
         // game logic
@@ -174,7 +176,35 @@ impl LogicFrame {
         //        frame.fps()
         //    );
         //}
+        
+        if let Some(future) = import_shader_future {
+            future.wait();
+        }
 
         GameloopState::WantsToContinue
     }
+}
+
+#[cfg(debug_assertions)]
+fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
+    use ris_asset::asset_importer;
+    let future = ris_jobs::job_system::submit(|| {
+        let result = asset_importer::import_all(
+            asset_importer::DEFAULT_SOURCE_DIRECTORY,
+            asset_importer::DEFAULT_TARGET_DIRECTORY,
+        );
+
+        if let Err(error) = result {
+            ris_log::error!("failed to import shaders: {}", error);
+        }
+    });
+
+    current.reload_shaders = true;
+    future
+}
+
+#[cfg(not(debug_assertions))]
+fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
+    ris_log::warning!("shaders can only be reloaded in a debug build!");
+    JobFuture::done()
 }
