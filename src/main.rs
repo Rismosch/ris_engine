@@ -15,6 +15,21 @@ use ris_util::unwrap_or_throw;
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
+    let result = catch_errors();
+
+    if let Err(message) = &result {
+        let _ = sdl2::messagebox::show_simple_message_box(
+            sdl2::messagebox::MessageBoxFlag::ERROR,
+            "Fatal Error",
+            message,
+            None,
+        );
+    }
+
+    result
+}
+
+fn catch_errors() -> Result<(), String> {
     let app_info = get_app_info()?;
 
     if app_info.args.no_restart {
@@ -53,7 +68,10 @@ fn run(app_info: AppInfo) -> Result<(), String> {
     let result = god_job::run(god_object);
 
     match result {
-        GameloopState::Error(error) => Err(error.to_string()),
+        GameloopState::Error(error) => {
+            let error_string = error.to_string();
+            Err(error_string)}
+        ,
         GameloopState::WantsToRestart => {
             std::process::exit(RESTART_CODE);
         }
