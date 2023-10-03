@@ -4,9 +4,41 @@ Barebones game engine. Home made passion project.
 
 🏗️ **Don't expect this repo to be stable, as I am constantly pushing breaking changes.** 👷
 
-
-
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
+
+---
+
+## Features:
+
+- [x] Startup, shutdown, mainloop and error handling
+- [x] Logging, to console and file
+- [x] Threadpool based multithreading
+- [x] Remappable controls
+  - [x] Mouse
+  - [x] Keyboard
+  - [x] Gamepad
+- [x] 3d math
+- [x] Basic Vulkan renderer
+  - [x] Vertex and index buffers
+  - [x] Depth and Stencil buffer
+  - [ ] Texture sampling
+  - [ ] Phong shading
+  - [x] Hotswappable shaders during runtime
+- [x] Asset System
+  - [x] Importing (convert raw assets to usable form)
+  - [x] Loading (use in engine)
+  - [x] (De)compiling
+- [ ] Debug GUI
+  - [ ] Labels
+  - [ ] Buttons
+  - [ ] Input fields
+- [ ] Debug gizmos
+  - [ ] Point
+  - [ ] Line/ray
+  - [ ] Sphere
+  - [ ] Bounding box
+  - [ ] Text
+- [ ] Gameobjects
 
 ---
 
@@ -96,11 +128,7 @@ https://wiki.archlinux.org/title/Vulkan#Installation
 
 ## Building
 
-Some assets are being stored in their raw forms, most notably GLSL shaders, which need to be imported first. To do so, run the following command:
-
-    cargo run -p ris_asset_compiler importall
-
-Assuming everything is installed correctly and all assets are imported, you can now simply compile and run the engine with:
+Assuming everything is installed correctly, you can now simply compile and run the engine with:
 
     cargo run
 
@@ -120,7 +148,7 @@ The build script will generate building information, compile the entire workspac
    This is the compiled engine. It contains all logic to run the game.
 
 2. **SDL2.dll**  
-   This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and graphics.
+   This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
 
-3. **compiled.ris_assets**  
+3. **ris_assets**  
    This file contains all assets used by the engine. Without assets, the game cannot be run.
