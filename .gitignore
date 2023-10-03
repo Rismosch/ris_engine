@@ -15,5 +15,5 @@ Cargo.lock
 
 # assets
 assets/__imported_raw_assets/
-compiled.ris_assets
+ris_assets
 decompiled_assets

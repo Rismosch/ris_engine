@@ -49,20 +49,8 @@ impl Video {
             return Ok(());
         }
 
-        if let Some(recreate_viewport) = &self.recreate_viewport {
-            if recreate_viewport.reload_shaders {
-                self.renderer.reload_shaders()?;
-            }
-
-            self.renderer.recreate_viewport()?;
-
-            self.recreate_swapchain = false;
-            self.recreate_viewport = None;
-        }
-
-        if self.recreate_swapchain {
-            self.renderer.recreate_swapchain()?;
-            self.recreate_swapchain = false;
+        if let Err(error) = self.recreate_renderer() {
+            ris_log::error!("failed to rebuild renderer: {}", error);
         }
 
         let (image_i, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
@@ -139,5 +127,27 @@ impl Video {
 
     pub fn recreate_viewport(&mut self, reload_shaders: bool) {
         self.recreate_viewport = Some(RecreateViewport { reload_shaders })
+    }
+
+    fn recreate_renderer(&mut self) -> Result<(), RisError> {
+        if let Some(recreate_viewport) = &self.recreate_viewport {
+            let reload_shaders = recreate_viewport.reload_shaders;
+
+            self.recreate_viewport = None;
+            self.recreate_swapchain = false;
+
+            if reload_shaders {
+                self.renderer.reload_shaders()?;
+            }
+
+            self.renderer.recreate_viewport()?;
+        }
+
+        if self.recreate_swapchain {
+            self.recreate_swapchain = false;
+            self.renderer.recreate_swapchain()?;
+        }
+
+        Ok(())
     }
 }

@@ -68,6 +68,7 @@ impl GodObject {
         let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers) };
 
         // assets
+        import_assets()?;
         let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // sdl
@@ -135,4 +136,20 @@ impl GodObject {
 
         Ok(god_object)
     }
+}
+
+#[cfg(debug_assertions)]
+fn import_assets() -> Result<(), RisError> {
+    ris_log::debug!("importing assets...");
+
+    use ris_asset::asset_importer::*;
+    import_all(DEFAULT_SOURCE_DIRECTORY, DEFAULT_TARGET_DIRECTORY)?;
+
+    ris_log::debug!("assets imported!");
+    Ok(())
+}
+
+#[cfg(not(debug_assertions))]
+fn import_assets() -> Result<(), RisError> {
+    Ok(())
 }

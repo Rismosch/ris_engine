@@ -173,7 +173,7 @@ try {
 
     $target_directory = Resolve-Path "$root_dir/target/release"
     $source_exe_path = Resolve-Path "$target_directory/ris_engine.exe"
-    $asset_filename = "compiled.ris_assets"
+    $asset_filename = "ris_assets"
     $asset_path = Resolve-Path "$root_dir/$asset_filename"
 
     Copy-Item $source_exe_path -Destination "$final_directory/ris_engine.exe"

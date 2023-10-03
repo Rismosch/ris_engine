@@ -35,7 +35,7 @@ fn create_with_default_values(
         executable_path,
         no_restart: false,
         workers: cpu_info.cpu_count,
-        assets: String::from("compiled.ris_assets"),
+        assets: String::from("ris_assets"),
     }
 }
 
