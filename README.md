@@ -96,7 +96,11 @@ https://wiki.archlinux.org/title/Vulkan#Installation
 
 ## Building
 
-Assuming everything is installed correctly, you can now simply compile and run the engine with:
+Some assets are being stored in their raw forms, most notably GLSL shaders, which need to be imported first. To do so, run the following command:
+
+    cargo run -p ris_asset_compiler importall
+
+Assuming everything is installed correctly and all assets are imported, you can now simply compile and run the engine with:
 
     cargo run
 
@@ -118,5 +122,5 @@ The build script will generate building information, compile the entire workspac
 2. **SDL2.dll**  
    This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and graphics.
 
-3. **shaderc_shared.dll**  
-   This library is a compiler, which compiles [GLSL](https://www.khronos.org/opengl/wiki/Core_Language_(GLSL))/[HLSL](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl) to [SPIR-V](https://www.khronos.org/spir/).
+3. **compiled.ris_assets**  
+   This file contains all assets used by the engine. Without assets, the game cannot be run.

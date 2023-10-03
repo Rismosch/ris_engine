@@ -2,8 +2,6 @@ use std::time::Instant;
 
 use sdl2::keyboard::Scancode;
 
-use ris_asset::asset_loader;
-use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
@@ -176,7 +174,7 @@ impl LogicFrame {
         //        frame.fps()
         //    );
         //}
-        
+
         if let Some(future) = import_shader_future {
             future.wait();
         }

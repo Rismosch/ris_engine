@@ -24,8 +24,7 @@ impl OutputFrame {
     ) -> GameloopState {
         if logic.reload_shaders {
             self.video.recreate_viewport(true);
-        }
-        else if input.window_size_changed.is_some() {
+        } else if input.window_size_changed.is_some() {
             self.video.recreate_viewport(false);
         }
 

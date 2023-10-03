@@ -79,6 +79,6 @@ impl<T: Default> JobFuture<T> {
             data: Some(T::default()),
         }));
 
-        Self {inner}
+        Self { inner }
     }
 }

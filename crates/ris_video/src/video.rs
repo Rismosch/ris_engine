@@ -138,6 +138,6 @@ impl Video {
     }
 
     pub fn recreate_viewport(&mut self, reload_shaders: bool) {
-        self.recreate_viewport = Some(RecreateViewport{reload_shaders})
+        self.recreate_viewport = Some(RecreateViewport { reload_shaders })
     }
 }

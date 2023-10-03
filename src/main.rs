@@ -70,8 +70,8 @@ fn run(app_info: AppInfo) -> Result<(), String> {
     match result {
         GameloopState::Error(error) => {
             let error_string = error.to_string();
-            Err(error_string)}
-        ,
+            Err(error_string)
+        }
         GameloopState::WantsToRestart => {
             std::process::exit(RESTART_CODE);
         }

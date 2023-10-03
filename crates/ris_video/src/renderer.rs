@@ -263,7 +263,8 @@ impl Renderer {
     pub fn reload_shaders(&mut self) -> Result<(), RisError> {
         ris_log::trace!("reloading shaders...");
 
-        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&self.device, &self.material)?;
+        let (vertex_shader, fragment_shader) =
+            crate::shaders::load_shaders(&self.device, &self.material)?;
         self.vertex_shader = vertex_shader;
         self.fragment_shader = fragment_shader;
 
