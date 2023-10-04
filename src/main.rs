@@ -15,7 +15,16 @@ use ris_util::unwrap_or_throw;
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
-    let result = catch_errors();
+    let result = match get_app_info() {
+        Ok(app_info) => {
+            if app_info.args.no_restart {
+                run_engine(app_info)
+            } else {
+                wrap_process(app_info)
+            }
+        }
+        Err(error) => Err(error),
+    };
 
     if let Err(message) = &result {
         let _ = sdl2::messagebox::show_simple_message_box(
@@ -27,16 +36,6 @@ fn main() -> Result<(), String> {
     }
 
     result
-}
-
-fn catch_errors() -> Result<(), String> {
-    let app_info = get_app_info()?;
-
-    if app_info.args.no_restart {
-        run(app_info)
-    } else {
-        wrap(app_info)
-    }
 }
 
 fn get_app_info() -> Result<AppInfo, String> {
@@ -63,14 +62,14 @@ fn get_app_info() -> Result<AppInfo, String> {
     ))
 }
 
-fn run(app_info: AppInfo) -> Result<(), String> {
+fn run_engine(app_info: AppInfo) -> Result<(), String> {
     let god_object = GodObject::new(app_info).map_err(|e| e.to_string())?;
     let result = god_job::run(god_object);
 
     match result {
         GameloopState::Error(error) => {
-            let error_string = error.to_string();
-            Err(error_string)
+            let message = error.to_string();
+            Err(message)
         }
         GameloopState::WantsToRestart => {
             std::process::exit(RESTART_CODE);
@@ -82,7 +81,7 @@ fn run(app_info: AppInfo) -> Result<(), String> {
     }
 }
 
-fn wrap(mut app_info: AppInfo) -> Result<(), String> {
+fn wrap_process(mut app_info: AppInfo) -> Result<(), String> {
     app_info.args.no_restart = true;
 
     let executable_path = &app_info.args.executable_path;
