@@ -9,8 +9,7 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
-use ris_util::throw;
-use ris_util::unwrap_or_throw;
+use ris_util::ris_error::RisResult;
 
 pub const RESTART_CODE: i32 = 42;
 
@@ -26,7 +25,9 @@ fn main() -> Result<(), String> {
         Err(error) => Err(error),
     };
 
-    if let Err(message) = &result {
+    let remapped_result = result.map_err(|e| e.to_string());
+
+    if let Err(message) = &remapped_result {
         let _ = sdl2::messagebox::show_simple_message_box(
             sdl2::messagebox::MessageBoxFlag::ERROR,
             "Fatal Error",
@@ -35,21 +36,17 @@ fn main() -> Result<(), String> {
         );
     }
 
-    result
+    remapped_result
 }
 
-fn get_app_info() -> Result<AppInfo, String> {
+fn get_app_info() -> RisResult<AppInfo> {
     let cpu_info = CpuInfo::new();
 
-    let args_info_result = ArgsInfo::new(&cpu_info);
-    let args_info = match args_info_result {
-        Ok(args) => args,
-        Err(error) => return Err(format!("error while parsing cli args: {}", error)),
-    };
+    let args_info = ArgsInfo::new(&cpu_info)?;
 
     let package_info = package_info!();
     let build_info = BuildInfo::new();
-    let file_info = FileInfo::new(&package_info);
+    let file_info = FileInfo::new(&package_info)?;
     let sdl_info = SdlInfo::new();
 
     Ok(AppInfo::new(
@@ -62,26 +59,23 @@ fn get_app_info() -> Result<AppInfo, String> {
     ))
 }
 
-fn run_engine(app_info: AppInfo) -> Result<(), String> {
-    let god_object = GodObject::new(app_info).map_err(|e| e.to_string())?;
+fn run_engine(app_info: AppInfo) -> RisResult<()> {
+    let god_object = GodObject::new(app_info)?;
     let result = god_job::run(god_object);
 
     match result {
-        GameloopState::Error(error) => {
-            let message = error.to_string();
-            Err(message)
-        }
+        GameloopState::Error(error) => Err(error),
         GameloopState::WantsToRestart => {
             std::process::exit(RESTART_CODE);
         }
         GameloopState::WantsToQuit => Ok(()),
-        GameloopState::WantsToContinue => Err(String::from(
+        GameloopState::WantsToContinue => ris_util::result_err!(
             "god job returned but wants to continue? i don't know how this is supposed to happen",
-        )),
+        ),
     }
 }
 
-fn wrap_process(mut app_info: AppInfo) -> Result<(), String> {
+fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
     app_info.args.no_restart = true;
 
     let executable_path = &app_info.args.executable_path;
@@ -94,8 +88,8 @@ fn wrap_process(mut app_info: AppInfo) -> Result<(), String> {
             command.arg(arg);
         }
 
-        let child = unwrap_or_throw!(command.spawn(), "child could not be spawned");
-        let output = unwrap_or_throw!(child.wait_with_output(), "child could not be awaited");
+        let child = ris_util::unroll!(command.spawn(), "child could not be spawned")?;
+        let output = ris_util::unroll!(child.wait_with_output(), "child could not be awaited")?;
 
         let exit_code = if let Some(code) = output.status.code() {
             println!("process finished with code {}", code);
@@ -119,12 +113,14 @@ fn wrap_process(mut app_info: AppInfo) -> Result<(), String> {
 
             match output_string {
                 Ok(to_print) => eprintln!("{}", to_print),
-                Err(error) => throw!("error while formatting output.stderr: {}", error),
+                Err(error) => {
+                    return ris_util::result_err!("error while formatting output.stderr: {}", error)
+                }
             }
 
             match exit_code {
                 Some(code) => std::process::exit(code),
-                None => return Err(String::from("no code to exit from")),
+                None => return ris_util::result_err!("no code to exit from"),
             }
         }
     }

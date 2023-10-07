@@ -2,6 +2,8 @@ use std::error::Error;
 
 pub type SourceError = Option<std::sync::Arc<dyn Error + 'static>>;
 
+pub type RisResult<T> = Result<T, RisError>;
+
 #[derive(Clone)]
 pub struct RisError {
     source: SourceError,
