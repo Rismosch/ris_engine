@@ -98,7 +98,7 @@ impl GodObject {
         // scenes
         let scenes_id = scenes_id();
         let scenes_bytes = ris_util::unroll!(
-            asset_loader::load(scenes_id).wait(),
+            asset_loader::load(scenes_id)?.wait()?,
             "failed to load ris_scenes"
         )?;
         let scenes = scenes_loader::load(&scenes_bytes)?;

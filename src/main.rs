@@ -61,10 +61,9 @@ fn get_app_info() -> RisResult<AppInfo> {
 
 fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let god_object = GodObject::new(app_info)?;
-    let result = god_job::run(god_object);
+    let result = god_job::run(god_object)?;
 
     match result {
-        GameloopState::Error(error) => Err(error),
         GameloopState::WantsToRestart => {
             std::process::exit(RESTART_CODE);
         }

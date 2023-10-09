@@ -16,6 +16,7 @@ use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
 use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_system;
+use ris_util::ris_error::RisResult;
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
@@ -48,7 +49,7 @@ impl InputFrame {
         current: &mut InputData,
         previous: &InputData,
         _frame: &FrameData,
-    ) -> GameloopState {
+    ) -> RisResult<GameloopState> {
         let current_keyboard = std::mem::take(&mut current.keyboard);
         let current_gamepad = std::mem::take(&mut current.gamepad);
 
@@ -70,7 +71,7 @@ impl InputFrame {
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;
                 current.gamepad = current_gamepad;
-                return GameloopState::WantsToQuit;
+                return Ok(GameloopState::WantsToQuit);
             };
 
             if let Event::Window {
@@ -101,7 +102,7 @@ impl InputFrame {
             gamepad_logic.update(&mut current_gamepad, &previous_for_gamepad.gamepad);
 
             (current_gamepad, gamepad_logic)
-        });
+        })?;
 
         let keyboard_future = job_system::submit(move || {
             let mut keyboard = current_keyboard;
@@ -113,7 +114,7 @@ impl InputFrame {
             );
 
             (keyboard, gameloop_state)
-        });
+        })?;
 
         post_update_mouse(
             &mut current.mouse,
@@ -121,8 +122,8 @@ impl InputFrame {
             mouse_event_pump.mouse_state(),
         );
 
-        let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();
-        let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
+        let (new_gamepad, new_gamepad_logic) = gamepad_future.wait()?;
+        let (new_keyboard, new_gameloop_state) = keyboard_future.wait()?;
 
         let args = GeneralLogicArgs {
             new_general_data: &mut current.general,
@@ -141,6 +142,6 @@ impl InputFrame {
         current.gamepad = new_gamepad;
         self.gamepad_logic = Some(new_gamepad_logic);
 
-        new_gameloop_state
+        Ok(new_gameloop_state)
     }
 }

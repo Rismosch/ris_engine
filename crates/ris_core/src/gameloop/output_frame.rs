@@ -3,6 +3,7 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
+use ris_util::ris_error::RisResult;
 use ris_video::video::Video;
 
 pub struct OutputFrame {
@@ -21,16 +22,15 @@ impl OutputFrame {
         input: &InputData,
         logic: &LogicData,
         _frame: &FrameData,
-    ) -> GameloopState {
+    ) -> RisResult<GameloopState> {
         if logic.reload_shaders {
             self.video.recreate_viewport(true);
         } else if input.window_size_changed.is_some() {
             self.video.recreate_viewport(false);
         }
 
-        match self.video.update(&logic.scene) {
-            Ok(()) => GameloopState::WantsToContinue,
-            Err(e) => GameloopState::Error(e),
-        }
+        self.video.update(&logic.scene)?;
+
+        Ok(GameloopState::WantsToContinue)
     }
 }

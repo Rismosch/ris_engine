@@ -104,7 +104,13 @@ pub fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
 
     // set up thread
     let (sender, receiver) = channel();
-    let _ = std::thread::spawn(|| load_asset_thread(receiver, internal));
+    let _ = std::thread::spawn(|| {
+        let asset_thread_result = load_asset_thread(receiver, internal);
+        match asset_thread_result {
+            Ok(()) => ris_log::info!("load asset thread ended"),
+            Err(e) => ris_log::fatal!("asset thread loader died: {}", e),
+        }
+    });
 
     {
         let mut asset_loader_sender = ris_util::unroll!(
@@ -143,7 +149,7 @@ pub fn load(id: AssetId) -> RisResult<JobFuture<Result<Vec<u8>, LoadError>>> {
     Ok(job_future)
 }
 
-fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
+fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) -> RisResult<()> {
     match &mut loader {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
@@ -152,10 +158,10 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                         ris_log::error!("{}", e);
                         LoadError::LoadFailed
                     });
-                    request.future.set(result);
+                    request.future.set(result)?;
                 } else {
                     let error = Err(LoadError::InvalidId);
-                    request.future.set(error);
+                    request.future.set(error)?;
                 }
             }
         }
@@ -166,14 +172,14 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                         ris_log::error!("{}", e);
                         LoadError::LoadFailed
                     });
-                    request.future.set(result);
+                    request.future.set(result)?;
                 } else {
                     let error = Err(LoadError::InvalidId);
-                    request.future.set(error);
+                    request.future.set(error)?;
                 }
             }
         }
     }
 
-    ris_log::info!("load asset thread ended");
+    Ok(())
 }
