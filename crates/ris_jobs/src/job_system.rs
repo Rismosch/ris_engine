@@ -10,8 +10,6 @@ use std::thread::JoinHandle;
 use ris_util::ris_error::RisResult;
 
 use crate::job::Job;
-use crate::job_buffer::JobPoisonError;
-use crate::job_buffer::TailPoisonError;
 use crate::job_buffer::PushError;
 use crate::job_buffer::PopError;
 use crate::job_buffer::StealError;
@@ -66,7 +64,12 @@ pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> 
         let done_copy = done.clone();
         handles.push(thread::spawn(move || {
             setup_worker_thread(&core_ids, buffers, i);
-            run_worker_thread(i, done_copy);
+            let thread_result = run_worker_thread(i, done_copy);
+
+            match thread_result {
+                Ok(()) => ris_log::info!("job thread {} ended", i),
+                Err(e) => ris_log::fatal!("job thread {} died: {}", i, e),
+            }
         }))
     }
 
@@ -87,7 +90,9 @@ impl Drop for JobSystemGuard {
 
         self.done.store(true, Ordering::SeqCst);
 
-        empty_buffer(0);
+        if let Err(e) = empty_buffer(0) {
+            ris_log::fatal!("failed to empty main thread jobs: {}", e);
+        }
 
         match self.handles.take() {
             Some(handles) => {
@@ -114,11 +119,14 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     let mut not_pushed = None;
     let mut ris_error = None;
 
-    let (settable_future, future) = SettableJobFuture::new();
+    let (settable_future, future) = SettableJobFuture::new()?;
 
     let job = Job::new(move || {
         let result = job();
-        settable_future.set(result);
+        let set_result = settable_future.set(result);
+        if let Err(e) = set_result {
+            ris_log::fatal!("failed to set future: {}", e);
+        }
     });
 
     WORKER_THREAD.with(|worker_thread| {
@@ -173,15 +181,15 @@ pub fn run_pending_job() -> RisResult<()> {
     Ok(())
 }
 
-pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+pub fn lock<T>(mutex: &Mutex<T>) -> RisResult<MutexGuard<'_, T>> {
     loop {
         let try_lock_result = mutex.try_lock();
 
         if let Ok(mutex_guard) = try_lock_result {
-            return mutex_guard;
+            return Ok(mutex_guard);
         }
 
-        run_pending_job();
+        run_pending_job()?;
     }
 }
 
@@ -236,22 +244,25 @@ fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: 
     });
 }
 
-fn run_worker_thread(index: usize, done: Arc<AtomicBool>) {
+fn run_worker_thread(index: usize, done: Arc<AtomicBool>) -> RisResult<()> {
     while !done.load(Ordering::SeqCst) {
-        run_pending_job();
+        run_pending_job()?;
     }
 
-    empty_buffer(index);
+    empty_buffer(index)
 }
 
-fn empty_buffer(index: usize) {
+fn empty_buffer(index: usize) -> RisResult<()> {
     loop {
-        ris_log::trace!("emptying {}", index);
-        match pop_job() {
-            Ok(mut job) => job.invoke(),
-            Err(IsEmpty) => break,
+        ris_log::trace!("emptying {}...", index);
+        match pop_job()? {
+            Some(mut job) => job.invoke(),
+            None => break,
         }
     }
+
+    ris_log::trace!("emptied {}!", index);
+    Ok(())
 }
 
 fn pop_job() -> RisResult<Option<Job>> {
@@ -267,7 +278,7 @@ fn pop_job() -> RisResult<Option<Job>> {
                     PopError::MutexPoisoned(p) => {
                         result = ris_util::result_err!(
                             "failed to pop due to poisoned mutex: {}",
-                            p
+                            p,
                         );
                     },
                 },
@@ -281,14 +292,29 @@ fn pop_job() -> RisResult<Option<Job>> {
 }
 
 fn steal_job() -> RisResult<Option<Job>> {
-    let mut result = Err(StealError::BlockedOrEmpty);
+    let mut result = Ok(None);
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
             for buffer in &worker_thread.steal_buffers {
-                result = buffer.steal();
-                if result.is_ok() {
-                    break;
+                let steal_result = buffer.steal();
+                match steal_result {
+                    Ok(job) => result = Ok(Some(job)),
+                    Err(e) => match e {
+                        StealError::BlockedOrEmpty => (),
+                        StealError::TailPoisoned(p) => {
+                            result = ris_util::result_err!(
+                                "failed to steal due to poisoned mutex: {}",
+                                p,
+                            );
+                        },
+                        StealError::JobPoisoned(p) => {
+                            result = ris_util::result_err!(
+                                "failed to steal due to poisoned mutex: {}",
+                                p,
+                            );
+                        }
+                    }
                 }
             }
         } else {

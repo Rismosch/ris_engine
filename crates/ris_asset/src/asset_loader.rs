@@ -10,6 +10,7 @@ use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::ris_error::RisError;
+use ris_util::ris_error::RisResult;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
@@ -116,8 +117,8 @@ pub fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
     Ok(AssetLoaderGuard)
 }
 
-pub fn load(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
-    let (settable_job_future, job_future) = SettableJobFuture::new();
+pub fn load(id: AssetId) -> RisResult<JobFuture<Result<Vec<u8>, LoadError>>> {
+    let (settable_job_future, job_future) = SettableJobFuture::new()?;
     let request = Request {
         id,
         future: settable_job_future,
@@ -136,10 +137,10 @@ pub fn load(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     if let Err(send_error) = result {
         let error = Err(LoadError::SendFailed);
         let request = send_error.0;
-        request.future.set(error);
+        request.future.set(error)?;
     }
 
-    job_future
+    Ok(job_future)
 }
 
 fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
