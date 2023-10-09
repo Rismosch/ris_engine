@@ -7,9 +7,14 @@ use std::sync::MutexGuard;
 use std::thread;
 use std::thread::JoinHandle;
 
-use crate::errors::BlockedOrEmpty;
-use crate::errors::IsEmpty;
+use ris_util::ris_error::RisResult;
+
 use crate::job::Job;
+use crate::job_buffer::JobPoisonError;
+use crate::job_buffer::TailPoisonError;
+use crate::job_buffer::PushError;
+use crate::job_buffer::PopError;
+use crate::job_buffer::StealError;
 use crate::job_buffer::JobBuffer;
 use crate::job_future::JobFuture;
 use crate::job_future::SettableJobFuture;
@@ -105,8 +110,9 @@ impl Drop for JobSystemGuard {
 // public methods
 pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     job: F,
-) -> JobFuture<ReturnType> {
+) -> RisResult<JobFuture<ReturnType>> {
     let mut not_pushed = None;
+    let mut ris_error = None;
 
     let (settable_future, future) = SettableJobFuture::new();
 
@@ -120,8 +126,18 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
             let push_result = unsafe { worker_thread.local_buffer.push(job) };
             match push_result {
                 Ok(()) => (),
-                Err(blocked_or_full) => {
-                    not_pushed = Some(blocked_or_full.not_pushed);
+                Err(error) => {
+                    match error {
+                        PushError::BlockedOrFull(j) => {
+                            not_pushed = Some(j);
+                        },
+                        PushError::MutexPoisoned(p) => {
+                            ris_error = Some(ris_util::new_err!(
+                                "failed to push due to poisoned mutex: {}",
+                                p
+                            ));
+                        },
+                    }
                 }
             }
         } else {
@@ -129,21 +145,32 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
         }
     });
 
+    if let Some(r) = ris_error {
+        return Err(r);
+    }
+
     if let Some(mut to_invoke) = not_pushed {
         to_invoke.invoke();
     }
 
-    future
+    Ok(future)
 }
 
-pub fn run_pending_job() {
-    match pop_job() {
-        Ok(mut job) => job.invoke(),
-        Err(IsEmpty) => match steal_job() {
-            Ok(mut job) => job.invoke(),
-            Err(BlockedOrEmpty) => thread::yield_now(),
-        },
+pub fn run_pending_job() -> RisResult<()> {
+    let popped_job = pop_job()?;
+
+    if let Some(mut job) = popped_job {
+        job.invoke();
+    } else {
+        let stolen_job = steal_job()?;
+        if let Some(mut job) = stolen_job {
+            job.invoke();
+        } else {
+            thread::yield_now();
+        }
     }
+
+    Ok(())
 }
 
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -227,12 +254,24 @@ fn empty_buffer(index: usize) {
     }
 }
 
-fn pop_job() -> Result<Job, IsEmpty> {
-    let mut result = Err(IsEmpty);
+fn pop_job() -> RisResult<Option<Job>> {
+    let mut result = Ok(None);
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
+            let pop_result = unsafe { worker_thread.local_buffer.wait_and_pop() };
+            match pop_result {
+                Ok(job) => result = Ok(Some(job)),
+                Err(e) => match e {
+                    PopError::IsEmpty => (),
+                    PopError::MutexPoisoned(p) => {
+                        result = ris_util::result_err!(
+                            "failed to pop due to poisoned mutex: {}",
+                            p
+                        );
+                    },
+                },
+            }
         } else {
             ris_log::error!("couldn't pop job, calling thread isn't a worker thread");
         }
@@ -241,8 +280,8 @@ fn pop_job() -> Result<Job, IsEmpty> {
     result
 }
 
-fn steal_job() -> Result<Job, BlockedOrEmpty> {
-    let mut result = Err(BlockedOrEmpty);
+fn steal_job() -> RisResult<Option<Job>> {
+    let mut result = Err(StealError::BlockedOrEmpty);
 
     WORKER_THREAD.with(|worker_thread| {
         if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {

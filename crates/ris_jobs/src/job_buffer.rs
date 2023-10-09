@@ -1,15 +1,30 @@
 use std::cell::UnsafeCell;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::sync::PoisonError;
 use std::sync::TryLockError;
 
-use ris_util::throw;
-use ris_util::unwrap_or_throw;
-
-use crate::errors::BlockedOrEmpty;
-use crate::errors::BlockedOrFull;
-use crate::errors::IsEmpty;
 use crate::job::Job;
+
+pub type JobPoisonError<'a> = PoisonError<MutexGuard<'a, Option<Job>>>;
+pub type TailPoisonError<'a> = PoisonError<MutexGuard<'a, usize>>;
+
+pub enum PushError<'a>{
+    BlockedOrFull(Job),
+    MutexPoisoned(JobPoisonError<'a>),
+}
+
+pub enum PopError<'a>{
+    IsEmpty,
+    MutexPoisoned(JobPoisonError<'a>),
+}
+
+pub enum StealError<'a>{
+    BlockedOrEmpty,
+    TailPoisoned(TailPoisonError<'a>),
+    JobPoisoned(JobPoisonError<'a>),
+}
 
 pub struct JobBuffer {
     head: UnsafeCell<usize>,
@@ -37,19 +52,23 @@ impl JobBuffer {
     /// different threads, a race condition can concur.
     /// * Clientcode **MUST** ensure, that these two functions are never called at the same time.
     /// * It's highly recommended that clientcode calls these methods on the same thread.
-    pub unsafe fn push(&self, job: Job) -> Result<(), BlockedOrFull> {
+    pub unsafe fn push(&self, job: Job) -> Result<(), PushError> {
         let head = unsafe { &mut *self.head.get() };
 
         let mut node = match self.jobs[*head].try_lock() {
             Ok(node) => node,
-            Err(std::sync::TryLockError::WouldBlock) => {
-                return Err(BlockedOrFull { not_pushed: job })
-            }
-            Err(std::sync::TryLockError::Poisoned(e)) => throw!("mutex is poisoned: {}", e),
+            Err(TryLockError::WouldBlock) => {
+                return Err(PushError::BlockedOrFull(job))
+            },
+            Err(TryLockError::Poisoned(e)) => {
+                return Err(PushError::MutexPoisoned(e))
+            },
         };
 
         match *node {
-            Some(_) => Err(BlockedOrFull { not_pushed: job }),
+            Some(_) => {
+                Err(PushError::BlockedOrFull(job))
+            }
             None => {
                 *node = Some(job);
                 *head = (*head + 1) % self.jobs.capacity();
@@ -65,7 +84,7 @@ impl JobBuffer {
     /// threads a race condition can concur.
     /// * Clientcode **MUST** ensure, that these two functions are never called at the same time.
     /// * It's highly recommended that clientcode calls these methods on the same thread.
-    pub unsafe fn wait_and_pop(&self) -> Result<Job, IsEmpty> {
+    pub unsafe fn wait_and_pop(&self) -> Result<Job, PopError> {
         let head = unsafe { &mut *self.head.get() };
 
         let new_head = if *head == 0 {
@@ -74,10 +93,12 @@ impl JobBuffer {
             *head - 1
         };
 
-        let mut node = unwrap_or_throw!(self.jobs[new_head].lock(), "mutex is poisoned");
+        let mut node = self.jobs[new_head]
+            .lock()
+            .map_err(|e| PopError::MutexPoisoned(e))?;
 
         match node.take() {
-            None => Err(IsEmpty),
+            None => Err(PopError::IsEmpty),
             Some(job) => {
                 *head = new_head;
 
@@ -86,14 +107,23 @@ impl JobBuffer {
         }
     }
 
-    pub fn steal(&self) -> Result<Job, BlockedOrEmpty> {
-        let mut tail = self.tail.try_lock().map_err(to_steal_error)?;
+    pub fn steal(&self) -> Result<Job, StealError> {
+        let mut tail = self.tail.try_lock()
+            .map_err(|e| match e {
+                TryLockError::WouldBlock => StealError::BlockedOrEmpty,
+                TryLockError::Poisoned(p) => StealError::TailPoisoned(p),
+            })?;
         let old_tail = *tail;
 
-        let mut node = self.jobs[old_tail].try_lock().map_err(to_steal_error)?;
+        let mut node = self.jobs[old_tail]
+            .try_lock()
+            .map_err(|e| match e {
+                TryLockError::WouldBlock => StealError::BlockedOrEmpty,
+                TryLockError::Poisoned(p) => StealError::JobPoisoned(p),
+            })?;
 
         match node.take() {
-            None => Err(BlockedOrEmpty),
+            None => Err(StealError::BlockedOrEmpty),
             Some(job) => {
                 *tail = (old_tail + 1) % self.jobs.capacity();
 
@@ -106,9 +136,3 @@ impl JobBuffer {
 unsafe impl Send for JobBuffer {}
 unsafe impl Sync for JobBuffer {}
 
-fn to_steal_error<T>(error: TryLockError<T>) -> BlockedOrEmpty {
-    match error {
-        std::sync::TryLockError::WouldBlock => BlockedOrEmpty,
-        std::sync::TryLockError::Poisoned(e) => throw!("mutex is poisoned: {}", e),
-    }
-}
