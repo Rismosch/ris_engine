@@ -10,10 +10,10 @@ use std::thread::JoinHandle;
 use ris_util::ris_error::RisResult;
 
 use crate::job::Job;
-use crate::job_buffer::PushError;
-use crate::job_buffer::PopError;
-use crate::job_buffer::StealError;
 use crate::job_buffer::JobBuffer;
+use crate::job_buffer::PopError;
+use crate::job_buffer::PushError;
+use crate::job_buffer::StealError;
 use crate::job_future::JobFuture;
 use crate::job_future::SettableJobFuture;
 
@@ -134,19 +134,17 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
             let push_result = unsafe { worker_thread.local_buffer.push(job) };
             match push_result {
                 Ok(()) => (),
-                Err(error) => {
-                    match error {
-                        PushError::BlockedOrFull(j) => {
-                            not_pushed = Some(j);
-                        },
-                        PushError::MutexPoisoned(p) => {
-                            ris_error = Some(ris_util::new_err!(
-                                "failed to push due to poisoned mutex: {}",
-                                p
-                            ));
-                        },
+                Err(error) => match error {
+                    PushError::BlockedOrFull(j) => {
+                        not_pushed = Some(j);
                     }
-                }
+                    PushError::MutexPoisoned(p) => {
+                        ris_error = Some(ris_util::new_err!(
+                            "failed to push due to poisoned mutex: {}",
+                            p
+                        ));
+                    }
+                },
             }
         } else {
             ris_log::error!("couldn't submit job, calling thread isn't a worker thread");
@@ -276,11 +274,9 @@ fn pop_job() -> RisResult<Option<Job>> {
                 Err(e) => match e {
                     PopError::IsEmpty => (),
                     PopError::MutexPoisoned(p) => {
-                        result = ris_util::result_err!(
-                            "failed to pop due to poisoned mutex: {}",
-                            p,
-                        );
-                    },
+                        result =
+                            ris_util::result_err!("failed to pop due to poisoned mutex: {}", p,);
+                    }
                 },
             }
         } else {
@@ -307,14 +303,14 @@ fn steal_job() -> RisResult<Option<Job>> {
                                 "failed to steal due to poisoned mutex: {}",
                                 p,
                             );
-                        },
+                        }
                         StealError::JobPoisoned(p) => {
                             result = ris_util::result_err!(
                                 "failed to steal due to poisoned mutex: {}",
                                 p,
                             );
                         }
-                    }
+                    },
                 }
             }
         } else {

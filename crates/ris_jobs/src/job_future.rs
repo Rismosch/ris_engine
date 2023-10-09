@@ -65,9 +65,12 @@ impl<T> JobFuture<T> {
                 Err(e) => match e {
                     TryLockError::WouldBlock => (),
                     TryLockError::Poisoned(p) => {
-                        return ris_util::result_err!("failed to take job future, because mutex was poisoned: {}", p);
+                        return ris_util::result_err!(
+                            "failed to take job future, because mutex was poisoned: {}",
+                            p
+                        );
                     }
-                }
+                },
             }
 
             job_system::run_pending_job()?;

@@ -10,17 +10,17 @@ use crate::job::Job;
 pub type JobPoisonError<'a> = PoisonError<MutexGuard<'a, Option<Job>>>;
 pub type TailPoisonError<'a> = PoisonError<MutexGuard<'a, usize>>;
 
-pub enum PushError<'a>{
+pub enum PushError<'a> {
     BlockedOrFull(Job),
     MutexPoisoned(JobPoisonError<'a>),
 }
 
-pub enum PopError<'a>{
+pub enum PopError<'a> {
     IsEmpty,
     MutexPoisoned(JobPoisonError<'a>),
 }
 
-pub enum StealError<'a>{
+pub enum StealError<'a> {
     BlockedOrEmpty,
     TailPoisoned(TailPoisonError<'a>),
     JobPoisoned(JobPoisonError<'a>),
@@ -57,18 +57,12 @@ impl JobBuffer {
 
         let mut node = match self.jobs[*head].try_lock() {
             Ok(node) => node,
-            Err(TryLockError::WouldBlock) => {
-                return Err(PushError::BlockedOrFull(job))
-            },
-            Err(TryLockError::Poisoned(e)) => {
-                return Err(PushError::MutexPoisoned(e))
-            },
+            Err(TryLockError::WouldBlock) => return Err(PushError::BlockedOrFull(job)),
+            Err(TryLockError::Poisoned(e)) => return Err(PushError::MutexPoisoned(e)),
         };
 
         match *node {
-            Some(_) => {
-                Err(PushError::BlockedOrFull(job))
-            }
+            Some(_) => Err(PushError::BlockedOrFull(job)),
             None => {
                 *node = Some(job);
                 *head = (*head + 1) % self.jobs.capacity();
@@ -95,7 +89,7 @@ impl JobBuffer {
 
         let mut node = self.jobs[new_head]
             .lock()
-            .map_err(|e| PopError::MutexPoisoned(e))?;
+            .map_err(PopError::MutexPoisoned)?;
 
         match node.take() {
             None => Err(PopError::IsEmpty),
@@ -108,19 +102,16 @@ impl JobBuffer {
     }
 
     pub fn steal(&self) -> Result<Job, StealError> {
-        let mut tail = self.tail.try_lock()
-            .map_err(|e| match e {
-                TryLockError::WouldBlock => StealError::BlockedOrEmpty,
-                TryLockError::Poisoned(p) => StealError::TailPoisoned(p),
-            })?;
+        let mut tail = self.tail.try_lock().map_err(|e| match e {
+            TryLockError::WouldBlock => StealError::BlockedOrEmpty,
+            TryLockError::Poisoned(p) => StealError::TailPoisoned(p),
+        })?;
         let old_tail = *tail;
 
-        let mut node = self.jobs[old_tail]
-            .try_lock()
-            .map_err(|e| match e {
-                TryLockError::WouldBlock => StealError::BlockedOrEmpty,
-                TryLockError::Poisoned(p) => StealError::JobPoisoned(p),
-            })?;
+        let mut node = self.jobs[old_tail].try_lock().map_err(|e| match e {
+            TryLockError::WouldBlock => StealError::BlockedOrEmpty,
+            TryLockError::Poisoned(p) => StealError::JobPoisoned(p),
+        })?;
 
         match node.take() {
             None => Err(StealError::BlockedOrEmpty),
@@ -135,4 +126,3 @@ impl JobBuffer {
 
 unsafe impl Send for JobBuffer {}
 unsafe impl Sync for JobBuffer {}
-
