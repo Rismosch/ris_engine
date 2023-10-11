@@ -72,10 +72,7 @@ impl GodObject {
         result
     }
 
-    fn build_god_object(
-        app_info: AppInfo,
-        log_guard: &mut Option<LogGuard>,
-    ) -> RisResult<Self> {
+    fn build_god_object(app_info: AppInfo, log_guard: &mut Option<LogGuard>) -> RisResult<Self> {
         // job system
         let cpu_count = app_info.cpu.cpu_count as usize;
         let workers = app_info.args.workers as usize;

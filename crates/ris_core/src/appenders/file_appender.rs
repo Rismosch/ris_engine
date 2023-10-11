@@ -43,7 +43,8 @@ impl FileAppender {
         if !&old_log_directory.exists() {
             ris_util::unroll!(
                 std::fs::create_dir_all(&old_log_directory),
-                "failed to create dir all \"{:?}\"", &old_log_directory
+                "failed to create dir all \"{:?}\"",
+                &old_log_directory
             )?;
         }
 
@@ -75,7 +76,9 @@ impl FileAppender {
         });
 
         for entry in sorted_entries.iter().skip(OLD_LOG_COUNT - 1) {
-            let entry = entry.as_ref().map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
+            let entry = entry
+                .as_ref()
+                .map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
             let metadata = ris_util::unroll!(
                 entry.metadata(),
                 "failed to get entry metadata  \"{:?}\"",
@@ -155,12 +158,13 @@ impl IAppender for FileAppender {
 
             panic!("{}", error_message);
         }
-
     }
 }
 
 fn get_modified_time(entry: &Result<DirEntry, Error>) -> RisResult<SystemTime> {
-    let entry = entry.as_ref().map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
+    let entry = entry
+        .as_ref()
+        .map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
     let metadata = ris_util::unroll!(entry.metadata(), "failed to retreive metadata")?;
     ris_util::unroll!(metadata.modified(), "failed to retreive modified time")
 }
