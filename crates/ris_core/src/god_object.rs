@@ -18,7 +18,7 @@ use ris_log::log::Appenders;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
-use ris_util::ris_error::RisError;
+use ris_util::ris_error::RisResult;
 use ris_video::video::Video;
 
 use crate::appenders::file_appender::FileAppender;
@@ -54,8 +54,8 @@ pub struct GodObject {
 }
 
 impl GodObject {
-    pub fn new(app_info: AppInfo) -> Result<Self, RisError> {
-        let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
+    pub fn new(app_info: AppInfo) -> RisResult<Self> {
+        let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)?];
         let log_guard = log::init(LogLevel::Trace, appenders);
 
         let formatted_app_info = format!("{}", &app_info);
@@ -75,7 +75,7 @@ impl GodObject {
     fn build_god_object(
         app_info: AppInfo,
         log_guard: &mut Option<LogGuard>,
-    ) -> Result<Self, RisError> {
+    ) -> RisResult<Self> {
         // job system
         let cpu_count = app_info.cpu.cpu_count as usize;
         let workers = app_info.args.workers as usize;
@@ -156,7 +156,7 @@ impl GodObject {
 }
 
 #[cfg(debug_assertions)]
-fn import_assets() -> Result<(), RisError> {
+fn import_assets() -> RisResult<()> {
     ris_log::debug!("importing assets...");
 
     use ris_asset::asset_importer::*;
@@ -167,6 +167,6 @@ fn import_assets() -> Result<(), RisError> {
 }
 
 #[cfg(not(debug_assertions))]
-fn import_assets() -> Result<(), RisError> {
+fn import_assets() -> RisResult<()> {
     Ok(())
 }
