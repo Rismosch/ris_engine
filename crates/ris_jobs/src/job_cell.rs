@@ -1,3 +1,4 @@
+use ris_util::throw;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -6,8 +7,6 @@ use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-
-use ris_util::ris_error::RisResult;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,
@@ -36,16 +35,16 @@ impl<T> JobCell<T> {
         }
     }
 
-    pub fn as_mut(&mut self) -> RisResult<JobCellRefMut<T>> {
+    pub fn as_mut(&mut self) -> JobCellRefMut<T> {
         let existing_refs = self.refs.load(Ordering::SeqCst);
         if existing_refs > 0 {
-            return ris_util::result_err!(
+            throw!(
                 "JobCell: attempted to create a mutable reference, while {} references exist",
                 existing_refs
             );
         }
 
-        Ok(JobCellRefMut { value: &self.value })
+        JobCellRefMut { value: &self.value }
     }
 
     pub fn borrow(&self) -> JobCellRef<T> {
@@ -81,14 +80,16 @@ impl<T> DerefMut for JobCellRefMut<'_, T> {
     }
 }
 
-impl<T> JobCellRef<T> {
-    pub fn deref(&self) -> RisResult<&T> {
+impl<T> Deref for JobCellRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
         let owner_was_dropped = self.refs.load(Ordering::SeqCst) < 0;
         if owner_was_dropped {
-            return ris_util::result_err!("JobCell: attempted to deref, while owner was dropped");
+            throw!("JobCell: attempted to deref, while owner was dropped");
         }
 
-        Ok(unsafe { self.value.as_ref() })
+        unsafe { self.value.as_ref() }
     }
 }
 

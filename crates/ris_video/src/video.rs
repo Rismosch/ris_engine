@@ -49,8 +49,7 @@ impl Video {
             return Ok(());
         }
 
-        let result = self.recreate_renderer();
-        if let Err(error) = result {
+        if let Err(error) = self.recreate_renderer() {
             ris_log::error!("failed to rebuild renderer: {}", error);
         }
 

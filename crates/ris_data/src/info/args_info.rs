@@ -1,6 +1,7 @@
 use std::env;
 
 use ris_util::ris_error::RisError;
+use ris_util::throw;
 
 use crate::info::cpu_info::CpuInfo;
 
@@ -88,13 +89,13 @@ impl ArgsInfo {
                 break;
             }
 
-            let arg = &result.get_arg(i)?.to_lowercase()[..];
+            let arg = &result.get_arg(i).to_lowercase()[..];
 
             match arg {
                 NO_RESTART_ARG => result.no_restart = true,
                 WORKERS_ARG => {
                     i += 1;
-                    let second_arg = &result.get_arg(i)?;
+                    let second_arg = &result.get_arg(i);
                     match second_arg.parse::<i32>() {
                         Ok(value) => result.workers = value,
                         Err(error) => {
@@ -104,7 +105,7 @@ impl ArgsInfo {
                 }
                 ASSETS_ARG => {
                     i += 1;
-                    let second_arg = result.get_arg(i)?;
+                    let second_arg = result.get_arg(i);
                     result.assets = String::from(second_arg);
                 }
                 _ => return ris_util::result_err!("unexpected argument: [{}] -> {}", i, arg),
@@ -134,10 +135,10 @@ impl ArgsInfo {
         result
     }
 
-    fn get_arg(&self, index: usize) -> Result<&str, RisError> {
+    fn get_arg(&self, index: usize) -> &str {
         match self.raw_args.get(index) {
-            Some(arg) => Ok(arg),
-            None => ris_util::result_err!(
+            Some(arg) => arg,
+            None => throw!(
                 "index is out of bounds, index: {}, bounds: 0..{}",
                 index,
                 self.raw_args.len() - 1

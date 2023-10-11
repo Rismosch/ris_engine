@@ -1,8 +1,8 @@
 use std::fmt;
 
-use ris_util::ris_error::RisError;
+use ris_util::unwrap_or_throw;
 
-use crate::info::package_info::PackageInfo;
+use super::package_info::PackageInfo;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FileInfo {
@@ -21,19 +21,21 @@ pub struct FileInfo {
 }
 
 impl FileInfo {
-    pub fn new(package_info: &PackageInfo) -> Result<FileInfo, RisError> {
-        let base_path = sdl2::filesystem::base_path()
-            .map_err(|e| ris_util::new_err!("failed to get base path: {}", e))?;
+    pub fn new(package_info: &PackageInfo) -> FileInfo {
+        let base_path = unwrap_or_throw!(
+            sdl2::filesystem::base_path(),
+            "error while getting base path"
+        );
 
-        let pref_path = ris_util::unroll!(
+        let pref_path = unwrap_or_throw!(
             sdl2::filesystem::pref_path(&package_info.author, &package_info.name),
             "error while getting pref path"
-        )?;
+        );
 
-        Ok(FileInfo {
+        FileInfo {
             base_path,
             pref_path,
-        })
+        }
     }
 }
 

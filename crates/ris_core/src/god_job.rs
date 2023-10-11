@@ -1,10 +1,9 @@
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
-use ris_util::ris_error::RisResult;
 
 use crate::god_object::GodObject;
 
-pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
+pub fn run(mut god_object: GodObject) -> GameloopState {
     let mut frame_data_calculator = god_object.frame_data_calculator;
     let mut current_input = god_object.input_data;
     let mut current_logic = god_object.logic_data;
@@ -42,7 +41,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
             );
 
             (output_frame, current_output, gameloop_state)
-        })?;
+        });
 
         let logic_future = job_system::submit(move || {
             let mut logic_frame = god_object.logic_frame;
@@ -55,7 +54,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
             );
 
             (logic_frame, current_logic, gameloop_state)
-        })?;
+        });
 
         let input_state = god_object.input_frame.run(
             &mut current_input,
@@ -64,8 +63,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         );
 
         // wait for jobs
-        let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait()?;
-        let (new_output_frame, new_output_data, output_state) = output_future.wait()?;
+        let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait();
+        let (new_output_frame, new_output_data, output_state) = output_future.wait();
 
         // update buffers
         current_logic = new_logic_data;
@@ -74,12 +73,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
 
-        // unwrap errors
-        let input_state = input_state?;
-        let logic_state = logic_state?;
-        let output_state = output_state?;
-
-        // determine, whether to continue or exit
+        // determine, whether to continue, return error or exit
         if matches!(input_state, GameloopState::WantsToContinue)
             && matches!(logic_state, GameloopState::WantsToContinue)
             && matches!(output_state, GameloopState::WantsToContinue)
@@ -91,9 +85,24 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
             || matches!(logic_state, GameloopState::WantsToRestart)
             || matches!(output_state, GameloopState::WantsToRestart)
         {
-            return Ok(GameloopState::WantsToRestart);
+            return GameloopState::WantsToRestart;
         }
 
-        return Ok(GameloopState::WantsToQuit);
+        if let GameloopState::Error(ref e) = input_state {
+            ris_log::fatal!("gameloop input encountered an error: {}", e);
+            return input_state;
+        }
+
+        if let GameloopState::Error(ref e) = logic_state {
+            ris_log::fatal!("gameloop logic encountered an error: {}", e);
+            return logic_state;
+        }
+
+        if let GameloopState::Error(ref e) = output_state {
+            ris_log::fatal!("gameloop output encountered an error: {}", e);
+            return output_state;
+        }
+
+        return GameloopState::WantsToQuit;
     }
 }

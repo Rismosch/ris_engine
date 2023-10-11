@@ -1,4 +1,5 @@
 pub mod affinity;
+pub mod errors;
 pub mod job;
 pub mod job_buffer;
 pub mod job_cell;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::TryLockError;
 
-use ris_util::ris_error::RisResult;
+use ris_util::throw;
 
 use crate::job_system;
 
@@ -22,7 +22,7 @@ pub struct JobFuture<T> {
 }
 
 impl<T> SettableJobFuture<T> {
-    pub fn new() -> RisResult<(SettableJobFuture<T>, JobFuture<T>)> {
+    pub fn new() -> (SettableJobFuture<T>, JobFuture<T>) {
         let inner = Arc::new(Mutex::new(Inner {
             is_ready: false,
             data: None,
@@ -33,47 +33,41 @@ impl<T> SettableJobFuture<T> {
         };
         let job_future = JobFuture { inner };
 
-        Ok((settable_job_future, job_future))
+        (settable_job_future, job_future)
     }
 
-    pub fn set(self, result: T) -> RisResult<()> {
-        let mut inner = job_system::lock(&self.inner)?;
+    pub fn set(self, result: T) {
+        let mut inner = job_system::lock(&self.inner);
 
         inner.is_ready = true;
         inner.data = Some(result);
-
-        Ok(())
     }
 }
 
 impl<T> JobFuture<T> {
-    pub fn wait(mut self) -> RisResult<T> {
-        match self.wait_and_take()? {
-            Some(value) => Ok(value),
+    pub fn wait(mut self) -> T {
+        match self.wait_and_take() {
+            Some(value) => value,
             None => unreachable!(),
         }
     }
 
-    fn wait_and_take(&mut self) -> RisResult<Option<T>> {
+    fn wait_and_take(&mut self) -> Option<T> {
         loop {
             match self.inner.try_lock() {
                 Ok(mut inner) => {
                     if inner.is_ready {
-                        return Ok(inner.data.take());
+                        return inner.data.take();
                     }
                 }
-                Err(e) => match e {
-                    TryLockError::WouldBlock => (),
-                    TryLockError::Poisoned(p) => {
-                        return ris_util::result_err!(
-                            "failed to take job future, because mutex was poisoned: {}",
-                            p
-                        );
+                Err(e) => {
+                    if let TryLockError::Poisoned(e) = e {
+                        throw!("couldn't take job future: {}", e);
                     }
-                },
+                }
             }
 
-            job_system::run_pending_job()?;
+            job_system::run_pending_job();
         }
     }
 }

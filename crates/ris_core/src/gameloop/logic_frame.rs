@@ -11,7 +11,6 @@ use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
-use ris_util::ris_error::RisResult;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
@@ -36,7 +35,7 @@ impl LogicFrame {
         previous: &LogicData,
         input: &InputData,
         frame: &FrameData,
-    ) -> RisResult<GameloopState> {
+    ) -> GameloopState {
         // manual restart
         if input.keyboard.keys.is_hold(Scancode::F1) {
             let duration = Instant::now() - self.restart_timestamp;
@@ -44,7 +43,7 @@ impl LogicFrame {
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
                 ris_log::fatal!("manual restart reqeusted");
-                return Ok(GameloopState::WantsToRestart);
+                return GameloopState::WantsToRestart;
             }
         } else {
             self.restart_timestamp = Instant::now();
@@ -57,7 +56,7 @@ impl LogicFrame {
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
                 ris_log::fatal!("manual crash requested");
-                return ris_util::result_err!("manual crash");
+                return GameloopState::Error(ris_util::new_err!("manual crash"));
             }
         } else {
             self.crash_timestamp = Instant::now();
@@ -67,7 +66,7 @@ impl LogicFrame {
         current.reload_shaders = false;
         let mut import_shader_future = None;
         if input.keyboard.keys.is_down(Scancode::F6) {
-            let future = reload_shaders(current)?;
+            let future = reload_shaders(current);
             import_shader_future = Some(future);
         }
 
@@ -177,15 +176,15 @@ impl LogicFrame {
         //}
 
         if let Some(future) = import_shader_future {
-            future.wait()?;
+            future.wait();
         }
 
-        Ok(GameloopState::WantsToContinue)
+        GameloopState::WantsToContinue
     }
 }
 
 #[cfg(debug_assertions)]
-fn reload_shaders(current: &mut LogicData) -> RisResult<JobFuture<()>> {
+fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
     use ris_asset::asset_importer;
     let future = ris_jobs::job_system::submit(|| {
         let result = asset_importer::import_all(
@@ -203,7 +202,7 @@ fn reload_shaders(current: &mut LogicData) -> RisResult<JobFuture<()>> {
 }
 
 #[cfg(not(debug_assertions))]
-fn reload_shaders(current: &mut LogicData) -> RisResult<JobFuture<()>> {
+fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
     ris_log::warning!("shaders can only be reloaded in a debug build!");
-    Ok(JobFuture::done())
+    JobFuture::done()
 }
