@@ -10,16 +10,19 @@ use crate::job::Job;
 pub type JobPoisonError<'a> = PoisonError<MutexGuard<'a, Option<Job>>>;
 pub type TailPoisonError<'a> = PoisonError<MutexGuard<'a, usize>>;
 
+#[derive(Debug)]
 pub enum PushError<'a> {
     BlockedOrFull(Job),
     MutexPoisoned(JobPoisonError<'a>),
 }
 
+#[derive(Debug)]
 pub enum PopError<'a> {
     IsEmpty,
     MutexPoisoned(JobPoisonError<'a>),
 }
 
+#[derive(Debug)]
 pub enum StealError<'a> {
     BlockedOrEmpty,
     TailPoisoned(TailPoisonError<'a>),

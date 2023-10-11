@@ -9,7 +9,7 @@ use ris_util::testing::{repeat, retry};
 
 #[test]
 fn should_submit_and_run_jobs() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(10, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 100) };
 
@@ -36,7 +36,8 @@ fn should_submit_and_run_jobs() {
 
 #[test]
 fn should_submit_job_within_job() {
-    repeat(10, || {
+    let guard = ris_log::log::init(ris_log::log_level::LogLevel::Trace, vec![ris_log::console_appender::ConsoleAppender::new()]);
+    repeat(1, |run| {
         let job_system =
             unsafe { job_system::init(10, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 100) };
 
@@ -49,10 +50,10 @@ fn should_submit_job_within_job() {
                 results_copy.lock().unwrap().push(i);
                 let future = job_system::submit(move || {
                     results_copy_copy.lock().unwrap().push(i + 1000);
-                });
+                }).unwrap();
 
                 std::mem::forget(future);
-            });
+            }).unwrap();
 
             std::mem::forget(future);
         }
@@ -61,16 +62,17 @@ fn should_submit_job_within_job() {
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 2000);
+        assert_eq!(results.len(), 2000, "failed on run {}", run);
         for i in 0..2000 {
             assert!(results.contains(&i));
         }
     });
+    drop(guard)
 }
 
 #[test]
 fn should_run_job_when_buffer_is_full() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
 
@@ -98,7 +100,7 @@ fn should_run_job_when_buffer_is_full() {
 
 #[test]
 fn should_run_pending_job() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
 
@@ -113,7 +115,7 @@ fn should_run_pending_job() {
         }
 
         for _ in 0..50 {
-            job_system::run_pending_job();
+            job_system::run_pending_job().unwrap();
         }
 
         let results = results.lock().unwrap();
@@ -175,13 +177,13 @@ fn should_get_thread_index() {
 
 #[test]
 fn should_run_jobs_while_waiting_on_future() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
 
-        let future = job_system::submit(|| "hello world");
+        let future = job_system::submit(|| "hello world").unwrap();
 
         for i in 0..100 {
             let results_copy = results.clone();
@@ -189,7 +191,7 @@ fn should_run_jobs_while_waiting_on_future() {
             std::mem::forget(future);
         }
 
-        let result = future.wait();
+        let result = future.wait().unwrap();
         let results = results.lock().unwrap();
 
         assert_eq!(result, "hello world");
@@ -204,7 +206,7 @@ fn should_run_jobs_while_waiting_on_future() {
 
 #[test]
 fn should_run_jobs_when_emptying() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
 
@@ -233,7 +235,7 @@ fn should_run_jobs_when_emptying() {
 
 #[test]
 fn should_lock_mutex() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system =
             unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 10) };
 
@@ -241,7 +243,7 @@ fn should_lock_mutex() {
         for i in 0..100 {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
-                job_system::lock(&results_copy).push(i);
+                job_system::lock(&results_copy).unwrap().push(i);
             });
 
             std::mem::forget(future);
@@ -249,7 +251,7 @@ fn should_lock_mutex() {
 
         drop(job_system);
 
-        let results = job_system::lock(&results);
+        let results = job_system::lock(&results).unwrap();
 
         assert_eq!(results.len(), 100);
         for i in 0..100 {

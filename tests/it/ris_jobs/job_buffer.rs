@@ -1,11 +1,12 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
 
-use ris_jobs::{job::Job, job_buffer::JobBuffer};
+use ris_jobs::job::Job;
+use ris_jobs::job_buffer::JobBuffer;
+use ris_jobs::job_buffer::PushError;
 use ris_util::testing::retry;
 
 //-----------------------------//
@@ -69,7 +70,11 @@ fn should_push_till_full() {
     assert!(push2.is_ok());
     assert!(push3.is_err());
 
-    push3.err().unwrap().not_pushed.invoke();
+    match push3.err().unwrap() {
+        PushError::BlockedOrFull(mut not_pushed) => not_pushed.invoke(),
+        _ => panic!("expected push error blocked or full"),
+    }
+
     assert_eq!(*data.borrow(), 3);
 }
 
@@ -163,7 +168,10 @@ fn should_push_pop_and_steal_multiple_times() {
         assert!(push5.is_ok());
         assert!(push6.is_err());
 
-        push6.err().unwrap().not_pushed.invoke();
+        match push6.err().unwrap() {
+            PushError::BlockedOrFull(mut not_pushed) => not_pushed.invoke(),
+            _ => panic!("expected push error blocked or full"),
+        }
         assert_eq!(*data.borrow(), 6);
 
         let steal1 = job_buffer.steal();

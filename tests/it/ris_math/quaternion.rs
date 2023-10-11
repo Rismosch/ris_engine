@@ -7,7 +7,7 @@ use ris_util::testing::assert_feq;
 #[test]
 fn should_normalize_quaternion() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new().unwrap()));
-    testing::repeat(1_000_000, move || {
+    testing::repeat(1_000_000, move |_| {
         let w = rng.borrow_mut().next_f();
         let x = rng.borrow_mut().next_f();
         let y = rng.borrow_mut().next_f();

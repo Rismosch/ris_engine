@@ -251,15 +251,14 @@ fn run_worker_thread(index: usize, done: Arc<AtomicBool>) -> RisResult<()> {
 }
 
 fn empty_buffer(index: usize) -> RisResult<()> {
-    loop {
-        ris_log::trace!("emptying {}...", index);
-        match pop_job()? {
-            Some(mut job) => job.invoke(),
-            None => break,
-        }
+    let mut counter = 0;
+    ris_log::trace!("emptying {}...", index);
+    while let Some(mut job) = pop_job()? {
+        job.invoke();
+        counter += 1;
     }
 
-    ris_log::trace!("emptied {}!", index);
+    ris_log::trace!("emptied {}! ({} jobs)", index, counter);
     Ok(())
 }
 

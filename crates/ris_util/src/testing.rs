@@ -1,6 +1,6 @@
-pub fn repeat<F: FnMut() + Clone>(repeats: u32, test: F) {
-    for _i in 0..repeats {
-        test.clone()();
+pub fn repeat<F: FnMut(u32) + Clone>(repeats: u32, test: F) {
+    for i in 0..repeats {
+        test.clone()(i);
     }
 }
 
