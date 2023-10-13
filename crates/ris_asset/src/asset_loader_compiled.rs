@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::SeekFrom;
 use std::path::Path;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 struct AssetEntry {
     addr: u64,

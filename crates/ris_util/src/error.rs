@@ -1,5 +1,7 @@
 use std::error::Error;
 
+pub type RisResult<T> = Result<T, RisError>;
+
 pub type SourceError = Option<std::sync::Arc<dyn Error + 'static>>;
 
 #[derive(Clone)]
@@ -81,11 +83,11 @@ macro_rules! unroll {
         match $result {
             Ok(value) => Ok(value),
             Err(error) => {
-                let source: ris_util::ris_error::SourceError = Some(std::sync::Arc::new(error));
+                let source: ris_util::error::SourceError = Some(std::sync::Arc::new(error));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let result = ris_util::ris_error::RisError::new(source, message, file, line);
+                let result = ris_util::error::RisError::new(source, message, file, line);
                 Err(result)
             }
         }
@@ -98,11 +100,11 @@ macro_rules! unroll_option {
         match $result {
             Some(value) => Ok(value),
             None => {
-                let source: ris_util::ris_error::SourceError = Some(std::sync::Arc::new(ris_util::ris_error::OptionError));
+                let source: ris_util::error::SourceError = Some(std::sync::Arc::new(ris_util::error::OptionError));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let result = ris_util::ris_error::RisError::new(source, message, file, line);
+                let result = ris_util::error::RisError::new(source, message, file, line);
                 Err(result)
             },
         }
@@ -113,11 +115,11 @@ macro_rules! unroll_option {
 macro_rules! new_err {
     ($($arg:tt)*) => {
         {
-            let source: ris_util::ris_error::SourceError = None;
+            let source: ris_util::error::SourceError = None;
             let message = format!($($arg)*);
             let file = String::from(file!());
             let line = line!();
-            ris_util::ris_error::RisError::new(source, message, file, line)
+            ris_util::error::RisError::new(source, message, file, line)
         }
     };
 }

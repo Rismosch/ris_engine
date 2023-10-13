@@ -16,6 +16,7 @@ use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
 use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_system;
+use ris_util::error::RisResult;
 
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
@@ -48,7 +49,7 @@ impl InputFrame {
         current: &mut InputData,
         previous: &InputData,
         _frame: &FrameData,
-    ) -> GameloopState {
+    ) -> RisResult<GameloopState> {
         let current_keyboard = std::mem::take(&mut current.keyboard);
         let current_gamepad = std::mem::take(&mut current.gamepad);
 
@@ -70,7 +71,7 @@ impl InputFrame {
             if let Event::Quit { .. } = event {
                 current.keyboard = current_keyboard;
                 current.gamepad = current_gamepad;
-                return GameloopState::WantsToQuit;
+                return Ok(GameloopState::WantsToQuit);
             };
 
             if let Event::Window {
@@ -141,6 +142,6 @@ impl InputFrame {
         current.gamepad = new_gamepad;
         self.gamepad_logic = Some(new_gamepad_logic);
 
-        new_gameloop_state
+        Ok(new_gameloop_state)
     }
 }

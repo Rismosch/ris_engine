@@ -9,7 +9,7 @@ use vulkano::sync::GpuFuture;
 use ris_asset::loader::scenes_loader::Material;
 use ris_data::scene::Scene;
 use ris_math::matrix4x4::Matrix4x4;
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;

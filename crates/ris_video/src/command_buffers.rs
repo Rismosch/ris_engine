@@ -11,7 +11,7 @@ use vulkano::pipeline::Pipeline;
 use vulkano::pipeline::PipelineBindPoint;
 use vulkano::render_pass::Framebuffer;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub fn create_command_buffers(
     allocators: &crate::allocators::Allocators,

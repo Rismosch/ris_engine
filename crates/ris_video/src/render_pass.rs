@@ -4,7 +4,7 @@ use vulkano::device::Device;
 use vulkano::render_pass::RenderPass;
 use vulkano::swapchain::Swapchain;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub fn create_render_pass(
     device: &Arc<Device>,

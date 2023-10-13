@@ -6,7 +6,7 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::loader::ris_loader;
 

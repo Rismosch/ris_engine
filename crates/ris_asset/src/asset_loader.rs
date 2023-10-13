@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;

@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub fn seek(file: &mut impl Seek, pos: SeekFrom) -> Result<u64, RisError> {
     ris_util::unroll!(file.seek(pos), "failed to seek")

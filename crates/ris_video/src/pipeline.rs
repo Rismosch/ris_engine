@@ -16,7 +16,7 @@ use vulkano::render_pass::RenderPass;
 use vulkano::render_pass::Subpass;
 use vulkano::shader::ShaderModule;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::gpu_objects::Vertex3d;
 

@@ -15,7 +15,7 @@ use vulkano::swapchain::Surface;
 use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainCreateInfo;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub fn create_swapchain(
     physical_device: &Arc<PhysicalDevice>,

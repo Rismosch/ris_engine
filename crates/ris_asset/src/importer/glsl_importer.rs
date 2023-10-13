@@ -3,7 +3,7 @@ use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub const IN_EXT: &str = "glsl";
 pub const OUT_EXT: &str = "spirv";

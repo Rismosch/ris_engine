@@ -1,6 +1,7 @@
 pub mod gameloop;
 pub mod info;
 pub mod input;
+pub mod settings;
 
 pub mod ris_map;
 pub mod scene;

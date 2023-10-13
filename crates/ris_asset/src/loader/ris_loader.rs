@@ -1,7 +1,7 @@
 use std::io::Cursor;
 use std::io::SeekFrom;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::AssetId;
 use crate::RisAssetData;

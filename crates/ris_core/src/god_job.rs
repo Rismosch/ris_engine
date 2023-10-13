@@ -1,9 +1,10 @@
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
+use ris_util::error::RisResult;
 
 use crate::god_object::GodObject;
 
-pub fn run(mut god_object: GodObject) -> GameloopState {
+pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
     let mut frame_data_calculator = god_object.frame_data_calculator;
     let mut current_input = god_object.input_data;
     let mut current_logic = god_object.logic_data;
@@ -73,7 +74,29 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
 
-        // determine, whether to continue, return error or exit
+        // restart job system
+        
+        // handle errors
+        if let Err(ref e) = input_state {
+            ris_log::fatal!("gameloop input encountered an error: {}", e);
+            return input_state;
+        }
+
+        if let Err(ref e) = logic_state {
+            ris_log::fatal!("gameloop logic encountered an error: {}", e);
+            return logic_state;
+        }
+
+        if let Err(ref e) = output_state {
+            ris_log::fatal!("gameloop output encountered an error: {}", e);
+            return output_state;
+        }
+
+        let input_state = input_state?;
+        let logic_state = logic_state?;
+        let output_state = output_state?;
+        
+        // determine, whether to continue, restart or exit
         if matches!(input_state, GameloopState::WantsToContinue)
             && matches!(logic_state, GameloopState::WantsToContinue)
             && matches!(output_state, GameloopState::WantsToContinue)
@@ -85,24 +108,9 @@ pub fn run(mut god_object: GodObject) -> GameloopState {
             || matches!(logic_state, GameloopState::WantsToRestart)
             || matches!(output_state, GameloopState::WantsToRestart)
         {
-            return GameloopState::WantsToRestart;
+            return Ok(GameloopState::WantsToRestart);
         }
 
-        if let GameloopState::Error(ref e) = input_state {
-            ris_log::fatal!("gameloop input encountered an error: {}", e);
-            return input_state;
-        }
-
-        if let GameloopState::Error(ref e) = logic_state {
-            ris_log::fatal!("gameloop logic encountered an error: {}", e);
-            return logic_state;
-        }
-
-        if let GameloopState::Error(ref e) = output_state {
-            ris_log::fatal!("gameloop output encountered an error: {}", e);
-            return output_state;
-        }
-
-        return GameloopState::WantsToQuit;
+        return Ok(GameloopState::WantsToQuit);
     }
 }

@@ -4,7 +4,7 @@ use vulkano::device::Device;
 use vulkano::shader::ShaderModule;
 
 use ris_asset::loader::scenes_loader::Material;
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub type Shaders = (Arc<ShaderModule>, Arc<ShaderModule>);
 

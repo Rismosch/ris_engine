@@ -1,6 +1,6 @@
 use std::env;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 use ris_util::throw;
 
 use crate::info::cpu_info::CpuInfo;
@@ -44,7 +44,7 @@ pub struct ArgsInfo {
     pub raw_args: Vec<String>,
     pub executable_path: String,
     pub no_restart: bool,
-    pub workers: i32,
+    pub workers: usize,
     pub assets: String,
 }
 
@@ -96,7 +96,7 @@ impl ArgsInfo {
                 WORKERS_ARG => {
                     i += 1;
                     let second_arg = &result.get_arg(i);
-                    match second_arg.parse::<i32>() {
+                    match second_arg.parse::<usize>() {
                         Ok(value) => result.workers = value,
                         Err(error) => {
                             return ris_util::result_err!("could not parse workers: {}", error)

@@ -7,7 +7,7 @@ use vulkano::device::QueueFlags;
 use vulkano::instance::Instance;
 use vulkano::swapchain::Surface;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub fn select_physical_device(
     instance: &Arc<Instance>,

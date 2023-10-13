@@ -39,7 +39,7 @@ use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
 use ris_asset::loader::scenes_loader::Material;
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,

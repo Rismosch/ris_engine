@@ -1,9 +1,11 @@
 use std::fmt;
 
+use ris_util::error::RisResult;
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct CpuInfo {
     pub cpu_cache_line_size: i32,
-    pub cpu_count: i32,
+    pub cpu_count: usize,
     pub has_3d_now: bool,
     pub has_alti_vec: bool,
     pub has_avx: bool,
@@ -20,10 +22,14 @@ pub struct CpuInfo {
 }
 
 impl CpuInfo {
-    pub fn new() -> CpuInfo {
-        CpuInfo {
+    pub fn new() -> RisResult<CpuInfo> {
+        let cpu_count = ris_util::unroll!(
+            sdl2::cpuinfo::cpu_count().try_into(),
+            "",
+        )?;
+        Ok(CpuInfo {
             cpu_cache_line_size: sdl2::cpuinfo::cpu_cache_line_size(),
-            cpu_count: sdl2::cpuinfo::cpu_count(),
+            cpu_count,
             has_3d_now: sdl2::cpuinfo::has_3d_now(),
             has_alti_vec: sdl2::cpuinfo::has_alti_vec(),
             has_avx: sdl2::cpuinfo::has_avx(),
@@ -37,13 +43,7 @@ impl CpuInfo {
             has_sse41: sdl2::cpuinfo::has_sse41(),
             has_sse42: sdl2::cpuinfo::has_sse42(),
             system_ram: sdl2::cpuinfo::system_ram(),
-        }
-    }
-}
-
-impl Default for CpuInfo {
-    fn default() -> Self {
-        CpuInfo::new()
+        })
     }
 }
 

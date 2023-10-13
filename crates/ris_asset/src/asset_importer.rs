@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use ris_util::ris_error::RisError;
+use ris_util::error::RisError;
 
 use crate::importer::*;
 
