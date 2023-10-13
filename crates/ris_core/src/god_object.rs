@@ -56,7 +56,7 @@ pub struct GodObject {
 impl GodObject {
     pub fn new(app_info: AppInfo) -> Result<Self, RisError> {
         let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
-        let log_guard = log::init(LogLevel::Trace, appenders);
+        let log_guard = unsafe { log::init(LogLevel::Trace, appenders) };
 
         let formatted_app_info = format!("{}", &app_info);
         ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
@@ -83,7 +83,7 @@ impl GodObject {
 
         // assets
         import_assets()?;
-        let asset_loader_guard = asset_loader::init(&app_info)?;
+        let asset_loader_guard = unsafe { asset_loader::init(&app_info)? };
 
         // sdl
         let sdl_context =

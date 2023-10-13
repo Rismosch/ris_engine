@@ -29,9 +29,35 @@ pub struct JobSystemGuard {
     done: Arc<AtomicBool>,
 }
 
+impl Drop for JobSystemGuard {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping job system...");
+
+        self.done.store(true, Ordering::SeqCst);
+
+        empty_buffer(0);
+
+        match self.handles.take() {
+            Some(handles) => {
+                let mut i = 0;
+                for handle in handles {
+                    i += 1;
+                    match handle.join() {
+                        Ok(()) => ris_log::trace!("joined thread {}", i),
+                        Err(_) => ris_log::fatal!("failed to join thread {}", i),
+                    }
+                }
+            }
+            None => ris_log::debug!("handles already joined"),
+        }
+
+        ris_log::info!("job system guard dropped!");
+    }
+}
+
 /// # Safety
 ///
-/// The JobSystem is a global system. Initialize it only once.
+/// The job system is a singleton. Initialize it only once.
 pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> JobSystemGuard {
     // estimate workthreads and according affinities
     let threads = std::cmp::min(cpu_count, threads);
@@ -74,32 +100,6 @@ pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> 
     setup_worker_thread(&core_ids, buffers, 0);
 
     JobSystemGuard { handles, done }
-}
-
-impl Drop for JobSystemGuard {
-    fn drop(&mut self) {
-        ris_log::debug!("dropping job system...");
-
-        self.done.store(true, Ordering::SeqCst);
-
-        empty_buffer(0);
-
-        match self.handles.take() {
-            Some(handles) => {
-                let mut i = 0;
-                for handle in handles {
-                    i += 1;
-                    match handle.join() {
-                        Ok(()) => ris_log::trace!("joined thread {}", i),
-                        Err(_) => ris_log::fatal!("failed to join thread {}", i),
-                    }
-                }
-            }
-            None => ris_log::debug!("handles already joined"),
-        }
-
-        ris_log::debug!("job system finished")
-    }
 }
 
 // public methods

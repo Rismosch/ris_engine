@@ -45,7 +45,10 @@ impl Drop for Logger {
     }
 }
 
-pub fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
+/// # Safety
+///
+/// The logger is a singleton. Initialize it only once.
+pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return LogGuard;
     }

@@ -58,10 +58,15 @@ impl Drop for AssetLoaderGuard {
             Err(e) => ris_log::error!("error while dropping asset loader: {}", e),
             Ok(mut asset_loader_sender) => *asset_loader_sender = None,
         }
+
+        ris_log::info!("asset loader guard dropped!");
     }
 }
 
-pub fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
+/// # Safety
+///
+/// The asset loader is a singleton. Initialize it only once.
+pub unsafe fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
     let asset_path;
 
     // search for assets relative

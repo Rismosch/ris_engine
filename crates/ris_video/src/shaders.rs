@@ -12,7 +12,11 @@ pub fn load_shaders(device: &Arc<Device>, material: &Material) -> Result<Shaders
     let vertex_id = material.vertex_shader.clone();
     let fragmend_id = material.fragment_shader.clone();
 
-    ris_log::trace!("vert: {:?} frag {:?}", vertex_id, fragmend_id);
+    ris_log::trace!(
+        "loading shaders: vert: {:?} frag {:?}",
+        vertex_id,
+        fragmend_id
+    );
 
     let vertex_future = ris_asset::asset_loader::load(vertex_id);
     let fragment_future = ris_asset::asset_loader::load(fragmend_id);
