@@ -10,6 +10,8 @@ use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::info::app_info::AppInfo;
+use ris_data::settings;
+use ris_data::settings::Settings;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
 use ris_log::console_appender::ConsoleAppender;
@@ -38,6 +40,7 @@ fn scenes_id() -> AssetId {
 
 pub struct GodObject {
     pub app_info: AppInfo,
+    pub settings: Settings,
     pub frame_data_calculator: FrameDataCalculator,
     pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
@@ -79,6 +82,10 @@ impl GodObject {
         log_guard: &mut Option<LogGuard>,
     ) -> RisResult<Self> {
         // settings
+        let settings = match settings::serializer::deserialize() {
+            Some(s) => s,
+            None => Settings::new(&app_info),
+        };
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
@@ -140,6 +147,7 @@ impl GodObject {
         // god object
         let god_object = GodObject {
             app_info,
+            settings,
             frame_data_calculator,
             input_frame,
             logic_frame,
