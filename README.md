@@ -39,6 +39,7 @@ Barebones game engine. Home made passion project.
   - [ ] Bounding box
   - [ ] Text
 - [ ] Gameobjects
+- [ ] Audio
 
 ---
 
