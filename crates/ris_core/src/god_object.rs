@@ -40,7 +40,7 @@ fn scenes_id() -> AssetId {
 
 pub struct GodObject {
     pub app_info: AppInfo,
-    pub settings: Settings,
+    //pub settings: Settings,
     pub frame_data_calculator: FrameDataCalculator,
     pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
@@ -82,10 +82,10 @@ impl GodObject {
         log_guard: &mut Option<LogGuard>,
     ) -> RisResult<Self> {
         // settings
-        let settings = match settings::serializer::deserialize() {
-            Some(s) => s,
-            None => Settings::new(&app_info),
-        };
+        //let settings = match settings::serializer::deserialize() {
+        //    Some(s) => s,
+        //    None => Settings::new(&app_info),
+        //};
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
@@ -147,7 +147,7 @@ impl GodObject {
         // god object
         let god_object = GodObject {
             app_info,
-            settings,
+            //settings,
             frame_data_calculator,
             input_frame,
             logic_frame,

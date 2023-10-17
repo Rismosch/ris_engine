@@ -10,6 +10,17 @@ use ris_util::error::RisError;
 
 use crate::loader::ris_loader;
 
+/// # File Format
+///
+/// encoding: little-endian
+///
+/// - 16 bytes: magic
+/// - int64: address of original asset names
+/// - int64: number of entries
+/// - int64[]: addresses of entries
+/// - data
+/// - string[]: original names (seperated by \0)
+
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
