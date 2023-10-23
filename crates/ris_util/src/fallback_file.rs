@@ -2,9 +2,7 @@ use std::cmp::Ordering;
 use std::fs::DirEntry;
 use std::fs::File;
 use std::io::BufRead;
-use std::io::Read;
 use std::io::Write;
-use std::io::Seek;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -31,11 +29,7 @@ impl FallbackFileAppend {
         Ok(Self {current})
     }
 
-    pub fn current(&self) -> &(impl Read + Seek) {
-        &self.current
-    }
-
-    pub fn current_as_mut(&mut self) -> &mut (impl Read + Write + Seek) {
+    pub fn current(&mut self) -> &mut File {
         &mut self.current
     }
 }
@@ -86,21 +80,14 @@ fn delete_expired_files(old_directory: &Path) -> RisResult<()> {
 
     let mut sorted_entries: Vec<_> = entries.collect();
     sorted_entries.sort_by(|left, right| {
-        let left_modified_result = get_modified(left);
-        let right_modified_result = get_modified(right);
-
-        match left_modified_result {
-            Ok(left_modified) => {
-                match right_modified_result {
-                    Ok(right_modified) => right_modified.cmp(&left_modified),
-                    Err(_) => Ordering::Less,
-                }
+        match left {
+            Ok(left) => match right {
+                Ok(right) => right.path().cmp(&left.path()),
+                Err(_) => Ordering::Less,
             },
-            Err(_) => {
-                match right_modified_result {
-                    Ok(_right_modified) => Ordering::Greater,
-                    Err(_) => Ordering::Equal,
-                }
+            Err(_) => match right {
+                Ok(_right) => Ordering::Greater,
+                Err(_) => Ordering::Equal,
             },
         }
     });
@@ -174,21 +161,18 @@ fn move_current_file(current_path: &Path, old_directory: &Path, file_extension: 
 
 fn create_current_file(current_path: &Path) -> RisResult<File> {
     let mut current_file = ris_util::unroll!(
-        File::create(&current_path),
+        File::create(current_path),
         "failed to create \"{:?}\"",
         current_path,
     )?;
 
     ris_util::unroll!(
-        writeln!(current_file, "{}\n", Local::now()),
+        writeln!(current_file, "{}\n", Local::now().to_rfc2822()),
         "failed to write timestamp into current file",
     )?;
 
     Ok(current_file)
 }
-
-
-
 
 fn get_modified(entry: &Result<DirEntry, std::io::Error>) -> RisResult<SystemTime> {
     let entry = entry.as_ref().map_err(|e| ris_util::new_err!(
