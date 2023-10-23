@@ -122,7 +122,7 @@ fn delete_expired_files(old_directory: &Path) -> RisResult<()> {
 }
 
 fn move_current_file(current_path: &Path, old_directory: &Path, file_extension: &str) -> RisResult<()> {
-    if current_path.exists() {
+    if !current_path.exists() {
         return Ok(());
     }
 
@@ -137,7 +137,7 @@ fn move_current_file(current_path: &Path, old_directory: &Path, file_extension: 
         Some(Ok(line)) => line,
         _ => format!("{}", Local::now()),
     };
-    let previous_filename_without_extension = sanitize(&previous_filename_unsanitized);
+    let previous_filename_without_extension = crate::path::sanitize(&previous_filename_unsanitized, true);
 
     let mut previous_path = PathBuf::new();
     previous_path.push(old_directory);
@@ -207,13 +207,3 @@ fn get_modified(entry: &Result<DirEntry, std::io::Error>) -> RisResult<SystemTim
     )
 }
 
-fn sanitize(value: &str) -> String {
-    const INVALID_CHARS: [char; 9] = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
-
-    let mut value = String::from(value);
-    for invalid_char in INVALID_CHARS {
-        value = value.replace(invalid_char, "_");
-    }
-
-    value
-}
