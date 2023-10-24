@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::io::Write;
 use std::io::Seek;
+use std::io::SeekFrom;
 use std::path::PathBuf;
 
 use chrono::DateTime;
@@ -88,18 +89,82 @@ fn should_create_current_file_with_timestamp() {
 #[test]
 fn should_move_current_file() {
     let test_dir = ris_util::prep_test_dir!();
-    
-    //for _ in 0..100 {
-    //    std::thread::sleep(std::time::Duration::from_secs(1));
-    //    FallbackFileAppend::new(&test_dir, ".test").unwrap();
-    //}
+    FallbackFileAppend::new(&test_dir, ".test").unwrap();
 
-    panic!();
+    let mut current_path = PathBuf::from(&test_dir);
+    current_path.push("current.test");
+    let mut old_path = PathBuf::from(&test_dir);
+    old_path.push("old");
+
+    // move file 1
+    // should use first line as file name
+    std::fs::remove_file(&current_path).unwrap();
+    let mut current_file = std::fs::File::create(&current_path).unwrap();
+    writeln!(current_file, "i am a unique file").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    let mut file_path = PathBuf::from(&old_path);
+    file_path.push("i am a unique file.test");
+    let mut file = std::fs::File::open(&file_path).unwrap();
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    assert!(file_path.exists());
+    assert_eq!(content, "i am a unique file\n");
+    
+    // move file 2
+    // should use first line as file name, sanitizing invalid chars
+    std::fs::remove_file(&current_path).unwrap();
+    let mut current_file = std::fs::File::create(&current_path).unwrap();
+    writeln!(current_file, "i am not unique :(").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    let mut file_path = PathBuf::from(&old_path);
+    file_path.push("i am not unique _(.test");
+    let mut file = std::fs::File::open(&file_path).unwrap();
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    assert!(file_path.exists());
+    assert_eq!(content, "i am not unique :(\n");
+
+
+    // move file 3
+    // should use first line as file name, sanitizing invalid chars, and generating a unique
+    // filename
+    std::fs::remove_file(&current_path).unwrap();
+    let mut current_file = std::fs::File::create(&current_path).unwrap();
+    writeln!(current_file, "i am not unique :(").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    let mut file_path = PathBuf::from(&old_path);
+    file_path.push("i am not unique _((1).test");
+    let mut file = std::fs::File::open(&file_path).unwrap();
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    assert!(file_path.exists());
+    assert_eq!(content, "i am not unique :(\n");
 }
 
 #[test]
-fn should_append_to_current_file() {
-    panic!();
+fn should_give_access_to_current_file() {
+    let test_dir = ris_util::prep_test_dir!();
+    let mut appender = FallbackFileAppend::new(&test_dir, ".test").unwrap();
+
+    let current_file = appender.current();
+    let message = "i am a very important message\n";
+    let bytes = message.as_bytes();
+    current_file.seek(SeekFrom::End(0)).unwrap();
+    let _ = current_file.write(bytes).unwrap();
+
+    drop(appender);
+
+    let mut current_path = PathBuf::from(&test_dir);
+    current_path.push("current.test");
+    let mut current_file = std::fs::File::open(current_path).unwrap();
+    let mut content = String::new();
+    current_file.read_to_string(&mut content).unwrap();
+
+    let lines = content.lines().collect::<Vec<&str>>();
+    assert_eq!(lines.len(), 3);
+    assert!(DateTime::parse_from_rfc2822(lines[0]).is_ok());
+    assert_eq!(lines[1], "");
+    assert_eq!(lines[2], "i am a very important message");
 }
 
 

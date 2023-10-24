@@ -19,7 +19,7 @@ use crate::loader::ris_loader;
 /// - int64: number of entries
 /// - int64[]: addresses of entries
 /// - data
-/// - string[]: original names (seperated by \0)
+/// - string[]: original names (seperated by '\0')
 
 // "ris_assets\0\0\0\0\0\0"
 pub const MAGIC: [u8; 16] = [
