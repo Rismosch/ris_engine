@@ -17,7 +17,7 @@ fn should_create_directories() {
     test_dir.push("awesome");
     test_dir.push("fallback");
     test_dir.push("directory");
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
     let mut current_file = PathBuf::from(&test_dir);
     current_file.push("current.test");
@@ -43,7 +43,7 @@ fn should_delete_expired_files() {
     std::fs::create_dir_all(&old_dir).unwrap();
 
     let mut file_paths = Vec::new();
-    for i in 0..ris_util::fallback_file::OLD_FILE_COUNT {
+    for i in 0..10 {
         let mut file_path = PathBuf::from(&old_dir);
         file_path.push(format!("{}", i));
 
@@ -51,7 +51,7 @@ fn should_delete_expired_files() {
         file_paths.push(file_path);
     }
 
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
     assert!(!file_paths[0].exists()); // first one expired and got deleted
     assert!(file_paths[1].exists());
@@ -68,9 +68,9 @@ fn should_delete_expired_files() {
 #[test]
 fn should_create_current_file_with_timestamp() {
     let test_dir = ris_util::prep_test_dir!();
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
-    let mut current_file_path = PathBuf::from(test_dir);
+    let mut current_file_path = PathBuf::from(&test_dir);
     current_file_path.push("current.test");
 
     let mut file = std::fs::File::open(current_file_path).unwrap();
@@ -89,7 +89,7 @@ fn should_create_current_file_with_timestamp() {
 #[test]
 fn should_move_current_file() {
     let test_dir = ris_util::prep_test_dir!();
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
     let mut current_path = PathBuf::from(&test_dir);
     current_path.push("current.test");
@@ -101,7 +101,7 @@ fn should_move_current_file() {
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am a unique file").unwrap();
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
     let mut file_path = PathBuf::from(&old_path);
     file_path.push("i am a unique file.test");
     let mut file = std::fs::File::open(&file_path).unwrap();
@@ -115,7 +115,7 @@ fn should_move_current_file() {
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
     let mut file_path = PathBuf::from(&old_path);
     file_path.push("i am not unique _(.test");
     let mut file = std::fs::File::open(&file_path).unwrap();
@@ -131,7 +131,7 @@ fn should_move_current_file() {
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
-    FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
     let mut file_path = PathBuf::from(&old_path);
     file_path.push("i am not unique _((1).test");
     let mut file = std::fs::File::open(&file_path).unwrap();
@@ -144,7 +144,7 @@ fn should_move_current_file() {
 #[test]
 fn should_give_access_to_current_file() {
     let test_dir = ris_util::prep_test_dir!();
-    let mut appender = FallbackFileAppend::new(&test_dir, ".test").unwrap();
+    let mut appender = FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
     let current_file = appender.current();
     let message = "i am a very important message\n";
