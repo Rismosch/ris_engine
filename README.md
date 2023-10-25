@@ -79,7 +79,7 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 In this repo you will find the   `./3rd_party/` directory. It contains all required 3rd party libraries for Windows.
 
-For information where I got these libraries from, read [3rd_party/README.md](3rd_party/README.md). 
+For information where I got these libraries from, read [./3rd_party/README.md](3rd_party/README.md). 
 
 #### 1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
 
