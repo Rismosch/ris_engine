@@ -12,7 +12,7 @@ Barebones game engine. Home made passion project.
 
 - [x] Startup, shutdown, mainloop and error handling
 - [x] Logging, to console and file
-- [x] Threadpool based multithreading
+- [x] Threadpool based concurrency
 - [x] Remappable controls
   - [x] Mouse
   - [x] Keyboard
@@ -47,11 +47,7 @@ Barebones game engine. Home made passion project.
 
 To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
 
-
-
 The current target platform is x86_64, both Windows and Linux.
-
-
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, continue reading this section.
 
