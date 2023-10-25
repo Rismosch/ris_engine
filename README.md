@@ -2,7 +2,7 @@
 
 Barebones game engine. Home made passion project. 
 
-🏗️ **Don't expect this repo to be stable, as I am constantly pushing breaking changes.** 👷
+🏗️ **VERY WIP** 👷
 
 ![thumbnail](images/ris_engine_small.png "DALL·E: \"an expressive oil painting of an engine, burning is colourful pigments\"")
 
@@ -55,15 +55,11 @@ The current target platform is x86_64, both Windows and Linux.
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, continue reading this section.
 
-
-
-You can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required packages. Alternatively, while you have internet access, you can use `cargo vendor` to download all dependencies: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
-
-Simply run:
+You can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required packages. Alternatively, while you have internet access, you can download all dependencies with the following command:
 
     cargo vendor
 
-This should generate the directory `./vendor/`, which contains all downloaded packages.
+This should generate the directory `./vendor/`, which contains all necessary packages.
 
 Then create the file `./cargo/config.toml` with this content:
 
@@ -74,6 +70,8 @@ Then create the file `./cargo/config.toml` with this content:
     directory = "vendor"
 
 This tells `cargo` to use the packages in `./vendor/` instead of searching the internet.
+
+For more information on `cargo vendor` check the following link: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
 
 ---
 
