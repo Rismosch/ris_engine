@@ -120,7 +120,6 @@ function ParseMultiLine() {
     total_close_paranthesis=$(($total_close_paranthesis + "${#close_paranthesis}"))
 
     if [[ $total_quotation_marks -gt 0 ]] && [[ $((total_quotation_marks % 2)) -eq 0 ]] && [[ $total_open_paranthesis -gt 0 ]] && [[ $total_close_paranthesis -gt 0 ]] && [[ $total_open_paranthesis -eq $total_close_paranthesis ]]; then
-    #if [[ $total_quotation_marks -gt 0 ]] && [[ $((total_quotation_marks % 2)) -eq 0 ]] && [[ $total_open_paranthesis -gt 0 ]] && [[ $total_close_paranthesis -gt 0 ]]; then
         # end found! we can parse!
         multi_line+=$p
         
@@ -202,6 +201,28 @@ if [ -f "$__temp_path" ]; then
     rm "$__temp_path"
 fi
 
-echo "done! final build can be found under \`$final_dir\`"
+echo "cleaning workspace..."
+if [ "$cli_cargo_clean_value" = true ]; then
+    cargo clean
+fi
 
+echo "importing assets..."
+cargo run -p ris_asset_compiler importall
+echo "compiling assets..."
+cargo run -p ris_asset_compiler compile
+
+echo "compiling workspace..."
+cargo build -r
+
+echo "moving files..."
+target_dir="$ROOT_DIR/target/release"
+source_exe_path="$target_dir/ris_engine"
+asset_filename="ris_assets"
+asset_path="$ROOT_DIR/$asset_filename"
+
+cp "$source_exe_path" "$final_dir"
+cp "$asset_path" "$final_dir"
+
+echo "done! final build can be found under \`$final_dir\`"
 popd
+
