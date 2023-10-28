@@ -142,8 +142,9 @@ The build script will generate building information, compile the entire workspac
 1. **ris_engine.exe**  
    This is the compiled engine. It contains all logic to run the game.
 
-2. **SDL2.dll**  
+2. **ris_assets**  
+   This file contains all assets used by the engine. Without assets, the game cannot be run.
+   
+3. **SDL2.dll**  (only on windows)
    This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
 
-3. **ris_assets**  
-   This file contains all assets used by the engine. Without assets, the game cannot be run.
