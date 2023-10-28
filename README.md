@@ -135,7 +135,7 @@ Windows:
 
 Linux:
 
-    TODO
+    bash ./ci/build.sh
 
 The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./ci_out/build/`:
 
