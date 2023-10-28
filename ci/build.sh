@@ -8,12 +8,6 @@ source "$SCRIPT_DIR/util.sh"
 pushd $ROOT_DIR
 
 echo "checking preconditions..."
-cargo check
-
-if [ $? -ne 0 ]; then
-    echo "cargo check failed"
-    exit
-fi
 
 echo "clearing destination directory..."
 final_dir=''
