@@ -176,6 +176,6 @@ fn import_assets() -> RisResult<()> {
 }
 
 #[cfg(not(debug_assertions))]
-fn import_assets() -> Result<(), RisError> {
+fn import_assets() -> RisResult<()> {
     Ok(())
 }
