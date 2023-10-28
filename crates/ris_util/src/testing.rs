@@ -55,5 +55,5 @@ macro_rules! prep_test_dir {
         }
 
         result
-    }}
+    }};
 }

@@ -1,6 +1,6 @@
 use std::io::Read;
-use std::io::Write;
 use std::io::Seek;
+use std::io::Write;
 use std::path::PathBuf;
 
 use ris_util::error::RisResult;

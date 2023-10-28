@@ -69,6 +69,7 @@ try {
         )
 
         try {
+            Write-Host "running command: $command"
             return Invoke-Expression $command
         }
         catch {

@@ -23,10 +23,7 @@ pub struct CpuInfo {
 
 impl CpuInfo {
     pub fn new() -> RisResult<CpuInfo> {
-        let cpu_count = ris_util::unroll!(
-            sdl2::cpuinfo::cpu_count().try_into(),
-            "",
-        )?;
+        let cpu_count = ris_util::unroll!(sdl2::cpuinfo::cpu_count().try_into(), "",)?;
         Ok(CpuInfo {
             cpu_cache_line_size: sdl2::cpuinfo::cpu_cache_line_size(),
             cpu_count,

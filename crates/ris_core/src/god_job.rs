@@ -75,7 +75,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         god_object.logic_frame = new_logic_frame;
 
         // restart job system
-        
+
         // handle errors
         if let Err(ref e) = input_state {
             ris_log::fatal!("gameloop input encountered an error: {}", e);
@@ -95,7 +95,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         let input_state = input_state?;
         let logic_state = logic_state?;
         let output_state = output_state?;
-        
+
         // determine, whether to continue, restart or exit
         if matches!(input_state, GameloopState::WantsToContinue)
             && matches!(logic_state, GameloopState::WantsToContinue)

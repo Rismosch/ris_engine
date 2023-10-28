@@ -77,10 +77,7 @@ impl GodObject {
         result
     }
 
-    fn build_god_object(
-        app_info: AppInfo,
-        log_guard: &mut Option<LogGuard>,
-    ) -> RisResult<Self> {
+    fn build_god_object(app_info: AppInfo, log_guard: &mut Option<LogGuard>) -> RisResult<Self> {
         // settings
         //let settings = match settings::serializer::deserialize() {
         //    Some(s) => s,

@@ -3,8 +3,8 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
-use ris_video::video::Video;
 use ris_util::error::RisResult;
+use ris_video::video::Video;
 
 pub struct OutputFrame {
     video: Video,

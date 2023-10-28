@@ -6,7 +6,7 @@ use ris_util::error::RisResult;
 
 use crate::info::app_info::AppInfo;
 
-pub struct Settings{
+pub struct Settings {
     pub job: JobSettings,
 }
 

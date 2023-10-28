@@ -9,10 +9,10 @@ use std::time::SystemTime;
 
 use chrono::Local;
 
-use crate::error::RisResult;
 use crate as ris_util;
+use crate::error::RisResult;
 
-pub struct FallbackFileAppend{
+pub struct FallbackFileAppend {
     current_file: File,
 }
 
@@ -24,7 +24,7 @@ impl FallbackFileAppend {
         move_current_file(&current_path, &old_directory, file_extension)?;
         let current_file = create_current_file(&current_path)?;
 
-        Ok(Self {current_file})
+        Ok(Self { current_file })
     }
 
     pub fn current(&mut self) -> &mut File {
@@ -32,7 +32,7 @@ impl FallbackFileAppend {
     }
 }
 
-struct FallbackFileOverwrite{
+struct FallbackFileOverwrite {
     directory: PathBuf,
     current_path: PathBuf,
     old_directory: PathBuf,
@@ -46,7 +46,7 @@ impl FallbackFileOverwrite {
         let file_extension = file_extension.to_string();
         let (current_path, old_directory) = generate_paths(&directory, &file_extension);
 
-        Self{
+        Self {
             directory,
             current_path,
             old_directory,
@@ -58,13 +58,15 @@ impl FallbackFileOverwrite {
     pub fn overwrite_current(&self, buf: &[u8]) -> RisResult<()> {
         create_directories(&self.old_directory)?;
         delete_expired_files(&self.old_directory, self.old_file_count)?;
-        move_current_file(&self.current_path, &self.old_directory, &self.file_extension)?;
+        move_current_file(
+            &self.current_path,
+            &self.old_directory,
+            &self.file_extension,
+        )?;
         let mut current_file = create_current_file(&self.current_path)?;
 
-        let written_bytes = ris_util::unroll!(
-            current_file.write(buf),
-            "failed to write current file",
-        )?;
+        let written_bytes =
+            ris_util::unroll!(current_file.write(buf), "failed to write current file",)?;
         if written_bytes != buf.len() {
             ris_util::result_err!(
                 "failed to write to current file. expected to write {} bytes but actually wrote {}",
@@ -78,7 +80,7 @@ impl FallbackFileOverwrite {
 
     pub fn available_paths(&self) -> Vec<PathBuf> {
         let mut result = Vec::new();
-        
+
         if self.current_path.exists() {
             result.push(self.current_path.clone());
         }
@@ -95,7 +97,7 @@ impl FallbackFileOverwrite {
     }
 }
 
-fn generate_paths(directory: &Path, file_extension: &str) -> (PathBuf, PathBuf){
+fn generate_paths(directory: &Path, file_extension: &str) -> (PathBuf, PathBuf) {
     let mut current_path = PathBuf::new();
     current_path.push(directory);
     let filename = format!("current{}", file_extension);
@@ -118,7 +120,7 @@ fn create_directories(old_directory: &Path) -> RisResult<()> {
 
 fn delete_expired_files(old_directory: &Path, old_file_count: usize) -> RisResult<()> {
     let sorted_entries = get_sorted_entries(old_directory)?;
-    
+
     for entry in sorted_entries.iter().skip(old_file_count - 1) {
         let metadata = ris_util::unroll!(entry.metadata(), "failed to get metadata")?;
 
@@ -141,17 +143,22 @@ fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
 
     let mut result: Vec<_> = entries
         .filter(|x| x.is_ok())
-        .map(|x| x.expect("somehow, x is Err, despite being filtered out previously").path())
+        .map(|x| {
+            x.expect("somehow, x is Err, despite being filtered out previously")
+                .path()
+        })
         .collect();
 
-    result.sort_by(|left, right| {
-        right.cmp(&left)
-    });
+    result.sort_by(|left, right| right.cmp(&left));
 
     Ok(result)
 }
 
-fn move_current_file(current_path: &Path, old_directory: &Path, file_extension: &str) -> RisResult<()> {
+fn move_current_file(
+    current_path: &Path,
+    old_directory: &Path,
+    file_extension: &str,
+) -> RisResult<()> {
     if !current_path.exists() {
         return Ok(());
     }
@@ -167,27 +174,22 @@ fn move_current_file(current_path: &Path, old_directory: &Path, file_extension: 
         Some(Ok(line)) => line,
         _ => format!("{}", Local::now()),
     };
-    let previous_filename_without_extension = crate::path::sanitize(&previous_filename_unsanitized, true);
+    let previous_filename_without_extension =
+        crate::path::sanitize(&previous_filename_unsanitized, true);
 
     let mut previous_path = PathBuf::new();
     previous_path.push(old_directory);
-    let previous_filename = format!(
-        "{}{}",
-        previous_filename_without_extension,
-        file_extension,
-    );
+    let previous_filename = format!("{}{}", previous_filename_without_extension, file_extension,);
     previous_path.push(previous_filename);
     let mut counter = 0;
-    while previous_path.exists(){
+    while previous_path.exists() {
         counter += 1;
 
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
         let previous_filename = format!(
             "{}({}){}",
-            previous_filename_without_extension,
-            counter,
-            file_extension,
+            previous_filename_without_extension, counter, file_extension,
         );
         previous_path.push(previous_filename);
     }
@@ -218,19 +220,11 @@ fn create_current_file(current_path: &Path) -> RisResult<File> {
 }
 
 fn get_modified(entry: &Result<DirEntry, std::io::Error>) -> RisResult<SystemTime> {
-    let entry = entry.as_ref().map_err(|e| ris_util::new_err!(
-        "failed to read entry: {}",
-        e
-    ))?;
+    let entry = entry
+        .as_ref()
+        .map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
 
-    let metadata = ris_util::unroll!(
-        entry.metadata(),
-        "failed to read metadata",
-    )?;
+    let metadata = ris_util::unroll!(entry.metadata(), "failed to read metadata",)?;
 
-    ris_util::unroll!(
-        metadata.modified(),
-        "failed to get modified",
-    )
+    ris_util::unroll!(metadata.modified(), "failed to get modified",)
 }
-

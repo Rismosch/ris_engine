@@ -1,7 +1,7 @@
 use std::io::Read;
-use std::io::Write;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::PathBuf;
 
 use chrono::DateTime;
@@ -78,7 +78,9 @@ fn should_create_current_file_with_timestamp() {
     file.read_to_string(&mut content).unwrap();
 
     let first_line = content.lines().next().unwrap();
-    let file_date = DateTime::parse_from_rfc2822(first_line).unwrap().with_timezone(&Local);
+    let file_date = DateTime::parse_from_rfc2822(first_line)
+        .unwrap()
+        .with_timezone(&Local);
     let now = Local::now();
 
     let diff = now - file_date;
@@ -109,7 +111,7 @@ fn should_move_current_file() {
     file.read_to_string(&mut content).unwrap();
     assert!(file_path.exists());
     assert_eq!(content, "i am a unique file\n");
-    
+
     // move file 2
     // should use first line as file name, sanitizing invalid chars
     std::fs::remove_file(&current_path).unwrap();
@@ -123,7 +125,6 @@ fn should_move_current_file() {
     file.read_to_string(&mut content).unwrap();
     assert!(file_path.exists());
     assert_eq!(content, "i am not unique :(\n");
-
 
     // move file 3
     // should use first line as file name, sanitizing invalid chars, and generating a unique
@@ -166,5 +167,3 @@ fn should_give_access_to_current_file() {
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "i am a very important message");
 }
-
-
