@@ -1,4 +1,4 @@
-use ris_asset::util::*;
+use ris_util::file::*;
 
 #[test]
 fn should_compare_bytes() {

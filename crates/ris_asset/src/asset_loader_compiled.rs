@@ -20,28 +20,28 @@ impl AssetLoaderCompiled {
             ris_util::unroll!(File::open(asset_path), "could not open compiled asset file")?;
         let f = &mut file;
 
-        let file_size = crate::util::seek(f, SeekFrom::End(0))?;
-        crate::util::seek(f, SeekFrom::Start(0))?;
+        let file_size = ris_util::file::seek(f, SeekFrom::End(0))?;
+        ris_util::file::seek(f, SeekFrom::Start(0))?;
 
         let mut magic_bytes = [0u8; 16];
-        crate::util::read(f, &mut magic_bytes)?;
+        ris_util::file::read(f, &mut magic_bytes)?;
 
-        if !crate::util::bytes_equal(&magic_bytes, &crate::asset_compiler::MAGIC) {
+        if !ris_util::file::bytes_equal(&magic_bytes, &crate::asset_compiler::MAGIC) {
             return ris_util::result_err!("unkown magic value: {:?}", magic_bytes);
         }
 
         let mut addr_original_paths_bytes = [0u8; 8];
-        crate::util::read(f, &mut addr_original_paths_bytes)?;
+        ris_util::file::read(f, &mut addr_original_paths_bytes)?;
         let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
 
         let mut lookup_len_bytes = [0u8; 8];
-        crate::util::read(f, &mut lookup_len_bytes)?;
+        ris_util::file::read(f, &mut lookup_len_bytes)?;
         let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
         let mut lookup = Vec::with_capacity(lookup_len as usize);
 
         let mut next_addr_bytes = [0u8; 8];
-        crate::util::read(f, &mut next_addr_bytes)?;
+        ris_util::file::read(f, &mut next_addr_bytes)?;
         let mut next_addr = u64::from_le_bytes(next_addr_bytes);
         for i in 0..lookup_len {
             let addr = next_addr;
@@ -49,7 +49,7 @@ impl AssetLoaderCompiled {
                 addr_original_paths
             } else {
                 let mut next_addr_bytes = [0u8; 8];
-                crate::util::read(f, &mut next_addr_bytes)?;
+                ris_util::file::read(f, &mut next_addr_bytes)?;
                 u64::from_le_bytes(next_addr_bytes)
             };
 
@@ -82,8 +82,8 @@ impl AssetLoaderCompiled {
             .ok_or(ris_util::new_err!("asset does not exist"))?;
         let f = &mut self.file;
         let mut bytes = vec![0u8; entry.len];
-        crate::util::seek(f, SeekFrom::Start(entry.addr))?;
-        crate::util::read(f, &mut bytes)?;
+        ris_util::file::seek(f, SeekFrom::Start(entry.addr))?;
+        ris_util::file::read(f, &mut bytes)?;
         Ok(bytes)
     }
 }

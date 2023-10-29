@@ -1,12 +1,15 @@
-use std::cmp::Ordering;
 use std::fs::DirEntry;
 use std::fs::File;
 use std::io::BufRead;
+use std::io::Read;
 use std::io::Write;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use chrono::DateTime;
 use chrono::Local;
 
 use crate as ris_util;
@@ -32,7 +35,7 @@ impl FallbackFileAppend {
     }
 }
 
-struct FallbackFileOverwrite {
+pub struct FallbackFileOverwrite {
     directory: PathBuf,
     current_path: PathBuf,
     old_directory: PathBuf,
@@ -65,8 +68,10 @@ impl FallbackFileOverwrite {
         )?;
         let mut current_file = create_current_file(&self.current_path)?;
 
-        let written_bytes =
-            ris_util::unroll!(current_file.write(buf), "failed to write current file",)?;
+        let written_bytes = ris_util::unroll!(
+            current_file.write(buf),
+            "failed to write current file",
+        )?;
         if written_bytes != buf.len() {
             ris_util::result_err!(
                 "failed to write to current file. expected to write {} bytes but actually wrote {}",
@@ -92,8 +97,23 @@ impl FallbackFileOverwrite {
         result
     }
 
-    pub fn get(path: &Path) -> Option<Vec<u8>> {
-        panic!()
+    pub fn get_by_path(&self, path: &Path) -> Option<Vec<u8>> {
+        match File::open(path) {
+            Ok(mut file) => match read_file_and_strip_date(&mut file) {
+                Ok(bytes) => Some(bytes),
+                Err(_) => None,
+            },
+            Err(_) => None,
+        }
+    }
+
+    pub fn get_by_index(&self, index: usize) -> Option<Vec<u8>> {
+        let available_paths = self.available_paths();
+        let path_option = available_paths.get(index);
+        match path_option {
+            Some(path_buf) => self.get_by_path(path_buf),
+            None => None,
+        }
     }
 }
 
@@ -228,3 +248,62 @@ fn get_modified(entry: &Result<DirEntry, std::io::Error>) -> RisResult<SystemTim
 
     ris_util::unroll!(metadata.modified(), "failed to get modified",)
 }
+
+fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
+    let file_size = crate::file::seek(file, SeekFrom::End(0))?;
+
+    let mut buf = vec![0u8; file_size as usize];
+    crate::file::seek(file, SeekFrom::Start(0))?;
+    crate::file::read(file, &mut buf)?;
+
+    let mut first_new_line = None;
+    let mut second_new_line = None;
+    for (i, char) in buf.iter().enumerate().take(file_size as usize) {
+        if *char != b'\n' {
+            continue;
+        }
+
+        if first_new_line.is_none() {
+            first_new_line = Some(i);
+        } else {
+            second_new_line = Some(i);
+            break;
+        }
+    }
+
+    match (first_new_line, second_new_line) {
+        (Some(first_new_line), Some(second_new_line)) => {
+            // expect the second line to be empty
+            if first_new_line + 1 != second_new_line {
+                return Ok(buf)
+            }
+
+            // expect the first line to be a string
+            let mut first_line_buf = vec![0u8; first_new_line];
+            crate::file::seek(file, SeekFrom::Start(0))?;
+            crate::file::read(file, &mut first_line_buf)?;
+            let first_line_string = String::from_utf8(first_line_buf);
+            match first_line_string {
+                Ok(date_string) => {
+                    // expect first line to be a valid date
+                    let date = DateTime::parse_from_rfc2822(&date_string);
+                    if date.is_err() {
+                        return Ok(buf);
+                    }
+
+                    // first two lines are as expected, we can strip them away
+                    let content_addr = (second_new_line + 1) as u64;
+                    let content_len = file_size - content_addr;
+                    let mut content = vec![0; content_len as usize];
+                    crate::file::seek(file, SeekFrom::Start(content_addr))?;
+                    crate::file::read(file, &mut content)?;
+
+                    Ok(content)
+                },
+                Err(_) => Ok(buf),
+            }
+        },
+        _ => Ok(buf),
+    }
+}
+

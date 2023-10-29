@@ -90,42 +90,42 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
     )?;
 
     // write magic
-    crate::util::seek(&mut target_file, SeekFrom::Start(0))?;
-    crate::util::write(&mut target_file, &MAGIC)?;
+    ris_util::file::seek(&mut target_file, SeekFrom::Start(0))?;
+    ris_util::file::write(&mut target_file, &MAGIC)?;
 
     // write addr of original paths
-    let addr_original_paths = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-    crate::util::write(&mut target_file, &[0; crate::ADDR_SIZE])?; // placeholder
+    let addr_original_paths = ris_util::file::seek(&mut target_file, SeekFrom::Current(0))?;
+    ris_util::file::write(&mut target_file, &[0; crate::ADDR_SIZE])?; // placeholder
 
     // write lookup
     let asset_count = assets.len() as u64;
     let asset_count_bytes = u64::to_le_bytes(asset_count);
-    crate::util::write(&mut target_file, &asset_count_bytes)?;
+    ris_util::file::write(&mut target_file, &asset_count_bytes)?;
 
-    let addr_lookup = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
+    let addr_lookup = ris_util::file::seek(&mut target_file, SeekFrom::Current(0))?;
     let lookup_size = crate::ADDR_SIZE * asset_count as usize;
-    crate::util::write(&mut target_file, &vec![0; lookup_size])?; // placeholder
+    ris_util::file::write(&mut target_file, &vec![0; lookup_size])?; // placeholder
 
     // compile assets
     for (i, asset) in assets.iter().enumerate() {
         let mut file =
             ris_util::unroll!(File::open(asset), "failed to open asset \"{:?}\"", &asset)?;
 
-        let file_size = crate::util::seek(&mut file, SeekFrom::End(0))? as usize;
+        let file_size = ris_util::file::seek(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
-        crate::util::seek(&mut file, SeekFrom::Start(0))?;
-        crate::util::read(&mut file, &mut file_content)?;
+        ris_util::file::seek(&mut file, SeekFrom::Start(0))?;
+        ris_util::file::read(&mut file, &mut file_content)?;
 
         // change directory ids to compiled ids
         let modified_file_content = match ris_loader::load(&file_content)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
-                crate::util::write(&mut asset_bytes, &ris_asset.magic)?;
-                crate::util::write(&mut asset_bytes, &[1])?;
+                ris_util::file::write(&mut asset_bytes, &ris_asset.magic)?;
+                ris_util::file::write(&mut asset_bytes, &[1])?;
 
                 let reference_count = ris_asset.references.len() as u32;
                 let reference_count_bytes = u32::to_le_bytes(reference_count);
-                crate::util::write(&mut asset_bytes, &reference_count_bytes)?;
+                ris_util::file::write(&mut asset_bytes, &reference_count_bytes)?;
 
                 for reference in ris_asset.references {
                     match reference {
@@ -147,18 +147,18 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
 
                             let id_to_write = *compiled_id as u32;
                             let id_bytes = u32::to_le_bytes(id_to_write);
-                            crate::util::write(&mut asset_bytes, &id_bytes)?;
+                            ris_util::file::write(&mut asset_bytes, &id_bytes)?;
                         }
                     }
                 }
 
                 let mut file_stream = Cursor::new(file_content);
-                let stream_len = crate::util::seek(&mut file_stream, SeekFrom::End(0))?;
+                let stream_len = ris_util::file::seek(&mut file_stream, SeekFrom::End(0))?;
                 let content_len = stream_len - ris_asset.content_addr;
                 let mut content = vec![0; content_len as usize];
-                crate::util::seek(&mut file_stream, SeekFrom::Start(ris_asset.content_addr))?;
-                crate::util::read(&mut file_stream, &mut content)?;
-                crate::util::write(&mut asset_bytes, &content)?;
+                ris_util::file::seek(&mut file_stream, SeekFrom::Start(ris_asset.content_addr))?;
+                ris_util::file::read(&mut file_stream, &mut content)?;
+                ris_util::file::write(&mut asset_bytes, &content)?;
 
                 asset_bytes.into_inner()
             }
@@ -166,25 +166,25 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
         };
 
         // write to compiled file
-        let addr_asset = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-        crate::util::write(&mut target_file, &modified_file_content)?;
-        let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
+        let addr_asset = ris_util::file::seek(&mut target_file, SeekFrom::Current(0))?;
+        ris_util::file::write(&mut target_file, &modified_file_content)?;
+        let addr_current = ris_util::file::seek(&mut target_file, SeekFrom::Current(0))?;
 
         let addr_lookup_entry = addr_lookup + (crate::ADDR_SIZE * i) as u64;
-        crate::util::seek(&mut target_file, SeekFrom::Start(addr_lookup_entry))?;
+        ris_util::file::seek(&mut target_file, SeekFrom::Start(addr_lookup_entry))?;
         let addr_asset_bytes = u64::to_le_bytes(addr_asset);
-        crate::util::write(&mut target_file, &addr_asset_bytes)?;
+        ris_util::file::write(&mut target_file, &addr_asset_bytes)?;
 
-        crate::util::seek(&mut target_file, SeekFrom::Start(addr_current))?;
+        ris_util::file::seek(&mut target_file, SeekFrom::Start(addr_current))?;
     }
 
     // now that all assets are compiled, we can append the original paths
     // our current addr is the addr of the original paths
-    let addr_current = crate::util::seek(&mut target_file, SeekFrom::Current(0))?;
-    crate::util::seek(&mut target_file, SeekFrom::Start(addr_original_paths))?;
+    let addr_current = ris_util::file::seek(&mut target_file, SeekFrom::Current(0))?;
+    ris_util::file::seek(&mut target_file, SeekFrom::Start(addr_original_paths))?;
     let addr_current_bytes = u64::to_le_bytes(addr_current);
-    crate::util::write(&mut target_file, &addr_current_bytes)?;
-    crate::util::seek(&mut target_file, SeekFrom::Start(addr_current))?;
+    ris_util::file::write(&mut target_file, &addr_current_bytes)?;
+    ris_util::file::seek(&mut target_file, SeekFrom::Start(addr_current))?;
 
     // compile original paths
     for (i, asset) in assets.iter().enumerate() {
@@ -200,10 +200,10 @@ pub fn compile(source: &str, target: &str) -> Result<(), RisError> {
 
         ris_log::debug!("saving original path {:?}", original_path);
         let relative_path_bytes = original_path.as_bytes();
-        crate::util::write(&mut target_file, relative_path_bytes)?;
+        ris_util::file::write(&mut target_file, relative_path_bytes)?;
 
         if i != assets.len() - 1 {
-            crate::util::write(&mut target_file, &[0])?; // seperate paths with \0
+            ris_util::file::write(&mut target_file, &[0])?; // seperate paths with \0
         }
     }
 
@@ -238,32 +238,32 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
 
     // read magic
     let mut magic = [0; 16];
-    crate::util::read(&mut source, &mut magic)?;
-    if !crate::util::bytes_equal(&magic, &MAGIC) {
+    ris_util::file::read(&mut source, &mut magic)?;
+    if !ris_util::file::bytes_equal(&magic, &MAGIC) {
         return ris_util::result_err!("expected magic to be {:?} but was {:?}", magic, MAGIC);
     }
 
     // get original paths addr
     let mut addr_original_paths_bytes = [0u8; crate::ADDR_SIZE];
-    crate::util::read(&mut source, &mut addr_original_paths_bytes)?;
+    ris_util::file::read(&mut source, &mut addr_original_paths_bytes)?;
     let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
 
     // read lookup
     let mut lookup_len_bytes = [0u8; crate::ADDR_SIZE];
-    crate::util::read(&mut source, &mut lookup_len_bytes)?;
+    ris_util::file::read(&mut source, &mut lookup_len_bytes)?;
     let lookup_len = u64::from_le_bytes(lookup_len_bytes);
 
     let mut lookup = Vec::with_capacity(lookup_len as usize);
     for _ in 0..lookup_len {
         let mut addr_asset_bytes = [0u8; crate::ADDR_SIZE];
-        crate::util::read(&mut source, &mut addr_asset_bytes)?;
+        ris_util::file::read(&mut source, &mut addr_asset_bytes)?;
         let addr_asset = u64::from_le_bytes(addr_asset_bytes);
         lookup.push(addr_asset);
     }
 
     // read original paths
-    let file_end = crate::util::seek(&mut source, SeekFrom::End(0))?;
-    crate::util::seek(&mut source, SeekFrom::Start(addr_original_paths))?;
+    let file_end = ris_util::file::seek(&mut source, SeekFrom::End(0))?;
+    ris_util::file::seek(&mut source, SeekFrom::Start(addr_original_paths))?;
     let orig_paths_len = file_end - addr_original_paths;
 
     let mut original_paths = Vec::with_capacity(orig_paths_len as usize);
@@ -306,19 +306,19 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
         };
         let asset_len = addr_next_asset - addr_asset;
 
-        crate::util::seek(&mut source, SeekFrom::Start(addr_asset))?;
+        ris_util::file::seek(&mut source, SeekFrom::Start(addr_asset))?;
         let mut file_bytes = vec![0u8; asset_len as usize];
-        crate::util::read(&mut source, &mut file_bytes)?;
+        ris_util::file::read(&mut source, &mut file_bytes)?;
 
         // reassign ids
         let modified_file_bytes = match ris_loader::load(&file_bytes)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
-                crate::util::write(&mut asset_bytes, &ris_asset.magic)?;
-                crate::util::write(&mut asset_bytes, &[0])?;
+                ris_util::file::write(&mut asset_bytes, &ris_asset.magic)?;
+                ris_util::file::write(&mut asset_bytes, &[0])?;
 
-                let content_addr_addr = crate::util::seek(&mut asset_bytes, SeekFrom::Current(0))?;
-                crate::util::write(&mut asset_bytes, &[0; crate::ADDR_SIZE])?; // placeholder
+                let content_addr_addr = ris_util::file::seek(&mut asset_bytes, SeekFrom::Current(0))?;
+                ris_util::file::write(&mut asset_bytes, &[0; crate::ADDR_SIZE])?; // placeholder
 
                 for (j, reference) in ris_asset.references.iter().enumerate() {
                     match reference {
@@ -331,28 +331,28 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
                             let referenced_path = &original_paths[*id];
                             let referenced_bytes = referenced_path.as_bytes();
 
-                            crate::util::write(&mut asset_bytes, referenced_bytes)?;
+                            ris_util::file::write(&mut asset_bytes, referenced_bytes)?;
 
                             if j != ris_asset.references.len() - 1 {
-                                crate::util::write(&mut asset_bytes, &[0])?;
+                                ris_util::file::write(&mut asset_bytes, &[0])?;
                             }
                         }
                     }
                 }
 
-                let content_addr = crate::util::seek(&mut asset_bytes, SeekFrom::Current(0))?;
+                let content_addr = ris_util::file::seek(&mut asset_bytes, SeekFrom::Current(0))?;
                 let content_addr_bytes = u64::to_le_bytes(content_addr);
-                crate::util::seek(&mut asset_bytes, SeekFrom::Start(content_addr_addr))?;
-                crate::util::write(&mut asset_bytes, &content_addr_bytes)?;
-                crate::util::seek(&mut asset_bytes, SeekFrom::Start(content_addr))?;
+                ris_util::file::seek(&mut asset_bytes, SeekFrom::Start(content_addr_addr))?;
+                ris_util::file::write(&mut asset_bytes, &content_addr_bytes)?;
+                ris_util::file::seek(&mut asset_bytes, SeekFrom::Start(content_addr))?;
 
                 let mut file_stream = Cursor::new(file_bytes);
-                let stream_len = crate::util::seek(&mut file_stream, SeekFrom::End(0))?;
+                let stream_len = ris_util::file::seek(&mut file_stream, SeekFrom::End(0))?;
                 let content_len = stream_len - ris_asset.content_addr;
                 let mut content = vec![0; content_len as usize];
-                crate::util::seek(&mut file_stream, SeekFrom::Start(ris_asset.content_addr))?;
-                crate::util::read(&mut file_stream, &mut content)?;
-                crate::util::write(&mut asset_bytes, &content)?;
+                ris_util::file::seek(&mut file_stream, SeekFrom::Start(ris_asset.content_addr))?;
+                ris_util::file::read(&mut file_stream, &mut content)?;
+                ris_util::file::write(&mut asset_bytes, &content)?;
 
                 asset_bytes.into_inner()
             }
@@ -378,7 +378,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
             "failed to create asset \"{:?}\"",
             asset_path.clone()
         )?;
-        crate::util::write(&mut asset_file, &modified_file_bytes)?;
+        ris_util::file::write(&mut asset_file, &modified_file_bytes)?;
     }
 
     Ok(())
