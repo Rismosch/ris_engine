@@ -141,8 +141,7 @@ try {
     Write-Host "prepare compression..."
 
     $archive_date = Get-Date -Format "yyyy_dd_MM"
-    $win_suffix = "_win32_x64"
-    $target_path = "$final_directory/ris_engine_$archive_date$win_suffix.zip"
+    $target_path = "$final_directory/ris_engine_$archive_date.zip"
 
     $compress = @{
     LiteralPath= $items_to_compress
