@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::TryLockError;
 
-use ris_util::throw;
-use ris_util::unwrap_or_throw;
+use crate::throw;
+use crate::unwrap_or_throw;
 
 use crate::errors::BlockedOrEmpty;
 use crate::errors::BlockedOrFull;

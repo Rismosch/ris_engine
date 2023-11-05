@@ -44,7 +44,7 @@ fn get_app_info() -> RisResult<AppInfo> {
     let args_info = ArgsInfo::new(&cpu_info)?;
     let package_info = package_info!();
     let build_info = BuildInfo::new();
-    let file_info = FileInfo::new(&package_info);
+    let file_info = FileInfo::new(&package_info)?;
     let sdl_info = SdlInfo::new();
 
     Ok(AppInfo::new(

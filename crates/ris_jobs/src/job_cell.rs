@@ -1,4 +1,3 @@
-use ris_util::throw;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -7,6 +6,8 @@ use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+
+use crate::throw;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,

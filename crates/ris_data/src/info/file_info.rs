@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ris_util::unwrap_or_throw;
+use ris_util::error::RisResult;
 
 use super::package_info::PackageInfo;
 
@@ -21,21 +21,17 @@ pub struct FileInfo {
 }
 
 impl FileInfo {
-    pub fn new(package_info: &PackageInfo) -> FileInfo {
-        let base_path = unwrap_or_throw!(
-            sdl2::filesystem::base_path(),
-            "error while getting base path"
-        );
+    pub fn new(package_info: &PackageInfo) -> RisResult<FileInfo> {
+        let base_path = sdl2::filesystem::base_path()
+            .map_err(|e| ris_util::new_err!("error while getting base path: {}", e))?;
 
-        let pref_path = unwrap_or_throw!(
-            sdl2::filesystem::pref_path(&package_info.author, &package_info.name),
-            "error while getting pref path"
-        );
+        let pref_path = sdl2::filesystem::pref_path(&package_info.author, &package_info.name)
+            .map_err(|e| ris_util::new_err!("error while getting pref path: {}", e))?;
 
-        FileInfo {
+        Ok(FileInfo {
             base_path,
             pref_path,
-        }
+        })
     }
 }
 

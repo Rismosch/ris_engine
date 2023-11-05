@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
@@ -14,7 +16,8 @@ use ris_data::settings;
 use ris_data::settings::Settings;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_log::console_appender::ConsoleAppender;
+use ris_log::appenders::console_appender::ConsoleAppender;
+use ris_log::appenders::file_appender::FileAppender;
 use ris_log::log;
 use ris_log::log::Appenders;
 use ris_log::log::LogGuard;
@@ -23,7 +26,6 @@ use ris_log::log_message::LogMessage;
 use ris_util::error::RisResult;
 use ris_video::video::Video;
 
-use crate::appenders::file_appender::FileAppender;
 use crate::gameloop::input_frame::InputFrame;
 use crate::gameloop::logic_frame::LogicFrame;
 use crate::gameloop::output_frame::OutputFrame;
@@ -60,7 +62,18 @@ impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
         // logging
         let log_level = LogLevel::Debug;
-        let appenders: Appenders = vec![ConsoleAppender::new(), FileAppender::new(&app_info)];
+
+        let mut logs_dir = PathBuf::new();
+        logs_dir.push(&app_info.file.pref_path);
+        logs_dir.push("logs");
+
+        let console_appender = Some(ConsoleAppender);
+        let file_appender = Some(FileAppender::new(&logs_dir)?);
+        let appenders = Appenders{
+            console_appender,
+            file_appender,
+        };
+
         let log_guard = unsafe { log::init(log_level, appenders) };
 
         let formatted_app_info = format!("{}", &app_info);

@@ -3,7 +3,7 @@ use ris_jobs::job_cell::JobCell;
 #[test]
 fn should_be_mutable_and_create_references() {
     unsafe {
-        ris_util::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_jobs::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
     let mut job_cell = unsafe { JobCell::new(0) };
@@ -27,7 +27,7 @@ fn should_be_mutable_and_create_references() {
 #[test]
 fn should_panic_when_creating_mutable_reference_while_immutable_ones_exist() {
     unsafe {
-        ris_util::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_jobs::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
     let result = std::panic::catch_unwind(|| {
@@ -43,7 +43,7 @@ fn should_panic_when_creating_mutable_reference_while_immutable_ones_exist() {
 #[test]
 fn should_panic_when_dereferencing_while_owner_was_dropped() {
     unsafe {
-        ris_util::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_jobs::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
     let result = std::panic::catch_unwind(|| {

@@ -4,13 +4,34 @@ use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 use std::thread::JoinHandle;
 
-use crate::i_appender::IAppender;
-use crate::log_level::LogLevel;
-use crate::log_message::LogMessage;
 use chrono::DateTime;
 use chrono::Local;
 
-pub type Appenders = Vec<Box<(dyn IAppender + Send + 'static)>>;
+use crate::log_level::LogLevel;
+use crate::log_message::LogMessage;
+use crate::appenders::console_appender::ConsoleAppender;
+use crate::appenders::file_appender::FileAppender;
+
+pub struct Appenders {
+    pub console_appender: Option<ConsoleAppender>,
+    pub file_appender: Option<FileAppender>,
+}
+
+impl Appenders {
+    pub fn has_appenders(&self) -> bool {
+        self.console_appender.is_some() || self.file_appender.is_some()
+    }
+
+    pub fn print(&mut self, message: &str) {
+        if let Some(appender) = self.console_appender.as_mut() {
+            appender.print(message)
+        }
+
+        if let Some(appender) = self.file_appender.as_mut() {
+            appender.print(message)
+        }
+    }
+}
 
 pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
 
@@ -49,7 +70,7 @@ impl Drop for Logger {
 ///
 /// The logger is a singleton. Initialize it only once.
 pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
-    if matches!(log_level, LogLevel::None) || appenders.is_empty() {
+    if matches!(log_level, LogLevel::None) || !appenders.has_appenders() {
         return LogGuard;
     }
 
@@ -75,18 +96,14 @@ pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
     LogGuard
 }
 
-fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {
+fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Appenders) {
     for log_message in receiver.iter() {
         let to_print = log_message.to_string();
 
-        for appender in &mut appenders {
-            appender.print(&to_print);
-        }
+        appenders.print(&to_print);
     }
 
-    for appender in &mut appenders {
-        appender.print("log thread ended");
-    }
+    appenders.print("log thread ended");
 }
 
 pub fn log_level() -> LogLevel {

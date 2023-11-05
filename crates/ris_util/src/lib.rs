@@ -4,4 +4,3 @@ pub mod file;
 pub mod function;
 pub mod path;
 pub mod testing;
-pub mod throw;
