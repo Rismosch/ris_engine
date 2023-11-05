@@ -59,7 +59,7 @@ fn should_write_file() {
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "hello world");
 
-    let file_date = DateTime::parse_from_rfc2822(lines[0])
+    let file_date = DateTime::parse_from_rfc3339(lines[0])
         .unwrap()
         .with_timezone(&Local);
     let now = Local::now();
@@ -110,18 +110,19 @@ fn should_move_file() {
     assert_eq!(content, "i am not unique :(\n");
     
     // move file 3
-    // should use first line as file name, sanitizing invalid chars, and generating a unique
-    // filename
+    // should generate new unique filename, which does not correspont to its first line
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
     overwriter.overwrite_current("trois".as_bytes()).unwrap();
-    let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am not unique _((1).test");
-    let mut file = std::fs::File::open(&file_path).unwrap();
+    let mut entries = std::fs::read_dir(&old_path).unwrap();
+    let entry = entries.next().unwrap().unwrap();
+    let unique_path = entry.path();
+    let mut file = std::fs::File::open(&unique_path).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
-    assert!(file_path.exists());
+    assert_ne!(unique_path, file_path);
+    assert!(unique_path.exists());
     assert_eq!(content, "i am not unique :(\n");
 }
 
@@ -197,14 +198,46 @@ fn should_get_available_files() {
 
 #[test]
 fn should_get_file_contents_by_path() {
-    let mut test_dir = ris_util::prep_test_dir!();
-    panic!()
+    let test_dir = ris_util::prep_test_dir!();
+    let overwriter = FallbackFileOverwrite::new(&test_dir, ".test", 10);
+
+    assert!(overwriter.available_paths().is_empty());
+
+    overwriter.overwrite_current("un".as_bytes()).unwrap();
+    overwriter.overwrite_current("deux".as_bytes()).unwrap();
+    overwriter.overwrite_current("trois".as_bytes()).unwrap();
+    overwriter.overwrite_current("quatre".as_bytes()).unwrap();
+    overwriter.overwrite_current("cinq".as_bytes()).unwrap();
+
+    let available_args = overwriter.available_paths();
+    assert_eq!(available_args.len(), 5);
+
+    std::fs::remove_file(&available_args[1]).unwrap();
+    std::fs::remove_file(&available_args[3]).unwrap();
+
+    let result0 = overwriter.get_by_path(&available_args[0]);
+    let result1 = overwriter.get_by_path(&available_args[1]);
+    let result2 = overwriter.get_by_path(&available_args[2]);
+    let result3 = overwriter.get_by_path(&available_args[3]);
+    let result4 = overwriter.get_by_path(&available_args[4]);
+
+    assert!(result0.is_some());
+    assert!(result1.is_none());
+    assert!(result2.is_some());
+    assert!(result3.is_none());
+    assert!(result4.is_some());
+
+    let current = String::from_utf8(result0.unwrap()).unwrap();
+    let old2 = String::from_utf8(result2.unwrap()).unwrap();
+    let old4 = String::from_utf8(result4.unwrap()).unwrap();
+
+    assert_eq!(current, "cinq");
+    assert_eq!(old2, "trois");
+    assert_eq!(old4, "un");
 }
 
 #[test]
 fn should_get_file_contents_by_index() {
-    panic!("test works, but due to the number in brackets, that is added for non unique files, the ordering is messed up. find a workaround");
-
     let test_dir = ris_util::prep_test_dir!();
     let overwriter = FallbackFileOverwrite::new(&test_dir, ".test", 10);
 

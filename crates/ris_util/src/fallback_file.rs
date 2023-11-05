@@ -169,7 +169,7 @@ fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
         })
         .collect();
 
-    result.sort_by(|left, right| right.cmp(&left));
+    result.sort_by(|left, right| right.cmp(left));
 
     Ok(result)
 }
@@ -201,27 +201,34 @@ fn move_current_file(
     previous_path.push(old_directory);
     let previous_filename = format!("{}{}", previous_filename_without_extension, file_extension,);
     previous_path.push(previous_filename);
-    let mut counter = 0;
-    while previous_path.exists() {
-        counter += 1;
+
+    let attempts = 100;
+    for _ in 0..attempts {
+        if !previous_path.exists() {
+            break;
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(1));
 
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
-        let previous_filename = format!(
-            "{}({}){}",
-            previous_filename_without_extension, counter, file_extension,
-        );
-        previous_path.push(previous_filename);
+        let new_previous_filename = format!("{}{}",Local::now().to_rfc3339(), file_extension);
+        let sanitized_new_previous_filename = crate::path::sanitize(&new_previous_filename, true);
+        previous_path.push(sanitized_new_previous_filename);
     }
 
-    ris_util::unroll!(
-        std::fs::rename(current_path, &previous_path),
-        "failed to rename \"{:?}\" to \"{:?}\"",
-        current_path,
-        previous_path,
-    )?;
+    if previous_path.exists() {
+        ris_util::result_err!("failed to generate a unique old filename")
+    } else {
+        ris_util::unroll!(
+            std::fs::rename(current_path, &previous_path),
+            "failed to rename \"{:?}\" to \"{:?}\"",
+            current_path,
+            previous_path,
+        )?;
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn create_current_file(current_path: &Path) -> RisResult<File> {
@@ -232,7 +239,7 @@ fn create_current_file(current_path: &Path) -> RisResult<File> {
     )?;
 
     ris_util::unroll!(
-        writeln!(current_file, "{}\n", Local::now().to_rfc2822()),
+        writeln!(current_file, "{}\n", Local::now().to_rfc3339()),
         "failed to write timestamp into current file",
     )?;
 
@@ -286,7 +293,7 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
             match first_line_string {
                 Ok(date_string) => {
                     // expect first line to be a valid date
-                    let date = DateTime::parse_from_rfc2822(&date_string);
+                    let date = DateTime::parse_from_rfc3339(&date_string);
                     if date.is_err() {
                         return Ok(buf);
                     }

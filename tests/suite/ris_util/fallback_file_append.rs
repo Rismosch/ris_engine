@@ -78,7 +78,7 @@ fn should_create_current_file_with_timestamp() {
     file.read_to_string(&mut content).unwrap();
 
     let first_line = content.lines().next().unwrap();
-    let file_date = DateTime::parse_from_rfc2822(first_line)
+    let file_date = DateTime::parse_from_rfc3339(first_line)
         .unwrap()
         .with_timezone(&Local);
     let now = Local::now();
@@ -127,18 +127,19 @@ fn should_move_current_file() {
     assert_eq!(content, "i am not unique :(\n");
 
     // move file 3
-    // should use first line as file name, sanitizing invalid chars, and generating a unique
-    // filename
+    // should generate new unique filename, which does not correspont to its first line
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
     FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am not unique _((1).test");
-    let mut file = std::fs::File::open(&file_path).unwrap();
+    let mut entries = std::fs::read_dir(&old_path).unwrap();
+    let entry = entries.next().unwrap().unwrap();
+    let unique_path = entry.path();
+    let mut file = std::fs::File::open(&unique_path).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
-    assert!(file_path.exists());
+    assert_ne!(unique_path, file_path);
+    assert!(unique_path.exists());
     assert_eq!(content, "i am not unique :(\n");
 }
 
@@ -163,7 +164,7 @@ fn should_give_access_to_current_file() {
 
     let lines = content.lines().collect::<Vec<&str>>();
     assert_eq!(lines.len(), 3);
-    assert!(DateTime::parse_from_rfc2822(lines[0]).is_ok());
+    assert!(DateTime::parse_from_rfc3339(lines[0]).is_ok());
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "i am a very important message");
 }
