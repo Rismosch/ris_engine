@@ -1,13 +1,9 @@
-use std::fs::DirEntry;
 use std::fs::File;
 use std::io::BufRead;
-use std::io::Read;
 use std::io::Write;
-use std::io::Seek;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::SystemTime;
 
 use chrono::DateTime;
 use chrono::Local;
@@ -36,7 +32,6 @@ impl FallbackFileAppend {
 }
 
 pub struct FallbackFileOverwrite {
-    directory: PathBuf,
     current_path: PathBuf,
     old_directory: PathBuf,
     file_extension: String,
@@ -50,7 +45,6 @@ impl FallbackFileOverwrite {
         let (current_path, old_directory) = generate_paths(&directory, &file_extension);
 
         Self {
-            directory,
             current_path,
             old_directory,
             file_extension,
@@ -244,16 +238,6 @@ fn create_current_file(current_path: &Path) -> RisResult<File> {
     )?;
 
     Ok(current_file)
-}
-
-fn get_modified(entry: &Result<DirEntry, std::io::Error>) -> RisResult<SystemTime> {
-    let entry = entry
-        .as_ref()
-        .map_err(|e| ris_util::new_err!("failed to read entry: {}", e))?;
-
-    let metadata = ris_util::unroll!(entry.metadata(), "failed to read metadata",)?;
-
-    ris_util::unroll!(metadata.modified(), "failed to get modified",)
 }
 
 fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {

@@ -10,10 +10,17 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
     let mut current_logic = god_object.logic_data;
     let mut current_output = god_object.output_data;
 
+    let mut state = god_object.state;
+
     loop {
         // update frame
         frame_data_calculator.bump();
         let current_frame = frame_data_calculator.current();
+
+        // swap god state
+        state.swap();
+        let state_front = state.front();
+        let state_back = state.back();
 
         // create copies
         let frame_for_input = current_frame.clone();
@@ -60,6 +67,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         let input_state = god_object.input_frame.run(
             &mut current_input,
             &previous_input_for_input,
+            state_front,
+            state_back,
             &frame_for_input,
         );
 

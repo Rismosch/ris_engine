@@ -3,11 +3,23 @@ use std::path::PathBuf;
 
 use ris_asset::asset_compiler;
 use ris_asset::asset_importer;
-use ris_log::console_appender::ConsoleAppender;
+use ris_log::appenders::console_appender::ConsoleAppender;
+use ris_log::log;
+use ris_log::log::Appenders;
+use ris_log::log::LogGuard;
+use ris_log::log_level::LogLevel;
 
 fn main() {
-    let appenders: ris_log::log::Appenders = vec![ConsoleAppender::new()];
-    let log_guard = unsafe { ris_log::log::init(ris_log::log_level::LogLevel::Trace, appenders) };
+    let log_level = LogLevel::Trace;
+
+    let console_appender = Some(ConsoleAppender);
+    let file_appender = None;
+    let appenders = Appenders{
+        console_appender,
+        file_appender,
+    };
+
+    let log_guard = unsafe { log::init(log_level, appenders) };
 
     let raw_args: Vec<String> = env::args().collect();
     if raw_args.len() != 4 && raw_args.len() != 2 {

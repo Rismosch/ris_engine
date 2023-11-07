@@ -29,6 +29,7 @@ use ris_video::video::Video;
 use crate::gameloop::input_frame::InputFrame;
 use crate::gameloop::logic_frame::LogicFrame;
 use crate::gameloop::output_frame::OutputFrame;
+use crate::god_state::GodState;
 
 #[cfg(debug_assertions)]
 fn scenes_id() -> AssetId {
@@ -51,6 +52,8 @@ pub struct GodObject {
     pub logic_data: LogicData,
     pub output_data: OutputData,
     pub scenes: Scenes,
+
+    pub state: GodState,
 
     // guards
     pub asset_loader_guard: AssetLoaderGuard,
@@ -154,6 +157,9 @@ impl GodObject {
         // log
         let log_guard = ris_util::unroll_option!(log_guard.take(), "passed log guard was none",)?;
 
+        // god state
+        let state = GodState::default();
+
         // god object
         let god_object = GodObject {
             app_info,
@@ -166,6 +172,8 @@ impl GodObject {
             logic_data,
             output_data,
             scenes,
+
+            state,
 
             // guards
             asset_loader_guard,
