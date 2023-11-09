@@ -72,7 +72,7 @@ impl GodObject {
 
         let console_appender = Some(ConsoleAppender);
         let file_appender = Some(FileAppender::new(&logs_dir)?);
-        let appenders = Appenders{
+        let appenders = Appenders {
             console_appender,
             file_appender,
         };

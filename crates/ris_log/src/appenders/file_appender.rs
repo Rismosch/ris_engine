@@ -15,13 +15,9 @@ pub struct FileAppender {
 
 impl FileAppender {
     pub fn new(directory: &Path) -> RisResult<Self> {
-        let fallback_file = FallbackFileAppend::new(
-            directory,
-            LOG_EXTENSION,
-            OLD_LOG_COUNT
-        )?;
+        let fallback_file = FallbackFileAppend::new(directory, LOG_EXTENSION, OLD_LOG_COUNT)?;
 
-        Ok(Self{fallback_file})
+        Ok(Self { fallback_file })
     }
 
     pub fn print(&mut self, message: &str) {
@@ -39,4 +35,3 @@ impl FileAppender {
         }
     }
 }
-

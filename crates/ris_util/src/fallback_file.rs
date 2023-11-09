@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufRead;
-use std::io::Write;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -62,10 +62,8 @@ impl FallbackFileOverwrite {
         )?;
         let mut current_file = create_current_file(&self.current_path)?;
 
-        let written_bytes = ris_util::unroll!(
-            current_file.write(buf),
-            "failed to write current file",
-        )?;
+        let written_bytes =
+            ris_util::unroll!(current_file.write(buf), "failed to write current file",)?;
         if written_bytes != buf.len() {
             ris_util::result_err!(
                 "failed to write to current file. expected to write {} bytes but actually wrote {}",
@@ -206,7 +204,7 @@ fn move_current_file(
 
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
-        let new_previous_filename = format!("{}{}",Local::now().to_rfc3339(), file_extension);
+        let new_previous_filename = format!("{}{}", Local::now().to_rfc3339(), file_extension);
         let sanitized_new_previous_filename = crate::path::sanitize(&new_previous_filename, true);
         previous_path.push(sanitized_new_previous_filename);
     }
@@ -266,7 +264,7 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
         (Some(first_new_line), Some(second_new_line)) => {
             // expect the second line to be empty
             if first_new_line + 1 != second_new_line {
-                return Ok(buf)
+                return Ok(buf);
             }
 
             // expect the first line to be a string
@@ -290,11 +288,10 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
                     crate::file::read(file, &mut content)?;
 
                     Ok(content)
-                },
+                }
                 Err(_) => Ok(buf),
             }
-        },
+        }
         _ => Ok(buf),
     }
 }
-

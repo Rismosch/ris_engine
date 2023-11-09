@@ -18,10 +18,7 @@ pub struct GodState {
 
 impl GodState {
     pub fn swap(&mut self) {
-        std::mem::swap(
-            &mut self.double_buffer.0,
-            &mut self.double_buffer.1,
-        );
+        std::mem::swap(&mut self.double_buffer.0, &mut self.double_buffer.1);
     }
 
     pub fn front(&self) -> StateBuffer {

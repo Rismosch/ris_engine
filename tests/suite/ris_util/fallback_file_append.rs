@@ -132,15 +132,29 @@ fn should_move_current_file() {
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
     FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let mut entries = std::fs::read_dir(&old_path).unwrap();
-    let entry = entries.next().unwrap().unwrap();
-    let unique_path = entry.path();
-    let mut file = std::fs::File::open(&unique_path).unwrap();
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
-    assert_ne!(unique_path, file_path);
-    assert!(unique_path.exists());
-    assert_eq!(content, "i am not unique :(\n");
+    let entries = std::fs::read_dir(&old_path).unwrap();
+    for entry in entries {
+        let unique_path = entry.unwrap().path();
+        let mut file = std::fs::File::open(&unique_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+
+        if unique_path == file_path {
+            continue;
+        }
+
+        if !unique_path.exists() {
+            continue;
+        }
+
+        if content != "i am not unique :(\n" {
+            continue;
+        }
+
+        return; // test passed
+    }
+
+    panic!("test failed, either because a unique path was not generated, or no entries exist");
 }
 
 #[test]

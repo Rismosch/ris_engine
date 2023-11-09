@@ -52,4 +52,3 @@ pub fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
 
     true
 }
-

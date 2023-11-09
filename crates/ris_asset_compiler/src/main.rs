@@ -14,7 +14,7 @@ fn main() {
 
     let console_appender = Some(ConsoleAppender);
     let file_appender = None;
-    let appenders = Appenders{
+    let appenders = Appenders {
         console_appender,
         file_appender,
     };

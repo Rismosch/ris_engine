@@ -1,6 +1,4 @@
 use std::io::Read;
-use std::io::Seek;
-use std::io::SeekFrom;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -54,7 +52,7 @@ fn should_write_file() {
     file.read_to_string(&mut content).unwrap();
 
     let lines = content.lines().collect::<Vec<&str>>();
-    
+
     assert_eq!(lines.len(), 3);
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "hello world");
@@ -108,22 +106,36 @@ fn should_move_file() {
     file.read_to_string(&mut content).unwrap();
     assert!(file_path.exists());
     assert_eq!(content, "i am not unique :(\n");
-    
+
     // move file 3
     // should generate new unique filename, which does not correspont to its first line
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am not unique :(").unwrap();
     overwriter.overwrite_current("trois".as_bytes()).unwrap();
-    let mut entries = std::fs::read_dir(&old_path).unwrap();
-    let entry = entries.next().unwrap().unwrap();
-    let unique_path = entry.path();
-    let mut file = std::fs::File::open(&unique_path).unwrap();
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
-    assert_ne!(unique_path, file_path);
-    assert!(unique_path.exists());
-    assert_eq!(content, "i am not unique :(\n");
+    let entries = std::fs::read_dir(&old_path).unwrap();
+    for entry in entries {
+        let unique_path = entry.unwrap().path();
+        let mut file = std::fs::File::open(&unique_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+
+        if unique_path == file_path {
+            continue;
+        }
+
+        if !unique_path.exists() {
+            continue;
+        }
+
+        if content != "i am not unique :(\n" {
+            continue;
+        }
+
+        return; // test passed
+    }
+
+    panic!("test failed, either because a unique path was not generated, or no entries exist");
 }
 
 #[test]
@@ -262,4 +274,3 @@ fn should_get_file_contents_by_index() {
     assert_eq!(old4, "un");
     assert!(overwriter.get_by_index(5).is_none());
 }
-

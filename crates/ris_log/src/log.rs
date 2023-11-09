@@ -7,10 +7,10 @@ use std::thread::JoinHandle;
 use chrono::DateTime;
 use chrono::Local;
 
-use crate::log_level::LogLevel;
-use crate::log_message::LogMessage;
 use crate::appenders::console_appender::ConsoleAppender;
 use crate::appenders::file_appender::FileAppender;
+use crate::log_level::LogLevel;
+use crate::log_message::LogMessage;
 
 pub struct Appenders {
     pub console_appender: Option<ConsoleAppender>,

@@ -317,7 +317,8 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
                 ris_util::file::write(&mut asset_bytes, &ris_asset.magic)?;
                 ris_util::file::write(&mut asset_bytes, &[0])?;
 
-                let content_addr_addr = ris_util::file::seek(&mut asset_bytes, SeekFrom::Current(0))?;
+                let content_addr_addr =
+                    ris_util::file::seek(&mut asset_bytes, SeekFrom::Current(0))?;
                 ris_util::file::write(&mut asset_bytes, &[0; crate::ADDR_SIZE])?; // placeholder
 
                 for (j, reference) in ris_asset.references.iter().enumerate() {

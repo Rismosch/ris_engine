@@ -58,8 +58,6 @@ impl InputFrame {
         let state_future = job_system::submit(move || {
             let front = job_system::lock(&state_front);
             let back = job_system::lock(&state_back);
-
-
         });
 
         // controller input
