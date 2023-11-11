@@ -18,8 +18,6 @@ use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_system;
 use ris_util::error::RisResult;
 
-use crate::god_state::StateBuffer;
-
 pub struct InputFrame {
     event_pump: JobCell<EventPump>,
 
@@ -50,16 +48,8 @@ impl InputFrame {
         &mut self,
         current: &mut InputData,
         previous: &InputData,
-        state_front: StateBuffer,
-        state_back: StateBuffer,
         _frame: &FrameData,
     ) -> RisResult<GameloopState> {
-        // state
-        let state_future = job_system::submit(move || {
-            let front = job_system::lock(&state_front);
-            let back = job_system::lock(&state_back);
-        });
-
         // controller input
         let current_keyboard = std::mem::take(&mut current.keyboard);
         let current_gamepad = std::mem::take(&mut current.gamepad);
@@ -152,8 +142,6 @@ impl InputFrame {
         current.keyboard = new_keyboard;
         current.gamepad = new_gamepad;
         self.gamepad_logic = Some(new_gamepad_logic);
-
-        state_future.wait();
 
         Ok(new_gameloop_state)
     }

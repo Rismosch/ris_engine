@@ -62,13 +62,8 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let result = god_job::run(god_object)?;
 
     match result {
-        GameloopState::WantsToRestart => {
-            std::process::exit(RESTART_CODE);
-        }
-        GameloopState::WantsToQuit => Ok(()),
-        GameloopState::WantsToContinue => ris_util::result_err!(
-            "god job returned but wants to continue? i don't know how this is supposed to happen"
-        ),
+        god_job::WantsTo::Quit => Ok(()),
+        god_job::WantsTo::Restart => std::process::exit(RESTART_CODE),
     }
 }
 

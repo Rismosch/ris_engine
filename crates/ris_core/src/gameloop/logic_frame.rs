@@ -6,8 +6,11 @@ use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
+use ris_data::god_state::GodState;
+use ris_data::god_state::GodStateCommand;
 use ris_data::input::action;
 use ris_jobs::job_future::JobFuture;
+use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -36,6 +39,7 @@ impl LogicFrame {
         previous: &LogicData,
         input: &InputData,
         frame: &FrameData,
+        state: GodState,
     ) -> RisResult<GameloopState> {
         // manual restart
         if input.keyboard.keys.is_hold(Scancode::F1) {
@@ -156,25 +160,26 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-        if input.general.buttons.is_hold(action::ANY) {
-            //let rotation_matrix = ris_math::matrix4x4::Matrix4x4::rotation(scene.camera_rotation);
-            //let camera_forward_matrix = rotation_matrix.rotate(vector3::FORWARD);
-            //let camera_forward_quaternion = scene.camera_rotation.rotate(vector3::FORWARD);
-            //let camera_forward_view =
-            //    ris_math::matrix4x4::Matrix4x4::view(scene.camera_position, scene.camera_rotation)
-            //        .rotate(vector3::FORWARD);
-            //ris_log::debug!(
-            //    "{:?} {:?} {:?} {:?} | {} {} | {}s {}fps",
-            //    scene.camera_position,
-            //    camera_forward_matrix,
-            //    camera_forward_quaternion,
-            //    camera_forward_view,
-            //    current.camera_horizontal_angle,
-            //    current.camera_vertical_angle,
-            //    frame.delta(),
-            //    frame.fps()
-            //);
-            ris_log::debug!("{}s {}fps", frame.delta(), frame.fps());
+
+
+        if input.general.buttons.is_down(action::CAMERA_UP) {
+            let mut state = job_system::lock(&state);
+            for i in 0..50_000 {
+                state.command_queue.push_back(GodStateCommand::IncreaseDebug);
+            }
+        }
+        if input.general.buttons.is_down(action::CAMERA_DOWN) {
+            let mut state = job_system::lock(&state);
+            state.command_queue.push_back(GodStateCommand::DecreaseDebug);
+        }
+        let state = job_system::lock(&state);
+        if state.events.debug_increased || state.events.debug_decreased {
+            ris_log::debug!(
+                "debug changed to {} | {}s {}fps",
+                state.data.debug,
+                frame.delta(),
+                frame.fps(),
+            );
         }
 
         if let Some(future) = import_shader_future {

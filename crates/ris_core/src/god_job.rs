@@ -1,26 +1,56 @@
+use std::collections::VecDeque;
 use ris_data::gameloop::gameloop_state::GameloopState;
+use ris_data::god_state::execute_god_state_command;
+use ris_data::god_state::GodStateEvents;
 use ris_jobs::job_system;
 use ris_util::error::RisResult;
 
 use crate::god_object::GodObject;
 
-pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
+pub enum WantsTo {
+    Quit,
+    Restart,
+}
+
+pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_data_calculator = god_object.frame_data_calculator;
     let mut current_input = god_object.input_data;
     let mut current_logic = god_object.logic_data;
     let mut current_output = god_object.output_data;
 
-    let mut state = god_object.state;
+    let mut state_double_buffer = god_object.state_double_buffer;
+    let mut previous_command_queue = VecDeque::new();
 
     loop {
         // update frame
         frame_data_calculator.bump();
         let current_frame = frame_data_calculator.current();
 
-        // swap god state
-        state.swap();
-        let state_front = state.front();
-        let state_back = state.back();
+        // update god state
+        state_double_buffer.swap();
+        let state_front = state_double_buffer.front();
+        let state_back = state_double_buffer.back();
+
+        let state_future = job_system::submit(move || {
+            let mut back = job_system::lock(&state_back);
+            let mut previous_command_queue = previous_command_queue;
+
+            check_command_count(&back.command_queue);
+
+            back.events = GodStateEvents::default();
+
+            while let Some(command) = previous_command_queue.pop_front() {
+                execute_god_state_command(&mut back, command, false);
+            }
+
+            previous_command_queue = back.command_queue.clone();
+
+            while let Some(command) = back.command_queue.pop_front() {
+                execute_god_state_command(&mut back, command, true);
+            }
+
+            previous_command_queue
+        });
 
         // create copies
         let frame_for_input = current_frame.clone();
@@ -36,7 +66,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
 
         let previous_output_for_output = current_output.clone();
 
-        // submit jobs
+        // game loop frame
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
             let mut current_output = current_output;
@@ -59,6 +89,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
                 &previous_logic_for_logic,
                 &previous_input_for_logic,
                 &frame_for_logic,
+                state_front.clone(),
             );
 
             (logic_frame, current_logic, gameloop_state)
@@ -67,18 +98,18 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         let input_state = god_object.input_frame.run(
             &mut current_input,
             &previous_input_for_input,
-            state_front,
-            state_back,
             &frame_for_input,
         );
 
         // wait for jobs
         let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait();
         let (new_output_frame, new_output_data, output_state) = output_future.wait();
+        let new_previous_command_queue =  state_future.wait();
 
         // update buffers
         current_logic = new_logic_data;
         current_output = new_output_data;
+        previous_command_queue = new_previous_command_queue;
 
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
@@ -86,19 +117,16 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
         // restart job system
 
         // handle errors
-        if let Err(ref e) = input_state {
+        if let Err(e) = &input_state {
             ris_log::fatal!("gameloop input encountered an error: {}", e);
-            return input_state;
         }
 
-        if let Err(ref e) = logic_state {
+        if let Err(e) = &logic_state {
             ris_log::fatal!("gameloop logic encountered an error: {}", e);
-            return logic_state;
         }
 
-        if let Err(ref e) = output_state {
+        if let Err(e) = &output_state {
             ris_log::fatal!("gameloop output encountered an error: {}", e);
-            return output_state;
         }
 
         let input_state = input_state?;
@@ -113,13 +141,34 @@ pub fn run(mut god_object: GodObject) -> RisResult<GameloopState> {
             continue;
         }
 
-        if matches!(input_state, GameloopState::WantsToRestart)
-            || matches!(logic_state, GameloopState::WantsToRestart)
-            || matches!(output_state, GameloopState::WantsToRestart)
+        if input_state != GameloopState::WantsToRestart
+            && logic_state != GameloopState::WantsToRestart
+            && output_state != GameloopState::WantsToRestart
         {
-            return Ok(GameloopState::WantsToRestart);
+            return Ok(WantsTo::Quit);
         }
-
-        return Ok(GameloopState::WantsToQuit);
+        else {
+            return Ok(WantsTo::Restart);
+        }
     }
+}
+
+#[cfg(debug_assertions)]
+fn check_command_count<T>(command_queue: &VecDeque<T>) {
+    // arbitrary high number. i started to experience lags at around 500_000 commands. if we stay
+    // way below this limit, then the performance is fine
+    let maximum = 10_000;
+
+    let command_count = command_queue.len();
+    if command_count > maximum {
+        ris_log::warning!(
+            "we hit {} commands, which exceeds {}. reduce command count, to avoid lag",
+            command_count,
+            maximum,
+        );
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn check_command_count<T>(command_queue: &VecDeque<T>) {
 }

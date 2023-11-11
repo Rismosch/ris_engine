@@ -11,6 +11,7 @@ use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
+use ris_data::god_state::GodStateDoubleBuffer;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings;
 use ris_data::settings::Settings;
@@ -29,7 +30,6 @@ use ris_video::video::Video;
 use crate::gameloop::input_frame::InputFrame;
 use crate::gameloop::logic_frame::LogicFrame;
 use crate::gameloop::output_frame::OutputFrame;
-use crate::god_state::GodState;
 
 #[cfg(debug_assertions)]
 fn scenes_id() -> AssetId {
@@ -53,7 +53,7 @@ pub struct GodObject {
     pub output_data: OutputData,
     pub scenes: Scenes,
 
-    pub state: GodState,
+    pub state_double_buffer: GodStateDoubleBuffer,
 
     // guards
     pub asset_loader_guard: AssetLoaderGuard,
@@ -158,7 +158,7 @@ impl GodObject {
         let log_guard = ris_util::unroll_option!(log_guard.take(), "passed log guard was none",)?;
 
         // god state
-        let state = GodState::default();
+        let state_double_buffer = GodStateDoubleBuffer::default();
 
         // god object
         let god_object = GodObject {
@@ -173,7 +173,7 @@ impl GodObject {
             output_data,
             scenes,
 
-            state,
+            state_double_buffer,
 
             // guards
             asset_loader_guard,
