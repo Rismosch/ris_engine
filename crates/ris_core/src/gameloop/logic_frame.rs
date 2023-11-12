@@ -6,11 +6,11 @@ use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
+
 use ris_data::god_state::GodState;
 use ris_data::god_state::GodStateCommand;
 use ris_data::input::action;
 use ris_jobs::job_future::JobFuture;
-use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -160,19 +160,16 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-
+        let state = state.borrow();
 
         if input.general.buttons.is_down(action::CAMERA_UP) {
-            let mut state = job_system::lock(&state);
-            for i in 0..50_000 {
-                state.command_queue.push_back(GodStateCommand::IncreaseDebug);
+            for _ in 0..1_000 {
+                state.command_queue.push(GodStateCommand::IncreaseDebug);
             }
         }
         if input.general.buttons.is_down(action::CAMERA_DOWN) {
-            let mut state = job_system::lock(&state);
-            state.command_queue.push_back(GodStateCommand::DecreaseDebug);
+            state.command_queue.push(GodStateCommand::DecreaseDebug);
         }
-        let state = job_system::lock(&state);
         if state.events.debug_increased || state.events.debug_decreased {
             ris_log::debug!(
                 "debug changed to {} | {}s {}fps",

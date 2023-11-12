@@ -2,8 +2,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::TryLockError;
 
+use ris_util::throw;
+
 use crate::job_system;
-use crate::throw;
 
 struct Inner<T> {
     is_ready: bool,

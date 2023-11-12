@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use crate::throw;
+use ris_util::throw;
 
 pub struct JobCell<T> {
     value: UnsafeCell<T>,

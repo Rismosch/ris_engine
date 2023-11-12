@@ -1,4 +1,6 @@
 use std::collections::VecDeque;
+use std::sync::Arc;
+
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::execute_god_state_command;
 use ris_data::god_state::GodStateEvents;
@@ -19,7 +21,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut current_output = god_object.output_data;
 
     let mut state_double_buffer = god_object.state_double_buffer;
-    let mut previous_command_queue = VecDeque::new();
 
     loop {
         // update frame
@@ -27,29 +28,26 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let current_frame = frame_data_calculator.current();
 
         // update god state
-        state_double_buffer.swap();
-        let state_front = state_double_buffer.front();
-        let state_back = state_double_buffer.back();
+        state_double_buffer.swap_and_reset();
+        let state_front = state_double_buffer.front.clone();
+        let state_back = state_double_buffer.back.clone();
+        let prev_queue = state_double_buffer.prev_queue;
 
         let state_future = job_system::submit(move || {
-            let mut back = job_system::lock(&state_back);
-            let mut previous_command_queue = previous_command_queue;
+            let mut back = state_back.borrow_mut();
+            let prev_queue = prev_queue;
 
-            check_command_count(&back.command_queue);
-
-            back.events = GodStateEvents::default();
-
-            while let Some(command) = previous_command_queue.pop_front() {
+            prev_queue.start_iter();
+            while let Some(command) = prev_queue.next() {
                 execute_god_state_command(&mut back, command, false);
             }
 
-            //previous_command_queue = back.command_queue.clone();
-
-            while let Some(command) = back.command_queue.pop_front() {
+            back.command_queue.start_iter();
+            while let Some(command) = back.command_queue.next() {
                 execute_god_state_command(&mut back, command, true);
             }
 
-            previous_command_queue
+            prev_queue
         });
 
         // create copies
@@ -104,15 +102,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // wait for jobs
         let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait();
         let (new_output_frame, new_output_data, output_state) = output_future.wait();
-        let new_previous_command_queue =  state_future.wait();
+        let new_prev_queue = state_future.wait();
 
         // update buffers
         current_logic = new_logic_data;
         current_output = new_output_data;
-        previous_command_queue = new_previous_command_queue;
-
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
+
+        state_double_buffer.prev_queue = new_prev_queue;
 
         // restart job system
 
@@ -153,22 +151,3 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     }
 }
 
-#[cfg(debug_assertions)]
-fn check_command_count<T>(command_queue: &VecDeque<T>) {
-    // arbitrary high number. i started to experience lags at around 500_000 commands. if we stay
-    // way below this limit, then the performance is fine
-    let maximum = 10_000;
-
-    let command_count = command_queue.len();
-    if command_count > maximum {
-        ris_log::warning!(
-            "we hit {} commands, which exceeds {}. reduce command count, to avoid lag",
-            command_count,
-            maximum,
-        );
-    }
-}
-
-#[cfg(not(debug_assertions))]
-fn check_command_count<T>(command_queue: &VecDeque<T>) {
-}

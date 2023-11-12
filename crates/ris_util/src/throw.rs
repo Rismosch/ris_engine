@@ -4,19 +4,17 @@ pub static mut SHOW_MESSAGE_BOX_ON_THROW: bool = true;
 
 #[macro_export]
 macro_rules! throw {
-    ($($arg:tt)*) => {
-        {
-            let panic_message = format!($($arg)*);
-            $crate::throw::log_fatal(&panic_message);
-            $crate::throw::show_panic_message_box(&panic_message);
-            panic!("{}", panic_message);
-        }
-    };
+    ($($arg:tt)*) => {{
+        let panic_message = format!($($arg)*);
+        ris_log::fatal!("{}", panic_message);
+        $crate::throw::show_panic_message_box(&panic_message);
+        panic!("{}", panic_message);
+    }};
 }
 
 #[macro_export]
 macro_rules! unwrap_or_throw {
-    ($result:expr, $($arg:tt)*) => {
+    ($result:expr, $($arg:tt)*) => {{
         match $result {
             Ok(value) => value,
             Err(error) => {
@@ -24,11 +22,7 @@ macro_rules! unwrap_or_throw {
                 $crate::throw!("{}: {}", client_message, error);
             }
         }
-    };
-}
-
-pub fn log_fatal(message: &str) {
-    ris_log::fatal!("{}", message);
+    }};
 }
 
 pub fn show_panic_message_box(message: &str) {
