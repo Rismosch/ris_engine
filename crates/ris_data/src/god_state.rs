@@ -1,31 +1,34 @@
 use std::cell::RefCell;
-use std::mem::MaybeUninit;
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 use ris_util::throw;
 
-// if you come even close to this number, you are doing something wrong
+// arbitrary high number. if you are ever comming close to this number of commands, you are
+// probably doing something wrong. i highly discourage you to increase this value. Somewhere
+// above 100_000 i started experiencing lag.
 const MAX_COMMAND_COUNT: usize = 1_000;
 
 pub struct GodStateQueue {
-    array: [RefCell<GodStateCommand>; MAX_COMMAND_COUNT],
+    data: Vec<RefCell<GodStateCommand>>,
     count: AtomicUsize,
     iter_index: AtomicUsize,
 }
 
 impl Default for GodStateQueue {
     fn default() -> Self {
-        let uninitialized_array: [MaybeUninit<GodStateCommand>; MAX_COMMAND_COUNT] =
-            unsafe { MaybeUninit::uninit().assume_init() };
-        let array = uninitialized_array.map(|_| RefCell::new(GodStateCommand::IncreaseDebug));
+        let mut data = Vec::with_capacity(MAX_COMMAND_COUNT);
+        for _ in 0..MAX_COMMAND_COUNT {
+            let item = RefCell::new(GodStateCommand::IncreaseDebug);
+            data.push(item);
+        }
 
         let count = AtomicUsize::new(0);
         let iter_index = AtomicUsize::new(0);
 
         Self {
-            array,
+            data,
             count,
             iter_index,
         }
@@ -39,7 +42,7 @@ impl GodStateQueue {
             throw!("{} commands exceeded", MAX_COMMAND_COUNT);
         }
 
-        let mut element = self.array[index].borrow_mut();
+        let mut element = self.data[index].borrow_mut();
         *element = command;
     }
 
@@ -57,7 +60,7 @@ impl GodStateQueue {
         if index as isize > max_index {
             None
         } else {
-            let element = self.array[index].borrow();
+            let element = self.data[index].borrow();
             let result = (*element).clone();
             Some(result)
         }
@@ -101,7 +104,7 @@ pub struct GodStateDoubleBuffer {
 }
 
 impl GodStateDoubleBuffer {
-    pub fn swap_and_reset(&mut self){
+    pub fn swap_and_reset(&mut self) {
         let mut front = self.front.borrow_mut();
         let mut back = self.back.borrow_mut();
 

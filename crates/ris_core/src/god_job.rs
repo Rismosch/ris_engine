@@ -144,10 +144,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             && output_state != GameloopState::WantsToRestart
         {
             return Ok(WantsTo::Quit);
-        }
-        else {
+        } else {
             return Ok(WantsTo::Restart);
         }
     }
 }
-

@@ -163,9 +163,7 @@ impl LogicFrame {
         let state = state.borrow();
 
         if input.general.buttons.is_down(action::CAMERA_UP) {
-            for _ in 0..1_000 {
-                state.command_queue.push(GodStateCommand::IncreaseDebug);
-            }
+            state.command_queue.push(GodStateCommand::IncreaseDebug);
         }
         if input.general.buttons.is_down(action::CAMERA_DOWN) {
             state.command_queue.push(GodStateCommand::DecreaseDebug);
