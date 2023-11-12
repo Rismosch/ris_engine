@@ -49,9 +49,11 @@ To compile this repo, you need a working Rust compiler. I recommend installing i
 
 The current target platform is x86_64, both Windows and Linux.
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, continue reading this section.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, choose one of the following methods:
 
-You can get an archived repo on [my website archive](https://www.rismosch.com/archive), which contains all required packages. Alternatively, while you have internet access, you can download all dependencies with the following command:
+### Method 1: cargo vendor
+
+While you have internet access, you can download all dependencies with the following command:
 
     cargo vendor
 
@@ -68,6 +70,15 @@ Then create the file `./cargo/config.toml` with this content:
 This tells `cargo` to use the packages in `./vendor/` instead of searching the internet.
 
 For more information on `cargo vendor` check the following link: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
+
+### Method 2: Get an archived repo
+
+An archived repo contains all required packages. You can get an archived repo from one of these sources:
+
+- https://github.com/Rismosch/ris_engine/releases/
+- https://www.rismosch.com/archive
+
+Note that I make these archives sporadically, meaning they may not be up date date. Check the date, when the archives have been generated.
 
 ---
 
