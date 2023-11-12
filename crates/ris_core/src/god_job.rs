@@ -43,7 +43,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 execute_god_state_command(&mut back, command, false);
             }
 
-            previous_command_queue = back.command_queue.clone();
+            //previous_command_queue = back.command_queue.clone();
 
             while let Some(command) = back.command_queue.pop_front() {
                 execute_god_state_command(&mut back, command, true);
