@@ -1,13 +1,14 @@
 use ris_math::matrix4x4::Matrix4x4;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3::Vector3;
+use ris_rng::rng;
 use ris_rng::rng::Rng;
 use ris_util::testing;
 use ris_util::testing::assert_feq;
 
 #[test]
 fn should_rotate_like_quaternion() {
-    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new().unwrap()));
+    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(rng::CONST_SEED)));
     testing::repeat(1_000_000, move || {
         let w = rng.borrow_mut().next_f();
         let x = rng.borrow_mut().next_f();

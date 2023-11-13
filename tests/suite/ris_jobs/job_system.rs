@@ -11,7 +11,7 @@ use ris_util::testing::{repeat, retry};
 fn should_submit_and_run_jobs() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(10, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 100) };
+            unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
 
@@ -38,7 +38,7 @@ fn should_submit_and_run_jobs() {
 fn should_submit_job_within_job() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(10, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 100) };
+            unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
 
@@ -72,7 +72,7 @@ fn should_submit_job_within_job() {
 fn should_run_job_when_buffer_is_full() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
+            unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..200 {
@@ -100,7 +100,7 @@ fn should_run_job_when_buffer_is_full() {
 fn should_run_pending_job() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
+            unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
@@ -134,7 +134,7 @@ fn should_get_thread_index() {
 
     retry(10, || {
         let job_system =
-            unsafe { job_system::init(10, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 5) };
+            unsafe { job_system::init(10, 10, 5, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
 
@@ -177,7 +177,7 @@ fn should_get_thread_index() {
 fn should_run_jobs_while_waiting_on_future() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
+            unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
 
@@ -206,7 +206,7 @@ fn should_run_jobs_while_waiting_on_future() {
 fn should_run_jobs_when_emptying() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 1) };
+            unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {
@@ -235,7 +235,7 @@ fn should_run_jobs_when_emptying() {
 fn should_lock_mutex() {
     repeat(10, || {
         let job_system =
-            unsafe { job_system::init(100, sdl2::cpuinfo::cpu_count().try_into().unwrap(), 10) };
+            unsafe { job_system::init(100, 10, 10, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         for i in 0..100 {

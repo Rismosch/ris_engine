@@ -58,7 +58,7 @@ impl Drop for JobSystemGuard {
 /// # Safety
 ///
 /// The job system is a singleton. Initialize it only once.
-pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> JobSystemGuard {
+pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize, set_affinity: bool) -> JobSystemGuard {
     // estimate workthreads and according affinities
     let threads = std::cmp::min(cpu_count, threads);
 
@@ -86,7 +86,7 @@ pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> 
         let buffers = duplicate_buffers(&buffers);
         let done_copy = done.clone();
         handles.push(thread::spawn(move || {
-            setup_worker_thread(&core_ids, buffers, i);
+            setup_worker_thread(&core_ids, buffers, i, set_affinity);
             run_worker_thread(i, done_copy);
         }))
     }
@@ -97,7 +97,7 @@ pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize) -> 
     // setup main worker thread (this thread)
     let core_ids = affinities[0].clone();
     let buffers = duplicate_buffers(&buffers);
-    setup_worker_thread(&core_ids, buffers, 0);
+    setup_worker_thread(&core_ids, buffers, 0, set_affinity);
 
     JobSystemGuard { handles, done }
 }
@@ -183,11 +183,13 @@ fn duplicate_buffers(buffers: &Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
     result
 }
 
-fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: usize) {
-    match crate::affinity::set_affinity(core_ids) {
-        Ok(()) => ris_log::trace!("set affinity {:?} for thread {}", core_ids, index),
-        Err(error) => ris_log::error!("couldn't set affinity for thread {}: {}", index, error),
-    };
+fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: usize, set_affinity: bool) {
+    if set_affinity {
+        match crate::affinity::set_affinity(core_ids) {
+            Ok(()) => ris_log::trace!("set affinity {:?} for thread {}", core_ids, index),
+            Err(error) => ris_log::error!("couldn't set affinity for thread {}: {}", index, error),
+        };
+    }
 
     let local_buffer = buffers[index].clone();
     let mut steal_buffers = Vec::new();

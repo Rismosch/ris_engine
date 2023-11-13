@@ -1,12 +1,13 @@
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3::{self, Vector3};
+use ris_rng::rng;
 use ris_rng::rng::Rng;
 use ris_util::testing;
 use ris_util::testing::assert_feq;
 
 #[test]
 fn should_normalize_quaternion() {
-    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new().unwrap()));
+    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(rng::CONST_SEED)));
     testing::repeat(1_000_000, move || {
         let w = rng.borrow_mut().next_f();
         let x = rng.borrow_mut().next_f();
@@ -25,7 +26,7 @@ fn should_normalize_quaternion() {
 
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_0() {
-    let mut rng = Rng::new().unwrap();
+    let mut rng = Rng::new(rng::CONST_SEED);
     let angle = 0.;
     let x = rng.next_f();
     let y = rng.next_f();
@@ -43,7 +44,7 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
 
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
-    let mut rng = Rng::new().unwrap();
+    let mut rng = Rng::new(rng::CONST_SEED);
     let angle = ris_math::PI_2;
     let x = rng.next_f();
     let y = rng.next_f();

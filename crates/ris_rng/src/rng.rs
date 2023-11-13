@@ -1,6 +1,23 @@
+use ris_util::error::RisResult;
+
 use crate::pcg::Pcg32;
 
-pub type Seed = [u8; 16];
+pub struct Seed(pub [u8; 16]);
+pub const CONST_SEED: Seed = Seed([198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206]);
+
+impl Seed {
+    pub fn new() -> RisResult<Self> {
+        let now = std::time::SystemTime::now();
+        let duration_since_epoch = ris_util::unroll!(
+            now.duration_since(std::time::UNIX_EPOCH),
+            "failed to get time",
+        )?;
+        let bytes = duration_since_epoch.as_millis().to_le_bytes();
+        let seed = Seed(bytes);
+
+        Ok(seed)
+    }
+}
 
 pub struct Rng {
     seed: Seed,
@@ -8,24 +25,16 @@ pub struct Rng {
 }
 
 impl Rng {
-    pub fn new() -> Result<Rng, Box<dyn std::error::Error>> {
-        let now = std::time::SystemTime::now();
-        let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH)?;
-        let seed: Seed = duration_since_epoch.as_millis().to_le_bytes();
-
-        let rng = Rng::new_from_seed(seed);
-        Ok(rng)
-    }
-
-    pub fn new_from_seed(seed: Seed) -> Rng {
+    pub fn new(seed: Seed) -> Rng {
+        let pcg = Pcg32::new_from_seed(seed.0);
         Rng {
             seed,
-            pcg: Pcg32::new_from_seed(seed),
+            pcg,
         }
     }
 
-    pub fn seed(&self) -> Seed {
-        self.seed
+    pub fn seed(&self) -> &Seed {
+        &self.seed
     }
 
     pub fn next_u(&mut self) -> u32 {

@@ -103,7 +103,7 @@ impl GodObject {
         // job system
         let cpu_count = app_info.cpu.cpu_count;
         let workers = app_info.args.workers;
-        let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers) };
+        let job_system_guard = unsafe { job_system::init(1024, cpu_count, workers, true) };
 
         // assets
         import_assets()?;

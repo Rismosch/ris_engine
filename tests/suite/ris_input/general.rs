@@ -4,6 +4,7 @@ use ::ris_data::input::{
     rebind_matrix::{set_rebind_matrix, RebindMatrix},
 };
 use ris_input::general_logic::{update_general, GeneralLogicArgs};
+use ris_rng::rng;
 use ris_rng::rng::Rng;
 
 struct TestContext {
@@ -28,7 +29,7 @@ impl TestContext {
         let keyboard = Buttons::default();
         let gamepad = Buttons::default();
 
-        let rng = Rng::new().unwrap();
+        let rng = Rng::new(rng::CONST_SEED);
 
         let mut rebind_matrix: RebindMatrix = [0; 32];
 
