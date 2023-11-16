@@ -112,7 +112,7 @@ impl GodStateDoubleBuffer {
         std::mem::swap(&mut front.events, &mut back.events);
 
         std::mem::swap(&mut front.command_queue, &mut back.command_queue);
-        std::mem::swap(&mut back.command_queue, &mut self.prev_queue);
+        std::mem::swap(&mut front.command_queue, &mut self.prev_queue);
 
         back.events = GodStateEvents::default();
         front.command_queue.clear();
