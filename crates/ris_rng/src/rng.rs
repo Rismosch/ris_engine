@@ -3,7 +3,9 @@ use ris_util::error::RisResult;
 use crate::pcg::Pcg32;
 
 pub struct Seed(pub [u8; 16]);
-pub const CONST_SEED: Seed = Seed([198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206]);
+pub const CONST_SEED: Seed = Seed([
+    198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206,
+]);
 
 impl Seed {
     pub fn new() -> RisResult<Self> {
@@ -27,10 +29,7 @@ pub struct Rng {
 impl Rng {
     pub fn new(seed: Seed) -> Rng {
         let pcg = Pcg32::new_from_seed(seed.0);
-        Rng {
-            seed,
-            pcg,
-        }
+        Rng { seed, pcg }
     }
 
     pub fn seed(&self) -> &Seed {

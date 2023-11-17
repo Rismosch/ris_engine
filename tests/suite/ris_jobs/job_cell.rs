@@ -25,33 +25,27 @@ fn should_be_mutable_and_create_references() {
 }
 
 #[test]
+#[should_panic]
 fn should_panic_when_creating_mutable_reference_while_immutable_ones_exist() {
     unsafe {
         ris_util::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
-    let result = std::panic::catch_unwind(|| {
-        let mut job_cell = unsafe { JobCell::new(0) };
-        let ref1 = job_cell.borrow();
-        let _mut_ref = job_cell.as_mut();
-        drop(ref1);
-    });
-
-    assert!(result.is_err());
+    let mut job_cell = unsafe { JobCell::new(0) };
+    let ref1 = job_cell.borrow();
+    let _mut_ref = job_cell.as_mut();
+    drop(ref1);
 }
 
 #[test]
+#[should_panic]
 fn should_panic_when_dereferencing_while_owner_was_dropped() {
     unsafe {
         ris_util::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
-    let result = std::panic::catch_unwind(|| {
-        let job_cell = unsafe { JobCell::new(0) };
-        let ref1 = job_cell.borrow();
-        drop(job_cell);
-        let _deref1 = *ref1;
-    });
-
-    assert!(result.is_err());
+    let job_cell = unsafe { JobCell::new(0) };
+    let ref1 = job_cell.borrow();
+    drop(job_cell);
+    let _deref1 = *ref1;
 }

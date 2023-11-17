@@ -58,7 +58,12 @@ impl Drop for JobSystemGuard {
 /// # Safety
 ///
 /// The job system is a singleton. Initialize it only once.
-pub unsafe fn init(buffer_capacity: usize, cpu_count: usize, threads: usize, set_affinity: bool) -> JobSystemGuard {
+pub unsafe fn init(
+    buffer_capacity: usize,
+    cpu_count: usize,
+    threads: usize,
+    set_affinity: bool,
+) -> JobSystemGuard {
     // estimate workthreads and according affinities
     let threads = std::cmp::min(cpu_count, threads);
 
@@ -183,7 +188,12 @@ fn duplicate_buffers(buffers: &Vec<Arc<JobBuffer>>) -> Vec<Arc<JobBuffer>> {
     result
 }
 
-fn setup_worker_thread(core_ids: &[usize], buffers: Vec<Arc<JobBuffer>>, index: usize, set_affinity: bool) {
+fn setup_worker_thread(
+    core_ids: &[usize],
+    buffers: Vec<Arc<JobBuffer>>,
+    index: usize,
+    set_affinity: bool,
+) {
     if set_affinity {
         match crate::affinity::set_affinity(core_ids) {
             Ok(()) => ris_log::trace!("set affinity {:?} for thread {}", core_ids, index),

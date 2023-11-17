@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::cell::UnsafeCell;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use ris_util::throw;
 const MAX_COMMAND_COUNT: usize = 1_000;
 
 pub struct GodStateQueue {
-    data: Vec<RefCell<GodStateCommand>>,
+    data: Vec<UnsafeCell<GodStateCommand>>,
     count: AtomicUsize,
     iter_index: AtomicUsize,
 }
@@ -20,7 +21,7 @@ impl Default for GodStateQueue {
     fn default() -> Self {
         let mut data = Vec::with_capacity(MAX_COMMAND_COUNT);
         for _ in 0..MAX_COMMAND_COUNT {
-            let item = RefCell::new(GodStateCommand::IncreaseDebug);
+            let item = UnsafeCell::new(GodStateCommand::IncreaseDebug);
             data.push(item);
         }
 
@@ -42,8 +43,8 @@ impl GodStateQueue {
             throw!("{} commands exceeded", MAX_COMMAND_COUNT);
         }
 
-        let mut element = self.data[index].borrow_mut();
-        *element = command;
+        let mut element = self.data[index].get();
+        unsafe { *element = command };
     }
 
     pub fn clear(&self) {
@@ -60,8 +61,9 @@ impl GodStateQueue {
         if index as isize > max_index {
             None
         } else {
-            let element = self.data[index].borrow();
-            let result = (*element).clone();
+            let element_ptr = self.data[index].get();
+            let element = unsafe { element_ptr.as_ref() }.unwrap();
+            let result = element.clone();
             Some(result)
         }
     }
@@ -84,10 +86,11 @@ pub struct GodStateData {
     pub debug: i32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum GodStateCommand {
     IncreaseDebug,
     DecreaseDebug,
+    Debug(isize),
 }
 
 #[derive(Default)]
@@ -137,5 +140,6 @@ pub fn execute_god_state_command(
                 state.events.debug_decreased = true;
             }
         }
+        GodStateCommand::Debug(_) => (),
     }
 }
