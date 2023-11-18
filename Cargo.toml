@@ -5,7 +5,7 @@ authors = ["Rismosch"]
 edition = "2021"
 description = "Barebones game engine. Home made passion project."
 #documentation = "URL of the package documentation."
-readme = "../README.md"
+readme = "README.md"
 homepage = "https://rismosch.com/"
 repository = "https://github.com/Rismosch/ris_engine"
 license = "GPL-3.0"
@@ -16,6 +16,9 @@ publish = false
 default-run = "ris_engine"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+miri_deps = ["compiler_builtins", "rustc-demangle", "dlmalloc", "addr2line", "object", "hermit-abi", "r-efi", "r-efi-alloc", "fortanix-sgx-abi", "allocator-api2", "memchr", "getopts"]
 
 [workspace]
 members = [
@@ -49,19 +52,19 @@ ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video = { path = "crates/ris_video" }
 
-[target.'cfg(target_os = "linux")'.dev-dependencies]
-compiler_builtins = "0.1.45"
-rustc-demangle = "0.1"
-dlmalloc = "0.2.4"
-addr2line = "0.21.0"
-object = "=0.32.0"
-hermit-abi = "=0.3.2"
-r-efi = "=4.2.0"
-r-efi-alloc = "1.0.0"
-fortanix-sgx-abi = "0.5.0"
-allocator-api2 = "=0.2.15"
-memchr = "=2.5.0"
-getopts = "0.2.21"
+[target.'cfg(target_os = "linux")'.dependencies]
+compiler_builtins = { version = "0.1.45", optional = true }
+rustc-demangle = { version = "0.1", optional = true }
+dlmalloc = { version = "0.2.4", optional = true }
+addr2line = { version = "0.21.0", optional = true }
+object = { version = "=0.32.0", optional = true }
+hermit-abi = { version = "=0.3.2", optional = true }
+r-efi = { version = "=4.2.0", optional = true }
+r-efi-alloc = { version = "1.0.0", optional = true }
+fortanix-sgx-abi = { version = "0.5.0", optional = true }
+allocator-api2 = { version = "=0.2.15", optional = true }
+memchr = { version = "=2.5.0", optional = true }
+getopts = { version = "0.2.21", optional = true }
 
 [profile.dev]
 opt-level = 0

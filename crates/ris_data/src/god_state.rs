@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
 use std::cell::RefCell;
 use std::cell::UnsafeCell;
+use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
@@ -81,29 +81,6 @@ pub struct InnerGodState {
     pub events: GodStateEvents,
 }
 
-//pub type GodState = Arc<RefCell<InnerGodState>>;
-pub struct GodStateRef{
-    ptr: *const InnerGodState,
-    _boo: PhantomData<InnerGodState>,
-}
-
-impl GodStateRef{
-    pub fn from(ptr: *const InnerGodState) -> Self {
-        Self{
-            ptr,
-            _boo: PhantomData,
-        }
-    }
-}
-
-impl Deref for GodStateRef {
-    type Target = InnerGodState;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {&*self.ptr}
-    }
-}
-
 #[derive(Default)]
 pub struct GodStateData {
     pub debug: i32,
@@ -121,6 +98,39 @@ pub struct GodStateEvents {
     pub debug_increased: bool,
     pub debug_decreased: bool,
 }
+
+#[derive(Clone)]
+pub struct GodStateRef {
+    ptr: *const InnerGodState,
+    _boo: PhantomData<InnerGodState>,
+}
+
+impl GodStateRef {
+    /// # Safety
+    ///
+    /// `deref` performs an `unsafe` operation. For ergonomics, the method is declared safe. To avoid UB, the construction of a `GodStateRef` is `unsafe` instead.
+    ///
+    /// You must make sure, as long as `GodStateRef` is alive, that:
+    /// - `ptr` is live and never deallocated.
+    /// - The `InnerGodState` to which `ptr` is pointing to is never modified.
+    pub unsafe fn from(ptr: *const InnerGodState) -> Self {
+        Self {
+            ptr,
+            _boo: PhantomData,
+        }
+    }
+}
+
+impl Deref for GodStateRef {
+    type Target = InnerGodState;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.ptr }
+    }
+}
+
+unsafe impl Send for GodStateRef {}
+unsafe impl Sync for GodStateRef {}
 
 #[derive(Default)]
 pub struct GodStateDoubleBuffer {

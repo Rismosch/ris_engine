@@ -7,8 +7,8 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 
-use ris_data::god_state::GodStateRef;
 use ris_data::god_state::GodStateCommand;
+use ris_data::god_state::GodStateRef;
 use ris_data::input::action;
 use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quaternion;

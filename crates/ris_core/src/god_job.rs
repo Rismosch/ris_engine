@@ -35,7 +35,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let prev_queue = state_double_buffer.prev_queue;
 
         let front_ptr = state_double_buffer.front.get() as *const InnerGodState;
-        let state_front = GodStateRef::from(front_ptr);
+        let state_front = unsafe { GodStateRef::from(front_ptr) };
 
         let state_future = job_system::submit(move || {
             let mut state_back = state_back;
