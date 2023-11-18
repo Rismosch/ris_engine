@@ -49,6 +49,20 @@ ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video = { path = "crates/ris_video" }
 
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+compiler_builtins = "0.1.45"
+rustc-demangle = "0.1"
+dlmalloc = "0.2.4"
+addr2line = "0.21.0"
+object = "=0.32.0"
+hermit-abi = "=0.3.2"
+r-efi = "=4.2.0"
+r-efi-alloc = "1.0.0"
+fortanix-sgx-abi = "0.5.0"
+allocator-api2 = "=0.2.15"
+memchr = "=2.5.0"
+getopts = "0.2.21"
+
 [profile.dev]
 opt-level = 0
 debug = true
