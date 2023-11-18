@@ -4,6 +4,8 @@ use std::sync::Arc;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::execute_god_state_command;
 use ris_data::god_state::GodStateEvents;
+use ris_data::god_state::GodStateRef;
+use ris_data::god_state::InnerGodState;
 use ris_jobs::job_system;
 use ris_util::error::RisResult;
 
@@ -29,12 +31,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // update god state
         state_double_buffer.swap_and_reset();
-        let state_front = state_double_buffer.front.clone();
-        let state_back = state_double_buffer.back.clone();
+        let state_back = state_double_buffer.back;
         let prev_queue = state_double_buffer.prev_queue;
 
+        let front_ptr = state_double_buffer.front.get() as *const InnerGodState;
+        let state_front = GodStateRef::from(front_ptr);
+
         let state_future = job_system::submit(move || {
-            let mut back = state_back.borrow_mut();
+            let mut state_back = state_back;
+            let mut back = state_back.get_mut();
             let prev_queue = prev_queue;
 
             prev_queue.start_iter();
@@ -47,7 +52,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 execute_god_state_command(&mut back, command, true);
             }
 
-            prev_queue
+            (state_back, prev_queue)
         });
 
         // create copies
@@ -87,7 +92,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 &previous_logic_for_logic,
                 &previous_input_for_logic,
                 &frame_for_logic,
-                state_front.clone(),
+                state_front,
             );
 
             (logic_frame, current_logic, gameloop_state)
@@ -102,7 +107,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // wait for jobs
         let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait();
         let (new_output_frame, new_output_data, output_state) = output_future.wait();
-        let new_prev_queue = state_future.wait();
+        let (new_state_back, new_prev_queue) = state_future.wait();
 
         // update buffers
         current_logic = new_logic_data;
@@ -110,6 +115,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         god_object.output_frame = new_output_frame;
         god_object.logic_frame = new_logic_frame;
 
+        state_double_buffer.back = new_state_back;
         state_double_buffer.prev_queue = new_prev_queue;
 
         // restart job system

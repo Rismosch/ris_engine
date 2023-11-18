@@ -7,7 +7,7 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 
-use ris_data::god_state::GodState;
+use ris_data::god_state::GodStateRef;
 use ris_data::god_state::GodStateCommand;
 use ris_data::input::action;
 use ris_jobs::job_future::JobFuture;
@@ -39,7 +39,7 @@ impl LogicFrame {
         previous: &LogicData,
         input: &InputData,
         frame: &FrameData,
-        state: GodState,
+        state: GodStateRef,
     ) -> RisResult<GameloopState> {
         // manual restart
         if input.keyboard.keys.is_hold(Scancode::F1) {
@@ -159,8 +159,6 @@ impl LogicFrame {
             let right = scene.camera_rotation.rotate(vector3::RIGHT);
             scene.camera_position += movement_speed * right;
         }
-
-        let state = state.borrow();
 
         if input.general.buttons.is_down(action::CAMERA_UP) {
             state.command_queue.push(GodStateCommand::IncreaseDebug);

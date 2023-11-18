@@ -1,5 +1,7 @@
+use std::marker::PhantomData;
 use std::cell::RefCell;
 use std::cell::UnsafeCell;
+use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -43,7 +45,7 @@ impl GodStateQueue {
             throw!("{} commands exceeded", MAX_COMMAND_COUNT);
         }
 
-        let mut element = self.data[index].get();
+        let element = self.data[index].get();
         unsafe { *element = command };
     }
 
@@ -79,7 +81,28 @@ pub struct InnerGodState {
     pub events: GodStateEvents,
 }
 
-pub type GodState = Arc<RefCell<InnerGodState>>;
+//pub type GodState = Arc<RefCell<InnerGodState>>;
+pub struct GodStateRef{
+    ptr: *const InnerGodState,
+    _boo: PhantomData<InnerGodState>,
+}
+
+impl GodStateRef{
+    pub fn from(ptr: *const InnerGodState) -> Self {
+        Self{
+            ptr,
+            _boo: PhantomData,
+        }
+    }
+}
+
+impl Deref for GodStateRef {
+    type Target = InnerGodState;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {&*self.ptr}
+    }
+}
 
 #[derive(Default)]
 pub struct GodStateData {
@@ -101,15 +124,15 @@ pub struct GodStateEvents {
 
 #[derive(Default)]
 pub struct GodStateDoubleBuffer {
-    pub front: GodState,
-    pub back: GodState,
+    pub front: UnsafeCell<InnerGodState>,
+    pub back: UnsafeCell<InnerGodState>,
     pub prev_queue: GodStateQueue,
 }
 
 impl GodStateDoubleBuffer {
     pub fn swap_and_reset(&mut self) {
-        let mut front = self.front.borrow_mut();
-        let mut back = self.back.borrow_mut();
+        let front = self.front.get_mut();
+        let back = self.back.get_mut();
 
         std::mem::swap(&mut front.data, &mut back.data);
         std::mem::swap(&mut front.events, &mut back.events);
