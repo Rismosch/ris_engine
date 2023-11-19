@@ -1,3 +1,4 @@
+pub mod settings;
 pub mod buttons;
 pub mod god_state_queue;
 pub mod god_state_ref;
