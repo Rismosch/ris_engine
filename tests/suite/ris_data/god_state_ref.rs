@@ -1,12 +1,14 @@
 use std::cell::UnsafeCell;
 
+use ris_data::settings::Settings;
 use ris_data::god_state::GodStateCommand;
 use ris_data::god_state::GodStateRef;
 use ris_data::god_state::InnerGodState;
 
 #[test]
 fn is_safe() {
-    let mut inner = UnsafeCell::new(InnerGodState::default());
+    let settings = Settings::default();
+    let mut inner = InnerGodState::new(settings);
 
     {
         let ptr = inner.get() as *const InnerGodState;
@@ -28,7 +30,9 @@ fn is_safe() {
 #[test]
 fn is_thread_safe() {
     let thread_count = 100;
-    let mut inner = UnsafeCell::new(InnerGodState::default());
+
+    let settings = Settings::default();
+    let mut inner = InnerGodState::new(settings);
 
     {
         let ptr = inner.get() as *const InnerGodState;

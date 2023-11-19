@@ -1,11 +1,12 @@
 pub mod job_settings;
+pub mod ris_yaml;
 pub mod serializer;
 
 use job_settings::JobSettings;
 
 use crate::info::app_info::AppInfo;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct Settings {
     pub job: JobSettings,
 }
