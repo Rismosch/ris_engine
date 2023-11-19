@@ -1,9 +1,4 @@
-use std::collections::VecDeque;
-use std::sync::Arc;
-
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::god_state::execute_god_state_command;
-use ris_data::god_state::GodStateEvents;
 use ris_data::god_state::GodStateRef;
 use ris_data::god_state::InnerGodState;
 use ris_jobs::job_system;
@@ -39,17 +34,17 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         let state_future = job_system::submit(move || {
             let mut state_back = state_back;
-            let mut back = state_back.get_mut();
+            let back = state_back.get_mut();
             let prev_queue = prev_queue;
 
             prev_queue.start_iter();
             while let Some(command) = prev_queue.next() {
-                execute_god_state_command(&mut back, command, false);
+                back.execute_command(command, false);
             }
 
             back.command_queue.start_iter();
             while let Some(command) = back.command_queue.next() {
-                execute_god_state_command(&mut back, command, true);
+                back.execute_command(command, true);
             }
 
             (state_back, prev_queue)

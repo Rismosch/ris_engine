@@ -12,9 +12,11 @@ use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::god_state::GodStateDoubleBuffer;
+use ris_data::god_state::GodStateQueue;
+use ris_data::god_state::InnerGodState;
 use ris_data::info::app_info::AppInfo;
-use ris_data::settings;
 use ris_data::settings::Settings;
+use ris_data::settings::serializer::SettingsSerializer;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
 use ris_log::appenders::console_appender::ConsoleAppender;
@@ -43,7 +45,7 @@ fn scenes_id() -> AssetId {
 
 pub struct GodObject {
     pub app_info: AppInfo,
-    //pub settings: Settings,
+    pub settings_serializer: SettingsSerializer,
     pub frame_data_calculator: FrameDataCalculator,
     pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
@@ -95,10 +97,11 @@ impl GodObject {
 
     fn build_god_object(app_info: AppInfo, log_guard: &mut Option<LogGuard>) -> RisResult<Self> {
         // settings
-        //let settings = match settings::serializer::deserialize() {
-        //    Some(s) => s,
-        //    None => Settings::new(&app_info),
-        //};
+        let settings_serializer = SettingsSerializer::new(&app_info);
+        let settings = match settings_serializer.deserialize() {
+            Some(settings) => settings,
+            None => Settings::new(&app_info),
+        };
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
@@ -158,12 +161,19 @@ impl GodObject {
         let log_guard = ris_util::unroll_option!(log_guard.take(), "passed log guard was none",)?;
 
         // god state
-        let state_double_buffer = GodStateDoubleBuffer::default();
+        let front = InnerGodState::new(settings.clone());
+        let back = InnerGodState::new(settings);
+        let prev_queue = GodStateQueue::default();
+        let state_double_buffer = GodStateDoubleBuffer{
+            front,
+            back,
+            prev_queue,
+        };
 
         // god object
         let god_object = GodObject {
             app_info,
-            //settings,
+            settings_serializer,
             frame_data_calculator,
             input_frame,
             logic_frame,

@@ -1,12 +1,75 @@
-use std::cell::RefCell;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 
 use ris_util::throw;
+
+use crate::settings::Settings;
+
+pub struct GodStateData {
+    pub debug: i32,
+    pub settings: Settings,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum GodStateCommand {
+    IncreaseDebug,
+    DecreaseDebug,
+    Debug(isize),
+}
+
+#[derive(Default)]
+pub struct GodStateEvents {
+    pub debug_increased: bool,
+    pub debug_decreased: bool,
+}
+
+pub struct InnerGodState {
+    pub data: GodStateData,
+    pub command_queue: GodStateQueue,
+    pub events: GodStateEvents,
+}
+
+impl InnerGodState {
+    pub fn new(settings: Settings) -> UnsafeCell<Self> {
+        let data = GodStateData {
+            settings,
+            debug: i32::default(),
+        };
+        let command_queue = GodStateQueue::default();
+        let events = GodStateEvents::default();
+
+        UnsafeCell::new(Self {
+            data,
+            command_queue,
+            events,
+        })
+    }
+
+    pub fn execute_command(
+        &mut self,
+        command: GodStateCommand,
+        generate_events: bool,
+    ) {
+        match command {
+            GodStateCommand::IncreaseDebug => {
+                self.data.debug += 1;
+                if generate_events {
+                    self.events.debug_increased = true;
+                }
+            }
+            GodStateCommand::DecreaseDebug => {
+                self.data.debug -= 1;
+                if generate_events {
+                    self.events.debug_decreased = true;
+                }
+            }
+            GodStateCommand::Debug(_) => (),
+        }
+    }
+}
 
 // arbitrary high number. if you are ever comming close to this number of commands, you are
 // probably doing something wrong. i highly discourage you to increase this value. Somewhere
@@ -74,31 +137,6 @@ impl GodStateQueue {
 unsafe impl Send for GodStateQueue {}
 unsafe impl Sync for GodStateQueue {}
 
-#[derive(Default)]
-pub struct InnerGodState {
-    pub data: GodStateData,
-    pub command_queue: GodStateQueue,
-    pub events: GodStateEvents,
-}
-
-#[derive(Default)]
-pub struct GodStateData {
-    pub debug: i32,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum GodStateCommand {
-    IncreaseDebug,
-    DecreaseDebug,
-    Debug(isize),
-}
-
-#[derive(Default)]
-pub struct GodStateEvents {
-    pub debug_increased: bool,
-    pub debug_decreased: bool,
-}
-
 #[derive(Clone)]
 pub struct GodStateRef {
     ptr: *const InnerGodState,
@@ -132,7 +170,6 @@ impl Deref for GodStateRef {
 unsafe impl Send for GodStateRef {}
 unsafe impl Sync for GodStateRef {}
 
-#[derive(Default)]
 pub struct GodStateDoubleBuffer {
     pub front: UnsafeCell<InnerGodState>,
     pub back: UnsafeCell<InnerGodState>,
@@ -155,24 +192,3 @@ impl GodStateDoubleBuffer {
     }
 }
 
-pub fn execute_god_state_command(
-    state: &mut InnerGodState,
-    command: GodStateCommand,
-    generate_events: bool,
-) {
-    match command {
-        GodStateCommand::IncreaseDebug => {
-            state.data.debug += 1;
-            if generate_events {
-                state.events.debug_increased = true;
-            }
-        }
-        GodStateCommand::DecreaseDebug => {
-            state.data.debug -= 1;
-            if generate_events {
-                state.events.debug_decreased = true;
-            }
-        }
-        GodStateCommand::Debug(_) => (),
-    }
-}
