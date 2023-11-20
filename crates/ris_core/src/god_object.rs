@@ -15,8 +15,8 @@ use ris_data::god_state::GodStateDoubleBuffer;
 use ris_data::god_state::GodStateQueue;
 use ris_data::god_state::InnerGodState;
 use ris_data::info::app_info::AppInfo;
-use ris_data::settings::Settings;
 use ris_data::settings::serializer::SettingsSerializer;
+use ris_data::settings::Settings;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
 use ris_log::appenders::console_appender::ConsoleAppender;
@@ -164,7 +164,7 @@ impl GodObject {
         let front = InnerGodState::new(settings.clone());
         let back = InnerGodState::new(settings);
         let prev_queue = GodStateQueue::default();
-        let state_double_buffer = GodStateDoubleBuffer{
+        let state_double_buffer = GodStateDoubleBuffer {
             front,
             back,
             prev_queue,

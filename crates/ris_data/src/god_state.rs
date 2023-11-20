@@ -48,11 +48,7 @@ impl InnerGodState {
         })
     }
 
-    pub fn execute_command(
-        &mut self,
-        command: GodStateCommand,
-        generate_events: bool,
-    ) {
+    pub fn execute_command(&mut self, command: GodStateCommand, generate_events: bool) {
         match command {
             GodStateCommand::IncreaseDebug => {
                 self.data.debug += 1;
@@ -191,4 +187,3 @@ impl GodStateDoubleBuffer {
         front.command_queue.clear();
     }
 }
-

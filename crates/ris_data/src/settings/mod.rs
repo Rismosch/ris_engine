@@ -15,14 +15,9 @@ impl Settings {
     pub fn new(app_info: &AppInfo) -> Self {
         // job settings
         let workers = app_info.cpu.cpu_count;
-        let job = JobSettings {
-            workers,
-        };
+        let job = JobSettings { workers };
 
         // settings
-        Self {
-            job,
-        }
+        Self { job }
     }
 }
-

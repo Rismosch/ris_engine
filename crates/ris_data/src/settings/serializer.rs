@@ -18,7 +18,7 @@ pub struct SettingsSerializer {
     fallback_file: FallbackFileOverwrite,
 }
 
-impl SettingsSerializer{
+impl SettingsSerializer {
     pub fn new(app_info: &AppInfo) -> Self {
         let mut settings_dir = PathBuf::new();
         settings_dir.push(&app_info.file.pref_path);
@@ -29,7 +29,7 @@ impl SettingsSerializer{
 
         let fallback_file = FallbackFileOverwrite::new(&settings_dir, extension, old_count);
 
-        Self {fallback_file}
+        Self { fallback_file }
     }
 
     pub fn serialize(&self, settings: &Settings) -> RisResult<()> {
@@ -39,7 +39,7 @@ impl SettingsSerializer{
 
     pub fn deserialize(&self) -> Option<Settings> {
         for availale_path in self.fallback_file.available_paths() {
-            if let Some(bytes) = self.fallback_file.get_by_path(&availale_path){
+            if let Some(bytes) = self.fallback_file.get_by_path(&availale_path) {
                 if let Ok(settings) = read_bytes(&bytes) {
                     return Some(settings);
                 }
@@ -60,4 +60,3 @@ fn write_bytes(settings: &Settings) -> Vec<u8> {
 fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
     ris_util::result_err!("not implemented")
 }
-

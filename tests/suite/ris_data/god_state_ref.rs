@@ -1,9 +1,9 @@
 use std::cell::UnsafeCell;
 
-use ris_data::settings::Settings;
 use ris_data::god_state::GodStateCommand;
 use ris_data::god_state::GodStateRef;
 use ris_data::god_state::InnerGodState;
+use ris_data::settings::Settings;
 
 #[test]
 fn is_safe() {
