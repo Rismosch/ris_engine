@@ -104,6 +104,10 @@ impl RisYaml {
     }
 }
 
+pub fn error_on_line<T>(line: usize, message: &str) -> RisResult<T> {
+    ris_util::result_err!("error on line {}: {}", line, message)
+}
+
 fn assert_valid_value(value: &str, line: usize) -> RisResult<()> {
     if value.contains('\n') {
         return error_on_line(
@@ -150,8 +154,4 @@ fn assert_valid_comment(comment: &str, line: usize) -> RisResult<()> {
     } else {
         Ok(())
     }
-}
-
-fn error_on_line<T>(line: usize, message: &str) -> RisResult<T> {
-    ris_util::result_err!("error on line {}: {}", line, message)
 }

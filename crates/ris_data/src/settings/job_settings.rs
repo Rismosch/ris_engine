@@ -1,4 +1,4 @@
 #[derive(Default, Clone)]
 pub struct JobSettings {
-    pub workers: usize,
+    pub workers: Option<usize>,
 }

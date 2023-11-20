@@ -100,7 +100,7 @@ impl GodObject {
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize() {
             Some(settings) => settings,
-            None => Settings::new(&app_info),
+            None => Settings::default(),
         };
 
         // job system
