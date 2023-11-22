@@ -7,22 +7,36 @@ pub struct RisYamlEntry {
     pub line: usize,
 }
 
-impl RisYamlEntry {
-    pub fn set_key_value(&mut self, key: &str, value: &str) {
-        self.key_value = Some((key.to_owned(), value.to_owned()))
-    }
-
-    pub fn set_comment(&mut self, comment: &str) {
-        self.comment = Some(comment.to_owned());
-    }
-}
-
 #[derive(Default)]
 pub struct RisYaml {
     pub entries: Vec<RisYamlEntry>,
 }
 
 impl RisYaml {
+    pub fn add_empty(&mut self) {
+        let entry = RisYamlEntry::default();
+        self.entries.push(entry);
+    }
+
+    pub fn add_key_value(&mut self, key: &str, value: String) {
+        let mut entry = RisYamlEntry::default();
+        entry.key_value = Some((key.to_owned(), value));
+        self.entries.push(entry);
+    }
+
+    pub fn add_comment(&mut self, comment: &str) {
+        let mut entry = RisYamlEntry::default();
+        entry.comment = Some(comment.to_owned());
+        self.entries.push(entry);
+    }
+
+    pub fn add_key_value_and_comment(&mut self, key: &str, value: &str, comment: &str) {
+        let mut entry = RisYamlEntry::default();
+        entry.key_value = Some((key.to_owned(), value.to_owned()));
+        entry.comment = Some(comment.to_owned());
+        self.entries.push(entry);
+    }
+
     pub fn from(string: &str) -> RisResult<Self> {
         let mut entries = Vec::new();
 

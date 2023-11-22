@@ -33,14 +33,15 @@ impl SettingsSerializer {
 
     pub fn serialize(&self, settings: &Settings) -> RisResult<()> {
         let bytes = write_bytes(settings);
-        self.fallback_file.overwrite_current(&bytes)
+        self.fallback_file.overwrite_current(&bytes?)
     }
 
     pub fn deserialize(&self) -> Option<Settings> {
-        for availale_path in self.fallback_file.available_paths() {
-            if let Some(bytes) = self.fallback_file.get_by_path(&availale_path) {
-                if let Ok(settings) = read_bytes(&bytes) {
-                    return Some(settings);
+        for available_path in self.fallback_file.available_paths() {
+            if let Some(bytes) = self.fallback_file.get_by_path(&available_path) {
+                match read_bytes(&bytes) {
+                    Ok(settings) => return Some(settings),
+                    Err(error) => ris_log::warning!("failed to deserialize \"{:?}\": {}", available_path, error),
                 }
             }
         }
@@ -49,8 +50,20 @@ impl SettingsSerializer {
     }
 }
 
-fn write_bytes(settings: &Settings) -> Vec<u8> {
-    panic!()
+fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
+    let mut yaml = RisYaml::default();
+
+    yaml.add_comment("jobs");
+    yaml.add_key_value(key::JOB_WORKERS, compose(&settings.job.workers));
+    yaml.add_empty();
+
+    let string = ris_util::unroll!(
+        yaml.to_string(),
+        "failed to serialize yaml",
+    )?;
+
+    let bytes = string.as_bytes().to_vec();
+    Ok(bytes)
 }
 
 fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
@@ -74,6 +87,13 @@ fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
     }
 
     Ok(result)
+}
+
+fn compose<T: Display>(value: &Option<T>) -> String {
+    match value.as_ref() {
+        Some(value) => (*value).to_string(),
+        None => String::from(DEFAULT),
+    }
 }
 
 fn parse<T>(value: &str, line: usize) -> RisResult<Option<T>>

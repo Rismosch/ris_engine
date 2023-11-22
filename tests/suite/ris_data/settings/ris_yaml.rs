@@ -6,26 +6,19 @@ use ris_data::settings::ris_yaml::RisYamlEntry;
 fn should_serialize() {
     let mut yaml = RisYaml::default();
 
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("my first key", "my first value");
-    entry.set_comment("my first comment");
-    yaml.entries.push(entry);
-
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("my second key", "my second value");
-    entry.set_comment("my second comment");
-    yaml.entries.push(entry);
-
-    let entry = RisYamlEntry::default();
-    yaml.entries.push(entry);
-
-    let mut entry = RisYamlEntry::default();
-    entry.set_comment("this line has no key/value");
-    yaml.entries.push(entry);
-
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("this line", "has no comment");
-    yaml.entries.push(entry);
+    yaml.add_key_value_and_comment(
+        "my first key",
+        "my first value",
+        "my first comment",
+    );
+    yaml.add_key_value_and_comment(
+        "my second key",
+        "my second value",
+        "my second comment",
+    );
+    yaml.add_empty();
+    yaml.add_comment("this line has no key/value");
+    yaml.add_key_value("this line", String::from("has no comment"));
 
     let result = yaml.to_string().unwrap();
 
