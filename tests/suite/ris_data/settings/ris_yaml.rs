@@ -1,5 +1,4 @@
 use ris_data::settings::ris_yaml::RisYaml;
-use ris_data::settings::ris_yaml::RisYamlEntry;
 
 // serialize
 #[test]
@@ -18,7 +17,7 @@ fn should_serialize() {
     );
     yaml.add_empty();
     yaml.add_comment("this line has no key/value");
-    yaml.add_key_value("this line", String::from("has no comment"));
+    yaml.add_key_value("this line", "has no comment");
 
     let result = yaml.to_string().unwrap();
 
@@ -37,23 +36,17 @@ this line: has no comment
 fn should_not_serialize_when_key_is_invalid() {
     // no colon
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value(":", "");
-    yaml.entries.push(entry);
+    yaml.add_key_value(":", "");
     assert!(yaml.to_string().is_err());
 
     // no newline
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("\n", "");
-    yaml.entries.push(entry);
+    yaml.add_key_value("\n", "");
     assert!(yaml.to_string().is_err());
 
     // no empty key
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("", "");
-    yaml.entries.push(entry);
+    yaml.add_key_value("", "");
     assert!(yaml.to_string().is_err());
 }
 
@@ -61,32 +54,24 @@ fn should_not_serialize_when_key_is_invalid() {
 fn should_not_serialize_when_value_is_invalid() {
     // no colon
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("key", "\n");
-    yaml.entries.push(entry);
+    yaml.add_key_value("key", "\n");
     assert!(yaml.to_string().is_err());
 
     // no newline
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("key", "\n");
-    yaml.entries.push(entry);
+    yaml.add_key_value("key", "\n");
     assert!(yaml.to_string().is_err());
 
     // empty value is fine
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_key_value("key", "");
-    yaml.entries.push(entry);
+    yaml.add_key_value("key", "");
     assert!(yaml.to_string().is_ok());
 }
 
 #[test]
 fn should_not_serialize_when_comment_is_invalid() {
     let mut yaml = RisYaml::default();
-    let mut entry = RisYamlEntry::default();
-    entry.set_comment("\n");
-    yaml.entries.push(entry);
+    yaml.add_comment("\n");
     assert!(yaml.to_string().is_err());
 }
 

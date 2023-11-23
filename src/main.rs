@@ -1,6 +1,5 @@
 use ris_core::god_job;
 use ris_core::god_object::GodObject;
-use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -112,7 +111,7 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
 
             match exit_code {
                 Some(code) => std::process::exit(code),
-                None => return ris_util::result_err!("no code to exit from"),
+                None => return Ok(()),
             }
         }
     }

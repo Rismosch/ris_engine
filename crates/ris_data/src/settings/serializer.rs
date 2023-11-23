@@ -9,7 +9,6 @@ use crate::info::app_info::AppInfo;
 use crate::settings::key;
 use crate::settings::ris_yaml::error_on_line;
 use crate::settings::ris_yaml::RisYaml;
-use crate::settings::ris_yaml::RisYamlEntry;
 use crate::settings::Settings;
 
 pub const DEFAULT: &str = "default";
@@ -54,7 +53,7 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     let mut yaml = RisYaml::default();
 
     yaml.add_comment("jobs");
-    yaml.add_key_value(key::JOB_WORKERS, compose(&settings.job.workers));
+    yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.workers));
     yaml.add_empty();
 
     let string = ris_util::unroll!(

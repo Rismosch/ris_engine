@@ -18,9 +18,9 @@ impl RisYaml {
         self.entries.push(entry);
     }
 
-    pub fn add_key_value(&mut self, key: &str, value: String) {
+    pub fn add_key_value(&mut self, key: &str, value: &str) {
         let mut entry = RisYamlEntry::default();
-        entry.key_value = Some((key.to_owned(), value));
+        entry.key_value = Some((key.to_owned(), value.to_owned()));
         self.entries.push(entry);
     }
 
