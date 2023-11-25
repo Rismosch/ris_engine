@@ -133,20 +133,20 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let output_state = output_state?;
 
         // determine, whether to continue, restart or exit
-        if matches!(input_state, GameloopState::WantsToContinue)
-            && matches!(logic_state, GameloopState::WantsToContinue)
-            && matches!(output_state, GameloopState::WantsToContinue)
+        if input_state == GameloopState::WantsToContinue
+            && logic_state == GameloopState::WantsToContinue
+            && output_state == GameloopState::WantsToContinue
         {
             continue;
         }
 
-        if input_state != GameloopState::WantsToRestart
-            && logic_state != GameloopState::WantsToRestart
-            && output_state != GameloopState::WantsToRestart
+        if input_state == GameloopState::WantsToRestart
+            || logic_state == GameloopState::WantsToRestart
+            || output_state == GameloopState::WantsToRestart
         {
-            return Ok(WantsTo::Quit);
-        } else {
             return Ok(WantsTo::Restart);
+        } else {
+            return Ok(WantsTo::Quit);
         }
     }
 }

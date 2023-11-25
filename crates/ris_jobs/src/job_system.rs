@@ -7,6 +7,7 @@ use std::sync::MutexGuard;
 use std::thread;
 use std::thread::JoinHandle;
 
+use crate as ris_jobs;
 use crate::errors::BlockedOrEmpty;
 use crate::errors::IsEmpty;
 use crate::job::Job;
@@ -141,14 +142,60 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     future
 }
 
-pub fn run_pending_job() {
-    match pop_job() {
-        Ok(mut job) => job.invoke(),
-        Err(IsEmpty) => match steal_job() {
+#[macro_export]
+macro_rules! run_pending_job {
+    () => {{
+        let file = file!();
+        let line = line!();
+        match ris_jobs::job_system::pop_job(file, line) {
             Ok(mut job) => job.invoke(),
-            Err(BlockedOrEmpty) => thread::yield_now(),
-        },
-    }
+            Err(IsEmpty) => match ris_jobs::job_system::steal_job(file, line) {
+                Ok(mut job) => job.invoke(),
+                Err(BlockedOrEmpty) => std::thread::yield_now(),
+            },
+        }
+    }}
+}
+
+pub fn pop_job(file: &str, line: u32) -> Result<Job, IsEmpty> {
+    let mut result = Err(IsEmpty);
+
+    WORKER_THREAD.with(|worker_thread| {
+        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
+            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
+        } else {
+            ris_log::error!(
+                "couldn't pop job, calling thread isn't a worker thread. caller: {}:{}",
+                file,
+                line,
+            );
+        }
+    });
+
+    result
+}
+
+pub fn steal_job(file: &str, line: u32) -> Result<Job, BlockedOrEmpty> {
+    let mut result = Err(BlockedOrEmpty);
+
+    WORKER_THREAD.with(|worker_thread| {
+        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
+            for buffer in &worker_thread.steal_buffers {
+                result = buffer.steal();
+                if result.is_ok() {
+                    break;
+                }
+            }
+        } else {
+            ris_log::error!(
+                "couldn't steal job, calling thread isn't a worker thread. caller: {}:{}",
+                file,
+                line,
+                );
+        }
+    });
+
+    result
 }
 
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -159,7 +206,7 @@ pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
             return mutex_guard;
         }
 
-        run_pending_job();
+        run_pending_job!();
     }
 }
 
@@ -223,7 +270,7 @@ fn setup_worker_thread(
 
 fn run_worker_thread(index: usize, done: Arc<AtomicBool>) {
     while !done.load(Ordering::SeqCst) {
-        run_pending_job();
+        run_pending_job!();
     }
 
     empty_buffer(index);
@@ -232,42 +279,10 @@ fn run_worker_thread(index: usize, done: Arc<AtomicBool>) {
 fn empty_buffer(index: usize) {
     loop {
         ris_log::trace!("emptying {}", index);
-        match pop_job() {
+        match pop_job(file!(), line!()) {
             Ok(mut job) => job.invoke(),
             Err(IsEmpty) => break,
         }
     }
 }
 
-fn pop_job() -> Result<Job, IsEmpty> {
-    let mut result = Err(IsEmpty);
-
-    WORKER_THREAD.with(|worker_thread| {
-        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
-        } else {
-            ris_log::error!("couldn't pop job, calling thread isn't a worker thread");
-        }
-    });
-
-    result
-}
-
-fn steal_job() -> Result<Job, BlockedOrEmpty> {
-    let mut result = Err(BlockedOrEmpty);
-
-    WORKER_THREAD.with(|worker_thread| {
-        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            for buffer in &worker_thread.steal_buffers {
-                result = buffer.steal();
-                if result.is_ok() {
-                    break;
-                }
-            }
-        } else {
-            ris_log::error!("couldn't steal job, calling thread isn't a worker thread");
-        }
-    });
-
-    result
-}
