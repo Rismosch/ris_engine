@@ -31,19 +31,34 @@ impl SettingsSerializer {
     }
 
     pub fn serialize(&self, settings: &Settings) -> RisResult<()> {
+        ris_log::debug!("serializing settings...");
+
         let bytes = write_bytes(settings);
-        self.fallback_file.overwrite_current(&bytes?)
+        self.fallback_file.overwrite_current(&bytes?)?;
+
+        ris_log::debug!("settings serialized!");
+
+        Ok(())
     }
 
     pub fn deserialize(&self) -> Option<Settings> {
+        ris_log::debug!("deserializing settings...");
+
         for available_path in self.fallback_file.available_paths() {
             if let Some(bytes) = self.fallback_file.get_by_path(&available_path) {
                 match read_bytes(&bytes) {
-                    Ok(settings) => return Some(settings),
-                    Err(error) => ris_log::warning!("failed to deserialize \"{:?}\": {}", available_path, error),
+                    Ok(settings) => {
+                        ris_log::debug!("settings deserialized!");
+                        return Some(settings);
+                    },
+                    Err(error) => {
+                        ris_log::warning!("failed to deserialize \"{:?}\": {}", available_path, error);
+                    },
                 }
             }
         }
+
+        ris_log::debug!("no valid settings found");
 
         None
     }

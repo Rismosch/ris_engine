@@ -102,11 +102,15 @@ impl RisYaml {
                 assert_valid_key(key, i)?;
                 assert_valid_value(value, i)?;
 
-                result.push_str(&format!("{}: {} ", key, value));
+                result.push_str(&format!("{}: {}", key, value));
             }
 
             if let Some(comment) = &entry.comment {
                 assert_valid_comment(comment, i)?;
+
+                if entry.key_value.is_some() {
+                    result.push(' ');
+                }
 
                 result.push_str(&format!("# {}", comment));
             }

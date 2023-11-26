@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ris_core::god_job;
 use ris_core::god_object::GodObject;
 use ris_data::info::app_info::AppInfo;
@@ -8,6 +10,13 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
+use ris_log::appenders::console_appender::ConsoleAppender;
+use ris_log::appenders::file_appender::FileAppender;
+use ris_log::log;
+use ris_log::log::Appenders;
+use ris_log::log::LogGuard;
+use ris_log::log_level::LogLevel;
+use ris_log::log_message::LogMessage;
 use ris_util::error::RisResult;
 
 pub const RESTART_CODE: i32 = 42;
@@ -20,7 +29,7 @@ fn main() -> Result<(), String> {
             } else {
                 wrap_process(app_info)
             }
-        }
+        },
         Err(error) => Err(error),
     };
 
@@ -56,9 +65,44 @@ fn get_app_info() -> RisResult<AppInfo> {
     ))
 }
 
+fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
+    let log_level = LogLevel::Debug;
+
+    let mut logs_dir = PathBuf::new();
+    logs_dir.push(&app_info.file.pref_path);
+    logs_dir.push("logs");
+
+    let console_appender = Some(ConsoleAppender);
+    let file_appender = Some(FileAppender::new(&logs_dir)?);
+    let appenders = Appenders {
+        console_appender,
+        file_appender,
+    };
+
+    let log_guard = unsafe { log::init(log_level, appenders) };
+
+    Ok(log_guard)
+}
+
 fn run_engine(app_info: AppInfo) -> RisResult<()> {
-    let god_object = GodObject::new(app_info)?;
-    let result = god_job::run(god_object)?;
+    let _log_guard = setup_logging(&app_info)?;
+    ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
+
+    let god_object = match GodObject::new(app_info) {
+        Ok(god_object) => god_object,
+        Err(e) => {
+            ris_log::fatal!("failed to create god object: {}", e);
+            return Err(e);
+        },
+    };
+
+    let result = match god_job::run(god_object) {
+        Ok(result) => result,
+        Err(e) => {
+            ris_log::fatal!("failed to run god job: {}", e);
+            return Err(e);
+        },
+    };
 
     match result {
         god_job::WantsTo::Quit => Ok(()),
@@ -116,3 +160,4 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
         }
     }
 }
+

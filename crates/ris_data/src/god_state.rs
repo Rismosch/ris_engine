@@ -15,15 +15,14 @@ pub struct GodStateData {
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum GodStateCommand {
-    IncreaseDebug,
-    DecreaseDebug,
-    Debug(isize),
+    SetJobWorkersSetting(Option<usize>),
+    SaveSettings,
 }
 
 #[derive(Default)]
 pub struct GodStateEvents {
-    pub debug_increased: bool,
-    pub debug_decreased: bool,
+    pub job_workers_settings_changed: bool,
+    pub save_settings_requested: bool,
 }
 
 pub struct InnerGodState {
@@ -50,19 +49,17 @@ impl InnerGodState {
 
     pub fn execute_command(&mut self, command: GodStateCommand, generate_events: bool) {
         match command {
-            GodStateCommand::IncreaseDebug => {
-                self.data.debug += 1;
+            GodStateCommand::SetJobWorkersSetting(workers) => {
+                self.data.settings.job.workers = workers;
                 if generate_events {
-                    self.events.debug_increased = true;
+                    self.events.job_workers_settings_changed = true;
+                }
+            },
+            GodStateCommand::SaveSettings => {
+                if generate_events {
+                    self.events.save_settings_requested = true;
                 }
             }
-            GodStateCommand::DecreaseDebug => {
-                self.data.debug -= 1;
-                if generate_events {
-                    self.events.debug_decreased = true;
-                }
-            }
-            GodStateCommand::Debug(_) => (),
         }
     }
 }
@@ -82,7 +79,7 @@ impl Default for GodStateQueue {
     fn default() -> Self {
         let mut data = Vec::with_capacity(MAX_COMMAND_COUNT);
         for _ in 0..MAX_COMMAND_COUNT {
-            let item = UnsafeCell::new(GodStateCommand::IncreaseDebug);
+            let item = UnsafeCell::new(GodStateCommand::SetJobWorkersSetting(None));
             data.push(item);
         }
 

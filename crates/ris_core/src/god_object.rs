@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
@@ -19,13 +17,6 @@ use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_log::appenders::console_appender::ConsoleAppender;
-use ris_log::appenders::file_appender::FileAppender;
-use ris_log::log;
-use ris_log::log::Appenders;
-use ris_log::log::LogGuard;
-use ris_log::log_level::LogLevel;
-use ris_log::log_message::LogMessage;
 use ris_util::error::RisResult;
 use ris_video::video::Video;
 
@@ -60,47 +51,19 @@ pub struct GodObject {
     // guards
     pub asset_loader_guard: AssetLoaderGuard,
     pub job_system_guard: JobSystemGuard,
-    pub log_guard: LogGuard,
 }
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
-        // logging
-        let log_level = LogLevel::Debug;
-
-        let mut logs_dir = PathBuf::new();
-        logs_dir.push(&app_info.file.pref_path);
-        logs_dir.push("logs");
-
-        let console_appender = Some(ConsoleAppender);
-        let file_appender = Some(FileAppender::new(&logs_dir)?);
-        let appenders = Appenders {
-            console_appender,
-            file_appender,
-        };
-
-        let log_guard = unsafe { log::init(log_level, appenders) };
-
-        let formatted_app_info = format!("{}", &app_info);
-        ris_log::log::forward_to_appenders(LogMessage::Plain(formatted_app_info));
-
-        // putting log_guard into an Option allows that it may only be taken, when no errors during
-        // building occured. in turn, this allows logging the error below
-        let mut log_guard = Some(log_guard);
-        let result = Self::build_god_object(app_info, &mut log_guard);
-        if let Err(error) = &result {
-            ris_log::fatal!("failed to build god object:\n    {}", error);
-        }
-
-        result
-    }
-
-    fn build_god_object(app_info: AppInfo, log_guard: &mut Option<LogGuard>) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize() {
             Some(settings) => settings,
-            None => Settings::default(),
+            None => {
+                let new_settings = Settings::default();
+                settings_serializer.serialize(&new_settings)?;
+                new_settings
+            },
         };
 
         // job system
@@ -157,9 +120,6 @@ impl GodObject {
         input_data.keyboard.keymask[30] = Scancode::Kp4;
         input_data.keyboard.keymask[31] = Scancode::Kp6;
 
-        // log
-        let log_guard = ris_util::unroll_option!(log_guard.take(), "passed log guard was none",)?;
-
         // god state
         let front = InnerGodState::new(settings.clone());
         let back = InnerGodState::new(settings);
@@ -188,7 +148,6 @@ impl GodObject {
             // guards
             asset_loader_guard,
             job_system_guard,
-            log_guard,
         };
 
         Ok(god_object)

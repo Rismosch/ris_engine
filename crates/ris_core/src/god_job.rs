@@ -113,7 +113,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         state_double_buffer.back = new_state_back;
         state_double_buffer.prev_queue = new_prev_queue;
 
-        // restart job system
+        // save settings and restart job system
+        let state_front = state_double_buffer.front.get_mut();
+        if state_front.events.save_settings_requested {
+            god_object.settings_serializer.serialize(&state_front.data.settings)?;
+        }
+
+        if state_front.events.job_workers_settings_changed {
+            ris_log::debug!("jobs changed to {:?}", state_front.data.settings.job.workers);
+        }
 
         // handle errors
         if let Err(e) = &input_state {
@@ -132,7 +140,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let logic_state = logic_state?;
         let output_state = output_state?;
 
-        // determine, whether to continue, restart or exit
+        // determine, whether to continue, restart or quit
         if input_state == GameloopState::WantsToContinue
             && logic_state == GameloopState::WantsToContinue
             && output_state == GameloopState::WantsToContinue

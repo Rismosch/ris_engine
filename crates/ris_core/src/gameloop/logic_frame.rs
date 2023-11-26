@@ -160,19 +160,18 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-        if input.general.buttons.is_down(action::CAMERA_UP) {
-            state.command_queue.push(GodStateCommand::IncreaseDebug);
-        }
-        if input.general.buttons.is_down(action::CAMERA_DOWN) {
-            state.command_queue.push(GodStateCommand::DecreaseDebug);
-        }
-        if state.events.debug_increased || state.events.debug_decreased {
-            ris_log::debug!(
-                "debug changed to {} | {}s {}fps",
-                state.data.debug,
-                frame.delta(),
-                frame.fps(),
-            );
+        if let Some(workers) = state.data.settings.job.workers {
+            if input.keyboard.keys.is_hold(Scancode::LCtrl) {
+                if input.keyboard.keys.is_down(Scancode::Up) {
+                    state.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(workers + 1)));
+                }
+                if input.keyboard.keys.is_down(Scancode::Down) {
+                    state.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(workers - 1)));
+                }
+                if input.keyboard.keys.is_down(Scancode::Return) {
+                    state.command_queue.push(GodStateCommand::SaveSettings)
+                }
+            }
         }
 
         if let Some(future) = import_shader_future {
