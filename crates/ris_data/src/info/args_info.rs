@@ -8,6 +8,15 @@ const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
 const ASSETS_ARG: &str = "--assets";
 
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct ArgsInfo {
+    pub raw_args: Vec<String>,
+    pub executable_path: String,
+    pub no_restart: bool,
+    pub workers: Option<usize>,
+    pub assets: String,
+}
+
 #[cfg(debug_assertions)]
 fn create_with_default_values(
     raw_args: Vec<String>,
@@ -18,7 +27,7 @@ fn create_with_default_values(
         raw_args,
         executable_path,
         no_restart: false,
-        workers: cpu_info.cpu_count,
+        workers: None,
         assets: String::from("assets"),
     }
 }
@@ -33,18 +42,9 @@ fn create_with_default_values(
         raw_args,
         executable_path,
         no_restart: false,
-        workers: cpu_info.cpu_count,
+        workers: None,
         assets: String::from("ris_assets"),
     }
-}
-
-#[derive(Clone, Eq, PartialEq, Hash)]
-pub struct ArgsInfo {
-    pub raw_args: Vec<String>,
-    pub executable_path: String,
-    pub no_restart: bool,
-    pub workers: usize,
-    pub assets: String,
 }
 
 impl std::fmt::Debug for ArgsInfo {
@@ -96,7 +96,7 @@ impl ArgsInfo {
                     i += 1;
                     let second_arg = &result.get_arg(i)?;
                     match second_arg.parse::<usize>() {
-                        Ok(value) => result.workers = value,
+                        Ok(value) => result.workers = Some(value),
                         Err(error) => {
                             return ris_util::result_err!("could not parse workers: {}", error)
                         }
@@ -125,8 +125,10 @@ impl ArgsInfo {
             result.push(String::from(NO_RESTART_ARG));
         }
 
-        result.push(String::from(WORKERS_ARG));
-        result.push(format!("{}", self.workers));
+        if let Some(workers) = self.workers {
+            result.push(String::from(WORKERS_ARG));
+            result.push(format!("{}", workers));
+        }
 
         result.push(String::from(ASSETS_ARG));
         result.push(String::from(&self.assets));

@@ -7,6 +7,9 @@ use std::sync::MutexGuard;
 use std::thread;
 use std::thread::JoinHandle;
 
+use ris_data::info::app_info::AppInfo;
+use ris_data::settings::Settings;
+
 use crate as ris_jobs;
 use crate::errors::BlockedOrEmpty;
 use crate::errors::IsEmpty;
@@ -56,6 +59,18 @@ impl Drop for JobSystemGuard {
     }
 }
 
+pub fn determine_thread_count(app_info: &AppInfo, settings: &Settings) -> usize {
+    if let Some(workers) = app_info.args.workers {
+        workers
+    } else if let Some(workers) = settings.job.workers {
+        workers
+    } else {
+        app_info.cpu.cpu_count
+    }
+}
+
+pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
+
 /// # Safety
 ///
 /// The job system is a singleton. Initialize it only once.
@@ -66,7 +81,8 @@ pub unsafe fn init(
     set_affinity: bool,
 ) -> JobSystemGuard {
     // estimate workthreads and according affinities
-    let threads = std::cmp::min(cpu_count, threads);
+    let threads = std::cmp::max(threads, 1);
+    let threads = std::cmp::min(threads, cpu_count);
 
     let mut affinities = Vec::new();
     for _ in 0..threads {
@@ -97,7 +113,11 @@ pub unsafe fn init(
         }))
     }
 
-    ris_log::debug!("spawned {} additional worker threads", handles.len());
+    ris_log::debug!(
+        "job system runs on {} threads. (1 main thread + {} additional threads)",
+        handles.len() + 1,
+        handles.len()
+    );
     let handles = Some(handles);
 
     // setup main worker thread (this thread)
