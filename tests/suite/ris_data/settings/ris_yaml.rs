@@ -27,7 +27,7 @@ fn should_serialize() {
 my second key: my second value # my second comment
 
 # this line has no key/value
-this line: has no comment 
+this line: has no comment
 "
     );
 }

@@ -13,16 +13,16 @@ fn is_safe() {
         let state_ref = unsafe { GodStateRef::from(ptr) };
 
         let _data = state_ref.data.debug;
-        let _events = state_ref.events.debug_increased;
+        let _events = state_ref.events.save_settings_requested;
         let queue = &state_ref.command_queue;
-        queue.push(GodStateCommand::Debug(20));
+        queue.push(GodStateCommand::SetJobWorkersSetting(Some(20)));
     }
 
     let inner = inner.get_mut();
     inner.command_queue.start_iter();
     let first = inner.command_queue.next().unwrap();
 
-    assert!(first == GodStateCommand::Debug(20));
+    assert!(first == GodStateCommand::SetJobWorkersSetting(Some(20)));
 }
 
 #[test]
@@ -43,8 +43,8 @@ fn is_thread_safe() {
                 let my_ref = state_ref_clone;
 
                 let _data = my_ref.data.debug;
-                let _events = my_ref.events.debug_increased;
-                my_ref.command_queue.push(GodStateCommand::Debug(i))
+                let _events = my_ref.events.save_settings_requested;
+                my_ref.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(i)))
             });
             handles.push(handle);
         }
@@ -65,7 +65,7 @@ fn is_thread_safe() {
         let mut result_found = false;
 
         for result in results.iter() {
-            if *result == GodStateCommand::Debug(i) {
+            if *result == GodStateCommand::SetJobWorkersSetting(Some(i)) {
                 result_found = true;
                 break;
             }
