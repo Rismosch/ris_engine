@@ -22,7 +22,11 @@ fn hash(s: &str) -> u64 {
     h ^ h >> 32
 }
 
-const EXP: usize = 15;
+#[cfg(not(miri))]
+pub const EXP: usize = 15;
+#[cfg(miri)]
+pub const EXP: usize = 7;
+
 const GRAVESTONE: &str = "__deleted__";
 
 pub struct OutOfMemory;

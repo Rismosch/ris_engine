@@ -41,7 +41,7 @@ fn should_overwrite_existing_item() {
 #[test]
 fn should_return_error_on_assign_when_out_of_memory() {
     let mut map = RisMap::default();
-    for i in 0..(1 << 15) - 1 {
+    for i in 0..(1 << ris_data::ris_map::EXP) - 1 {
         let result = map.assign(&format!("key {}", i), i);
         assert!(result.is_ok());
     }

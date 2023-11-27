@@ -1,11 +1,11 @@
-use ::ris_data::input::{
-    buttons::Buttons,
-    general_data::GeneralData,
-    rebind_matrix::{set_rebind_matrix, RebindMatrix},
-};
-use ris_input::general_logic::{update_general, GeneralLogicArgs};
-use ris_rng::rng;
+use ris_data::input::buttons::Buttons;
+use ris_data::input::general_data::GeneralData;
+use ris_data::input::rebind_matrix::set_rebind_matrix;
+use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_input::general_logic::update_general;
+use ris_input::general_logic::GeneralLogicArgs;
 use ris_rng::rng::Rng;
+use ris_rng::rng::Seed;
 
 struct TestContext {
     new_general: GeneralData,
@@ -29,7 +29,7 @@ impl TestContext {
         let keyboard = Buttons::default();
         let gamepad = Buttons::default();
 
-        let rng = Rng::new(rng::CONST_SEED);
+        let rng = Rng::new(Seed::new().unwrap());
 
         let mut rebind_matrix: RebindMatrix = [0; 32];
 

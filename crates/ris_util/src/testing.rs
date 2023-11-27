@@ -1,10 +1,10 @@
-pub fn repeat<F: FnMut() + Clone>(repeats: u32, test: F) {
+pub fn repeat<F: FnMut() + Clone>(repeats: usize, test: F) {
     for _i in 0..repeats {
         test.clone()();
     }
 }
 
-pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: u32, test: F) {
+pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: F) {
     for _ in 0..retries - 1 {
         let result = std::panic::catch_unwind(test.clone());
 

@@ -9,10 +9,16 @@ use std::{
 use ris_jobs::job_future::SettableJobFuture;
 use ris_util::testing::{repeat, retry};
 
+#[cfg(not(miri))]
+const LOOP_ITERATIONS: usize = 10_000;
+
+#[cfg(miri)]
+const LOOP_ITERATIONS: usize = 100;
+
 #[test]
 fn should_set_and_wait() {
     retry(5, || {
-        repeat(1000, || {
+        repeat(LOOP_ITERATIONS, || {
             let result = Arc::new(AtomicBool::new(false));
             let done = Arc::new(AtomicBool::new(false));
 

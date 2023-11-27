@@ -4,7 +4,6 @@ use std::sync::TryLockError;
 
 use ris_util::throw;
 
-use crate as ris_jobs;
 use crate::job_system;
 
 struct Inner<T> {
@@ -68,7 +67,7 @@ impl<T> JobFuture<T> {
                 }
             }
 
-            ris_jobs::run_pending_job!();
+            job_system::run_pending_job(file!(), line!());
         }
     }
 }

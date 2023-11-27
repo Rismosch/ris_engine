@@ -3,11 +3,9 @@ use ris_util::error::RisResult;
 use crate::pcg::Pcg32;
 
 pub struct Seed(pub [u8; 16]);
-pub const CONST_SEED: Seed = Seed([
-    198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206,
-]);
 
 impl Seed {
+    #[cfg(not(miri))]
     pub fn new() -> RisResult<Self> {
         let now = std::time::SystemTime::now();
         let duration_since_epoch = ris_util::unroll!(
@@ -18,6 +16,13 @@ impl Seed {
         let seed = Seed(bytes);
 
         Ok(seed)
+    }
+
+    #[cfg(miri)]
+    pub fn new() -> RisResult<Self> {
+        Ok(Self([
+            198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206,
+        ]))
     }
 }
 

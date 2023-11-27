@@ -109,7 +109,7 @@ fn should_run_pending_job() {
         }
 
         for _ in 0..50 {
-            ris_jobs::run_pending_job!();
+            job_system::run_pending_job(file!(), line!());
         }
 
         let results = results.lock().unwrap();

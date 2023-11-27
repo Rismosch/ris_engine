@@ -162,19 +162,14 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     future
 }
 
-#[macro_export]
-macro_rules! run_pending_job {
-    () => {{
-        let file = file!();
-        let line = line!();
-        match ris_jobs::job_system::pop_job(file, line) {
+pub fn run_pending_job(file: &str, line: u32) {
+    match ris_jobs::job_system::pop_job(file, line) {
+        Ok(mut job) => job.invoke(),
+        Err(ris_jobs::errors::IsEmpty) => match ris_jobs::job_system::steal_job(file, line) {
             Ok(mut job) => job.invoke(),
-            Err(ris_jobs::errors::IsEmpty) => match ris_jobs::job_system::steal_job(file, line) {
-                Ok(mut job) => job.invoke(),
-                Err(ris_jobs::errors::BlockedOrEmpty) => std::thread::yield_now(),
-            },
-        }
-    }};
+            Err(ris_jobs::errors::BlockedOrEmpty) => std::thread::yield_now(),
+        },
+    }
 }
 
 pub fn pop_job(file: &str, line: u32) -> Result<Job, IsEmpty> {
@@ -226,7 +221,7 @@ pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
             return mutex_guard;
         }
 
-        run_pending_job!();
+        run_pending_job(file!(), line!());
     }
 }
 
@@ -290,7 +285,7 @@ fn setup_worker_thread(
 
 fn run_worker_thread(index: usize, done: Arc<AtomicBool>) {
     while !done.load(Ordering::SeqCst) {
-        run_pending_job!();
+        run_pending_job(file!(), line!());
     }
 
     empty_buffer(index);
