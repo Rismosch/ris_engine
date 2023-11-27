@@ -1,6 +1,5 @@
 use std::io::Read;
 use std::io::Seek;
-use std::io::SeekFrom;
 use std::io::Write;
 
 use ris_util::error::RisError;
@@ -13,10 +12,10 @@ pub fn import(
     input: &mut (impl Read + Seek),
     output: &mut (impl Write + Seek),
 ) -> Result<(), RisError> {
-    let file_size = ris_util::file::seek(input, SeekFrom::End(0))?;
-    ris_util::file::seek(input, SeekFrom::Start(0))?;
+    let file_size = ris_util::seek!(input, SeekFrom::End(0))?;
+    ris_util::seek!(input, SeekFrom::Start(0))?;
     let mut file_content = vec![0u8; file_size as usize];
-    ris_util::file::read(input, &mut file_content)?;
+    ris_util::read!(input, file_content)?;
     let source_text = ris_util::unroll!(
         String::from_utf8(file_content),
         "failed to convert source to string",
@@ -45,7 +44,7 @@ pub fn import(
         filename
     )?;
     let bytes = artifact.as_binary_u8();
-    ris_util::file::write(output, bytes)?;
+    ris_util::write!(output, bytes)?;
 
     Ok(())
 }

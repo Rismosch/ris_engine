@@ -50,10 +50,14 @@ impl SettingsSerializer {
                     Ok(settings) => {
                         ris_log::debug!("settings deserialized!");
                         return Some(settings);
-                    },
+                    }
                     Err(error) => {
-                        ris_log::warning!("failed to deserialize \"{:?}\": {}", available_path, error);
-                    },
+                        ris_log::warning!(
+                            "failed to deserialize \"{:?}\": {}",
+                            available_path,
+                            error
+                        );
+                    }
                 }
             }
         }
@@ -71,10 +75,7 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.workers));
     yaml.add_empty();
 
-    let string = ris_util::unroll!(
-        yaml.to_string(),
-        "failed to serialize yaml",
-    )?;
+    let string = ris_util::unroll!(yaml.to_string(), "failed to serialize yaml",)?;
 
     let bytes = string.as_bytes().to_vec();
     Ok(bytes)

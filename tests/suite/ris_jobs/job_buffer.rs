@@ -1,11 +1,12 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
 
-use ris_jobs::{job::Job, job_buffer::JobBuffer};
+use ris_jobs::job::Job;
+use ris_jobs::job_buffer::JobBuffer;
+use ris_util::testing::duplicate;
 use ris_util::testing::retry;
 
 //-----------------------------//
@@ -198,7 +199,7 @@ fn should_push_pop_and_steal_multiple_times() {
 #[test]
 fn should_push_to_original_and_pop_from_duplicate() {
     let original_buffer = JobBuffer::new(4);
-    let duplicated_buffer = original_buffer.clone();
+    let duplicated_buffer = &(*original_buffer);
 
     let data = Rc::new(RefCell::new(0));
     let moved_data1 = data.clone();
@@ -228,7 +229,7 @@ fn should_push_to_original_and_pop_from_duplicate() {
 #[test]
 fn should_push_to_duplicate_and_pop_from_original() {
     let original_buffer = JobBuffer::new(4);
-    let duplicated_buffer = original_buffer.clone();
+    let duplicated_buffer = duplicate(&original_buffer);
 
     let data = Rc::new(RefCell::new(0));
     let moved_data1 = data.clone();
@@ -402,7 +403,7 @@ fn should_push_from_one_thread_while_one_is_stealing_on_empty_buffer() {
             }
         });
 
-        let steal_buffer = buffer.clone();
+        let steal_buffer = duplicate(&buffer);
         let steal_results_copy = steal_results.clone();
         let steal_handle = thread::spawn(move || {
             for _ in 0..1000 {
@@ -465,7 +466,7 @@ fn should_push_from_one_thread_while_one_is_stealing_on_full_buffer() {
             }
         });
 
-        let steal_buffer = buffer.clone();
+        let steal_buffer = duplicate(&buffer);
         let steal_results_copy = steal_results.clone();
         let steal_handle = thread::spawn(move || {
             for _ in 0..1000 {
@@ -651,7 +652,7 @@ fn should_pop_from_one_thread_while_one_is_stealing_on_empty_buffer() {
         }
     });
 
-    let steal_buffer = buffer.clone();
+    let steal_buffer = duplicate(&buffer);
     let steal_results_copy = steal_results.clone();
     let steal_handle = thread::spawn(move || {
         for _ in 0..1000 {
@@ -694,7 +695,7 @@ fn should_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
         }
     });
 
-    let steal_buffer = buffer.clone();
+    let steal_buffer = duplicate(&buffer);
     let steal_results_copy = steal_results.clone();
     let steal_handle = thread::spawn(move || {
         for _ in 0..1000 {
@@ -867,7 +868,7 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_empty_buffer() {
             }
         });
 
-        let steal_buffer = buffer.clone();
+        let steal_buffer = duplicate(&buffer);
         let steal_results_copy = steal_results.clone();
         let steal_handle = thread::spawn(move || {
             for _ in 0..1000 {
@@ -946,7 +947,7 @@ fn should_push_and_pop_from_one_thread_while_one_is_stealing_on_full_buffer() {
             }
         });
 
-        let steal_buffer = buffer.clone();
+        let steal_buffer = duplicate(&buffer);
         let steal_results_copy = steal_results.clone();
         let steal_handle = thread::spawn(move || {
             for _ in 0..1000 {

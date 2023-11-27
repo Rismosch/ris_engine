@@ -2,8 +2,6 @@ use std::env;
 
 use ris_util::error::RisResult;
 
-use crate::info::cpu_info::CpuInfo;
-
 const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
 const ASSETS_ARG: &str = "--assets";
@@ -18,11 +16,7 @@ pub struct ArgsInfo {
 }
 
 #[cfg(debug_assertions)]
-fn create_with_default_values(
-    raw_args: Vec<String>,
-    executable_path: String,
-    cpu_info: &CpuInfo,
-) -> ArgsInfo {
+fn create_with_default_values(raw_args: Vec<String>, executable_path: String) -> ArgsInfo {
     ArgsInfo {
         raw_args,
         executable_path,
@@ -33,11 +27,7 @@ fn create_with_default_values(
 }
 
 #[cfg(not(debug_assertions))]
-fn create_with_default_values(
-    raw_args: Vec<String>,
-    executable_path: String,
-    cpu_info: &CpuInfo,
-) -> ArgsInfo {
+fn create_with_default_values(raw_args: Vec<String>, executable_path: String) -> ArgsInfo {
     ArgsInfo {
         raw_args,
         executable_path,
@@ -75,11 +65,11 @@ impl std::fmt::Display for ArgsInfo {
 }
 
 impl ArgsInfo {
-    pub fn new(cpu_info: &CpuInfo) -> RisResult<Self> {
+    pub fn new() -> RisResult<Self> {
         let raw_args: Vec<String> = env::args().collect();
         let executable_path = String::from(&raw_args[0]);
 
-        let mut result = create_with_default_values(raw_args, executable_path, cpu_info);
+        let mut result = create_with_default_values(raw_args, executable_path);
 
         let mut i = 1;
         let len = result.raw_args.len();

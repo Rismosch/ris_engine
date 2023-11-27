@@ -1,4 +1,5 @@
 use ris_jobs::job_cell::JobCell;
+use ris_util::testing::duplicate;
 
 #[test]
 fn should_be_mutable_and_create_references() {
@@ -19,7 +20,7 @@ fn should_be_mutable_and_create_references() {
     assert_eq!(*mut_ref, 42);
 
     let ref2 = job_cell.borrow();
-    let ref3 = ref2.clone();
+    let ref3 = duplicate(&ref2);
     assert_eq!(*ref2, 42);
     assert_eq!(*ref3, 42);
 }

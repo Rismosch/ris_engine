@@ -33,8 +33,8 @@ impl TestContext {
 
         let mut rebind_matrix: RebindMatrix = [0; 32];
 
-        for i in 0..32 {
-            rebind_matrix[i] = 1 << i;
+        for (i, entry) in rebind_matrix.iter_mut().enumerate() {
+            *entry = 1 << i;
         }
 
         Self {
@@ -70,8 +70,8 @@ impl TestContext {
     fn generate_rebindmatrix(&mut self) -> RebindMatrix {
         let mut rebind_matrix: RebindMatrix = [0; 32];
 
-        for i in 0..32 {
-            rebind_matrix[i] = self.rng.next_u();
+        for entry in &mut rebind_matrix {
+            *entry = self.rng.next_u();
         }
 
         rebind_matrix

@@ -57,3 +57,9 @@ macro_rules! prep_test_dir {
         result
     }};
 }
+
+/// this avoids clippy from beeing too smart. clippy flags some clones as redundant, which defeats
+/// the purpose of some tests, especially when multiple copies are passed to other threads.
+pub fn duplicate<T: Clone>(value: &T) -> T {
+    value.clone()
+}

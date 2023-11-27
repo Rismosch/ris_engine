@@ -19,21 +19,27 @@ impl RisYaml {
     }
 
     pub fn add_key_value(&mut self, key: &str, value: &str) {
-        let mut entry = RisYamlEntry::default();
-        entry.key_value = Some((key.to_owned(), value.to_owned()));
+        let entry = RisYamlEntry {
+            key_value: Some((key.to_owned(), value.to_owned())),
+            ..Default::default()
+        };
         self.entries.push(entry);
     }
 
     pub fn add_comment(&mut self, comment: &str) {
-        let mut entry = RisYamlEntry::default();
-        entry.comment = Some(comment.to_owned());
+        let entry = RisYamlEntry {
+            comment: Some(comment.to_owned()),
+            ..Default::default()
+        };
         self.entries.push(entry);
     }
 
     pub fn add_key_value_and_comment(&mut self, key: &str, value: &str, comment: &str) {
-        let mut entry = RisYamlEntry::default();
-        entry.key_value = Some((key.to_owned(), value.to_owned()));
-        entry.comment = Some(comment.to_owned());
+        let entry = RisYamlEntry {
+            key_value: Some((key.to_owned(), value.to_owned())),
+            comment: Some(comment.to_owned()),
+            ..Default::default()
+        };
         self.entries.push(entry);
     }
 

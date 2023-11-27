@@ -29,7 +29,7 @@ fn main() -> Result<(), String> {
             } else {
                 wrap_process(app_info)
             }
-        },
+        }
         Err(error) => Err(error),
     };
 
@@ -48,20 +48,20 @@ fn main() -> Result<(), String> {
 }
 
 fn get_app_info() -> RisResult<AppInfo> {
-    let cpu_info = CpuInfo::new()?;
-    let args_info = ArgsInfo::new(&cpu_info)?;
-    let package_info = package_info!();
+    let args_info = ArgsInfo::new()?;
     let build_info = BuildInfo::new();
+    let cpu_info = CpuInfo::new()?;
+    let package_info = package_info!();
     let file_info = FileInfo::new(&package_info)?;
     let sdl_info = SdlInfo::new();
 
     Ok(AppInfo::new(
         args_info,
-        package_info,
         build_info,
-        file_info,
-        sdl_info,
         cpu_info,
+        file_info,
+        package_info,
+        sdl_info,
     ))
 }
 
@@ -93,7 +93,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
         Err(e) => {
             ris_log::fatal!("failed to create god object: {}", e);
             return Err(e);
-        },
+        }
     };
 
     let result = match god_job::run(god_object) {
@@ -101,7 +101,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
         Err(e) => {
             ris_log::fatal!("failed to run god job: {}", e);
             return Err(e);
-        },
+        }
     };
 
     match result {
@@ -160,4 +160,3 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
         }
     }
 }
-

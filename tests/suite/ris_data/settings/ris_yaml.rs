@@ -5,16 +5,8 @@ use ris_data::settings::ris_yaml::RisYaml;
 fn should_serialize() {
     let mut yaml = RisYaml::default();
 
-    yaml.add_key_value_and_comment(
-        "my first key",
-        "my first value",
-        "my first comment",
-    );
-    yaml.add_key_value_and_comment(
-        "my second key",
-        "my second value",
-        "my second comment",
-    );
+    yaml.add_key_value_and_comment("my first key", "my first value", "my first comment");
+    yaml.add_key_value_and_comment("my second key", "my second value", "my second comment");
     yaml.add_empty();
     yaml.add_comment("this line has no key/value");
     yaml.add_key_value("this line", "has no comment");

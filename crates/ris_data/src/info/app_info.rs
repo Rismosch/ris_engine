@@ -10,29 +10,29 @@ use super::sdl_info::SdlInfo;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {
     pub args: ArgsInfo,
-    pub package: PackageInfo,
     pub build: BuildInfo,
-    pub file: FileInfo,
-    pub sdl: SdlInfo,
     pub cpu: CpuInfo,
+    pub file: FileInfo,
+    pub package: PackageInfo,
+    pub sdl: SdlInfo,
 }
 
 impl AppInfo {
     pub fn new(
         args: ArgsInfo,
-        package: PackageInfo,
         build: BuildInfo,
-        file: FileInfo,
-        sdl: SdlInfo,
         cpu: CpuInfo,
+        file: FileInfo,
+        package: PackageInfo,
+        sdl: SdlInfo,
     ) -> Self {
         Self {
             args,
-            package,
             build,
-            file,
-            sdl,
             cpu,
+            file,
+            package,
+            sdl,
         }
     }
 }

@@ -163,10 +163,18 @@ impl LogicFrame {
         if let Some(workers) = state.data.settings.job.workers {
             if input.keyboard.keys.is_hold(Scancode::LCtrl) {
                 if input.keyboard.keys.is_down(Scancode::Up) {
-                    state.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(workers.saturating_add(1))));
+                    state
+                        .command_queue
+                        .push(GodStateCommand::SetJobWorkersSetting(Some(
+                            workers.saturating_add(1),
+                        )));
                 }
                 if input.keyboard.keys.is_down(Scancode::Down) {
-                    state.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(workers.saturating_sub(1))));
+                    state
+                        .command_queue
+                        .push(GodStateCommand::SetJobWorkersSetting(Some(
+                            workers.saturating_sub(1),
+                        )));
                 }
                 if input.keyboard.keys.is_down(Scancode::Return) {
                     state.command_queue.push(GodStateCommand::SaveSettings)

@@ -44,7 +44,9 @@ fn is_thread_safe() {
 
                 let _data = my_ref.data.debug;
                 let _events = my_ref.events.save_settings_requested;
-                my_ref.command_queue.push(GodStateCommand::SetJobWorkersSetting(Some(i)))
+                my_ref
+                    .command_queue
+                    .push(GodStateCommand::SetJobWorkersSetting(Some(i)))
             });
             handles.push(handle);
         }
@@ -54,7 +56,7 @@ fn is_thread_safe() {
         }
     }
 
-    let mut results = Vec::with_capacity(thread_count as usize);
+    let mut results = Vec::with_capacity(thread_count);
     let queue = &inner.get_mut().command_queue;
     queue.start_iter();
     while let Some(result) = queue.next() {

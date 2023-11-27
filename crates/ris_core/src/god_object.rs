@@ -63,18 +63,20 @@ impl GodObject {
                 let new_settings = Settings::default();
                 settings_serializer.serialize(&new_settings)?;
                 new_settings
-            },
+            }
         };
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
         let workers = job_system::determine_thread_count(&app_info, &settings);
-        let job_system_guard = unsafe { job_system::init(
-            job_system::DEFAULT_BUFFER_CAPACITY,
-            cpu_count,
-            workers,
-            true,
-        )};
+        let job_system_guard = unsafe {
+            job_system::init(
+                job_system::DEFAULT_BUFFER_CAPACITY,
+                cpu_count,
+                workers,
+                true,
+            )
+        };
 
         // assets
         import_assets()?;

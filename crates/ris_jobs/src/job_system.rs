@@ -169,12 +169,12 @@ macro_rules! run_pending_job {
         let line = line!();
         match ris_jobs::job_system::pop_job(file, line) {
             Ok(mut job) => job.invoke(),
-            Err(IsEmpty) => match ris_jobs::job_system::steal_job(file, line) {
+            Err(ris_jobs::errors::IsEmpty) => match ris_jobs::job_system::steal_job(file, line) {
                 Ok(mut job) => job.invoke(),
-                Err(BlockedOrEmpty) => std::thread::yield_now(),
+                Err(ris_jobs::errors::BlockedOrEmpty) => std::thread::yield_now(),
             },
         }
-    }}
+    }};
 }
 
 pub fn pop_job(file: &str, line: u32) -> Result<Job, IsEmpty> {
@@ -211,7 +211,7 @@ pub fn steal_job(file: &str, line: u32) -> Result<Job, BlockedOrEmpty> {
                 "couldn't steal job, calling thread isn't a worker thread. caller: {}:{}",
                 file,
                 line,
-                );
+            );
         }
     });
 
@@ -305,4 +305,3 @@ fn empty_buffer(index: usize) {
         }
     }
 }
-

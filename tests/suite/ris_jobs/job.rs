@@ -8,9 +8,9 @@ fn should_execute() {
     let cloned = flag.clone();
     let mut job = Job::new(move || *cloned.borrow_mut() = true);
 
-    assert_eq!(*flag.borrow_mut(), false);
+    assert!(!*flag.borrow_mut());
     job.invoke();
-    assert_eq!(*flag.borrow_mut(), true);
+    assert!(*flag.borrow_mut());
 }
 
 #[test]

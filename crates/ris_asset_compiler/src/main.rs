@@ -6,7 +6,6 @@ use ris_asset::asset_importer;
 use ris_log::appenders::console_appender::ConsoleAppender;
 use ris_log::log;
 use ris_log::log::Appenders;
-use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 
 fn main() {

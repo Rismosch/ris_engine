@@ -54,7 +54,7 @@ impl InnerGodState {
                 if generate_events {
                     self.events.job_workers_settings_changed = true;
                 }
-            },
+            }
             GodStateCommand::SaveSettings => {
                 if generate_events {
                     self.events.save_settings_requested = true;

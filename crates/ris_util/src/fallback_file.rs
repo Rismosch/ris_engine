@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::BufRead;
-use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -239,11 +238,11 @@ fn create_current_file(current_path: &Path) -> RisResult<File> {
 }
 
 fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
-    let file_size = crate::file::seek(file, SeekFrom::End(0))?;
+    let file_size = crate::seek!(file, SeekFrom::End(0))?;
 
     let mut buf = vec![0u8; file_size as usize];
-    crate::file::seek(file, SeekFrom::Start(0))?;
-    crate::file::read(file, &mut buf)?;
+    crate::seek!(file, SeekFrom::Start(0))?;
+    crate::read!(file, buf)?;
 
     let mut first_new_line = None;
     let mut second_new_line = None;
@@ -269,8 +268,8 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
 
             // expect the first line to be a string
             let mut first_line_buf = vec![0u8; first_new_line];
-            crate::file::seek(file, SeekFrom::Start(0))?;
-            crate::file::read(file, &mut first_line_buf)?;
+            crate::seek!(file, SeekFrom::Start(0))?;
+            crate::read!(file, first_line_buf)?;
             let first_line_string = String::from_utf8(first_line_buf);
             match first_line_string {
                 Ok(date_string) => {
@@ -284,8 +283,8 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
                     let content_addr = (second_new_line + 1) as u64;
                     let content_len = file_size - content_addr;
                     let mut content = vec![0; content_len as usize];
-                    crate::file::seek(file, SeekFrom::Start(content_addr))?;
-                    crate::file::read(file, &mut content)?;
+                    crate::seek!(file, SeekFrom::Start(content_addr))?;
+                    crate::read!(file, content)?;
 
                     Ok(content)
                 }

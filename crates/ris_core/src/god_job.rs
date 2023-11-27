@@ -116,7 +116,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // save settings and restart job system
         let state_front = state_double_buffer.front.get_mut();
         if state_front.events.save_settings_requested {
-            god_object.settings_serializer.serialize(&state_front.data.settings)?;
+            god_object
+                .settings_serializer
+                .serialize(&state_front.data.settings)?;
         }
 
         if state_front.events.job_workers_settings_changed {
@@ -129,12 +131,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 &state_front.data.settings,
             );
 
-            let new_guard = unsafe {job_system::init(
-                job_system::DEFAULT_BUFFER_CAPACITY,
-                cpu_count,
-                workers,
-                true,
-            )};
+            let new_guard = unsafe {
+                job_system::init(
+                    job_system::DEFAULT_BUFFER_CAPACITY,
+                    cpu_count,
+                    workers,
+                    true,
+                )
+            };
 
             god_object.job_system_guard = new_guard;
 
