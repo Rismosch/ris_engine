@@ -96,55 +96,42 @@ fn print_help() {
     println!("correct usage: ");
     println!("  > {} <command> <source> <target>", name);
     println!();
-    println!("<source> and <target> depend on what <command> you've entered.");
+    println!("available commands:");
     println!();
-    println!("Available commands:");
+    println!("  compile");
+    println!("      > {} compile <source dir> <target file>", name);
     println!();
-    println!("compile");
-    println!("    <source> is the path to a directory. This directory");
-    println!("    is then recursively searched and all found files will be compiled");
-    println!("    into a single file to <target>. If <target> already exists, it will");
-    println!("    be overwritten.");
-    println!();
-    println!("    If <source> and <target> are omitted, it takes following default values:");
+    println!("    defaults to:");
     println!(
-        "        <source> {}",
-        asset_compiler::DEFAULT_ASSET_DIRECTORY
-    );
-    println!("        <target> {}", asset_compiler::DEFAULT_COMPILED_FILE);
-    println!();
-    println!("decompile");
-    println!("    <source> is the path to a compiled ris_asset file.");
-    println!("    <target> is a directory, where all decompiled files will be saved to.");
-    println!("    If <target> already exists, it will be cleared.");
-    println!();
-    println!("    If <source> and <target> are omitted, it takes following default values:");
-    println!("        <source> {}", asset_compiler::DEFAULT_COMPILED_FILE);
-    println!(
-        "        <target> {}",
-        asset_compiler::DEFAULT_DECOMPILED_DIRECTORY
+        "      > {} compile {} {}",
+        name,
+        asset_compiler::DEFAULT_ASSET_DIRECTORY,
+        asset_compiler::DEFAULT_COMPILED_FILE,
     );
     println!();
-    println!("import");
-    println!("    The importer is used to convert files into new formats, that the");
-    println!("    engine is capable to use.");
-    println!("    <source> is the path to a file to be imported. <target> is the path");
-    println!("    where the imported file will be stored. If <target> exists, it will");
-    println!("    be overwritten.");
+    println!("  decompile");
+    println!("      > {} decompile <source file> <target dir>", name);
     println!();
-    println!("importall");
-    println!("    Like import, but <source> and <target> are directories.");
-    println!("    <target> will be searched recursively and every file will be");
-    println!("    attempted to be imported. <target> will be cleared and overwritten.");
-    println!();
-    println!("    If <source> and <target> are omitted, it takes following default values:");
+    println!("    defaults to:");
     println!(
-        "        <source> {}",
-        asset_importer::DEFAULT_SOURCE_DIRECTORY
+        "      > {} decompile {} {}",
+        name,
+        asset_compiler::DEFAULT_COMPILED_FILE,
+        asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
     );
+    println!();
+    println!("  import");
+    println!("      > {} import <source file> <target file>", name);
+    println!();
+    println!("  importall");
+    println!("      > {} importall <source dir> <target dir>", name);
+    println!();
+    println!("    defaults to:");
     println!(
-        "        <target> {}",
-        asset_importer::DEFAULT_TARGET_DIRECTORY
+        "      > {} importall {} {}",
+        name,
+        asset_importer::DEFAULT_SOURCE_DIRECTORY,
+        asset_importer::DEFAULT_TARGET_DIRECTORY,
     );
     println!();
 }
