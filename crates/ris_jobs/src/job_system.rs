@@ -172,47 +172,6 @@ pub fn run_pending_job(file: &str, line: u32) {
     }
 }
 
-pub fn pop_job(file: &str, line: u32) -> Result<Job, IsEmpty> {
-    let mut result = Err(IsEmpty);
-
-    WORKER_THREAD.with(|worker_thread| {
-        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
-        } else {
-            ris_log::error!(
-                "couldn't pop job, calling thread isn't a worker thread. caller: {}:{}",
-                file,
-                line,
-            );
-        }
-    });
-
-    result
-}
-
-pub fn steal_job(file: &str, line: u32) -> Result<Job, BlockedOrEmpty> {
-    let mut result = Err(BlockedOrEmpty);
-
-    WORKER_THREAD.with(|worker_thread| {
-        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            for buffer in &worker_thread.steal_buffers {
-                result = buffer.steal();
-                if result.is_ok() {
-                    break;
-                }
-            }
-        } else {
-            ris_log::error!(
-                "couldn't steal job, calling thread isn't a worker thread. caller: {}:{}",
-                file,
-                line,
-            );
-        }
-    });
-
-    result
-}
-
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     loop {
         let try_lock_result = mutex.try_lock();
@@ -299,4 +258,45 @@ fn empty_buffer(index: usize) {
             Err(IsEmpty) => break,
         }
     }
+}
+
+fn pop_job(file: &str, line: u32) -> Result<Job, IsEmpty> {
+    let mut result = Err(IsEmpty);
+
+    WORKER_THREAD.with(|worker_thread| {
+        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
+            result = unsafe { worker_thread.local_buffer.wait_and_pop() };
+        } else {
+            ris_log::error!(
+                "couldn't pop job, calling thread isn't a worker thread. caller: {}:{}",
+                file,
+                line,
+            );
+        }
+    });
+
+    result
+}
+
+fn steal_job(file: &str, line: u32) -> Result<Job, BlockedOrEmpty> {
+    let mut result = Err(BlockedOrEmpty);
+
+    WORKER_THREAD.with(|worker_thread| {
+        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
+            for buffer in &worker_thread.steal_buffers {
+                result = buffer.steal();
+                if result.is_ok() {
+                    break;
+                }
+            }
+        } else {
+            ris_log::error!(
+                "couldn't steal job, calling thread isn't a worker thread. caller: {}:{}",
+                file,
+                line,
+            );
+        }
+    });
+
+    result
 }

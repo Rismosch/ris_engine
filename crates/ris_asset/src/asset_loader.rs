@@ -151,30 +151,30 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
     match &mut loader {
         InternalLoader::Compiled(loader) => {
             for request in receiver.iter() {
-                if let AssetId::Compiled(id) = request.id {
-                    let result = loader.load(id).map_err(|e| {
+                let result = if let AssetId::Compiled(id) = request.id {
+                    loader.load(id).map_err(|e| {
                         ris_log::error!("{}", e);
                         LoadError::LoadFailed
-                    });
-                    request.future.set(result);
+                    })
                 } else {
-                    let error = Err(LoadError::InvalidId);
-                    request.future.set(error);
-                }
+                    Err(LoadError::InvalidId)
+                };
+                
+                request.future.set(result);
             }
         }
         InternalLoader::Directory(loader) => {
             for request in receiver.iter() {
-                if let AssetId::Directory(id) = request.id {
-                    let result = loader.load(id).map_err(|e| {
+                let result = if let AssetId::Directory(id) = request.id {
+                    loader.load(id).map_err(|e| {
                         ris_log::error!("{}", e);
                         LoadError::LoadFailed
-                    });
-                    request.future.set(result);
+                    })
                 } else {
-                    let error = Err(LoadError::InvalidId);
-                    request.future.set(error);
-                }
+                    Err(LoadError::InvalidId)
+                };
+
+                request.future.set(result);
             }
         }
     }
