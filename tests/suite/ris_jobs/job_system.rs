@@ -1,11 +1,13 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::{Duration, Instant},
-};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
 use ris_jobs::job_system;
-use ris_util::testing::{repeat, retry};
+use ris_util::testing::miri_choose;
+use ris_util::testing::repeat;
+use ris_util::testing::retry;
 
 #[test]
 fn should_submit_and_run_jobs() {
@@ -13,21 +15,23 @@ fn should_submit_and_run_jobs() {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
+        let mut futures = Vec::new();
 
-        for i in 0..1000 {
+        for i in 0..miri_choose(1000, 10) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
-            std::mem::forget(future);
+
+            futures.push(future);
         }
 
         drop(job_system);
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 1000);
-        for i in 0..1000 {
+        assert_eq!(results.len(), miri_choose(1000, 10));
+        for i in 0..miri_choose(1000, 10) {
             assert!(results.contains(&i));
         }
     });
@@ -39,28 +43,37 @@ fn should_submit_job_within_job() {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
+        let futures = Arc::new(Mutex::new(Vec::new()));
 
-        for i in 0..1000 {
+        for i in 0..miri_choose(1000, 10) {
             let results_copy = results.clone();
+            let futures_copy = futures.clone();
+
             let future = job_system::submit(move || {
                 let results_copy_copy = results_copy.clone();
+                let futures_copy_copy = futures_copy.clone();
+
                 results_copy.lock().unwrap().push(i);
+
                 let future = job_system::submit(move || {
-                    results_copy_copy.lock().unwrap().push(i + 1000);
+                    results_copy_copy
+                        .lock()
+                        .unwrap()
+                        .push(i + miri_choose(1000, 10));
                 });
 
-                std::mem::forget(future);
+                futures_copy_copy.lock().unwrap().push(future);
             });
 
-            std::mem::forget(future);
+            futures.lock().unwrap().push(future);
         }
 
         drop(job_system);
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 2000);
-        for i in 0..2000 {
+        assert_eq!(results.len(), miri_choose(2000, 20));
+        for i in 0..miri_choose(2000, 20) {
             assert!(results.contains(&i));
         }
     });
@@ -69,22 +82,24 @@ fn should_submit_job_within_job() {
 #[test]
 fn should_run_job_when_buffer_is_full() {
     repeat(10, || {
-        let job_system = unsafe { job_system::init(100, 10, 1, false) };
+        let job_system = unsafe { job_system::init(miri_choose(100, 10), 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
-        for i in 0..200 {
+        let mut futures = Vec::new();
+
+        for i in 0..miri_choose(200, 20) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
 
-            std::mem::forget(future);
+            futures.push(future);
         }
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 100);
-        for i in 100..200 {
+        assert_eq!(results.len(), miri_choose(100, 10));
+        for i in miri_choose(100..200, 10..20) {
             assert!(results.contains(&i));
         }
 
@@ -99,23 +114,25 @@ fn should_run_pending_job() {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
-        for i in 0..100 {
+        let mut futures = Vec::new();
+
+        for i in 0..miri_choose(100, 10) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
 
-            std::mem::forget(future);
+            futures.push(future);
         }
 
-        for _ in 0..50 {
+        for _ in 0..miri_choose(50, 5) {
             job_system::run_pending_job(file!(), line!());
         }
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 50);
-        for i in 50..100 {
+        assert_eq!(results.len(), miri_choose(50, 5));
+        for i in miri_choose(50..100, 5..10) {
             assert!(results.contains(&i));
         }
 
@@ -132,6 +149,7 @@ fn should_get_thread_index() {
         let job_system = unsafe { job_system::init(10, 10, 5, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
+        let mut futures = Vec::new();
 
         let start = Instant::now();
         loop {
@@ -144,7 +162,7 @@ fn should_get_thread_index() {
                 thread::sleep(Duration::from_millis(5));
             });
 
-            std::mem::forget(future);
+            futures.push(future);
 
             let now = Instant::now();
             let duration = now - start;
@@ -174,21 +192,22 @@ fn should_run_jobs_while_waiting_on_future() {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
+        let mut futures = Vec::new();
 
         let future = job_system::submit(|| "hello world");
 
-        for i in 0..100 {
+        for i in 0..miri_choose(100, 10) {
             let results_copy = results.clone();
             let future = job_system::submit(move || results_copy.lock().unwrap().push(i));
-            std::mem::forget(future);
+            futures.push(future);
         }
 
         let result = future.wait();
         let results = results.lock().unwrap();
 
         assert_eq!(result, "hello world");
-        assert_eq!(results.len(), 100);
-        for i in 0..100 {
+        assert_eq!(results.len(), miri_choose(100, 10));
+        for i in 0..miri_choose(100, 10) {
             assert!(results.contains(&i));
         }
 
@@ -202,13 +221,15 @@ fn should_run_jobs_when_emptying() {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
-        for i in 0..100 {
+        let mut futures = Vec::new();
+
+        for i in 0..miri_choose(100, 10) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
             });
 
-            std::mem::forget(future);
+            futures.push(future);
         }
 
         assert_eq!(results.lock().unwrap().len(), 0);
@@ -217,8 +238,8 @@ fn should_run_jobs_when_emptying() {
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), 100);
-        for i in 0..100 {
+        assert_eq!(results.len(), miri_choose(100, 10));
+        for i in 0..miri_choose(100, 10) {
             assert!(results.contains(&i));
         }
     });
@@ -230,21 +251,23 @@ fn should_lock_mutex() {
         let job_system = unsafe { job_system::init(100, 10, 10, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
-        for i in 0..100 {
+        let mut futures = Vec::new();
+
+        for i in 0..miri_choose(100, 10) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 job_system::lock(&results_copy).push(i);
             });
 
-            std::mem::forget(future);
+            futures.push(future);
         }
 
         drop(job_system);
 
         let results = job_system::lock(&results);
 
-        assert_eq!(results.len(), 100);
-        for i in 0..100 {
+        assert_eq!(results.len(), miri_choose(100, 10));
+        for i in 0..miri_choose(100, 10) {
             assert!(results.contains(&i));
         }
     });

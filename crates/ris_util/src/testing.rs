@@ -63,3 +63,13 @@ macro_rules! prep_test_dir {
 pub fn duplicate<T: Clone>(value: &T) -> T {
     value.clone()
 }
+
+#[cfg(not(miri))]
+pub fn miri_choose<T>(value: T, _: T) -> T {
+    value
+}
+
+#[cfg(miri)]
+pub fn miri_choose<T>(_: T, value: T) -> T {
+    value
+}

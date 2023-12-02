@@ -159,7 +159,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                 } else {
                     Err(LoadError::InvalidId)
                 };
-                
+
                 request.future.set(result);
             }
         }
