@@ -4,11 +4,13 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::TryLockError;
 use std::thread;
 use std::thread::JoinHandle;
 
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::Settings;
+use ris_util::throw;
 
 use crate as ris_jobs;
 use crate::errors::BlockedOrEmpty;
@@ -138,7 +140,7 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
 
     let job = Job::new(move || {
         let result = job();
-        settable_future.set(result);
+        settable_future.set(result, true);
     });
 
     WORKER_THREAD.with(|worker_thread| {
@@ -174,13 +176,15 @@ pub fn run_pending_job(file: &str, line: u32) {
 
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     loop {
-        let try_lock_result = mutex.try_lock();
-
-        if let Ok(mutex_guard) = try_lock_result {
-            return mutex_guard;
+        match mutex.try_lock() {
+            Ok(guard) => return guard,
+            Err(TryLockError::WouldBlock) => {
+                run_pending_job(file!(), line!());
+            }
+            Err(TryLockError::Poisoned(e)) => {
+                throw!("mutex is poisoned: {}", e);
+            }
         }
-
-        run_pending_job(file!(), line!());
     }
 }
 

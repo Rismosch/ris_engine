@@ -36,8 +36,15 @@ impl<T> SettableJobFuture<T> {
         (settable_job_future, job_future)
     }
 
-    pub fn set(self, result: T) {
-        let mut inner = job_system::lock(&self.inner);
+    pub fn set(self, result: T, lock_with_job_system: bool) {
+        let mut inner = if lock_with_job_system {
+            job_system::lock(&self.inner)
+        } else {
+            match self.inner.lock() {
+                Ok(guard) => guard,
+                Err(e) => throw!("mutex is poisoned: {}", e),
+            }
+        };
 
         inner.is_ready = true;
         inner.data = Some(result);

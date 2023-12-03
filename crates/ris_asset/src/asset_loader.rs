@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use ris_data::info::app_info::AppInfo;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
+use ris_jobs::job_system;
 use ris_util::error::RisError;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
@@ -54,10 +55,8 @@ pub struct AssetLoaderGuard;
 
 impl Drop for AssetLoaderGuard {
     fn drop(&mut self) {
-        match ASSET_LOADER_SENDER.lock() {
-            Err(e) => ris_log::error!("error while dropping asset loader: {}", e),
-            Ok(mut asset_loader_sender) => *asset_loader_sender = None,
-        }
+        let mut asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
+        *asset_loader_sender = None;
 
         ris_log::info!("asset loader guard dropped!");
     }
@@ -111,10 +110,7 @@ pub unsafe fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
     let _ = std::thread::spawn(|| load_asset_thread(receiver, internal));
 
     {
-        let mut asset_loader_sender = ris_util::unroll!(
-            ASSET_LOADER_SENDER.lock(),
-            "failed to lock asset loader sender"
-        )?;
+        let mut asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
         *asset_loader_sender = Some(sender)
     }
 
@@ -129,19 +125,17 @@ pub fn load(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     };
 
     let result = {
-        match ASSET_LOADER_SENDER.lock() {
-            Ok(asset_loader_sender) => match &*asset_loader_sender {
-                Some(sender) => sender.send(request),
-                None => Err(SendError(request)),
-            },
-            Err(_) => Err(SendError(request)),
+        let asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
+        match &*asset_loader_sender {
+            Some(sender) => sender.send(request),
+            None => Err(SendError(request)),
         }
     };
 
     if let Err(send_error) = result {
         let error = Err(LoadError::SendFailed);
         let request = send_error.0;
-        request.future.set(error);
+        request.future.set(error, true);
     }
 
     job_future
@@ -160,7 +154,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                     Err(LoadError::InvalidId)
                 };
 
-                request.future.set(result);
+                request.future.set(result, false);
             }
         }
         InternalLoader::Directory(loader) => {
@@ -174,7 +168,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                     Err(LoadError::InvalidId)
                 };
 
-                request.future.set(result);
+                request.future.set(result, false);
             }
         }
     }

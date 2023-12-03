@@ -1,31 +1,24 @@
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
-};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::thread;
 
 use ris_jobs::job_future::SettableJobFuture;
-use ris_util::testing::{repeat, retry};
-
-#[cfg(not(miri))]
-const LOOP_ITERATIONS: usize = 10_000;
-
-#[cfg(miri)]
-const LOOP_ITERATIONS: usize = 100;
+use ris_util::testing::miri_choose;
+use ris_util::testing::repeat;
+use ris_util::testing::retry;
 
 #[test]
 fn should_set_and_wait() {
     retry(5, || {
-        repeat(LOOP_ITERATIONS, || {
+        repeat(miri_choose(10_000, 100), || {
             let result = Arc::new(AtomicBool::new(false));
             let done = Arc::new(AtomicBool::new(false));
 
             let (settable, future) = SettableJobFuture::new();
 
             let set_handle = thread::spawn(move || {
-                settable.set(42);
+                settable.set(42, true);
             });
 
             let result_clone = result.clone();
