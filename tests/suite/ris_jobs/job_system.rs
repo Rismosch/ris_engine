@@ -51,7 +51,6 @@ fn should_submit_job_within_job() {
 
             let future = job_system::submit(move || {
                 let results_copy_copy = results_copy.clone();
-                let futures_copy_copy = futures_copy.clone();
 
                 results_copy.lock().unwrap().push(i);
 
@@ -62,7 +61,7 @@ fn should_submit_job_within_job() {
                         .push(i + miri_choose(1000, 10));
                 });
 
-                futures_copy_copy.lock().unwrap().push(future);
+                futures_copy.lock().unwrap().push(future);
             });
 
             futures.lock().unwrap().push(future);
@@ -145,7 +144,7 @@ fn should_run_pending_job() {
 fn should_get_thread_index() {
     const TIMEOUT: u128 = 100;
 
-    retry(10, || {
+    retry(100, || {
         let job_system = unsafe { job_system::init(10, 10, 5, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));

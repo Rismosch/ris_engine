@@ -28,7 +28,7 @@ Barebones game engine. Home made passion project.
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
   - [x] (De)compiling
-- [x] Global state
+- [x] Global mutable state
   - [x] Settings/Configuration
   - [ ] Gameobjects
 - [ ] Debug GUI
@@ -47,7 +47,7 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-To compile this repo, you need a working Rust compiler. I recommend installing it via [rustup](https://www.rust-lang.org/tools/install).
+To compile this repo, you need a working Rust compiler. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
 
 The current target platform is x86_64, both Windows and Linux.
 
@@ -75,12 +75,11 @@ For more information on `cargo vendor` check the following link: https://doc.rus
 
 ### Method 2: Get an archived repo
 
-An archived repo contains all required packages. You can get an archived repo from one of these sources:
+An archived repo contains all required packages. You can get one from my website:
 
-- https://github.com/Rismosch/ris_engine/releases/
-- https://www.rismosch.com/archive
+https://www.rismosch.com/archive
 
-Note that I make these archives sporadically, meaning they may not be up date date. Check the date, when the archives have been generated.
+Note that I make these archives sporadically, meaning they may not be up to date. Check the date, when the archives have been generated.
 
 ---
 
@@ -90,19 +89,17 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 ### Windows
 
-In this repo you will find the   `./3rd_party/` directory. It contains all required 3rd party libraries for Windows.
+In this repo you will find the   `./3rd_party/` directory. It contains all required libraries for Windows.
 
-For information where I got these libraries from, read [./3rd_party/README.md](3rd_party/README.md). 
+For information where I got these from, read [./3rd_party/README.md](3rd_party/README.md). 
 
 #### 1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
 
-`cargo run` expects all necessary dlls to be in the root directory. Also, the `./ci/build.ps1` script expects these to be in the root directory as well.
+`cargo run` expects all necessary DLLs to be in the root directory. Also, the `./ci/build.ps1` script expects these to be in the root directory as well.
 
-#### 2. Move `./3rd_party/bin/shaderc_shared.dll` to a desired directory and set the environment variable `SHADERC_LIB_DIR` to that directory.
+#### 2. Set the environment variable `SHADERC_LIB_DIR` to `./3rd_party/bin/`
 
-[shaderc](https://crates.io/crates/shaderc) requires this dll during build time. It has a niche feature to store shader code in Rust source code, and compile them at build time using macros. Gimmicky and probably intended for small demo projects, but useless bloat if you ask me.
-
-Nevertheless, it does try to search the dll, and the environment variable `SHADERC_LIB_DIR` is one directory where it's searching for it. 
+[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. It has a feature, which stores and compiles shader code inside Rust source files. `ris_engine` does not use this feature, but nevertheless, `shaderc` does try to search the DLL while building. The environment variable `SHADERC_LIB_DIR` is the directory where `shaderc` searches for the DLL.
 
 #### 3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.
 
@@ -136,7 +133,7 @@ https://wiki.archlinux.org/title/Vulkan#Installation
 
 ## Building
 
-Assuming everything is installed correctly, you can now simply compile and run the engine with:
+Assuming everything is installed correctly, you can now compile and run the engine with:
 
     cargo run
 
@@ -157,6 +154,22 @@ The build script will generate building information, compile the entire workspac
 
 2. **ris_assets**  
    This file contains all assets used by the engine. Without assets, the game cannot be run.
-
-3. **SDL2.dll**  (only on windows)
+   
+3. **SDL2.dll** (only on windows)  
    This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
+
+## Testing
+
+All tests are found under `./tests/suite/` and can be run with:
+
+    cargo test
+
+If you have [miri](https://github.com/rust-lang/miri) installed, instead tests can be run with:
+
+    cargo miri test
+
+Running tests with `miri` is significantly slower and may take a few minutes. Also note that you need to switch to a nightly toolchain. At the time of writing, `ris_engine` only compiles and runs on a stable toolchain; use nightly only for `miri`. Assuming stable and nightly toolchains are installed, switching toolchains can be achieved by running:
+
+    rustup override set <toolchain>
+
+Where `<toolchain>` is either `stable` or `nightly`.
