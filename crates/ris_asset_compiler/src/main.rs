@@ -22,7 +22,7 @@ fn main() {
 
     let raw_args: Vec<String> = env::args().collect();
     if raw_args.len() != 4 && raw_args.len() != 2 {
-        println!("incorrect number of argument");
+        log("incorrect number of argument");
         print_help();
         return;
     }
@@ -74,15 +74,13 @@ fn main() {
             ),
         }
     } else {
-        println!("unkown command: {}", command_raw);
-        println!();
+        log(&format!("unkown command: {}", command_raw));
         print_help();
         return;
     };
 
     if let Err(error) = result {
-        println!("error: {}", error);
-        println!();
+        log(&format!("error: {}", error));
         print_help();
     }
 
@@ -92,46 +90,35 @@ fn main() {
 fn print_help() {
     let name = env!("CARGO_PKG_NAME");
 
-    println!();
-    println!("correct usage: ");
-    println!("  > {} <command> <source> <target>", name);
-    println!();
-    println!("available commands:");
-    println!();
-    println!("  compile");
-    println!("      > {} compile <source dir> <target file>", name);
-    println!();
-    println!("    defaults to:");
-    println!(
-        "      > {} compile {} {}",
-        name,
+    log("correct usage: ");
+    log(&format!("  > {} <command> <source> <target>", name));
+    log("available commands:");
+    log("  compile");
+    log(&format!("      > {} compile <source dir> <target file>", name));
+    log(&format!(
+        "    defaults to:\n        <source dir>  {}\n        <target file> {}",
         asset_compiler::DEFAULT_ASSET_DIRECTORY,
         asset_compiler::DEFAULT_COMPILED_FILE,
-    );
-    println!();
-    println!("  decompile");
-    println!("      > {} decompile <source file> <target dir>", name);
-    println!();
-    println!("    defaults to:");
-    println!(
-        "      > {} decompile {} {}",
-        name,
+    ));
+    log("  decompile");
+    log(&format!("      > {} decompile <source file> <target dir>", name));
+    log(&format!(
+        "    defaults to:\n        <source file> {}\n        <target dir>  {}",
         asset_compiler::DEFAULT_COMPILED_FILE,
         asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
-    );
-    println!();
-    println!("  import");
-    println!("      > {} import <source file> <target file>", name);
-    println!();
-    println!("  importall");
-    println!("      > {} importall <source dir> <target dir>", name);
-    println!();
-    println!("    defaults to:");
-    println!(
-        "      > {} importall {} {}",
-        name,
+    ));
+    log("  import");
+    log(&format!("      > {} import <source file> <target file>", name));
+    log("  importall");
+    log(&format!("      > {} importall <source dir> <target dir>", name));
+    log(&format!(
+        "    defaults to:\n        <source dir>  {}\n        <target dir>  {}",
         asset_importer::DEFAULT_SOURCE_DIRECTORY,
         asset_importer::DEFAULT_TARGET_DIRECTORY,
-    );
-    println!();
+    ));
+}
+
+fn log(message: &str) {
+    let plain_message = ris_log::log_message::LogMessage::Plain(String::from(message));
+    ris_log::log::forward_to_appenders(plain_message);
 }

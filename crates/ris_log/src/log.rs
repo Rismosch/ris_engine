@@ -40,7 +40,7 @@ pub struct LogGuard;
 impl Drop for LogGuard {
     fn drop(&mut self) {
         match LOG.lock() {
-            Err(e) => println!("error while dropping log: {}", e),
+            Err(e) => eprintln!("error while dropping log: {}", e),
             Ok(mut log) => {
                 *log = None;
             }
@@ -60,7 +60,7 @@ impl Drop for Logger {
 
         if let Some(thread_handle) = self.thread_handle.take() {
             if thread_handle.join().is_err() {
-                println!("error: couldn't join logger handle")
+                eprintln!("error: couldn't join logger handle")
             }
         }
     }
@@ -89,7 +89,7 @@ pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
             *log = Some(logger);
         }
         Err(e) => {
-            println!("error while initializing log: {}", e);
+            eprintln!("error while initializing log: {}", e);
         }
     };
 
@@ -108,7 +108,7 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Appenders) {
 
 pub fn log_level() -> LogLevel {
     match LOG.lock() {
-        Err(e) => println!("error while getting log_level: {}", e),
+        Err(e) => eprintln!("error while getting log_level: {}", e),
         Ok(log) => {
             if let Some(logger) = &*log {
                 return logger.log_level;
@@ -135,7 +135,7 @@ pub fn can_log(priority: LogLevel) -> bool {
 
 pub fn forward_to_appenders(log_message: LogMessage) {
     match LOG.lock() {
-        Err(e) => println!("error while forwarding to appenders: {}", e),
+        Err(e) => eprintln!("error while forwarding to appenders: {}", e),
         Ok(mut log) => {
             if let Some(logger) = &mut *log {
                 if let Some(sender) = &mut logger.sender {

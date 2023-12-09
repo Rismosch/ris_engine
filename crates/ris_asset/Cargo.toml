@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+png = "0.17.10"
 shaderc = "0.8"
 ris_data = { path = "../ris_data" }
 ris_jobs = { path = "../ris_jobs" }

@@ -10,6 +10,7 @@ pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/__imported_raw_assets";
 
 pub enum ImporterKind {
     GLSL,
+    PNG,
 }
 
 pub struct SpecificImporterInfo {
@@ -63,6 +64,7 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
 
             let (importer, target_extension) = match source_extension.as_str() {
                 glsl_importer::IN_EXT => (ImporterKind::GLSL, glsl_importer::OUT_EXT),
+                png_importer::IN_EXT => (ImporterKind::PNG, png_importer::OUT_EXT),
                 // insert new inporter here...
                 _ => {
                     return ris_util::result_err!(
@@ -119,7 +121,12 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
     match importer {
         ImporterKind::GLSL => {
             glsl_importer::import(source_path, &mut source_file, &mut target_file)
-        } // insert more importers here...
+        },
+        ImporterKind::PNG => {
+            png_importer::import(source_path, &mut source_file, &mut target_file)
+        },
+
+        // insert more importers here...
     }
 }
 

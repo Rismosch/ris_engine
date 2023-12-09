@@ -127,16 +127,16 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
         let output = ris_util::unroll!(child.wait_with_output(), "child could not be awaited")?;
 
         let exit_code = if let Some(code) = output.status.code() {
-            println!("process finished with code {}", code);
+            eprintln!("process finished with code {}", code);
 
             if code == RESTART_CODE {
-                println!("restarting...\n");
+                eprintln!("restarting...\n");
                 continue;
             } else {
                 Some(code)
             }
         } else {
-            println!("process finished with no code");
+            eprintln!("process finished with no code");
             None
         };
 

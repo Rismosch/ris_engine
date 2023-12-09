@@ -11,7 +11,7 @@ use ris_util::testing::miri_choose;
 #[test]
 fn should_convert_lab_to_rgb() {
     let rng = Rc::new(RefCell::new(Rng::new(Seed::new().unwrap())));
-    testing::repeat(miri_choose(1_000_000, 100), move |x| {
+    testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
         let r = rng.range_f(0., 1.);
@@ -22,8 +22,6 @@ fn should_convert_lab_to_rgb() {
         let lab: color::Lab = rgb.into();
         let rgb_: color::Rgb = lab.into();
         let lab_: color::Lab = rgb_.into();
-
-        println!("round {}", x);
 
         assert_feq!(rgb.r, rgb_.r, 0.001);
         assert_feq!(rgb.g, rgb_.g, 0.001);

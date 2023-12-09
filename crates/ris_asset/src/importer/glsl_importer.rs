@@ -2,7 +2,7 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
 
-use ris_util::error::RisError;
+use ris_util::error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
 pub const OUT_EXT: &str = "spirv";
@@ -11,7 +11,7 @@ pub fn import(
     filename: &str,
     input: &mut (impl Read + Seek),
     output: &mut (impl Write + Seek),
-) -> Result<(), RisError> {
+) -> RisResult<()> {
     let file_size = ris_util::seek!(input, SeekFrom::End(0))?;
     ris_util::seek!(input, SeekFrom::Start(0))?;
     let mut file_content = vec![0u8; file_size as usize];
