@@ -11,7 +11,7 @@ use ris_util::testing::retry;
 #[test]
 fn should_set_and_wait() {
     retry(5, || {
-        repeat(miri_choose(10_000, 100), || {
+        repeat(miri_choose(10_000, 100), |_| {
             let result = Arc::new(AtomicBool::new(false));
             let done = Arc::new(AtomicBool::new(false));
 

@@ -2,19 +2,14 @@ use ris_math::quaternion::Quaternion;
 use ris_math::vector3::{self, Vector3};
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
+use ris_util::assert_feq;
 use ris_util::testing;
-use ris_util::testing::assert_feq;
-
-#[cfg(not(miri))]
-const LOOP_ITERATIONS: usize = 1_000_000;
-
-#[cfg(miri)]
-const LOOP_ITERATIONS: usize = 100;
+use ris_util::testing::miri_choose;
 
 #[test]
 fn should_normalize_quaternion() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
-    testing::repeat(LOOP_ITERATIONS, move || {
+    testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let w = rng.borrow_mut().next_f();
         let x = rng.borrow_mut().next_f();
         let y = rng.borrow_mut().next_f();
@@ -26,7 +21,7 @@ fn should_normalize_quaternion() {
         let expected_magnitude = 1.;
         let actual_magnitude = normalized_quaternion.magnitude();
 
-        assert_feq(expected_magnitude, actual_magnitude, ris_math::MIN_NORM);
+        assert_feq!(expected_magnitude, actual_magnitude, ris_math::MIN_NORM);
     });
 }
 
@@ -42,10 +37,10 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
     let quaternion = Quaternion::from_angle_axis(angle, axis);
     let (angle_copy, axis_copy) = quaternion.to_angle_axis();
 
-    assert_feq(angle, angle_copy, ris_math::MIN_NORM);
-    assert_feq(axis_copy.x, 1., ris_math::MIN_NORM);
-    assert_feq(axis_copy.y, 0., ris_math::MIN_NORM);
-    assert_feq(axis_copy.z, 0., ris_math::MIN_NORM);
+    assert_feq!(angle, angle_copy, ris_math::MIN_NORM);
+    assert_feq!(axis_copy.x, 1., ris_math::MIN_NORM);
+    assert_feq!(axis_copy.y, 0., ris_math::MIN_NORM);
+    assert_feq!(axis_copy.z, 0., ris_math::MIN_NORM);
 }
 
 #[test]
@@ -60,10 +55,10 @@ fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
     let quaternion = Quaternion::from_angle_axis(angle, axis);
     let (angle_copy, axis_copy) = quaternion.to_angle_axis();
 
-    assert_feq(angle, angle_copy, ris_math::MIN_NORM);
-    assert_feq(axis_copy.x, 1., ris_math::MIN_NORM);
-    assert_feq(axis_copy.y, 0., ris_math::MIN_NORM);
-    assert_feq(axis_copy.z, 0., ris_math::MIN_NORM);
+    assert_feq!(angle, angle_copy, ris_math::MIN_NORM);
+    assert_feq!(axis_copy.x, 1., ris_math::MIN_NORM);
+    assert_feq!(axis_copy.y, 0., ris_math::MIN_NORM);
+    assert_feq!(axis_copy.z, 0., ris_math::MIN_NORM);
 }
 
 #[test]

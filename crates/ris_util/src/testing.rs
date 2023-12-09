@@ -1,11 +1,11 @@
-pub fn repeat<F: FnMut() + Clone>(repeats: usize, test: F) {
-    for _i in 0..repeats {
-        test.clone()();
+pub fn repeat<F: FnMut(usize) + Clone>(repeats: usize, test: F) {
+    for i in 0..repeats {
+        test.clone()(i);
     }
 }
 
 pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: F) {
-    for _ in 0..retries - 1 {
+    for _i in 0..retries - 1 {
         let result = std::panic::catch_unwind(test.clone());
 
         if result.is_ok() {
@@ -17,16 +17,24 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: 
     assert!(result.is_ok(), "failed {} times", retries);
 }
 
-pub fn assert_feq(left: f32, right: f32, tolerance: f32) {
-    let diff = ris_math::diff(left, right);
-    assert!(
-        diff < tolerance,
-        "expected {} and {} to be within {}, but differed by {}",
-        left,
-        right,
-        tolerance,
-        diff
-    );
+#[macro_export]
+macro_rules! assert_feq {
+    ($left:expr, $right:expr, $tolerance:expr) => {{
+        $crate::assert_feq!($left, $right, $tolerance, "");
+    }};
+    ($left:expr, $right:expr, $tolerance:expr, $($arg:tt)*) => {{
+        let diff = ris_math::diff($left, $right);
+        let message = format!($($arg)*);
+        assert!(
+            diff < $tolerance,
+            "expected {} and {} to be within {}, but differed by {}. {}",
+            $left,
+            $right,
+            $tolerance,
+            diff,
+            message
+        );
+    }};
 }
 
 /// generates and cleans a temporary directory for tests

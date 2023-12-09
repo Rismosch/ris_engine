@@ -11,7 +11,7 @@ use ris_util::testing::retry;
 
 #[test]
 fn should_submit_and_run_jobs() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -39,7 +39,7 @@ fn should_submit_and_run_jobs() {
 
 #[test]
 fn should_submit_job_within_job() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -80,7 +80,7 @@ fn should_submit_job_within_job() {
 
 #[test]
 fn should_run_job_when_buffer_is_full() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(miri_choose(100, 10), 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -109,7 +109,7 @@ fn should_run_job_when_buffer_is_full() {
 
 #[test]
 fn should_run_pending_job() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -187,7 +187,7 @@ fn should_get_thread_index() {
 
 #[test]
 fn should_run_jobs_while_waiting_on_future() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -216,7 +216,7 @@ fn should_run_jobs_while_waiting_on_future() {
 
 #[test]
 fn should_run_jobs_when_emptying() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -246,7 +246,7 @@ fn should_run_jobs_when_emptying() {
 
 #[test]
 fn should_lock_mutex() {
-    repeat(10, || {
+    repeat(10, |_| {
         let job_system = unsafe { job_system::init(100, 10, 10, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));

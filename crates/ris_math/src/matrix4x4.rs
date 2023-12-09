@@ -122,8 +122,8 @@ impl Matrix4x4 {
 
     // standard matrix stuff
     pub fn get(self, m: usize, n: usize) -> f32 {
-        assert!(m < 4);
-        assert!(n < 4);
+        debug_assert!(m < 4);
+        debug_assert!(n < 4);
 
         match (m, n) {
             (0, 0) => self.m00,

@@ -1,3 +1,4 @@
+pub mod color;
 pub mod matrix4x4;
 pub mod quaternion;
 pub mod vector3;
@@ -32,12 +33,15 @@ pub fn acos(f: f32) -> f32 {
 pub fn atan(f: f32) -> f32 {
     f32::atan(f)
 }
-pub fn atan2(x: f32, y: f32) -> f32 {
+pub fn atan2(y: f32, x: f32) -> f32 {
     f32::atan2(y, x)
 }
 
 pub fn sqrt(f: f32) -> f32 {
     f32::sqrt(f)
+}
+pub fn cbrt(f: f32) -> f32 {
+    f32::cbrt(f)
 }
 
 pub fn diff(a: f32, b: f32) -> f32 {
