@@ -1,3 +1,4 @@
+pub mod codecs;
 pub mod asset_compiler;
 pub mod asset_importer;
 pub mod asset_loader;
