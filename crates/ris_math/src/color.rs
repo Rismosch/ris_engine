@@ -44,6 +44,14 @@ impl Lab {
     }
 }
 
+impl Rgb {
+    pub fn is_valid(&self) -> bool {
+        self.r >= 0. && self.r <= 1. &&
+        self.g >= 0. && self.g <= 1. &&
+        self.b >= 0. && self.b <= 1.
+    }
+}
+
 impl From<Rgb> for Lab {
     fn from(value: Rgb) -> Self {
         let c = value;

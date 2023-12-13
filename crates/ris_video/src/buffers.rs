@@ -11,6 +11,7 @@ use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
 
+use ris_math::color;
 use ris_util::error::RisError;
 
 use crate::gpu_objects::UniformBufferObject;
@@ -20,7 +21,7 @@ pub type Uniform<U> = (Subbuffer<U>, Arc<PersistentDescriptorSet>);
 
 pub struct Buffers {
     pub vertex: Subbuffer<[Vertex3d]>,
-    pub index: Subbuffer<[u16]>,
+    pub index: Subbuffer<[u32]>,
     pub uniforms: Vec<Uniform<UniformBufferObject>>,
 }
 
@@ -30,222 +31,134 @@ impl Buffers {
         uniform_buffer_count: usize,
         pipeline: &Arc<GraphicsPipeline>,
     ) -> Result<Self, RisError> {
-        // vertex
-        let red = [1.0, 0.0, 0.0];
-        let green = [0.0, 1.0, 0.0];
-        let blue = [0.0, 0.0, 1.0];
-        let cyan = [0.0, 1.0, 1.0];
-        let magenta = [1.0, 0.0, 1.0];
-        let yellow = [1.0, 1.0, 0.0];
+        let size = 0.01;
+        let offset = 0.02;
+        let side = 100;
 
-        let pos = 0.25;
-        let offset = 1.;
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
 
-        // cube 1
-        let v1 = Vertex3d {
-            position: [-pos, -pos, -pos],
-            color: magenta,
-        };
-        let v2 = Vertex3d {
-            position: [pos, -pos, -pos],
-            color: magenta,
-        };
-        let v3 = Vertex3d {
-            position: [-pos, -pos, pos],
-            color: magenta,
-        };
-        let v4 = Vertex3d {
-            position: [pos, -pos, pos],
-            color: magenta,
-        };
+        for i in 0..side {
+            for j in 0..side {
+                for k in 0..side {
+                    let x = i as f32 * offset;
+                    let y = j as f32 * offset;
+                    let z = k as f32 * offset;
 
-        let v5 = Vertex3d {
-            position: [-pos, pos, -pos],
-            color: green,
-        };
-        let v6 = Vertex3d {
-            position: [-pos, pos, pos],
-            color: green,
-        };
-        let v7 = Vertex3d {
-            position: [pos, pos, -pos],
-            color: green,
-        };
-        let v8 = Vertex3d {
-            position: [pos, pos, pos],
-            color: green,
-        };
+                    let l = i as f32 / side as f32;
+                    let a = j as f32 / side as f32 - 0.5;
+                    let b = k as f32 / side as f32 - 0.5;
 
-        let v9 = Vertex3d {
-            position: [-pos, -pos, -pos],
-            color: yellow,
-        };
-        let v10 = Vertex3d {
-            position: [-pos, pos, -pos],
-            color: yellow,
-        };
-        let v11 = Vertex3d {
-            position: [pos, -pos, -pos],
-            color: yellow,
-        };
-        let v12 = Vertex3d {
-            position: [pos, pos, -pos],
-            color: yellow,
-        };
+                    let lab = color::Lab {l, a, b};
+                    let rgb = color::Rgb::from(lab);
 
-        let v13 = Vertex3d {
-            position: [-pos, -pos, pos],
-            color: blue,
-        };
-        let v14 = Vertex3d {
-            position: [pos, -pos, pos],
-            color: blue,
-        };
-        let v15 = Vertex3d {
-            position: [-pos, pos, pos],
-            color: blue,
-        };
-        let v16 = Vertex3d {
-            position: [pos, pos, pos],
-            color: blue,
-        };
+                    let color = [
+                        rgb.r,
+                        rgb.g,
+                        rgb.b,
+                    ];
 
-        let v17 = Vertex3d {
-            position: [-pos, -pos, -pos],
-            color: cyan,
-        };
-        let v18 = Vertex3d {
-            position: [-pos, -pos, pos],
-            color: cyan,
-        };
-        let v19 = Vertex3d {
-            position: [-pos, pos, -pos],
-            color: cyan,
-        };
-        let v20 = Vertex3d {
-            position: [-pos, pos, pos],
-            color: cyan,
-        };
+                    let v0 = Vertex3d {
+                        position: [x, y, z],
+                        color,
+                    };
+                    let v1 = Vertex3d {
+                        position: [x + size, y, z],
+                        color,
+                    };
+                    let v2 = Vertex3d {
+                        position: [x, y + size, z],
+                        color,
+                    };
+                    let v3 = Vertex3d {
+                        position: [x + size, y + size, z],
+                        color,
+                    };
+                    let v4 = Vertex3d {
+                        position: [x, y, z + size],
+                        color,
+                    };
+                    let v5 = Vertex3d {
+                        position: [x + size, y, z + size],
+                        color,
+                    };
+                    let v6 = Vertex3d {
+                        position: [x, y + size, z + size],
+                        color,
+                    };
+                    let v7 = Vertex3d {
+                        position: [x + size, y + size, z + size],
+                        color,
+                    };
 
-        let v21 = Vertex3d {
-            position: [pos, -pos, -pos],
-            color: red,
-        };
-        let v22 = Vertex3d {
-            position: [pos, pos, -pos],
-            color: red,
-        };
-        let v23 = Vertex3d {
-            position: [pos, -pos, pos],
-            color: red,
-        };
-        let v24 = Vertex3d {
-            position: [pos, pos, pos],
-            color: red,
-        };
+                    vertices.push(v0);
+                    vertices.push(v1);
+                    vertices.push(v2);
+                    vertices.push(v3);
+                    vertices.push(v4);
+                    vertices.push(v5);
+                    vertices.push(v6);
+                    vertices.push(v7);
 
-        // cube 2
-        let v1_2 = Vertex3d {
-            position: [-pos + offset, -pos, -pos],
-            color: magenta,
-        };
-        let v2_2 = Vertex3d {
-            position: [pos + offset, -pos, -pos],
-            color: magenta,
-        };
-        let v3_2 = Vertex3d {
-            position: [-pos + offset, -pos, pos],
-            color: magenta,
-        };
-        let v4_2 = Vertex3d {
-            position: [pos + offset, -pos, pos],
-            color: magenta,
-        };
+                    let max = side - 1;
+                    if !rgb.is_valid() && 
+                        (i != 0 && i != max && j != 0 && j != max && k != 0 && k != max) {
+                        continue;
+                    }
 
-        let v5_2 = Vertex3d {
-            position: [-pos + offset, pos, -pos],
-            color: green,
-        };
-        let v6_2 = Vertex3d {
-            position: [-pos + offset, pos, pos],
-            color: green,
-        };
-        let v7_2 = Vertex3d {
-            position: [pos + offset, pos, -pos],
-            color: green,
-        };
-        let v8_2 = Vertex3d {
-            position: [pos + offset, pos, pos],
-            color: green,
-        };
+                    let index = i * 8 * side * side + j * 8 * side + k * 8;
+                    // right
+                    indices.push(index + 1);
+                    indices.push(index + 5);
+                    indices.push(index + 3);
+                    indices.push(index + 7);
+                    indices.push(index + 3);
+                    indices.push(index + 5);
 
-        let v9_2 = Vertex3d {
-            position: [-pos + offset, -pos, -pos],
-            color: yellow,
-        };
-        let v10_2 = Vertex3d {
-            position: [-pos + offset, pos, -pos],
-            color: yellow,
-        };
-        let v11_2 = Vertex3d {
-            position: [pos + offset, -pos, -pos],
-            color: yellow,
-        };
-        let v12_2 = Vertex3d {
-            position: [pos + offset, pos, -pos],
-            color: yellow,
-        };
+                    // left
+                    indices.push(index);
+                    indices.push(index + 2);
+                    indices.push(index + 4);
+                    indices.push(index + 6);
+                    indices.push(index + 4);
+                    indices.push(index + 2);
 
-        let v13_2 = Vertex3d {
-            position: [-pos + offset, -pos, pos],
-            color: blue,
-        };
-        let v14_2 = Vertex3d {
-            position: [pos + offset, -pos, pos],
-            color: blue,
-        };
-        let v15_2 = Vertex3d {
-            position: [-pos + offset, pos, pos],
-            color: blue,
-        };
-        let v16_2 = Vertex3d {
-            position: [pos + offset, pos, pos],
-            color: blue,
-        };
+                    // front
+                    indices.push(index);
+                    indices.push(index + 4);
+                    indices.push(index + 1);
+                    indices.push(index + 5);
+                    indices.push(index + 1);
+                    indices.push(index + 4);
+                    
+                    // back
+                    indices.push(index + 2);
+                    indices.push(index + 3);
+                    indices.push(index + 6);
+                    indices.push(index + 7);
+                    indices.push(index + 6);
+                    indices.push(index + 3);
 
-        let v17_2 = Vertex3d {
-            position: [-pos + offset, -pos, -pos],
-            color: cyan,
-        };
-        let v18_2 = Vertex3d {
-            position: [-pos + offset, -pos, pos],
-            color: cyan,
-        };
-        let v19_2 = Vertex3d {
-            position: [-pos + offset, pos, -pos],
-            color: cyan,
-        };
-        let v20_2 = Vertex3d {
-            position: [-pos + offset, pos, pos],
-            color: cyan,
-        };
+                    // top
+                    indices.push(index + 4);
+                    indices.push(index + 6);
+                    indices.push(index + 5);
+                    indices.push(index + 7);
+                    indices.push(index + 5);
+                    indices.push(index + 6);
 
-        let v21_2 = Vertex3d {
-            position: [pos + offset, -pos, -pos],
-            color: red,
-        };
-        let v22_2 = Vertex3d {
-            position: [pos + offset, pos, -pos],
-            color: red,
-        };
-        let v23_2 = Vertex3d {
-            position: [pos + offset, -pos, pos],
-            color: red,
-        };
-        let v24_2 = Vertex3d {
-            position: [pos + offset, pos, pos],
-            color: red,
-        };
+                    // bottom
+                    indices.push(index);
+                    indices.push(index + 1);
+                    indices.push(index + 2);
+                    indices.push(index + 3);
+                    indices.push(index + 2);
+                    indices.push(index + 1);
+                }
+            }
+        }
+
+        //panic!("{:?}", indices);
 
         let vertex = ris_util::unroll!(
             Buffer::from_iter(
@@ -258,22 +171,7 @@ impl Buffers {
                     usage: MemoryUsage::Upload,
                     ..Default::default()
                 },
-                vec![
-                    // cube 1
-                    v1, v2, v3, v4, // magenta
-                    v5, v6, v7, v8, // green
-                    v9, v10, v11, v12, // yellow
-                    v13, v14, v15, v16, // blue
-                    v17, v18, v19, v20, // cyan
-                    v21, v22, v23, v24, // red
-                    // cube 2
-                    v1_2, v2_2, v3_2, v4_2, // magenta
-                    v5_2, v6_2, v7_2, v8_2, // green
-                    v9_2, v10_2, v11_2, v12_2, // yellow
-                    v13_2, v14_2, v15_2, v16_2, // blue
-                    v17_2, v18_2, v19_2, v20_2, // cyan
-                    v21_2, v22_2, v23_2, v24_2, // red
-                ],
+                vertices,
             ),
             "failed to create vertex buffer"
         )?;
@@ -290,22 +188,7 @@ impl Buffers {
                     usage: MemoryUsage::Upload,
                     ..Default::default()
                 },
-                vec![
-                    // cube 1
-                    0, 1, 2, 3, 2, 1, // magenta
-                    4, 5, 6, 7, 6, 5, // green
-                    8, 9, 10, 11, 10, 9, // yellow
-                    12, 13, 14, 15, 14, 13, // blue
-                    16, 17, 18, 19, 18, 17, // cyan
-                    20, 21, 22, 23, 22, 21, // red
-                    // cube 2
-                    24, 25, 26, 27, 26, 25, // magenta
-                    28, 29, 30, 31, 30, 29, // green
-                    32, 33, 34, 35, 34, 33, // yellow
-                    36, 37, 38, 39, 38, 37, // blue
-                    40, 41, 42, 43, 42, 41, // cyan
-                    44, 45, 46, 47, 46, 45, // red
-                ],
+                indices,
             ),
             "failed to create index buffer"
         )?;

@@ -49,7 +49,7 @@ pub fn create_pipeline(
                 (),
             )
             .rasterization_state(RasterizationState {
-                front_face: StateMode::Fixed(FrontFace::CounterClockwise),
+                front_face: StateMode::Fixed(FrontFace::Clockwise),
                 cull_mode: StateMode::Fixed(CullMode::Back),
                 ..Default::default()
             })
