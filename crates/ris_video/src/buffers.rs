@@ -33,7 +33,7 @@ impl Buffers {
     ) -> Result<Self, RisError> {
         let size = 0.01;
         let offset = 0.02;
-        let side = 100;
+        let side = 128;
 
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
@@ -45,9 +45,12 @@ impl Buffers {
                     let y = j as f32 * offset;
                     let z = k as f32 * offset;
 
+                    let scale_a = 1.;
+                    let scale_b = 1.;
+
                     let l = i as f32 / side as f32;
-                    let a = j as f32 / side as f32 - 0.5;
-                    let b = k as f32 / side as f32 - 0.5;
+                    let a = scale_a * j as f32 / side as f32 - scale_a / 2.;
+                    let b = scale_b * k as f32 / side as f32 - scale_b / 2.;
 
                     let lab = color::Lab {l, a, b};
                     let rgb = color::Rgb::from(lab);
@@ -101,8 +104,9 @@ impl Buffers {
                     vertices.push(v7);
 
                     let max = side - 1;
-                    if !rgb.is_valid() && 
-                        (i != 0 && i != max && j != 0 && j != max && k != 0 && k != max) {
+                    if !rgb.is_valid()
+                        //&& (i != 0 && i != max && j != 0 && j != max && k != 0 && k != max)
+                    {
                         continue;
                     }
 
