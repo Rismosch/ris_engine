@@ -1,8 +1,10 @@
+use std::backtrace::Backtrace;
 use std::error::Error;
+use std::sync::Arc;
 
 pub type RisResult<T> = Result<T, RisError>;
 
-pub type SourceError = Option<std::sync::Arc<dyn Error + 'static>>;
+pub type SourceError = Option<Arc<dyn Error + 'static>>;
 
 #[derive(Clone)]
 pub struct RisError {
@@ -10,15 +12,23 @@ pub struct RisError {
     message: String,
     file: String,
     line: u32,
+    backtrace: Arc<Backtrace>,
 }
 
 impl RisError {
-    pub fn new(source: SourceError, message: String, file: String, line: u32) -> Self {
+    pub fn new(
+        source: SourceError,
+        message: String, 
+        file: String, 
+        line: u32,
+        backtrace: Arc<Backtrace>,
+    ) -> Self {
         Self {
             source,
             message,
             file,
             line,
+            backtrace,
         }
     }
 
@@ -32,6 +42,10 @@ impl RisError {
 
     pub fn line(&self) -> &u32 {
         &self.line
+    }
+
+    pub fn backtrace(&self) -> &Backtrace {
+        &self.backtrace
     }
 }
 
@@ -47,7 +61,13 @@ impl std::fmt::Display for RisError {
             write!(f, "{}\n    ", source)?;
         }
 
-        write!(f, "\"{}\", {}:{}", self.message, self.file, self.line)
+        write!(
+            f,
+            "\"{}\", {}:{}",
+            self.message,
+            self.file,
+            self.line,
+        )
     }
 }
 
@@ -60,8 +80,8 @@ impl std::fmt::Debug for RisError {
 
         write!(
             f,
-            "RisError {{inner: {}, message: {}, file: {}, line: {}}}",
-            source_string, self.message, self.file, self.line
+            "RisError {{inner: {:?}, message: {:?}, file: {:?}, line: {:?}, backtrace: {:?}}}",
+            source_string, self.message, self.file, self.line, self.backtrace,
         )
     }
 }
@@ -79,57 +99,80 @@ impl std::fmt::Display for OptionError {
 
 #[macro_export]
 macro_rules! unroll {
-    ($result:expr, $($arg:tt)*) => {
+    ($result:expr, $($arg:tt)*) => {{
+        use std::backtrace::Backtrace;
+        use std::sync::Arc;
+
+        use ris_util::error::RisError;
+        use ris_util::error::SourceError;
+
         match $result {
             Ok(value) => Ok(value),
             Err(error) => {
-                let source: ris_util::error::SourceError = Some(std::sync::Arc::new(error));
+                let source: SourceError = Some(Arc::new(error));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let result = ris_util::error::RisError::new(source, message, file, line);
+                let backtrace = Arc::new(Backtrace::force_capture());
+                let result = RisError::new(
+                    source,
+                    message,
+                    file,
+                    line,
+                    backtrace,
+                );
                 Err(result)
             }
         }
-    };
+    }};
 }
 
 #[macro_export]
 macro_rules! unroll_option {
-    ($result:expr, $($arg:tt)*) => {
+    ($result:expr, $($arg:tt)*) => {{
+        use std::backtrace::Backtrace;
+        use std::sync::Arc;
+
+        use ris_util::error::OptionError;
+        use ris_util::error::RisError;
+        use ris_util::error::SourceError;
+
         match $result {
             Some(value) => Ok(value),
             None => {
-                let source: ris_util::error::SourceError = Some(std::sync::Arc::new(ris_util::error::OptionError));
+                let source: SourceError = Some(Arc::new(OptionError));
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let result = ris_util::error::RisError::new(source, message, file, line);
+                let backtrace = Arc::new(Backtrace::force_capture());
+                let result = RisError::new(source, message, file, line, backtrace);
                 Err(result)
             },
         }
-    };
+    }};
 }
 
 #[macro_export]
 macro_rules! new_err {
-    ($($arg:tt)*) => {
-        {
-            let source: ris_util::error::SourceError = None;
-            let message = format!($($arg)*);
-            let file = String::from(file!());
-            let line = line!();
-            ris_util::error::RisError::new(source, message, file, line)
-        }
-    };
+    ($($arg:tt)*) => {{
+        use std::backtrace::Backtrace;
+        use std::sync::Arc;
+
+        use ris_util::error::RisError;
+
+        let source = None;
+        let message = format!($($arg)*);
+        let file = String::from(file!());
+        let line = line!();
+        let backtrace = Arc::new(Backtrace::force_capture());
+        RisError::new(source, message, file, line, backtrace)
+    }};
 }
 
 #[macro_export]
 macro_rules! result_err {
-    ($($arg:tt)*) => {
-        {
-            let result = ris_util::new_err!($($arg)*);
-            Err(result)
-        }
-    };
+    ($($arg:tt)*) => {{
+        let result = ris_util::new_err!($($arg)*);
+        Err(result)
+    }};
 }

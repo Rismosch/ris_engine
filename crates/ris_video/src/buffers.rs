@@ -105,7 +105,7 @@ impl Buffers {
 
                     let max = side - 1;
                     if !rgb.is_valid()
-                        //&& (i != 0 && i != max && j != 0 && j != max && k != 0 && k != max)
+                        && (i != 0 && i != max && j != 0 && j != max && k != 0 && k != max)
                     {
                         continue;
                     }

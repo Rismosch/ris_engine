@@ -80,7 +80,7 @@ fn main() {
     };
 
     if let Err(error) = result {
-        log(&format!("error: {}", error));
+        log(&format!("error: {}\nbacktrace:\n{}", error, error.backtrace()));
         print_help();
     }
 
