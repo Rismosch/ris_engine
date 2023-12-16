@@ -1,16 +1,28 @@
 use std::time::Instant;
 
+use sdl2::event::Event;
+use sdl2::event::WindowEvent;
+use sdl2::EventPump;
+use sdl2::GameControllerSubsystem;
 use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
-
+use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_input::gamepad_logic::GamepadLogic;
+use ris_input::general_logic::update_general;
+use ris_input::general_logic::GeneralLogicArgs;
+use ris_input::keyboard_logic::update_keyboard;
+use ris_input::mouse_logic::handle_mouse_events;
+use ris_input::mouse_logic::post_update_mouse;
+use ris_input::mouse_logic::reset_mouse_refs;
 use ris_data::god_state::GodStateCommand;
 use ris_data::god_state::GodStateRef;
 use ris_data::input::action;
+use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_future::JobFuture;
+use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -18,31 +30,169 @@ use ris_util::error::RisResult;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
+#[cfg(debug_assertions)]
+fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
+    use ris_asset::asset_importer;
+    let future = ris_jobs::job_system::submit(|| {
+        let result = asset_importer::import_all(
+            asset_importer::DEFAULT_SOURCE_DIRECTORY,
+            asset_importer::DEFAULT_TARGET_DIRECTORY,
+        );
+
+        if let Err(error) = result {
+            ris_log::error!("failed to import shaders: {}", error);
+        }
+    });
+
+    current.reload_shaders = true;
+    future
+}
+
+#[cfg(not(debug_assertions))]
+fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
+    ris_log::warning!("shaders can only be reloaded in a debug build!");
+    JobFuture::done()
+}
+
 pub struct LogicFrame {
+    // input
+    event_pump: JobCell<EventPump>,
+
+    gamepad_logic: Option<GamepadLogic>,
+
+    rebind_matrix_mouse: RebindMatrix,
+    rebind_matrix_keyboard: RebindMatrix,
+    rebind_matrix_gamepad: RebindMatrix,
+
+    // general
     restart_timestamp: Instant,
     crash_timestamp: Instant,
 }
 
-impl Default for LogicFrame {
-    fn default() -> Self {
+impl LogicFrame {
+    pub fn new(event_pump: EventPump, controller_subsystem: GameControllerSubsystem) -> Self {
+        let mut rebind_matrix = [0; 32];
+        for (i, row) in rebind_matrix.iter_mut().enumerate() {
+            *row = 1 << i;
+        }
+
         Self {
+            event_pump: unsafe { JobCell::new(event_pump) },
+            gamepad_logic: Some(GamepadLogic::new(controller_subsystem)),
+            rebind_matrix_mouse: rebind_matrix,
+            rebind_matrix_keyboard: rebind_matrix,
+            rebind_matrix_gamepad: rebind_matrix,
+
             crash_timestamp: Instant::now(),
             restart_timestamp: Instant::now(),
         }
     }
-}
 
-impl LogicFrame {
     pub fn run(
         &mut self,
         current: &mut LogicData,
         previous: &LogicData,
-        input: &InputData,
         frame: &FrameData,
         state: GodStateRef,
     ) -> RisResult<GameloopState> {
+        // input        // controller input
+        let current_keyboard = std::mem::take(&mut current.keyboard);
+        let current_gamepad = std::mem::take(&mut current.gamepad);
+
+        let previous_for_mouse = previous.clone();
+        let previous_for_keyboard = previous.clone();
+        let previous_for_gamepad = previous.clone();
+        let previous_for_general = previous;
+
+        let mut gamepad_logic = match self.gamepad_logic.take() {
+            Some(gamepad_logic) => gamepad_logic,
+            None => unreachable!(),
+        };
+
+        reset_mouse_refs(&mut current.mouse);
+
+        current.window_size_changed = None;
+
+        for event in self.event_pump.as_mut().poll_iter() {
+            if let Event::Quit { .. } = event {
+                current.keyboard = current_keyboard;
+                current.gamepad = current_gamepad;
+                return Ok(GameloopState::WantsToQuit);
+            };
+
+            if let Event::Window {
+                win_event: WindowEvent::SizeChanged(w, h),
+                ..
+            } = event
+            {
+                current.window_size_changed = Some((w, h));
+                ris_log::trace!("window changed size to {}x{}", w, h);
+            }
+
+            if handle_mouse_events(&mut current.mouse, &event) {
+                continue;
+            }
+
+            if gamepad_logic.handle_events(&event) {
+                continue;
+            }
+        }
+
+        let mouse_event_pump = self.event_pump.borrow();
+        let keyboard_event_pump = self.event_pump.borrow();
+
+        let gamepad_future = job_system::submit(move || {
+            let mut current_gamepad = current_gamepad;
+            let mut gamepad_logic = gamepad_logic;
+
+            gamepad_logic.update(&mut current_gamepad, &previous_for_gamepad.gamepad);
+
+            (current_gamepad, gamepad_logic)
+        });
+
+        let keyboard_future = job_system::submit(move || {
+            let mut keyboard = current_keyboard;
+
+            let gameloop_state = update_keyboard(
+                &mut keyboard,
+                &previous_for_keyboard.keyboard,
+                keyboard_event_pump.keyboard_state(),
+            );
+
+            (keyboard, gameloop_state)
+        });
+
+        post_update_mouse(
+            &mut current.mouse,
+            &previous_for_mouse.mouse,
+            mouse_event_pump.mouse_state(),
+        );
+
+        let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();
+        let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
+
+        let args = GeneralLogicArgs {
+            new_general_data: &mut current.general,
+            old_general_data: &previous_for_general.general,
+            mouse: &current.mouse.buttons,
+            keyboard: &new_keyboard.buttons,
+            gamepad: &new_gamepad.buttons,
+            rebind_matrix_mouse: &self.rebind_matrix_mouse,
+            rebind_matrix_keyboard: &self.rebind_matrix_keyboard,
+            rebind_matrix_gamepad: &self.rebind_matrix_gamepad,
+        };
+
+        update_general(args);
+
+        current.keyboard = new_keyboard;
+        current.gamepad = new_gamepad;
+        self.gamepad_logic = Some(new_gamepad_logic);
+
+        Ok(new_gameloop_state)
+
+
         // manual restart
-        if input.keyboard.keys.is_hold(Scancode::F1) {
+        if current.keyboard.keys.is_hold(Scancode::F1) {
             let duration = Instant::now() - self.restart_timestamp;
             let seconds = duration.as_secs();
 
@@ -81,9 +231,9 @@ impl LogicFrame {
         current.scene = previous.scene.clone();
         let scene = &mut current.scene;
 
-        let rotation_speed = 2. * frame.delta();
-        let movement_speed = 2. * frame.delta();
-        let mouse_speed = 20. * frame.delta();
+        let rotation_speed = 2. * frame.delta_seconds();
+        let movement_speed = 2. * frame.delta_seconds();
+        let mouse_speed = 20. * frame.delta_seconds();
 
         if input.mouse.buttons.is_hold(action::OK) {
             current.camera_vertical_angle -= mouse_speed * input.mouse.yrel as f32;
@@ -92,20 +242,6 @@ impl LogicFrame {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
             scene.camera_position = Vector3::new(0., -1., 0.);
-
-            //let id = AssetId::Directory(String::from("copy_pasta/navy_seal.txt"));
-            //let future = asset_loader::load(id);
-            //let result = future.wait();
-            //match result {
-            //    Err(error) => ris_log::error!("failed to load asset: {}", error),
-            //    Ok(bytes) => {
-            //        let string_result = String::from_utf8(bytes);
-            //        match string_result {
-            //            Err(_error) => ris_log::error!("asset is not a valid utf8 string"),
-            //            Ok(string) => ris_log::info!("asset loaded: {}", string),
-            //        }
-            //    }
-            //}
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -182,6 +318,10 @@ impl LogicFrame {
             }
         }
 
+        if input.keyboard.keys.is_down(Scancode::F) {
+            ris_log::debug!("{} ms ({} fps)", frame.delta_seconds(), frame.fps());
+        }
+
         if let Some(future) = import_shader_future {
             future.wait();
         }
@@ -190,26 +330,3 @@ impl LogicFrame {
     }
 }
 
-#[cfg(debug_assertions)]
-fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
-    use ris_asset::asset_importer;
-    let future = ris_jobs::job_system::submit(|| {
-        let result = asset_importer::import_all(
-            asset_importer::DEFAULT_SOURCE_DIRECTORY,
-            asset_importer::DEFAULT_TARGET_DIRECTORY,
-        );
-
-        if let Err(error) = result {
-            ris_log::error!("failed to import shaders: {}", error);
-        }
-    });
-
-    current.reload_shaders = true;
-    future
-}
-
-#[cfg(not(debug_assertions))]
-fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
-    ris_log::warning!("shaders can only be reloaded in a debug build!");
-    JobFuture::done()
-}

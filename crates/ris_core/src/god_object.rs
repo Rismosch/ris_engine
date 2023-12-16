@@ -6,7 +6,6 @@ use ris_asset::loader::scenes_loader;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
-use ris_data::gameloop::input_data::InputData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::god_state::GodStateDoubleBuffer;
@@ -20,9 +19,24 @@ use ris_jobs::job_system::JobSystemGuard;
 use ris_util::error::RisResult;
 use ris_video::video::Video;
 
-use crate::gameloop::input_frame::InputFrame;
-use crate::gameloop::logic_frame::LogicFrame;
-use crate::gameloop::output_frame::OutputFrame;
+use crate::logic_frame::LogicFrame;
+use crate::output_frame::OutputFrame;
+
+#[cfg(debug_assertions)]
+fn import_assets() -> RisResult<()> {
+    ris_log::debug!("importing assets...");
+
+    use ris_asset::asset_importer::*;
+    import_all(DEFAULT_SOURCE_DIRECTORY, DEFAULT_TARGET_DIRECTORY)?;
+
+    ris_log::debug!("assets imported!");
+    Ok(())
+}
+
+#[cfg(not(debug_assertions))]
+fn import_assets() -> RisResult<()> {
+    Ok(())
+}
 
 #[cfg(debug_assertions)]
 fn scenes_id() -> AssetId {
@@ -38,10 +52,8 @@ pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
     pub frame_data_calculator: FrameDataCalculator,
-    pub input_frame: InputFrame,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
-    pub input_data: InputData,
     pub logic_data: LogicData,
     pub output_data: OutputData,
     pub scenes: Scenes,
@@ -104,28 +116,26 @@ impl GodObject {
         let video = Video::new(&sdl_context, scenes.material.clone())?;
 
         // gameloop
-        let input_frame = InputFrame::new(event_pump, controller_subsystem);
-        let logic_frame = LogicFrame::default();
+        let logic_frame = LogicFrame::new(event_pump, controller_subsystem);
         let output_frame = OutputFrame::new(video);
 
         let frame_data_calculator = FrameDataCalculator::default();
-        let mut input_data = InputData::default();
-        let logic_data = LogicData::default();
+        let mut logic_data = LogicData::default();
         let output_data = OutputData::default();
 
-        input_data.keyboard.keymask[0] = Scancode::Return;
-        input_data.keyboard.keymask[15] = Scancode::W;
-        input_data.keyboard.keymask[16] = Scancode::S;
-        input_data.keyboard.keymask[17] = Scancode::A;
-        input_data.keyboard.keymask[18] = Scancode::D;
-        input_data.keyboard.keymask[19] = Scancode::Up;
-        input_data.keyboard.keymask[20] = Scancode::Down;
-        input_data.keyboard.keymask[21] = Scancode::Left;
-        input_data.keyboard.keymask[22] = Scancode::Right;
-        input_data.keyboard.keymask[28] = Scancode::Kp8;
-        input_data.keyboard.keymask[29] = Scancode::Kp2;
-        input_data.keyboard.keymask[30] = Scancode::Kp4;
-        input_data.keyboard.keymask[31] = Scancode::Kp6;
+        logic_data.keyboard.keymask[0] = Scancode::Return;
+        logic_data.keyboard.keymask[15] = Scancode::W;
+        logic_data.keyboard.keymask[16] = Scancode::S;
+        logic_data.keyboard.keymask[17] = Scancode::A;
+        logic_data.keyboard.keymask[18] = Scancode::D;
+        logic_data.keyboard.keymask[19] = Scancode::Up;
+        logic_data.keyboard.keymask[20] = Scancode::Down;
+        logic_data.keyboard.keymask[21] = Scancode::Left;
+        logic_data.keyboard.keymask[22] = Scancode::Right;
+        logic_data.keyboard.keymask[28] = Scancode::Kp8;
+        logic_data.keyboard.keymask[29] = Scancode::Kp2;
+        logic_data.keyboard.keymask[30] = Scancode::Kp4;
+        logic_data.keyboard.keymask[31] = Scancode::Kp6;
 
         // god state
         let front = InnerGodState::new(settings.clone());
@@ -142,10 +152,8 @@ impl GodObject {
             app_info,
             settings_serializer,
             frame_data_calculator,
-            input_frame,
             logic_frame,
             output_frame,
-            input_data,
             logic_data,
             output_data,
             scenes,
@@ -161,18 +169,3 @@ impl GodObject {
     }
 }
 
-#[cfg(debug_assertions)]
-fn import_assets() -> RisResult<()> {
-    ris_log::debug!("importing assets...");
-
-    use ris_asset::asset_importer::*;
-    import_all(DEFAULT_SOURCE_DIRECTORY, DEFAULT_TARGET_DIRECTORY)?;
-
-    ris_log::debug!("assets imported!");
-    Ok(())
-}
-
-#[cfg(not(debug_assertions))]
-fn import_assets() -> RisResult<()> {
-    Ok(())
-}

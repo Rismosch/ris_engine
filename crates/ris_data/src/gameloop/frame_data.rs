@@ -59,7 +59,7 @@ impl FrameData {
         self.number
     }
 
-    pub fn delta(&self) -> f32 {
+    pub fn delta_seconds(&self) -> f32 {
         self.delta_seconds
     }
 

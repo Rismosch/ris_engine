@@ -162,7 +162,7 @@ impl Buffers {
             }
         }
 
-        //panic!("{:?}", indices);
+        //panic!("{} vertices {} indices", vertices.len(), indices.len());
 
         let vertex = ris_util::unroll!(
             Buffer::from_iter(
