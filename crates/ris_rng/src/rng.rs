@@ -33,7 +33,9 @@ pub struct Rng {
 
 impl Rng {
     pub fn new(seed: Seed) -> Rng {
-        let pcg = Pcg32::new_from_seed(seed.0);
+        let mut pcg = Pcg32::new_from_seed(seed.0);
+        let _ = pcg.next();
+
         Rng { seed, pcg }
     }
 
