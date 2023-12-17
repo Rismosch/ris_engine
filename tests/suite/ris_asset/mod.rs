@@ -1,1 +1,1 @@
-//pub mod qoi;
+pub mod qoi;
