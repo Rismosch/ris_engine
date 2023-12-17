@@ -13,12 +13,12 @@ fn should_encode_and_decode_rgb() {
     testing::repeat(miri_choose(1, 1), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let width = rng.range_i(0, 2000) as usize;
-        let height = rng.range_i(0, 2000) as usize;
+        let width = rng.range_i(1, 100) as u32;
+        let height = rng.range_i(1, 100) as u32;
         let channels = Channels::RGB;
         let color_space = ColorSpace::SRGB;
 
-        let data_len = width * height * 3;
+        let data_len = (width * height * 3) as usize;
 
         let desc = QoiDesc {
             width,
@@ -26,6 +26,8 @@ fn should_encode_and_decode_rgb() {
             channels,
             color_space,
         };
+        println!("0 {:?}", desc);
+
         let mut data = vec![0; data_len];
         for i in 0..data_len {
             let random_value = rng.next_u();
@@ -33,14 +35,19 @@ fn should_encode_and_decode_rgb() {
             data[i] = random_byte;
         }
 
-        let encoded = qoi::encode(&data, desc);
-        let decoded = qoi::decode();
+        let encoded = qoi::encode(&data, desc).unwrap();
+        let decoded = qoi::decode(&encoded, desc.channels);
 
-        panic!("reached end of test");
+        panic!("{:?}", encoded);
     });
 }
 
 #[test]
-fn should_encode_and_decode_rgba() {
+fn further_things_to_test() {
+    // rgba
+    // encodeerror:
+    //  width is zero
+    //  height is zero
+    //  dimensions too large
     panic!();
 }
