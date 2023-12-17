@@ -2,7 +2,7 @@
 
 use std::io::Cursor;
 
-pub struct QoiDesc{
+pub struct QoiDesc {
     pub width: usize,
     pub height: usize,
     pub channels: Channels,
@@ -38,7 +38,7 @@ const OP_RGBA: usize = 0xff; /* 11111111 */
 const MASK_2: usize = 0xc0; /* 11000000 */
 
 // "qoif"
-const MAGIC: [u8; 4] = [0x71, 0x6f,0x69, 0x66];
+const MAGIC: [u8; 4] = [0x71, 0x6f, 0x69, 0x66];
 const HEADER_SIZE: usize = 14;
 
 const PIXELS_MAX: usize = 400000000;
@@ -51,9 +51,7 @@ pub enum EncodeErrorKind {
     DimensionsTooLarge,
 }
 
-pub enum DecodeErrorKind {
-
-}
+pub enum DecodeErrorKind {}
 
 pub struct EncodeError {
     pub kind: EncodeErrorKind,
@@ -65,21 +63,27 @@ pub struct DecodeError {
 
 pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     if desc.width == 0 {
-        return Err(EncodeError{kind: EncodeErrorKind::WidthIsZero});
+        return Err(EncodeError {
+            kind: EncodeErrorKind::WidthIsZero,
+        });
     }
 
     if desc.height == 0 {
-        return Err(EncodeError{kind: EncodeErrorKind::HeightIsZero});
+        return Err(EncodeError {
+            kind: EncodeErrorKind::HeightIsZero,
+        });
     }
 
     if desc.height >= PIXELS_MAX / desc.width {
-        return Err(EncodeError{kind: EncodeErrorKind::DimensionsTooLarge});
+        return Err(EncodeError {
+            kind: EncodeErrorKind::DimensionsTooLarge,
+        });
     }
 
-    let max_size = desc.width * desc.height * (desc.channels as usize + 1) + HEADER_SIZE + PADDING.len();
+    let max_size =
+        desc.width * desc.height * (desc.channels as usize + 1) + HEADER_SIZE + PADDING.len();
 
     let bytes = Cursor::new(Vec::with_capacity(max_size));
-
 
     panic!("reached end of encode");
     let result = bytes.into_inner();

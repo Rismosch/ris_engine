@@ -2,13 +2,16 @@ use std::time::Instant;
 
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
+use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
-use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::logic_data::LogicData;
+use ris_data::god_state::GodStateCommand;
+use ris_data::god_state::GodStateRef;
+use ris_data::input::action;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
@@ -17,9 +20,6 @@ use ris_input::keyboard_logic::update_keyboard;
 use ris_input::mouse_logic::handle_mouse_events;
 use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
-use ris_data::god_state::GodStateCommand;
-use ris_data::god_state::GodStateRef;
-use ris_data::input::action;
 use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_system;
@@ -95,7 +95,7 @@ impl LogicFrame {
         frame: &FrameData,
         state: GodStateRef,
     ) -> RisResult<GameloopState> {
-        // input        // controller input
+        // controller input
         let current_keyboard = std::mem::take(&mut current.keyboard);
         let current_gamepad = std::mem::take(&mut current.gamepad);
 
@@ -153,13 +153,13 @@ impl LogicFrame {
         let keyboard_future = job_system::submit(move || {
             let mut keyboard = current_keyboard;
 
-            let gameloop_state = update_keyboard(
+            update_keyboard(
                 &mut keyboard,
                 &previous_for_keyboard.keyboard,
                 keyboard_event_pump.keyboard_state(),
             );
 
-            (keyboard, gameloop_state)
+            keyboard
         });
 
         post_update_mouse(
@@ -169,7 +169,7 @@ impl LogicFrame {
         );
 
         let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();
-        let (new_keyboard, new_gameloop_state) = keyboard_future.wait();
+        let new_keyboard = keyboard_future.wait();
 
         let args = GeneralLogicArgs {
             new_general_data: &mut current.general,
@@ -188,9 +188,6 @@ impl LogicFrame {
         current.gamepad = new_gamepad;
         self.gamepad_logic = Some(new_gamepad_logic);
 
-        Ok(new_gameloop_state)
-
-
         // manual restart
         if current.keyboard.keys.is_hold(Scancode::F1) {
             let duration = Instant::now() - self.restart_timestamp;
@@ -205,7 +202,7 @@ impl LogicFrame {
         }
 
         // manual crash
-        if input.keyboard.keys.is_hold(Scancode::F4) {
+        if current.keyboard.keys.is_hold(Scancode::F4) {
             let duration = Instant::now() - self.crash_timestamp;
             let seconds = duration.as_secs();
 
@@ -220,7 +217,7 @@ impl LogicFrame {
         // reload shaders
         current.reload_shaders = false;
         let mut import_shader_future = None;
-        if input.keyboard.keys.is_down(Scancode::F6) {
+        if current.keyboard.keys.is_down(Scancode::F6) {
             let future = reload_shaders(current);
             import_shader_future = Some(future);
         }
@@ -235,28 +232,28 @@ impl LogicFrame {
         let movement_speed = 2. * frame.delta_seconds();
         let mouse_speed = 20. * frame.delta_seconds();
 
-        if input.mouse.buttons.is_hold(action::OK) {
-            current.camera_vertical_angle -= mouse_speed * input.mouse.yrel as f32;
-            current.camera_horizontal_angle -= mouse_speed * input.mouse.xrel as f32;
-        } else if input.general.buttons.is_down(action::OK) {
+        if current.mouse.buttons.is_hold(action::OK) {
+            current.camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
+            current.camera_horizontal_angle -= mouse_speed * current.mouse.xrel as f32;
+        } else if current.general.buttons.is_down(action::OK) {
             current.camera_horizontal_angle = 0.0;
             current.camera_vertical_angle = 0.0;
             scene.camera_position = Vector3::new(0., -1., 0.);
         }
 
-        if input.general.buttons.is_hold(action::CAMERA_UP) {
+        if current.general.buttons.is_hold(action::CAMERA_UP) {
             current.camera_vertical_angle += rotation_speed;
         }
 
-        if input.general.buttons.is_hold(action::CAMERA_DOWN) {
+        if current.general.buttons.is_hold(action::CAMERA_DOWN) {
             current.camera_vertical_angle -= rotation_speed;
         }
 
-        if input.general.buttons.is_hold(action::CAMERA_LEFT) {
+        if current.general.buttons.is_hold(action::CAMERA_LEFT) {
             current.camera_horizontal_angle += rotation_speed;
         }
 
-        if input.general.buttons.is_hold(action::CAMERA_RIGHT) {
+        if current.general.buttons.is_hold(action::CAMERA_RIGHT) {
             current.camera_horizontal_angle -= rotation_speed;
         }
 
@@ -276,49 +273,49 @@ impl LogicFrame {
         let rotation2 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
         scene.camera_rotation = rotation2 * rotation1;
 
-        if input.general.buttons.is_hold(action::MOVE_UP) {
+        if current.general.buttons.is_hold(action::MOVE_UP) {
             let forward = scene.camera_rotation.rotate(vector3::FORWARD);
             scene.camera_position += movement_speed * forward;
         }
 
-        if input.general.buttons.is_hold(action::MOVE_DOWN) {
+        if current.general.buttons.is_hold(action::MOVE_DOWN) {
             let forward = scene.camera_rotation.rotate(vector3::FORWARD);
             scene.camera_position -= movement_speed * forward;
         }
 
-        if input.general.buttons.is_hold(action::MOVE_LEFT) {
+        if current.general.buttons.is_hold(action::MOVE_LEFT) {
             let right = scene.camera_rotation.rotate(vector3::RIGHT);
             scene.camera_position -= movement_speed * right;
         }
 
-        if input.general.buttons.is_hold(action::MOVE_RIGHT) {
+        if current.general.buttons.is_hold(action::MOVE_RIGHT) {
             let right = scene.camera_rotation.rotate(vector3::RIGHT);
             scene.camera_position += movement_speed * right;
         }
 
         if let Some(workers) = state.data.settings.job.workers {
-            if input.keyboard.keys.is_hold(Scancode::LCtrl) {
-                if input.keyboard.keys.is_down(Scancode::Up) {
+            if current.keyboard.keys.is_hold(Scancode::LCtrl) {
+                if current.keyboard.keys.is_down(Scancode::Up) {
                     state
                         .command_queue
                         .push(GodStateCommand::SetJobWorkersSetting(Some(
                             workers.saturating_add(1),
                         )));
                 }
-                if input.keyboard.keys.is_down(Scancode::Down) {
+                if current.keyboard.keys.is_down(Scancode::Down) {
                     state
                         .command_queue
                         .push(GodStateCommand::SetJobWorkersSetting(Some(
                             workers.saturating_sub(1),
                         )));
                 }
-                if input.keyboard.keys.is_down(Scancode::Return) {
+                if current.keyboard.keys.is_down(Scancode::Return) {
                     state.command_queue.push(GodStateCommand::SaveSettings)
                 }
             }
         }
 
-        if input.keyboard.keys.is_down(Scancode::F) {
+        if current.keyboard.keys.is_down(Scancode::F) {
             ris_log::debug!("{} ms ({} fps)", frame.delta_seconds(), frame.fps());
         }
 
@@ -329,4 +326,3 @@ impl LogicFrame {
         Ok(GameloopState::WantsToContinue)
     }
 }
-

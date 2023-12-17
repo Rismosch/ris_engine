@@ -46,9 +46,7 @@ impl Lab {
 
 impl Rgb {
     pub fn is_valid(&self) -> bool {
-        self.r >= 0. && self.r <= 1. &&
-        self.g >= 0. && self.g <= 1. &&
-        self.b >= 0. && self.b <= 1.
+        self.r >= 0. && self.r <= 1. && self.g >= 0. && self.g <= 1. && self.b >= 0. && self.b <= 1.
     }
 }
 
@@ -173,4 +171,3 @@ pub const RGB_YELLOW: Rgb = Rgb {
     g: 1.,
     b: 0.,
 };
-

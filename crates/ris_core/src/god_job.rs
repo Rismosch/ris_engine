@@ -13,7 +13,6 @@ pub enum WantsTo {
 
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_data_calculator = god_object.frame_data_calculator;
-    let mut current_input = god_object.input_data;
     let mut current_logic = god_object.logic_data;
     let mut current_output = god_object.output_data;
 
@@ -55,10 +54,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame_for_logic = current_frame.clone();
         let frame_for_output = current_frame.clone();
 
-        let previous_input_for_input = current_input.clone();
-        let previous_input_for_logic = current_input.clone();
-        let previous_input_for_output = current_input.clone();
-
         let previous_logic_for_logic = current_logic.clone();
         let previous_logic_for_output = current_logic.clone();
 
@@ -71,7 +66,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             let gameloop_state = output_frame.run(
                 &mut current_output,
                 &previous_output_for_output,
-                &previous_input_for_output,
                 &previous_logic_for_output,
                 &frame_for_output,
             );
@@ -79,36 +73,20 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             (output_frame, current_output, gameloop_state)
         });
 
-        let logic_future = job_system::submit(move || {
-            let mut logic_frame = god_object.logic_frame;
-            let mut current_logic = current_logic;
-            let gameloop_state = logic_frame.run(
-                &mut current_logic,
-                &previous_logic_for_logic,
-                &previous_input_for_logic,
-                &frame_for_logic,
-                state_front,
-            );
-
-            (logic_frame, current_logic, gameloop_state)
-        });
-
-        let input_state = god_object.input_frame.run(
-            &mut current_input,
-            &previous_input_for_input,
-            &frame_for_input,
+        let logic_state = god_object.logic_frame.run(
+            &mut current_logic,
+            &previous_logic_for_logic,
+            &frame_for_logic,
+            state_front,
         );
 
         // wait for jobs
-        let (new_logic_frame, new_logic_data, logic_state) = logic_future.wait();
         let (new_output_frame, new_output_data, output_state) = output_future.wait();
         let (new_state_back, new_prev_queue) = state_future.wait();
 
         // update buffers
-        current_logic = new_logic_data;
         current_output = new_output_data;
         god_object.output_frame = new_output_frame;
-        god_object.logic_frame = new_logic_frame;
 
         state_double_buffer.back = new_state_back;
         state_double_buffer.prev_queue = new_prev_queue;
@@ -146,10 +124,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
 
         // handle errors
-        if let Err(e) = &input_state {
-            ris_log::fatal!("gameloop input encountered an error: {}", e);
-        }
-
         if let Err(e) = &logic_state {
             ris_log::fatal!("gameloop logic encountered an error: {}", e);
         }
@@ -158,22 +132,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             ris_log::fatal!("gameloop output encountered an error: {}", e);
         }
 
-        let input_state = input_state?;
-        let logic_state = logic_state?;
-        let output_state = output_state?;
-
         // determine, whether to continue, restart or quit
-        if input_state == GameloopState::WantsToContinue
-            && logic_state == GameloopState::WantsToContinue
-            && output_state == GameloopState::WantsToContinue
-        {
+        let logic_state = logic_state?;
+        if logic_state == GameloopState::WantsToContinue {
             continue;
         }
 
-        if input_state == GameloopState::WantsToRestart
-            || logic_state == GameloopState::WantsToRestart
-            || output_state == GameloopState::WantsToRestart
-        {
+        if logic_state == GameloopState::WantsToRestart {
             return Ok(WantsTo::Restart);
         } else {
             return Ok(WantsTo::Quit);

@@ -121,11 +121,8 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
     match importer {
         ImporterKind::GLSL => {
             glsl_importer::import(source_path, &mut source_file, &mut target_file)
-        },
-        ImporterKind::PNG => {
-            png_importer::import(source_path, &mut source_file, &mut target_file)
-        },
-
+        }
+        ImporterKind::PNG => png_importer::import(source_path, &mut source_file, &mut target_file),
         // insert more importers here...
     }
 }

@@ -12,18 +12,11 @@ pub fn import(
     input: &mut (impl Read + Seek),
     output: &mut (impl Write + Seek),
 ) -> RisResult<()> {
-
     // decode png
     let decoder = png::Decoder::new(input);
-    let mut reader = ris_util::unroll!(
-        decoder.read_info(),
-        "failed to read info",
-    )?;
+    let mut reader = ris_util::unroll!(decoder.read_info(), "failed to read info",)?;
     let mut buf = vec![0; reader.output_buffer_size()];
-    let info = ris_util::unroll!(
-        reader.next_frame(&mut buf),
-        "failed to get next frame",
-    )?;
+    let info = ris_util::unroll!(reader.next_frame(&mut buf), "failed to get next frame",)?;
 
     let bytes = &buf[..9];
 

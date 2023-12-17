@@ -80,7 +80,11 @@ fn main() {
     };
 
     if let Err(error) = result {
-        log(&format!("error: {}\nbacktrace:\n{}", error, error.backtrace()));
+        log(&format!(
+            "error: {}\nbacktrace:\n{}",
+            error,
+            error.backtrace()
+        ));
         print_help();
     }
 
@@ -94,23 +98,35 @@ fn print_help() {
     log(&format!("  > {} <command> <source> <target>", name));
     log("available commands:");
     log("  compile");
-    log(&format!("      > {} compile <source dir> <target file>", name));
+    log(&format!(
+        "      > {} compile <source dir> <target file>",
+        name
+    ));
     log(&format!(
         "    defaults to:\n        <source dir>  {}\n        <target file> {}",
         asset_compiler::DEFAULT_ASSET_DIRECTORY,
         asset_compiler::DEFAULT_COMPILED_FILE,
     ));
     log("  decompile");
-    log(&format!("      > {} decompile <source file> <target dir>", name));
+    log(&format!(
+        "      > {} decompile <source file> <target dir>",
+        name
+    ));
     log(&format!(
         "    defaults to:\n        <source file> {}\n        <target dir>  {}",
         asset_compiler::DEFAULT_COMPILED_FILE,
         asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
     ));
     log("  import");
-    log(&format!("      > {} import <source file> <target file>", name));
+    log(&format!(
+        "      > {} import <source file> <target file>",
+        name
+    ));
     log("  importall");
-    log(&format!("      > {} importall <source dir> <target dir>", name));
+    log(&format!(
+        "      > {} importall <source dir> <target dir>",
+        name
+    ));
     log(&format!(
         "    defaults to:\n        <source dir>  {}\n        <target dir>  {}",
         asset_importer::DEFAULT_SOURCE_DIRECTORY,

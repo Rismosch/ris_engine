@@ -52,14 +52,10 @@ impl Buffers {
                     let a = scale_a * j as f32 / side as f32 - scale_a / 2.;
                     let b = scale_b * k as f32 / side as f32 - scale_b / 2.;
 
-                    let lab = color::Lab {l, a, b};
+                    let lab = color::Lab { l, a, b };
                     let rgb = color::Rgb::from(lab);
 
-                    let color = [
-                        rgb.r,
-                        rgb.g,
-                        rgb.b,
-                    ];
+                    let color = [rgb.r, rgb.g, rgb.b];
 
                     let v0 = Vertex3d {
                         position: [x, y, z],
@@ -134,7 +130,7 @@ impl Buffers {
                     indices.push(index + 5);
                     indices.push(index + 1);
                     indices.push(index + 4);
-                    
+
                     // back
                     indices.push(index + 2);
                     indices.push(index + 3);

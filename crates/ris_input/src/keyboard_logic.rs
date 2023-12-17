@@ -1,11 +1,10 @@
-use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::input::keyboard_data::KeyboardData;
 
 pub fn update_keyboard(
     new_keyboard_data: &mut KeyboardData,
     old_keyboard_data: &KeyboardData,
     keyboard_state: sdl2::keyboard::KeyboardState,
-) -> GameloopState {
+) {
     let old_key_state = old_keyboard_data.keys.hold();
     new_keyboard_data.keys.set_old_and_clear(old_key_state);
 
@@ -29,6 +28,4 @@ pub fn update_keyboard(
     new_keyboard_data
         .buttons
         .set(new_button_state, old_button_state);
-
-    GameloopState::WantsToContinue
 }

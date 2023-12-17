@@ -8,7 +8,7 @@ use ris_util::testing;
 use ris_util::testing::miri_choose;
 
 #[test]
-fn should_encode_and_decode_rgb(){
+fn should_encode_and_decode_rgb() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
     testing::repeat(miri_choose(1, 1), move |_| {
         let mut rng = rng.borrow_mut();
@@ -20,7 +20,12 @@ fn should_encode_and_decode_rgb(){
 
         let data_len = width * height * 3;
 
-        let desc = QoiDesc {width, height, channels, color_space};
+        let desc = QoiDesc {
+            width,
+            height,
+            channels,
+            color_space,
+        };
         let mut data = vec![0; data_len];
         for i in 0..data_len {
             let random_value = rng.next_u();
@@ -36,6 +41,6 @@ fn should_encode_and_decode_rgb(){
 }
 
 #[test]
-fn should_encode_and_decode_rgba(){
+fn should_encode_and_decode_rgba() {
     panic!();
 }

@@ -168,4 +168,3 @@ impl GodObject {
         Ok(god_object)
     }
 }
-

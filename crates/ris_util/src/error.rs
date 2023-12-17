@@ -18,8 +18,8 @@ pub struct RisError {
 impl RisError {
     pub fn new(
         source: SourceError,
-        message: String, 
-        file: String, 
+        message: String,
+        file: String,
         line: u32,
         backtrace: Arc<Backtrace>,
     ) -> Self {
@@ -61,13 +61,7 @@ impl std::fmt::Display for RisError {
             write!(f, "{}\n    ", source)?;
         }
 
-        write!(
-            f,
-            "\"{}\", {}:{}",
-            self.message,
-            self.file,
-            self.line,
-        )
+        write!(f, "\"{}\", {}:{}", self.message, self.file, self.line,)
     }
 }
 
