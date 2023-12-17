@@ -20,7 +20,6 @@ use ris_input::keyboard_logic::update_keyboard;
 use ris_input::mouse_logic::handle_mouse_events;
 use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
-use ris_jobs::job_cell::JobCell;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
@@ -56,9 +55,9 @@ fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
 
 pub struct LogicFrame {
     // input
-    event_pump: JobCell<EventPump>,
+    event_pump: EventPump,
 
-    gamepad_logic: Option<GamepadLogic>,
+    gamepad_logic: GamepadLogic,
 
     rebind_matrix_mouse: RebindMatrix,
     rebind_matrix_keyboard: RebindMatrix,
@@ -77,8 +76,8 @@ impl LogicFrame {
         }
 
         Self {
-            event_pump: unsafe { JobCell::new(event_pump) },
-            gamepad_logic: Some(GamepadLogic::new(controller_subsystem)),
+            event_pump,
+            gamepad_logic: GamepadLogic::new(controller_subsystem),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
             rebind_matrix_gamepad: rebind_matrix,
@@ -96,27 +95,17 @@ impl LogicFrame {
         state: GodStateRef,
     ) -> RisResult<GameloopState> {
         // controller input
-        let current_keyboard = std::mem::take(&mut current.keyboard);
-        let current_gamepad = std::mem::take(&mut current.gamepad);
-
         let previous_for_mouse = previous.clone();
         let previous_for_keyboard = previous.clone();
         let previous_for_gamepad = previous.clone();
         let previous_for_general = previous;
 
-        let mut gamepad_logic = match self.gamepad_logic.take() {
-            Some(gamepad_logic) => gamepad_logic,
-            None => unreachable!(),
-        };
-
         reset_mouse_refs(&mut current.mouse);
 
         current.window_size_changed = None;
 
-        for event in self.event_pump.as_mut().poll_iter() {
+        for event in self.event_pump.poll_iter() {
             if let Event::Quit { .. } = event {
-                current.keyboard = current_keyboard;
-                current.gamepad = current_gamepad;
                 return Ok(GameloopState::WantsToQuit);
             };
 
@@ -133,60 +122,36 @@ impl LogicFrame {
                 continue;
             }
 
-            if gamepad_logic.handle_events(&event) {
+            if self.gamepad_logic.handle_events(&event) {
                 continue;
             }
         }
 
-        let mouse_event_pump = self.event_pump.borrow();
-        let keyboard_event_pump = self.event_pump.borrow();
-
-        let gamepad_future = job_system::submit(move || {
-            let mut current_gamepad = current_gamepad;
-            let mut gamepad_logic = gamepad_logic;
-
-            gamepad_logic.update(&mut current_gamepad, &previous_for_gamepad.gamepad);
-
-            (current_gamepad, gamepad_logic)
-        });
-
-        let keyboard_future = job_system::submit(move || {
-            let mut keyboard = current_keyboard;
-
-            update_keyboard(
-                &mut keyboard,
-                &previous_for_keyboard.keyboard,
-                keyboard_event_pump.keyboard_state(),
-            );
-
-            keyboard
-        });
+        self.gamepad_logic.update(&mut current.gamepad, &previous_for_gamepad.gamepad);
+        update_keyboard(
+            &mut current.keyboard,
+            &previous_for_keyboard.keyboard,
+            self.event_pump.keyboard_state(),
+        );
 
         post_update_mouse(
             &mut current.mouse,
             &previous_for_mouse.mouse,
-            mouse_event_pump.mouse_state(),
+            self.event_pump.mouse_state(),
         );
-
-        let (new_gamepad, new_gamepad_logic) = gamepad_future.wait();
-        let new_keyboard = keyboard_future.wait();
 
         let args = GeneralLogicArgs {
             new_general_data: &mut current.general,
             old_general_data: &previous_for_general.general,
             mouse: &current.mouse.buttons,
-            keyboard: &new_keyboard.buttons,
-            gamepad: &new_gamepad.buttons,
+            keyboard: &current.keyboard.buttons,
+            gamepad: &current.gamepad.buttons,
             rebind_matrix_mouse: &self.rebind_matrix_mouse,
             rebind_matrix_keyboard: &self.rebind_matrix_keyboard,
             rebind_matrix_gamepad: &self.rebind_matrix_gamepad,
         };
 
         update_general(args);
-
-        current.keyboard = new_keyboard;
-        current.gamepad = new_gamepad;
-        self.gamepad_logic = Some(new_gamepad_logic);
 
         // manual restart
         if current.keyboard.keys.is_hold(Scancode::F1) {
