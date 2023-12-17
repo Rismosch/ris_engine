@@ -1,4 +1,5 @@
-// Adopted QOI by Dominic Szablewski: https://qoiformat.org/
+// QOI implemented in Rust
+// Format and original C encoder/decoder by Dominic Szablewski: https://qoiformat.org/
 
 use std::io::Cursor;
 use std::io::Read;
