@@ -238,7 +238,7 @@ pub fn decompile(source: &str, target: &str) -> Result<(), RisError> {
     // read magic
     let mut magic = [0; 16];
     ris_util::read!(&mut source, magic)?;
-    if !ris_util::io::bytes_equal(&magic, &MAGIC) {
+    if !ris_util::testing::bytes_eq(&magic, &MAGIC) {
         return ris_util::result_err!("expected magic to be {:?} but was {:?}", magic, MAGIC);
     }
 

@@ -25,7 +25,7 @@ impl AssetLoaderCompiled {
         let mut magic_bytes = [0u8; 16];
         ris_util::read!(f, magic_bytes)?;
 
-        if !ris_util::io::bytes_equal(&magic_bytes, &crate::asset_compiler::MAGIC) {
+        if !ris_util::testing::bytes_eq(&magic_bytes, &crate::asset_compiler::MAGIC) {
             return ris_util::result_err!("unkown magic value: {:?}", magic_bytes);
         }
 

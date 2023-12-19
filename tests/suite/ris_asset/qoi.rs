@@ -10,35 +10,30 @@ use ris_util::testing::miri_choose;
 #[test]
 fn should_encode_and_decode_rgb() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
-    testing::repeat(miri_choose(1, 1), move |_| {
+    testing::repeat(miri_choose(100, 1), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let width = rng.range_i(1, 100) as u32;
-        let height = rng.range_i(1, 100) as u32;
-        let channels = Channels::RGB;
-        let color_space = ColorSpace::SRGB;
+        let width = rng.range_i(1, 2000) as u32;
+        let height = rng.range_i(1, 2000) as u32;
+        let channels = rng.range_i(3,5) as u8;
+        let color_space = rng.range_i(0, 2) as u8;
 
-        let data_len = (width * height * 3) as usize;
+        let data_len = width * height * channels as u32;
 
         let desc = QoiDesc {
             width,
             height,
-            channels,
-            color_space,
+            channels: Channels::try_from(channels).unwrap(),
+            color_space: ColorSpace::try_from(color_space).unwrap(),
         };
-        println!("0 {:?}", desc);
 
-        let mut data = vec![0; data_len];
-        for i in 0..data_len {
-            let random_value = rng.next_u();
-            let random_byte = (0xFF & random_value) as u8;
-            data[i] = random_byte;
-        }
+        let mut data = rng.next_bytes(data_len as usize);
 
-        let encoded = qoi::encode(&data, desc).unwrap();
-        let decoded = qoi::decode(&encoded, desc.channels);
+        let encoded_bytes = qoi::encode(&data, desc).unwrap();
+        let (decoded_desc, decoded_bytes) = qoi::decode(&encoded_bytes, None).unwrap();
 
-        panic!("{:?}", encoded);
+        assert_eq!(desc, decoded_desc);
+        ris_util::assert_bytes_eq!(&data, &decoded_bytes);
     });
 }
 
@@ -49,5 +44,6 @@ fn further_things_to_test() {
     //  width is zero
     //  height is zero
     //  dimensions too large
+    //  dont forget todo in errors
     panic!();
 }

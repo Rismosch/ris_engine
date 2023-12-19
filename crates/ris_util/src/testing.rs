@@ -37,6 +37,103 @@ macro_rules! assert_feq {
     }};
 }
 
+#[derive(PartialEq, Eq)]
+pub enum BytesEqualResult {
+    Equal,
+    DifferentLengths,
+    DifferendAt(usize),
+}
+
+pub fn bytes_eq(left: &[u8], right: &[u8]) -> bool {
+    bytes_eq_detailed(left, right) == BytesEqualResult::Equal
+}
+
+pub fn bytes_eq_detailed(left: &[u8], right: &[u8]) -> BytesEqualResult {
+    if left.len() != right.len() {
+        return BytesEqualResult::DifferentLengths;
+    }
+
+    for i in 0..left.len() {
+        let left = left[i];
+        let right = right[i];
+
+        if left != right {
+            return BytesEqualResult::DifferendAt(i);
+        }
+    }
+
+    BytesEqualResult::Equal
+}
+
+#[macro_export]
+macro_rules! assert_bytes_eq {
+    ($left:expr, $right:expr) => {{
+        $crate::assert_bytes_eq!($left, $right, "");
+    }};
+    ($left:expr, $right:expr, $($arg:tt)*) => {{
+        use ris_util::testing::BytesEqualResult;
+
+        let result = ris_util::testing::bytes_eq_detailed($left, $right);
+        match result {
+            BytesEqualResult::Equal => (),
+            BytesEqualResult::DifferentLengths => panic!(
+                "left and right have different lengths: {} != {} {}",
+                $left.len(),
+                $right.len(),
+                format!($($arg)*),
+            ),
+            BytesEqualResult::DifferendAt(i) => {
+                let min = i.saturating_sub(5);
+                let max = usize::min(i + 6, $left.len() - 1);
+
+                let mut left_string = String::from("[");
+                let mut diff_string = String::from(" ");
+                let mut right_string = String::from("[");
+
+                if min != 0 {
+                    left_string.push_str("...");
+                    diff_string.push_str("   ");
+                    right_string.push_str("...");
+                }
+
+                for j in min..max {
+                    let left_value = format!(", 0x{:02X}", $left[j]);
+                    let right_value = format!(", 0x{:02X}", $right[j]);
+
+                    let diff_value = if i == j {
+                        "  xxxx"
+                    } else {
+                        "      "
+                    };
+
+                    left_string.push_str(&left_value);
+                    diff_string.push_str(diff_value);
+                    right_string.push_str(&right_value);
+                }
+
+                if max != $left.len() - 1 {
+                    left_string.push_str(", ...");
+                    diff_string.push_str("     ");
+                    right_string.push_str(", ...");
+                }
+
+                left_string.push_str("]");
+                diff_string.push_str(" ");
+                right_string.push_str("]");
+
+                panic!(
+                    "left and right differed at {}:\n{}\n{}\n{}\n{}",
+                    i,
+                    left_string,
+                    diff_string,
+                    right_string,
+                    format!($($arg)*),
+                )
+            },
+        }
+    }};
+}
+
 /// generates and cleans a temporary directory for tests
 #[macro_export]
 macro_rules! prep_test_dir {

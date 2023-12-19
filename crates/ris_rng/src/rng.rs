@@ -47,8 +47,21 @@ impl Rng {
         self.pcg.next()
     }
 
-    pub fn next_b(&mut self) -> bool {
+    pub fn next_bool(&mut self) -> bool {
         (self.next_u() & 1) == 1
+    }
+
+    pub fn next_byte(&mut self) -> u8 {
+        (0xFF & self.next_u()) as u8
+    }
+
+    pub fn next_bytes(&mut self, buf_len: usize) -> Vec<u8> {
+        let mut buf = vec![0; buf_len];
+        for i in 0..buf_len {
+            buf[i] = self.next_byte();
+        }
+
+        buf
     }
 
     pub fn next_f(&mut self) -> f32 {

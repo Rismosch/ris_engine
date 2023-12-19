@@ -45,19 +45,3 @@ macro_rules! write {
     }};
 }
 
-pub fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-
-    for i in 0..left.len() {
-        let left = left[i];
-        let right = right[i];
-
-        if left != right {
-            return false;
-        }
-    }
-
-    true
-}

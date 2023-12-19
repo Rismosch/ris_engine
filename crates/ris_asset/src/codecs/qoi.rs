@@ -7,7 +7,7 @@ use std::io::Write;
 use std::io::Seek;
 use std::io::SeekFrom;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QoiDesc {
     pub width: u32,
     pub height: u32,
@@ -15,13 +15,13 @@ pub struct QoiDesc {
     pub color_space: ColorSpace,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channels {
     RGB = 3,
     RGBA = 4,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorSpace {
     SRGB = 0,
     Linear = 1,
@@ -35,7 +35,7 @@ impl TryFrom<u8> for Channels {
             3 => Ok(Channels::RGB),
             4 => Ok(Channels::RGBA),
             _ => Err(DecodeError{
-                kind: DecodeErrorKind::InvalidCast(format!("expected Channels to be 3 or 4, but received {}", value)),
+                kind: DecodeErrorKind::InvalidCast(format!("invalid Channels value. Expected 3 or 4, but received {}", value)),
             }),
         }
     }
@@ -49,7 +49,7 @@ impl TryFrom<u8> for ColorSpace {
             0 => Ok(ColorSpace::SRGB),
             1 => Ok(ColorSpace::Linear),
             _ => Err(DecodeError{
-                kind: DecodeErrorKind::InvalidCast(format!("expected ColorSpace to be 0 or 1, but received {}", value)),
+                kind: DecodeErrorKind::InvalidCast(format!("invalid COlorSpace value. Expected 0 or 1, but received {}", value)),
             }),
         }
     }
@@ -114,12 +114,16 @@ pub enum EncodeErrorKind {
     WidthIsZero,
     HeightIsZero,
     DimensionsTooLarge,
+    DataDoesNotMatchDimensions,
     IoError(std::io::Error),
 }
 
 #[derive(Debug)]
 pub enum DecodeErrorKind {
     DataToSmall,
+    IncorrectHeader,
+    DescWidthIsZero,
+    DescHeightIsZero,
     IoError(std::io::Error),
     InvalidCast(String),
 }
@@ -206,6 +210,12 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     let px_end = px_len - desc.channels as u32 as usize;
     let channels = desc.channels as u32;
 
+    if px_len != pixels.len() {
+        return Err(EncodeError {
+            kind: EncodeErrorKind::DataDoesNotMatchDimensions,
+        });
+    }
+
     for px_pos in (0..px_len).step_by(channels as usize) {
         px.r = pixels[px_pos];
         px.g = pixels[px_pos + 1];
@@ -222,7 +232,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
                 run = 0;
             }
         } else {
-            if (run > 0) {
+            if run > 0 {
                 bytes.write(&[OP_RUN | (run - 1)])?;
             }
 
@@ -267,13 +277,11 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 
     let _ = bytes.write(&PADDING)?;
 
-    println!("1 {:?}", desc);
-
     let result = bytes.into_inner();
     Ok(result)
 }
 
-pub fn decode(data: &[u8], channels: Channels) -> Result<(Vec<u8>,QoiDesc), DecodeError> {
+pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u8>), DecodeError> {
     if data.len() < HEADER_SIZE as usize + PADDING.len() {
         return Err(DecodeError {
             kind: DecodeErrorKind::DataToSmall,
@@ -295,9 +303,76 @@ pub fn decode(data: &[u8], channels: Channels) -> Result<(Vec<u8>,QoiDesc), Deco
         color_space: read_byte(bytes)?.try_into()?,
     };
 
-    println!("2 {:?}", desc);
+    if !ris_util::testing::bytes_eq(&header_magic_bytes, &MAGIC) {
+        return Err(DecodeError{kind: DecodeErrorKind::IncorrectHeader});
+    }
 
-    panic!("reached end of decode");
+    if desc.width == 0 {
+        return Err(DecodeError{kind: DecodeErrorKind::DescWidthIsZero});
+    }
+
+    if desc.height == 0 {
+        return Err(DecodeError{kind: DecodeErrorKind::DescHeightIsZero});
+    }
+
+    let channels = match channels {
+        Some(x) => x,
+        None => desc.channels,
+    };
+
+    let px_len = desc.width as usize * desc.height as usize * channels as usize;
+    let mut pixels = Cursor::new(Vec::with_capacity(px_len));
+
+    let mut index = [Rgba::default();64];
+    let mut px = Rgba::from_bytes(&[0,0,0,255]);
+
+    let mut run = 0;
+
+    let chunks_len = data.len() - PADDING.len();
+    for _px_pos in (0..px_len).step_by(channels as usize) {
+        if run > 0 {
+            run -= 1;
+        } else if bytes.position() < chunks_len as u64 {
+            let b1 = read_byte(bytes)?;
+
+            if b1 == OP_RGB {
+                px.r = read_byte(bytes)?;
+                px.g = read_byte(bytes)?;
+                px.b = read_byte(bytes)?;
+            } else if b1 == OP_RGBA {
+                px.r = read_byte(bytes)?;
+                px.g = read_byte(bytes)?;
+                px.b = read_byte(bytes)?;
+                px.a = read_byte(bytes)?;
+            } else if (b1 & MASK_2) == OP_INDEX {
+                px = index[b1 as usize];
+            } else if (b1 & MASK_2) == OP_DIFF {
+                px.r = px.r.wrapping_add((b1 >> 4) & 0x03).wrapping_sub(2);
+                px.g = px.g.wrapping_add((b1 >> 2) & 0x03).wrapping_sub(2);
+                px.b = px.b.wrapping_add(b1 & 0x03).wrapping_sub(2);
+            } else if (b1 & MASK_2) == OP_LUMA {
+                let b2 = read_byte(bytes)?;
+                let vg = (b1 & 0x3f).wrapping_sub(32);
+                px.r = px.r.wrapping_add(vg.wrapping_sub(8).wrapping_add((b2 >> 4) & 0x0f));
+                px.g = px.g.wrapping_add(vg);
+                px.b = px.b.wrapping_add(vg.wrapping_sub(8).wrapping_add(b2 & 0x0f));
+            } else if (b1 & MASK_2) == OP_RUN {
+                run = b1 & 0x3f;
+            }
+
+            let index_pos = px.hash() % 64;
+            index[index_pos as usize] = px;
+        }
+
+        pixels.write(&[px.r, px.g, px.b])?;
+
+        if channels == Channels::RGBA {
+            pixels.write(&[px.a])?;
+        }
+    }
+
+    let result = pixels.into_inner();
+    Ok((desc, result))
 }
 
 fn read_byte(stream: &mut impl Read) -> Result<u8, std::io::Error> {
