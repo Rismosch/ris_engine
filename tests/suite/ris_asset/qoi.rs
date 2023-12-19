@@ -40,15 +40,11 @@ fn further_things_to_test() {
     //let data = [
     //    0x0C, 0x4E, 0x9F, 0x0C, 0x4E, 0x9F, 0xC6, 0x54, 0x6F, 0xDB, 0x1B, 0x87,
     //];
-    //let width = 1;
-    //let height = data.len() as u32 / 3;
-    //let channels = 3;
 
-    // rgba
+    // specific images
     // encodeerror:
     //  width is zero
     //  height is zero
     //  dimensions too large
-    //  dont forget todo in errors
     panic!();
 }

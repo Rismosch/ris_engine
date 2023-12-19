@@ -164,17 +164,18 @@ macro_rules! prep_test_dir {
 }
 
 /// this avoids clippy from beeing too smart. clippy flags some clones as redundant, which defeats
-/// the purpose of some tests, especially when multiple copies are passed to other threads.
+/// the purpose of some tests, especially when the copy implementation is being tested or multiple
+/// copies are passed to other threads.
 pub fn duplicate<T: Clone>(value: &T) -> T {
     value.clone()
 }
 
 #[cfg(not(miri))]
-pub fn miri_choose<T>(value: T, _: T) -> T {
-    value
+pub fn miri_choose<T>(not_miri: T, _miri: T) -> T {
+    not_miri
 }
 
 #[cfg(miri)]
-pub fn miri_choose<T>(_: T, value: T) -> T {
-    value
+pub fn miri_choose<T>(_not_miri: T, miri: T) -> T {
+    miri
 }

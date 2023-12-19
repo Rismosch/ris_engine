@@ -1,5 +1,5 @@
 // QOI implemented in Rust
-// Format and original C encoder/decoder by Dominic Szablewski: https://qoiformat.org/
+// original format and C encoder/decoder by Dominic Szablewski: https://qoiformat.org/
 
 use std::io::Cursor;
 use std::io::Read;
@@ -176,7 +176,7 @@ impl std::fmt::Display for DecodeError {
             DecodeErrorKind::IncorrectHeader => write!(f, "magic header must be {:?}", MAGIC),
             DecodeErrorKind::DescWidthIsZero => write!(f, "decoded header width was 0"),
             DecodeErrorKind::DescHeightIsZero => write!(f, "decoded header height was 0"),
-            DecodeErrorKind::IoError(e) => write!(f, "io error occures: {}", e),
+            DecodeErrorKind::IoError(e) => write!(f, "io error occured: {}", e),
             DecodeErrorKind::InvalidCast(e) => write!(f, "invalid cast: {}", e),
         }
     }
@@ -219,8 +219,8 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     let mut px_prev = Rgba::from_bytes(&[0, 0, 0, 255]);
     let mut px = px_prev;
 
-    let px_len = (desc.width * desc.height * desc.channels as u32) as usize;
-    let px_end = px_len - desc.channels as u32 as usize;
+    let px_len = desc.width as usize * desc.height as usize * desc.channels as usize;
+    let px_end = px_len - desc.channels as usize;
     let channels = desc.channels as u32;
 
     if px_len != pixels.len() {
