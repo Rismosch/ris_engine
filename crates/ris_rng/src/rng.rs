@@ -57,8 +57,8 @@ impl Rng {
 
     pub fn next_bytes(&mut self, buf_len: usize) -> Vec<u8> {
         let mut buf = vec![0; buf_len];
-        for i in 0..buf_len {
-            buf[i] = self.next_byte();
+        for item in buf.iter_mut().take(buf_len) {
+            *item = self.next_byte();
         }
 
         buf

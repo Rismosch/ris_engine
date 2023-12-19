@@ -4,8 +4,6 @@
 use std::io::Cursor;
 use std::io::Read;
 use std::io::Write;
-use std::io::Seek;
-use std::io::SeekFrom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QoiDesc {
@@ -34,8 +32,11 @@ impl TryFrom<u8> for Channels {
         match value {
             3 => Ok(Channels::RGB),
             4 => Ok(Channels::RGBA),
-            _ => Err(DecodeError{
-                kind: DecodeErrorKind::InvalidCast(format!("invalid Channels value. Expected 3 or 4, but received {}", value)),
+            _ => Err(DecodeError {
+                kind: DecodeErrorKind::InvalidCast(format!(
+                    "invalid Channels value. Expected 3 or 4, but received {}",
+                    value
+                )),
             }),
         }
     }
@@ -48,8 +49,11 @@ impl TryFrom<u8> for ColorSpace {
         match value {
             0 => Ok(ColorSpace::SRGB),
             1 => Ok(ColorSpace::Linear),
-            _ => Err(DecodeError{
-                kind: DecodeErrorKind::InvalidCast(format!("invalid COlorSpace value. Expected 0 or 1, but received {}", value)),
+            _ => Err(DecodeError {
+                kind: DecodeErrorKind::InvalidCast(format!(
+                    "invalid COlorSpace value. Expected 0 or 1, but received {}",
+                    value
+                )),
             }),
         }
     }
@@ -86,15 +90,6 @@ impl Rgba {
             b: value[2],
             a: value[3],
         }
-    }
-
-    pub fn to_bytes(&self) -> [u8; 4] {
-        [
-            self.r,
-            self.g,
-            self.b,
-            self.a,
-        ]
     }
 
     pub fn hash(&self) -> u8 {
@@ -158,13 +153,13 @@ impl std::error::Error for EncodeError {}
 impl std::error::Error for DecodeError {}
 
 impl std::fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
 impl std::fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
@@ -193,17 +188,17 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 
     let mut bytes = Cursor::new(Vec::with_capacity(max_size as usize));
 
-    bytes.write(&MAGIC)?;
-    bytes.write(&desc.width.to_be_bytes())?;
-    bytes.write(&desc.height.to_be_bytes())?;
-    bytes.write(&[desc.channels as u8, desc.color_space as u8])?;
+    let _ = bytes.write(&MAGIC)?;
+    let _ = bytes.write(&desc.width.to_be_bytes())?;
+    let _ = bytes.write(&desc.height.to_be_bytes())?;
+    let _ = bytes.write(&[desc.channels as u8, desc.color_space as u8])?;
 
     let pixels = data;
 
-    let mut index = [Rgba::default();64];
+    let mut index = [Rgba::default(); 64];
 
     let mut run = 0;
-    let mut px_prev = Rgba::from_bytes(&[0,0,0,255]);
+    let mut px_prev = Rgba::from_bytes(&[0, 0, 0, 255]);
     let mut px = px_prev;
 
     let px_len = (desc.width * desc.height * desc.channels as u32) as usize;
@@ -228,18 +223,18 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         if px == px_prev {
             run += 1;
             if run == 62 || px_pos == px_end {
-                bytes.write(&[OP_RUN | (run - 1)])?;
+                let _ = bytes.write(&[OP_RUN | (run - 1)])?;
                 run = 0;
             }
         } else {
             if run > 0 {
-                bytes.write(&[OP_RUN | (run - 1)])?;
+                let _ = bytes.write(&[OP_RUN | (run - 1)])?;
             }
 
             let index_pos = px.hash() % 64;
 
             if index[index_pos as usize] == px {
-                bytes.write(&[OP_INDEX | index_pos]);
+                let _ = bytes.write(&[OP_INDEX | index_pos]);
             } else {
                 index[index_pos as usize] = px;
 
@@ -252,22 +247,22 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
                     let vg_b = vb.wrapping_sub(vg);
 
                     if vr > -3 && vr < 2 && vg > -3 && vg < 2 && vb > -3 && vb < 2 {
-                        let dr = unsafe {std::mem::transmute::<i8, u8>((vr + 2) << 4)};
-                        let dg = unsafe {std::mem::transmute::<i8, u8>((vg + 2) << 2)};
-                        let db = unsafe {std::mem::transmute::<i8, u8>(vb + 2)};
-                        bytes.write(&[OP_DIFF | dr | dg | db])?;
-                    } else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8{
-                        let dr = unsafe {std::mem::transmute::<i8, u8>((vg_r + 8) << 4)};
-                        let dg = unsafe {std::mem::transmute::<i8, u8>(vg + 32)};
-                        let db = unsafe {std::mem::transmute::<i8, u8>(vg_b + 8)};
-                        bytes.write(&[OP_LUMA | dg])?;
-                        bytes.write(&[dr | db])?;
+                        let dr = unsafe { std::mem::transmute::<i8, u8>((vr + 2) << 4) };
+                        let dg = unsafe { std::mem::transmute::<i8, u8>((vg + 2) << 2) };
+                        let db = unsafe { std::mem::transmute::<i8, u8>(vb + 2) };
+                        let _ = bytes.write(&[OP_DIFF | dr | dg | db])?;
+                    } else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8
+                    {
+                        let dr = unsafe { std::mem::transmute::<i8, u8>((vg_r + 8) << 4) };
+                        let dg = unsafe { std::mem::transmute::<i8, u8>(vg + 32) };
+                        let db = unsafe { std::mem::transmute::<i8, u8>(vg_b + 8) };
+                        let _ = bytes.write(&[OP_LUMA | dg])?;
+                        let _ = bytes.write(&[dr | db])?;
                     } else {
-                        bytes.write(&[OP_RGB, px.r, px.g, px.b])?;
+                        let _ = bytes.write(&[OP_RGB, px.r, px.g, px.b])?;
                     }
-
                 } else {
-                    bytes.write(&[OP_RGBA, px.r, px.g, px.b, px.a])?;
+                    let _ = bytes.write(&[OP_RGBA, px.r, px.g, px.b, px.a])?;
                 }
             }
         }
@@ -293,10 +288,10 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
     let mut header_magic_bytes = [0; 4];
     let mut width_bytes = [0; 4];
     let mut height_bytes = [0; 4];
-    bytes.read(&mut header_magic_bytes)?;
-    bytes.read(&mut width_bytes)?;
-    bytes.read(&mut height_bytes)?;
-    let desc = QoiDesc{
+    let _ = bytes.read(&mut header_magic_bytes)?;
+    let _ = bytes.read(&mut width_bytes)?;
+    let _ = bytes.read(&mut height_bytes)?;
+    let desc = QoiDesc {
         width: u32::from_be_bytes(width_bytes),
         height: u32::from_be_bytes(height_bytes),
         channels: read_byte(bytes)?.try_into()?,
@@ -304,15 +299,21 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
     };
 
     if !ris_util::testing::bytes_eq(&header_magic_bytes, &MAGIC) {
-        return Err(DecodeError{kind: DecodeErrorKind::IncorrectHeader});
+        return Err(DecodeError {
+            kind: DecodeErrorKind::IncorrectHeader,
+        });
     }
 
     if desc.width == 0 {
-        return Err(DecodeError{kind: DecodeErrorKind::DescWidthIsZero});
+        return Err(DecodeError {
+            kind: DecodeErrorKind::DescWidthIsZero,
+        });
     }
 
     if desc.height == 0 {
-        return Err(DecodeError{kind: DecodeErrorKind::DescHeightIsZero});
+        return Err(DecodeError {
+            kind: DecodeErrorKind::DescHeightIsZero,
+        });
     }
 
     let channels = match channels {
@@ -323,8 +324,8 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
     let px_len = desc.width as usize * desc.height as usize * channels as usize;
     let mut pixels = Cursor::new(Vec::with_capacity(px_len));
 
-    let mut index = [Rgba::default();64];
-    let mut px = Rgba::from_bytes(&[0,0,0,255]);
+    let mut index = [Rgba::default(); 64];
+    let mut px = Rgba::from_bytes(&[0, 0, 0, 255]);
 
     let mut run = 0;
 
@@ -353,9 +354,11 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
             } else if (b1 & MASK_2) == OP_LUMA {
                 let b2 = read_byte(bytes)?;
                 let vg = (b1 & 0x3f).wrapping_sub(32);
-                px.r = px.r.wrapping_add(vg.wrapping_sub(8).wrapping_add((b2 >> 4) & 0x0f));
+                px.r =
+                    px.r.wrapping_add(vg.wrapping_sub(8).wrapping_add((b2 >> 4) & 0x0f));
                 px.g = px.g.wrapping_add(vg);
-                px.b = px.b.wrapping_add(vg.wrapping_sub(8).wrapping_add(b2 & 0x0f));
+                px.b =
+                    px.b.wrapping_add(vg.wrapping_sub(8).wrapping_add(b2 & 0x0f));
             } else if (b1 & MASK_2) == OP_RUN {
                 run = b1 & 0x3f;
             }
@@ -364,10 +367,10 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
             index[index_pos as usize] = px;
         }
 
-        pixels.write(&[px.r, px.g, px.b])?;
+        let _ = pixels.write(&[px.r, px.g, px.b])?;
 
         if channels == Channels::RGBA {
-            pixels.write(&[px.a])?;
+            let _ = pixels.write(&[px.a])?;
         }
     }
 
@@ -380,4 +383,3 @@ fn read_byte(stream: &mut impl Read) -> Result<u8, std::io::Error> {
     let _ = stream.read(&mut bytes)?;
     Ok(bytes[0])
 }
-

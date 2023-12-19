@@ -50,7 +50,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         });
 
         // create copies
-        let frame_for_input = current_frame.clone();
         let frame_for_logic = current_frame.clone();
         let frame_for_output = current_frame.clone();
 

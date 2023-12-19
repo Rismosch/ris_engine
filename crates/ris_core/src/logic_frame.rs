@@ -21,7 +21,6 @@ use ris_input::mouse_logic::handle_mouse_events;
 use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
 use ris_jobs::job_future::JobFuture;
-use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -127,7 +126,8 @@ impl LogicFrame {
             }
         }
 
-        self.gamepad_logic.update(&mut current.gamepad, &previous_for_gamepad.gamepad);
+        self.gamepad_logic
+            .update(&mut current.gamepad, &previous_for_gamepad.gamepad);
         update_keyboard(
             &mut current.keyboard,
             &previous_for_keyboard.keyboard,

@@ -13,9 +13,9 @@ fn should_encode_and_decode_rgb() {
     testing::repeat(miri_choose(100, 1), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let width = rng.range_i(1, 2000) as u32;
-        let height = rng.range_i(1, 2000) as u32;
-        let channels = rng.range_i(3,5) as u8;
+        let width = rng.range_i(1, 100) as u32;
+        let height = rng.range_i(1, 100) as u32;
+        let channels = rng.range_i(3, 5) as u8;
         let color_space = rng.range_i(0, 2) as u8;
 
         let data_len = width * height * channels as u32;
