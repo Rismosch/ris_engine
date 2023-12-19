@@ -84,7 +84,7 @@ macro_rules! assert_bytes_eq {
             ),
             BytesEqualResult::DifferendAt(i) => {
                 let min = i.saturating_sub(5);
-                let max = usize::min(i + 6, $left.len() - 1);
+                let max = usize::min(i + 6, $left.len());
 
                 let mut left_string = String::from("[");
                 let mut diff_string = String::from(" ");
@@ -111,7 +111,7 @@ macro_rules! assert_bytes_eq {
                     right_string.push_str(&right_value);
                 }
 
-                if max != $left.len() - 1 {
+                if max != $left.len() {
                     left_string.push_str(", ...");
                     diff_string.push_str("     ");
                     right_string.push_str(", ...");

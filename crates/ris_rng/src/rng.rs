@@ -86,7 +86,9 @@ impl Rng {
         }
     }
 
+    /// min and max are inclusive
     pub fn range_i(&mut self, min: i32, max: i32) -> i32 {
+        let max = max + 1;
         if max <= min {
             if max == min {
                 return min;

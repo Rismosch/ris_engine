@@ -229,6 +229,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         } else {
             if run > 0 {
                 let _ = bytes.write(&[OP_RUN | (run - 1)])?;
+                run = 0;
             }
 
             let index_pos = px.hash() % 64;
@@ -247,15 +248,15 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
                     let vg_b = vb.wrapping_sub(vg);
 
                     if vr > -3 && vr < 2 && vg > -3 && vg < 2 && vb > -3 && vb < 2 {
-                        let dr = unsafe { std::mem::transmute::<i8, u8>((vr + 2) << 4) };
-                        let dg = unsafe { std::mem::transmute::<i8, u8>((vg + 2) << 2) };
-                        let db = unsafe { std::mem::transmute::<i8, u8>(vb + 2) };
+                        let dr = ((vr + 2) << 4) as u8;
+                        let dg = ((vg + 2) << 2) as u8;
+                        let db = (vb + 2) as u8;
                         let _ = bytes.write(&[OP_DIFF | dr | dg | db])?;
                     } else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8
                     {
-                        let dr = unsafe { std::mem::transmute::<i8, u8>((vg_r + 8) << 4) };
-                        let dg = unsafe { std::mem::transmute::<i8, u8>(vg + 32) };
-                        let db = unsafe { std::mem::transmute::<i8, u8>(vg_b + 8) };
+                        let dr = ((vg_r + 8) << 4) as u8;
+                        let dg = (vg + 32) as u8;
+                        let db = (vg_b + 8) as u8;
                         let _ = bytes.write(&[OP_LUMA | dg])?;
                         let _ = bytes.write(&[dr | db])?;
                     } else {
@@ -276,7 +277,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     Ok(result)
 }
 
-pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u8>), DecodeError> {
+pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDesc), DecodeError> {
     if data.len() < HEADER_SIZE as usize + PADDING.len() {
         return Err(DecodeError {
             kind: DecodeErrorKind::DataToSmall,
@@ -330,7 +331,7 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
     let mut run = 0;
 
     let chunks_len = data.len() - PADDING.len();
-    for _px_pos in (0..px_len).step_by(channels as usize) {
+    for _ in (0..px_len).step_by(channels as usize) {
         if run > 0 {
             run -= 1;
         } else if bytes.position() < chunks_len as u64 {
@@ -375,7 +376,7 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(QoiDesc, Vec<u
     }
 
     let result = pixels.into_inner();
-    Ok((desc, result))
+    Ok((result, desc))
 }
 
 fn read_byte(stream: &mut impl Read) -> Result<u8, std::io::Error> {
