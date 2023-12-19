@@ -91,11 +91,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let god_object = match GodObject::new(app_info) {
         Ok(god_object) => god_object,
         Err(e) => {
-            ris_log::fatal!(
-                "failed to create god object: {}\nbacktrace:\n{}",
-                e,
-                e.backtrace(),
-            );
+            ris_log::fatal!("failed to create god object: {:?}", e,);
             return Err(e);
         }
     };
@@ -103,11 +99,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let result = match god_job::run(god_object) {
         Ok(result) => result,
         Err(e) => {
-            ris_log::fatal!(
-                "failed to run god job: {}\nbacktrace:\n{}",
-                e,
-                e.backtrace(),
-            );
+            ris_log::fatal!("failed to run god job: {:?}", e,);
             return Err(e);
         }
     };

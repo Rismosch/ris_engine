@@ -51,7 +51,7 @@ impl TryFrom<u8> for ColorSpace {
             1 => Ok(ColorSpace::Linear),
             _ => Err(DecodeError {
                 kind: DecodeErrorKind::InvalidCast(format!(
-                    "invalid COlorSpace value. Expected 0 or 1, but received {}",
+                    "invalid ColorSpace value. Expected 0 or 1, but received {}",
                     value
                 )),
             }),
@@ -72,6 +72,7 @@ const MASK_2: u8 = 0xc0; /* 11000000 */
 const MAGIC: [u8; 4] = [0x71, 0x6f, 0x69, 0x66];
 const HEADER_SIZE: u32 = 14;
 
+const DATA_MIN: usize = HEADER_SIZE as usize + PADDING.len();
 const PIXELS_MAX: u32 = 400000000;
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -153,14 +154,31 @@ impl std::error::Error for EncodeError {}
 impl std::error::Error for DecodeError {}
 
 impl std::fmt::Display for EncodeError {
-    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            EncodeErrorKind::WidthIsZero => write!(f, "width may not be 0"),
+            EncodeErrorKind::HeightIsZero => write!(f, "height may not be 0"),
+            EncodeErrorKind::DimensionsTooLarge => {
+                write!(f, "pixels may not exceed {}", PIXELS_MAX)
+            }
+            EncodeErrorKind::DataDoesNotMatchDimensions => {
+                write!(f, "data must have length of width * height * channels")
+            }
+            EncodeErrorKind::IoError(e) => write!(f, "io error occured: {}", e),
+        }
     }
 }
 
 impl std::fmt::Display for DecodeError {
-    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            DecodeErrorKind::DataToSmall => write!(f, "data must be larger than {}", DATA_MIN),
+            DecodeErrorKind::IncorrectHeader => write!(f, "magic header must be {:?}", MAGIC),
+            DecodeErrorKind::DescWidthIsZero => write!(f, "decoded header width was 0"),
+            DecodeErrorKind::DescHeightIsZero => write!(f, "decoded header height was 0"),
+            DecodeErrorKind::IoError(e) => write!(f, "io error occures: {}", e),
+            DecodeErrorKind::InvalidCast(e) => write!(f, "invalid cast: {}", e),
+        }
     }
 }
 
@@ -278,7 +296,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 }
 
 pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDesc), DecodeError> {
-    if data.len() < HEADER_SIZE as usize + PADDING.len() {
+    if data.len() < DATA_MIN {
         return Err(DecodeError {
             kind: DecodeErrorKind::DataToSmall,
         });

@@ -67,16 +67,7 @@ impl std::fmt::Display for RisError {
 
 impl std::fmt::Debug for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let source_string = match &self.source {
-            Some(source) => format!("Some ({:?})", source),
-            None => String::from("None"),
-        };
-
-        write!(
-            f,
-            "RisError {{inner: {:?}, message: {:?}, file: {:?}, line: {:?}, backtrace: {:?}}}",
-            source_string, self.message, self.file, self.line, self.backtrace,
-        )
+        write!(f, "{}\nbacktrace:\n{}", self, self.backtrace)
     }
 }
 
