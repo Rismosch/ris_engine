@@ -63,8 +63,10 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
             let source_stem = String::from(source_stem);
 
             let (importer, target_extension) = match source_extension.as_str() {
-                glsl_importer::IN_EXT => (ImporterKind::GLSL, glsl_importer::OUT_EXT),
-                png_importer::IN_EXT => (ImporterKind::PNG, png_importer::OUT_EXT),
+                glsl_to_spirv_importer::IN_EXT => {
+                    (ImporterKind::GLSL, glsl_to_spirv_importer::OUT_EXT)
+                }
+                png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
                 // insert new inporter here...
                 _ => {
                     return ris_util::result_err!(
@@ -120,9 +122,9 @@ pub fn import(info: ImporterInfo) -> Result<(), RisError> {
 
     match importer {
         ImporterKind::GLSL => {
-            glsl_importer::import(source_path, &mut source_file, &mut target_file)
+            glsl_to_spirv_importer::import(source_path, &mut source_file, &mut target_file)
         }
-        ImporterKind::PNG => png_importer::import(source_path, &mut source_file, &mut target_file),
+        ImporterKind::PNG => png_to_qoi_importer::import(&mut source_file, &mut target_file),
         // insert more importers here...
     }
 }

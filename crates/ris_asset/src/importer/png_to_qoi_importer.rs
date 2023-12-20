@@ -14,11 +14,7 @@ use crate::codecs::qoi::QoiDesc;
 pub const IN_EXT: &str = "png";
 pub const OUT_EXT: &str = "qoi";
 
-pub fn import(
-    _filename: &str,
-    input: &mut (impl Read + Seek),
-    output: &mut (impl Write + Seek),
-) -> RisResult<()> {
+pub fn import(input: &mut (impl Read + Seek), output: &mut (impl Write + Seek)) -> RisResult<()> {
     // decode png
     let decoder = png::Decoder::new(input);
     let mut reader = ris_util::unroll!(decoder.read_info(), "failed to read info",)?;
