@@ -117,7 +117,7 @@ pub enum EncodeErrorKind {
 #[derive(Debug)]
 pub enum DecodeErrorKind {
     DataToSmall,
-    IncorrectHeader,
+    IncorrectMagic,
     DescWidthIsZero,
     DescHeightIsZero,
     IoError(std::io::Error),
@@ -173,7 +173,7 @@ impl std::fmt::Display for DecodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
             DecodeErrorKind::DataToSmall => write!(f, "data must be larger than {}", DATA_MIN),
-            DecodeErrorKind::IncorrectHeader => write!(f, "magic header must be {:?}", MAGIC),
+            DecodeErrorKind::IncorrectMagic => write!(f, "magic must be {:?}", MAGIC),
             DecodeErrorKind::DescWidthIsZero => write!(f, "decoded header width was 0"),
             DecodeErrorKind::DescHeightIsZero => write!(f, "decoded header height was 0"),
             DecodeErrorKind::IoError(e) => write!(f, "io error occured: {}", e),
@@ -310,30 +310,34 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
     let _ = bytes.read(&mut header_magic_bytes)?;
     let _ = bytes.read(&mut width_bytes)?;
     let _ = bytes.read(&mut height_bytes)?;
-    let desc = QoiDesc {
-        width: u32::from_be_bytes(width_bytes),
-        height: u32::from_be_bytes(height_bytes),
-        channels: read_byte(bytes)?.try_into()?,
-        color_space: read_byte(bytes)?.try_into()?,
-    };
+
+    let width = u32::from_be_bytes(width_bytes);
+    let height = u32::from_be_bytes(height_bytes);
 
     if !ris_util::testing::bytes_eq(&header_magic_bytes, &MAGIC) {
         return Err(DecodeError {
-            kind: DecodeErrorKind::IncorrectHeader,
+            kind: DecodeErrorKind::IncorrectMagic,
         });
     }
 
-    if desc.width == 0 {
+    if width == 0 {
         return Err(DecodeError {
             kind: DecodeErrorKind::DescWidthIsZero,
         });
     }
 
-    if desc.height == 0 {
+    if height == 0 {
         return Err(DecodeError {
             kind: DecodeErrorKind::DescHeightIsZero,
         });
     }
+
+    let desc = QoiDesc {
+        width,
+        height,
+        channels: read_byte(bytes)?.try_into()?,
+        color_space: read_byte(bytes)?.try_into()?,
+    };
 
     let channels = match channels {
         Some(x) => x,
