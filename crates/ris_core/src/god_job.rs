@@ -131,16 +131,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             ris_log::fatal!("gameloop output encountered an error: {}", e);
         }
 
-        // determine, whether to continue, restart or quit
-        let logic_state = logic_state?;
-        if logic_state == GameloopState::WantsToContinue {
-            continue;
-        }
-
-        if logic_state == GameloopState::WantsToRestart {
-            return Ok(WantsTo::Restart);
-        } else {
-            return Ok(WantsTo::Quit);
+        match logic_state? {
+            GameloopState::WantsToContinue => continue,
+            GameloopState::WantsToQuit => return Ok(WantsTo::Quit),
+            GameloopState::WantsToRestart => return Ok(WantsTo::Restart),
         }
     }
 }

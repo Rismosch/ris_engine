@@ -18,6 +18,12 @@ Barebones game engine. Home made passion project.
   - [x] Keyboard
   - [x] Gamepad
 - [x] 3d math
+  - [x] Vector3
+  - [x] Quaternion
+  - [x] Matrix4x4
+  - [x] Color
+    - [x] RGB
+    - [x] OkLab
 - [x] Basic Vulkan renderer
   - [x] Vertex and index buffers
   - [x] Depth and Stencil buffer
@@ -28,6 +34,9 @@ Barebones game engine. Home made passion project.
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
   - [x] (De)compiling
+- [x] Codecs
+  - [x] GLSL to SpirV
+  - [x] QOI
 - [x] Global mutable state
   - [x] Settings/Configuration
   - [ ] Gameobjects
@@ -154,7 +163,7 @@ The build script will generate building information, compile the entire workspac
 
 2. **ris_assets**  
    This file contains all assets used by the engine. Without assets, the game cannot be run.
-   
+
 3. **SDL2.dll** (only on windows)  
    This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
 
