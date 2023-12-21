@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use ris_asset::codecs::qoi;
 use ris_asset::codecs::qoi::Channels;
 use ris_asset::codecs::qoi::ColorSpace;
@@ -43,9 +41,9 @@ fn should_encode_and_decode_fuzzed() {
 #[cfg(not(miri))]
 fn should_encode_and_decode_raw_assets() {
     let executable_string = std::env::args().next().expect("no cli args");
-    let executable_path = PathBuf::from(executable_string);
+    let executable_path = std::path::PathBuf::from(executable_string);
     let executable_directory = executable_path.parent().expect("executable has no parent");
-    let mut raw_assets_directory = PathBuf::from(executable_directory);
+    let mut raw_assets_directory = std::path::PathBuf::from(executable_directory);
     raw_assets_directory.push("..");
     raw_assets_directory.push("..");
     raw_assets_directory.push("..");
