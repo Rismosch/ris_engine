@@ -14,7 +14,7 @@ pub fn select_physical_device(
     surface: &Arc<Surface>,
     device_extensions: &DeviceExtensions,
 ) -> Result<(Arc<PhysicalDevice>, u32), RisError> {
-    let result = ris_util::unroll_option!(
+    let available_devices = 
         ris_util::unroll!(
             instance.enumerate_physical_devices(),
             "failed to enumerate_physical_devices"
@@ -30,6 +30,17 @@ pub fn select_physical_device(
                 })
                 .map(|q| (p, q as u32))
         })
+        .collect::<Vec<_>>();
+
+    let mut log_string = format!("{} available video devices:", available_devices.len());
+    for (device, i) in available_devices.iter() {
+        log_string.push_str(&format!("\n    [{}] => {}", i, device.properties().device_name));
+    }
+
+    ris_log::info!("{}", log_string);
+
+    let device = ris_util::unroll_option!(
+        available_devices.into_iter()
         .min_by_key(|(p, _)| match p.properties().device_type {
             PhysicalDeviceType::DiscreteGpu => 0,
             PhysicalDeviceType::IntegratedGpu => 1,
@@ -41,5 +52,7 @@ pub fn select_physical_device(
         "no devices available"
     )?;
 
-    Ok(result)
+    ris_log::info!("selected physical video device: {}", device.0.properties().device_name);
+
+    Ok(device)
 }
