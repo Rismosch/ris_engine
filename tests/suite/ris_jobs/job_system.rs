@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
@@ -269,5 +270,42 @@ fn should_lock_mutex() {
         for i in 0..miri_choose(100, 10) {
             assert!(results.contains(&i));
         }
+    });
+}
+
+#[test]
+fn should_read_and_write_rw_lock() {
+    repeat(10, |_| {
+        let job_system = unsafe { job_system::init(100, 10, 10, false) };
+
+        let end_result = Arc::new(RwLock::new(0));
+        let results = Arc::new(Mutex::new(Vec::new()));
+        let mut futures = Vec::new();
+
+        for _ in 0..miri_choose(100, 10) {
+            let end_result_copy = end_result.clone();
+            let results_copy = results.clone();
+            let future = job_system::submit(move || {
+                let read = job_system::lock_read(&end_result_copy);
+                let value = *read + 1;
+                drop(read);
+
+                let mut write = job_system::lock_write(&end_result_copy);
+                *write = value;
+
+                results_copy.lock().unwrap().push(value);
+            });
+
+            futures.push(future);
+        }
+
+        drop(job_system);
+
+        let end_result = *job_system::lock_read(&end_result);
+        let results = results.lock().unwrap();
+
+        assert!(end_result > 0);
+        assert_eq!(results.len(), miri_choose(100, 10));
+        assert_eq!(results[results.len() - 1], end_result);
     });
 }
