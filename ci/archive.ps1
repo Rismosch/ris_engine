@@ -97,6 +97,8 @@ try {
         }
     }
 
+    Write-Host $enum_clean_except_vendor
+
     if ($cli_clean_value -ne $enum_clean_none) {
         Write-Host "cleaning workspace..."
 
@@ -106,7 +108,7 @@ try {
         Write-Host "git checkout -- ."
         git checkout -- .
 
-        if ($cli_clean_value -ne $enum_clean_except_vendor) {
+        if ($cli_clean_value -eq $enum_clean_except_vendor) {
             Write-Host "git clean -dxf -e `"vendor/`" -e `".cargo/`""
             git clean -dxf -e "vendor/" -e ".cargo/"
         } else {
