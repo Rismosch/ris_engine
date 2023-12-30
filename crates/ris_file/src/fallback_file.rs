@@ -7,8 +7,9 @@ use std::path::PathBuf;
 use chrono::DateTime;
 use chrono::Local;
 
+use ris_error::RisResult;
+
 use crate as ris_util;
-use crate::error::RisResult;
 
 pub struct FallbackFileAppend {
     current_file: File,
@@ -62,9 +63,9 @@ impl FallbackFileOverwrite {
         let mut current_file = create_current_file(&self.current_path)?;
 
         let written_bytes =
-            ris_util::unroll!(current_file.write(buf), "failed to write current file",)?;
+            ris_error::unroll!(current_file.write(buf), "failed to write current file",)?;
         if written_bytes != buf.len() {
-            ris_util::result_err!(
+            ris_error::new_result!(
                 "failed to write to current file. expected to write {} bytes but actually wrote {}",
                 buf.len(),
                 written_bytes,
@@ -122,7 +123,7 @@ fn generate_paths(directory: &Path, file_extension: &str) -> (PathBuf, PathBuf) 
 }
 
 fn create_directories(old_directory: &Path) -> RisResult<()> {
-    ris_util::unroll!(
+    ris_error::unroll!(
         std::fs::create_dir_all(old_directory),
         "failed to create directory \"{:?}\"",
         old_directory,
@@ -133,7 +134,7 @@ fn delete_expired_files(old_directory: &Path, old_file_count: usize) -> RisResul
     let sorted_entries = get_sorted_entries(old_directory)?;
 
     for entry in sorted_entries.iter().skip(old_file_count - 1) {
-        let metadata = ris_util::unroll!(entry.metadata(), "failed to get metadata")?;
+        let metadata = ris_error::unroll!(entry.metadata(), "failed to get metadata")?;
 
         if metadata.is_dir() {
             let _ = std::fs::remove_dir_all(entry);
@@ -146,7 +147,7 @@ fn delete_expired_files(old_directory: &Path, old_file_count: usize) -> RisResul
 }
 
 fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
-    let entries = ris_util::unroll!(
+    let entries = ris_error::unroll!(
         std::fs::read_dir(directory),
         "failed to read \"{:?}\"",
         directory,
@@ -174,7 +175,7 @@ fn move_current_file(
         return Ok(());
     }
 
-    let file = ris_util::unroll!(
+    let file = ris_error::unroll!(
         File::open(current_path),
         "failed to open file \"{:?}\"",
         current_path,
@@ -209,9 +210,9 @@ fn move_current_file(
     }
 
     if previous_path.exists() {
-        ris_util::result_err!("failed to generate a unique old filename")
+        ris_error::new_result!("failed to generate a unique old filename")
     } else {
-        ris_util::unroll!(
+        ris_error::unroll!(
             std::fs::rename(current_path, &previous_path),
             "failed to rename \"{:?}\" to \"{:?}\"",
             current_path,
@@ -223,13 +224,13 @@ fn move_current_file(
 }
 
 fn create_current_file(current_path: &Path) -> RisResult<File> {
-    let mut current_file = ris_util::unroll!(
+    let mut current_file = ris_error::unroll!(
         File::create(current_path),
         "failed to create \"{:?}\"",
         current_path,
     )?;
 
-    ris_util::unroll!(
+    ris_error::unroll!(
         writeln!(current_file, "{}\n", Local::now().to_rfc3339()),
         "failed to write timestamp into current file",
     )?;

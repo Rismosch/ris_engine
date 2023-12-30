@@ -26,6 +26,8 @@ members = [
     "crates/ris_asset_compiler",
     "crates/ris_core",
     "crates/ris_data",
+    "crates/ris_error",
+    "crates/ris_file",
     "crates/ris_input",
     "crates/ris_jobs",
     "crates/ris_log",
@@ -45,6 +47,8 @@ shaderc = "0.8"
 ris_asset = { path = "crates/ris_asset" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
+ris_error = { path = "crates/ris_error" }
+ris_file = { path = "crates/ris_file" }
 ris_input = { path = "crates/ris_input" }
 ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }

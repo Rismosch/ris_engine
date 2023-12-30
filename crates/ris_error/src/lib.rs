@@ -88,8 +88,8 @@ macro_rules! unroll {
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
-        use ris_util::error::RisError;
-        use ris_util::error::SourceError;
+        use $crate::RisError;
+        use $crate::SourceError;
 
         match $result {
             Ok(value) => Ok(value),
@@ -118,9 +118,9 @@ macro_rules! unroll_option {
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
-        use ris_util::error::OptionError;
-        use ris_util::error::RisError;
-        use ris_util::error::SourceError;
+        use $crate::OptionError;
+        use $crate::RisError;
+        use $crate::SourceError;
 
         match $result {
             Some(value) => Ok(value),
@@ -138,12 +138,12 @@ macro_rules! unroll_option {
 }
 
 #[macro_export]
-macro_rules! new_err {
+macro_rules! new {
     ($($arg:tt)*) => {{
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
-        use ris_util::error::RisError;
+        use $crate::RisError;
 
         let source = None;
         let message = format!($($arg)*);
@@ -155,9 +155,9 @@ macro_rules! new_err {
 }
 
 #[macro_export]
-macro_rules! result_err {
+macro_rules! new_result {
     ($($arg:tt)*) => {{
-        let result = ris_util::new_err!($($arg)*);
+        let result = $crate::new!($($arg)*);
         Err(result)
     }};
 }

@@ -1,10 +1,10 @@
 [package]
-name = "ris_util"
+name = "ris_file"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = "0.34.5"
-ris_math = { path = "../ris_math" }
+chrono = "0.4"
+ris_error = { path = "../ris_error" }
