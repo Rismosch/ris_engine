@@ -109,7 +109,7 @@ try {
         git checkout -- .
 
         if ($cli_clean_value -eq $enum_clean_except_vendor) {
-            Write-Host "git clean -dxf -e `"vendor`"
+            Write-Host "git clean -dxf -e `"vendor`""
             git clean -dxf -e "vendor"
         } else {
             Write-Host "git clean -dxf"
