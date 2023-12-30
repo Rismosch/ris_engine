@@ -97,7 +97,7 @@ try {
         }
     }
 
-    Write-Host $enum_clean_except_vendor
+    Write-Host $cli_clean_value
 
     if ($cli_clean_value -ne $enum_clean_none) {
         Write-Host "cleaning workspace..."
