@@ -164,41 +164,44 @@ try {
         Set-Content -Path $cargo_config_path -Value $vendor_output
     }
 
-    Write-Host "find items to compress..."
+    if ($cli_compress_zip_value -eq $true) {
+        Write-Host "compressing zip..."
+        Write-Host "find items to compress..."
 
-    $all_items = Get-ChildItem -Path $root_dir -Name -Force
-    $items_to_compress = @()
+        $all_items = Get-ChildItem -Path $root_dir -Name -Force
+        $items_to_compress = @()
 
-    foreach($item in $all_items) {
-        if ($item -eq "ci_out") {
-            continue
+        foreach($item in $all_items) {
+            if ($item -eq "ci_out") {
+                continue
+            }
+
+            if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
+                continue
+            }
+
+            $items_to_compress += $item
         }
 
-        if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
-            continue
+        Write-Host "prepare compression..."
+
+        $archive_date = Get-Date -Format "yyyy_MM_dd"
+        $target_path = "$final_directory/ris_engine_$archive_date.zip"
+
+        $compress = @{
+        LiteralPath= $items_to_compress
+        CompressionLevel = "Optimal"
+        DestinationPath = $target_path
         }
 
-        $items_to_compress += $item
+        Write-Host "compressing..."
+
+        Compress-Archive @compress
     }
 
-    Write-Host "prepare compression..."
 
-    $archive_date = Get-Date -Format "yyyy_MM_dd"
-    $target_path = "$final_directory/ris_engine_$archive_date.zip"
-
-    $compress = @{
-    LiteralPath= $items_to_compress
-    CompressionLevel = "Optimal"
-    DestinationPath = $target_path
-    }
-
-    Write-Host "compressing..."
-
-    Compress-Archive @compress
-
-    $destination = Resolve-Path $target_path
-
-    Write-Host "done! final archive can be found under ``$destination``"
+    $destination = Resolve-Path $final_directory
+    Write-Host "done! compressed archives can be found under ``$destination``"
 }
 finally {
     Pop-Location
