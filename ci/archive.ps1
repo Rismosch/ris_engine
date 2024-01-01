@@ -199,6 +199,10 @@ try {
         Compress-Archive @compress
     }
 
+    if ($cli_compress_tgz_value -eq $true) {
+        Write-Host "compressing zip..."
+    }
+
 
     $destination = Resolve-Path $final_directory
     Write-Host "done! compressed archives can be found under ``$destination``"
