@@ -168,8 +168,8 @@ try {
 
     New-Item -Path $build_info_path -ItemType File -Value $build_info_content -Force | out-null
 
-    Write-Host "cleaning workspace..."
     if ($cli_cargo_clean_value -eq $true) {
+        Write-Host "cleaning workspace..."
         cargo clean
     }
     
