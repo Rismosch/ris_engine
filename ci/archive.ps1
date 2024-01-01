@@ -140,8 +140,8 @@ try {
 
         Write-Host "compressing..."
         $7z = "C:\Program Files\7-Zip\7z.exe"
-        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`"$7z`" a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!ci_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`"$7z`" a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!ci_out' -x'!.git' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
