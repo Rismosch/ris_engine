@@ -164,6 +164,8 @@ try {
         Set-Content -Path $cargo_config_path -Value $vendor_output
     }
 
+    $archive_was_generated = $false
+
     if ($cli_compress_zip_value -eq $true) {
         Write-Host "compressing zip..."
         Write-Host "find items to compress..."
@@ -189,23 +191,30 @@ try {
         $target_path = "$final_directory/ris_engine_$archive_date.zip"
 
         $compress = @{
-        LiteralPath= $items_to_compress
-        CompressionLevel = "Optimal"
-        DestinationPath = $target_path
+            LiteralPath= $items_to_compress
+            CompressionLevel = "Optimal"
+            DestinationPath = $target_path
         }
 
         Write-Host "compressing..."
 
         Compress-Archive @compress
+
+        $archive_was_generated = $true
     }
 
     if ($cli_compress_tgz_value -eq $true) {
         Write-Host "compressing tgz..."
+
+        $archive_was_generated = $true
     }
 
-
-    $destination = Resolve-Path $final_directory
-    Write-Host "done! compressed archives can be found under ``$destination``"
+    if ($archive_was_generated -e1 $true) {
+        $destination = Resolve-Path $final_directory
+        Write-Host "done! compressed archives can be found under ``$destination``"
+    } else {
+        Write-Host "done!
+    }
 }
 finally {
     Pop-Location
