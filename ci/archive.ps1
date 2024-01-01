@@ -167,7 +167,7 @@ try {
     $archive_was_generated = $false
 
     if ($cli_compress_zip_value -eq $true) {
-        Write-Host "compressing zip..."
+        Write-Host "start zip compression procedure..."
         Write-Host "find items to compress..."
 
         $all_items = Get-ChildItem -Path $root_dir -Name -Force
@@ -204,7 +204,16 @@ try {
     }
 
     if ($cli_compress_tgz_value -eq $true) {
-        Write-Host "compressing tgz..."
+        Write-Host "start tgz compression procedure..."
+        Write-Host "prepare compression..."
+
+        $archive_date = Get-Date -Format "yyyy_MM_dd"
+        $target_path = "$final_directory/ris_engine_$archive_date.zip"
+        $source_dir = Resolve-Path "."
+
+        Write-Host "compressing..."
+
+        tar -cvzf $target_path $source_dir
 
         $archive_was_generated = $true
     }
