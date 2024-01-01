@@ -184,7 +184,7 @@ try {
 
         Write-Host "compressing..."
 
-        Invoke-Item $7z a -tzip $target_path $source_dir
+        RunCommand ".`"$7z`" -mx9 a -tzip $target_path $source_dir"
 
         $archive_was_generated = $true
         

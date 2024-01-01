@@ -59,20 +59,6 @@ try {
     Write-Host "generating build info..."
     $build_info_path = "$PSScriptRoot/../crates/ris_data/src/info/build_info.rs"
 
-    function RunCommand {
-        param (
-            $command
-        )
-
-        try {
-            Write-Host "running command: $command"
-            return Invoke-Expression $command
-        }
-        catch {
-            return "error while running ``$command``"
-        }
-    }
-
     $git_repo = RunCommand "git config --get remote.origin.url"
     $git_commit = RunCommand "git rev-parse HEAD"
     $git_branch = RunCommand "git rev-parse --abbrev-ref HEAD"
