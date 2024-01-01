@@ -85,7 +85,6 @@ impl std::fmt::Display for OptionError {
 #[macro_export]
 macro_rules! unroll {
     ($result:expr, $($arg:tt)*) => {{
-        use std::backtrace::Backtrace;
         use std::sync::Arc;
 
         use $crate::RisError;
@@ -98,7 +97,7 @@ macro_rules! unroll {
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let backtrace = Arc::new(Backtrace::force_capture());
+                let backtrace = $crate::get_backtrace!();
                 let result = RisError::new(
                     source,
                     message,
@@ -115,7 +114,6 @@ macro_rules! unroll {
 #[macro_export]
 macro_rules! unroll_option {
     ($result:expr, $($arg:tt)*) => {{
-        use std::backtrace::Backtrace;
         use std::sync::Arc;
 
         use $crate::OptionError;
@@ -129,7 +127,7 @@ macro_rules! unroll_option {
                 let message = format!($($arg)*);
                 let file = String::from(file!());
                 let line = line!();
-                let backtrace = Arc::new(Backtrace::force_capture());
+                let backtrace = $crate::get_backtrace!();
                 let result = RisError::new(source, message, file, line, backtrace);
                 Err(result)
             },
@@ -140,16 +138,13 @@ macro_rules! unroll_option {
 #[macro_export]
 macro_rules! new {
     ($($arg:tt)*) => {{
-        use std::backtrace::Backtrace;
-        use std::sync::Arc;
-
         use $crate::RisError;
 
         let source = None;
         let message = format!($($arg)*);
         let file = String::from(file!());
         let line = line!();
-        let backtrace = Arc::new(Backtrace::force_capture());
+        let backtrace = $crate::get_backtrace!();
         RisError::new(source, message, file, line, backtrace)
     }};
 }
@@ -160,4 +155,21 @@ macro_rules! new_result {
         let result = $crate::new!($($arg)*);
         Err(result)
     }};
+}
+
+#[macro_export]
+macro_rules! get_backtrace {
+    () => {{
+        use std::backtrace::Backtrace;
+        use std::sync::Arc;
+
+        let backtrace = Arc::new(Backtrace::force_capture());
+        eprintln!(
+            "WARNING: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
+            file!(),
+            line!(),
+        );
+
+        backtrace
+    }}
 }

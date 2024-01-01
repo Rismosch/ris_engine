@@ -78,7 +78,7 @@ impl AssetLoaderCompiled {
         let entry = self
             .lookup
             .get(id)
-            .ok_or(ris_error::new!("asset does not exist"))?;
+            .ok_or_else(|| ris_error::new!("asset does not exist"))?;
         let f = &mut self.file;
         let mut bytes = vec![0u8; entry.len];
         ris_file::seek!(f, SeekFrom::Start(entry.addr))?;
