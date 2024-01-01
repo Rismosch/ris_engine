@@ -5,6 +5,14 @@ Import-Module "$PSScriptRoot/util.ps1" -force
 Push-Location $root_dir
 
 try {
+    Write-Host "checking preconditions..."
+    $7z = "C:\Program Files\7-Zip\7z.exe"
+    $7z_exists = Test-Path $7z
+    
+    if (!$7z_exists) {
+        throw "could not find ``$7z``"
+    }
+
     Write-Host "clearing destination directory..."
 
     $final_directory = GetAndClearCiOutDir
