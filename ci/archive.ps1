@@ -140,8 +140,8 @@ try {
 
         Write-Host "compressing..."
 
-        # RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
-        # RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
