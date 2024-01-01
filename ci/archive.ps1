@@ -29,15 +29,12 @@ try {
     $cli_no_include_git = "--no-include-git"
     $cli_include_git_value = $false
 
-    $enum_compress_none = 0
-    $enum_compress_tgz = 1
-    $enum_compress_zip = 2
-    $enum_compress_all = 3
     $cli_compress = "--compress"
     $cli_compress_zip = "--compress-zip"
     $cli_compress_tgz = "--compress-tgz"
     $cli_compress_none = "--compress-none"
-    $cli_compress_value = $enum_compress_all
+    $cli_compress_zip_value = $true
+    $cli_compress_tgz_value = $true
 
     if ($args.length -eq 0) {
         Write-Host ""
@@ -49,7 +46,7 @@ try {
         Write-Host "    $cli_default              skips user input and uses default values for everything below"
         Write-Host ""
         Write-Host "    $cli_clean                cleans the repo by running a combination of `git` commands"
-        Write-Host "    $cli_clean_except_vendor  cleans the repo, but ignores `"./vendor`"` and `"./.cargo`""
+        Write-Host "    $cli_clean_except_vendor  cleans the repo, but ignores ``./vendor``` and ``./.cargo``"
         Write-Host "    $cli_no_clean             does not clean the workspace (default)"
         Write-Host ""
         Write-Host "    $cli_vendor               downloads dependencies using ``cargo vendor`` and prepares the workspace accordingly"
@@ -88,6 +85,22 @@ try {
         if ($user_input.ToLower() -eq "y") {
             $cli_include_git_value = $true
         }
+
+        $user_input = Read-Host "how should be compressed?`n (0) dont compress`n (1) ``.zip```n (2) ``.tgz```n (3) ``.zip`` and ``.tgz`` (default)`n"
+        if ($user_input -eq "0") {
+            $cli_compress_zip_value = $false
+            $cli_compress_tgz_value = $false
+        } elseif ($user_input -eq "1") {
+            $cli_compress_zip_value = $true
+            $cli_compress_tgz_value = $false
+        } elseif ($user_input -eq "2") {
+            $cli_compress_zip_value = $false
+            $cli_compress_tgz_value = $true
+        } elseif ($user_input -eq "3") {
+            $cli_compress_zip_value = $true
+            $cli_compress_tgz_value = $true
+        }
+
     } else {
         for($i = 0; $i -lt $args.length; ++$i) {
             $arg = $args[$i]
@@ -100,12 +113,14 @@ try {
                 $cli_no_include_git { $cli_include_git_value = $false }
                 $cli_vendor { $cli_vendor_value = $true }
                 $cli_no_vendor { $cli_vendor_value = $false }
+                $cli_compress { $cli_compress_zip_value = $true; $cli_compress_zip_value = $true; }
+                $cli_compress_zip { $cli_compress_zip_value = $true; $cli_compress_tgz_value = $false; }
+                $cli_compress_tgz { $cli_compress_zip_value = $false; $cli_compress_tgz_value = $true; }
+                $cli_compress_none { $cli_compress_zip_value = $false; $cli_compress_tgz_value = $false; }
                 default { throw "unkown cli arg: $arg" }
             }
         }
     }
-
-    exit
 
     if ($cli_clean_value -ne $enum_clean_none) {
         Write-Host "cleaning workspace..."
