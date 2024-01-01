@@ -34,11 +34,8 @@ try {
     $cli_vendor_value = $false
 
     $cli_compress = "--compress"
-    $cli_compress_zip = "--compress-zip"
-    $cli_compress_tgz = "--compress-tgz"
     $cli_compress_none = "--compress-none"
-    $cli_compress_zip_value = $true
-    $cli_compress_tgz_value = $true
+    $cli_compress_value = $false
 
     if ($args.length -eq 0) {
         Write-Host ""
@@ -56,10 +53,8 @@ try {
         Write-Host "    $cli_vendor               downloads dependencies using ``cargo vendor`` and prepares the workspace accordingly"
         Write-Host "    $cli_no_vendor            does not download dependencies (default)"
         Write-Host ""
-        Write-Host "    $cli_compress             compresses the repo to ``.zip`` and ``.tgz`` (default)"
-        Write-Host "    $cli_compress_zip         compresses the repo to ``.zip``"
-        Write-Host "    $cli_compress_tgz         compresses the repo to ``.tgz``"
-        Write-Host "    $cli_compress_none        does not compress the repo"
+        Write-Host "    $cli_compress             compresses the repo"
+        Write-Host "    $cli_compress_none        does not compress the repo (default)"
         Write-Host ""
         Write-Host ""
         Write-Host ""
@@ -82,19 +77,9 @@ try {
             $cli_vendor_value = $true
         }
 
-        $user_input = Read-Host "how should be compressed?`n (0) dont compress`n (1) ``.zip```n (2) ``.tgz```n (3) ``.zip`` and ``.tgz`` (default)`n"
-        if ($user_input -eq "0") {
-            $cli_compress_zip_value = $false
-            $cli_compress_tgz_value = $false
-        } elseif ($user_input -eq "1") {
-            $cli_compress_zip_value = $true
-            $cli_compress_tgz_value = $false
-        } elseif ($user_input -eq "2") {
-            $cli_compress_zip_value = $false
-            $cli_compress_tgz_value = $true
-        } elseif ($user_input -eq "3") {
-            $cli_compress_zip_value = $true
-            $cli_compress_tgz_value = $true
+        $user_input = Read-Host "should be compressed? (y/N)"
+        if ($user_input.ToLower() -eq "y") {
+            $cli_compress_value = $true
         }
 
     } else {
@@ -107,10 +92,8 @@ try {
                 $cli_no_clean { $cli_clean_value = $enum_clean_none }
                 $cli_vendor { $cli_vendor_value = $true }
                 $cli_no_vendor { $cli_vendor_value = $false }
-                $cli_compress { $cli_compress_zip_value = $true; $cli_compress_zip_value = $true; }
-                $cli_compress_zip { $cli_compress_zip_value = $true; $cli_compress_tgz_value = $false; }
-                $cli_compress_tgz { $cli_compress_zip_value = $false; $cli_compress_tgz_value = $true; }
-                $cli_compress_none { $cli_compress_zip_value = $false; $cli_compress_tgz_value = $false; }
+                $cli_compress { $cli_compress_value = $true }
+                $cli_compress_none { $cli_compress_value = $false }
                 default { throw "unkown cli arg: $arg" }
             }
         }
@@ -158,80 +141,22 @@ try {
         Set-Content -Path $cargo_config_path -Value $vendor_output
     }
 
-    $archive_was_generated = $false
-
-    if ($cli_compress_zip_value -eq $true) {
-        Write-Host "start zip compression procedure..."
+    if ($cli_compress_value -eq $true) {
         Write-Host "prepare compression..."
 
         $archive_date = Get-Date -Format "yyyy_MM_dd"
-        $target_path = "$final_directory/ris_engine_$archive_date.zip"
-        $source_dir = Resolve-Path "."
-        $ci_out_dir = Resolve-Path "./ci_out"
-        $git_dir = Resolve-Path "./.git"
+        $target_path = "$final_directory/ris_engine_$archive_date"
 
-        Write-Host "compressing..."
+        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.tgz *"
 
-        RunCommand ".`"$7z`" a -tzip $target_path $source_dir -x!$ci_out_dir -x!$git_dir"
-
-        $archive_was_generated = $true
-        
-        # Write-Host "find items to compress..."
-        # 
-        # $all_items = Get-ChildItem -Path $root_dir -Name -Force
-        # $items_to_compress = @()
-        # 
-        # foreach($item in $all_items) {
-        #     if ($item -eq "ci_out") {
-        #         continue
-        #     }
-        # 
-        #     if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
-        #         continue
-        #     }
-        # 
-        #     $items_to_compress += $item
-        # }
-        # 
-        # Write-Host "prepare compression..."
-        # 
-        # $archive_date = Get-Date -Format "yyyy_MM_dd"
-        # $target_path = "$final_directory/ris_engine_$archive_date.zip"
-        # 
-        # $compress = @{
-        #     LiteralPath= $items_to_compress
-        #     CompressionLevel = "Optimal"
-        #     DestinationPath = $target_path
-        # }
-        # 
-        # Write-Host "compressing..."
-        # 
-        # Compress-Archive @compress
-        # 
-        # $archive_was_generated = $true
-    }
-
-    if ($cli_compress_tgz_value -eq $true) {
-        Write-Host "start tgz compression procedure..."
-        Write-Host "prepare compression..."
-
-        $archive_date = Get-Date -Format "yyyy_MM_dd"
-        $target_path = "$final_directory/ris_engine_$archive_date.tgz"
-        $source_dir = Resolve-Path "."
-
-        Write-Host "compressing..."
-
-        tar -czf $target_path -C $source_dir .
-
-        $archive_was_generated = $true
-    }
-
-    if ($archive_was_generated -eq $true) {
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
     } else {
         Write-Host "done!"
     }
+
 }
 finally {
     Pop-Location
