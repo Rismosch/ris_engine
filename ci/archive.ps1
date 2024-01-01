@@ -176,39 +176,51 @@ try {
 
     if ($cli_compress_zip_value -eq $true) {
         Write-Host "start zip compression procedure..."
-        Write-Host "find items to compress..."
-
-        $all_items = Get-ChildItem -Path $root_dir -Name -Force
-        $items_to_compress = @()
-
-        foreach($item in $all_items) {
-            if ($item -eq "ci_out") {
-                continue
-            }
-
-            if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
-                continue
-            }
-
-            $items_to_compress += $item
-        }
-
         Write-Host "prepare compression..."
 
         $archive_date = Get-Date -Format "yyyy_MM_dd"
         $target_path = "$final_directory/ris_engine_$archive_date.zip"
-
-        $compress = @{
-            LiteralPath= $items_to_compress
-            CompressionLevel = "Optimal"
-            DestinationPath = $target_path
-        }
+        $source_dir = Resolve-Path "."
 
         Write-Host "compressing..."
 
-        Compress-Archive @compress
+        Invoke-Item "$7z a -tzip $target_path $source_dir"
 
         $archive_was_generated = $true
+        
+        # Write-Host "find items to compress..."
+        # 
+        # $all_items = Get-ChildItem -Path $root_dir -Name -Force
+        # $items_to_compress = @()
+        # 
+        # foreach($item in $all_items) {
+        #     if ($item -eq "ci_out") {
+        #         continue
+        #     }
+        # 
+        #     if (($cli_include_git_value -eq $false) -and ($item -eq ".git")) {
+        #         continue
+        #     }
+        # 
+        #     $items_to_compress += $item
+        # }
+        # 
+        # Write-Host "prepare compression..."
+        # 
+        # $archive_date = Get-Date -Format "yyyy_MM_dd"
+        # $target_path = "$final_directory/ris_engine_$archive_date.zip"
+        # 
+        # $compress = @{
+        #     LiteralPath= $items_to_compress
+        #     CompressionLevel = "Optimal"
+        #     DestinationPath = $target_path
+        # }
+        # 
+        # Write-Host "compressing..."
+        # 
+        # Compress-Archive @compress
+        # 
+        # $archive_was_generated = $true
     }
 
     if ($cli_compress_tgz_value -eq $true) {
