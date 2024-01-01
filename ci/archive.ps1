@@ -200,7 +200,7 @@ try {
     }
 
     if ($cli_compress_tgz_value -eq $true) {
-        Write-Host "compressing zip..."
+        Write-Host "compressing tgz..."
     }
 
 
