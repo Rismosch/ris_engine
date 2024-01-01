@@ -209,7 +209,7 @@ try {
         $archive_was_generated = $true
     }
 
-    if ($archive_was_generated -e1 $true) {
+    if ($archive_was_generated -eq $true) {
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
     } else {
