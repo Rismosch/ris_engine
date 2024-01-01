@@ -212,8 +212,9 @@ try {
         $source_dir = Resolve-Path "."
 
         Write-Host "compressing..."
+        Write-Host "tar -czf $target_path $source_dir"
 
-        tar -czf $target_path $source_dir
+        tar -czf $target_path -C $source_dir .
 
         $archive_was_generated = $true
     }
