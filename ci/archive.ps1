@@ -33,10 +33,6 @@ try {
     $cli_no_vendor = "--no-vendor"
     $cli_vendor_value = $false
 
-    $cli_include_git = "--include-git"
-    $cli_no_include_git = "--no-include-git"
-    $cli_include_git_value = $false
-
     $cli_compress = "--compress"
     $cli_compress_zip = "--compress-zip"
     $cli_compress_tgz = "--compress-tgz"
@@ -59,9 +55,6 @@ try {
         Write-Host ""
         Write-Host "    $cli_vendor               downloads dependencies using ``cargo vendor`` and prepares the workspace accordingly"
         Write-Host "    $cli_no_vendor            does not download dependencies (default)"
-        Write-Host ""
-        Write-Host "    $cli_include_git          include the ``./.git`` directory in the resulting archive"
-        Write-Host "    $cli_no_include_git       does not include the ``./.git`` directory in the resulting archive (default)"
         Write-Host ""
         Write-Host "    $cli_compress             compresses the repo to ``.zip`` and ``.tgz`` (default)"
         Write-Host "    $cli_compress_zip         compresses the repo to ``.zip``"
@@ -89,11 +82,6 @@ try {
             $cli_vendor_value = $true
         }
 
-        $user_input = Read-Host "should the ``./.git`` directory be included in the resulting archive? (y/N)"
-        if ($user_input.ToLower() -eq "y") {
-            $cli_include_git_value = $true
-        }
-
         $user_input = Read-Host "how should be compressed?`n (0) dont compress`n (1) ``.zip```n (2) ``.tgz```n (3) ``.zip`` and ``.tgz`` (default)`n"
         if ($user_input -eq "0") {
             $cli_compress_zip_value = $false
@@ -117,8 +105,6 @@ try {
                 $cli_clean { $cli_clean_value = $enum_clean_all }
                 $cli_clean_except_vendor { $cli_clean_value = $enum_clean_except_vendor }
                 $cli_no_clean { $cli_clean_value = $enum_clean_none }
-                $cli_include_git { $cli_include_git_value = $true }
-                $cli_no_include_git { $cli_include_git_value = $false }
                 $cli_vendor { $cli_vendor_value = $true }
                 $cli_no_vendor { $cli_vendor_value = $false }
                 $cli_compress { $cli_compress_zip_value = $true; $cli_compress_zip_value = $true; }
@@ -181,10 +167,12 @@ try {
         $archive_date = Get-Date -Format "yyyy_MM_dd"
         $target_path = "$final_directory/ris_engine_$archive_date.zip"
         $source_dir = Resolve-Path "."
+        $ci_out_dir = Resolve-Path "./ci_out"
+        $git_dir = Resolve-Path "./.git"
 
         Write-Host "compressing..."
 
-        RunCommand ".`"$7z`" -mx9 a -tzip $target_path $source_dir -x'!ci_out'"
+        RunCommand ".`"$7z`" -mx9 a -tzip $target_path $source_dir -x'!$ci_out_dir' -x'!$git_dir'"
 
         $archive_was_generated = $true
         
