@@ -213,7 +213,7 @@ try {
 
         Write-Host "compressing..."
 
-        tar -cvzf $target_path $source_dir
+        tar -czf $target_path $source_dir
 
         $archive_was_generated = $true
     }
