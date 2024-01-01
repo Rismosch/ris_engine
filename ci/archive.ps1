@@ -184,7 +184,7 @@ try {
 
         Write-Host "compressing..."
 
-        RunCommand ".`"$7z`" -mx9 a -tzip $target_path $source_dir"
+        RunCommand ".`"$7z`" -mx9 a -tzip $target_path $source_dir -x'!ci_out'"
 
         $archive_was_generated = $true
         
