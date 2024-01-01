@@ -9,8 +9,6 @@ use chrono::Local;
 
 use ris_error::RisResult;
 
-use crate as ris_util;
-
 pub struct FallbackFileAppend {
     current_file: File,
 }

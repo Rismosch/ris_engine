@@ -2,8 +2,8 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use ris_util::error::RisResult;
-use ris_util::fallback_file::FallbackFileOverwrite;
+use ris_error::RisResult;
+use ris_file::fallback_file::FallbackFileOverwrite;
 
 use crate::info::app_info::AppInfo;
 use crate::settings::key;
@@ -75,14 +75,14 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.workers));
     yaml.add_empty();
 
-    let string = ris_util::unroll!(yaml.to_string(), "failed to serialize yaml",)?;
+    let string = ris_error::unroll!(yaml.to_string(), "failed to serialize yaml",)?;
 
     let bytes = string.as_bytes().to_vec();
     Ok(bytes)
 }
 
 fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
-    let string = ris_util::unroll!(String::from_utf8(bytes.to_vec()), "failed to parse bytes",)?;
+    let string = ris_error::unroll!(String::from_utf8(bytes.to_vec()), "failed to parse bytes",)?;
 
     let mut result = Settings::default();
     let yaml = RisYaml::from(&string)?;
@@ -97,7 +97,7 @@ fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
 
         match key.as_str() {
             key::JOB_WORKERS => result.job.workers = parse(value, line)?,
-            _ => return ris_util::result_err!("unkown key at line {}", i),
+            _ => return ris_error::new_result!("unkown key at line {}", i),
         }
     }
 

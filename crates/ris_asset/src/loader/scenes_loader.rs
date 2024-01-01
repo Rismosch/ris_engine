@@ -1,4 +1,4 @@
-use ris_util::error::RisError;
+use ris_error::RisResult;
 
 use crate::loader::ris_loader;
 use crate::AssetId;
@@ -13,8 +13,8 @@ pub struct Material {
     pub fragment_shader: AssetId,
 }
 
-pub fn load(bytes: &[u8]) -> Result<Scenes, RisError> {
-    let data = ris_util::unroll_option!(
+pub fn load(bytes: &[u8]) -> RisResult<Scenes> {
+    let data = ris_error::unroll_option!(
         ris_loader::load(bytes)?,
         "failed to load ris asset from scenes"
     )?;

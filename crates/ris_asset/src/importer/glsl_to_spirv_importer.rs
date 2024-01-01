@@ -2,7 +2,7 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
 
-use ris_util::error::RisResult;
+use ris_error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
 pub const OUT_EXT: &str = "spirv";
@@ -12,27 +12,27 @@ pub fn import(
     input: &mut (impl Read + Seek),
     output: &mut (impl Write + Seek),
 ) -> RisResult<()> {
-    let file_size = ris_util::seek!(input, SeekFrom::End(0))?;
-    ris_util::seek!(input, SeekFrom::Start(0))?;
+    let file_size = ris_file::seek!(input, SeekFrom::End(0))?;
+    ris_file::seek!(input, SeekFrom::Start(0))?;
     let mut file_content = vec![0u8; file_size as usize];
-    ris_util::read!(input, file_content)?;
-    let source_text = ris_util::unroll!(
+    ris_file::read!(input, file_content)?;
+    let source_text = ris_error::unroll!(
         String::from_utf8(file_content),
         "failed to convert source to string",
     )?;
 
-    let compiler = ris_util::unroll_option!(
+    let compiler = ris_error::unroll_option!(
         shaderc::Compiler::new(),
         "failed to initialize shaderc compiler"
     )?;
-    let mut options = ris_util::unroll_option!(
+    let mut options = ris_error::unroll_option!(
         shaderc::CompileOptions::new(),
         "failed to initialize shaderc options"
     )?;
     options.set_warnings_as_errors();
     options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
-    let artifact = ris_util::unroll!(
+    let artifact = ris_error::unroll!(
         compiler.compile_into_spirv(
             &source_text,
             shaderc::ShaderKind::InferFromSource,
@@ -44,7 +44,7 @@ pub fn import(
         filename
     )?;
     let bytes = artifact.as_binary_u8();
-    ris_util::write!(output, bytes)?;
+    ris_file::write!(output, bytes)?;
 
     Ok(())
 }

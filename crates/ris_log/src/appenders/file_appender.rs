@@ -3,8 +3,8 @@ use std::path::Path;
 
 use sdl2::messagebox::MessageBoxFlag;
 
-use ris_util::error::RisResult;
-use ris_util::fallback_file::FallbackFileAppend;
+use ris_error::RisResult;
+use ris_file::fallback_file::FallbackFileAppend;
 
 const LOG_EXTENSION: &str = ".log";
 const OLD_LOG_COUNT: usize = 10;
