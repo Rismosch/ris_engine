@@ -13,6 +13,7 @@ use ris_data::god_state::GodStateCommand;
 use ris_data::god_state::GodStateRef;
 use ris_data::input::action;
 use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::general_logic::GeneralLogicArgs;
@@ -24,7 +25,6 @@ use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
-use ris_util::error::RisResult;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
@@ -173,7 +173,7 @@ impl LogicFrame {
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
                 ris_log::fatal!("manual crash requested");
-                return ris_util::result_err!("manual crash");
+                return ris_error::new_result!("manual crash");
             }
         } else {
             self.crash_timestamp = Instant::now();

@@ -1,8 +1,8 @@
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodStateRef;
 use ris_data::god_state::InnerGodState;
+use ris_error::RisResult;
 use ris_jobs::job_system;
-use ris_util::error::RisResult;
 
 use crate::god_object::GodObject;
 

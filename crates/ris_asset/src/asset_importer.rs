@@ -69,7 +69,7 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
                 png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
                 // insert new inporter here...
                 _ => {
-                    return ris_util::result_err!(
+                    return ris_error::new_result!(
                         "failed to deduce importer. unkown extension: {}",
                         source_extension
                     )
@@ -129,7 +129,7 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
     }
 }
 
-pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), RisError> {
+pub fn import_all(source_directory: &str, target_directory: &str) -> RisResult<()> {
     let mut directories = std::collections::VecDeque::new();
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
@@ -189,7 +189,7 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> Result<(), 
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {
-                return ris_util::result_err!(
+                return ris_error::new_result!(
                     "entry {:?} is neither a file nor a directory",
                     entry_path,
                 );

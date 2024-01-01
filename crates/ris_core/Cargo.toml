@@ -10,6 +10,7 @@ chrono = "0.4"
 sdl2 = "0.34.5"
 ris_asset = { path = "../ris_asset" }
 ris_data = { path = "../ris_data" }
+ris_error = { path = "../ris_error" }
 ris_input = { path = "../ris_input" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }

@@ -11,7 +11,7 @@ use vulkano::pipeline::Pipeline;
 use vulkano::pipeline::PipelineBindPoint;
 use vulkano::render_pass::Framebuffer;
 
-use ris_util::error::RisError;
+use ris_error::RisResult;
 
 pub fn create_command_buffers(
     allocators: &crate::allocators::Allocators,
@@ -19,13 +19,13 @@ pub fn create_command_buffers(
     pipeline: &Arc<GraphicsPipeline>,
     framebuffers: &[Arc<Framebuffer>],
     buffers: &crate::buffers::Buffers,
-) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, RisError> {
+) -> RisResult<Vec<Arc<PrimaryAutoCommandBuffer>>> {
     let mut command_buffers = Vec::new();
 
     for (i, framebuffer) in framebuffers.iter().enumerate() {
         let pipeline_layout = pipeline.layout();
 
-        let mut builder = ris_util::unroll!(
+        let mut builder = ris_error::unroll!(
             AutoCommandBufferBuilder::primary(
                 &allocators.command_buffer,
                 queue.queue_family_index(),
@@ -42,7 +42,7 @@ pub fn create_command_buffers(
                 },
                 SubpassContents::Inline,
             )
-            .map_err(|e| ris_util::new_err!("failed to begin render pass: {}", e))?
+            .map_err(|e| ris_error::new!("failed to begin render pass: {}", e))?
             .bind_pipeline_graphics(pipeline.clone())
             .bind_vertex_buffers(0, buffers.vertex.clone())
             .bind_index_buffer(buffers.index.clone())
@@ -53,14 +53,14 @@ pub fn create_command_buffers(
                 buffers.uniforms[i].1.clone(),
             )
             .draw_indexed(buffers.index.len() as u32, 1, 0, 0, 0)
-            .map_err(|e| ris_util::new_err!("failed to draw: {}", e))?
+            .map_err(|e| ris_error::new!("failed to draw: {}", e))?
             .end_render_pass()
-            .map_err(|e| ris_util::new_err!("failed to end render pass: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to end render pass: {}", e))?;
 
         let command_buffer = Arc::new(
             builder
                 .build()
-                .map_err(|e| ris_util::new_err!("failed to build command buffer: {}", e))?,
+                .map_err(|e| ris_error::new!("failed to build command buffer: {}", e))?,
         );
 
         command_buffers.push(command_buffer);

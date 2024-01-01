@@ -10,6 +10,7 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
+use ris_error::RisResult;
 use ris_log::appenders::console_appender::ConsoleAppender;
 use ris_log::appenders::file_appender::FileAppender;
 use ris_log::log;
@@ -17,7 +18,6 @@ use ris_log::log::Appenders;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
-use ris_util::error::RisResult;
 
 pub const RESTART_CODE: i32 = 42;
 
@@ -123,8 +123,8 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
             command.arg(arg);
         }
 
-        let child = ris_util::unroll!(command.spawn(), "child could not be spawned")?;
-        let output = ris_util::unroll!(child.wait_with_output(), "child could not be awaited")?;
+        let child = ris_error::unroll!(command.spawn(), "child could not be spawned")?;
+        let output = ris_error::unroll!(child.wait_with_output(), "child could not be awaited")?;
 
         let exit_code = if let Some(code) = output.status.code() {
             eprintln!("process finished with code {}", code);
@@ -149,7 +149,7 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
             match output_string {
                 Ok(to_print) => eprintln!("{}", to_print),
                 Err(error) => {
-                    return ris_util::result_err!("error while formatting output.stderr: {}", error)
+                    return ris_error::new_result!("error while formatting output.stderr: {}", error)
                 }
             }
 

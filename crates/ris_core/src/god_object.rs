@@ -14,9 +14,9 @@ use ris_data::god_state::InnerGodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_util::error::RisResult;
 use ris_video::video::Video;
 
 use crate::logic_frame::LogicFrame;
@@ -96,17 +96,17 @@ impl GodObject {
 
         // sdl
         let sdl_context =
-            sdl2::init().map_err(|e| ris_util::new_err!("failed to init sdl2: {}", e))?;
+            sdl2::init().map_err(|e| ris_error::new!("failed to init sdl2: {}", e))?;
         let event_pump = sdl_context
             .event_pump()
-            .map_err(|e| ris_util::new_err!("failed to get event pump: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to get event pump: {}", e))?;
         let controller_subsystem = sdl_context
             .game_controller()
-            .map_err(|e| ris_util::new_err!("failed to get controller subsystem: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = ris_util::unroll!(
+        let scenes_bytes = ris_error::unroll!(
             asset_loader::load(scenes_id).wait(),
             "failed to load ris_scenes"
         )?;

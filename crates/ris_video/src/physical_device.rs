@@ -7,14 +7,14 @@ use vulkano::device::QueueFlags;
 use vulkano::instance::Instance;
 use vulkano::swapchain::Surface;
 
-use ris_util::error::RisError;
+use ris_error::RisResult;
 
 pub fn select_physical_device(
     instance: &Arc<Instance>,
     surface: &Arc<Surface>,
     device_extensions: &DeviceExtensions,
-) -> Result<(Arc<PhysicalDevice>, u32), RisError> {
-    let available_devices = ris_util::unroll!(
+) -> RisResult<(Arc<PhysicalDevice>, u32)> {
+    let available_devices = ris_error::unroll!(
         instance.enumerate_physical_devices(),
         "failed to enumerate_physical_devices"
     )?
@@ -43,7 +43,7 @@ pub fn select_physical_device(
 
     ris_log::info!("{}", log_string);
 
-    let result = ris_util::unroll_option!(
+    let result = ris_error::unroll_option!(
         available_devices
             .into_iter()
             .min_by_key(|(p, _)| match p.properties().device_type {

@@ -271,7 +271,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         "failed to read to the end"
     )?;
     if read_bytes != orig_paths_len as usize {
-        return ris_util::result_err!(
+        return ris_error::new_result!(
             "expected to read {} bytes but actually read{}",
             orig_paths_len,
             read_bytes
@@ -322,7 +322,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                 for (j, reference) in ris_asset.references.iter().enumerate() {
                     match reference {
                         crate::AssetId::Directory(_id) => {
-                            return ris_util::result_err!(
+                            return ris_error::new_result!(
                                 "attempted to decompile an already decompiled asset"
                             );
                         }
