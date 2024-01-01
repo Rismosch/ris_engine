@@ -5,14 +5,6 @@ Import-Module "$PSScriptRoot/util.ps1" -force
 Push-Location $root_dir
 
 try {
-    Write-Host "checking preconditions..."
-    $7z = "C:\Program Files\7-Zip\7z.exe"
-    $7z_exists = Test-Path $7z
-    
-    if (!$7z_exists) {
-        throw "could not find ``$7z``"
-    }
-
     Write-Host "clearing destination directory..."
 
     $final_directory = GetAndClearCiOutDir
@@ -142,14 +134,23 @@ try {
     }
 
     if ($cli_compress_value -eq $true) {
-        Write-Host "prepare compression..."
-
+        Write-Host "prepare compression for zip..."
         $archive_date = Get-Date -Format "yyyy_MM_dd"
         $target_path = "$final_directory/ris_engine_$archive_date"
 
-        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
-        RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.tgz *"
+        Write-Host "compressing..."
+
+        # RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
+        # RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
+        
+        Write-Host "prepare compression for tgz..."
+        
+        $target_path = $target_path.Replace('\','/').Replace('C:','/mnt/c')
+        $source_dir = Resolve-Path "."
+        $source_dir = "$source_dir".Replace('\','/').Replace('C:','/mnt/c')
+
+        Write-Host "compressing..."
+        RunCommand "wsl tar --exclude='ci_out' --exclude='.git' -czf $target_path.tgz -C $source_dir ."
 
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
