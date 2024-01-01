@@ -213,7 +213,7 @@ try {
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
     } else {
-        Write-Host "done!
+        Write-Host "done!"
     }
 }
 finally {
