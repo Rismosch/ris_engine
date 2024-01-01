@@ -13,9 +13,9 @@ try {
 
     $cli_default = "--default"
 
-    $enum_clean_all = 2
-    $enum_clean_except_vendor = 1
     $enum_clean_none = 0
+    $enum_clean_except_vendor = 1
+    $enum_clean_all = 2
     $cli_clean = "--clean"
     $cli_clean_except_vendor = "--clean-except-vendor"
     $cli_no_clean = "--no-clean"
@@ -29,6 +29,16 @@ try {
     $cli_no_include_git = "--no-include-git"
     $cli_include_git_value = $false
 
+    $enum_compress_none = 0
+    $enum_compress_tgz = 1
+    $enum_compress_zip = 2
+    $enum_compress_all = 3
+    $cli_compress = "--compress"
+    $cli_compress_zip = "--compress-zip"
+    $cli_compress_tgz = "--compress-tgz"
+    $cli_compress_none = "--compress-none"
+    $cli_compress_value = $enum_compress_all
+
     if ($args.length -eq 0) {
         Write-Host ""
         Write-Host $purpose
@@ -38,8 +48,8 @@ try {
         Write-Host "available args:"
         Write-Host "    $cli_default              skips user input and uses default values for everything below"
         Write-Host ""
-        Write-Host "    $cli_clean                cleans the workspace by running a combination of `git` commands"
-        Write-Host "    $cli_clean_except_vendor  cleans the workspace, but ignores `"./vendor`"` and `"./.cargo`""
+        Write-Host "    $cli_clean                cleans the repo by running a combination of `git` commands"
+        Write-Host "    $cli_clean_except_vendor  cleans the repo, but ignores `"./vendor`"` and `"./.cargo`""
         Write-Host "    $cli_no_clean             does not clean the workspace (default)"
         Write-Host ""
         Write-Host "    $cli_vendor               downloads dependencies using ``cargo vendor`` and prepares the workspace accordingly"
@@ -47,6 +57,11 @@ try {
         Write-Host ""
         Write-Host "    $cli_include_git          include the ``./.git`` directory in the resulting archive"
         Write-Host "    $cli_no_include_git       does not include the ``./.git`` directory in the resulting archive (default)"
+        Write-Host ""
+        Write-Host "    $cli_compress             compresses the repo to ``.zip`` and ``.tgz`` (default)"
+        Write-Host "    $cli_compress_zip         compresses the repo to ``.zip``"
+        Write-Host "    $cli_compress_tgz         compresses the repo to ``.tgz``"
+        Write-Host "    $cli_compress_none        does not compress the repo"
         Write-Host ""
         Write-Host ""
         Write-Host ""
@@ -89,6 +104,8 @@ try {
             }
         }
     }
+
+    exit
 
     if ($cli_clean_value -ne $enum_clean_none) {
         Write-Host "cleaning workspace..."
