@@ -139,7 +139,7 @@ try {
         $target_path = "$final_directory/ris_engine_$archive_date"
 
         Write-Host "compressing..."
-
+        $7z = "C:\Program Files\7-Zip\7z.exe"
         RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.7z *"
         RunCommand ".`"$7z`" a -x'!ci_out' -x'!.git' $target_path.zip *"
         
