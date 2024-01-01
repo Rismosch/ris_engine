@@ -82,10 +82,11 @@ impl Renderer {
 
         // instance
         let library = ris_error::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
-        let instance_extensions =
-            InstanceExtensions::from_iter(window.vulkan_instance_extensions().map_err(|e| {
-                ris_error::new!("failed to get vulkan instance extensions: {}", e)
-            })?);
+        let instance_extensions = InstanceExtensions::from_iter(
+            window
+                .vulkan_instance_extensions()
+                .map_err(|e| ris_error::new!("failed to get vulkan instance extensions: {}", e))?,
+        );
 
         let instance = ris_error::unroll!(
             Instance::new(
@@ -325,4 +326,3 @@ impl Renderer {
         Ok(())
     }
 }
-

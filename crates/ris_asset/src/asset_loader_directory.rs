@@ -19,11 +19,8 @@ impl AssetLoaderDirectory {
         path.push(&self.base_path);
         path.push(id);
 
-        let mut file = ris_error::unroll!(
-            File::open(&path),
-            "failed to open file \"{:?}\"",
-            &path,
-        )?;
+        let mut file =
+            ris_error::unroll!(File::open(&path), "failed to open file \"{:?}\"", &path,)?;
         let file_size = ris_file::seek!(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
         ris_file::seek!(&mut file, SeekFrom::Start(0))?;

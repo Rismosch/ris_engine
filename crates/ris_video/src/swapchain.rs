@@ -98,4 +98,3 @@ pub fn create_framebuffers(
 
     Ok(framebuffers)
 }
-

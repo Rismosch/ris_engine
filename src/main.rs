@@ -149,7 +149,10 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
             match output_string {
                 Ok(to_print) => eprintln!("{}", to_print),
                 Err(error) => {
-                    return ris_error::new_result!("error while formatting output.stderr: {}", error)
+                    return ris_error::new_result!(
+                        "error while formatting output.stderr: {}",
+                        error
+                    )
                 }
             }
 

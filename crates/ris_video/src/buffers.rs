@@ -11,8 +11,8 @@ use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
 
-use ris_math::color;
 use ris_error::RisResult;
+use ris_math::color;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::gpu_objects::Vertex3d;
