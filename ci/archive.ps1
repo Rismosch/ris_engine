@@ -51,7 +51,7 @@ try {
         Write-Host ""
         Write-Host "Default values are chosen to make minimal to no changes to the workspace."
         Write-Host "I recommend calling this script with these settings:"
-        Write-Host "    $cli_clean"
+        Write-Host "    $cli_clean_except_vendor"
         Write-Host "    $cli_vendor"
         Write-Host "    $cli_no_include_git"
         Write-Host ""
