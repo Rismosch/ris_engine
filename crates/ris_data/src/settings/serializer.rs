@@ -72,7 +72,7 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     let mut yaml = RisYaml::default();
 
     yaml.add_comment("jobs");
-    yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.workers));
+    yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.get_workers()));
     yaml.add_empty();
 
     let string = ris_error::unroll!(yaml.to_string(), "failed to serialize yaml",)?;
@@ -96,7 +96,7 @@ fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
         };
 
         match key.as_str() {
-            key::JOB_WORKERS => result.job.workers = parse(value, line)?,
+            key::JOB_WORKERS => result.job.set_workers(parse(value, line)?),
             _ => return ris_error::new_result!("unkown key at line {}", i),
         }
     }
