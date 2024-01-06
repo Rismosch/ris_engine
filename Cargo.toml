@@ -18,7 +18,20 @@ default-run = "ris_engine"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-miri_dependencies = ["compiler_builtins", "rustc-demangle", "dlmalloc", "addr2line", "object", "hermit-abi", "r-efi", "r-efi-alloc", "fortanix-sgx-abi", "allocator-api2", "memchr", "getopts"]
+miri_dependencies = [
+    "compiler_builtins",
+    "rustc-demangle",
+    "dlmalloc",
+    "addr2line",
+    "object",
+    "hermit-abi",
+    "r-efi",
+    "r-efi-alloc",
+    "fortanix-sgx-abi",
+    "allocator-api2",
+    "memchr",
+    "getopts",
+]
 
 [workspace]
 members = [
@@ -39,6 +52,7 @@ members = [
 
 [dependencies]
 chrono = "0.4"
+imgui = "0.11.0"
 png = "0.17.10"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
