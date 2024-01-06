@@ -2,6 +2,7 @@ pub mod allocators;
 pub mod buffers;
 pub mod command_buffers;
 pub mod gpu_objects;
+pub mod imgui;
 pub mod physical_device;
 pub mod pipeline;
 pub mod render_pass;

@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
+use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
@@ -17,10 +18,8 @@ use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::general_logic::GeneralLogicArgs;
-use ris_input::keyboard_logic::update_keyboard;
-use ris_input::mouse_logic::handle_mouse_events;
-use ris_input::mouse_logic::post_update_mouse;
-use ris_input::mouse_logic::reset_mouse_refs;
+use ris_input::keyboard_logic;
+use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
@@ -56,6 +55,7 @@ fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
 pub struct LogicFrame {
     // input
     event_pump: EventPump,
+    keyboard_util: KeyboardUtil,
 
     gamepad_logic: GamepadLogic,
 
@@ -69,7 +69,11 @@ pub struct LogicFrame {
 }
 
 impl LogicFrame {
-    pub fn new(event_pump: EventPump, controller_subsystem: GameControllerSubsystem) -> Self {
+    pub fn new(
+        event_pump: EventPump,
+        keyboard_util: KeyboardUtil,
+        controller_subsystem: GameControllerSubsystem,
+    ) -> Self {
         let mut rebind_matrix = [0; 32];
         for (i, row) in rebind_matrix.iter_mut().enumerate() {
             *row = 1 << i;
@@ -77,6 +81,7 @@ impl LogicFrame {
 
         Self {
             event_pump,
+            keyboard_util,
             gamepad_logic: GamepadLogic::new(controller_subsystem),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
@@ -100,7 +105,8 @@ impl LogicFrame {
         let previous_for_gamepad = previous.clone();
         let previous_for_general = previous;
 
-        reset_mouse_refs(&mut current.mouse);
+        mouse_logic::pre_events(&mut current.mouse);
+        keyboard_logic::pre_events(&mut current.keyboard);
 
         current.window_size_changed = None;
 
@@ -118,27 +124,27 @@ impl LogicFrame {
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
-            if handle_mouse_events(&mut current.mouse, &event) {
-                continue;
-            }
-
-            if self.gamepad_logic.handle_events(&event) {
-                continue;
-            }
+            mouse_logic::handle_event(&mut current.mouse, &event);
+            keyboard_logic::handle_event(&mut current.keyboard, &event);
+            self.gamepad_logic.handle_event(&event);
         }
 
-        self.gamepad_logic
-            .update(&mut current.gamepad, &previous_for_gamepad.gamepad);
-        update_keyboard(
-            &mut current.keyboard,
-            &previous_for_keyboard.keyboard,
-            self.event_pump.keyboard_state(),
-        );
-
-        post_update_mouse(
+        mouse_logic::post_events(
             &mut current.mouse,
             &previous_for_mouse.mouse,
             self.event_pump.mouse_state(),
+        );
+
+        keyboard_logic::post_events(
+            &mut current.keyboard,
+            &previous_for_keyboard.keyboard,
+            self.event_pump.keyboard_state(),
+            self.keyboard_util.mod_state(),
+        );
+
+        self.gamepad_logic.post_events(
+            &mut current.gamepad,
+            &previous_for_gamepad.gamepad
         );
 
         let args = GeneralLogicArgs {

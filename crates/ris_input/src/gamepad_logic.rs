@@ -1,7 +1,8 @@
-use ris_data::input::gamepad_data::GamepadData;
 use sdl2::controller::GameController;
 use sdl2::event::Event;
 use sdl2::GameControllerSubsystem;
+
+use ris_data::input::gamepad_data::GamepadData;
 
 use crate::gamepad_util::{get_button_index, ALL_BUTTONS};
 
@@ -23,41 +24,33 @@ impl GamepadLogic {
         }
     }
 
-    pub fn handle_events(&mut self, event: &Event) -> bool {
+    pub fn handle_event(&mut self, event: &Event) {
         if let Event::ControllerAxisMotion { which, .. } = event {
             self.update_current_controller(*which);
-            return true;
         }
 
         if let Event::ControllerButtonDown { which, .. } = event {
             self.update_current_controller(*which);
-            return true;
         }
 
         if let Event::ControllerButtonUp { which, .. } = event {
             self.update_current_controller(*which);
-            return true;
         }
 
         if let Event::ControllerDeviceAdded { which, .. } = event {
             self.add_controller(*which);
-            return true;
         }
 
         if let Event::ControllerDeviceRemoved { which, .. } = event {
             self.remove_controller(*which);
-            return true;
         }
 
         if let Event::ControllerDeviceRemapped { which, .. } = event {
             ris_log::info!("controller \"{}\" remapped", which);
-            return true;
         }
-
-        false
     }
 
-    pub fn update(&mut self, new_gamepad_data: &mut GamepadData, old_gamepad_data: &GamepadData) {
+    pub fn post_events(&mut self, new_gamepad_data: &mut GamepadData, old_gamepad_data: &GamepadData) {
         if let Some(controller_index) = self.current_controller {
             let controller_to_use = &self.open_controllers[controller_index];
             compute_state(new_gamepad_data, old_gamepad_data, controller_to_use)

@@ -28,8 +28,7 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl, material: Material) -> RisResult<Video> {
-        let renderer = Renderer::initialize(sdl_context, material)?;
+    pub fn new(renderer: Renderer) -> RisResult<Video> {
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
 

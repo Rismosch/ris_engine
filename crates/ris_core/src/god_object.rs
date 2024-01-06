@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use sdl2::keyboard::Scancode;
@@ -18,6 +19,8 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
+use ris_video::imgui::RisImgui;
+use ris_video::renderer::Renderer;
 use ris_video::video::Video;
 
 use crate::logic_frame::LogicFrame;
@@ -114,11 +117,15 @@ impl GodObject {
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
-        let video = Video::new(&sdl_context, scenes.material.clone())?;
+        let renderer = Renderer::initialize(&sdl_context, scenes.material.clone())?;
+        let video = Video::new(renderer)?;
+
+        // imgui
+        let imgui = RisImgui::init(&app_info)?;
 
         // gameloop
-        let logic_frame = LogicFrame::new(event_pump, controller_subsystem);
-        let output_frame = OutputFrame::new(video);
+        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+        let output_frame = OutputFrame::new(video, imgui);
 
         let frame_data_calculator = FrameDataCalculator::default();
         let mut logic_data = LogicData::default();
