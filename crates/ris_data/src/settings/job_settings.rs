@@ -6,7 +6,7 @@ pub struct JobSettings {
 }
 
 impl JobSettings {
-    pub fn was_changed(&self) -> bool {
+    pub fn changed(&self) -> bool {
         self.changed
     }
 
