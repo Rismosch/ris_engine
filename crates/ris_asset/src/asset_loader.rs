@@ -7,10 +7,10 @@ use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
 use ris_data::info::app_info::AppInfo;
+use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_future::SettableJobFuture;
 use ris_jobs::job_system;
-use ris_util::error::RisError;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
@@ -65,7 +65,7 @@ impl Drop for AssetLoaderGuard {
 /// # Safety
 ///
 /// The asset loader is a singleton. Initialize it only once.
-pub unsafe fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
+pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     let asset_path;
 
     // search for assets relative
@@ -84,14 +84,14 @@ pub unsafe fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
         if path.exists() {
             asset_path = path;
         } else {
-            return ris_util::result_err!("failed to find assets \"{}\"", &app_info.args.assets);
+            return ris_error::new_result!("failed to find assets \"{}\"", &app_info.args.assets);
         }
     }
 
     // create internal loader
-    let metadata = ris_util::unroll!(asset_path.metadata(), "failed to get metadata")?;
+    let metadata = ris_error::unroll!(asset_path.metadata(), "failed to get metadata")?;
     let internal = if metadata.is_file() {
-        let loader = ris_util::unroll!(
+        let loader = ris_error::unroll!(
             AssetLoaderCompiled::new(asset_path),
             "failed to create compiled asset loader"
         )?;
@@ -102,7 +102,7 @@ pub unsafe fn init(app_info: &AppInfo) -> Result<AssetLoaderGuard, RisError> {
         ris_log::debug!("directory asset loader was created");
         InternalLoader::Directory(loader)
     } else {
-        return ris_util::result_err!("assets are neither a file nor a directory");
+        return ris_error::new_result!("assets are neither a file nor a directory");
     };
 
     // set up thread

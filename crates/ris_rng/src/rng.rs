@@ -1,4 +1,4 @@
-use ris_util::error::RisResult;
+use ris_error::RisResult;
 
 use crate::pcg::Pcg32;
 
@@ -8,7 +8,7 @@ impl Seed {
     #[cfg(not(miri))]
     pub fn new() -> RisResult<Self> {
         let now = std::time::SystemTime::now();
-        let duration_since_epoch = ris_util::unroll!(
+        let duration_since_epoch = ris_error::unroll!(
             now.duration_since(std::time::UNIX_EPOCH),
             "failed to get time",
         )?;

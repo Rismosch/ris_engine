@@ -6,7 +6,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Local;
 
-use ris_util::fallback_file::FallbackFileOverwrite;
+use ris_file::fallback_file::FallbackFileOverwrite;
 
 #[test]
 fn should_not_create_directories_when_nothing_is_written() {

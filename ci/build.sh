@@ -195,8 +195,8 @@ if [ -f "$__temp_path" ]; then
     rm "$__temp_path"
 fi
 
-echo "cleaning workspace..."
 if [ "$cli_cargo_clean_value" = true ]; then
+    echo "cleaning workspace..."
     cargo clean
 fi
 

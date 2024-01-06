@@ -4,6 +4,9 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
+use std::sync::RwLockWriteGuard;
 use std::sync::TryLockError;
 use std::thread;
 use std::thread::JoinHandle;
@@ -64,7 +67,7 @@ impl Drop for JobSystemGuard {
 pub fn determine_thread_count(app_info: &AppInfo, settings: &Settings) -> usize {
     if let Some(workers) = app_info.args.workers {
         workers
-    } else if let Some(workers) = settings.job.workers {
+    } else if let Some(workers) = settings.job().get_workers() {
         workers
     } else {
         app_info.cpu.cpu_count
@@ -177,6 +180,34 @@ pub fn run_pending_job(file: &str, line: u32) {
 pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     loop {
         match mutex.try_lock() {
+            Ok(guard) => return guard,
+            Err(TryLockError::WouldBlock) => {
+                run_pending_job(file!(), line!());
+            }
+            Err(TryLockError::Poisoned(e)) => {
+                throw!("mutex is poisoned: {}", e);
+            }
+        }
+    }
+}
+
+pub fn lock_read<T>(rw_lock: &RwLock<T>) -> RwLockReadGuard<T> {
+    loop {
+        match rw_lock.try_read() {
+            Ok(guard) => return guard,
+            Err(TryLockError::WouldBlock) => {
+                run_pending_job(file!(), line!());
+            }
+            Err(TryLockError::Poisoned(e)) => {
+                throw!("mutex is poisoned: {}", e);
+            }
+        }
+    }
+}
+
+pub fn lock_write<T>(rw_lock: &RwLock<T>) -> RwLockWriteGuard<T> {
+    loop {
+        match rw_lock.try_write() {
             Ok(guard) => return guard,
             Err(TryLockError::WouldBlock) => {
                 run_pending_job(file!(), line!());

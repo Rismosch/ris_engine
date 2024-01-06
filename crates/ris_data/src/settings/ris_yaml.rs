@@ -1,4 +1,4 @@
-use ris_util::error::RisResult;
+use ris_error::RisResult;
 
 #[derive(Default, Debug)]
 pub struct RisYamlEntry {
@@ -129,7 +129,7 @@ impl RisYaml {
 }
 
 pub fn error_on_line<T>(line: usize, message: &str) -> RisResult<T> {
-    ris_util::result_err!("error on line {}: {}", line, message)
+    ris_error::new_result!("error on line {}: {}", line, message)
 }
 
 fn assert_valid_value(value: &str, line: usize) -> RisResult<()> {

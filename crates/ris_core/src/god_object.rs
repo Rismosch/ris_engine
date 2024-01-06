@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
@@ -8,15 +10,14 @@ use ris_asset::AssetId;
 use ris_data::gameloop::frame_data::FrameDataCalculator;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
-use ris_data::god_state::GodStateDoubleBuffer;
-use ris_data::god_state::GodStateQueue;
-use ris_data::god_state::InnerGodState;
+use ris_data::god_state::GodState;
+use ris_data::god_state::GodStateData;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_util::error::RisResult;
 use ris_video::video::Video;
 
 use crate::logic_frame::LogicFrame;
@@ -58,7 +59,7 @@ pub struct GodObject {
     pub output_data: OutputData,
     pub scenes: Scenes,
 
-    pub state_double_buffer: GodStateDoubleBuffer,
+    pub state: Arc<GodState>,
 
     // guards
     pub asset_loader_guard: AssetLoaderGuard,
@@ -96,17 +97,17 @@ impl GodObject {
 
         // sdl
         let sdl_context =
-            sdl2::init().map_err(|e| ris_util::new_err!("failed to init sdl2: {}", e))?;
+            sdl2::init().map_err(|e| ris_error::new!("failed to init sdl2: {}", e))?;
         let event_pump = sdl_context
             .event_pump()
-            .map_err(|e| ris_util::new_err!("failed to get event pump: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to get event pump: {}", e))?;
         let controller_subsystem = sdl_context
             .game_controller()
-            .map_err(|e| ris_util::new_err!("failed to get controller subsystem: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = ris_util::unroll!(
+        let scenes_bytes = ris_error::unroll!(
             asset_loader::load(scenes_id).wait(),
             "failed to load ris_scenes"
         )?;
@@ -138,14 +139,9 @@ impl GodObject {
         logic_data.keyboard.keymask[31] = Scancode::Kp6;
 
         // god state
-        let front = InnerGodState::new(settings.clone());
-        let back = InnerGodState::new(settings);
-        let prev_queue = GodStateQueue::default();
-        let state_double_buffer = GodStateDoubleBuffer {
-            front,
-            back,
-            prev_queue,
-        };
+        let current = GodStateData::new(settings.clone());
+        let previous = GodStateData::new(settings);
+        let state = GodState::new(current, previous);
 
         // god object
         let god_object = GodObject {
@@ -158,7 +154,7 @@ impl GodObject {
             output_data,
             scenes,
 
-            state_double_buffer,
+            state,
 
             // guards
             asset_loader_guard,

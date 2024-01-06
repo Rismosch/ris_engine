@@ -20,3 +20,17 @@ function GetAndClearCiOutDir {
     $result = Resolve-Path $target_dir
     return $result
 }
+
+function RunCommand {
+    param (
+        $command
+    )
+
+    try {
+        Write-Host "running command: $command"
+        return Invoke-Expression $command
+    }
+    catch {
+        return "error while running ``$command``"
+    }
+}

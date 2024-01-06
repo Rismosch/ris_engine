@@ -62,7 +62,7 @@ fn main() {
                 asset_importer::import(importer_info)
             }
             None => {
-                ris_util::result_err!("import has no default values. did you mean `importall`?")
+                ris_error::new_result!("import has no default values. did you mean `importall`?")
             }
         }
     } else if command.eq("importall") {

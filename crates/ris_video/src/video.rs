@@ -8,8 +8,8 @@ use vulkano::sync::GpuFuture;
 
 use ris_asset::loader::scenes_loader::Material;
 use ris_data::scene::Scene;
+use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
-use ris_util::error::RisError;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::renderer::Fence;
@@ -28,7 +28,7 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(sdl_context: &Sdl, material: Material) -> Result<Video, RisError> {
+    pub fn new(sdl_context: &Sdl, material: Material) -> RisResult<Video> {
         let renderer = Renderer::initialize(sdl_context, material)?;
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
@@ -42,7 +42,7 @@ impl Video {
         })
     }
 
-    pub fn update(&mut self, scene: &Scene) -> Result<(), RisError> {
+    pub fn update(&mut self, scene: &Scene) -> RisResult<()> {
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -59,7 +59,7 @@ impl Video {
                 self.recreate_swapchain = true;
                 return Ok(());
             }
-            Err(e) => return ris_util::result_err!("failed to acquire next image: {}", e),
+            Err(e) => return ris_error::new_result!("failed to acquire next image: {}", e),
         };
 
         if suboptimal {
@@ -67,7 +67,7 @@ impl Video {
         }
 
         if let Some(image_fence) = &self.fences[image_i as usize] {
-            ris_util::unroll!(image_fence.wait(None), "failed to wait on fence")?;
+            ris_error::unroll!(image_fence.wait(None), "failed to wait on fence")?;
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
@@ -94,7 +94,7 @@ impl Video {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
-                    ris_util::unroll!(fence.wait(None), "failed to wait on fence")?;
+                    ris_error::unroll!(fence.wait(None), "failed to wait on fence")?;
                 }
                 fence.boxed()
             }
@@ -129,7 +129,7 @@ impl Video {
         self.recreate_viewport = Some(RecreateViewport { reload_shaders })
     }
 
-    fn recreate_renderer(&mut self) -> Result<(), RisError> {
+    fn recreate_renderer(&mut self) -> RisResult<()> {
         if let Some(recreate_viewport) = &self.recreate_viewport {
             let reload_shaders = recreate_viewport.reload_shaders;
 

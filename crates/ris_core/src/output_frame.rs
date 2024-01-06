@@ -1,7 +1,7 @@
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
-use ris_util::error::RisResult;
+use ris_error::RisResult;
 use ris_video::video::Video;
 
 pub struct OutputFrame {

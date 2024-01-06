@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Instant;
 
 use sdl2::event::Event;
@@ -9,10 +10,10 @@ use sdl2::GameControllerSubsystem;
 use ris_data::gameloop::frame_data::FrameData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::logic_data::LogicData;
-use ris_data::god_state::GodStateCommand;
-use ris_data::god_state::GodStateRef;
+use ris_data::god_state::GodState;
 use ris_data::input::action;
 use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::general_logic::GeneralLogicArgs;
@@ -21,10 +22,10 @@ use ris_input::mouse_logic::handle_mouse_events;
 use ris_input::mouse_logic::post_update_mouse;
 use ris_input::mouse_logic::reset_mouse_refs;
 use ris_jobs::job_future::JobFuture;
+use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
-use ris_util::error::RisResult;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
@@ -91,7 +92,7 @@ impl LogicFrame {
         current: &mut LogicData,
         previous: &LogicData,
         frame: &FrameData,
-        state: GodStateRef,
+        state: Arc<GodState>,
     ) -> RisResult<GameloopState> {
         // controller input
         let previous_for_mouse = previous.clone();
@@ -173,7 +174,7 @@ impl LogicFrame {
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
                 ris_log::fatal!("manual crash requested");
-                return ris_util::result_err!("manual crash");
+                return ris_error::new_result!("manual crash");
             }
         } else {
             self.crash_timestamp = Instant::now();
@@ -258,24 +259,20 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-        if let Some(workers) = state.data.settings.job.workers {
+        let mut current_state = job_system::lock_write(&state.current);
+
+        if let Some(workers) = current_state.settings.job().get_workers() {
             if current.keyboard.keys.is_hold(Scancode::LCtrl) {
                 if current.keyboard.keys.is_down(Scancode::Up) {
-                    state
-                        .command_queue
-                        .push(GodStateCommand::SetJobWorkersSetting(Some(
-                            workers.saturating_add(1),
-                        )));
+                    let new_workers = Some(workers.saturating_add(1));
+                    current_state.settings.job_mut().set_workers(new_workers);
                 }
                 if current.keyboard.keys.is_down(Scancode::Down) {
-                    state
-                        .command_queue
-                        .push(GodStateCommand::SetJobWorkersSetting(Some(
-                            workers.saturating_sub(1),
-                        )));
+                    let new_workers = Some(workers.saturating_sub(1));
+                    current_state.settings.job_mut().set_workers(new_workers);
                 }
                 if current.keyboard.keys.is_down(Scancode::Return) {
-                    state.command_queue.push(GodStateCommand::SaveSettings)
+                    current_state.settings.request_save();
                 }
             }
         }

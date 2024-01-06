@@ -39,7 +39,7 @@ use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
 use ris_asset::loader::scenes_loader::Material;
-use ris_util::error::RisError;
+use ris_error::RisResult;
 
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
@@ -65,12 +65,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(sdl_context: &Sdl, material: Material) -> Result<Self, RisError> {
+    pub fn initialize(sdl_context: &Sdl, material: Material) -> RisResult<Self> {
         // window
         let video_subsystem = sdl_context
             .video()
-            .map_err(|e| ris_util::new_err!("failed to get video subsystem: {}", e))?;
-        let window = ris_util::unroll!(
+            .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
+        let window = ris_error::unroll!(
             video_subsystem
                 .window("ris_engine", 640, 480)
                 //.resizable()
@@ -81,13 +81,14 @@ impl Renderer {
         )?;
 
         // instance
-        let library = ris_util::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
-        let instance_extensions =
-            InstanceExtensions::from_iter(window.vulkan_instance_extensions().map_err(|e| {
-                ris_util::new_err!("failed to get vulkan instance extensions: {}", e)
-            })?);
+        let library = ris_error::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
+        let instance_extensions = InstanceExtensions::from_iter(
+            window
+                .vulkan_instance_extensions()
+                .map_err(|e| ris_error::new!("failed to get vulkan instance extensions: {}", e))?,
+        );
 
-        let instance = ris_util::unroll!(
+        let instance = ris_error::unroll!(
             Instance::new(
                 library,
                 InstanceCreateInfo {
@@ -101,7 +102,7 @@ impl Renderer {
         // surface
         let surface_handle = window
             .vulkan_create_surface(instance.handle().as_raw() as _)
-            .map_err(|e| ris_util::new_err!("failed to create instance: {}", e))?;
+            .map_err(|e| ris_error::new!("failed to create instance: {}", e))?;
         let surface = unsafe {
             Surface::from_handle(
                 instance.clone(),
@@ -124,7 +125,7 @@ impl Renderer {
         )?;
 
         // device
-        let (device, mut queues) = ris_util::unroll!(
+        let (device, mut queues) = ris_error::unroll!(
             Device::new(
                 physical_device.clone(),
                 DeviceCreateInfo {
@@ -138,7 +139,7 @@ impl Renderer {
             ),
             "failed to create device"
         )?;
-        let queue = ris_util::unroll_option!(queues.next(), "no queues available")?;
+        let queue = ris_error::unroll_option!(queues.next(), "no queues available")?;
 
         // swapchain
         let (swapchain, images) =
@@ -207,7 +208,7 @@ impl Renderer {
         })
     }
 
-    pub fn recreate_swapchain(&mut self) -> Result<(), RisError> {
+    pub fn recreate_swapchain(&mut self) -> RisResult<()> {
         ris_log::trace!("recreating swapchain...");
 
         let new_dimensions = self.window.vulkan_drawable_size();
@@ -217,7 +218,7 @@ impl Renderer {
         }) {
             Ok(r) => r,
             Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
-            Err(e) => return ris_util::result_err!("failed to recreate swapchain: {}", e),
+            Err(e) => return ris_error::new_result!("failed to recreate swapchain: {}", e),
         };
 
         self.swapchain = new_swapchain;
@@ -233,7 +234,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn recreate_viewport(&mut self) -> Result<(), RisError> {
+    pub fn recreate_viewport(&mut self) -> RisResult<()> {
         ris_log::trace!("recreating viewport...");
 
         self.recreate_swapchain()?;
@@ -260,7 +261,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn reload_shaders(&mut self) -> Result<(), RisError> {
+    pub fn reload_shaders(&mut self) -> RisResult<()> {
         ris_log::trace!("reloading shaders...");
 
         let (vertex_shader, fragment_shader) =
@@ -293,14 +294,14 @@ impl Renderer {
         previous_future: Box<dyn GpuFuture>,
         swqapchain_acquire_future: SwapchainAcquireFuture,
         image_i: u32,
-    ) -> Result<Result<Fence, FlushError>, RisError> {
+    ) -> RisResult<Result<Fence, FlushError>> {
         Ok(previous_future
             .join(swqapchain_acquire_future)
             .then_execute(
                 self.queue.clone(),
                 self.command_buffers[image_i as usize].clone(),
             )
-            .map_err(|e| ris_util::new_err!("failed to execute command buffer: {}", e))?
+            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
             .then_swapchain_present(
                 self.queue.clone(),
                 SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
@@ -312,8 +313,8 @@ impl Renderer {
         &self,
         index: usize,
         ubo: &crate::gpu_objects::UniformBufferObject,
-    ) -> Result<(), RisError> {
-        let mut uniform_content = ris_util::unroll!(
+    ) -> RisResult<()> {
+        let mut uniform_content = ris_error::unroll!(
             self.buffers.uniforms[index].0.write(),
             "failed to update uniform"
         )?;

@@ -11,8 +11,8 @@ use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
 
+use ris_error::RisResult;
 use ris_math::color;
-use ris_util::error::RisError;
 
 use crate::gpu_objects::UniformBufferObject;
 use crate::gpu_objects::Vertex3d;
@@ -30,7 +30,7 @@ impl Buffers {
         allocators: &crate::allocators::Allocators,
         uniform_buffer_count: usize,
         pipeline: &Arc<GraphicsPipeline>,
-    ) -> Result<Self, RisError> {
+    ) -> RisResult<Self> {
         let size = 0.01;
         let offset = 0.02;
         let side = 128;
@@ -160,7 +160,7 @@ impl Buffers {
 
         //panic!("{} vertices {} indices", vertices.len(), indices.len());
 
-        let vertex = ris_util::unroll!(
+        let vertex = ris_error::unroll!(
             Buffer::from_iter(
                 &allocators.memory,
                 BufferCreateInfo {
@@ -177,7 +177,7 @@ impl Buffers {
         )?;
 
         // index
-        let index = ris_util::unroll!(
+        let index = ris_error::unroll!(
             Buffer::from_iter(
                 &allocators.memory,
                 BufferCreateInfo {
@@ -198,7 +198,7 @@ impl Buffers {
         for _ in 0..uniform_buffer_count {
             let ubo = UniformBufferObject::default();
 
-            let uniform_buffer = ris_util::unroll!(
+            let uniform_buffer = ris_error::unroll!(
                 Buffer::from_data(
                     &allocators.memory,
                     BufferCreateInfo {
@@ -214,10 +214,10 @@ impl Buffers {
                 "failed to create uniform buffer"
             )?;
 
-            let descriptor_set = ris_util::unroll!(
+            let descriptor_set = ris_error::unroll!(
                 PersistentDescriptorSet::new(
                     &allocators.descriptor_set,
-                    ris_util::unroll_option!(
+                    ris_error::unroll_option!(
                         pipeline.layout().set_layouts().get(0),
                         "failed to get descriptor set layout"
                     )?

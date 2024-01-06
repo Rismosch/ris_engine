@@ -4,13 +4,13 @@ use vulkano::device::Device;
 use vulkano::render_pass::RenderPass;
 use vulkano::swapchain::Swapchain;
 
-use ris_util::error::RisError;
+use ris_error::RisResult;
 
 pub fn create_render_pass(
     device: &Arc<Device>,
     swapchain: &Arc<Swapchain>,
-) -> Result<Arc<RenderPass>, RisError> {
-    ris_util::unroll!(
+) -> RisResult<Arc<RenderPass>> {
+    ris_error::unroll!(
         vulkano::single_pass_renderpass!(
             device.clone(),
             attachments: {

@@ -4,7 +4,7 @@ macro_rules! seek {
         use std::io::Seek;
         use std::io::SeekFrom;
 
-        ris_util::unroll!($file.seek($pos), "failed to seek")
+        ris_error::unroll!($file.seek($pos), "failed to seek")
     }};
 }
 
@@ -13,10 +13,10 @@ macro_rules! read {
     ($file:expr, $buf:expr) => {{
         use std::io::Read;
 
-        let read_bytes = ris_util::unroll!($file.read(&mut $buf), "failed to read")?;
+        let read_bytes = ris_error::unroll!($file.read(&mut $buf), "failed to read")?;
         let buf_len = $buf.len();
         if read_bytes != buf_len {
-            ris_util::result_err!(
+            ris_error::new_result!(
                 "expected to read {} bytes but actually read {}",
                 buf_len,
                 read_bytes,
@@ -32,9 +32,9 @@ macro_rules! write {
     ($file:expr, $buf:expr) => {{
         use std::io::Write;
 
-        let written_bytes = ris_util::unroll!($file.write($buf), "failed to write")?;
+        let written_bytes = ris_error::unroll!($file.write($buf), "failed to write")?;
         if written_bytes != $buf.len() {
-            ris_util::result_err!(
+            ris_error::new_result!(
                 "expected to write {} bytes but actually wrote {}",
                 $buf.len(),
                 written_bytes,
