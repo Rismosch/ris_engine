@@ -91,10 +91,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers = job_system::determine_thread_count(
-                &god_object.app_info,
-                &current_state.settings,
-            );
+            let workers =
+                job_system::determine_thread_count(&god_object.app_info, &current_state.settings);
 
             let new_guard = unsafe {
                 job_system::init(
@@ -114,7 +112,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         output_result?;
         save_settings_result?;
         let gameloop_state = logic_result?;
-        
+
         match gameloop_state {
             GameloopState::WantsToContinue => continue,
             GameloopState::WantsToQuit => return Ok(WantsTo::Quit),

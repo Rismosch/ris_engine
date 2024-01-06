@@ -13,8 +13,7 @@ pub struct Settings {
     job: JobSettings,
 }
 
-
-impl Settings{
+impl Settings {
     pub fn changed(&self) -> bool {
         self.changed || self.job.changed()
     }
@@ -45,4 +44,3 @@ impl Settings{
         &mut self.job
     }
 }
-

@@ -16,9 +16,7 @@ pub struct GodState {
 
 impl GodStateData {
     pub fn new(settings: Settings) -> GodStateLock {
-        let data = GodStateData {
-            settings,
-        };
+        let data = GodStateData { settings };
 
         RwLock::new(data)
     }
@@ -30,12 +28,8 @@ impl GodStateData {
 
 impl GodState {
     pub fn new(current: GodStateLock, previous: GodStateLock) -> Arc<Self> {
-        let double_buffer = GodState {
-            current,
-            previous,
-        };
+        let double_buffer = GodState { current, previous };
 
         Arc::new(double_buffer)
     }
 }
-
