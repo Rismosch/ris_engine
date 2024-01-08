@@ -73,7 +73,7 @@ impl Video {
         let view = Matrix4x4::view(scene.camera_position, scene.camera_rotation);
 
         let fovy = 60. * ris_math::DEG2RAD;
-        let (w, h) = self.renderer.window.vulkan_drawable_size();
+        let (w, h) = self.drawable_size();
         let aspect_ratio = w as f32 / h as f32;
         let near = 0.01;
         let far = 0.1;
@@ -122,6 +122,14 @@ impl Video {
         self.previous_fence_i = image_i;
 
         Ok(())
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        self.renderer.window.size()
+    }
+
+    pub fn drawable_size(&self) -> (u32, u32) {
+        self.renderer.window.vulkan_drawable_size()
     }
 
     pub fn recreate_viewport(&mut self, reload_shaders: bool) {

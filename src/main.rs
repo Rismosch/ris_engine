@@ -66,7 +66,7 @@ fn get_app_info() -> RisResult<AppInfo> {
 }
 
 fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
-    let log_level = LogLevel::Debug;
+    let log_level = LogLevel::Trace;
 
     let mut logs_dir = PathBuf::new();
     logs_dir.push(&app_info.file.pref_path);

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
-use std::time::Instant;
 
 use imgui::BackendFlags;
+use imgui::ConfigFlags;
 use imgui::Context;
 use imgui::Io;
 use imgui::Ui;
@@ -12,8 +12,10 @@ use sdl2::keyboard::Scancode;
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
+use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_error::RisResult;
+use crate::video::Video;
 
 pub struct RisImgui {
     // context
@@ -21,7 +23,6 @@ pub struct RisImgui {
 
     // platform:
     cursor_instance: Option<Cursor>,
-    last_frame: Instant,
 
     // renderer
     renderer: (),
@@ -53,9 +54,9 @@ impl RisImgui {
         context.set_ini_filename(Some(ini_filepath));
         context.set_log_filename(Some(log_filepath));
 
-        context
-            .fonts()
-            .add_font(&[imgui::FontSource::DefaultFontData { config: None}]);
+        let font_atlas = context.fonts();
+        font_atlas.add_font(&[imgui::FontSource::DefaultFontData { config: None}]);
+        font_atlas.build_rgba32_texture();
 
         // setup platform
         let io = context.io_mut();
@@ -71,21 +72,28 @@ impl RisImgui {
         Ok(Some(RisImgui {
             context,
             cursor_instance: None,
-            last_frame: Instant::now(),
             renderer: (),
         }))
     }
 
     #[cfg(not(debug_assertions))]
-    pub fn init() -> Option<Context> {
-        None
+    pub fn init(app_info: &AppInfo) -> RisResult<Option<RisImgui>> {
+        Ok(None)
     }
 
-    pub fn set_input(&mut self, data: &LogicData) {
+    pub fn prepare_frame(
+        &mut self,
+        logic_data: &LogicData,
+        frame: Frame,
+        video: &Video,
+    ) -> &mut Ui {
+        let mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
 
+        io.update_delta_time(frame.prev_duration());
+
         // mouse input
-        let mouse = &data.mouse;
+        let mouse = &logic_data.mouse;
 
         let x = mouse.wheel_xrel;
         let y = mouse.wheel_yrel;
@@ -101,7 +109,7 @@ impl RisImgui {
         forward_mouse_button_event(io, buttons, 4);
 
         // keyboard input
-        let keyboard = &data.keyboard;
+        let keyboard = &logic_data.keyboard;
 
         let mod_state = keyboard.mod_state;
 
@@ -147,13 +155,28 @@ impl RisImgui {
         for text in &keyboard.text_input {
             text.chars().for_each(|c| io.add_input_character(c));
         }
-    }
 
-    pub fn prepare_frame(&mut self) {
-        // todo
-    }
+        // prepare frame
+        let window_size = video.size();
+        let window_drawable_size = video.drawable_size();
 
-    pub fn new_frame(&mut self) -> &mut Ui {
+        io.display_size = [(window_size.0 as f32), (window_size.1 as f32)];
+        io.display_framebuffer_scale = [
+            (window_drawable_size.0 as f32) / (window_size.0 as f32),
+            (window_drawable_size.1 as f32) / (window_size.1 as f32),
+        ];
+
+        // update mouse
+        if io.want_set_mouse_pos {
+            ris_log::warning!("set mouse pos not implemented!");
+        }
+
+        io.mouse_pos = [mouse.x as f32, mouse.y as f32];
+
+        if !io.config_flags.contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE) {
+            //ris_log::warning!("set mouse cursor is not implemented!");
+        }
+
         self.context.new_frame()
     }
 

@@ -20,7 +20,7 @@ impl OutputFrame {
         _current: &mut OutputData,
         _previous: &OutputData,
         logic: &LogicData,
-        _frame: Frame,
+        frame: Frame,
     ) -> RisResult<()> {
         
         // render graphics
@@ -34,13 +34,11 @@ impl OutputFrame {
 
         // render imgui
         if let Some(ris_imgui) = &mut self.imgui {
-            ris_imgui.set_input(logic);
-            ris_imgui.prepare_frame();
-            //let ui = ris_imgui.new_frame();
+            let ui = ris_imgui.prepare_frame(logic, frame, &self.video);
 
-            //ui.show_demo_window(&mut true);
+            ui.show_demo_window(&mut true);
 
-            //ris_imgui.render();
+            ris_imgui.render();
         }
 
         Ok(())
