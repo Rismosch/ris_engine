@@ -1,4 +1,4 @@
-use ris_data::gameloop::frame_data::FrameData;
+use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_error::RisResult;
@@ -20,7 +20,7 @@ impl OutputFrame {
         _current: &mut OutputData,
         _previous: &OutputData,
         logic: &LogicData,
-        _frame: &FrameData,
+        _frame: Frame,
     ) -> RisResult<()> {
         
         // render graphics

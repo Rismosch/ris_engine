@@ -8,7 +8,7 @@ use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::loader::scenes_loader;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
-use ris_data::gameloop::frame_data::FrameDataCalculator;
+use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_data::god_state::GodState;
@@ -55,7 +55,7 @@ fn scenes_id() -> AssetId {
 pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
-    pub frame_data_calculator: FrameDataCalculator,
+    pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub logic_data: LogicData,
@@ -127,7 +127,7 @@ impl GodObject {
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
         let output_frame = OutputFrame::new(video, imgui);
 
-        let frame_data_calculator = FrameDataCalculator::default();
+        let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();
         let output_data = OutputData::default();
 
@@ -154,7 +154,7 @@ impl GodObject {
         let god_object = GodObject {
             app_info,
             settings_serializer,
-            frame_data_calculator,
+            frame_calculator,
             logic_frame,
             output_frame,
             logic_data,

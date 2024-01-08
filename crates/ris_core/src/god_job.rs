@@ -13,7 +13,7 @@ pub enum WantsTo {
 }
 
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
-    let mut frame_data_calculator = god_object.frame_data_calculator;
+    let mut frame_calculator = god_object.frame_calculator;
     let mut current_logic = god_object.logic_data;
     let mut current_output = god_object.output_data;
 
@@ -21,16 +21,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
     loop {
         // update frame
-        frame_data_calculator.bump();
-        let current_frame = frame_data_calculator.current();
+        let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
         copy_current_to_previous(&god_state);
 
         // create copies
-        let frame_for_logic = current_frame.clone();
-        let frame_for_output = current_frame.clone();
-
         let previous_logic_for_logic = current_logic.clone();
         let previous_logic_for_output = current_logic.clone();
 
@@ -47,7 +43,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 &mut current_output,
                 &previous_output_for_output,
                 &previous_logic_for_output,
-                &frame_for_output,
+                frame,
             );
 
             (output_frame, current_output, result)
@@ -71,7 +67,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let logic_result = god_object.logic_frame.run(
             &mut current_logic,
             &previous_logic_for_logic,
-            &frame_for_logic,
+            frame,
             state_for_logic,
         );
 

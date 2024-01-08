@@ -8,7 +8,7 @@ use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
 
-use ris_data::gameloop::frame_data::FrameData;
+use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state::GodState;
@@ -96,7 +96,7 @@ impl LogicFrame {
         &mut self,
         current: &mut LogicData,
         previous: &LogicData,
-        frame: &FrameData,
+        frame: Frame,
         state: Arc<GodState>,
     ) -> RisResult<GameloopState> {
         // controller input
@@ -200,9 +200,9 @@ impl LogicFrame {
         current.scene = previous.scene.clone();
         let scene = &mut current.scene;
 
-        let rotation_speed = 2. * frame.delta_seconds();
-        let movement_speed = 2. * frame.delta_seconds();
-        let mouse_speed = 20. * frame.delta_seconds();
+        let rotation_speed = 2. * frame.avg();
+        let movement_speed = 2. * frame.avg();
+        let mouse_speed = 20. * frame.avg();
 
         if current.mouse.buttons.is_hold(action::OK) {
             current.camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
@@ -284,7 +284,7 @@ impl LogicFrame {
         }
 
         if current.keyboard.keys.is_down(Scancode::F) {
-            ris_log::debug!("{} ms ({} fps)", frame.delta_seconds(), frame.fps());
+            ris_log::debug!("{:?} ({} fps)", frame.avg_duration(), frame.avg_fps());
         }
 
         if let Some(future) = import_shader_future {

@@ -7,10 +7,11 @@ Cargo.lock
 /.cargo
 /vendor
 
-# vscode
+# IDE
+/.idea
 /.vscode
 
-# ci out
+# ci output
 /ci_out
 
 # assets
