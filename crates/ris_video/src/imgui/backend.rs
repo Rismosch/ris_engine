@@ -89,7 +89,7 @@ impl ImguiBackend {
         let mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
 
-        io.update_delta_time(frame.prev_duration());
+        io.update_delta_time(frame.previous_duration());
 
         // mouse input
         let mouse = &logic_data.mouse;

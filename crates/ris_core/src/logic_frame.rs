@@ -200,9 +200,9 @@ impl LogicFrame {
         current.scene = previous.scene.clone();
         let scene = &mut current.scene;
 
-        let rotation_speed = 2. * frame.avg();
-        let movement_speed = 2. * frame.avg();
-        let mouse_speed = 20. * frame.avg();
+        let rotation_speed = 2. * frame.average_seconds();
+        let movement_speed = 2. * frame.average_seconds();
+        let mouse_speed = 20. * frame.average_seconds();
 
         if current.mouse.buttons.is_hold(action::OK) {
             current.camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
@@ -284,7 +284,7 @@ impl LogicFrame {
         }
 
         if current.keyboard.keys.is_down(Scancode::F) {
-            ris_log::debug!("{:?} ({} fps)", frame.avg_duration(), frame.avg_fps());
+            ris_log::debug!("{:?} ({} fps)", frame.average_duration(), frame.average_fps());
         }
 
         if let Some(future) = import_shader_future {

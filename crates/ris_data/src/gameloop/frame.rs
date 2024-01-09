@@ -13,8 +13,8 @@ pub struct FrameCalculator {
 #[derive(Copy, Clone)]
 pub struct Frame {
     number: usize,
-    prev: Duration,
-    avg: Duration,
+    previous: Duration,
+    average: Duration,
 }
 
 impl Default for FrameCalculator {
@@ -39,23 +39,23 @@ impl FrameCalculator {
         let prev_instant = self.instants[prev_index];
         let last_instant = self.instants[last_index];
 
-        let prev = current_instant - prev_instant;
-        let avg = (current_instant - last_instant).div_f32(FRAME_COUNT as f32);
+        let previous = current_instant - prev_instant;
+        let average = (current_instant - last_instant).div_f32(FRAME_COUNT as f32);
 
-        let prev = if prev > MAX_DURATION {
+        let previous = if previous > MAX_DURATION {
             IDEAL_DURATION
         } else {
-            prev
+            previous
         };
 
-        let avg = if avg > MAX_DURATION {
+        let average = if average > MAX_DURATION {
             IDEAL_DURATION
         } else {
-            avg
+            average
         };
 
         let number = self.number;
-        Frame { number, prev, avg }
+        Frame { number, previous, average }
     }
 }
 
@@ -64,27 +64,27 @@ impl Frame {
         self.number
     }
 
-    pub fn prev_duration(&self) -> Duration {
-        self.prev
+    pub fn previous_duration(&self) -> Duration {
+        self.previous
     }
 
-    pub fn prev(&self) -> f32 {
-        self.prev_duration().as_secs_f32()
+    pub fn previous_seconds(&self) -> f32 {
+        self.previous_duration().as_secs_f32()
     }
 
-    pub fn prev_fps(&self) -> f32 {
-        1. / self.prev()
+    pub fn previous_fps(&self) -> f32 {
+        1. / self.previous_seconds()
     }
 
-    pub fn avg_duration(&self) -> Duration {
-        self.avg
+    pub fn average_duration(&self) -> Duration {
+        self.average
     }
 
-    pub fn avg(&self) -> f32 {
-        self.avg_duration().as_secs_f32()
+    pub fn average_seconds(&self) -> f32 {
+        self.average_duration().as_secs_f32()
     }
 
-    pub fn avg_fps(&self) -> f32 {
-        1. / self.avg()
+    pub fn average_fps(&self) -> f32 {
+        1. / self.average_seconds()
     }
 }
