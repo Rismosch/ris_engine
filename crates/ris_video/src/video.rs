@@ -1,19 +1,17 @@
 use std::sync::Arc;
 
-use sdl2::Sdl;
 use sdl2_sys::SDL_WindowFlags;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
-use ris_asset::loader::scenes_loader::Material;
 use ris_data::scene::Scene;
 use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
 
-use crate::gpu_objects::UniformBufferObject;
-use crate::renderer::Fence;
-use crate::renderer::Renderer;
+use crate::vulkan::gpu_objects::UniformBufferObject;
+use crate::vulkan::renderer::Fence;
+use crate::vulkan::renderer::Renderer;
 
 struct RecreateViewport {
     reload_shaders: bool,

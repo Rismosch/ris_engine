@@ -2,16 +2,16 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::gameloop::output_data::OutputData;
 use ris_error::RisResult;
-use ris_video::imgui::RisImgui;
+use ris_video::imgui::backend::ImguiBackend;
 use ris_video::video::Video;
 
 pub struct OutputFrame {
     video: Video,
-    imgui: Option<RisImgui>,
+    imgui: Option<ImguiBackend>,
 }
 
 impl OutputFrame {
-    pub fn new(video: Video, imgui: Option<RisImgui>) -> Self {
+    pub fn new(video: Video, imgui: Option<ImguiBackend>) -> Self {
         Self { video, imgui }
     }
 

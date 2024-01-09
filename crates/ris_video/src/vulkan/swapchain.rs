@@ -17,6 +17,8 @@ use vulkano::swapchain::SwapchainCreateInfo;
 
 use ris_error::RisResult;
 
+use crate::vulkan::allocators::Allocators;
+
 pub fn create_swapchain(
     physical_device: &Arc<PhysicalDevice>,
     window: &Window,
@@ -58,7 +60,7 @@ pub fn create_swapchain(
 }
 
 pub fn create_framebuffers(
-    allocators: &crate::allocators::Allocators,
+    allocators: &Allocators,
     dimensions: [u32; 2],
     images: &[Arc<SwapchainImage>],
     render_pass: &Arc<RenderPass>,

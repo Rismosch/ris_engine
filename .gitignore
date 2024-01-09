@@ -2,10 +2,10 @@
 /*.dll
 
 # cargo
-/target
-Cargo.lock
 /.cargo
+/target
 /vendor
+Cargo.lock
 
 # IDE
 /.idea
@@ -16,5 +16,5 @@ Cargo.lock
 
 # assets
 assets/__imported_raw_assets/
-ris_assets
 decompiled_assets
+ris_assets

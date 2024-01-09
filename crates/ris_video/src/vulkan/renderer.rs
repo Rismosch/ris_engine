@@ -38,8 +38,11 @@ use vulkano::Handle;
 use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
-use ris_asset::loader::scenes_loader::Material;
+use ris_asset::loader::scenes_loader::Scenes;
 use ris_error::RisResult;
+
+use crate::vulkan::allocators::Allocators;
+use crate::vulkan::buffers::Buffers;
 
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
@@ -54,18 +57,18 @@ pub struct Renderer {
     images: Vec<Arc<SwapchainImage>>,
     render_pass: Arc<RenderPass>,
     framebuffers: Vec<Arc<Framebuffer>>,
-    allocators: crate::allocators::Allocators,
-    buffers: crate::buffers::Buffers,
+    allocators: Allocators,
+    buffers: Buffers,
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
-    material: Material,
+    scenes: Scenes,
     viewport: Viewport,
     pipeline: Arc<GraphicsPipeline>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
 }
 
 impl Renderer {
-    pub fn initialize(sdl_context: &Sdl, material: Material) -> RisResult<Self> {
+    pub fn initialize(sdl_context: &Sdl, scenes: Scenes) -> RisResult<Self> {
         // window
         let video_subsystem = sdl_context
             .video()
@@ -118,7 +121,7 @@ impl Renderer {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
         };
-        let (physical_device, queue_family_index) = crate::physical_device::select_physical_device(
+        let (physical_device, queue_family_index) = super::physical_device::select_physical_device(
             &instance,
             &surface,
             &device_extensions,
@@ -140,16 +143,23 @@ impl Renderer {
             "failed to create device"
         )?;
         let queue = ris_error::unroll_option!(queues.next(), "no queues available")?;
+        
+        // shaders
+        let vs_future = super::shader::load_async(
+            device.clone(),
+            scenes.default_vs.clone(),
+        );
+        let fs_future = super::shader::load_async(
+            device.clone(),
+            scenes.default_fs.clone(),
+        );
 
         // swapchain
         let (swapchain, images) =
-            crate::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
+            super::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
 
         // render pass
-        let render_pass = crate::render_pass::create_render_pass(&device, &swapchain)?;
-
-        // shaders
-        let (vertex_shader, fragment_shader) = crate::shaders::load_shaders(&device, &material)?;
+        let render_pass = super::render_pass::create_render_pass(&device, &swapchain)?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();
@@ -160,26 +170,29 @@ impl Renderer {
         };
 
         // allocators
-        let allocators = crate::allocators::Allocators::new(&device);
+        let allocators = super::allocators::Allocators::new(&device);
 
         // frame buffers
         let framebuffers =
-            crate::swapchain::create_framebuffers(&allocators, [w, h], &images, &render_pass)?;
+            super::swapchain::create_framebuffers(&allocators, [w, h], &images, &render_pass)?;
 
         // pipeline
-        let pipeline = crate::pipeline::create_pipeline(
+        let vs = vs_future.wait()?;
+        let fs = fs_future.wait()?;
+
+        let pipeline = super::pipeline::create_pipeline(
             &device,
-            &vertex_shader,
-            &fragment_shader,
+            &vs,
+            &fs,
             &render_pass,
             &viewport,
         )?;
 
         // buffers
-        let buffers = crate::buffers::Buffers::new(&allocators, images.len(), &pipeline)?;
+        let buffers = super::buffers::Buffers::new(&allocators, images.len(), &pipeline)?;
 
         // command buffers
-        let command_buffers = crate::command_buffers::create_command_buffers(
+        let command_buffers = super::command_buffers::create_command_buffers(
             &allocators,
             &queue,
             &pipeline,
@@ -199,9 +212,9 @@ impl Renderer {
             framebuffers,
             allocators,
             buffers,
-            vertex_shader,
-            fragment_shader,
-            material,
+            vertex_shader: vs,
+            fragment_shader: fs,
+            scenes,
             viewport,
             pipeline,
             command_buffers,
@@ -223,7 +236,7 @@ impl Renderer {
 
         self.swapchain = new_swapchain;
         let (w, h) = self.window.vulkan_drawable_size();
-        self.framebuffers = crate::swapchain::create_framebuffers(
+        self.framebuffers = super::swapchain::create_framebuffers(
             &self.allocators,
             [w, h],
             &new_images,
@@ -241,7 +254,7 @@ impl Renderer {
         let (w, h) = self.window.vulkan_drawable_size();
         self.viewport.dimensions = [w as f32, h as f32];
 
-        self.pipeline = crate::pipeline::create_pipeline(
+        self.pipeline = super::pipeline::create_pipeline(
             &self.device,
             &self.vertex_shader,
             &self.fragment_shader,
@@ -249,7 +262,7 @@ impl Renderer {
             &self.viewport,
         )?;
 
-        self.command_buffers = crate::command_buffers::create_command_buffers(
+        self.command_buffers = super::command_buffers::create_command_buffers(
             &self.allocators,
             &self.queue,
             &self.pipeline,
@@ -264,8 +277,18 @@ impl Renderer {
     pub fn reload_shaders(&mut self) -> RisResult<()> {
         ris_log::trace!("reloading shaders...");
 
-        let (vertex_shader, fragment_shader) =
-            crate::shaders::load_shaders(&self.device, &self.material)?;
+        let vertex_future = super::shader::load_async(
+            self.device.clone(),
+            self.scenes.default_vs.clone(),
+        );
+        let fragment_future = super::shader::load_async(
+            self.device.clone(),
+            self.scenes.default_vs.clone(),
+        );
+
+        let vertex_shader = vertex_future.wait()?;
+        let fragment_shader = fragment_future.wait()?;
+
         self.vertex_shader = vertex_shader;
         self.fragment_shader = fragment_shader;
 
@@ -312,7 +335,7 @@ impl Renderer {
     pub fn update_uniform(
         &self,
         index: usize,
-        ubo: &crate::gpu_objects::UniformBufferObject,
+        ubo: &super::gpu_objects::UniformBufferObject,
     ) -> RisResult<()> {
         let mut uniform_content = ris_error::unroll!(
             self.buffers.uniforms[index].0.write(),

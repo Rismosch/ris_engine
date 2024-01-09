@@ -14,8 +14,9 @@ use vulkano::pipeline::Pipeline;
 use ris_error::RisResult;
 use ris_math::color;
 
-use crate::gpu_objects::UniformBufferObject;
-use crate::gpu_objects::Vertex3d;
+use crate::vulkan::allocators::Allocators;
+use crate::vulkan::gpu_objects::UniformBufferObject;
+use crate::vulkan::gpu_objects::Vertex3d;
 
 pub type Uniform<U> = (Subbuffer<U>, Arc<PersistentDescriptorSet>);
 
@@ -27,7 +28,7 @@ pub struct Buffers {
 
 impl Buffers {
     pub fn new(
-        allocators: &crate::allocators::Allocators,
+        allocators: &Allocators,
         uniform_buffer_count: usize,
         pipeline: &Arc<GraphicsPipeline>,
     ) -> RisResult<Self> {

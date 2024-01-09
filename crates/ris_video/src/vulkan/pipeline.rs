@@ -18,7 +18,7 @@ use vulkano::shader::ShaderModule;
 
 use ris_error::RisResult;
 
-use crate::gpu_objects::Vertex3d;
+use crate::vulkan::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
     device: &Arc<Device>,

@@ -19,8 +19,9 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::imgui::RisImgui;
-use ris_video::renderer::Renderer;
+use ris_video::imgui::backend::ImguiBackend;
+use ris_video::imgui::renderer::ImguiRenderer;
+use ris_video::vulkan::renderer::Renderer;
 use ris_video::video::Video;
 
 use crate::logic_frame::LogicFrame;
@@ -117,15 +118,16 @@ impl GodObject {
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
-        let renderer = Renderer::initialize(&sdl_context, scenes.material.clone())?;
+        let renderer = Renderer::initialize(&sdl_context, scenes.clone())?;
         let video = Video::new(renderer)?;
 
         // imgui
-        let imgui = RisImgui::init(&app_info)?;
+        let imgui_backend = ImguiBackend::init(&app_info)?;
+        let imgui_renderer = ImguiRenderer::init(scenes.clone())?;
 
         // gameloop
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(video, imgui);
+        let output_frame = OutputFrame::new(video, imgui_backend);
 
         let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();

@@ -17,7 +17,7 @@ use ris_data::gameloop::logic_data::LogicData;
 use ris_error::RisResult;
 use crate::video::Video;
 
-pub struct RisImgui {
+pub struct ImguiBackend {
     // context
     context: Context,
 
@@ -28,12 +28,10 @@ pub struct RisImgui {
     renderer: (),
 }
 
-impl RisImgui {
+impl ImguiBackend {
     #[cfg(debug_assertions)]
-    pub fn init(app_info: &AppInfo) -> RisResult<Option<RisImgui>> {
+    pub fn init(app_info: &AppInfo) -> RisResult<Option<Self>> {
         // setup context
-        let mut context = Context::create();
-
         let mut dir = PathBuf::from(&app_info.file.pref_path);
         dir.push("imgui");
 
@@ -49,8 +47,9 @@ impl RisImgui {
         ini_filepath.push("imgui.ini");
 
         let mut log_filepath = PathBuf::from(&dir);
-        log_filepath.push("imgui.log");
+        log_filepath.push("imgui_log.txt");
 
+        let mut context = Context::create();
         context.set_ini_filename(Some(ini_filepath));
         context.set_log_filename(Some(log_filepath));
 
@@ -69,7 +68,7 @@ impl RisImgui {
         // setup renderer
         // todo
 
-        Ok(Some(RisImgui {
+        Ok(Some(Self {
             context,
             cursor_instance: None,
             renderer: (),
@@ -77,7 +76,7 @@ impl RisImgui {
     }
 
     #[cfg(not(debug_assertions))]
-    pub fn init(app_info: &AppInfo) -> RisResult<Option<RisImgui>> {
+    pub fn init(app_info: &AppInfo) -> RisResult<Option<ImguiBackend>> {
         Ok(None)
     }
 
