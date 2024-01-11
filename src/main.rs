@@ -19,6 +19,7 @@ use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
+pub const LOG_LEVEL: LogLevel = LogLevel::Error;
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
@@ -66,8 +67,6 @@ fn get_app_info() -> RisResult<AppInfo> {
 }
 
 fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
-    let log_level = LogLevel::Trace;
-
     let mut logs_dir = PathBuf::new();
     logs_dir.push(&app_info.file.pref_path);
     logs_dir.push("logs");
@@ -79,7 +78,7 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
         file_appender,
     };
 
-    let log_guard = unsafe { log::init(log_level, appenders) };
+    let log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
 
     Ok(log_guard)
 }

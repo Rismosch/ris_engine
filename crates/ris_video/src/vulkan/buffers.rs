@@ -30,7 +30,7 @@ impl Buffers {
     pub fn new(
         allocators: &Allocators,
         uniform_buffer_count: usize,
-        pipeline: &Arc<GraphicsPipeline>,
+        pipeline: Arc<GraphicsPipeline>,
     ) -> RisResult<Self> {
         let size = 0.01;
         let offset = 0.02;

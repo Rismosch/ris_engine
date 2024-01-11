@@ -49,8 +49,8 @@ pub type Fence = FenceSignalFuture<
 >;
 
 pub struct Renderer {
-    _instance: Arc<Instance>,
-    pub window: Window,
+    instance: Arc<Instance>,
+    window: Window,
     device: Arc<Device>,
     queue: Arc<Queue>,
     swapchain: Arc<Swapchain>,
@@ -68,6 +68,30 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    pub fn instance(&self) -> Arc<Instance> {
+        self.instance.clone()
+    }
+
+    pub fn window(&self) -> &Window {
+        &self.window
+    }
+
+    pub fn device(&self) -> Arc<Device> {
+        self.device.clone()
+    }
+
+    pub fn queue(&self) -> Arc<Queue> {
+        self.queue.clone()
+    }
+
+    pub fn swapchain(&self) -> Arc<Swapchain> {
+        self.swapchain.clone()
+    }
+
+    pub fn viewport(&self) -> &Viewport {
+        &self.viewport
+    }
+
     pub fn initialize(sdl_context: &Sdl, scenes: Scenes) -> RisResult<Self> {
         // window
         let video_subsystem = sdl_context
@@ -122,8 +146,8 @@ impl Renderer {
             ..DeviceExtensions::empty()
         };
         let (physical_device, queue_family_index) = super::physical_device::select_physical_device(
-            &instance,
-            &surface,
+            instance.clone(),
+            surface.clone(),
             &device_extensions,
         )?;
 
@@ -156,7 +180,12 @@ impl Renderer {
 
         // swapchain
         let (swapchain, images) =
-            super::swapchain::create_swapchain(&physical_device, &window, &device, &surface)?;
+            super::swapchain::create_swapchain(
+                physical_device.clone(),
+                &window,
+                device.clone(),
+                surface.clone(),
+            )?;
 
         // render pass
         let render_pass = super::render_pass::create_render_pass(&device, &swapchain)?;
@@ -170,39 +199,43 @@ impl Renderer {
         };
 
         // allocators
-        let allocators = super::allocators::Allocators::new(&device);
+        let allocators = super::allocators::Allocators::new(device.clone());
 
         // frame buffers
         let framebuffers =
-            super::swapchain::create_framebuffers(&allocators, [w, h], &images, &render_pass)?;
+            super::swapchain::create_framebuffers(&allocators, [w, h], &images, render_pass.clone())?;
 
         // pipeline
         let vs = vs_future.wait()?;
         let fs = fs_future.wait()?;
 
         let pipeline = super::pipeline::create_pipeline(
-            &device,
-            &vs,
-            &fs,
-            &render_pass,
+            device.clone(),
+            vs.clone(),
+            fs.clone(),
+            render_pass.clone(),
             &viewport,
         )?;
 
         // buffers
-        let buffers = super::buffers::Buffers::new(&allocators, images.len(), &pipeline)?;
+        let buffers = super::buffers::Buffers::new(
+            &allocators,
+            images.len(),
+            pipeline.clone(),
+        )?;
 
         // command buffers
         let command_buffers = super::command_buffers::create_command_buffers(
             &allocators,
-            &queue,
-            &pipeline,
+            queue.clone(),
+            pipeline.clone(),
             &framebuffers,
             &buffers,
         )?;
 
         // return
         Ok(Self {
-            _instance: instance,
+            instance,
             window,
             device,
             queue,
@@ -240,7 +273,7 @@ impl Renderer {
             &self.allocators,
             [w, h],
             &new_images,
-            &self.render_pass,
+            self.render_pass.clone(),
         )?;
 
         ris_log::trace!("swapcain recreated!");
@@ -255,17 +288,17 @@ impl Renderer {
         self.viewport.dimensions = [w as f32, h as f32];
 
         self.pipeline = super::pipeline::create_pipeline(
-            &self.device,
-            &self.vertex_shader,
-            &self.fragment_shader,
-            &self.render_pass,
+            self.device.clone(),
+            self.vertex_shader.clone(),
+            self.fragment_shader.clone(),
+            self.render_pass.clone(),
             &self.viewport,
         )?;
 
         self.command_buffers = super::command_buffers::create_command_buffers(
             &self.allocators,
-            &self.queue,
-            &self.pipeline,
+            self.queue.clone(),
+            self.pipeline.clone(),
             &self.framebuffers,
             &self.buffers,
         )?;

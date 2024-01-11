@@ -112,7 +112,7 @@ impl GodObject {
         // scenes
         let scenes_id = scenes_id();
         let scenes_bytes = ris_error::unroll!(
-            asset_loader::load(scenes_id).wait(),
+            asset_loader::load_async(scenes_id).wait(),
             "failed to load ris_scenes"
         )?;
         let scenes = scenes_loader::load(&scenes_bytes)?;
@@ -123,7 +123,7 @@ impl GodObject {
 
         // imgui
         let imgui_backend = ImguiBackend::init(&app_info)?;
-        let imgui_renderer = ImguiRenderer::init(scenes.clone())?;
+        let imgui_renderer = ImguiRenderer::init(scenes.clone(), video.renderer())?;
 
         // gameloop
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);

@@ -117,7 +117,7 @@ pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     Ok(AssetLoaderGuard)
 }
 
-pub fn load(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
+pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     let (settable_job_future, job_future) = SettableJobFuture::new();
     let request = Request {
         id,

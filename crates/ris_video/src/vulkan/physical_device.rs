@@ -10,8 +10,8 @@ use vulkano::swapchain::Surface;
 use ris_error::RisResult;
 
 pub fn select_physical_device(
-    instance: &Arc<Instance>,
-    surface: &Arc<Surface>,
+    instance: Arc<Instance>,
+    surface: Arc<Surface>,
     device_extensions: &DeviceExtensions,
 ) -> RisResult<(Arc<PhysicalDevice>, u32)> {
     let available_devices = ris_error::unroll!(
@@ -25,7 +25,7 @@ pub fn select_physical_device(
             .enumerate()
             .position(|(i, q)| {
                 q.queue_flags.contains(QueueFlags::GRAPHICS)
-                    && p.surface_support(i as u32, surface).unwrap_or(false)
+                    && p.surface_support(i as u32, &surface).unwrap_or(false)
             })
             .map(|q| (p, q as u32))
     })

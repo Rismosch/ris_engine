@@ -18,8 +18,8 @@ use crate::vulkan::buffers::Buffers;
 
 pub fn create_command_buffers(
     allocators: &Allocators,
-    queue: &Arc<Queue>,
-    pipeline: &Arc<GraphicsPipeline>,
+    queue: Arc<Queue>,
+    pipeline: Arc<GraphicsPipeline>,
     framebuffers: &[Arc<Framebuffer>],
     buffers: &Buffers,
 ) -> RisResult<Vec<Arc<PrimaryAutoCommandBuffer>>> {

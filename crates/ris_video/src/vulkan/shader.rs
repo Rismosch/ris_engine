@@ -16,7 +16,7 @@ pub fn load_async(device: Arc<Device>, asset_id: AssetId) -> JobFuture<RisResult
             asset_id,
         );
 
-        let future = asset_loader::load(asset_id.clone());
+        let future = asset_loader::load_async(asset_id.clone());
 
         let bytes = ris_error::unroll!(
             future.wait(),

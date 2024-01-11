@@ -24,7 +24,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
-        copy_current_to_previous(&god_state);
+        copy_current_to_previous(god_state.clone());
 
         // create copies
         let previous_logic_for_logic = current_logic.clone();
@@ -117,7 +117,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     }
 }
 
-fn copy_current_to_previous(god_state: &Arc<GodState>) {
+fn copy_current_to_previous(god_state: Arc<GodState>) {
     let mut current = job_system::lock_write(&god_state.current);
     let mut previous = job_system::lock_write(&god_state.previous);
 

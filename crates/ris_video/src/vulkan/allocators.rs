@@ -12,7 +12,7 @@ pub struct Allocators {
 }
 
 impl Allocators {
-    pub fn new(device: &Arc<Device>) -> Self {
+    pub fn new(device: Arc<Device>) -> Self {
         Allocators {
             memory: StandardMemoryAllocator::new_default(device.clone()),
             command_buffer: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
