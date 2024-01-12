@@ -23,12 +23,13 @@ pub struct ImguiBackend {
 
     // platform:
     cursor_instance: Option<Cursor>,
-
-    // renderer
-    renderer: (),
 }
 
 impl ImguiBackend {
+    pub fn context(&mut self) -> &mut Context {
+        &mut self.context
+    }
+
     #[cfg(debug_assertions)]
     pub fn init(app_info: &AppInfo) -> RisResult<Option<Self>> {
         // setup context
@@ -55,7 +56,6 @@ impl ImguiBackend {
 
         let font_atlas = context.fonts();
         font_atlas.add_font(&[imgui::FontSource::DefaultFontData { config: None}]);
-        font_atlas.build_rgba32_texture();
 
         // setup platform
         let io = context.io_mut();
@@ -63,7 +63,7 @@ impl ImguiBackend {
         io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
         io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
 
-        context.set_platform_name(Some(String::from("ris_engine sdl2")));
+        context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));
 
         // setup renderer
         // todo
@@ -71,7 +71,6 @@ impl ImguiBackend {
         Ok(Some(Self {
             context,
             cursor_instance: None,
-            renderer: (),
         }))
     }
 

@@ -122,8 +122,15 @@ impl GodObject {
         let video = Video::new(renderer)?;
 
         // imgui
-        let imgui_backend = ImguiBackend::init(&app_info)?;
-        let imgui_renderer = ImguiRenderer::init(scenes.clone(), video.renderer())?;
+        let mut imgui_backend = ImguiBackend::init(&app_info)?;
+        let imgui_renderer = if let Some(imgui_backend) = &mut imgui_backend {
+            let context = imgui_backend.context();
+            let imgui_renderer = ImguiRenderer::init(scenes.clone(), video.renderer(), context)?;
+            Some(imgui_renderer)
+        } else {
+            None
+        };
+
 
         // gameloop
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
