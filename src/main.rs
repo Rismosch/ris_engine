@@ -19,7 +19,7 @@ use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
-pub const LOG_LEVEL: LogLevel = LogLevel::Error;
+pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {

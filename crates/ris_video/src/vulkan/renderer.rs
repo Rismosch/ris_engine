@@ -164,7 +164,10 @@ impl Renderer {
             )?;
 
         // render pass
-        let render_pass = super::render_pass::create_render_pass(device, swapchain)?;
+        let render_pass = super::render_pass::create_render_pass(
+            device.clone(),
+            swapchain.clone(),
+        )?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();

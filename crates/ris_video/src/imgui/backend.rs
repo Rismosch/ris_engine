@@ -15,7 +15,8 @@ use ris_data::input::keys::KEY_STATE_SIZE;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_error::RisResult;
-use crate::video::Video;
+
+use crate::vulkan::renderer::Renderer;
 
 pub struct ImguiBackend {
     // context
@@ -83,7 +84,7 @@ impl ImguiBackend {
         &mut self,
         logic_data: &LogicData,
         frame: Frame,
-        video: &Video,
+        renderer: &Renderer,
     ) -> &mut Ui {
         let mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
@@ -155,8 +156,8 @@ impl ImguiBackend {
         }
 
         // prepare frame
-        let window_size = video.size();
-        let window_drawable_size = video.drawable_size();
+        let window_size = renderer.window.size();
+        let window_drawable_size = renderer.window.vulkan_drawable_size();
 
         io.display_size = [(window_size.0 as f32), (window_size.1 as f32)];
         io.display_framebuffer_scale = [
@@ -176,11 +177,6 @@ impl ImguiBackend {
         }
 
         self.context.new_frame()
-    }
-
-    pub fn render(&mut self) {
-        let draw_data = self.context.render();
-        // todo
     }
 }
 
