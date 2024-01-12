@@ -31,8 +31,7 @@ impl ImguiBackend {
         &mut self.context
     }
 
-    #[cfg(debug_assertions)]
-    pub fn init(app_info: &AppInfo) -> RisResult<Option<Self>> {
+    pub fn init(app_info: &AppInfo) -> RisResult<Self> {
         // setup context
         let mut dir = PathBuf::from(&app_info.file.pref_path);
         dir.push("imgui");
@@ -69,15 +68,10 @@ impl ImguiBackend {
         // setup renderer
         // todo
 
-        Ok(Some(Self {
+        Ok(Self {
             context,
             cursor_instance: None,
-        }))
-    }
-
-    #[cfg(not(debug_assertions))]
-    pub fn init(app_info: &AppInfo) -> RisResult<Option<ImguiBackend>> {
-        Ok(None)
+        })
     }
 
     pub fn prepare_frame(

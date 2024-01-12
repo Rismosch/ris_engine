@@ -4,6 +4,7 @@ use sdl2_sys::SDL_WindowFlags;
 use vulkano::swapchain::AcquireError;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
+use vulkano::swapchain::SwapchainPresentInfo;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
@@ -20,11 +21,11 @@ pub struct OutputFrame {
     recreate_swapchain: bool,
     fences: Vec<Option<Arc<Fence>>>,
     previous_image: usize,
-    imgui: Option<RisImgui>,
+    imgui: RisImgui,
 }
 
 impl OutputFrame {
-    pub fn new(renderer: Renderer, imgui: Option<RisImgui>) -> Self {
+    pub fn new(renderer: Renderer, imgui: RisImgui) -> Self {
         let frames_in_flight = renderer.get_image_count();
         let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
 
@@ -44,7 +45,7 @@ impl OutputFrame {
         logic: &LogicData,
         frame: Frame,
     ) -> RisResult<()> {
-        // render graphics
+
         let (recreate_viewport, reload_shaders) = if logic.reload_shaders {
             (true, true)
         } else if logic.window_size_changed.is_some() {
@@ -53,7 +54,6 @@ impl OutputFrame {
             (false, false)
         };
         
-        // render graphics
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -61,14 +61,16 @@ impl OutputFrame {
         }
 
         if recreate_viewport {
-            self.recreate_swapchain = false;
-
             if reload_shaders {
                 self.renderer.reload_shaders()?;
             }
 
             self.renderer.recreate_swapchain()?;
+            self.recreate_swapchain = false;
         }
+
+        let ui = self.imgui.backend.prepare_frame(logic, frame, &self.renderer);
+        ui.show_demo_window(&mut true);
 
         let (image_u32, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
             Ok(r) => r,
@@ -108,6 +110,8 @@ impl OutputFrame {
         };
         self.renderer.update_uniform(image_usize, &ubo)?;
 
+        let draw_data = self.imgui.backend.context().render();
+
         let use_gpu_resources = false;
         let previous_future = match self.fences[self.previous_image].clone() {
             None => self.renderer.synchronize().boxed(),
@@ -123,9 +127,18 @@ impl OutputFrame {
             // logic that can use every GPU resource (the GPU is sleeping)
         }
 
-        let result = self
-            .renderer
-            .flush_next_future(previous_future, acquire_future, image_u32)?;
+        let result = previous_future
+            .join(acquire_future)
+            .then_execute(
+                self.renderer.queue.clone(),
+                self.renderer.command_buffers[image_usize].clone(),
+            )
+            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
+            .then_swapchain_present(
+                self.renderer.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.renderer.swapchain.clone(), image_u32),
+            )
+            .then_signal_fence_and_flush();
 
         self.fences[image_usize] = match result {
             Ok(fence) => Some(Arc::new(fence)),
@@ -140,15 +153,6 @@ impl OutputFrame {
         };
 
         self.previous_image = image_usize;
-
-        // render imgui
-        if let Some(ris_imgui) = &mut self.imgui {
-            let ui = ris_imgui.backend.prepare_frame(logic, frame, &self.renderer);
-
-            ui.show_demo_window(&mut true);
-
-            ris_imgui.renderer.draw(ris_imgui.backend.context());
-        }
 
         Ok(())
     }

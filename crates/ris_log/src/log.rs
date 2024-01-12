@@ -22,13 +22,13 @@ impl Appenders {
         self.console_appender.is_some() || self.file_appender.is_some()
     }
 
-    pub fn print(&mut self, message: &str) {
+    pub fn print(&mut self, message: LogMessage) {
         if let Some(appender) = self.console_appender.as_mut() {
-            appender.print(message)
+            appender.print(&message.fmt(true))
         }
 
         if let Some(appender) = self.file_appender.as_mut() {
-            appender.print(message)
+            appender.print(&message.fmt(false))
         }
     }
 }
@@ -98,12 +98,10 @@ pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
 
 fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Appenders) {
     for log_message in receiver.iter() {
-        let to_print = log_message.to_string();
-
-        appenders.print(&to_print);
+        appenders.print(log_message);
     }
 
-    appenders.print("log thread ended");
+    appenders.print(LogMessage::Plain(String::from("log thread ended")));
 }
 
 pub fn log_level() -> LogLevel {

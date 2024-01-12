@@ -324,26 +324,6 @@ impl Renderer {
         now
     }
 
-    pub fn flush_next_future(
-        &self,
-        previous_future: Box<dyn GpuFuture>,
-        swqapchain_acquire_future: SwapchainAcquireFuture,
-        image_i: u32,
-    ) -> RisResult<Result<Fence, FlushError>> {
-        Ok(previous_future
-            .join(swqapchain_acquire_future)
-            .then_execute(
-                self.queue.clone(),
-                self.command_buffers[image_i as usize].clone(),
-            )
-            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
-            .then_swapchain_present(
-                self.queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
-            )
-            .then_signal_fence_and_flush())
-    }
-
     pub fn update_uniform(
         &self,
         index: usize,
