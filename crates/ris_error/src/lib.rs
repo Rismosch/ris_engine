@@ -165,7 +165,7 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(
-            "           WARNING: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
+            "\u{001B}[93mWARNING\u{001B}[0m: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
             file!(),
             line!(),
         );

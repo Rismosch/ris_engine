@@ -30,11 +30,11 @@ impl From<usize> for LogLevel {
 impl LogLevel {
     pub fn to_color_string(&self) -> ColorString {
         match *self {
-            LogLevel::Trace   => ColorString("Trace   ", Color::Cyan),
-            LogLevel::Debug   => ColorString("Debug   ", Color::Green),
+            LogLevel::Trace   => ColorString("Trace   ", Color::BrightCyan),
+            LogLevel::Debug   => ColorString("Debug   ", Color::BrightGreen),
             LogLevel::Info    => ColorString("Info    ", Color::BrightWhite),
-            LogLevel::Warning => ColorString("Warning ", Color::Yellow),
-            LogLevel::Error   => ColorString("Error   ", Color::Red),
+            LogLevel::Warning => ColorString("Warning ", Color::BrightYellow),
+            LogLevel::Error   => ColorString("Error   ", Color::BrightRed),
             LogLevel::Fatal   => ColorString("Fatal   ", Color::BrightRed),
             LogLevel::None    => ColorString("None    ", Color::BrightWhite),
         }
