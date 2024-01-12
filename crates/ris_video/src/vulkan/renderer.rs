@@ -49,49 +49,25 @@ pub type Fence = FenceSignalFuture<
 >;
 
 pub struct Renderer {
-    instance: Arc<Instance>,
-    window: Window,
-    device: Arc<Device>,
-    queue: Arc<Queue>,
-    swapchain: Arc<Swapchain>,
-    images: Vec<Arc<SwapchainImage>>,
-    render_pass: Arc<RenderPass>,
-    framebuffers: Vec<Arc<Framebuffer>>,
-    allocators: Allocators,
-    buffers: Buffers,
-    vertex_shader: Arc<ShaderModule>,
-    fragment_shader: Arc<ShaderModule>,
-    scenes: Scenes,
-    viewport: Viewport,
-    pipeline: Arc<GraphicsPipeline>,
-    command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
+    pub instance: Arc<Instance>,
+    pub window: Window,
+    pub device: Arc<Device>,
+    pub queue: Arc<Queue>,
+    pub swapchain: Arc<Swapchain>,
+    pub images: Vec<Arc<SwapchainImage>>,
+    pub render_pass: Arc<RenderPass>,
+    pub framebuffers: Vec<Arc<Framebuffer>>,
+    pub allocators: Allocators,
+    pub buffers: Buffers,
+    pub vertex_shader: Arc<ShaderModule>,
+    pub fragment_shader: Arc<ShaderModule>,
+    pub scenes: Scenes,
+    pub viewport: Viewport,
+    pub pipeline: Arc<GraphicsPipeline>,
+    pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
 }
 
 impl Renderer {
-    pub fn instance(&self) -> Arc<Instance> {
-        self.instance.clone()
-    }
-
-    pub fn window(&self) -> &Window {
-        &self.window
-    }
-
-    pub fn device(&self) -> Arc<Device> {
-        self.device.clone()
-    }
-
-    pub fn queue(&self) -> Arc<Queue> {
-        self.queue.clone()
-    }
-
-    pub fn swapchain(&self) -> Arc<Swapchain> {
-        self.swapchain.clone()
-    }
-
-    pub fn viewport(&self) -> &Viewport {
-        &self.viewport
-    }
-
     pub fn initialize(sdl_context: &Sdl, scenes: Scenes) -> RisResult<Self> {
         // window
         let video_subsystem = sdl_context
@@ -188,7 +164,7 @@ impl Renderer {
             )?;
 
         // render pass
-        let render_pass = super::render_pass::create_render_pass(&device, &swapchain)?;
+        let render_pass = super::render_pass::create_render_pass(device, swapchain)?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();

@@ -44,7 +44,7 @@ impl Video {
     }
 
     pub fn update(&mut self, scene: &Scene) -> RisResult<()> {
-        let window_flags = self.renderer.window().window_flags();
+        let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
             return Ok(());
@@ -127,11 +127,11 @@ impl Video {
     }
 
     pub fn size(&self) -> (u32, u32) {
-        self.renderer.window().size()
+        self.renderer.window.size()
     }
 
     pub fn drawable_size(&self) -> (u32, u32) {
-        self.renderer.window().vulkan_drawable_size()
+        self.renderer.window.vulkan_drawable_size()
     }
 
     pub fn recreate_viewport(&mut self, reload_shaders: bool) {

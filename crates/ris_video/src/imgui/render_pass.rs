@@ -15,23 +15,17 @@ pub fn create_render_pass(
             device.clone(),
             attachments: {
                 color: {
-                    load: Clear,
+                    load: Load,
                     store: Store,
                     format: swapchain.image_format(),
                     samples: 1,
-                },
-                depth: {
-                    load: Clear,
-                    store: DontCare,
-                    format: super::DEPTH_FORMAT,
-                    samples: 1,
-                },
+                }
             },
             pass: {
                 color: [color],
-                depth_stencil: {depth},
-            },
+                depth_stencil: {}
+            }
         ),
-        "failed to create render pass"
+        "failed to create render pass for imgui"
     )
 }
