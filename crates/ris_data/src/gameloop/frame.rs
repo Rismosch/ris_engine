@@ -55,7 +55,11 @@ impl FrameCalculator {
         };
 
         let number = self.number;
-        Frame { number, previous, average }
+        Frame {
+            number,
+            previous,
+            average,
+        }
     }
 }
 

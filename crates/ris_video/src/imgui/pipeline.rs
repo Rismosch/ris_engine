@@ -62,8 +62,8 @@ pub fn create_pipeline(
                 ..Default::default()
             })
             .render_pass(ris_error::unroll_option!(
-                    Subpass::from(render_pass.clone(), 0),
-                    "failed to create render subpass",
+                Subpass::from(render_pass.clone(), 0),
+                "failed to create render subpass",
             )?)
             .build(device.clone()),
         "failed to build graphics pipeline",

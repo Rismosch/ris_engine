@@ -31,4 +31,3 @@ pub fn load(bytes: &[u8]) -> RisResult<Scenes> {
 
     Ok(scenes)
 }
-

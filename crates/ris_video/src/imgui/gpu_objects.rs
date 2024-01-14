@@ -8,7 +8,7 @@ use vulkano::pipeline::graphics::vertex_input::VertexInputState;
 #[repr(C)]
 pub struct ImguiVertex {
     pub pos: [f32; 2],
-    pub uv : [f32; 2],
+    pub uv: [f32; 2],
     pub col: u32, // [u8; 4]
 }
 

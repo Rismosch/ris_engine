@@ -19,9 +19,9 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::imgui::RisImgui;
 use ris_video::imgui::backend::ImguiBackend;
 use ris_video::imgui::renderer::ImguiRenderer;
+use ris_video::imgui::RisImgui;
 use ris_video::vulkan::renderer::Renderer;
 
 use crate::logic_frame::LogicFrame;
@@ -124,7 +124,7 @@ impl GodObject {
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
         let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
-        let imgui = RisImgui{
+        let imgui = RisImgui {
             backend: imgui_backend,
             renderer: imgui_renderer,
         };

@@ -5,15 +5,15 @@ use imgui::ConfigFlags;
 use imgui::Context;
 use imgui::Io;
 use imgui::Ui;
-use sdl2::mouse::Cursor;
 use sdl2::keyboard::Mod;
 use sdl2::keyboard::Scancode;
+use sdl2::mouse::Cursor;
 
+use ris_data::gameloop::frame::Frame;
+use ris_data::gameloop::logic_data::LogicData;
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
-use ris_data::gameloop::frame::Frame;
-use ris_data::gameloop::logic_data::LogicData;
 use ris_error::RisResult;
 
 use crate::vulkan::renderer::Renderer;
@@ -55,7 +55,7 @@ impl ImguiBackend {
         context.set_log_filename(Some(log_filepath));
 
         let font_atlas = context.fonts();
-        font_atlas.add_font(&[imgui::FontSource::DefaultFontData { config: None}]);
+        font_atlas.add_font(&[imgui::FontSource::DefaultFontData { config: None }]);
 
         // setup platform
         let io = context.io_mut();
@@ -166,7 +166,10 @@ impl ImguiBackend {
 
         io.mouse_pos = [mouse.x as f32, mouse.y as f32];
 
-        if !io.config_flags.contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE) {
+        if !io
+            .config_flags
+            .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
+        {
             //ris_log::warning!("set mouse cursor is not implemented!");
         }
 
@@ -174,11 +177,7 @@ impl ImguiBackend {
     }
 }
 
-fn forward_mouse_button_event(
-    io: &mut Io,
-    buttons: &Buttons,
-    button: usize,
-) {
+fn forward_mouse_button_event(io: &mut Io, buttons: &Buttons, button: usize) {
     debug_assert!(button < 5);
 
     let event = if buttons.is_down(1 << button) {
@@ -203,11 +202,7 @@ fn forward_mouse_button_event(
     }
 }
 
-fn forward_keyboard_key_event(
-    io: &mut Io,
-    scancode: Scancode,
-    pressed: bool
-) {
+fn forward_keyboard_key_event(io: &mut Io, scancode: Scancode, pressed: bool) {
     let imgui_scancode = match scancode {
         Scancode::A => imgui::Key::A,
         Scancode::B => imgui::Key::B,

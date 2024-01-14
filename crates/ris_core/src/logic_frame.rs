@@ -142,10 +142,8 @@ impl LogicFrame {
             self.keyboard_util.mod_state(),
         );
 
-        self.gamepad_logic.post_events(
-            &mut current.gamepad,
-            &previous_for_gamepad.gamepad
-        );
+        self.gamepad_logic
+            .post_events(&mut current.gamepad, &previous_for_gamepad.gamepad);
 
         let args = GeneralLogicArgs {
             new_general_data: &mut current.general,
@@ -284,7 +282,11 @@ impl LogicFrame {
         }
 
         if current.keyboard.keys.is_down(Scancode::F) {
-            ris_log::debug!("{:?} ({} fps)", frame.average_duration(), frame.average_fps());
+            ris_log::debug!(
+                "{:?} ({} fps)",
+                frame.average_duration(),
+                frame.average_fps()
+            );
         }
 
         if let Some(future) = import_shader_future {

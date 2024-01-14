@@ -143,31 +143,22 @@ impl Renderer {
             "failed to create device"
         )?;
         let queue = ris_error::unroll_option!(queues.next(), "no queues available")?;
-        
+
         // shaders
-        let vs_future = super::shader::load_async(
-            device.clone(),
-            scenes.default_vs.clone(),
-        );
-        let fs_future = super::shader::load_async(
-            device.clone(),
-            scenes.default_fs.clone(),
-        );
+        let vs_future = super::shader::load_async(device.clone(), scenes.default_vs.clone());
+        let fs_future = super::shader::load_async(device.clone(), scenes.default_fs.clone());
 
         // swapchain
-        let (swapchain, images) =
-            super::swapchain::create_swapchain(
-                physical_device.clone(),
-                &window,
-                device.clone(),
-                surface.clone(),
-            )?;
+        let (swapchain, images) = super::swapchain::create_swapchain(
+            physical_device.clone(),
+            &window,
+            device.clone(),
+            surface.clone(),
+        )?;
 
         // render pass
-        let render_pass = super::render_pass::create_render_pass(
-            device.clone(),
-            swapchain.clone(),
-        )?;
+        let render_pass =
+            super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
 
         // viewport
         let (w, h) = window.vulkan_drawable_size();
@@ -181,8 +172,12 @@ impl Renderer {
         let allocators = super::allocators::Allocators::new(device.clone());
 
         // frame buffers
-        let framebuffers =
-            super::swapchain::create_framebuffers(&allocators, [w, h], &images, render_pass.clone())?;
+        let framebuffers = super::swapchain::create_framebuffers(
+            &allocators,
+            [w, h],
+            &images,
+            render_pass.clone(),
+        )?;
 
         // pipeline
         let vs = vs_future.wait()?;
@@ -197,11 +192,7 @@ impl Renderer {
         )?;
 
         // buffers
-        let buffers = super::buffers::Buffers::new(
-            &allocators,
-            images.len(),
-            pipeline.clone(),
-        )?;
+        let buffers = super::buffers::Buffers::new(&allocators, images.len(), pipeline.clone())?;
 
         // command buffers
         let command_buffers = super::command_buffers::create_command_buffers(
@@ -289,14 +280,10 @@ impl Renderer {
     pub fn reload_shaders(&mut self) -> RisResult<()> {
         ris_log::trace!("reloading shaders...");
 
-        let vertex_future = super::shader::load_async(
-            self.device.clone(),
-            self.scenes.default_vs.clone(),
-        );
-        let fragment_future = super::shader::load_async(
-            self.device.clone(),
-            self.scenes.default_vs.clone(),
-        );
+        let vertex_future =
+            super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
+        let fragment_future =
+            super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
 
         let vertex_shader = vertex_future.wait()?;
         let fragment_shader = fragment_future.wait()?;

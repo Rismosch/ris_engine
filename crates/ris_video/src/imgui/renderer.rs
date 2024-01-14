@@ -17,12 +17,12 @@ use vulkano::command_buffer::PrimaryCommandBufferAbstract;
 use vulkano::device::Device;
 use vulkano::device::Queue;
 use vulkano::format::Format;
+use vulkano::image::view::ImageView;
+use vulkano::image::view::ImageViewCreateInfo;
 use vulkano::image::ImageDimensions;
 use vulkano::image::ImageViewAbstract;
 use vulkano::image::ImmutableImage;
 use vulkano::image::MipmapsCount;
-use vulkano::image::view::ImageView;
-use vulkano::image::view::ImageViewCreateInfo;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::graphics::color_blend::AttachmentBlend;
@@ -62,11 +62,7 @@ pub struct ImguiRenderer {
 
 impl ImguiRenderer {
     #[cfg(debug_assertions)]
-    pub fn init(
-        renderer: &Renderer,
-        scenes: &Scenes,
-        context: &mut Context,
-    ) -> RisResult<Self> {
+    pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
         let device = renderer.device.clone();
         let queue = renderer.queue.clone();
         let format = renderer.swapchain.image_format();
@@ -81,10 +77,8 @@ impl ImguiRenderer {
         let vs = vs_future.wait()?;
         let fs = fs_future.wait()?;
 
-        let render_pass = super::render_pass::create_render_pass(
-            device.clone(),
-            swapchain.clone(),
-        )?;
+        let render_pass =
+            super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
 
         let pipeline = super::pipeline::create_pipeline(
             device.clone(),
@@ -95,16 +89,12 @@ impl ImguiRenderer {
         )?;
 
         let textures = Textures::new();
-        let font_texture = Self::upload_font_texture(
-            context.fonts(),
-            device.clone(),
-            queue.clone(),
-            &allocators,
-        )?;
+        let font_texture =
+            Self::upload_font_texture(context.fonts(), device.clone(), queue.clone(), &allocators)?;
 
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
-        Ok(Self{
+        Ok(Self {
             render_pass,
             pipeline,
             font_texture,
@@ -123,7 +113,7 @@ impl ImguiRenderer {
         let fb_width = data.display_size[0] * data.framebuffer_scale[0];
         let fb_height = data.display_size[1] * data.framebuffer_scale[1];
         if fb_width <= 0.0 || fb_height <= 0.0 {
-            return Ok(())
+            return Ok(());
         }
 
         let left = data.display_pos[0];
@@ -193,7 +183,7 @@ impl ImguiRenderer {
             ImmutableImage::from_iter(
                 &allocators.memory,
                 texture.data.iter().cloned(),
-                ImageDimensions::Dim2d{
+                ImageDimensions::Dim2d {
                     width: texture.width,
                     height: texture.height,
                     array_layers: 1,
@@ -207,18 +197,12 @@ impl ImguiRenderer {
 
         let image_view_create_info = ImageViewCreateInfo::from_image(&image);
         let image_view = ris_error::unroll!(
-            ImageView::new(
-                image,
-                image_view_create_info,
-            ),
+            ImageView::new(image, image_view_create_info,),
             "failed to create image view",
         )?;
 
         let sampler = ris_error::unroll!(
-            Sampler::new(
-                device.clone(),
-                SamplerCreateInfo::simple_repeat_linear()
-            ),
+            Sampler::new(device.clone(), SamplerCreateInfo::simple_repeat_linear()),
             "failed to create sampler",
         )?;
 
@@ -227,28 +211,22 @@ impl ImguiRenderer {
             "failed to build command buffer",
         )?;
 
-        let future = ris_error::unroll!(
-            primary.execute(queue),
-            "failed to execute command buffer",
-        )?;
-
+        let future =
+            ris_error::unroll!(primary.execute(queue), "failed to execute command buffer",)?;
 
         let fence = ris_error::unroll!(
             future.then_signal_fence_and_flush(),
             "failed to signal fence and flush",
         )?;
 
-        ris_error::unroll!(
-            fence.wait(None),
-            "failed to wait on fence",
-        )?;
+        ris_error::unroll!(fence.wait(None), "failed to wait on fence",)?;
 
         font_atlas.tex_id = TextureId::from(usize::MAX);
         ris_log::debug!("imgui renderer uploaded font texture!");
         Ok((image_view, sampler))
     }
 
-    fn lookup_texture(&self, texture_id: TextureId) -> RisResult<&Texture>{
+    fn lookup_texture(&self, texture_id: TextureId) -> RisResult<&Texture> {
         if texture_id.id() == usize::MAX {
             Ok(&self.font_texture)
         } else if let Some(texture) = self.textures.get(texture_id) {

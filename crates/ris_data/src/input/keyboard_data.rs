@@ -1,5 +1,5 @@
-use sdl2::keyboard::Scancode;
 use sdl2::keyboard::Mod;
+use sdl2::keyboard::Scancode;
 
 use crate::input::buttons::Buttons;
 use crate::input::keys::Keys;

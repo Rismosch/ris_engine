@@ -50,7 +50,11 @@ impl GamepadLogic {
         }
     }
 
-    pub fn post_events(&mut self, new_gamepad_data: &mut GamepadData, old_gamepad_data: &GamepadData) {
+    pub fn post_events(
+        &mut self,
+        new_gamepad_data: &mut GamepadData,
+        old_gamepad_data: &GamepadData,
+    ) {
         if let Some(controller_index) = self.current_controller {
             let controller_to_use = &self.open_controllers[controller_index];
             compute_state(new_gamepad_data, old_gamepad_data, controller_to_use)

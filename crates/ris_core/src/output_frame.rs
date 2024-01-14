@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use sdl2_sys::SDL_WindowFlags;
 use vulkano::swapchain::AcquireError;
+use vulkano::swapchain::SwapchainPresentInfo;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
-use vulkano::swapchain::SwapchainPresentInfo;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
@@ -45,7 +45,6 @@ impl OutputFrame {
         logic: &LogicData,
         frame: Frame,
     ) -> RisResult<()> {
-
         let (recreate_viewport, reload_shaders) = if logic.reload_shaders {
             (true, true)
         } else if logic.window_size_changed.is_some() {
@@ -53,7 +52,7 @@ impl OutputFrame {
         } else {
             (false, false)
         };
-        
+
         let window_flags = self.renderer.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -69,15 +68,19 @@ impl OutputFrame {
             self.recreate_swapchain = false;
         }
 
-        let ui = self.imgui.backend.prepare_frame(logic, frame, &self.renderer);
+        let ui = self
+            .imgui
+            .backend
+            .prepare_frame(logic, frame, &self.renderer);
         ui.show_demo_window(&mut true);
 
-        let (image_u32, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
+        let (image_u32, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image()
+        {
             Ok(r) => r,
             Err(AcquireError::OutOfDate) => {
                 self.recreate_swapchain = true;
                 return Ok(());
-            },
+            }
             Err(e) => return ris_error::new_result!("failed to acquire next image: {}", e),
         };
         let image_usize = image_u32 as usize;
@@ -136,7 +139,10 @@ impl OutputFrame {
             .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
             .then_swapchain_present(
                 self.renderer.queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(self.renderer.swapchain.clone(), image_u32),
+                SwapchainPresentInfo::swapchain_image_index(
+                    self.renderer.swapchain.clone(),
+                    image_u32,
+                ),
             )
             .then_signal_fence_and_flush();
 
@@ -145,7 +151,7 @@ impl OutputFrame {
             Err(FlushError::OutOfDate) => {
                 self.recreate_swapchain = true;
                 None
-            },
+            }
             Err(e) => {
                 ris_log::warning!("failed to flush future: {}", e);
                 None
