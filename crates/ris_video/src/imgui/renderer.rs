@@ -10,7 +10,10 @@ use vulkano::buffer::BufferCreateInfo;
 use vulkano::buffer::BufferError;
 use vulkano::buffer::BufferUsage;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBufferExecFuture;
+use vulkano::command_buffer::CommandBufferUsage;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
+use vulkano::command_buffer::PrimaryCommandBufferAbstract;
 use vulkano::device::Device;
 use vulkano::device::Queue;
 use vulkano::format::Format;
@@ -38,6 +41,7 @@ use vulkano::render_pass::RenderPass;
 use vulkano::render_pass::Subpass;
 use vulkano::sampler::Sampler;
 use vulkano::sampler::SamplerCreateInfo;
+use vulkano::sync::future::GpuFuture;
 
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_error::RisResult;
@@ -50,71 +54,62 @@ use crate::vulkan::shader;
 pub type Texture = (Arc<ImageView<ImmutableImage>>, Arc<Sampler>);
 
 pub struct ImguiRenderer {
-    //render_pass: Arc<RenderPass>,
-    //pipeline: Arc<GraphicsPipeline>,
-    //font_texture: Texture,
-    //textures: Textures<Texture>,
+    render_pass: Arc<RenderPass>,
+    pipeline: Arc<GraphicsPipeline>,
+    font_texture: Texture,
+    textures: Textures<Texture>,
 }
 
 impl ImguiRenderer {
     #[cfg(debug_assertions)]
     pub fn init(
-        //scenes: Scenes,
-        //renderer: &Renderer,
+        renderer: &Renderer,
+        scenes: &Scenes,
         context: &mut Context,
     ) -> RisResult<Self> {
-        //let device = renderer.device.clone();
-        //let queue = renderer.queue.clone();
-        //let format = renderer.swapchain.image_format();
-        //let viewport = &renderer.viewport;
-        //let framebuffers = &renderer.framebuffers;
-        //let swapchain = renderer.swapchain.clone();
-        //let allocators = &renderer.allocators;
+        let device = renderer.device.clone();
+        let queue = renderer.queue.clone();
+        let format = renderer.swapchain.image_format();
+        let viewport = &renderer.viewport;
+        let framebuffers = &renderer.framebuffers;
+        let swapchain = renderer.swapchain.clone();
+        let allocators = &renderer.allocators;
 
-        //let vs_future = shader::load_async(device.clone(), scenes.imgui_vs.clone());
-        //let fs_future = shader::load_async(device.clone(), scenes.imgui_fs.clone());
+        let vs_future = shader::load_async(device.clone(), scenes.imgui_vs.clone());
+        let fs_future = shader::load_async(device.clone(), scenes.imgui_fs.clone());
 
-        //let vs = vs_future.wait()?;
-        //let fs = fs_future.wait()?;
+        let vs = vs_future.wait()?;
+        let fs = fs_future.wait()?;
 
-        //let render_pass = super::render_pass::create_render_pass(
-        //    device.clone(),
-        //    swapchain.clone(),
-        //)?;
+        let render_pass = super::render_pass::create_render_pass(
+            device.clone(),
+            swapchain.clone(),
+        )?;
 
-        //let pipeline = super::pipeline::create_pipeline(
-        //    device.clone(),
-        //    vs.clone(),
-        //    fs.clone(),
-        //    render_pass.clone(),
-        //    &viewport,
-        //)?;
+        let pipeline = super::pipeline::create_pipeline(
+            device.clone(),
+            vs.clone(),
+            fs.clone(),
+            render_pass.clone(),
+            &viewport,
+        )?;
 
-        //let textures = Textures::new();
-        //let font_texture = Self::upload_font_texture(
-        //    context.fonts(),
-        //    device.clone(),
-        //    command_buffer_builder,
-        //    &allocators,
-        //)?;
+        let textures = Textures::new();
+        let font_texture = Self::upload_font_texture(
+            context.fonts(),
+            device.clone(),
+            queue.clone(),
+            &allocators,
+        )?;
 
-        //context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
-
-        //ris_log::error!("remove me");
-
-        //Ok(Some(Self{
-        //    render_pass,
-        //    pipeline,
-        //    font_texture,
-        //    textures,
-        //}))
-        
-        let font_atlas = context.fonts();
-        let texture = font_atlas.build_rgba32_texture();
-        
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
-        Ok(Self{})
+        Ok(Self{
+            render_pass,
+            pipeline,
+            font_texture,
+            textures,
+        })
     }
 
     #[cfg(not(debug_assertions))]
@@ -160,97 +155,106 @@ impl ImguiRenderer {
         Ok(())
     }
 
-    //pub fn textures(&mut self) -> &mut Textures<Texture> {
-    //    &mut self.textures
-    //}
+    pub fn reload_font_texture(
+        &mut self,
+        context: &mut Context,
+        device: Arc<Device>,
+        queue: Arc<Queue>,
+        allocators: &Allocators,
+    ) -> RisResult<()> {
+        self.font_texture = Self::upload_font_texture(context.fonts(), device, queue, allocators)?;
+        Ok(())
+    }
 
-    //pub fn upload_font_texture(
-    //    font_atlas: &mut FontAtlas,
-    //    device: Arc<Device>,
-    //    command_buffer_builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-    //    allocators: &Allocators,
-    //) -> RisResult<Texture> {
-    //    let texture = font_atlas.build_rgba32_texture();
+    pub fn textures(&mut self) -> &mut Textures<Texture> {
+        &mut self.textures
+    }
 
-    //    let source = Buffer::from_iter(
-    //        &allocators.memory,
-    //        vulkano::buffer::BufferCreateInfo {
-    //            usage: BufferUsage::TRANSFER_SRC,
-    //            ..Default::default()
-    //        },
-    //        AllocationCreateInfo {
-    //            usage: MemoryUsage::Upload,
-    //            ..Default::default()
-    //        },
-    //        texture.data.iter().cloned(),
-    //    )
-    //    .map_err(|err| match err {
-    //        BufferError::AllocError(err) => ris_error::new!("buffer error alloc error: {}", err),
-    //        // this is unreachable according to: doc/vulkano/image/immutable.rs.html#209
-    //        _ => unreachable!(),
-    //    })?;
+    fn upload_font_texture(
+        font_atlas: &mut FontAtlas,
+        device: Arc<Device>,
+        queue: Arc<Queue>,
+        allocators: &Allocators,
+    ) -> RisResult<Texture> {
+        ris_log::debug!("imgui renderer uploading font texture...");
 
-    //    let image = ris_error::unroll!(
-    //        ImmutableImage::from_buffer(
-    //            &allocators.memory,
-    //            source,
-    //            ImageDimensions::Dim2d{
-    //                width: texture.width,
-    //                height: texture.height,
-    //                array_layers: 1,
-    //            },
-    //            MipmapsCount::One,
-    //            Format::R8G8B8A8_SRGB,
-    //            command_buffer_builder,
-    //        ),
-    //        "failed to create image",
-    //    )?;
+        let texture = font_atlas.build_rgba32_texture();
 
-    //    //let image = ris_error::unroll!(
-    //    //    ImmutableImage::from_iter(
-    //    //        &allocators.memory,
-    //    //        texture.data.iter().cloned(),
-    //    //        ImageDimensions::Dim2d{
-    //    //            width: texture.width,
-    //    //            height: texture.height,
-    //    //            array_layers: 1,
-    //    //        },
-    //    //        MipmapsCount::One,
-    //    //        Format::R8G8B8A8_SRGB,
-    //    //        command_buffer_builder,
-    //    //    ),
-    //    //    "",
-    //    //)?;
+        let mut command_buffer_builder = ris_error::unroll!(
+            AutoCommandBufferBuilder::primary(
+                &allocators.command_buffer,
+                queue.queue_family_index(),
+                CommandBufferUsage::OneTimeSubmit,
+            ),
+            "failed to build command buffer",
+        )?;
 
-    //    let image_view = ris_error::unroll!(
-    //        ImageView::new(
-    //            image,
-    //            ImageViewCreateInfo{
-    //                ..Default::default()
-    //            },
-    //        ),
-    //        "failed to create image view",
-    //    )?;
+        let image = ris_error::unroll!(
+            ImmutableImage::from_iter(
+                &allocators.memory,
+                texture.data.iter().cloned(),
+                ImageDimensions::Dim2d{
+                    width: texture.width,
+                    height: texture.height,
+                    array_layers: 1,
+                },
+                MipmapsCount::One,
+                Format::R8G8B8A8_SRGB,
+                &mut command_buffer_builder,
+            ),
+            "failed to create image",
+        )?;
 
-    //    let sampler = ris_error::unroll!(
-    //        Sampler::new(
-    //            device.clone(),
-    //            SamplerCreateInfo::simple_repeat_linear()
-    //        ),
-    //        "failed to create sampler",
-    //    )?;
+        let image_view_create_info = ImageViewCreateInfo::from_image(&image);
+        let image_view = ris_error::unroll!(
+            ImageView::new(
+                image,
+                image_view_create_info,
+            ),
+            "failed to create image view",
+        )?;
 
-    //    font_atlas.tex_id = TextureId::from(usize::MAX);
-    //    Ok((image_view, sampler))
-    //}
+        let sampler = ris_error::unroll!(
+            Sampler::new(
+                device.clone(),
+                SamplerCreateInfo::simple_repeat_linear()
+            ),
+            "failed to create sampler",
+        )?;
 
-    //fn lookup_texture(&self, texture_id: TextureId) -> RisResult<&Texture>{
-    //    if texture_id.id() == usize::MAX {
-    //        Ok(&self.font_texture)
-    //    } else if let Some(texture) = self.textures.get(texture_id) {
-    //        Ok(texture)
-    //    } else {
-    //        ris_error::new_result!("bad texture: {:?}", texture_id)
-    //    }
-    //}
+        let primary = ris_error::unroll!(
+            command_buffer_builder.build(),
+            "failed to build command buffer",
+        )?;
+
+        let future = ris_error::unroll!(
+            primary.execute(queue),
+            "failed to execute command buffer",
+        )?;
+
+
+        let fence = ris_error::unroll!(
+            future.then_signal_fence_and_flush(),
+            "failed to signal fence and flush",
+        )?;
+
+        ris_error::unroll!(
+            fence.wait(None),
+            "failed to wait on fence",
+        )?;
+
+        font_atlas.tex_id = TextureId::from(usize::MAX);
+        ris_log::debug!("imgui renderer uploaded font texture!");
+        Ok((image_view, sampler))
+    }
+
+    fn lookup_texture(&self, texture_id: TextureId) -> RisResult<&Texture>{
+        if texture_id.id() == usize::MAX {
+            Ok(&self.font_texture)
+        } else if let Some(texture) = self.textures.get(texture_id) {
+            Ok(texture)
+        } else {
+            ris_error::new_result!("bad texture: {:?}", texture_id)
+        }
+    }
 }

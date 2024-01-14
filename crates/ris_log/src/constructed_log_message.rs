@@ -18,12 +18,18 @@ impl ConstructedLogMessage {
     pub fn fmt(&self, ansi_support: bool) -> String {
         let timestamp = ColorString(
             &format!("[{}]", self.timestamp.format("%T")),
-            Color::BrightWhite,
+            Color::White,
         )
         .fmt(ansi_support);
 
         let priority_color_string = self.priority.to_color_string();
         let priority = priority_color_string.fmt(ansi_support);
+
+        let colon = ColorString(
+            ":",
+            Color::White,
+        )
+        .fmt(ansi_support);
 
         let message = ColorString(
             &self.message,
@@ -38,9 +44,10 @@ impl ConstructedLogMessage {
         .fmt(ansi_support);
 
         format!(
-            "{} {} {}\n    {}",
+            "{} {}{} {}\n    {}",
             timestamp,
             priority,
+            colon,
             message,
             foot,
         )

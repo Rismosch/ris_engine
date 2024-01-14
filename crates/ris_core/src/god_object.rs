@@ -123,7 +123,7 @@ impl GodObject {
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(context)?;
+        let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
         let imgui = RisImgui{
             backend: imgui_backend,
             renderer: imgui_renderer,
