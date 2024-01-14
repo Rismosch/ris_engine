@@ -43,9 +43,11 @@ pub fn create_pipeline(
                 (),
             )
             .input_assembly_state(InputAssemblyState::new())
-            .viewport_state(ViewportState::viewport_fixed_scissor_irrelevant([
-                viewport.clone()
-            ]))
+            .viewport_state(ViewportState::Dynamic{
+                count: 1,
+                viewport_count_dynamic: false,
+                scissor_count_dynamic: false,
+            })
             .fragment_shader(
                 ris_error::unroll_option!(
                     fs.clone().entry_point("main"),

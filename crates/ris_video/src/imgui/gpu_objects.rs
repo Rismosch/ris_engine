@@ -1,10 +1,11 @@
+use vulkano::buffer::BufferContents;
 use vulkano::format::Format;
 use vulkano::pipeline::graphics::vertex_input::VertexInputAttributeDescription;
 use vulkano::pipeline::graphics::vertex_input::VertexInputBindingDescription;
 use vulkano::pipeline::graphics::vertex_input::VertexInputRate;
 use vulkano::pipeline::graphics::vertex_input::VertexInputState;
 
-#[derive(Default, Debug, Clone)]
+#[derive(BufferContents, Default, Debug, Clone)]
 #[repr(C)]
 pub struct ImguiVertex {
     pub pos: [f32; 2],

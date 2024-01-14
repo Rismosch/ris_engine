@@ -45,7 +45,16 @@ use crate::vulkan::allocators::Allocators;
 use crate::vulkan::buffers::Buffers;
 
 pub type Fence = FenceSignalFuture<
-    PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
+    PresentFuture<
+        CommandBufferExecFuture<
+            CommandBufferExecFuture<
+                JoinFuture<
+                    Box<dyn GpuFuture>,
+                    SwapchainAcquireFuture
+                >
+            >
+        >
+    >,
 >;
 
 pub struct Renderer {

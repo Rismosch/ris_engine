@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use sdl2_sys::SDL_WindowFlags;
+use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::image::view::ImageView;
 use vulkano::swapchain::AcquireError;
 use vulkano::swapchain::SwapchainPresentInfo;
 use vulkano::sync::FlushError;
@@ -74,7 +76,7 @@ impl OutputFrame {
             .prepare_frame(logic, frame, &self.renderer);
         ui.show_demo_window(&mut true);
 
-        let (image_u32, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image()
+        let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image()
         {
             Ok(r) => r,
             Err(AcquireError::OutOfDate) => {
@@ -83,13 +85,12 @@ impl OutputFrame {
             }
             Err(e) => return ris_error::new_result!("failed to acquire next image: {}", e),
         };
-        let image_usize = image_u32 as usize;
 
         if suboptimal {
             self.recreate_swapchain = true;
         }
 
-        if let Some(image_fence) = &self.fences[image_usize] {
+        if let Some(image_fence) = &self.fences[image as usize] {
             ris_error::unroll!(image_fence.wait(None), "failed to wait on fence")?;
         }
 
@@ -111,9 +112,33 @@ impl OutputFrame {
             proj,
             view_proj,
         };
-        self.renderer.update_uniform(image_usize, &ubo)?;
+        self.renderer.update_uniform(image as usize, &ubo)?;
 
+        let swapchain_image = &self.renderer.images[image as usize];
+        let imgui_target = ris_error::unroll!(
+            ImageView::new_default(swapchain_image.clone()),
+            "failed to create image view",
+        )?;
         let draw_data = self.imgui.backend.context().render();
+        let mut imgui_command_buffer_builder = ris_error::unroll!(
+            AutoCommandBufferBuilder::primary(
+                &self.renderer.allocators.command_buffer,
+                self.renderer.queue.queue_family_index(),
+                vulkano::command_buffer::CommandBufferUsage::OneTimeSubmit,
+            ),
+            "failed to create auto command buffer builder",
+        )?;
+        self.imgui.renderer.draw(
+            self.renderer.queue.clone(),
+            imgui_target,
+            &mut imgui_command_buffer_builder,
+            &self.renderer.allocators,
+            draw_data,
+        )?;
+        let imgui_command_buffer = ris_error::unroll!(
+            imgui_command_buffer_builder.build(),
+            "failed to build auto command buffer builder",
+        )?;
 
         let use_gpu_resources = false;
         let previous_future = match self.fences[self.previous_image].clone() {
@@ -130,23 +155,28 @@ impl OutputFrame {
             // logic that can use every GPU resource (the GPU is sleeping)
         }
 
-        let result = previous_future
+        let fence = previous_future
             .join(acquire_future)
             .then_execute(
                 self.renderer.queue.clone(),
-                self.renderer.command_buffers[image_usize].clone(),
+                self.renderer.command_buffers[image as usize].clone(),
+            )
+            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
+            .then_execute(
+                self.renderer.queue.clone(),
+                imgui_command_buffer,
             )
             .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
             .then_swapchain_present(
                 self.renderer.queue.clone(),
                 SwapchainPresentInfo::swapchain_image_index(
                     self.renderer.swapchain.clone(),
-                    image_u32,
+                    image,
                 ),
             )
             .then_signal_fence_and_flush();
 
-        self.fences[image_usize] = match result {
+        self.fences[image as usize] = match fence {
             Ok(fence) => Some(Arc::new(fence)),
             Err(FlushError::OutOfDate) => {
                 self.recreate_swapchain = true;
@@ -158,8 +188,9 @@ impl OutputFrame {
             }
         };
 
-        self.previous_image = image_usize;
+        self.previous_image = image as usize;
 
         Ok(())
     }
 }
+
