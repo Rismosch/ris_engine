@@ -191,8 +191,8 @@ fn forward_mouse_button_event(io: &mut Io, buttons: &Buttons, button: usize) {
     if let Some(pressed) = event {
         let mouse_button = match button {
             0 => imgui::MouseButton::Left,
-            1 => imgui::MouseButton::Right,
-            2 => imgui::MouseButton::Middle,
+            1 => imgui::MouseButton::Middle,
+            2 => imgui::MouseButton::Right,
             3 => imgui::MouseButton::Extra1,
             4 => imgui::MouseButton::Extra2,
             _ => return,
