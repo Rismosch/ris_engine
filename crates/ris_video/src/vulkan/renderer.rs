@@ -28,8 +28,6 @@ use vulkano::swapchain::SwapchainAcquireFuture;
 use vulkano::swapchain::SwapchainCreateInfo;
 use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync;
-use vulkano::sync::future::FenceSignalFuture;
-use vulkano::sync::future::JoinFuture;
 use vulkano::sync::future::NowFuture;
 use vulkano::sync::GpuFuture;
 use vulkano::Handle;
@@ -41,23 +39,6 @@ use ris_error::RisResult;
 
 use crate::vulkan::allocators::Allocators;
 use crate::vulkan::buffers::Buffers;
-
-pub type Fence = FenceSignalFuture<
-    PresentFuture<
-        CommandBufferExecFuture<
-            CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>,
-        >,
-    >,
->;
-
-pub type Fence2 = FenceSignalFuture<
-    PresentFuture<
-        CommandBufferExecFuture<
-            //CommandBufferExecFuture<
-            JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>, //>
-        >,
-    >,
->;
 
 pub struct Renderer {
     pub instance: Arc<Instance>,
@@ -296,7 +277,7 @@ impl Renderer {
         let vertex_future =
             super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
         let fragment_future =
-            super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
+            super::shader::load_async(self.device.clone(), self.scenes.default_fs.clone());
 
         let vertex_shader = vertex_future.wait()?;
         let fragment_shader = fragment_future.wait()?;

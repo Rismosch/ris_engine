@@ -2,9 +2,14 @@ use std::sync::Arc;
 
 use sdl2_sys::SDL_WindowFlags;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
+use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::image::view::ImageView;
 use vulkano::swapchain::AcquireError;
+use vulkano::swapchain::PresentFuture;
+use vulkano::swapchain::SwapchainAcquireFuture;
 use vulkano::swapchain::SwapchainPresentInfo;
+use vulkano::sync::future::FenceSignalFuture;
+use vulkano::sync::future::JoinFuture;
 use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
@@ -14,8 +19,20 @@ use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::gpu_objects::UniformBufferObject;
-use ris_video::vulkan::renderer::Fence;
 use ris_video::vulkan::renderer::Renderer;
+
+type Fence = FenceSignalFuture<
+    PresentFuture<
+        CommandBufferExecFuture<
+            CommandBufferExecFuture<
+                JoinFuture<
+                    Box<dyn GpuFuture>,
+                    SwapchainAcquireFuture
+                >
+            >,
+        >,
+    >,
+>;
 
 pub struct OutputFrame {
     renderer: Renderer,
@@ -40,6 +57,12 @@ impl OutputFrame {
     }
 
     pub fn run(&mut self, logic: &LogicData, frame: Frame) -> RisResult<()> {
+        let window_flags = self.renderer.window.window_flags();
+        let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
+        if is_minimized {
+            return Ok(());
+        }
+
         let (recreate_viewport, reload_shaders) = if logic.reload_shaders {
             (true, true)
         } else if logic.window_size_changed.is_some() {
@@ -47,20 +70,18 @@ impl OutputFrame {
         } else {
             (false, false)
         };
-
-        let window_flags = self.renderer.window.window_flags();
-        let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
-        if is_minimized {
-            return Ok(());
-        }
-
+        
         if recreate_viewport {
             if reload_shaders {
                 self.renderer.reload_shaders()?;
             }
 
-            self.renderer.recreate_swapchain()?;
+            self.renderer.recreate_viewport()?;
+        }
+
+        if self.recreate_swapchain {
             self.recreate_swapchain = false;
+            self.renderer.recreate_swapchain()?;
         }
 
         let ui = self
