@@ -98,7 +98,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let result = match god_job::run(god_object) {
         Ok(result) => result,
         Err(e) => {
-            ris_log::fatal!("failed to run god job: {:?}", e,);
+            ris_log::fatal!("error during god job: {:?}", e,);
             return Err(e);
         }
     };

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 
 use sdl2_sys::SDL_WindowFlags;
@@ -45,7 +46,10 @@ pub struct OutputFrame {
 impl OutputFrame {
     pub fn new(renderer: Renderer, imgui: RisImgui) -> Self {
         let frames_in_flight = renderer.get_image_count();
-        let fences: Vec<Option<Arc<Fence>>> = vec![None; frames_in_flight];
+        let mut fences = Vec::with_capacity(frames_in_flight);
+        for _ in 0..frames_in_flight {
+            fences.push(None);
+        }
 
         Self {
             renderer,

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use sdl2::video::Window;
 use sdl2::Sdl;
-use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::device::Device;
 use vulkano::device::DeviceCreateInfo;
@@ -20,7 +19,6 @@ use vulkano::render_pass::RenderPass;
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain;
 use vulkano::swapchain::AcquireError;
-use vulkano::swapchain::PresentFuture;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceApi;
 use vulkano::swapchain::Swapchain;
