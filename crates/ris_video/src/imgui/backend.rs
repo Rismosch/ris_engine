@@ -60,9 +60,7 @@ impl ImguiBackend {
 
         context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));
 
-        Ok(Self {
-            context,
-        })
+        Ok(Self { context })
     }
 
     pub fn prepare_frame(

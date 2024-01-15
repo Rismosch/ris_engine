@@ -45,13 +45,8 @@ use crate::vulkan::buffers::Buffers;
 pub type Fence = FenceSignalFuture<
     PresentFuture<
         CommandBufferExecFuture<
-            CommandBufferExecFuture<
-                JoinFuture<
-                    Box<dyn GpuFuture>,
-                    SwapchainAcquireFuture
-                >
-            >
-        >
+            CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>,
+        >,
     >,
 >;
 
@@ -59,12 +54,8 @@ pub type Fence2 = FenceSignalFuture<
     PresentFuture<
         CommandBufferExecFuture<
             //CommandBufferExecFuture<
-                JoinFuture<
-                    Box<dyn GpuFuture>,
-                    SwapchainAcquireFuture
-                >
-            //>
-        >
+            JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>, //>
+        >,
     >,
 >;
 
@@ -257,12 +248,14 @@ impl Renderer {
             Err(e) => return ris_error::new_result!("failed to recreate swapchain: {}", e),
         };
 
+        self.images = new_images;
+
         self.swapchain = new_swapchain;
         let (w, h) = self.window.vulkan_drawable_size();
         self.framebuffers = super::swapchain::create_framebuffers(
             &self.allocators,
             [w, h],
-            &new_images,
+            &self.images,
             self.render_pass.clone(),
         )?;
 

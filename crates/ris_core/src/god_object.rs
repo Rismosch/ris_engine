@@ -9,7 +9,6 @@ use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::gameloop::logic_data::LogicData;
-use ris_data::gameloop::output_data::OutputData;
 use ris_data::god_state::GodState;
 use ris_data::god_state::GodStateData;
 use ris_data::info::app_info::AppInfo;
@@ -59,7 +58,6 @@ pub struct GodObject {
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub logic_data: LogicData,
-    pub output_data: OutputData,
     pub scenes: Scenes,
 
     pub state: Arc<GodState>,
@@ -134,7 +132,6 @@ impl GodObject {
 
         let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();
-        let output_data = OutputData::default();
 
         logic_data.keyboard.keymask[0] = Scancode::Return;
         logic_data.keyboard.keymask[15] = Scancode::W;
@@ -163,7 +160,6 @@ impl GodObject {
             logic_frame,
             output_frame,
             logic_data,
-            output_data,
             scenes,
 
             state,

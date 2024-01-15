@@ -34,12 +34,7 @@ pub fn select_physical_device(
     let log_string = match available_devices.len() {
         0 => String::from("no available devices"),
         len => {
-            let s = if len > 1 {
-                "s"
-            } else {
-                ""
-            };
-
+            let s = if len > 1 { "s" } else { "" };
 
             let mut log_string = format!("{} available video device{}:", len, s);
             for (device, i) in available_devices.iter() {
@@ -52,7 +47,7 @@ pub fn select_physical_device(
             }
 
             log_string
-        },
+        }
     };
 
     ris_log::info!("{}", log_string);

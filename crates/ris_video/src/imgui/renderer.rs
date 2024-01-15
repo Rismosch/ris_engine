@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use imgui::internal::RawWrapper;
 use imgui::Context;
 use imgui::DrawCmd;
 use imgui::DrawCmdParams;
 use imgui::DrawData;
 use imgui::DrawVert;
 use imgui::FontAtlas;
-use imgui::internal::RawWrapper;
 use imgui::TextureId;
 use imgui::Textures;
 use vulkano::buffer::Buffer;
@@ -23,12 +23,12 @@ use vulkano::descriptor_set::WriteDescriptorSet;
 use vulkano::device::Device;
 use vulkano::device::Queue;
 use vulkano::format::Format;
+use vulkano::image::traits::ImageAccess;
 use vulkano::image::view::ImageView;
 use vulkano::image::view::ImageViewCreateInfo;
 use vulkano::image::ImageDimensions;
 use vulkano::image::ImmutableImage;
 use vulkano::image::MipmapsCount;
-use vulkano::image::traits::ImageAccess;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::graphics::viewport::Scissor;
@@ -110,7 +110,9 @@ impl ImguiRenderer {
         allocators: &Allocators,
         data: &DrawData,
     ) -> RisResult<()>
-    where I: ImageAccess + std::fmt::Debug + 'static{
+    where
+        I: ImageAccess + std::fmt::Debug + 'static,
+    {
         let fb_width = data.display_size[0] * data.framebuffer_scale[0];
         let fb_height = data.display_size[1] * data.framebuffer_scale[1];
         if fb_width <= 0.0 || fb_height <= 0.0 {
@@ -142,14 +144,14 @@ impl ImguiRenderer {
         };
 
         let dimensions = match target.image().dimensions() {
-            ImageDimensions::Dim2d { width, height, .. } => {[width, height]},
+            ImageDimensions::Dim2d { width, height, .. } => [width, height],
             dimensions => return ris_error::new_result!("bad image dimensions: {:?}", dimensions),
         };
 
         let viewport = Viewport {
             origin: [0.0, 0.0],
             dimensions: [dimensions[0] as f32, dimensions[1] as f32],
-            depth_range: 0.0 .. 1.0,
+            depth_range: 0.0..1.0,
         };
 
         let clip_off = data.display_pos;
@@ -180,17 +182,13 @@ impl ImguiRenderer {
         )?;
 
         for draw_list in data.draw_lists() {
-
             let vertices = draw_list
                 .vtx_buffer()
                 .iter()
-                .map(|&v| unsafe{std::mem::transmute::<DrawVert, ImguiVertex>(v)});
+                .map(|&v| unsafe { std::mem::transmute::<DrawVert, ImguiVertex>(v) });
 
-            let indices = draw_list
-                .idx_buffer()
-                .iter()
-                .cloned();
-            
+            let indices = draw_list.idx_buffer().iter().cloned();
+
             let vertex_buffer = ris_error::unroll!(
                 Buffer::from_iter(
                     &allocators.memory,
@@ -223,12 +221,11 @@ impl ImguiRenderer {
                 "failed to create index buffer",
             )?;
 
-            
             for draw_cmd in draw_list.commands() {
                 match draw_cmd {
                     DrawCmd::Elements {
                         count,
-                        cmd_params: 
+                        cmd_params:
                             DrawCmdParams {
                                 clip_rect,
                                 texture_id,
@@ -262,9 +259,9 @@ impl ImguiRenderer {
                             let texture = self.lookup_texture(texture_id)?;
 
                             let descriptor_set_layout = ris_error::unroll_option!(
-                                    layout.set_layouts().first(),
-                                    "failed to get descriptor set layout"
-                                )?;
+                                layout.set_layouts().first(),
+                                "failed to get descriptor set layout"
+                            )?;
 
                             let descriptor_set = ris_error::unroll!(
                                 PersistentDescriptorSet::new(
@@ -301,7 +298,7 @@ impl ImguiRenderer {
                                 )
                                 .map_err(|e| ris_error::new!("failed to draw: {}", e))?;
                         }
-                    },
+                    }
                     DrawCmd::ResetRenderState => (),
                     DrawCmd::RawCallback { callback, raw_cmd } => unsafe {
                         callback(draw_list.raw(), raw_cmd)

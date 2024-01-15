@@ -215,11 +215,10 @@ impl Buffers {
                 "failed to create uniform buffer",
             )?;
 
-            let descriptor_set_layout = 
-                    ris_error::unroll_option!(
-                        pipeline.layout().set_layouts().first(),
-                        "failed to get descriptor set layout",
-                    )?;
+            let descriptor_set_layout = ris_error::unroll_option!(
+                pipeline.layout().set_layouts().first(),
+                "failed to get descriptor set layout",
+            )?;
 
             let descriptor_set = ris_error::unroll!(
                 PersistentDescriptorSet::new(

@@ -10,7 +10,6 @@ use vulkano::sync::GpuFuture;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
-use ris_data::gameloop::output_data::OutputData;
 use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_video::imgui::RisImgui;
@@ -40,13 +39,7 @@ impl OutputFrame {
         }
     }
 
-    pub fn run(
-        &mut self,
-        _current: &mut OutputData,
-        _previous: &OutputData,
-        logic: &LogicData,
-        frame: Frame,
-    ) -> RisResult<()> {
+    pub fn run(&mut self, logic: &LogicData, frame: Frame) -> RisResult<()> {
         let (recreate_viewport, reload_shaders) = if logic.reload_shaders {
             (true, true)
         } else if logic.window_size_changed.is_some() {
@@ -76,8 +69,7 @@ impl OutputFrame {
             .prepare_frame(logic, frame, &self.renderer);
         ui.show_demo_window(&mut true);
 
-        let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image()
-        {
+        let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
             Ok(r) => r,
             Err(AcquireError::OutOfDate) => {
                 self.recreate_swapchain = true;
@@ -161,17 +153,11 @@ impl OutputFrame {
                 self.renderer.command_buffers[image as usize].clone(),
             )
             .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
-            .then_execute(
-                self.renderer.queue.clone(),
-                imgui_command_buffer,
-            )
+            .then_execute(self.renderer.queue.clone(), imgui_command_buffer)
             .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
             .then_swapchain_present(
                 self.renderer.queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(
-                    self.renderer.swapchain.clone(),
-                    image,
-                ),
+                SwapchainPresentInfo::swapchain_image_index(self.renderer.swapchain.clone(), image),
             )
             .then_signal_fence_and_flush();
 
@@ -192,4 +178,3 @@ impl OutputFrame {
         Ok(())
     }
 }
-
