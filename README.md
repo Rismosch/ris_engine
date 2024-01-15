@@ -24,12 +24,13 @@ Barebones game engine. Home made passion project.
   - [x] Color
     - [x] RGB
     - [x] OkLab
-- [x] Basic Vulkan renderer
+- [x] Basic 3d renderer
   - [x] Vertex and index buffers
   - [x] Depth and Stencil buffer
   - [ ] Texture sampling
   - [ ] Phong shading
   - [x] Hotswappable shaders during runtime
+- [x] Debug GUI via Dear ImGui
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
@@ -40,10 +41,6 @@ Barebones game engine. Home made passion project.
 - [x] Global mutable state
   - [x] Settings/Configuration
   - [ ] Gameobjects
-- [ ] Debug GUI
-  - [ ] Labels
-  - [ ] Buttons
-  - [ ] Input fields
 - [ ] Debug gizmos
   - [ ] Point
   - [ ] Line/ray
@@ -59,6 +56,8 @@ Barebones game engine. Home made passion project.
 To compile this repo, you need a working Rust compiler. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
 
 The current target platform is x86_64, both Windows and Linux.
+
+The renderer is based on Vulkan. You will run into a runtime error, if you have no hardware, which supports Vulkan.
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, choose one of the following methods:
 
@@ -177,8 +176,23 @@ If you have [miri](https://github.com/rust-lang/miri) installed, instead tests c
 
     cargo miri test
 
-Running tests with `miri` is significantly slower and may take a few minutes. Also note that you need to switch to a nightly toolchain. At the time of writing, `ris_engine` only compiles and runs on a stable toolchain; use nightly only for `miri`. Assuming stable and nightly toolchains are installed, switching toolchains can be achieved by running:
+Some notes about miri:
+
+`miri` requires crates of very specific versions for a given `rustc` version. A vendored or archived repo may not work, and you possibly need an internet connection when running `miri`.
+
+Running tests with `miri` is significantly slower and may take a few minutes.
+
+Also, you need a `nightly` toolchain. At the time of writing, `ris_engine` only compiles with a `stable` toolchain.
+
+Use `nightly` for `miri`.  
+Use `stable` for everything else.
+
+Assuming `stable` and `nightly` toolchains are installed, switching toolchains can be achieved by running:
 
     rustup override set <toolchain>
 
 Where `<toolchain>` is either `stable` or `nightly`.
+
+To check installed toolchains, and which one is currently in use, run:
+
+    rustup show

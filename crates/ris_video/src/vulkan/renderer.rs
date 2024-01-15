@@ -27,12 +27,10 @@ use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainAcquireFuture;
 use vulkano::swapchain::SwapchainCreateInfo;
 use vulkano::swapchain::SwapchainCreationError;
-use vulkano::swapchain::SwapchainPresentInfo;
 use vulkano::sync;
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::future::JoinFuture;
 use vulkano::sync::future::NowFuture;
-use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 use vulkano::Handle;
 use vulkano::VulkanLibrary;
@@ -53,6 +51,19 @@ pub type Fence = FenceSignalFuture<
                     SwapchainAcquireFuture
                 >
             >
+        >
+    >,
+>;
+
+pub type Fence2 = FenceSignalFuture<
+    PresentFuture<
+        CommandBufferExecFuture<
+            //CommandBufferExecFuture<
+                JoinFuture<
+                    Box<dyn GpuFuture>,
+                    SwapchainAcquireFuture
+                >
+            //>
         >
     >,
 >;

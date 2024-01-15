@@ -5,14 +5,7 @@ use vulkano::pipeline::graphics::color_blend::AttachmentBlend;
 use vulkano::pipeline::graphics::color_blend::ColorBlendAttachmentState;
 use vulkano::pipeline::graphics::color_blend::ColorBlendState;
 use vulkano::pipeline::graphics::color_blend::ColorComponents;
-use vulkano::pipeline::graphics::depth_stencil::CompareOp;
-use vulkano::pipeline::graphics::depth_stencil::DepthState;
-use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::CullMode;
-use vulkano::pipeline::graphics::rasterization::FrontFace;
-use vulkano::pipeline::graphics::rasterization::RasterizationState;
-use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::graphics::viewport::ViewportState;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::StateMode;
@@ -23,14 +16,12 @@ use vulkano::shader::ShaderModule;
 use ris_error::RisResult;
 
 use crate::imgui::gpu_objects::ImguiVertex;
-use crate::vulkan::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
     device: Arc<Device>,
     vs: Arc<ShaderModule>,
     fs: Arc<ShaderModule>,
     render_pass: Arc<RenderPass>,
-    viewport: &Viewport,
 ) -> RisResult<Arc<GraphicsPipeline>> {
     ris_error::unroll!(
         GraphicsPipeline::start()

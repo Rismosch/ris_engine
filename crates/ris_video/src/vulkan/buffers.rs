@@ -217,7 +217,7 @@ impl Buffers {
 
             let descriptor_set_layout = 
                     ris_error::unroll_option!(
-                        pipeline.layout().set_layouts().get(0),
+                        pipeline.layout().set_layouts().first(),
                         "failed to get descriptor set layout",
                     )?;
 

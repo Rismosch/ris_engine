@@ -7,7 +7,6 @@ use imgui::Io;
 use imgui::Ui;
 use sdl2::keyboard::Mod;
 use sdl2::keyboard::Scancode;
-use sdl2::mouse::Cursor;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
@@ -19,11 +18,7 @@ use ris_error::RisResult;
 use crate::vulkan::renderer::Renderer;
 
 pub struct ImguiBackend {
-    // context
     context: Context,
-
-    // platform:
-    cursor_instance: Option<Cursor>,
 }
 
 impl ImguiBackend {
@@ -65,12 +60,8 @@ impl ImguiBackend {
 
         context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));
 
-        // setup renderer
-        // todo
-
         Ok(Self {
             context,
-            cursor_instance: None,
         })
     }
 
@@ -80,7 +71,7 @@ impl ImguiBackend {
         frame: Frame,
         renderer: &Renderer,
     ) -> &mut Ui {
-        let mouse_cursor = self.context.mouse_cursor();
+        let _mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
 
         io.update_delta_time(frame.previous_duration());

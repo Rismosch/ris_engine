@@ -129,7 +129,6 @@ impl OutputFrame {
             "failed to create auto command buffer builder",
         )?;
         self.imgui.renderer.draw(
-            self.renderer.queue.clone(),
             imgui_target,
             &mut imgui_command_buffer_builder,
             &self.renderer.allocators,

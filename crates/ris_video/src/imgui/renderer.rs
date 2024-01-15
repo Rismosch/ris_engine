@@ -11,11 +11,8 @@ use imgui::TextureId;
 use imgui::Textures;
 use vulkano::buffer::Buffer;
 use vulkano::buffer::BufferCreateInfo;
-use vulkano::buffer::BufferError;
 use vulkano::buffer::BufferUsage;
-use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
-use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::command_buffer::CommandBufferUsage;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::command_buffer::PrimaryCommandBufferAbstract;
@@ -29,31 +26,18 @@ use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::view::ImageViewCreateInfo;
 use vulkano::image::ImageDimensions;
-use vulkano::image::ImageViewAbstract;
 use vulkano::image::ImmutableImage;
 use vulkano::image::MipmapsCount;
 use vulkano::image::traits::ImageAccess;
 use vulkano::memory::allocator::AllocationCreateInfo;
 use vulkano::memory::allocator::MemoryUsage;
-use vulkano::pipeline::graphics::color_blend::AttachmentBlend;
-use vulkano::pipeline::graphics::color_blend::ColorBlendAttachmentState;
-use vulkano::pipeline::graphics::color_blend::ColorBlendState;
-use vulkano::pipeline::graphics::color_blend::ColorComponents;
-use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::vertex_input::VertexInputAttributeDescription;
-use vulkano::pipeline::graphics::vertex_input::VertexInputBindingDescription;
-use vulkano::pipeline::graphics::vertex_input::VertexInputRate;
-use vulkano::pipeline::graphics::vertex_input::VertexInputState;
-use vulkano::pipeline::graphics::viewport::ViewportState;
 use vulkano::pipeline::graphics::viewport::Scissor;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
-use vulkano::pipeline::StateMode;
 use vulkano::render_pass::Framebuffer;
 use vulkano::render_pass::FramebufferCreateInfo;
 use vulkano::render_pass::RenderPass;
-use vulkano::render_pass::Subpass;
 use vulkano::sampler::Sampler;
 use vulkano::sampler::SamplerCreateInfo;
 use vulkano::sync::future::GpuFuture;
@@ -81,7 +65,6 @@ impl ImguiRenderer {
     pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
         let device = renderer.device.clone();
         let queue = renderer.queue.clone();
-        let viewport = &renderer.viewport;
         let swapchain = renderer.swapchain.clone();
         let allocators = &renderer.allocators;
 
@@ -99,7 +82,6 @@ impl ImguiRenderer {
             vs.clone(),
             fs.clone(),
             render_pass.clone(),
-            viewport,
         )?;
 
         let textures = Textures::new();
@@ -123,7 +105,6 @@ impl ImguiRenderer {
 
     pub fn draw<I>(
         &mut self,
-        queue: Arc<Queue>,
         target: Arc<ImageView<I>>,
         command_buffer_builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
         allocators: &Allocators,
@@ -281,7 +262,7 @@ impl ImguiRenderer {
                             let texture = self.lookup_texture(texture_id)?;
 
                             let descriptor_set_layout = ris_error::unroll_option!(
-                                    layout.set_layouts().get(0),
+                                    layout.set_layouts().first(),
                                     "failed to get descriptor set layout"
                                 )?;
 
