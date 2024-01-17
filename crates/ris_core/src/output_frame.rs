@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 
 use sdl2_sys::SDL_WindowFlags;
@@ -25,12 +24,7 @@ use ris_video::vulkan::renderer::Renderer;
 type Fence = FenceSignalFuture<
     PresentFuture<
         CommandBufferExecFuture<
-            CommandBufferExecFuture<
-                JoinFuture<
-                    Box<dyn GpuFuture>,
-                    SwapchainAcquireFuture
-                >
-            >,
+            CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>,
         >,
     >,
 >;
@@ -39,7 +33,7 @@ pub struct OutputFrame {
     renderer: Renderer,
     recreate_swapchain: bool,
     fences: Vec<Option<Arc<Fence>>>,
-    previous_image: usize,
+    previous_fence: usize,
     imgui: RisImgui,
 }
 
@@ -55,7 +49,7 @@ impl OutputFrame {
             renderer,
             recreate_swapchain: false,
             fences,
-            previous_image: 0,
+            previous_fence: 0,
             imgui,
         }
     }
@@ -74,7 +68,7 @@ impl OutputFrame {
         } else {
             (false, false)
         };
-        
+
         if recreate_viewport {
             if reload_shaders {
                 self.renderer.reload_shaders()?;
@@ -107,8 +101,8 @@ impl OutputFrame {
             self.recreate_swapchain = true;
         }
 
-        if let Some(image_fence) = &self.fences[image as usize] {
-            ris_error::unroll!(image_fence.wait(None), "failed to wait on fence")?;
+        if let Some(fence) = &self.fences[image as usize] {
+            ris_error::unroll!(fence.wait(None), "failed to wait on fence")?;
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
@@ -157,12 +151,13 @@ impl OutputFrame {
         )?;
 
         let use_gpu_resources = false;
-        let previous_future = match self.fences[self.previous_image].clone() {
+        let previous_future = match self.fences[self.previous_fence].clone() {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
                     ris_error::unroll!(fence.wait(None), "failed to wait on fence")?;
                 }
+
                 fence.boxed()
             }
         };
@@ -187,7 +182,12 @@ impl OutputFrame {
             .then_signal_fence_and_flush();
 
         self.fences[image as usize] = match fence {
-            Ok(fence) => Some(Arc::new(fence)),
+            Ok(fence) => {
+                #[allow(clippy::arc_with_non_send_sync)]
+                // false positive, since `FenceSignalFuture` indeed implements `Send`:
+                // doc/vulkano/sync/future/struct.FenceSignalFuture.html#impl-Send-for-FenceSignalFuture%3CF%3E
+                Some(Arc::new(fence))
+            }
             Err(FlushError::OutOfDate) => {
                 self.recreate_swapchain = true;
                 None
@@ -198,7 +198,7 @@ impl OutputFrame {
             }
         };
 
-        self.previous_image = image as usize;
+        self.previous_fence = image as usize;
 
         Ok(())
     }
