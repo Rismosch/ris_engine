@@ -61,7 +61,6 @@ pub struct ImguiRenderer {
 }
 
 impl ImguiRenderer {
-    #[cfg(debug_assertions)]
     pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
         let device = renderer.device.clone();
         let queue = renderer.queue.clone();
@@ -96,11 +95,6 @@ impl ImguiRenderer {
             font_texture,
             textures,
         })
-    }
-
-    #[cfg(not(debug_assertions))]
-    pub fn init(scenes: Scenes) -> RisResult<Option<Self>> {
-        Ok(None)
     }
 
     pub fn draw<I>(
