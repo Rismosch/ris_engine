@@ -1,3 +1,6 @@
+use crate::color_string::Color;
+use crate::color_string::ColorString;
+
 #[derive(Clone, Copy)]
 pub enum LogLevel {
     Trace = 0,
@@ -24,16 +27,16 @@ impl From<usize> for LogLevel {
     }
 }
 
-impl std::fmt::Display for LogLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl LogLevel {
+    pub fn to_color_string(&self) -> ColorString {
         match *self {
-            LogLevel::None => write!(f, "None"),
-            LogLevel::Fatal => write!(f, "Fatal"),
-            LogLevel::Error => write!(f, "Error"),
-            LogLevel::Warning => write!(f, "Warning"),
-            LogLevel::Info => write!(f, "Info"),
-            LogLevel::Debug => write!(f, "Debug"),
-            LogLevel::Trace => write!(f, "Trace"),
+            LogLevel::Trace => ColorString("Trace", Color::BrightCyan),
+            LogLevel::Debug => ColorString("Debug", Color::BrightGreen),
+            LogLevel::Info => ColorString("Info", Color::BrightWhite),
+            LogLevel::Warning => ColorString("Warning", Color::BrightYellow),
+            LogLevel::Error => ColorString("Error", Color::BrightRed),
+            LogLevel::Fatal => ColorString("Fatal", Color::BrightRed),
+            LogLevel::None => ColorString("None", Color::BrightWhite),
         }
     }
 }

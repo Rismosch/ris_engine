@@ -18,13 +18,13 @@ use vulkano::shader::ShaderModule;
 
 use ris_error::RisResult;
 
-use crate::gpu_objects::Vertex3d;
+use crate::vulkan::gpu_objects::Vertex3d;
 
 pub fn create_pipeline(
-    device: &Arc<Device>,
-    vertex_shader: &Arc<ShaderModule>,
-    fragment_shader: &Arc<ShaderModule>,
-    render_pass: &Arc<RenderPass>,
+    device: Arc<Device>,
+    vertex_shader: Arc<ShaderModule>,
+    fragment_shader: Arc<ShaderModule>,
+    render_pass: Arc<RenderPass>,
     viewport: &Viewport,
 ) -> RisResult<Arc<GraphicsPipeline>> {
     ris_error::unroll!(
@@ -33,7 +33,7 @@ pub fn create_pipeline(
             .vertex_shader(
                 ris_error::unroll_option!(
                     vertex_shader.clone().entry_point("main"),
-                    "failed to locate vertex entry point"
+                    "failed to locate vertex entry point",
                 )?,
                 (),
             )
@@ -44,7 +44,7 @@ pub fn create_pipeline(
             .fragment_shader(
                 ris_error::unroll_option!(
                     fragment_shader.clone().entry_point("main"),
-                    "failed to locate fragment entry point"
+                    "failed to locate fragment entry point",
                 )?,
                 (),
             )
@@ -63,9 +63,9 @@ pub fn create_pipeline(
             })
             .render_pass(ris_error::unroll_option!(
                 Subpass::from(render_pass.clone(), 0),
-                "failed to create render subpass"
+                "failed to create render subpass",
             )?)
             .build(device.clone()),
-        "failed to build graphics pipeline"
+        "failed to build graphics pipeline",
     )
 }

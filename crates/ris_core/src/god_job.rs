@@ -13,28 +13,21 @@ pub enum WantsTo {
 }
 
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
-    let mut frame_data_calculator = god_object.frame_data_calculator;
+    let mut frame_calculator = god_object.frame_calculator;
     let mut current_logic = god_object.logic_data;
-    let mut current_output = god_object.output_data;
 
     let god_state = god_object.state;
 
     loop {
         // update frame
-        frame_data_calculator.bump();
-        let current_frame = frame_data_calculator.current();
+        let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
-        copy_current_to_previous(&god_state);
+        copy_current_to_previous(god_state.clone());
 
         // create copies
-        let frame_for_logic = current_frame.clone();
-        let frame_for_output = current_frame.clone();
-
         let previous_logic_for_logic = current_logic.clone();
         let previous_logic_for_output = current_logic.clone();
-
-        let previous_output_for_output = current_output.clone();
 
         let state_for_logic = god_state.clone();
         let state_for_save_settings = god_state.clone();
@@ -42,15 +35,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // game loop frame
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
-            let mut current_output = current_output;
-            let result = output_frame.run(
-                &mut current_output,
-                &previous_output_for_output,
-                &previous_logic_for_output,
-                &frame_for_output,
-            );
+            let result = output_frame.run(&previous_logic_for_output, frame);
 
-            (output_frame, current_output, result)
+            (output_frame, result)
         });
 
         let save_settings_future = job_system::submit(move || {
@@ -71,16 +58,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let logic_result = god_object.logic_frame.run(
             &mut current_logic,
             &previous_logic_for_logic,
-            &frame_for_logic,
+            frame,
             state_for_logic,
         );
 
         // wait for jobs
-        let (new_output_frame, new_output_data, output_result) = output_future.wait();
+        let (new_output_frame, output_result) = output_future.wait();
         let (new_settings_serializer, save_settings_result) = save_settings_future.wait();
 
         // update buffers
-        current_output = new_output_data;
         god_object.output_frame = new_output_frame;
         god_object.settings_serializer = new_settings_serializer;
 
@@ -121,7 +107,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     }
 }
 
-fn copy_current_to_previous(god_state: &Arc<GodState>) {
+fn copy_current_to_previous(god_state: Arc<GodState>) {
     let mut current = job_system::lock_write(&god_state.current);
     let mut previous = job_system::lock_write(&god_state.previous);
 

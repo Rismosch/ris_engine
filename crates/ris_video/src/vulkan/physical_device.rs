@@ -10,8 +10,8 @@ use vulkano::swapchain::Surface;
 use ris_error::RisResult;
 
 pub fn select_physical_device(
-    instance: &Arc<Instance>,
-    surface: &Arc<Surface>,
+    instance: Arc<Instance>,
+    surface: Arc<Surface>,
     device_extensions: &DeviceExtensions,
 ) -> RisResult<(Arc<PhysicalDevice>, u32)> {
     let available_devices = ris_error::unroll!(
@@ -25,21 +25,30 @@ pub fn select_physical_device(
             .enumerate()
             .position(|(i, q)| {
                 q.queue_flags.contains(QueueFlags::GRAPHICS)
-                    && p.surface_support(i as u32, surface).unwrap_or(false)
+                    && p.surface_support(i as u32, &surface).unwrap_or(false)
             })
             .map(|q| (p, q as u32))
     })
     .collect::<Vec<_>>();
 
-    let mut log_string = format!("{} available video devices:", available_devices.len());
-    for (device, i) in available_devices.iter() {
-        let properties = device.properties();
+    let log_string = match available_devices.len() {
+        0 => String::from("no available devices"),
+        len => {
+            let s = if len > 1 { "s" } else { "" };
 
-        log_string.push_str(&format!(
-            "\n    [{}] => {:?}: {}",
-            i, properties.device_type, properties.device_name,
-        ));
-    }
+            let mut log_string = format!("{} available video device{}:", len, s);
+            for (device, i) in available_devices.iter() {
+                let properties = device.properties();
+
+                log_string.push_str(&format!(
+                    "\n    [{}] => {:?}: {}",
+                    i, properties.device_type, properties.device_name,
+                ));
+            }
+
+            log_string
+        }
+    };
 
     ris_log::info!("{}", log_string);
 

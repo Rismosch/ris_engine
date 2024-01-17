@@ -14,8 +14,9 @@ use vulkano::pipeline::Pipeline;
 use ris_error::RisResult;
 use ris_math::color;
 
-use crate::gpu_objects::UniformBufferObject;
-use crate::gpu_objects::Vertex3d;
+use crate::vulkan::allocators::Allocators;
+use crate::vulkan::gpu_objects::UniformBufferObject;
+use crate::vulkan::gpu_objects::Vertex3d;
 
 pub type Uniform<U> = (Subbuffer<U>, Arc<PersistentDescriptorSet>);
 
@@ -27,9 +28,9 @@ pub struct Buffers {
 
 impl Buffers {
     pub fn new(
-        allocators: &crate::allocators::Allocators,
+        allocators: &Allocators,
         uniform_buffer_count: usize,
-        pipeline: &Arc<GraphicsPipeline>,
+        pipeline: Arc<GraphicsPipeline>,
     ) -> RisResult<Self> {
         let size = 0.01;
         let offset = 0.02;
@@ -173,7 +174,7 @@ impl Buffers {
                 },
                 vertices,
             ),
-            "failed to create vertex buffer"
+            "failed to create vertex buffer",
         )?;
 
         // index
@@ -190,7 +191,7 @@ impl Buffers {
                 },
                 indices,
             ),
-            "failed to create index buffer"
+            "failed to create index buffer",
         )?;
 
         // uniform
@@ -211,20 +212,21 @@ impl Buffers {
                     },
                     ubo,
                 ),
-                "failed to create uniform buffer"
+                "failed to create uniform buffer",
+            )?;
+
+            let descriptor_set_layout = ris_error::unroll_option!(
+                pipeline.layout().set_layouts().first(),
+                "failed to get descriptor set layout",
             )?;
 
             let descriptor_set = ris_error::unroll!(
                 PersistentDescriptorSet::new(
                     &allocators.descriptor_set,
-                    ris_error::unroll_option!(
-                        pipeline.layout().set_layouts().get(0),
-                        "failed to get descriptor set layout"
-                    )?
-                    .clone(),
+                    descriptor_set_layout.clone(),
                     [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
                 ),
-                "failed to create persistent descriptor set"
+                "failed to create persistent descriptor set",
             )?;
 
             uniforms.push((uniform_buffer, descriptor_set));

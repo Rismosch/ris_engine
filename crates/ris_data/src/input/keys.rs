@@ -1,6 +1,6 @@
 use sdl2::keyboard::Scancode;
 
-const KEY_STATE_SIZE: usize = Scancode::Num as usize;
+pub const KEY_STATE_SIZE: usize = Scancode::Num as usize;
 
 pub type KeyState = [bool; KEY_STATE_SIZE];
 

@@ -7,9 +7,8 @@ use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::loader::scenes_loader;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
-use ris_data::gameloop::frame_data::FrameDataCalculator;
+use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::gameloop::logic_data::LogicData;
-use ris_data::gameloop::output_data::OutputData;
 use ris_data::god_state::GodState;
 use ris_data::god_state::GodStateData;
 use ris_data::info::app_info::AppInfo;
@@ -18,7 +17,10 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::video::Video;
+use ris_video::imgui::backend::ImguiBackend;
+use ris_video::imgui::renderer::ImguiRenderer;
+use ris_video::imgui::RisImgui;
+use ris_video::vulkan::renderer::Renderer;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
@@ -52,11 +54,10 @@ fn scenes_id() -> AssetId {
 pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
-    pub frame_data_calculator: FrameDataCalculator,
+    pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub logic_data: LogicData,
-    pub output_data: OutputData,
     pub scenes: Scenes,
 
     pub state: Arc<GodState>,
@@ -108,21 +109,29 @@ impl GodObject {
         // scenes
         let scenes_id = scenes_id();
         let scenes_bytes = ris_error::unroll!(
-            asset_loader::load(scenes_id).wait(),
+            asset_loader::load_async(scenes_id).wait(),
             "failed to load ris_scenes"
         )?;
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
-        let video = Video::new(&sdl_context, scenes.material.clone())?;
+        let renderer = Renderer::initialize(&sdl_context, scenes.clone())?;
+
+        // imgui
+        let mut imgui_backend = ImguiBackend::init(&app_info)?;
+        let context = imgui_backend.context();
+        let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
+        let imgui = RisImgui {
+            backend: imgui_backend,
+            renderer: imgui_renderer,
+        };
 
         // gameloop
-        let logic_frame = LogicFrame::new(event_pump, controller_subsystem);
-        let output_frame = OutputFrame::new(video);
+        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+        let output_frame = OutputFrame::new(renderer, imgui);
 
-        let frame_data_calculator = FrameDataCalculator::default();
+        let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();
-        let output_data = OutputData::default();
 
         logic_data.keyboard.keymask[0] = Scancode::Return;
         logic_data.keyboard.keymask[15] = Scancode::W;
@@ -147,11 +156,10 @@ impl GodObject {
         let god_object = GodObject {
             app_info,
             settings_serializer,
-            frame_data_calculator,
+            frame_calculator,
             logic_frame,
             output_frame,
             logic_data,
-            output_data,
             scenes,
 
             state,

@@ -17,14 +17,16 @@ use vulkano::swapchain::SwapchainCreateInfo;
 
 use ris_error::RisResult;
 
+use crate::vulkan::allocators::Allocators;
+
 pub fn create_swapchain(
-    physical_device: &Arc<PhysicalDevice>,
+    physical_device: Arc<PhysicalDevice>,
     window: &Window,
-    device: &Arc<Device>,
-    surface: &Arc<Surface>,
+    device: Arc<Device>,
+    surface: Arc<Surface>,
 ) -> RisResult<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>)> {
     let capabilities = ris_error::unroll!(
-        physical_device.surface_capabilities(surface, Default::default()),
+        physical_device.surface_capabilities(&surface, Default::default()),
         "failed to get surface capabilities"
     )?;
     let dimensions = window.vulkan_drawable_size();
@@ -34,7 +36,7 @@ pub fn create_swapchain(
     )?;
     let image_format = Some(
         ris_error::unroll!(
-            physical_device.surface_formats(surface, Default::default()),
+            physical_device.surface_formats(&surface, Default::default()),
             "failed to get surface formats"
         )?[0]
             .0,
@@ -58,10 +60,10 @@ pub fn create_swapchain(
 }
 
 pub fn create_framebuffers(
-    allocators: &crate::allocators::Allocators,
+    allocators: &Allocators,
     dimensions: [u32; 2],
     images: &[Arc<SwapchainImage>],
-    render_pass: &Arc<RenderPass>,
+    render_pass: Arc<RenderPass>,
 ) -> RisResult<Vec<Arc<Framebuffer>>> {
     let depth_buffer = ris_error::unroll!(
         AttachmentImage::transient(&allocators.memory, dimensions, super::DEPTH_FORMAT),

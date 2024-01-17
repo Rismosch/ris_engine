@@ -3,14 +3,12 @@ use ris_error::RisResult;
 use crate::loader::ris_loader;
 use crate::AssetId;
 
-pub struct Scenes {
-    pub material: Material,
-}
-
 #[derive(Clone)]
-pub struct Material {
-    pub vertex_shader: AssetId,
-    pub fragment_shader: AssetId,
+pub struct Scenes {
+    pub default_vs: AssetId,
+    pub default_fs: AssetId,
+    pub imgui_vs: AssetId,
+    pub imgui_fs: AssetId,
 }
 
 pub fn load(bytes: &[u8]) -> RisResult<Scenes> {
@@ -19,12 +17,17 @@ pub fn load(bytes: &[u8]) -> RisResult<Scenes> {
         "failed to load ris asset from scenes"
     )?;
 
-    let vertex_shader = data.references[0].clone();
-    let fragment_shader = data.references[1].clone();
-    let material = Material {
-        vertex_shader,
-        fragment_shader,
+    let default_vs = data.references[0].clone();
+    let default_fs = data.references[1].clone();
+    let imgui_vs = data.references[2].clone();
+    let imgui_fs = data.references[3].clone();
+
+    let scenes = Scenes {
+        default_vs,
+        default_fs,
+        imgui_vs,
+        imgui_fs,
     };
 
-    Ok(Scenes { material })
+    Ok(scenes)
 }

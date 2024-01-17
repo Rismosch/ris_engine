@@ -2,18 +2,19 @@
 /*.dll
 
 # cargo
-/target
-Cargo.lock
 /.cargo
+/target
 /vendor
+Cargo.lock
 
-# vscode
+# IDE
+/.idea
 /.vscode
 
-# ci out
+# ci output
 /ci_out
 
 # assets
 assets/__imported_raw_assets/
-ris_assets
 decompiled_assets
+ris_assets

@@ -3,11 +3,12 @@ use std::time::Instant;
 
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
+use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
 
-use ris_data::gameloop::frame_data::FrameData;
+use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state::GodState;
@@ -17,10 +18,8 @@ use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::general_logic::GeneralLogicArgs;
-use ris_input::keyboard_logic::update_keyboard;
-use ris_input::mouse_logic::handle_mouse_events;
-use ris_input::mouse_logic::post_update_mouse;
-use ris_input::mouse_logic::reset_mouse_refs;
+use ris_input::keyboard_logic;
+use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
 use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
@@ -56,6 +55,7 @@ fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
 pub struct LogicFrame {
     // input
     event_pump: EventPump,
+    keyboard_util: KeyboardUtil,
 
     gamepad_logic: GamepadLogic,
 
@@ -69,7 +69,11 @@ pub struct LogicFrame {
 }
 
 impl LogicFrame {
-    pub fn new(event_pump: EventPump, controller_subsystem: GameControllerSubsystem) -> Self {
+    pub fn new(
+        event_pump: EventPump,
+        keyboard_util: KeyboardUtil,
+        controller_subsystem: GameControllerSubsystem,
+    ) -> Self {
         let mut rebind_matrix = [0; 32];
         for (i, row) in rebind_matrix.iter_mut().enumerate() {
             *row = 1 << i;
@@ -77,6 +81,7 @@ impl LogicFrame {
 
         Self {
             event_pump,
+            keyboard_util,
             gamepad_logic: GamepadLogic::new(controller_subsystem),
             rebind_matrix_mouse: rebind_matrix,
             rebind_matrix_keyboard: rebind_matrix,
@@ -91,7 +96,7 @@ impl LogicFrame {
         &mut self,
         current: &mut LogicData,
         previous: &LogicData,
-        frame: &FrameData,
+        frame: Frame,
         state: Arc<GodState>,
     ) -> RisResult<GameloopState> {
         // controller input
@@ -100,7 +105,8 @@ impl LogicFrame {
         let previous_for_gamepad = previous.clone();
         let previous_for_general = previous;
 
-        reset_mouse_refs(&mut current.mouse);
+        mouse_logic::pre_events(&mut current.mouse);
+        keyboard_logic::pre_events(&mut current.keyboard);
 
         current.window_size_changed = None;
 
@@ -118,28 +124,26 @@ impl LogicFrame {
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
-            if handle_mouse_events(&mut current.mouse, &event) {
-                continue;
-            }
-
-            if self.gamepad_logic.handle_events(&event) {
-                continue;
-            }
+            mouse_logic::handle_event(&mut current.mouse, &event);
+            keyboard_logic::handle_event(&mut current.keyboard, &event);
+            self.gamepad_logic.handle_event(&event);
         }
 
-        self.gamepad_logic
-            .update(&mut current.gamepad, &previous_for_gamepad.gamepad);
-        update_keyboard(
-            &mut current.keyboard,
-            &previous_for_keyboard.keyboard,
-            self.event_pump.keyboard_state(),
-        );
-
-        post_update_mouse(
+        mouse_logic::post_events(
             &mut current.mouse,
             &previous_for_mouse.mouse,
             self.event_pump.mouse_state(),
         );
+
+        keyboard_logic::post_events(
+            &mut current.keyboard,
+            &previous_for_keyboard.keyboard,
+            self.event_pump.keyboard_state(),
+            self.keyboard_util.mod_state(),
+        );
+
+        self.gamepad_logic
+            .post_events(&mut current.gamepad, &previous_for_gamepad.gamepad);
 
         let args = GeneralLogicArgs {
             new_general_data: &mut current.general,
@@ -194,9 +198,9 @@ impl LogicFrame {
         current.scene = previous.scene.clone();
         let scene = &mut current.scene;
 
-        let rotation_speed = 2. * frame.delta_seconds();
-        let movement_speed = 2. * frame.delta_seconds();
-        let mouse_speed = 20. * frame.delta_seconds();
+        let rotation_speed = 2. * frame.average_seconds();
+        let movement_speed = 2. * frame.average_seconds();
+        let mouse_speed = 20. * frame.average_seconds();
 
         if current.mouse.buttons.is_hold(action::OK) {
             current.camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
@@ -278,7 +282,11 @@ impl LogicFrame {
         }
 
         if current.keyboard.keys.is_down(Scancode::F) {
-            ris_log::debug!("{} ms ({} fps)", frame.delta_seconds(), frame.fps());
+            ris_log::debug!(
+                "{:?} ({} fps)",
+                frame.average_duration(),
+                frame.average_fps()
+            );
         }
 
         if let Some(future) = import_shader_future {

@@ -13,12 +13,15 @@ use vulkano::render_pass::Framebuffer;
 
 use ris_error::RisResult;
 
+use crate::vulkan::allocators::Allocators;
+use crate::vulkan::buffers::Buffers;
+
 pub fn create_command_buffers(
-    allocators: &crate::allocators::Allocators,
-    queue: &Arc<Queue>,
-    pipeline: &Arc<GraphicsPipeline>,
+    allocators: &Allocators,
+    queue: Arc<Queue>,
+    pipeline: Arc<GraphicsPipeline>,
     framebuffers: &[Arc<Framebuffer>],
-    buffers: &crate::buffers::Buffers,
+    buffers: &Buffers,
 ) -> RisResult<Vec<Arc<PrimaryAutoCommandBuffer>>> {
     let mut command_buffers = Vec::new();
 

@@ -1,14 +1,15 @@
-use ris_data::input::mouse_data::MouseData;
 use sdl2::event::Event;
 
-pub fn reset_mouse_refs(mouse_data: &mut MouseData) {
+use ris_data::input::mouse_data::MouseData;
+
+pub fn pre_events(mouse_data: &mut MouseData) {
     mouse_data.xrel = 0;
     mouse_data.yrel = 0;
     mouse_data.wheel_xrel = 0;
     mouse_data.wheel_yrel = 0;
 }
 
-pub fn handle_mouse_events(mouse_data: &mut MouseData, event: &Event) -> bool {
+pub fn handle_event(mouse_data: &mut MouseData, event: &Event) {
     if let Event::MouseMotion {
         x, y, xrel, yrel, ..
     } = event
@@ -22,14 +23,10 @@ pub fn handle_mouse_events(mouse_data: &mut MouseData, event: &Event) -> bool {
     if let Event::MouseWheel { x, y, .. } = event {
         mouse_data.wheel_xrel += x;
         mouse_data.wheel_yrel += y;
-
-        true
-    } else {
-        false
     }
 }
 
-pub fn post_update_mouse(
+pub fn post_events(
     new_mouse_data: &mut MouseData,
     old_mouse_data: &MouseData,
     mouse_state: sdl2::mouse::MouseState,
