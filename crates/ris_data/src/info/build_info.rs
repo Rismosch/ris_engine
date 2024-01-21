@@ -17,7 +17,9 @@ impl BuildInfo {
             git_commit: String::from(r"85f15a35bd59e0674ad9bda03c87147a8d1b1a3c"),
             git_branch: String::from(r"dev"),
             rustc_version: String::from(r"rustc 1.75.0 (82e1608df 2023-12-21)"),
-            rustup_toolchain: String::from(                r"stable-x86_64-unknown-linux-gnu (directory override for /home/simon/repos/ris_engine)",            ),
+            rustup_toolchain: String::from(
+                r"stable-x86_64-unknown-linux-gnu (directory override for /home/simon/repos/ris_engine)",
+            ),
             build_profile: profile(),
             build_date: String::from(r"2024-01-21 10:44:11.391125109+01:00"),
         }

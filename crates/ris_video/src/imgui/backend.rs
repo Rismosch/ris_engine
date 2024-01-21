@@ -15,8 +15,6 @@ use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
 use ris_error::RisResult;
 
-use crate::vulkan::renderer::Renderer;
-
 pub struct ImguiBackend {
     context: Context,
 }
@@ -67,7 +65,8 @@ impl ImguiBackend {
         &mut self,
         logic_data: &LogicData,
         frame: Frame,
-        renderer: &Renderer,
+        window_size: (f32, f32),
+        window_drawable_size: (f32, f32),
     ) -> &mut Ui {
         let _mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
@@ -139,13 +138,10 @@ impl ImguiBackend {
         }
 
         // prepare frame
-        let window_size = renderer.window.size();
-        let window_drawable_size = renderer.window.vulkan_drawable_size();
-
-        io.display_size = [(window_size.0 as f32), (window_size.1 as f32)];
+        io.display_size = [window_size.0, window_size.1];
         io.display_framebuffer_scale = [
-            (window_drawable_size.0 as f32) / (window_size.0 as f32),
-            (window_drawable_size.1 as f32) / (window_size.1 as f32),
+            window_drawable_size.0 / window_size.0,
+            window_drawable_size.1 / window_size.1,
         ];
 
         // update mouse

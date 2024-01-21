@@ -62,7 +62,7 @@ pub struct GodObject {
 
     pub state: Arc<GodState>,
 
-    // guards
+    // guards, must be dropped last
     pub asset_loader_guard: AssetLoaderGuard,
     pub job_system_guard: JobSystemGuard,
 }
@@ -115,7 +115,20 @@ impl GodObject {
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
-        let renderer = Renderer::initialize(&sdl_context, scenes.clone())?;
+        let video_subsystem = sdl_context
+            .video()
+            .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
+        let window = ris_error::unroll!(
+            video_subsystem
+                .window("ris_engine", 640, 480)
+                //.resizable()
+                .position_centered()
+                .vulkan()
+                .build(),
+            "failed to build window"
+        )?;
+
+        let renderer = Renderer::initialize(&window, scenes.clone())?;
 
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
@@ -128,7 +141,7 @@ impl GodObject {
 
         // gameloop
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(renderer, imgui);
+        let output_frame = OutputFrame::new(window, renderer, imgui)?;
 
         let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();

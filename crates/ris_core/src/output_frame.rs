@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::command_buffer::CommandBufferExecFuture;
@@ -32,31 +33,34 @@ type Fence = FenceSignalFuture<
 pub struct OutputFrame {
     recreate_swapchain: bool,
     previous_fence: usize,
-
     fences: Vec<Option<Arc<Fence>>>,
     imgui: RisImgui,
+
+    // mut be dropped last
     renderer: Renderer,
+    window: Window,
 }
 
 impl OutputFrame {
-    pub fn new(renderer: Renderer, imgui: RisImgui) -> Self {
+    pub fn new(window: Window, renderer: Renderer, imgui: RisImgui) -> RisResult<Self> {
         let frames_in_flight = renderer.get_image_count();
         let mut fences = Vec::with_capacity(frames_in_flight);
         for _ in 0..frames_in_flight {
             fences.push(None);
         }
 
-        Self {
+        Ok(Self {
             recreate_swapchain: false,
             previous_fence: 0,
             fences,
             imgui,
             renderer,
-        }
+            window,
+        })
     }
 
     pub fn run(&mut self, logic: &LogicData, frame: Frame) -> RisResult<()> {
-        let window_flags = self.renderer.window.window_flags();
+        let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
             return Ok(());
@@ -70,23 +74,28 @@ impl OutputFrame {
             (false, false)
         };
 
+        let window_size = self.window.size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
+
         if recreate_viewport {
             if reload_shaders {
                 self.renderer.reload_shaders()?;
             }
 
-            self.renderer.recreate_viewport()?;
+            self.renderer.recreate_viewport(window_drawable_size)?;
         }
 
         if self.recreate_swapchain {
             self.recreate_swapchain = false;
-            self.renderer.recreate_swapchain()?;
+            self.renderer.recreate_swapchain(window_drawable_size)?;
         }
 
-        let ui = self
-            .imgui
-            .backend
-            .prepare_frame(logic, frame, &self.renderer);
+        let ui = self.imgui.backend.prepare_frame(
+            logic,
+            frame,
+            (window_size.0 as f32, window_size.1 as f32),
+            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        );
         ui.show_demo_window(&mut true);
 
         let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
@@ -111,8 +120,8 @@ impl OutputFrame {
         let view = Matrix4x4::view(scene.camera_position, scene.camera_rotation);
 
         let fovy = 60. * ris_math::DEG2RAD;
-        let (w, h) = self.renderer.window.vulkan_drawable_size();
-        let aspect_ratio = w as f32 / h as f32;
+        let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        let aspect_ratio = w / h;
         let near = 0.01;
         let far = 0.1;
         let proj = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
