@@ -11,8 +11,6 @@ use std::sync::TryLockError;
 use std::thread;
 use std::thread::JoinHandle;
 
-use ris_data::info::app_info::AppInfo;
-use ris_data::settings::Settings;
 use ris_util::throw;
 
 use crate as ris_jobs;
@@ -61,16 +59,6 @@ impl Drop for JobSystemGuard {
         }
 
         ris_log::info!("job system guard dropped!");
-    }
-}
-
-pub fn determine_thread_count(app_info: &AppInfo, settings: &Settings) -> usize {
-    if let Some(workers) = app_info.args.workers {
-        workers
-    } else if let Some(workers) = settings.job().get_workers() {
-        workers
-    } else {
-        app_info.cpu.cpu_count
     }
 }
 

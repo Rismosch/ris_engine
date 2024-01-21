@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use std::sync::RwLock;
 
+use ris_jobs::job_system;
+
 use crate::settings::Settings;
 
 pub struct GodStateData {
@@ -31,5 +33,32 @@ impl GodState {
         let double_buffer = GodState { current, previous };
 
         Arc::new(double_buffer)
+    }
+
+    pub fn current_read(&self) {
+
+    }
+
+    pub fn current_write(&self) {
+
+    }
+
+    pub fn prev_read(&self) {
+
+    }
+
+    pub fn prev_write(&self) {
+
+    }
+
+    pub fn copy_current_to_previous(&self) {
+        let mut current = job_system::lock_write(&self.current);
+        let mut previous = job_system::lock_write(&self.previous);
+
+        if current.settings.changed() {
+            previous.settings = current.settings.clone();
+        }
+
+        current.reset();
     }
 }

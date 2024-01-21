@@ -1,7 +1,4 @@
-use std::sync::Arc;
-
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::god_state::GodState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 
@@ -23,7 +20,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
-        copy_current_to_previous(god_state.clone());
+        god_state.copy_current_to_previous();
 
         // create copies
         let previous_logic_for_logic = current_logic.clone();
@@ -77,8 +74,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers =
-                job_system::determine_thread_count(&god_object.app_info, &current_state.settings);
+            let workers = crate::determine_thread_count(
+                &god_object.app_info,
+                &current_state.settings,
+            );
 
             let new_guard = unsafe {
                 job_system::init(
@@ -107,13 +106,3 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     }
 }
 
-fn copy_current_to_previous(god_state: Arc<GodState>) {
-    let mut current = job_system::lock_write(&god_state.current);
-    let mut previous = job_system::lock_write(&god_state.previous);
-
-    if current.settings.changed() {
-        previous.settings = current.settings.clone();
-    }
-
-    current.reset();
-}

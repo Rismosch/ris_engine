@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 cfg-if = "1"
 sdl2 = "0.34.5"
-ris_data = { path = "../ris_data" }
 ris_log = { path = "../ris_log" }
 ris_util = { path = "../ris_util" }
 

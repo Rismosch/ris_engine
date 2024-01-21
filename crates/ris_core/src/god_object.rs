@@ -82,7 +82,7 @@ impl GodObject {
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
-        let workers = job_system::determine_thread_count(&app_info, &settings);
+        let workers = crate::determine_thread_count(&app_info, &settings);
         let job_system_guard = unsafe {
             job_system::init(
                 job_system::DEFAULT_BUFFER_CAPACITY,
