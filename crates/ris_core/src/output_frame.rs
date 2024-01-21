@@ -30,11 +30,12 @@ type Fence = FenceSignalFuture<
 >;
 
 pub struct OutputFrame {
-    renderer: Renderer,
     recreate_swapchain: bool,
-    fences: Vec<Option<Arc<Fence>>>,
     previous_fence: usize,
+
+    fences: Vec<Option<Arc<Fence>>>,
     imgui: RisImgui,
+    renderer: Renderer,
 }
 
 impl OutputFrame {
@@ -46,11 +47,11 @@ impl OutputFrame {
         }
 
         Self {
-            renderer,
             recreate_swapchain: false,
-            fences,
             previous_fence: 0,
+            fences,
             imgui,
+            renderer,
         }
     }
 

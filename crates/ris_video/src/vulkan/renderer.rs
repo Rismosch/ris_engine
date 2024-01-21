@@ -40,7 +40,6 @@ use crate::vulkan::buffers::Buffers;
 
 pub struct Renderer {
     pub instance: Arc<Instance>,
-    pub window: Window,
     pub device: Arc<Device>,
     pub queue: Arc<Queue>,
     pub swapchain: Arc<Swapchain>,
@@ -55,6 +54,8 @@ pub struct Renderer {
     pub viewport: Viewport,
     pub pipeline: Arc<GraphicsPipeline>,
     pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
+    // must be dropped last
+    pub window: Window,
 }
 
 impl Renderer {
@@ -196,7 +197,6 @@ impl Renderer {
         // return
         Ok(Self {
             instance,
-            window,
             device,
             queue,
             swapchain,
@@ -211,6 +211,7 @@ impl Renderer {
             viewport,
             pipeline,
             command_buffers,
+            window,
         })
     }
 
