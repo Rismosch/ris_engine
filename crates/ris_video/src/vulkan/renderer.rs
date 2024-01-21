@@ -197,7 +197,6 @@ impl Renderer {
         // return
         Ok(Self {
             instance,
-            window,
             device,
             queue,
             swapchain,
@@ -212,6 +211,7 @@ impl Renderer {
             viewport,
             pipeline,
             command_buffers,
+            window,
         })
     }
 
