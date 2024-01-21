@@ -16,7 +16,8 @@ GetAndClearCiOutDir() {
     fi
 
     if [ -d "$__target_dir" ]; then
-        rm -r "$__target_dir"
+        echo "attempting to delete $__target_dir"
+        rm -Ir "$__target_dir"
     fi
 
     mkdir "$__target_dir"
