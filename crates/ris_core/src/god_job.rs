@@ -11,7 +11,6 @@ pub enum WantsTo {
 
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
-    let mut current_logic = god_object.logic_data;
 
     let god_state = god_object.state;
 
@@ -23,9 +22,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         god_state.copy_front_to_back();
 
         // create copies
-        let previous_logic_for_logic = current_logic.clone();
-        let previous_logic_for_output = current_logic.clone();
-
         let state_for_logic = god_state.clone();
         let state_for_output = god_state.clone();
         let state_for_save_settings = god_state.clone();
@@ -33,10 +29,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // game loop frame
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
-            let logic = previous_logic_for_output;
             let state = state_for_output;
 
-            let result = output_frame.run(&logic, frame, state);
+            let result = output_frame.run(frame, state);
 
             (output_frame, result)
         });
@@ -57,8 +52,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         });
 
         let logic_result = god_object.logic_frame.run(
-            &mut current_logic,
-            &previous_logic_for_logic,
             frame,
             state_for_logic,
         );

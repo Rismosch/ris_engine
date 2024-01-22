@@ -10,7 +10,6 @@ use sdl2::GameControllerSubsystem;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
@@ -29,7 +28,8 @@ const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 #[cfg(debug_assertions)]
 fn reload_shaders() -> JobFuture<()> {
     use ris_asset::asset_importer;
-    let future = ris_jobs::job_system::submit(|| {
+
+    ris_jobs::job_system::submit(|| {
         let result = asset_importer::import_all(
             asset_importer::DEFAULT_SOURCE_DIRECTORY,
             asset_importer::DEFAULT_TARGET_DIRECTORY,
@@ -38,9 +38,7 @@ fn reload_shaders() -> JobFuture<()> {
         if let Err(error) = result {
             ris_log::error!("failed to import shaders: {}", error);
         }
-    });
-
-    future
+    })
 }
 
 #[cfg(not(debug_assertions))]
@@ -79,8 +77,6 @@ impl LogicFrame {
 
     pub fn run(
         &mut self,
-        current: &mut LogicData,
-        previous: &LogicData,
         frame: Frame,
         state: Arc<GodState>,
     ) -> RisResult<GameloopState> {

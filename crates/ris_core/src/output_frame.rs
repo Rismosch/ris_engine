@@ -15,7 +15,6 @@ use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
 use ris_data::gameloop::frame::Frame;
-use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
@@ -63,7 +62,6 @@ impl OutputFrame {
 
     pub fn run(
         &mut self,
-        logic: &LogicData,
         frame: Frame,
         state: Arc<GodState>,
     ) -> RisResult<()> {

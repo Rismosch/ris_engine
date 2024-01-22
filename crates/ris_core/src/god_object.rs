@@ -8,7 +8,6 @@ use ris_asset::loader::scenes_loader;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame::FrameCalculator;
-use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state::GodState;
 use ris_data::god_state::GodStateData;
 use ris_data::info::app_info::AppInfo;
@@ -57,7 +56,6 @@ pub struct GodObject {
     pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
-    pub logic_data: LogicData,
     pub scenes: Scenes,
 
     pub state: Arc<GodState>,
@@ -144,7 +142,6 @@ impl GodObject {
         let output_frame = OutputFrame::new(window, renderer, imgui)?;
 
         let frame_calculator = FrameCalculator::default();
-        let mut logic_data = LogicData::default();
 
         // god state
         let front = GodStateData::new(settings.clone());
@@ -174,7 +171,6 @@ impl GodObject {
             frame_calculator,
             logic_frame,
             output_frame,
-            logic_data,
             scenes,
 
             state,
