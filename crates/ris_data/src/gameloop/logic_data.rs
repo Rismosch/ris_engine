@@ -21,6 +21,6 @@ pub struct LogicData {
     //pub camera_horizontal_angle: f32,
     //pub camera_vertical_angle: f32,
 
-    pub reload_shaders: bool,
-    pub window_size_changed: Option<(i32, i32)>,
+    //pub reload_shaders: bool,
+    //pub window_size_changed: Option<(i32, i32)>,
 }

@@ -11,6 +11,7 @@ use sdl2::GameControllerSubsystem;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::gameloop::logic_data::LogicData;
+use ris_data::god_state;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
 use ris_data::input::rebind_matrix::RebindMatrix;
@@ -28,7 +29,7 @@ use ris_math::vector3::Vector3;
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
 #[cfg(debug_assertions)]
-fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
+fn reload_shaders() -> JobFuture<()> {
     use ris_asset::asset_importer;
     let future = ris_jobs::job_system::submit(|| {
         let result = asset_importer::import_all(
@@ -41,12 +42,11 @@ fn reload_shaders(current: &mut LogicData) -> JobFuture<()> {
         }
     });
 
-    current.reload_shaders = true;
     future
 }
 
 #[cfg(not(debug_assertions))]
-fn reload_shaders(_current: &mut LogicData) -> JobFuture<()> {
+fn reload_shaders() -> JobFuture<()> {
     ris_log::warning!("shaders can only be reloaded in a debug build!");
     JobFuture::done()
 }
@@ -107,8 +107,6 @@ impl LogicFrame {
         mouse_logic::pre_events(&mut current.mouse);
         keyboard_logic::pre_events(&mut current.keyboard);
 
-        current.window_size_changed = None;
-
         for event in self.event_pump.poll_iter() {
             if let Event::Quit { .. } = event {
                 return Ok(GameloopState::WantsToQuit);
@@ -119,7 +117,7 @@ impl LogicFrame {
                 ..
             } = event
             {
-                current.window_size_changed = Some((w, h));
+                state.front_mut().window_event = god_state::WindowEvent::SizeChanged(w, h);
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
@@ -184,10 +182,10 @@ impl LogicFrame {
         }
 
         // reload shaders
-        current.reload_shaders = false;
         let mut import_shader_future = None;
         if current.keyboard.keys.is_down(Scancode::F6) {
-            let future = reload_shaders(current);
+            state.front_mut().reload_shaders = true;
+            let future = reload_shaders();
             import_shader_future = Some(future);
         }
 

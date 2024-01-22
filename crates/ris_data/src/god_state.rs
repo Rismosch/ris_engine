@@ -9,14 +9,32 @@ use ris_math::vector3::Vector3;
 
 use crate::settings::Settings;
 
+#[derive(Clone, Copy)]
+pub enum WindowEvent {
+    None,
+    SizeChanged(i32, i32),
+}
+
+impl Default for WindowEvent {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 #[derive(Default)]
 pub struct GodStateData {
-    pub settings: Settings,
+    // events
+    pub reload_shaders: bool,
+    pub window_event: WindowEvent,
 
+    // general
     pub camera_horizontal_angle: f32,
     pub camera_vertical_angle: f32,
     pub camera_position: Vector3,
     pub camera_rotation: Quaternion,
+
+    // settings
+    pub settings: Settings,
 }
 
 pub type GodStateLock = RwLock<GodStateData>;
@@ -61,12 +79,20 @@ impl GodState {
         let mut front = self.front_mut();
         let mut back = self.back_mut();
 
-        back.settings = front.settings.clone();
-        front.settings.reset();
+        // events
+        back.reload_shaders = front.reload_shaders;
+        front.reload_shaders = false;
+        back.window_event = front.window_event;
+        front.window_event = WindowEvent::None;
 
+        // general
         back.camera_horizontal_angle = front.camera_horizontal_angle;
         back.camera_vertical_angle = front.camera_vertical_angle;
         back.camera_position = front.camera_position;
         back.camera_rotation = front.camera_rotation;
+
+        // settings
+        back.settings = front.settings.clone();
+        front.settings.reset();
     }
 }

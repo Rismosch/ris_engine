@@ -17,6 +17,7 @@ use vulkano::sync::GpuFuture;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state::GodState;
+use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_video::imgui::RisImgui;
@@ -72,12 +73,13 @@ impl OutputFrame {
             return Ok(());
         }
 
-        let (recreate_viewport, reload_shaders) = if logic.reload_shaders {
+        let (recreate_viewport, reload_shaders) = if state.back().reload_shaders {
             (true, true)
-        } else if logic.window_size_changed.is_some() {
-            (true, false)
         } else {
-            (false, false)
+            match state.back().window_event {
+                WindowEvent::SizeChanged(..) => (true, false),
+                WindowEvent::None => (false, false),
+            }
         };
 
         let window_size = self.window.size();
