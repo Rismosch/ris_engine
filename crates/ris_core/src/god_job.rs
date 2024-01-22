@@ -20,7 +20,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
-        god_state.copy_current_to_previous();
+        god_state.copy_front_to_back();
 
         // create copies
         let previous_logic_for_logic = current_logic.clone();
@@ -39,9 +39,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         let save_settings_future = job_system::submit(move || {
             let settings_serializer = god_object.settings_serializer;
+            let state = state_for_save_settings;
 
-            let previous_state = job_system::lock_read(&state_for_save_settings.previous);
-            let settings = &previous_state.settings;
+            let settings = &state.back().settings;
 
             let result = if settings.save_requested() {
                 settings_serializer.serialize(settings)
@@ -68,15 +68,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         god_object.settings_serializer = new_settings_serializer;
 
         // restart job system
-        let current_state = job_system::lock_write(&god_state.current);
-        if current_state.settings.job().changed() {
+        if god_state.front().settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let workers = crate::determine_thread_count(
                 &god_object.app_info,
-                &current_state.settings,
+                &god_state.front().settings,
             );
 
             let new_guard = unsafe {

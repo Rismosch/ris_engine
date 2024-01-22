@@ -263,20 +263,18 @@ impl LogicFrame {
             scene.camera_position += movement_speed * right;
         }
 
-        let mut current_state = job_system::lock_write(&state.current);
-
-        if let Some(workers) = current_state.settings.job().get_workers() {
+        if let Some(workers) = state.front().settings.job().get_workers() {
             if current.keyboard.keys.is_hold(Scancode::LCtrl) {
                 if current.keyboard.keys.is_down(Scancode::Up) {
                     let new_workers = Some(workers.saturating_add(1));
-                    current_state.settings.job_mut().set_workers(new_workers);
+                    state.front_mut().settings.job_mut().set_workers(new_workers);
                 }
                 if current.keyboard.keys.is_down(Scancode::Down) {
                     let new_workers = Some(workers.saturating_sub(1));
-                    current_state.settings.job_mut().set_workers(new_workers);
+                    state.front_mut().settings.job_mut().set_workers(new_workers);
                 }
                 if current.keyboard.keys.is_down(Scancode::Return) {
-                    current_state.settings.request_save();
+                    state.front_mut().settings.request_save();
                 }
             }
         }
