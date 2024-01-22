@@ -51,10 +51,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             (settings_serializer, result)
         });
 
-        let logic_result = god_object.logic_frame.run(
-            frame,
-            state_for_logic,
-        );
+        let logic_result = god_object.logic_frame.run(frame, state_for_logic);
 
         // wait for jobs
         let (new_output_frame, output_result) = output_future.wait();
@@ -70,10 +67,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers = crate::determine_thread_count(
-                &god_object.app_info,
-                &god_state.front().settings,
-            );
+            let workers =
+                crate::determine_thread_count(&god_object.app_info, &god_state.front().settings);
 
             let new_guard = unsafe {
                 job_system::init(
@@ -101,4 +96,3 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
     }
 }
-

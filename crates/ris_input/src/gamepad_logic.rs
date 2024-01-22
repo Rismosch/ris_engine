@@ -50,10 +50,7 @@ impl GamepadLogic {
         }
     }
 
-    pub fn post_events(
-        &mut self,
-        gamepad_data: &mut GamepadData,
-    ) {
+    pub fn post_events(&mut self, gamepad_data: &mut GamepadData) {
         if let Some(controller_index) = self.current_controller {
             let controller_to_use = &self.open_controllers[controller_index];
             compute_state(gamepad_data, controller_to_use)
@@ -131,10 +128,7 @@ impl GamepadLogic {
     }
 }
 
-fn compute_state(
-    gamepad_data: &mut GamepadData,
-    controller: &GameController,
-) {
+fn compute_state(gamepad_data: &mut GamepadData, controller: &GameController) {
     let mut left_x = controller.axis(sdl2::controller::Axis::LeftX);
     let mut left_y = controller.axis(sdl2::controller::Axis::LeftY);
     let mut right_x = controller.axis(sdl2::controller::Axis::RightX);

@@ -60,11 +60,7 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(
-        &mut self,
-        frame: Frame,
-        state: Arc<GodState>,
-    ) -> RisResult<()> {
+    pub fn run(&mut self, frame: Frame, state: Arc<GodState>) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {

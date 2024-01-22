@@ -5,16 +5,20 @@ pub struct RebindMatrix {
 
 impl Default for RebindMatrix {
     fn default() -> Self {
-        let mut data = [0; 32];
-        for (i, row) in data.iter_mut().enumerate() {
+        let mut result = Self::new_empty();
+        for (i, row) in result.data.iter_mut().enumerate() {
             *row = 1 << i;
         }
 
-        Self {data}
+        result
     }
 }
 
 impl RebindMatrix {
+    pub fn new_empty() -> Self {
+        Self { data: [0; 32] }
+    }
+
     pub fn copy(source: &Self, target: &mut Self) {
         target.data[..32].copy_from_slice(&source.data[..32])
     }

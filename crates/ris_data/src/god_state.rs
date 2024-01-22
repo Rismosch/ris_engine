@@ -22,12 +22,12 @@ impl Default for WindowEvent {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GodStateData {
     // events
     pub reload_shaders: bool,
     pub window_event: WindowEvent,
-    
+
     // input
     pub input: Input,
 
@@ -50,7 +50,10 @@ pub struct GodState {
 
 impl GodStateData {
     pub fn new(settings: Settings) -> GodStateLock {
-        let data = GodStateData { settings, ..Default::default()};
+        let data = GodStateData {
+            settings,
+            ..Default::default()
+        };
 
         RwLock::new(data)
     }
@@ -67,11 +70,11 @@ impl GodState {
         job_system::lock_read(&self.front)
     }
 
-    pub fn front_mut(&self) -> RwLockWriteGuard<GodStateData>{
+    pub fn front_mut(&self) -> RwLockWriteGuard<GodStateData> {
         job_system::lock_write(&self.front)
     }
 
-    pub fn back(&self) -> RwLockReadGuard<GodStateData>{
+    pub fn back(&self) -> RwLockReadGuard<GodStateData> {
         job_system::lock_read(&self.back)
     }
 

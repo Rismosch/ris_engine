@@ -75,11 +75,7 @@ impl LogicFrame {
         }
     }
 
-    pub fn run(
-        &mut self,
-        frame: Frame,
-        state: Arc<GodState>,
-    ) -> RisResult<GameloopState> {
+    pub fn run(&mut self, frame: Frame, state: Arc<GodState>) -> RisResult<GameloopState> {
         // input
         mouse_logic::pre_events(&mut state.front_mut().input.mouse);
         keyboard_logic::pre_events(&mut state.front_mut().input.keyboard);
@@ -114,7 +110,8 @@ impl LogicFrame {
             self.keyboard_util.mod_state(),
         );
 
-        self.gamepad_logic.post_events(&mut state.front_mut().input.gamepad);
+        self.gamepad_logic
+            .post_events(&mut state.front_mut().input.gamepad);
 
         update_general(state.clone());
 
@@ -168,22 +165,46 @@ impl LogicFrame {
             state.front_mut().camera_position = Vector3::new(0., -1., 0.);
         }
 
-        if state.front().input.general.buttons.is_hold(action::CAMERA_UP) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::CAMERA_UP)
+        {
             state.front_mut().camera_vertical_angle += rotation_speed;
         }
 
-        if state.front().input.general.buttons.is_hold(action::CAMERA_DOWN) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::CAMERA_DOWN)
+        {
             state.front_mut().camera_vertical_angle -= rotation_speed;
         }
 
-        if state.front().input.general.buttons.is_hold(action::CAMERA_LEFT) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::CAMERA_LEFT)
+        {
             state.front_mut().camera_horizontal_angle += rotation_speed;
         }
 
-        if state.front().input.general.buttons.is_hold(action::CAMERA_RIGHT) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::CAMERA_RIGHT)
+        {
             state.front_mut().camera_horizontal_angle -= rotation_speed;
         }
-        
+
         let mut camera_horizontal_angle = state.front().camera_horizontal_angle;
         let mut camera_vertical_angle = state.front().camera_vertical_angle;
         while camera_horizontal_angle < 0. {
@@ -192,16 +213,15 @@ impl LogicFrame {
         while camera_horizontal_angle > ris_math::PI_2 {
             camera_horizontal_angle -= ris_math::PI_2;
         }
-        camera_vertical_angle = ris_math::clamp(
-            camera_vertical_angle,
-            -ris_math::PI_0_5,
-            ris_math::PI_0_5,
-        );
+        camera_vertical_angle =
+            ris_math::clamp(camera_vertical_angle, -ris_math::PI_0_5, ris_math::PI_0_5);
         state.front_mut().camera_horizontal_angle = camera_horizontal_angle;
         state.front_mut().camera_vertical_angle = camera_vertical_angle;
 
-        let rotation1 = Quaternion::from_angle_axis(state.front().camera_vertical_angle, vector3::RIGHT);
-        let rotation2 = Quaternion::from_angle_axis(state.front().camera_horizontal_angle, vector3::UP);
+        let rotation1 =
+            Quaternion::from_angle_axis(state.front().camera_vertical_angle, vector3::RIGHT);
+        let rotation2 =
+            Quaternion::from_angle_axis(state.front().camera_horizontal_angle, vector3::UP);
         state.front_mut().camera_rotation = rotation2 * rotation1;
 
         if state.front().input.general.buttons.is_hold(action::MOVE_UP) {
@@ -209,17 +229,35 @@ impl LogicFrame {
             state.front_mut().camera_position += movement_speed * forward;
         }
 
-        if state.front().input.general.buttons.is_hold(action::MOVE_DOWN) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::MOVE_DOWN)
+        {
             let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
             state.front_mut().camera_position -= movement_speed * forward;
         }
 
-        if state.front().input.general.buttons.is_hold(action::MOVE_LEFT) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::MOVE_LEFT)
+        {
             let right = state.front().camera_rotation.rotate(vector3::RIGHT);
             state.front_mut().camera_position -= movement_speed * right;
         }
 
-        if state.front().input.general.buttons.is_hold(action::MOVE_RIGHT) {
+        if state
+            .front()
+            .input
+            .general
+            .buttons
+            .is_hold(action::MOVE_RIGHT)
+        {
             let right = state.front().camera_rotation.rotate(vector3::RIGHT);
             state.front_mut().camera_position += movement_speed * right;
         }
@@ -229,11 +267,19 @@ impl LogicFrame {
             if state.front().input.keyboard.keys.is_hold(Scancode::LCtrl) {
                 if state.front().input.keyboard.keys.is_down(Scancode::Up) {
                     let new_workers = Some(workers.saturating_add(1));
-                    state.front_mut().settings.job_mut().set_workers(new_workers);
+                    state
+                        .front_mut()
+                        .settings
+                        .job_mut()
+                        .set_workers(new_workers);
                 }
                 if state.front().input.keyboard.keys.is_down(Scancode::Down) {
                     let new_workers = Some(workers.saturating_sub(1));
-                    state.front_mut().settings.job_mut().set_workers(new_workers);
+                    state
+                        .front_mut()
+                        .settings
+                        .job_mut()
+                        .set_workers(new_workers);
                 }
                 if state.front().input.keyboard.keys.is_down(Scancode::Return) {
                     state.front_mut().settings.request_save();
