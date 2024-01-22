@@ -19,10 +19,11 @@ GetAndClearCiOutDir() {
 
     if [ -d "$__target_dir" ]; then
         echo
-        echo "WARNING: destination directory is not empty"
+        echo "WARNING: destination directory exists already"
         read -p "are you sure you want to delete \`$__target_dir\`? (y/N)" user_input
         lower_user_input=$(echo $user_input | tr '[:upper:]' '[:lower:]')
         if [[ $lower_user_input == "y" ]]; then
+            echo "deleting..."
             rm -r "$__target_dir"
             echo "deleted \`$__target_dir\`"
         fi
