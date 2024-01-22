@@ -41,10 +41,38 @@ try {
         $cli_compress_value = $true
     }
 
+    Write-Host
+    Write-Host "confirm settings:"
+
+    if ($cli_clean_value -eq $enum_clean_none) {
+        $cli_clean_display = "no"
+    } elseif ($cli_clean_value -eq $enum_clean_except_vendor) {
+        $cli_clean_display = "yes, except vendor"
+    } elseif ($cli_clean_value -eq $enum_clean_all) {
+        $cli_clean_display = "yes, all"
+    }
+
+    if ($cli_vendor_value -eq $true) {
+        $cli_vendor_display = "yes"
+    } else {
+        $cli_vendor_display = "no"
+    }
+
+    if ($cli_compress_value -eq $true) {
+        $cli_compress_display = "yes"
+    } else {
+        $cli_compress_display = "no"
+    }
+
+    Write-Host "  clean:    $cli_clean_display"
+    Write-Host "  vendor:   $cli_vendor_display"
+    Write-Host "  compress: $cli_compress_display"
+
     
-
-    exit
-
+    $user_input = Read-Host "continue with these settings? (Y/n)"
+    if ($user_input.ToLower() -eq "n") {
+        exit
+    }
 
     if ($cli_clean_value -ne $enum_clean_none) {
         Write-Host "cleaning workspace..."

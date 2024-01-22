@@ -36,6 +36,8 @@ GetAndClearCiOutDir() {
         mkdir "$__target_dir"
     fi
 
+    echo
+
     __result=$(realpath $__target_dir)
     eval "$1='$__result'"
 }

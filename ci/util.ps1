@@ -30,6 +30,8 @@ function GetAndClearCiOutDir {
         New-Item -Path $target_dir -ItemType Directory | out-null
     }
 
+    Write-Host
+
     $result = Resolve-Path $target_dir
     return $result
 }
