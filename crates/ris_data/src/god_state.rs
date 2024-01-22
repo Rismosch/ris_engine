@@ -4,11 +4,19 @@ use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
 
 use ris_jobs::job_system;
+use ris_math::quaternion::Quaternion;
+use ris_math::vector3::Vector3;
 
 use crate::settings::Settings;
 
+#[derive(Default)]
 pub struct GodStateData {
     pub settings: Settings,
+
+    pub camera_horizontal_angle: f32,
+    pub camera_vertical_angle: f32,
+    pub camera_position: Vector3,
+    pub camera_rotation: Quaternion,
 }
 
 pub type GodStateLock = RwLock<GodStateData>;
@@ -20,13 +28,9 @@ pub struct GodState {
 
 impl GodStateData {
     pub fn new(settings: Settings) -> GodStateLock {
-        let data = GodStateData { settings };
+        let data = GodStateData { settings, ..Default::default()};
 
         RwLock::new(data)
-    }
-
-    pub fn reset(&mut self) {
-        self.settings.reset();
     }
 }
 
@@ -57,10 +61,12 @@ impl GodState {
         let mut front = self.front_mut();
         let mut back = self.back_mut();
 
-        if front.settings.changed() {
-            back.settings = front.settings.clone();
-        }
+        back.settings = front.settings.clone();
+        front.settings.reset();
 
-        front.reset();
+        back.camera_horizontal_angle = front.camera_horizontal_angle;
+        back.camera_vertical_angle = front.camera_vertical_angle;
+        back.camera_position = front.camera_position;
+        back.camera_rotation = front.camera_rotation;
     }
 }

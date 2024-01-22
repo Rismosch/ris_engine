@@ -21,7 +21,6 @@ use ris_input::general_logic::GeneralLogicArgs;
 use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
-use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3;
 use ris_math::vector3::Vector3;
@@ -193,74 +192,73 @@ impl LogicFrame {
         }
 
         // game logic
-        current.camera_horizontal_angle = previous.camera_horizontal_angle;
-        current.camera_vertical_angle = previous.camera_vertical_angle;
-        current.scene = previous.scene.clone();
-        let scene = &mut current.scene;
-
         let rotation_speed = 2. * frame.average_seconds();
         let movement_speed = 2. * frame.average_seconds();
         let mouse_speed = 20. * frame.average_seconds();
 
         if current.mouse.buttons.is_hold(action::OK) {
-            current.camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
-            current.camera_horizontal_angle -= mouse_speed * current.mouse.xrel as f32;
+            state.front_mut().camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
+            state.front_mut().camera_horizontal_angle -= mouse_speed * current.mouse.xrel as f32;
         } else if current.general.buttons.is_down(action::OK) {
-            current.camera_horizontal_angle = 0.0;
-            current.camera_vertical_angle = 0.0;
-            scene.camera_position = Vector3::new(0., -1., 0.);
+            state.front_mut().camera_horizontal_angle = 0.0;
+            state.front_mut().camera_vertical_angle = 0.0;
+            state.front_mut().camera_position = Vector3::new(0., -1., 0.);
         }
 
         if current.general.buttons.is_hold(action::CAMERA_UP) {
-            current.camera_vertical_angle += rotation_speed;
+            state.front_mut().camera_vertical_angle += rotation_speed;
         }
 
         if current.general.buttons.is_hold(action::CAMERA_DOWN) {
-            current.camera_vertical_angle -= rotation_speed;
+            state.front_mut().camera_vertical_angle -= rotation_speed;
         }
 
         if current.general.buttons.is_hold(action::CAMERA_LEFT) {
-            current.camera_horizontal_angle += rotation_speed;
+            state.front_mut().camera_horizontal_angle += rotation_speed;
         }
 
         if current.general.buttons.is_hold(action::CAMERA_RIGHT) {
-            current.camera_horizontal_angle -= rotation_speed;
+            state.front_mut().camera_horizontal_angle -= rotation_speed;
         }
-
-        while current.camera_horizontal_angle < 0. {
-            current.camera_horizontal_angle += ris_math::PI_2;
+        
+        let mut camera_horizontal_angle = state.front().camera_horizontal_angle;
+        let mut camera_vertical_angle = state.front().camera_vertical_angle;
+        while camera_horizontal_angle < 0. {
+            camera_horizontal_angle += ris_math::PI_2;
         }
-        while current.camera_horizontal_angle > ris_math::PI_2 {
-            current.camera_horizontal_angle -= ris_math::PI_2;
+        while camera_horizontal_angle > ris_math::PI_2 {
+            camera_horizontal_angle -= ris_math::PI_2;
         }
-        current.camera_vertical_angle = ris_math::clamp(
-            current.camera_vertical_angle,
+        camera_vertical_angle = ris_math::clamp(
+            camera_vertical_angle,
             -ris_math::PI_0_5,
             ris_math::PI_0_5,
         );
+        state.front_mut().camera_horizontal_angle = camera_horizontal_angle;
+        state.front_mut().camera_vertical_angle = camera_vertical_angle;
 
-        let rotation1 = Quaternion::from_angle_axis(current.camera_vertical_angle, vector3::RIGHT);
-        let rotation2 = Quaternion::from_angle_axis(current.camera_horizontal_angle, vector3::UP);
-        scene.camera_rotation = rotation2 * rotation1;
+        let rotation1 = Quaternion::from_angle_axis(state.front().camera_vertical_angle, vector3::RIGHT);
+        let rotation2 = Quaternion::from_angle_axis(state.front().camera_horizontal_angle, vector3::UP);
+        state.front_mut().camera_rotation = rotation2 * rotation1;
 
         if current.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position += movement_speed * forward;
+            let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
+            state.front_mut().camera_position += movement_speed * forward;
         }
 
         if current.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = scene.camera_rotation.rotate(vector3::FORWARD);
-            scene.camera_position -= movement_speed * forward;
+            let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
+            state.front_mut().camera_position -= movement_speed * forward;
         }
 
         if current.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = scene.camera_rotation.rotate(vector3::RIGHT);
-            scene.camera_position -= movement_speed * right;
+            let right = state.front().camera_rotation.rotate(vector3::RIGHT);
+            state.front_mut().camera_position -= movement_speed * right;
         }
 
         if current.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = scene.camera_rotation.rotate(vector3::RIGHT);
-            scene.camera_position += movement_speed * right;
+            let right = state.front().camera_rotation.rotate(vector3::RIGHT);
+            state.front_mut().camera_position += movement_speed * right;
         }
 
         if let Some(workers) = state.front().settings.job().get_workers() {

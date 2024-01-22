@@ -16,6 +16,7 @@ use vulkano::sync::GpuFuture;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::logic_data::LogicData;
+use ris_data::god_state::GodState;
 use ris_error::RisResult;
 use ris_math::matrix4x4::Matrix4x4;
 use ris_video::imgui::RisImgui;
@@ -59,7 +60,12 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(&mut self, logic: &LogicData, frame: Frame) -> RisResult<()> {
+    pub fn run(
+        &mut self,
+        logic: &LogicData,
+        frame: Frame,
+        state: Arc<GodState>,
+    ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -116,8 +122,7 @@ impl OutputFrame {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let scene = &logic.scene;
-        let view = Matrix4x4::view(scene.camera_position, scene.camera_rotation);
+        let view = Matrix4x4::view(state.back().camera_position, state.back().camera_rotation);
 
         let fovy = 60. * ris_math::DEG2RAD;
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);

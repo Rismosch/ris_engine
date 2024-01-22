@@ -27,12 +27,16 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let previous_logic_for_output = current_logic.clone();
 
         let state_for_logic = god_state.clone();
+        let state_for_output = god_state.clone();
         let state_for_save_settings = god_state.clone();
 
         // game loop frame
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
-            let result = output_frame.run(&previous_logic_for_output, frame);
+            let logic = previous_logic_for_output;
+            let state = state_for_output;
+
+            let result = output_frame.run(&logic, frame, state);
 
             (output_frame, result)
         });
