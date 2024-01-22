@@ -7,6 +7,7 @@ use ris_jobs::job_system;
 use ris_math::quaternion::Quaternion;
 use ris_math::vector3::Vector3;
 
+use crate::input::Input;
 use crate::settings::Settings;
 
 #[derive(Clone, Copy)]
@@ -26,6 +27,9 @@ pub struct GodStateData {
     // events
     pub reload_shaders: bool,
     pub window_event: WindowEvent,
+    
+    // input
+    pub input: Input,
 
     // general
     pub camera_horizontal_angle: f32,
@@ -84,6 +88,9 @@ impl GodState {
         front.reload_shaders = false;
         back.window_event = front.window_event;
         front.window_event = WindowEvent::None;
+
+        // input
+        back.input = front.input.clone();
 
         // general
         back.camera_horizontal_angle = front.camera_horizontal_angle;

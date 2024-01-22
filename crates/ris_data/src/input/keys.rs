@@ -70,8 +70,8 @@ impl Keys {
         self.state[index]
     }
 
-    pub fn set_old_and_clear(&mut self, old_state: KeyState) {
-        self.prev = old_state;
+    pub fn clear(&mut self) {
+        self.prev = self.state;
         self.state = [false; KEY_STATE_SIZE];
     }
 

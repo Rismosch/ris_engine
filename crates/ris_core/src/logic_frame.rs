@@ -14,11 +14,9 @@ use ris_data::gameloop::logic_data::LogicData;
 use ris_data::god_state;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
-use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
-use ris_input::general_logic::GeneralLogicArgs;
 use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
@@ -58,10 +56,6 @@ pub struct LogicFrame {
 
     gamepad_logic: GamepadLogic,
 
-    rebind_matrix_mouse: RebindMatrix,
-    rebind_matrix_keyboard: RebindMatrix,
-    rebind_matrix_gamepad: RebindMatrix,
-
     // general
     restart_timestamp: Instant,
     crash_timestamp: Instant,
@@ -73,18 +67,10 @@ impl LogicFrame {
         keyboard_util: KeyboardUtil,
         controller_subsystem: GameControllerSubsystem,
     ) -> Self {
-        let mut rebind_matrix = [0; 32];
-        for (i, row) in rebind_matrix.iter_mut().enumerate() {
-            *row = 1 << i;
-        }
-
         Self {
             event_pump,
             keyboard_util,
             gamepad_logic: GamepadLogic::new(controller_subsystem),
-            rebind_matrix_mouse: rebind_matrix,
-            rebind_matrix_keyboard: rebind_matrix,
-            rebind_matrix_gamepad: rebind_matrix,
 
             crash_timestamp: Instant::now(),
             restart_timestamp: Instant::now(),
@@ -98,14 +84,9 @@ impl LogicFrame {
         frame: Frame,
         state: Arc<GodState>,
     ) -> RisResult<GameloopState> {
-        // controller input
-        let previous_for_mouse = previous.clone();
-        let previous_for_keyboard = previous.clone();
-        let previous_for_gamepad = previous.clone();
-        let previous_for_general = previous;
-
-        mouse_logic::pre_events(&mut current.mouse);
-        keyboard_logic::pre_events(&mut current.keyboard);
+        // input
+        mouse_logic::pre_events(&mut state.front_mut().input.mouse);
+        keyboard_logic::pre_events(&mut state.front_mut().input.keyboard);
 
         for event in self.event_pump.poll_iter() {
             if let Event::Quit { .. } = event {
@@ -121,42 +102,28 @@ impl LogicFrame {
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
-            mouse_logic::handle_event(&mut current.mouse, &event);
-            keyboard_logic::handle_event(&mut current.keyboard, &event);
+            mouse_logic::handle_event(&mut state.front_mut().input.mouse, &event);
+            keyboard_logic::handle_event(&mut state.front_mut().input.keyboard, &event);
             self.gamepad_logic.handle_event(&event);
         }
 
         mouse_logic::post_events(
-            &mut current.mouse,
-            &previous_for_mouse.mouse,
+            &mut state.front_mut().input.mouse,
             self.event_pump.mouse_state(),
         );
 
         keyboard_logic::post_events(
-            &mut current.keyboard,
-            &previous_for_keyboard.keyboard,
+            &mut state.front_mut().input.keyboard,
             self.event_pump.keyboard_state(),
             self.keyboard_util.mod_state(),
         );
 
-        self.gamepad_logic
-            .post_events(&mut current.gamepad, &previous_for_gamepad.gamepad);
+        self.gamepad_logic.post_events(&mut state.front_mut().input.gamepad);
 
-        let args = GeneralLogicArgs {
-            new_general_data: &mut current.general,
-            old_general_data: &previous_for_general.general,
-            mouse: &current.mouse.buttons,
-            keyboard: &current.keyboard.buttons,
-            gamepad: &current.gamepad.buttons,
-            rebind_matrix_mouse: &self.rebind_matrix_mouse,
-            rebind_matrix_keyboard: &self.rebind_matrix_keyboard,
-            rebind_matrix_gamepad: &self.rebind_matrix_gamepad,
-        };
-
-        update_general(args);
+        update_general(state.clone());
 
         // manual restart
-        if current.keyboard.keys.is_hold(Scancode::F1) {
+        if state.front().input.keyboard.keys.is_hold(Scancode::F1) {
             let duration = Instant::now() - self.restart_timestamp;
             let seconds = duration.as_secs();
 
@@ -169,7 +136,7 @@ impl LogicFrame {
         }
 
         // manual crash
-        if current.keyboard.keys.is_hold(Scancode::F4) {
+        if state.front().input.keyboard.keys.is_hold(Scancode::F4) {
             let duration = Instant::now() - self.crash_timestamp;
             let seconds = duration.as_secs();
 
@@ -183,7 +150,7 @@ impl LogicFrame {
 
         // reload shaders
         let mut import_shader_future = None;
-        if current.keyboard.keys.is_down(Scancode::F6) {
+        if state.front().input.keyboard.keys.is_down(Scancode::F6) {
             state.front_mut().reload_shaders = true;
             let future = reload_shaders();
             import_shader_future = Some(future);
@@ -194,28 +161,30 @@ impl LogicFrame {
         let movement_speed = 2. * frame.average_seconds();
         let mouse_speed = 20. * frame.average_seconds();
 
-        if current.mouse.buttons.is_hold(action::OK) {
-            state.front_mut().camera_vertical_angle -= mouse_speed * current.mouse.yrel as f32;
-            state.front_mut().camera_horizontal_angle -= mouse_speed * current.mouse.xrel as f32;
-        } else if current.general.buttons.is_down(action::OK) {
+        if state.front().input.mouse.buttons.is_hold(action::OK) {
+            let yrel = mouse_speed * state.front().input.mouse.yrel as f32;
+            let xrel = mouse_speed * state.front().input.mouse.xrel as f32;
+            state.front_mut().camera_vertical_angle -= yrel;
+            state.front_mut().camera_horizontal_angle -= xrel;
+        } else if state.front().input.general.buttons.is_down(action::OK) {
             state.front_mut().camera_horizontal_angle = 0.0;
             state.front_mut().camera_vertical_angle = 0.0;
             state.front_mut().camera_position = Vector3::new(0., -1., 0.);
         }
 
-        if current.general.buttons.is_hold(action::CAMERA_UP) {
+        if state.front().input.general.buttons.is_hold(action::CAMERA_UP) {
             state.front_mut().camera_vertical_angle += rotation_speed;
         }
 
-        if current.general.buttons.is_hold(action::CAMERA_DOWN) {
+        if state.front().input.general.buttons.is_hold(action::CAMERA_DOWN) {
             state.front_mut().camera_vertical_angle -= rotation_speed;
         }
 
-        if current.general.buttons.is_hold(action::CAMERA_LEFT) {
+        if state.front().input.general.buttons.is_hold(action::CAMERA_LEFT) {
             state.front_mut().camera_horizontal_angle += rotation_speed;
         }
 
-        if current.general.buttons.is_hold(action::CAMERA_RIGHT) {
+        if state.front().input.general.buttons.is_hold(action::CAMERA_RIGHT) {
             state.front_mut().camera_horizontal_angle -= rotation_speed;
         }
         
@@ -239,43 +208,44 @@ impl LogicFrame {
         let rotation2 = Quaternion::from_angle_axis(state.front().camera_horizontal_angle, vector3::UP);
         state.front_mut().camera_rotation = rotation2 * rotation1;
 
-        if current.general.buttons.is_hold(action::MOVE_UP) {
+        if state.front().input.general.buttons.is_hold(action::MOVE_UP) {
             let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
             state.front_mut().camera_position += movement_speed * forward;
         }
 
-        if current.general.buttons.is_hold(action::MOVE_DOWN) {
+        if state.front().input.general.buttons.is_hold(action::MOVE_DOWN) {
             let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
             state.front_mut().camera_position -= movement_speed * forward;
         }
 
-        if current.general.buttons.is_hold(action::MOVE_LEFT) {
+        if state.front().input.general.buttons.is_hold(action::MOVE_LEFT) {
             let right = state.front().camera_rotation.rotate(vector3::RIGHT);
             state.front_mut().camera_position -= movement_speed * right;
         }
 
-        if current.general.buttons.is_hold(action::MOVE_RIGHT) {
+        if state.front().input.general.buttons.is_hold(action::MOVE_RIGHT) {
             let right = state.front().camera_rotation.rotate(vector3::RIGHT);
             state.front_mut().camera_position += movement_speed * right;
         }
 
-        if let Some(workers) = state.front().settings.job().get_workers() {
-            if current.keyboard.keys.is_hold(Scancode::LCtrl) {
-                if current.keyboard.keys.is_down(Scancode::Up) {
+        let workers = state.front().settings.job().get_workers();
+        if let Some(workers) = workers {
+            if state.front().input.keyboard.keys.is_hold(Scancode::LCtrl) {
+                if state.front().input.keyboard.keys.is_down(Scancode::Up) {
                     let new_workers = Some(workers.saturating_add(1));
                     state.front_mut().settings.job_mut().set_workers(new_workers);
                 }
-                if current.keyboard.keys.is_down(Scancode::Down) {
+                if state.front().input.keyboard.keys.is_down(Scancode::Down) {
                     let new_workers = Some(workers.saturating_sub(1));
                     state.front_mut().settings.job_mut().set_workers(new_workers);
                 }
-                if current.keyboard.keys.is_down(Scancode::Return) {
+                if state.front().input.keyboard.keys.is_down(Scancode::Return) {
                     state.front_mut().settings.request_save();
                 }
             }
         }
 
-        if current.keyboard.keys.is_down(Scancode::F) {
+        if state.front().input.keyboard.keys.is_down(Scancode::F) {
             ris_log::debug!(
                 "{:?} ({} fps)",
                 frame.average_duration(),

@@ -99,8 +99,8 @@ impl OutputFrame {
         }
 
         let ui = self.imgui.backend.prepare_frame(
-            logic,
             frame,
+            state.clone(),
             (window_size.0 as f32, window_size.1 as f32),
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );

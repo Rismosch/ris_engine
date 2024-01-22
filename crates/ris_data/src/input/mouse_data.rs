@@ -1,4 +1,5 @@
-use super::buttons::Buttons;
+use crate::input::buttons::Buttons;
+use crate::input::rebind_matrix::RebindMatrix;
 
 #[derive(Default, Clone)]
 pub struct MouseData {
@@ -9,4 +10,6 @@ pub struct MouseData {
     pub yrel: i32,
     pub wheel_xrel: i32,
     pub wheel_yrel: i32,
+
+    pub rebind_matrix: RebindMatrix,
 }

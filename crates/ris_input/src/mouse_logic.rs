@@ -27,11 +27,9 @@ pub fn handle_event(mouse_data: &mut MouseData, event: &Event) {
 }
 
 pub fn post_events(
-    new_mouse_data: &mut MouseData,
-    old_mouse_data: &MouseData,
+    mouse_data: &mut MouseData,
     mouse_state: sdl2::mouse::MouseState,
 ) {
     let new_state = mouse_state.to_sdl_state();
-    let old_state = old_mouse_data.buttons.hold();
-    new_mouse_data.buttons.set(new_state, old_state);
+    mouse_data.buttons.update(new_state);
 }

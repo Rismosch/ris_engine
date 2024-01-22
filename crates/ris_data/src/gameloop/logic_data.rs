@@ -9,10 +9,10 @@ use crate::input::mouse_data::MouseData;
 #[derive(Default, Clone)]
 pub struct LogicData {
     // input
-    pub mouse: MouseData,
-    pub keyboard: KeyboardData,
-    pub gamepad: GamepadData,
-    pub general: GeneralData,
+    //pub mouse: MouseData,
+    //pub keyboard: KeyboardData,
+    //pub gamepad: GamepadData,
+    //pub general: GeneralData,
 
     // general
     //pub camera_position: Vector3,

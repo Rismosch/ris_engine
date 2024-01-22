@@ -3,6 +3,7 @@ use sdl2::keyboard::Scancode;
 
 use crate::input::buttons::Buttons;
 use crate::input::keys::Keys;
+use crate::input::rebind_matrix::RebindMatrix;
 
 #[derive(Clone)]
 pub struct KeyboardData {
@@ -11,6 +12,7 @@ pub struct KeyboardData {
     pub keys: Keys,
     pub mod_state: Mod,
     pub text_input: Vec<String>,
+    pub rebind_matrix: RebindMatrix,
 }
 
 impl KeyboardData {
@@ -21,6 +23,7 @@ impl KeyboardData {
             keys: Keys::default(),
             mod_state: Mod::NOMOD,
             text_input: Vec::new(),
+            rebind_matrix: RebindMatrix::default(),
         }
     }
 }

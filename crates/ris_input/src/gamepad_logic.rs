@@ -52,14 +52,13 @@ impl GamepadLogic {
 
     pub fn post_events(
         &mut self,
-        new_gamepad_data: &mut GamepadData,
-        old_gamepad_data: &GamepadData,
+        gamepad_data: &mut GamepadData,
     ) {
         if let Some(controller_index) = self.current_controller {
             let controller_to_use = &self.open_controllers[controller_index];
-            compute_state(new_gamepad_data, old_gamepad_data, controller_to_use)
+            compute_state(gamepad_data, controller_to_use)
         } else {
-            reset_state(new_gamepad_data)
+            reset_state(gamepad_data)
         }
     }
 
@@ -133,8 +132,7 @@ impl GamepadLogic {
 }
 
 fn compute_state(
-    new_gamepad_data: &mut GamepadData,
-    old_gamepad_data: &GamepadData,
+    gamepad_data: &mut GamepadData,
     controller: &GameController,
 ) {
     let mut left_x = controller.axis(sdl2::controller::Axis::LeftX);
@@ -144,61 +142,59 @@ fn compute_state(
     let mut trigger_left = controller.axis(sdl2::controller::Axis::TriggerLeft);
     let mut trigger_right = controller.axis(sdl2::controller::Axis::TriggerRight);
 
-    apply_deadzone_stick(&mut left_x, &mut left_y, new_gamepad_data.deadzone_stick);
-    apply_deadzone_stick(&mut right_x, &mut right_y, new_gamepad_data.deadzone_stick);
-    apply_deadzone_trigger(&mut trigger_left, new_gamepad_data.deadzone_trigger);
-    apply_deadzone_trigger(&mut trigger_right, new_gamepad_data.deadzone_trigger);
+    apply_deadzone_stick(&mut left_x, &mut left_y, gamepad_data.deadzone_stick);
+    apply_deadzone_stick(&mut right_x, &mut right_y, gamepad_data.deadzone_stick);
+    apply_deadzone_trigger(&mut trigger_left, gamepad_data.deadzone_trigger);
+    apply_deadzone_trigger(&mut trigger_right, gamepad_data.deadzone_trigger);
 
     apply_axis_filter();
 
     let mut new_state = get_button_state(controller);
 
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &left_x,
         sdl2::controller::Axis::LeftX,
         &mut new_state,
     );
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &left_y,
         sdl2::controller::Axis::LeftY,
         &mut new_state,
     );
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &right_x,
         sdl2::controller::Axis::RightX,
         &mut new_state,
     );
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &right_y,
         sdl2::controller::Axis::RightY,
         &mut new_state,
     );
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &trigger_left,
         sdl2::controller::Axis::TriggerLeft,
         &mut new_state,
     );
     apply_axis_as_button(
-        new_gamepad_data,
+        gamepad_data,
         &trigger_right,
         sdl2::controller::Axis::TriggerRight,
         &mut new_state,
     );
 
-    new_gamepad_data
-        .buttons
-        .set(new_state, old_gamepad_data.buttons.hold());
-    new_gamepad_data.axis[0] = left_x;
-    new_gamepad_data.axis[1] = left_y;
-    new_gamepad_data.axis[2] = right_x;
-    new_gamepad_data.axis[3] = right_y;
-    new_gamepad_data.axis[4] = trigger_left;
-    new_gamepad_data.axis[5] = trigger_right;
+    gamepad_data.buttons.update(new_state);
+    gamepad_data.axis[0] = left_x;
+    gamepad_data.axis[1] = left_y;
+    gamepad_data.axis[2] = right_x;
+    gamepad_data.axis[3] = right_y;
+    gamepad_data.axis[4] = trigger_left;
+    gamepad_data.axis[5] = trigger_right;
 }
 
 fn reset_state(gamepad: &mut GamepadData) {

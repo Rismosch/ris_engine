@@ -146,24 +146,26 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
         let mut logic_data = LogicData::default();
 
-        logic_data.keyboard.keymask[0] = Scancode::Return;
-        logic_data.keyboard.keymask[15] = Scancode::W;
-        logic_data.keyboard.keymask[16] = Scancode::S;
-        logic_data.keyboard.keymask[17] = Scancode::A;
-        logic_data.keyboard.keymask[18] = Scancode::D;
-        logic_data.keyboard.keymask[19] = Scancode::Up;
-        logic_data.keyboard.keymask[20] = Scancode::Down;
-        logic_data.keyboard.keymask[21] = Scancode::Left;
-        logic_data.keyboard.keymask[22] = Scancode::Right;
-        logic_data.keyboard.keymask[28] = Scancode::Kp8;
-        logic_data.keyboard.keymask[29] = Scancode::Kp2;
-        logic_data.keyboard.keymask[30] = Scancode::Kp4;
-        logic_data.keyboard.keymask[31] = Scancode::Kp6;
-
         // god state
-        let current = GodStateData::new(settings.clone());
-        let previous = GodStateData::new(settings);
-        let state = GodState::new(current, previous);
+        let front = GodStateData::new(settings.clone());
+        let back = GodStateData::new(settings);
+        let state = GodState::new(front, back);
+
+        state.front_mut().input.keyboard.keymask[0] = Scancode::Return;
+        state.front_mut().input.keyboard.keymask[15] = Scancode::W;
+        state.front_mut().input.keyboard.keymask[16] = Scancode::S;
+        state.front_mut().input.keyboard.keymask[17] = Scancode::A;
+        state.front_mut().input.keyboard.keymask[18] = Scancode::D;
+        state.front_mut().input.keyboard.keymask[19] = Scancode::Up;
+        state.front_mut().input.keyboard.keymask[20] = Scancode::Down;
+        state.front_mut().input.keyboard.keymask[21] = Scancode::Left;
+        state.front_mut().input.keyboard.keymask[22] = Scancode::Right;
+        state.front_mut().input.keyboard.keymask[28] = Scancode::Kp8;
+        state.front_mut().input.keyboard.keymask[29] = Scancode::Kp2;
+        state.front_mut().input.keyboard.keymask[30] = Scancode::Kp4;
+        state.front_mut().input.keyboard.keymask[31] = Scancode::Kp6;
+
+        state.copy_front_to_back();
 
         // god object
         let god_object = GodObject {
