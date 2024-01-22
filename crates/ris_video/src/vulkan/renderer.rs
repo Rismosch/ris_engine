@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use sdl2::video::Window;
-use sdl2::Sdl;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 use vulkano::device::Device;
 use vulkano::device::DeviceCreateInfo;
@@ -54,26 +53,10 @@ pub struct Renderer {
     pub viewport: Viewport,
     pub pipeline: Arc<GraphicsPipeline>,
     pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
-    // must be dropped last
-    pub window: Window,
 }
 
 impl Renderer {
-    pub fn initialize(sdl_context: &Sdl, scenes: Scenes) -> RisResult<Self> {
-        // window
-        let video_subsystem = sdl_context
-            .video()
-            .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
-        let window = ris_error::unroll!(
-            video_subsystem
-                .window("ris_engine", 640, 480)
-                //.resizable()
-                .position_centered()
-                .vulkan()
-                .build(),
-            "failed to build window"
-        )?;
-
+    pub fn initialize(window: &Window, scenes: Scenes) -> RisResult<Self> {
         // instance
         let library = ris_error::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
         let instance_extensions = InstanceExtensions::from_iter(
@@ -140,9 +123,10 @@ impl Renderer {
         let fs_future = super::shader::load_async(device.clone(), scenes.default_fs.clone());
 
         // swapchain
+        let dimensions = window.vulkan_drawable_size();
         let (swapchain, images) = super::swapchain::create_swapchain(
             physical_device.clone(),
-            &window,
+            dimensions,
             device.clone(),
             surface.clone(),
         )?;
@@ -152,10 +136,9 @@ impl Renderer {
             super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
 
         // viewport
-        let (w, h) = window.vulkan_drawable_size();
         let viewport = Viewport {
             origin: [0.0, 0.0],
-            dimensions: [w as f32, h as f32],
+            dimensions: [dimensions.0 as f32, dimensions.1 as f32],
             depth_range: 0.0..1.0,
         };
 
@@ -165,7 +148,7 @@ impl Renderer {
         // frame buffers
         let framebuffers = super::swapchain::create_framebuffers(
             &allocators,
-            [w, h],
+            dimensions,
             &images,
             render_pass.clone(),
         )?;
@@ -211,16 +194,14 @@ impl Renderer {
             viewport,
             pipeline,
             command_buffers,
-            window,
         })
     }
 
-    pub fn recreate_swapchain(&mut self) -> RisResult<()> {
+    pub fn recreate_swapchain(&mut self, dimensions: (u32, u32)) -> RisResult<()> {
         ris_log::trace!("recreating swapchain...");
 
-        let new_dimensions = self.window.vulkan_drawable_size();
         let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
-            image_extent: [new_dimensions.0, new_dimensions.1],
+            image_extent: [dimensions.0, dimensions.1],
             ..self.swapchain.create_info()
         }) {
             Ok(r) => r,
@@ -231,10 +212,9 @@ impl Renderer {
         self.images = new_images;
 
         self.swapchain = new_swapchain;
-        let (w, h) = self.window.vulkan_drawable_size();
         self.framebuffers = super::swapchain::create_framebuffers(
             &self.allocators,
-            [w, h],
+            dimensions,
             &self.images,
             self.render_pass.clone(),
         )?;
@@ -243,12 +223,11 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn recreate_viewport(&mut self) -> RisResult<()> {
+    pub fn recreate_viewport(&mut self, dimensions: (u32, u32)) -> RisResult<()> {
         ris_log::trace!("recreating viewport...");
 
-        self.recreate_swapchain()?;
-        let (w, h) = self.window.vulkan_drawable_size();
-        self.viewport.dimensions = [w as f32, h as f32];
+        self.recreate_swapchain(dimensions)?;
+        self.viewport.dimensions = [dimensions.0 as f32, dimensions.1 as f32];
 
         self.pipeline = super::pipeline::create_pipeline(
             self.device.clone(),

@@ -12,7 +12,7 @@ fn should_calculate_up() {
     assert!(!keys.is_up(Scancode::D));
     assert!(!keys.is_up(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::A);
     keys.set(Scancode::B);
     keys.set(Scancode::C);
@@ -22,7 +22,7 @@ fn should_calculate_up() {
     assert!(!keys.is_up(Scancode::D));
     assert!(!keys.is_up(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::C);
     keys.set(Scancode::D);
     keys.set(Scancode::E);
@@ -43,7 +43,7 @@ fn should_calculate_down() {
     assert!(!keys.is_down(Scancode::D));
     assert!(!keys.is_down(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::A);
     keys.set(Scancode::B);
     keys.set(Scancode::C);
@@ -53,7 +53,7 @@ fn should_calculate_down() {
     assert!(!keys.is_down(Scancode::D));
     assert!(!keys.is_down(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::C);
     keys.set(Scancode::D);
     keys.set(Scancode::E);
@@ -74,7 +74,7 @@ fn should_calculate_hold() {
     assert!(!keys.is_hold(Scancode::D));
     assert!(!keys.is_hold(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::A);
     keys.set(Scancode::B);
     keys.set(Scancode::C);
@@ -84,7 +84,7 @@ fn should_calculate_hold() {
     assert!(!keys.is_hold(Scancode::D));
     assert!(!keys.is_hold(Scancode::E));
 
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::C);
     keys.set(Scancode::D);
     keys.set(Scancode::E);
@@ -109,30 +109,30 @@ fn should_check_key_combination() {
     assert!(keys.check_combination(&key_combination));
 
     // all hold
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::LCtrl);
     keys.set(Scancode::LAlt);
     keys.set(Scancode::Delete);
     assert!(!keys.check_combination(&key_combination));
 
     // last up
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::LCtrl);
     keys.set(Scancode::LAlt);
     assert!(!keys.check_combination(&key_combination));
 
     // last down
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::LCtrl);
     keys.set(Scancode::LAlt);
     keys.set(Scancode::Delete);
     assert!(keys.check_combination(&key_combination));
 
     // only last down
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::LCtrl);
     keys.set(Scancode::LAlt);
-    keys.set_old_and_clear(keys.hold());
+    keys.clear();
     keys.set(Scancode::Delete);
     assert!(!keys.check_combination(&key_combination));
 }

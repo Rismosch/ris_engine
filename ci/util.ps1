@@ -6,16 +6,31 @@ function GetAndClearCiOutDir {
     $target_name = (Get-Item $caller_path).BaseName
     $target_dir = "$ci_out_dir/$target_name"
 
-    $ci_out_dir_exists = Test-Path $ci_out_dir;
+    Write-Host "destination directory is: ``$target_dir``"
+
+    $ci_out_dir_exists = Test-Path $ci_out_dir
     if (!$ci_out_dir_exists) {
         New-Item -Path $ci_out_dir -ItemType Directory | out-null
     }
 
     if (Test-Path $target_dir) {
-        Remove-Item -Recurse -Force $target_dir
+        Write-Host
+        Write-Host "WARNING: destination directory exists already"
+        $user_input = Read-Host "are you sure you want to delete ``$target_dir``? (y/N)"
+        if ($user_input.ToLower() -eq "y") {
+            Write-Host "deleting..."
+            Remove-Item -Recurse -Force $target_dir
+            Write-Host "deleted ``$target_dir``"
+        }
+
     }
 
-    New-Item -Path $target_dir -ItemType Directory | out-null
+    $target_dir_exists = Test-Path $target_dir
+    if (!$target_dir_exists) {
+        New-Item -Path $target_dir -ItemType Directory | out-null
+    }
+
+    Write-Host
 
     $result = Resolve-Path $target_dir
     return $result

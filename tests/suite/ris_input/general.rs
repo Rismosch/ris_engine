@@ -1,76 +1,34 @@
-use ris_data::input::buttons::Buttons;
-use ris_data::input::general_data::GeneralData;
-use ris_data::input::rebind_matrix::set_rebind_matrix;
+use std::sync::Arc;
+use std::sync::RwLock;
+
+use ris_data::god_state::GodState;
+use ris_data::god_state::GodStateData;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_input::general_logic::update_general;
-use ris_input::general_logic::GeneralLogicArgs;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
 struct TestContext {
-    new_general: GeneralData,
-    old_general: GeneralData,
-    mouse: Buttons,
-    keyboard: Buttons,
-    gamepad: Buttons,
-
     rng: Rng,
-
-    rebind_matrix_mouse: RebindMatrix,
-    rebind_matrix_keyboard: RebindMatrix,
-    rebind_matrix_gamepad: RebindMatrix,
+    state: Arc<GodState>,
 }
 
 impl TestContext {
     fn new() -> Self {
-        let new_general = GeneralData::default();
-        let old_general = GeneralData::default();
-        let mouse = Buttons::default();
-        let keyboard = Buttons::default();
-        let gamepad = Buttons::default();
-
         let rng = Rng::new(Seed::new().unwrap());
 
-        let mut rebind_matrix: RebindMatrix = [0; 32];
+        let data = GodStateData::default();
+        let front = RwLock::new(data.clone());
+        let back = RwLock::new(data);
+        let state = GodState::new(front, back);
 
-        for (i, entry) in rebind_matrix.iter_mut().enumerate() {
-            *entry = 1 << i;
-        }
-
-        Self {
-            new_general,
-            old_general,
-            mouse,
-            keyboard,
-            gamepad,
-            rng,
-            rebind_matrix_mouse: rebind_matrix,
-            rebind_matrix_keyboard: rebind_matrix,
-            rebind_matrix_gamepad: rebind_matrix,
-        }
-    }
-
-    fn update(&mut self) {
-        let args = GeneralLogicArgs {
-            new_general_data: &mut self.new_general,
-            old_general_data: &self.old_general,
-            mouse: &self.mouse,
-            keyboard: &self.keyboard,
-            gamepad: &self.gamepad,
-            rebind_matrix_mouse: &self.rebind_matrix_mouse,
-            rebind_matrix_keyboard: &self.rebind_matrix_keyboard,
-            rebind_matrix_gamepad: &self.rebind_matrix_gamepad,
-        };
-
-        update_general(args);
-
-        std::mem::swap(&mut self.new_general, &mut self.old_general);
+        Self { rng, state }
     }
 
     fn generate_rebindmatrix(&mut self) -> RebindMatrix {
-        let mut rebind_matrix: RebindMatrix = [0; 32];
+        let mut rebind_matrix = RebindMatrix::new_empty();
 
-        for entry in &mut rebind_matrix {
+        for entry in &mut rebind_matrix.data {
             *entry = self.rng.next_u();
         }
 
@@ -80,35 +38,44 @@ impl TestContext {
 
 #[test]
 fn should_forward_buttons_by_default() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
     for i in 0..32 {
-        let input = i << 1;
+        let input = 1 << i;
 
-        context.mouse.update(input);
+        context.state.front_mut().input.mouse.buttons.update(input);
 
-        context.update();
+        update_general(context.state.clone());
 
-        let actual = context.old_general.buttons.hold();
+        let actual = context.state.front().input.general.buttons.hold();
         assert_eq!(input, actual, "{}", i);
     }
 }
 
 #[test]
 fn can_block_buttons() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    let empty_rebind_matrix: RebindMatrix = [0; 32];
+    let empty_rebind_matrix = RebindMatrix::new_empty();
 
-    set_rebind_matrix(&empty_rebind_matrix, &mut context.rebind_matrix_keyboard);
+    RebindMatrix::copy(
+        &empty_rebind_matrix,
+        &mut context.state.front_mut().input.keyboard.rebind_matrix,
+    );
 
     for i in 0..32 {
         let input = i << 1;
-        context.keyboard.update(input);
+        context
+            .state
+            .front_mut()
+            .input
+            .keyboard
+            .buttons
+            .update(input);
 
-        context.update();
+        update_general(context.state.clone());
 
-        let actual = context.old_general.buttons.hold();
+        let actual = context.state.front().input.general.buttons.hold();
         assert_eq!(0, actual, "{}", i);
     }
 }
@@ -121,78 +88,104 @@ fn should_rebind_buttons() {
         let input_index = context.rng.range_i(0, 31);
         let input = 1 << input_index as u32;
 
-        context.gamepad.update(input);
+        context
+            .state
+            .front_mut()
+            .input
+            .gamepad
+            .buttons
+            .update(input);
 
         let rebind_matrix = context.generate_rebindmatrix();
 
-        set_rebind_matrix(&rebind_matrix, &mut context.rebind_matrix_gamepad);
+        RebindMatrix::copy(
+            &rebind_matrix,
+            &mut context.state.front_mut().input.gamepad.rebind_matrix,
+        );
 
-        context.update();
+        update_general(context.state.clone());
 
-        let expected = rebind_matrix[input_index as usize];
-        let actual = context.old_general.buttons.hold();
-
+        let expected = rebind_matrix.data[input_index as usize];
+        let actual = context.state.front().input.general.buttons.hold();
         assert_eq!(expected, actual);
     }
 }
 
 #[test]
 fn should_bitwise_or_all_inputs() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    context.mouse.update(0b0000_0000_0000_1111);
-    context.keyboard.update(0b0000_0000_1111_0000);
-    context.gamepad.update(0b0000_1111_0000_0000);
+    context
+        .state
+        .front_mut()
+        .input
+        .mouse
+        .buttons
+        .update(0b0000_0000_0000_1111);
+    context
+        .state
+        .front_mut()
+        .input
+        .keyboard
+        .buttons
+        .update(0b0000_0000_1111_0000);
+    context
+        .state
+        .front_mut()
+        .input
+        .gamepad
+        .buttons
+        .update(0b0000_1111_0000_0000);
 
-    context.update();
+    update_general(context.state.clone());
 
     let expected = 0b0000_1111_1111_1111;
-    let actual = context.old_general.buttons.hold();
+    let actual = context.state.front().input.general.buttons.hold();
     assert_eq!(expected, actual);
 }
 
 #[test]
 fn should_not_be_down_when_other_input_holds() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    context.mouse.update(1);
-    context.update();
-    assert_eq!(context.old_general.buttons.down(), 1);
+    context.state.front_mut().input.mouse.buttons.update(1);
+    update_general(context.state.clone());
+    assert_eq!(context.state.front().input.general.buttons.down(), 1);
 
     for _ in 0..100 {
-        context.gamepad.update(1);
-        context.update();
-        assert_eq!(context.old_general.buttons.down(), 0);
+        context.state.front_mut().input.gamepad.buttons.update(1);
+        update_general(context.state.clone());
+        assert_eq!(context.state.front().input.general.buttons.down(), 0);
 
-        context.gamepad.update(0);
-        context.update();
-        assert_eq!(context.old_general.buttons.down(), 0);
+        context.state.front_mut().input.gamepad.buttons.update(0);
+        update_general(context.state.clone());
+        assert_eq!(context.state.front().input.general.buttons.down(), 0);
     }
 
-    context.mouse.update(0);
-    context.update();
-    assert_eq!(context.old_general.buttons.down(), 0);
+    context.state.front_mut().input.mouse.buttons.update(0);
+    update_general(context.state.clone());
+    assert_eq!(context.state.front().input.general.buttons.down(), 0);
 }
 
 #[test]
 fn should_not_be_up_when_other_input_holds() {
-    let mut context = TestContext::new();
+    let context = TestContext::new();
 
-    context.mouse.update(1);
-    context.update();
-    assert_eq!(context.old_general.buttons.up(), 0);
+    context.state.front_mut().input.mouse.buttons.update(1);
+    update_general(context.state.clone());
+    assert_eq!(context.state.front().input.general.buttons.up(), 0);
 
     for _ in 0..100 {
-        context.gamepad.update(1);
-        context.update();
-        assert_eq!(context.old_general.buttons.up(), 0);
+        context.state.front_mut().input.gamepad.buttons.update(1);
+        update_general(context.state.clone());
+        assert_eq!(context.state.front().input.general.buttons.up(), 0);
 
-        context.gamepad.update(0);
-        context.update();
-        assert_eq!(context.old_general.buttons.up(), 0);
+        context.state.front_mut().input.gamepad.buttons.update(0);
+        update_general(context.state.clone());
+        assert_eq!(context.state.front().input.general.buttons.up(), 0);
     }
 
-    context.mouse.update(0);
-    context.update();
-    assert_eq!(context.old_general.buttons.up(), 1);
+    context.state.front_mut().input.mouse.buttons.update(0);
+    update_general(context.state.clone());
+    assert_eq!(context.state.front().input.general.buttons.up(), 1);
 }

@@ -1,4 +1,6 @@
-$purpose = "This script generates build info and compiles the workspace as a release ready package."
+Write-Host
+Write-Host "This script generates build info and compiles the workspace as a release ready package."
+Write-Host
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
@@ -16,44 +18,12 @@ try {
     Write-Host "clearing destination directory..."
     $final_directory = GetAndClearCiOutDir
 
-    Write-Host "parsing cli args..."
-    $cli_default = "--default"
-
-    $cli_cargo_clean = "--cargo-clean"
-    $cli_no_cargo_clean = "--no-cargo-clean"
+    Write-Host "asking for user input..."
     $cli_cargo_clean_value = $false
 
-    if ($args.length -eq 0) {
-        Write-Host ""
-        Write-Host $purpose
-        Write-Host ""
-        Write-Host "INFO: you may skip user input, by providing cli args."
-        Write-Host ""
-        Write-Host "available args:"
-        Write-Host "    $cli_default         skips user input and uses default values for everything below"
-        Write-Host ""
-        Write-Host "    $cli_cargo_clean     executes ``cargo clean`` before building"
-        Write-Host "    $cli_no_cargo_clean  does not execute ``cargo clean`` (default)"
-        Write-Host ""
-        Write-Host ""
-        Write-Host ""
-        Write-Host ""
-        Write-Host ""
-
-        $user_input = Read-Host "should ``cargo clean`` be executed before building? (y/N)"
-        if ($user_input.ToLower() -eq "y") {
-            $cli_cargo_clean_value = $true
-        }
-    } else {
-        for($i = 0; $i -lt $args.length; ++$i) {
-            $arg = $args[$i]
-            switch ($arg) {
-                $cli_default { break }
-                $cli_cargo_clean { $cli_cargo_clean_value = $true }
-                $cli_no_cargo_clean { $cli_cargo_clean_value = $false }
-                default { throw "unkown cli arg: $arg" }
-            }
-        }
+    $user_input = Read-Host "should ``cargo clean`` be executed before building? (y/N)"
+    if ($user_input.ToLower() -eq "y") {
+        $cli_cargo_clean_value = $true
     }
 
     Write-Host "generating build info..."

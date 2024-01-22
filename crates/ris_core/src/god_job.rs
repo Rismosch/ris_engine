@@ -1,7 +1,4 @@
-use std::sync::Arc;
-
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::god_state::GodState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 
@@ -14,7 +11,6 @@ pub enum WantsTo {
 
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
-    let mut current_logic = god_object.logic_data;
 
     let god_state = god_object.state;
 
@@ -23,28 +19,28 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame = frame_calculator.bump_and_create_frame();
 
         // update god state
-        copy_current_to_previous(god_state.clone());
+        god_state.copy_front_to_back();
 
         // create copies
-        let previous_logic_for_logic = current_logic.clone();
-        let previous_logic_for_output = current_logic.clone();
-
         let state_for_logic = god_state.clone();
+        let state_for_output = god_state.clone();
         let state_for_save_settings = god_state.clone();
 
         // game loop frame
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
-            let result = output_frame.run(&previous_logic_for_output, frame);
+            let state = state_for_output;
+
+            let result = output_frame.run(frame, state);
 
             (output_frame, result)
         });
 
         let save_settings_future = job_system::submit(move || {
             let settings_serializer = god_object.settings_serializer;
+            let state = state_for_save_settings;
 
-            let previous_state = job_system::lock_read(&state_for_save_settings.previous);
-            let settings = &previous_state.settings;
+            let settings = &state.back().settings;
 
             let result = if settings.save_requested() {
                 settings_serializer.serialize(settings)
@@ -55,12 +51,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             (settings_serializer, result)
         });
 
-        let logic_result = god_object.logic_frame.run(
-            &mut current_logic,
-            &previous_logic_for_logic,
-            frame,
-            state_for_logic,
-        );
+        let logic_result = god_object.logic_frame.run(frame, state_for_logic);
 
         // wait for jobs
         let (new_output_frame, output_result) = output_future.wait();
@@ -71,14 +62,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         god_object.settings_serializer = new_settings_serializer;
 
         // restart job system
-        let current_state = job_system::lock_write(&god_state.current);
-        if current_state.settings.job().changed() {
+        if god_state.front().settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let workers =
-                job_system::determine_thread_count(&god_object.app_info, &current_state.settings);
+                crate::determine_thread_count(&god_object.app_info, &god_state.front().settings);
 
             let new_guard = unsafe {
                 job_system::init(
@@ -105,15 +95,4 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             GameloopState::WantsToRestart => return Ok(WantsTo::Restart),
         }
     }
-}
-
-fn copy_current_to_previous(god_state: Arc<GodState>) {
-    let mut current = job_system::lock_write(&god_state.current);
-    let mut previous = job_system::lock_write(&god_state.previous);
-
-    if current.settings.changed() {
-        previous.settings = current.settings.clone();
-    }
-
-    current.reset();
 }

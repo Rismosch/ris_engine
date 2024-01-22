@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use imgui::BackendFlags;
 use imgui::ConfigFlags;
@@ -9,13 +10,11 @@ use sdl2::keyboard::Mod;
 use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame::Frame;
-use ris_data::gameloop::logic_data::LogicData;
+use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
 use ris_error::RisResult;
-
-use crate::vulkan::renderer::Renderer;
 
 pub struct ImguiBackend {
     context: Context,
@@ -65,9 +64,10 @@ impl ImguiBackend {
 
     pub fn prepare_frame(
         &mut self,
-        logic_data: &LogicData,
         frame: Frame,
-        renderer: &Renderer,
+        state: Arc<GodState>,
+        window_size: (f32, f32),
+        window_drawable_size: (f32, f32),
     ) -> &mut Ui {
         let _mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
@@ -75,7 +75,7 @@ impl ImguiBackend {
         io.update_delta_time(frame.previous_duration());
 
         // mouse input
-        let mouse = &logic_data.mouse;
+        let mouse = &state.back().input.mouse;
 
         let x = mouse.wheel_xrel;
         let y = mouse.wheel_yrel;
@@ -91,7 +91,7 @@ impl ImguiBackend {
         forward_mouse_button_event(io, buttons, 4);
 
         // keyboard input
-        let keyboard = &logic_data.keyboard;
+        let keyboard = &state.back().input.keyboard;
 
         let mod_state = keyboard.mod_state;
 
@@ -139,13 +139,10 @@ impl ImguiBackend {
         }
 
         // prepare frame
-        let window_size = renderer.window.size();
-        let window_drawable_size = renderer.window.vulkan_drawable_size();
-
-        io.display_size = [(window_size.0 as f32), (window_size.1 as f32)];
+        io.display_size = [window_size.0, window_size.1];
         io.display_framebuffer_scale = [
-            (window_drawable_size.0 as f32) / (window_size.0 as f32),
-            (window_drawable_size.1 as f32) / (window_size.1 as f32),
+            window_drawable_size.0 / window_size.0,
+            window_drawable_size.1 / window_size.1,
         ];
 
         // update mouse

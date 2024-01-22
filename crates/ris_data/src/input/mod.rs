@@ -6,3 +6,16 @@ pub mod keyboard_data;
 pub mod keys;
 pub mod mouse_data;
 pub mod rebind_matrix;
+
+use crate::input::gamepad_data::GamepadData;
+use crate::input::general_data::GeneralData;
+use crate::input::keyboard_data::KeyboardData;
+use crate::input::mouse_data::MouseData;
+
+#[derive(Default, Clone)]
+pub struct Input {
+    pub mouse: MouseData,
+    pub keyboard: KeyboardData,
+    pub gamepad: GamepadData,
+    pub general: GeneralData,
+}
