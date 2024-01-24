@@ -127,12 +127,14 @@ impl OutputFrame {
         let far = 0.1;
         let proj = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
 
+        let view = view.transposed();
+        let proj = proj.transposed();
         let view_proj = proj * view;
 
         let ubo = UniformBufferObject {
-            view,
-            proj,
-            view_proj,
+            view: view,
+            proj: proj,
+            view_proj: view_proj,
         };
         self.renderer.update_uniform(image as usize, &ubo)?;
 

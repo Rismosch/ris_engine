@@ -43,3 +43,33 @@ fn should_rotate_like_quaternion() {
         );
     });
 }
+
+#[test]
+fn test_new_view_proj_matrix() {
+    let camera_position = Vector3 {x: -4., y: 54., z: 53.};
+    let camera_rotation = Quaternion {w: -82., x: -92., y: -52., z: -70.}.normalized();
+
+    let view = Matrix4x4::view(camera_position, camera_rotation);
+
+    let fovy = 60. * ris_math::DEG2RAD;
+    let (w, h) = (1920., 1080.);
+    let aspect_ratio = w / h;
+    let near = 0.01;
+    let far = 0.1;
+    let proj = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
+
+    let view_proj = proj * view;
+
+    println!("{}", view);
+    println!("{}", proj);
+
+    println!("korrekt");
+    println!("{}", view_proj.transposed());
+
+    println!("experiments");
+
+    let vpm = proj.transposed() * view.transposed();
+    println!("{}", vpm);
+
+    panic!();
+}

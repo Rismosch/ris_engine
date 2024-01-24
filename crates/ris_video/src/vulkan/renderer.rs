@@ -293,9 +293,9 @@ impl Renderer {
             "failed to update uniform"
         )?;
 
-        uniform_content.view = ubo.view.transposed();
-        uniform_content.proj = ubo.proj.transposed();
-        uniform_content.view_proj = ubo.view_proj.transposed();
+        uniform_content.view = ubo.view;
+        uniform_content.proj = ubo.proj;
+        uniform_content.view_proj = ubo.view_proj;
 
         Ok(())
     }
