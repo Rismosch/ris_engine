@@ -17,7 +17,7 @@ pub struct Vec4(pub f32, pub f32, pub f32, pub f32);
 
 // constructors
 impl Vec2 {
-    fn init(value: f32) -> Self {
+    pub fn init(value: f32) -> Self {
         Self(value, value)
     }
 }
@@ -29,8 +29,32 @@ impl From<Vec3> for Vec2 {
 }
 
 impl Vec3 {
-    fn init(value: f32) -> Self {
+    pub fn init(value: f32) -> Self {
         Self(value, value, value)
+    }
+
+    pub fn right() -> Self {
+        Self(1., 0., 0.)
+    }
+
+    pub fn left() -> Self {
+        Self(-1., 0., 0.)
+    }
+
+    pub fn forward() -> Self {
+        Self(0., 1., 0.)
+    }
+
+    pub fn backward() -> Self {
+        Self(0., -1., 0.)
+    }
+
+    pub fn up() -> Self {
+        Self(0., 0., 1.)
+    }
+
+    pub fn down() -> Self {
+        Self(0., 0., -1.)
     }
 }
 
@@ -41,7 +65,7 @@ impl From<Vec4> for Vec3 {
 }
 
 impl Vec4 {
-    fn init(value: f32) -> Self {
+    pub fn init(value: f32) -> Self {
         Self(value, value, value, value)
     }
 }
@@ -78,28 +102,28 @@ impl Vec2 {
         self.1
     }
 
-    pub fn x_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_x(&mut self, x: f32) {
+        self.0 = x
     }
 
-    pub fn y_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_y(&mut self, y: f32) {
+        self.1 = y
     }
 
-    pub fn r_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_r(&mut self, r: f32) {
+        self.0 = r
     }
 
-    pub fn g_mut(&mut self) -> &mut f32 {
-        &mut self.g
+    pub fn set_g(&mut self, g: f32) {
+        self.1 = g
     }
 
-    pub fn s_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_s(&mut self, s: f32) {
+        self.0 = s
     }
 
-    pub fn t_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_t(&mut self, t: f32) {
+        self.1 = t
     }
 }
 
@@ -166,40 +190,40 @@ impl Vec3 {
         self.2
     }
 
-    pub fn x_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_x(&mut self, x: f32) {
+        self.0 = x
     }
 
-    pub fn y_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_y(&mut self, y: f32) {
+        self.1 = y
     }
 
-    pub fn z_mut(&mut self) -> &mut f32 {
-        &mut self.2
+    pub fn set_z(&mut self, z: f32) {
+        self.3 = z
     }
 
-    pub fn r_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_r(&mut self, r: f32) {
+        self.0 = r
     }
 
-    pub fn g_mut(&mut self) -> &mut f32 {
-        &mut self.g
+    pub fn set_g(&mut self, g: f32) {
+        self.1 = g
     }
 
-    pub fn b_mut(&mut self) -> &mut f32 {
-        &mut self.2
+    pub fn set_b(&mut self, b: f32) {
+        self.3 = b
     }
 
-    pub fn s_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_s(&mut self, s: f32) {
+        self.0 = s
     }
 
-    pub fn t_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_t(&mut self, t: f32) {
+        self.1 = t
     }
 
-    pub fn p_mut(&mut self) -> &mut f32 {
-        &mut self.2
+    pub fn set_p(&mut self, p: f32) {
+        self.3 = p
     }
 }
 
@@ -280,52 +304,52 @@ impl Vec4 {
         self.3
     }
 
-    pub fn x_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_x(&mut self, x: f32) {
+        self.0 = x
     }
 
-    pub fn y_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_y(&mut self, y: f32) {
+        self.1 = y
     }
 
-    pub fn z_mut(&mut self) -> &mut f32 {
-        &mut self.2
+    pub fn set_z(&mut self, z: f32) {
+        self.3 = z
     }
 
-    pub fn w_mut(&mut self) -> &mut f32 {
-        &mut self.3
+    pub fn set_w(&mut self, w: f32) {
+        self.4 = w
     }
 
-    pub fn r_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_r(&mut self, r: f32) {
+        self.0 = r
     }
 
-    pub fn g_mut(&mut self) -> &mut f32 {
-        &mut self.g
+    pub fn set_g(&mut self, g: f32) {
+        self.1 = g
     }
 
-    pub fn b_mut(&mut self) -> &mut f32 {
-        &mut self.2
-    }
-    
-    pub fn a_mut(&mut self) -> &mut f32 {
-        &mut self.3
+    pub fn set_b(&mut self, b: f32) {
+        self.3 = b
     }
 
-    pub fn s_mut(&mut self) -> &mut f32 {
-        &mut self.0
+    pub fn set_w(&mut self, a: f32) {
+        self.4 = a
     }
 
-    pub fn t_mut(&mut self) -> &mut f32 {
-        &mut self.1
+    pub fn set_s(&mut self, s: f32) {
+        self.0 = s
     }
 
-    pub fn p_mut(&mut self) -> &mut f32 {
-        &mut self.2
+    pub fn set_t(&mut self, t: f32) {
+        self.1 = t
     }
 
-    pub fn q_mut(&mut self) -> &mut f32 {
-        &mut self.3
+    pub fn set_p(&mut self, p: f32) {
+        self.3 = p
+    }
+
+    pub fn set_q(&mut self, q: f32) {
+        self.4 = q
     }
 }
 
@@ -392,6 +416,14 @@ impl std::ops::Add<Vec3> for Vec3 {
     }
 }
 
+// functions
+mix
+step
+smoothstep
+geometric
+vector relational
+
+
 
 
 
@@ -400,12 +432,6 @@ impl std::ops::Add<Vec3> for Vec3 {
 
 
 // utility
-pub const RIGHT: Vec3 = Vec3(1., 0., 0.);
-pub const LEFT: Vec3 = Vec3(-1., 0., 0.);
-pub const FORWARD: Vec3 = Vec3(0., 1., 0.);
-pub const BACKWARD: Vec3 = Vec3(0., -1., 0.);
-pub const UP: Vec3 = Vec3(0., 0., 1.);
-pub const DOWN: Vec3 = Vec3(0., 0., -1.);
 
 
 
