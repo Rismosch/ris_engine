@@ -57,7 +57,7 @@ To compile this repo, you need a working Rust compiler. I recommend installing v
 
 The current target platform is x86_64, both Windows and Linux.
 
-The renderer is based on Vulkan. You will run into a runtime error, if you have no hardware, which supports Vulkan.
+The renderer is based on Vulkan. You will run into a runtime error, if your hardware does not support Vulkan.
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, choose one of the following methods:
 
