@@ -25,6 +25,16 @@ macro_rules! unwrap_or_throw {
     }};
 }
 
+#[macro_export]
+macro_rules! assert_or_throw {
+    ($result:expr, $($arg:tt)*) => {{
+        if !$result {
+            let client_message = format!($($arg)*);
+            $crate::throw!("{}", client_message);
+        }
+    }};
+}
+
 pub fn show_panic_message_box(message: &str) {
     if unsafe { !SHOW_MESSAGE_BOX_ON_THROW } {
         return;
