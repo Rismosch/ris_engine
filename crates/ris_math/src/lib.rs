@@ -1,6 +1,7 @@
 pub mod color;
 pub mod matrix;
 pub mod quaternion;
+pub mod transform;
 pub mod vector;
 
 pub const MIN_NORM: f32 = 0.000_001f32;
@@ -128,6 +129,10 @@ pub fn inversesqrt(x: f32) -> f32 {
 /// returns x is x >= 0, otherwise it returns -x
 pub fn abs(x: f32) -> f32 {
     f32::abs(x)
+}
+/// returns abs(x - y)
+pub fn diff(x: f32, y: f32) -> f32 {
+    abs(x - y)
 }
 /// returns 1.0 if x > 0, 0.0 of x = 0, or -1.0 if x < 0
 pub fn sign(x: f32) -> f32 {

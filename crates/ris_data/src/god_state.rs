@@ -4,8 +4,8 @@ use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
 
 use ris_jobs::job_system;
-use ris_math::quaternion::Quaternion;
-use ris_math::vector3::Vector3;
+use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 use crate::input::Input;
 use crate::settings::Settings;
@@ -34,8 +34,8 @@ pub struct GodStateData {
     // general
     pub camera_horizontal_angle: f32,
     pub camera_vertical_angle: f32,
-    pub camera_position: Vector3,
-    pub camera_rotation: Quaternion,
+    pub camera_position: Vec3,
+    pub camera_rotation: Quat,
 
     // settings
     pub settings: Settings,
