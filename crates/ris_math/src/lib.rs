@@ -1,6 +1,6 @@
-//pub mod color;
+pub mod color;
 pub mod matrix;
-//pub mod quaternion;
+pub mod quaternion;
 pub mod vector;
 
 pub const MIN_NORM: f32 = 0.000_001f32;
