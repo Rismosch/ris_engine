@@ -636,6 +636,181 @@ impl Mat2x2 {
     }
 }
 
+impl Mat2x3 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec3, r: Vec2) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat3x2 {
+        let mut r = Mat3x2::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+
+        r
+    }
+}
+
+impl Mat2x4 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+
+        r.0.3 = x.0.3 * y.0.3;
+        r.1.3 = x.1.3 * y.1.3;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec4, r: Vec2) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+
+        r_.0.3 = c.3 * r.0;
+        r_.1.3 = c.3 * r.1;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat4x2 {
+        let mut r = Mat4x2::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+        r.3.0 = self.0.3;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+        r.3.1 = self.1.3;
+
+        r
+    }
+}
+
+impl Mat3x2 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec2, r: Vec3) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat2x3 {
+        let mut r = Mat2x3::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+
+        r
+    }
+}
+
 impl Mat3x3 {
     /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
     /// of self.i.j and rhs.i.j
@@ -754,6 +929,221 @@ impl Mat3x3 {
         );
 
         Some(r)
+    }
+}
+
+impl Mat3x4 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
+
+        r.0.3 = x.0.3 * y.0.3;
+        r.1.3 = x.1.3 * y.1.3;
+        r.2.3 = x.2.3 * y.2.3;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec4, r: Vec3) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
+
+        r_.0.3 = c.3 * r.0;
+        r_.1.3 = c.3 * r.1;
+        r_.2.3 = c.3 * r.2;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat4x3 {
+        let mut r = Mat4x3::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+        r.3.0 = self.0.3;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+        r.3.1 = self.1.3;
+
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
+        r.3.2 = self.2.3;
+
+        r
+    }
+}
+
+impl Mat4x2 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+        r.3.0 = x.3.0 * y.3.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+        r.3.1 = x.3.1 * y.3.1;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec2, r: Vec4) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+        r_.3.0 = c.0 * r.3;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+        r_.3.1 = c.1 * r.3;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat2x4 {
+        let mut r = Mat2x4::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+
+        r.0.3 = self.3.0;
+        r.1.3 = self.3.1;
+
+        r
+    }
+}
+
+impl Mat4x3 {
+    /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
+    /// of self.i.j and rhs.i.j
+    ///
+    /// Note: to get linear algebraic matrix multiplication, use the multiply operator(*)
+    pub fn comp_mul(self, rhs: Self) -> Self {
+        let x = self;
+        let y = rhs;
+        let mut r = Self::default();
+
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+        r.3.0 = x.3.0 * y.3.0;
+
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+        r.3.1 = x.3.1 * y.3.1;
+
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
+        r.3.2 = x.3.2 * y.3.2;
+
+        r
+    }
+
+    // treats the first parameter c as a column vector (matrix with one column) and the second
+    // parameter r as a row vector (matrix with one row) and does a linear algebraic matrix
+    // multiply c * r
+    pub fn outer_product(c: Vec3, r: Vec4) -> Self {
+        let mut r_ = Self::default();
+
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+        r_.3.0 = c.0 * r.3;
+
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+        r_.3.1 = c.1 * r.3;
+
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
+        r_.3.2 = c.2 * r.3;
+
+        r_
+    }
+    
+    /// returns a matrix that is the transpose of self
+    pub fn transpose(self) -> Mat3x4 {
+        let mut r = Mat3x4::default();
+
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
+
+        r.0.3 = self.3.0;
+        r.1.3 = self.3.1;
+        r.2.3 = self.3.2;
+
+        r
     }
 }
 
