@@ -617,8 +617,22 @@ impl Mat2x2 {
     }
 
     /// returns a matrix that is the inverse of self
-    pub fn inverse(self) -> Self {
+    pub fn inverse(self) -> Option<Self> {
+        let det = self.determinant();
+        if det < crate::MIN_NORM {
+            return None; // matrix is not invertible
+        }
 
+        let Mat2x2(Vec2(a, b), Vec2(c, d)) = self;
+        
+        // adjoint matrix
+        let mut r = Mat2x2(Vec2(d, -b), Vec2(-c,a));
+
+        // multiply by 1 / det
+        r.0 /= det;
+        r.1 /= det;
+
+        Some(r)
     }
 }
 
@@ -698,8 +712,48 @@ impl Mat3x3 {
     }
 
     /// returns a matrix that is the inverse of self
-    pub fn inverse(self) -> Self {
+    pub fn inverse(self) -> Option<Self> {
+        let det = self.determinant();
+        if det < crate::MIN_NORM {
+            return None; // matrix is not invertible
+        }
 
+        let Mat3x3(Vec3(a, b, c), Vec3(d, e, f), Vec3(g, h, i)) = self;
+
+        // matrix of minors
+        let mut mm = Mat3x3::default();
+
+        mm.0.0 = Mat2x2(Vec2(e, f), Vec2(h, i)).determinant();
+        mm.1.0 = Mat2x2(Vec2(b, c), Vec2(h, i)).determinant();
+        mm.2.0 = Mat2x2(Vec2(b, c), Vec2(e, f)).determinant();
+
+        mm.0.1 = Mat2x2(Vec2(d, f), Vec2(g, i)).determinant();
+        mm.1.1 = Mat2x2(Vec2(a, c), Vec2(g, i)).determinant();
+        mm.2.1 = Mat2x2(Vec2(a, c), Vec2(d, f)).determinant();
+
+        mm.0.2 = Mat2x2(Vec2(d, e), Vec2(g, h)).determinant();
+        mm.1.2 = Mat2x2(Vec2(a, b), Vec2(g, h)).determinant();
+        mm.2.2 = Mat2x2(Vec2(a, b), Vec2(d, e)).determinant();
+        
+        // matrix of cofactors
+        let mut mcf = mm;
+
+        mcf.0.1 *= -1.;
+        mcf.1.0 *= -1.;
+        mcf.1.2 *= -1.;
+        mcf.2.1 *= -1.;
+
+        // adjucate matrix
+        let madj = mcf.transpose();
+
+        // multiply by 1 / det
+        let r = Mat3x3(
+            madj.0 / det,
+            madj.1 / det,
+            madj.2 / det,
+        );
+
+        Some(r)
     }
 }
 
@@ -804,7 +858,61 @@ impl Mat4x4 {
     }
 
     /// returns a matrix that is the inverse of self
-    pub fn inverse(self) -> Self {
+    pub fn inverse(self) -> Option<Self> {
+        let det = self.determinant();
+        if det < crate::MIN_NORM {
+            return None; // matrix is not invertible
+        }
+
+        let Mat4x4(Vec4(a,b,c,d), Vec4(e,f,g,h), Vec4(i,j,k,l), Vec4(m,n,o,p)) = self;
+
+        // matrix of minors
+        let mut mm = Mat4x4::default();
+
+        mm.0.0 = Mat3x3(Vec3(f,g,h), Vec3(j,k,l), Vec3(n,o,p)).determinant();
+        mm.1.0 = Mat3x3(Vec3(b,c,d), Vec3(j,k,l), Vec3(n,o,p)).determinant();
+        mm.2.0 = Mat3x3(Vec3(b,c,d), Vec3(f,g,h), Vec3(n,o,p)).determinant();
+        mm.3.0 = Mat3x3(Vec3(b,c,d), Vec3(f,g,h), Vec3(j,k,l)).determinant();
+
+        mm.0.1 = Mat3x3(Vec3(e,g,h), Vec3(i,k,l), Vec3(m,o,p)).determinant();
+        mm.1.1 = Mat3x3(Vec3(a,c,d), Vec3(i,k,l), Vec3(m,o,p)).determinant();
+        mm.2.1 = Mat3x3(Vec3(a,c,d), Vec3(e,g,h), Vec3(m,o,p)).determinant();
+        mm.3.1 = Mat3x3(Vec3(a,c,d), Vec3(e,g,h), Vec3(i,k,l)).determinant();
+
+        mm.0.2 = Mat3x3(Vec3(e,f,h), Vec3(i,j,l), Vec3(m,n,p)).determinant();
+        mm.1.2 = Mat3x3(Vec3(a,b,d), Vec3(i,j,l), Vec3(m,n,p)).determinant();
+        mm.2.2 = Mat3x3(Vec3(a,b,d), Vec3(e,f,h), Vec3(m,n,p)).determinant();
+        mm.3.2 = Mat3x3(Vec3(a,b,d), Vec3(e,f,h), Vec3(i,j,l)).determinant();
+
+        mm.0.3 = Mat3x3(Vec3(e,f,g), Vec3(i,j,k), Vec3(m,n,o)).determinant();
+        mm.1.3 = Mat3x3(Vec3(a,b,c), Vec3(i,j,k), Vec3(m,n,o)).determinant();
+        mm.2.3 = Mat3x3(Vec3(a,b,c), Vec3(e,f,g), Vec3(m,n,o)).determinant();
+        mm.3.3 = Mat3x3(Vec3(a,b,c), Vec3(e,f,g), Vec3(i,j,k)).determinant();
+
+        // matrix of cofactors
+        let mut mcf = mm;
+        
+        mcf.0.1 *= -1.;
+        mcf.0.3 *= -1.;
+        mcf.1.0 *= -1.;
+        mcf.1.2 *= -1.;
+        mcf.2.1 *= -1.;
+        mcf.2.3 *= -1.;
+        mcf.3.0 *= -1.;
+        mcf.3.2 *= -1.;
+
+        // adjugate matrix
+        let madj = mcf.transpose();
+
+        // multiply by 1 / det
+        let r = Mat4x4(
+            madj.0 / det,
+            madj.1 / det,
+            madj.2 / det,
+            madj.3 / det,
+        );
+
+        Some(r)
 
     }
 }

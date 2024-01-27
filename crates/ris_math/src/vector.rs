@@ -1316,6 +1316,42 @@ impl std::ops::MulAssign<Vec4> for Vec4 {
     }
 }
 
+impl std::ops::DivAssign<f32> for Vec2 {
+    fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
+    }
+}
+
+impl std::ops::DivAssign<f32> for Vec3 {
+    fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
+    }
+}
+
+impl std::ops::DivAssign<f32> for Vec4 {
+    fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
+    }
+}
+
+impl std::ops::DivAssign<Vec2> for Vec2 {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs;
+    }
+}
+
+impl std::ops::DivAssign<Vec3> for Vec3 {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs;
+    }
+}
+
+impl std::ops::DivAssign<Vec4> for Vec4 {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs;
+    }
+}
+
 impl std::ops::Neg for Vec2 {
     type Output = Self;
 
@@ -1928,12 +1964,7 @@ impl Vec2 {
     }
 
     pub fn normalize(self) -> Self {
-        let length = self.length();
-        if length < crate::MIN_NORM {
-            Self::init(0.)
-        } else {
-            self / length
-        }
+        self / self.length()
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
@@ -1998,12 +2029,7 @@ impl Vec3 {
     }
 
     pub fn normalize(self) -> Self {
-        let length = self.length();
-        if length < crate::MIN_NORM {
-            Self::init(0.)
-        } else {
-            self / length
-        }
+        self / self.length()
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
@@ -2060,12 +2086,7 @@ impl Vec4 {
     }
 
     pub fn normalize(self) -> Self {
-        let length = self.length();
-        if length < crate::MIN_NORM {
-            Self::init(0.)
-        } else {
-            self / length
-        }
+        self / self.length()
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
