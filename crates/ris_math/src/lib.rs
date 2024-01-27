@@ -1,12 +1,14 @@
-pub mod color;
+//pub mod color;
 pub mod matrix;
-pub mod quaternion;
+//pub mod quaternion;
 pub mod vector;
 
 pub const MIN_NORM: f32 = 0.000_001f32;
 
+//
 // angle and trigonometry functions
 // function parameters specified as _angle_ are assumed to be in units of radians
+//
 
 /// ratio of a circle's circumference to its diameter
 pub const PI: f32 = std::f32::consts::PI;
@@ -80,7 +82,9 @@ pub fn atanh(x: f32) -> f32 {
     f32::atanh(x)
 }
 
+//
 // exponential functions
+//
 
 /// returns x raised to the y power, i.e., x^y
 pub fn pow(x: f32, y: f32) -> f32 {
@@ -117,7 +121,9 @@ pub fn inversesqrt(x: f32) -> f32 {
     1. / sqrt(x)
 }
 
+//
 // common functions
+//
 
 /// returns x is x >= 0, otherwise it returns -x
 pub fn abs(x: f32) -> f32 {
@@ -125,15 +131,13 @@ pub fn abs(x: f32) -> f32 {
 }
 /// returns 1.0 if x > 0, 0.0 of x = 0, or -1.0 if x < 0
 pub fn sign(x: f32) -> f32 {
-    if x != 0 {
-        if x > 0 {
-            1.
-        } else {
-            -1.
-        }
+    if x == 0. {
+        0.
+    } else if x > 0. {
+        1.
+    } else {
+        -1.
     }
-
-    0.
 }
 /// returns a value equal to the nearest integer that is less than or equal to x
 pub fn floor(x: f32) -> f32 {
@@ -161,12 +165,6 @@ pub fn fract(x: f32) -> f32 {
 pub fn modulo(x: f32, y: f32) -> f32 {
     x - y * floor(x/y)
 }
-/// returns the integer and fractional part of x -> (integer, fractionl)
-pub fn modf(x: f32) -> (f32, f32) {
-    let fractional = fract(x);
-    let integer = 1 - fractional;
-    (integer, fractional)
-}
 /// returns y if y < x, otherwise it returns x
 pub fn min(x: f32, y: f32) -> f32 {
     if y < x {
@@ -185,7 +183,6 @@ pub fn max(x: f32, y: f32) -> f32 {
 }
 /// returns min(max(x, min_val), max_val)
 pub fn clamp(x: f32, min_val: f32, max_val: f32) -> f32 {
-    debug_assert!(min_val <= max_val);
     min(max(x, min_val), max_val)
 }
 /// returns the linear blend of x and y, i.e., x * (1 - a) + y * a
@@ -204,26 +201,22 @@ pub fn step(edge: f32, x: f32) -> f32 {
 /// between 0 and 1, when edge0 < x < edge1. this is useful in cases where you would want a
 /// threshold function with a smooth transition
 pub fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
-    let t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-    t * t * (3 - 2 * t)
+    let t = clamp((x - edge0) / (edge1 - edge0), 0., 1.);
+    t * t * (3. - 2. * t)
 }
 /// returns 0.0 if x <= edge0 and 1.0 if x >= edge1 and performs smooth Hermite interpolation
 /// between 0 and 1, when edge0 < x < edge1. this is is a smoother version of smoothstep, as
 /// smoothstep is only C1 continuous, while smoothstep is C2 continuous
 pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
-    let t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    let t = clamp((x - edge0) / (edge1 - edge0), 0., 1.);
     t * t * t * (t * (6. * t - 15.) + 10.)
 }
 /// returns true if x holds a NaN. returns false otherwise
-pub fn isnan(x: f32) -> bool {
+pub fn is_nan(x: f32) -> bool {
     f32::is_nan(x)
 }
 /// returns true if x holds a positive infinity or negative infinity. returns false otherwise
-pub fn isinf(x: f32) -> bool {
+pub fn is_inf(x: f32) -> bool {
     f32::is_infinite(x)
 }
-
-// geometric functions
-
-
 
