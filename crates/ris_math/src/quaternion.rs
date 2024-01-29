@@ -11,6 +11,8 @@ use crate::vector::Vec4;
 #[repr(C)]
 pub struct Quat(pub f32, pub f32, pub f32, pub f32);
 
+pub type AngleAxis = (f32, Vec3);
+
 //
 // constructors
 //
@@ -18,48 +20,6 @@ pub struct Quat(pub f32, pub f32, pub f32, pub f32);
 impl Quat {
     pub fn identity() -> Self {
         Self (0.,0.,0.,1.)
-    }
-
-    pub fn from_angle_axis(angle: f32, axis: Vec3) -> Self {
-        let n = axis.normalize();
-        let t = angle * 0.5;
-        let re = super::cos(t);
-        let im = super::sin(t);
-
-        Self (
-            n.0 * im,
-            n.1 * im,
-            n.2 * im,
-            re,
-        )
-    }
-
-    pub fn to_angle_axis(self) -> (f32, Vec3) {
-        let mut q = self;
-
-        // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
-        if super::abs(q.3) > 1. {
-            q = q.normalize();
-        }
-
-        let t = 2. * super::acos(q.3);
-        let s = super::sqrt(1. - q.3 * q.3);
-
-        let n = if s < 0.001 {
-            Vec3 (
-                1.,
-                0.,
-                0.,
-            )
-        } else {
-            Vec3 (
-                q.0 / s,
-                q.1 / s,
-                q.2 / s,
-            )
-        };
-
-        (t, n)
     }
 }
 
@@ -88,6 +48,56 @@ impl From<Quat> for Vec4 {
             value.2,
             value.3,
         )
+    }
+}
+
+impl From<AngleAxis> for Quat {
+    fn from(value: AngleAxis) -> Self {
+        let angle = value.0;
+        let axis = value.1;
+
+        let n = axis.normalize();
+        let t = angle * 0.5;
+        let re = super::cos(t);
+        let im = super::sin(t);
+
+        Self (
+            n.0 * im,
+            n.1 * im,
+            n.2 * im,
+            re,
+        )
+
+    }
+}
+
+impl From<Quat> for AngleAxis {
+    fn from(value: Quat) -> Self {
+        let mut q = value;
+
+        // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
+        if super::abs(q.3) > 1. {
+            q = q.normalize();
+        }
+
+        let t = 2. * super::acos(q.3);
+        let s = super::sqrt(1. - q.3 * q.3);
+
+        let n = if s < 0.001 {
+            Vec3 (
+                1.,
+                0.,
+                0.,
+            )
+        } else {
+            Vec3 (
+                q.0 / s,
+                q.1 / s,
+                q.2 / s,
+            )
+        };
+
+        (t, n)
     }
 }
 

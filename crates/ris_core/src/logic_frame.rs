@@ -216,10 +216,14 @@ impl LogicFrame {
         state.front_mut().camera_horizontal_angle = camera_horizontal_angle;
         state.front_mut().camera_vertical_angle = camera_vertical_angle;
 
-        let rotation1 =
-            Quat::from_angle_axis(state.front().camera_vertical_angle, Vec3::right());
-        let rotation2 =
-            Quat::from_angle_axis(state.front().camera_horizontal_angle, Vec3::up());
+        let rotation1 = Quat::from((
+                state.front().camera_vertical_angle,
+                Vec3::right()
+        ));
+        let rotation2 = Quat::from((
+                state.front().camera_horizontal_angle,
+                Vec3::up()
+        ));
         state.front_mut().camera_rotation = rotation2 * rotation1;
 
         if state.front().input.general.buttons.is_hold(action::MOVE_UP) {
