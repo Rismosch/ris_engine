@@ -18,7 +18,6 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
-use ris_math::matrix::Mat4x4;
 use ris_math::space::Space;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::gpu_objects::UniformBufferObject;

@@ -168,7 +168,7 @@ pub fn fract(x: f32) -> f32 {
 }
 /// modulus. returns x - y * floor(x/y)
 pub fn modulo(x: f32, y: f32) -> f32 {
-    x - y * floor(x/y)
+    x - y * floor(x / y)
 }
 /// returns y if y < x, otherwise it returns x
 pub fn min(x: f32, y: f32) -> f32 {
@@ -224,4 +224,3 @@ pub fn is_nan(x: f32) -> bool {
 pub fn is_inf(x: f32) -> bool {
     f32::is_infinite(x)
 }
-

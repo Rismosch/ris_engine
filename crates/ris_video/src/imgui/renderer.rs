@@ -119,12 +119,11 @@ impl ImguiRenderer {
         let bottom = data.display_pos[1] + data.display_size[1];
 
         let mut pc = Mat4x4::init(1.);
-        pc.0.0 = 2. / (right - left);
-        pc.1.1 = 2. / (bottom - top);
-        pc.2.2 = -1.0;
-        pc.3.0 = (right + left) / (left - right);
-        pc.3.1 = (top + bottom) / (top - bottom);
-
+        pc.0 .0 = 2. / (right - left);
+        pc.1 .1 = 2. / (bottom - top);
+        pc.2 .2 = -1.0;
+        pc.3 .0 = (right + left) / (left - right);
+        pc.3 .1 = (top + bottom) / (top - bottom);
 
         let dimensions = match target.image().dimensions() {
             ImageDimensions::Dim2d { width, height, .. } => [width, height],

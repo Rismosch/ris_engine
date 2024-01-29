@@ -6,7 +6,6 @@ use crate::matrix::Mat2x2;
 // definition
 //
 
-
 #[derive(Debug, Default, Copy, Clone, BufferContents)]
 #[repr(C)]
 pub struct Vec2(pub f32, pub f32);
@@ -35,7 +34,10 @@ pub fn vk_bool_32_to_bool(value: VkBool32) -> bool {
     match value {
         VK_TRUE => true,
         VK_FALSE => false,
-        x => panic!("cannot convert VkBool32 to bool, because {} is not a defined value", x),
+        x => panic!(
+            "cannot convert VkBool32 to bool, because {} is not a defined value",
+            x
+        ),
     }
 }
 
@@ -111,7 +113,7 @@ impl Vec4 {
 
 impl From<Mat2x2> for Vec4 {
     fn from(value: Mat2x2) -> Self {
-        Self(value.0.0, value.0.1, value.1.0, value.1.1)
+        Self(value.0 .0, value.0 .1, value.1 .0, value.1 .1)
     }
 }
 
@@ -121,10 +123,7 @@ impl Bvec2 {
     }
 
     pub fn from(value0: bool, value1: bool) -> Self {
-        Self(
-            bool_to_vk_bool_32(value0),
-            bool_to_vk_bool_32(value1),
-        )
+        Self(bool_to_vk_bool_32(value0), bool_to_vk_bool_32(value1))
     }
 }
 
@@ -781,10 +780,7 @@ impl std::ops::Add<f32> for Vec2 {
     type Output = Self;
 
     fn add(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 + rhs,
-            self.1 + rhs,
-        )
+        Self(self.0 + rhs, self.1 + rhs)
     }
 }
 
@@ -792,11 +788,7 @@ impl std::ops::Add<f32> for Vec3 {
     type Output = Self;
 
     fn add(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 + rhs,
-            self.1 + rhs,
-            self.2 + rhs,
-        )
+        Self(self.0 + rhs, self.1 + rhs, self.2 + rhs)
     }
 }
 
@@ -804,12 +796,7 @@ impl std::ops::Add<f32> for Vec4 {
     type Output = Self;
 
     fn add(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 + rhs,
-            self.1 + rhs,
-            self.2 + rhs,
-            self.3 + rhs,
-        )
+        Self(self.0 + rhs, self.1 + rhs, self.2 + rhs, self.3 + rhs)
     }
 }
 
@@ -817,10 +804,7 @@ impl std::ops::Add<Vec2> for f32 {
     type Output = Vec2;
 
     fn add(self, rhs: Vec2) -> Self::Output {
-        Vec2(
-            self + rhs.0,
-            self + rhs.1,
-        )
+        Vec2(self + rhs.0, self + rhs.1)
     }
 }
 
@@ -828,11 +812,7 @@ impl std::ops::Add<Vec3> for f32 {
     type Output = Vec3;
 
     fn add(self, rhs: Vec3) -> Self::Output {
-        Vec3(
-            self + rhs.0,
-            self + rhs.1,
-            self + rhs.2,
-        )
+        Vec3(self + rhs.0, self + rhs.1, self + rhs.2)
     }
 }
 
@@ -840,12 +820,7 @@ impl std::ops::Add<Vec4> for f32 {
     type Output = Vec4;
 
     fn add(self, rhs: Vec4) -> Self::Output {
-        Vec4(
-            self + rhs.0,
-            self + rhs.1,
-            self + rhs.2,
-            self + rhs.3,
-        )
+        Vec4(self + rhs.0, self + rhs.1, self + rhs.2, self + rhs.3)
     }
 }
 
@@ -853,10 +828,7 @@ impl std::ops::Add<Vec2> for Vec2 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 + rhs.0,
-            self.1 + rhs.1,
-        )
+        Self(self.0 + rhs.0, self.1 + rhs.1)
     }
 }
 
@@ -864,11 +836,7 @@ impl std::ops::Add<Vec3> for Vec3 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 + rhs.0,
-            self.1 + rhs.1,
-            self.2 + rhs.2,
-        )
+        Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
 }
 
@@ -876,7 +844,7 @@ impl std::ops::Add<Vec4> for Vec4 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self (
+        Self(
             self.0 + rhs.0,
             self.1 + rhs.1,
             self.2 + rhs.2,
@@ -889,10 +857,7 @@ impl std::ops::Sub<f32> for Vec2 {
     type Output = Self;
 
     fn sub(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 - rhs,
-            self.1 - rhs,
-        )
+        Self(self.0 - rhs, self.1 - rhs)
     }
 }
 
@@ -900,11 +865,7 @@ impl std::ops::Sub<f32> for Vec3 {
     type Output = Self;
 
     fn sub(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 - rhs,
-            self.1 - rhs,
-            self.2 - rhs,
-        )
+        Self(self.0 - rhs, self.1 - rhs, self.2 - rhs)
     }
 }
 
@@ -912,12 +873,7 @@ impl std::ops::Sub<f32> for Vec4 {
     type Output = Self;
 
     fn sub(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 - rhs,
-            self.1 - rhs,
-            self.2 - rhs,
-            self.3 - rhs,
-        )
+        Self(self.0 - rhs, self.1 - rhs, self.2 - rhs, self.3 - rhs)
     }
 }
 
@@ -925,10 +881,7 @@ impl std::ops::Sub<Vec2> for f32 {
     type Output = Vec2;
 
     fn sub(self, rhs: Vec2) -> Self::Output {
-        Vec2(
-            self - rhs.0,
-            self - rhs.1,
-        )
+        Vec2(self - rhs.0, self - rhs.1)
     }
 }
 
@@ -936,11 +889,7 @@ impl std::ops::Sub<Vec3> for f32 {
     type Output = Vec3;
 
     fn sub(self, rhs: Vec3) -> Self::Output {
-        Vec3(
-            self - rhs.0,
-            self - rhs.1,
-            self - rhs.2,
-        )
+        Vec3(self - rhs.0, self - rhs.1, self - rhs.2)
     }
 }
 
@@ -948,12 +897,7 @@ impl std::ops::Sub<Vec4> for f32 {
     type Output = Vec4;
 
     fn sub(self, rhs: Vec4) -> Self::Output {
-        Vec4(
-            self - rhs.0,
-            self - rhs.1,
-            self - rhs.2,
-            self - rhs.3,
-        )
+        Vec4(self - rhs.0, self - rhs.1, self - rhs.2, self - rhs.3)
     }
 }
 
@@ -961,10 +905,7 @@ impl std::ops::Sub<Vec2> for Vec2 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 - rhs.0,
-            self.1 - rhs.1,
-        )
+        Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
 
@@ -972,11 +913,7 @@ impl std::ops::Sub<Vec3> for Vec3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 - rhs.0,
-            self.1 - rhs.1,
-            self.2 - rhs.2,
-        )
+        Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
     }
 }
 
@@ -984,7 +921,7 @@ impl std::ops::Sub<Vec4> for Vec4 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self (
+        Self(
             self.0 - rhs.0,
             self.1 - rhs.1,
             self.2 - rhs.2,
@@ -997,10 +934,7 @@ impl std::ops::Mul<f32> for Vec2 {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 * rhs,
-            self.1 * rhs,
-        )
+        Self(self.0 * rhs, self.1 * rhs)
     }
 }
 
@@ -1008,11 +942,7 @@ impl std::ops::Mul<f32> for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 * rhs,
-            self.1 * rhs,
-            self.2 * rhs,
-        )
+        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
     }
 }
 
@@ -1020,12 +950,7 @@ impl std::ops::Mul<f32> for Vec4 {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 * rhs,
-            self.1 * rhs,
-            self.2 * rhs,
-            self.3 * rhs,
-        )
+        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs, self.3 * rhs)
     }
 }
 
@@ -1033,10 +958,7 @@ impl std::ops::Mul<Vec2> for f32 {
     type Output = Vec2;
 
     fn mul(self, rhs: Vec2) -> Self::Output {
-        Vec2(
-            self * rhs.0,
-            self * rhs.1,
-        )
+        Vec2(self * rhs.0, self * rhs.1)
     }
 }
 
@@ -1044,11 +966,7 @@ impl std::ops::Mul<Vec3> for f32 {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Self::Output {
-        Vec3(
-            self * rhs.0,
-            self * rhs.1,
-            self * rhs.2,
-        )
+        Vec3(self * rhs.0, self * rhs.1, self * rhs.2)
     }
 }
 
@@ -1056,12 +974,7 @@ impl std::ops::Mul<Vec4> for f32 {
     type Output = Vec4;
 
     fn mul(self, rhs: Vec4) -> Self::Output {
-        Vec4(
-            self * rhs.0,
-            self * rhs.1,
-            self * rhs.2,
-            self * rhs.3,
-        )
+        Vec4(self * rhs.0, self * rhs.1, self * rhs.2, self * rhs.3)
     }
 }
 
@@ -1069,10 +982,7 @@ impl std::ops::Mul<Vec2> for Vec2 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 * rhs.0,
-            self.1 * rhs.1,
-        )
+        Self(self.0 * rhs.0, self.1 * rhs.1)
     }
 }
 
@@ -1080,11 +990,7 @@ impl std::ops::Mul<Vec3> for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 * rhs.0,
-            self.1 * rhs.1,
-            self.2 * rhs.2,
-        )
+        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
     }
 }
 
@@ -1092,7 +998,7 @@ impl std::ops::Mul<Vec4> for Vec4 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Self (
+        Self(
             self.0 * rhs.0,
             self.1 * rhs.1,
             self.2 * rhs.2,
@@ -1105,10 +1011,7 @@ impl std::ops::Div<f32> for Vec2 {
     type Output = Self;
 
     fn div(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 / rhs,
-            self.1 / rhs,
-        )
+        Self(self.0 / rhs, self.1 / rhs)
     }
 }
 
@@ -1116,11 +1019,7 @@ impl std::ops::Div<f32> for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 / rhs,
-            self.1 / rhs,
-            self.2 / rhs,
-        )
+        Self(self.0 / rhs, self.1 / rhs, self.2 / rhs)
     }
 }
 
@@ -1128,12 +1027,7 @@ impl std::ops::Div<f32> for Vec4 {
     type Output = Self;
 
     fn div(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 / rhs,
-            self.1 / rhs,
-            self.2 / rhs,
-            self.3 / rhs,
-        )
+        Self(self.0 / rhs, self.1 / rhs, self.2 / rhs, self.3 / rhs)
     }
 }
 
@@ -1141,10 +1035,7 @@ impl std::ops::Div<Vec2> for f32 {
     type Output = Vec2;
 
     fn div(self, rhs: Vec2) -> Self::Output {
-        Vec2(
-            self / rhs.0,
-            self / rhs.1,
-        )
+        Vec2(self / rhs.0, self / rhs.1)
     }
 }
 
@@ -1152,23 +1043,14 @@ impl std::ops::Div<Vec3> for f32 {
     type Output = Vec3;
 
     fn div(self, rhs: Vec3) -> Self::Output {
-        Vec3(
-            self / rhs.0,
-            self / rhs.1,
-            self / rhs.2,
-        )
+        Vec3(self / rhs.0, self / rhs.1, self / rhs.2)
     }
 }
 impl std::ops::Div<Vec4> for f32 {
     type Output = Vec4;
 
     fn div(self, rhs: Vec4) -> Self::Output {
-        Vec4(
-            self / rhs.0,
-            self / rhs.1,
-            self / rhs.2,
-            self / rhs.3,
-        )
+        Vec4(self / rhs.0, self / rhs.1, self / rhs.2, self / rhs.3)
     }
 }
 
@@ -1176,10 +1058,7 @@ impl std::ops::Div<Vec2> for Vec2 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 / rhs.0,
-            self.1 / rhs.1,
-        )
+        Self(self.0 / rhs.0, self.1 / rhs.1)
     }
 }
 
@@ -1187,11 +1066,7 @@ impl std::ops::Div<Vec3> for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 / rhs.0,
-            self.1 / rhs.1,
-            self.2 / rhs.2,
-        )
+        Self(self.0 / rhs.0, self.1 / rhs.1, self.2 / rhs.2)
     }
 }
 
@@ -1199,7 +1074,7 @@ impl std::ops::Div<Vec4> for Vec4 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self (
+        Self(
             self.0 / rhs.0,
             self.1 / rhs.1,
             self.2 / rhs.2,
@@ -1380,10 +1255,7 @@ impl std::ops::BitOr<VkBool32> for Bvec2 {
     type Output = Self;
 
     fn bitor(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 | rhs,
-            self.1 | rhs,
-        )
+        Self(self.0 | rhs, self.1 | rhs)
     }
 }
 
@@ -1391,11 +1263,7 @@ impl std::ops::BitOr<VkBool32> for Bvec3 {
     type Output = Self;
 
     fn bitor(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 | rhs,
-            self.1 | rhs,
-            self.2 | rhs,
-        )
+        Self(self.0 | rhs, self.1 | rhs, self.2 | rhs)
     }
 }
 
@@ -1403,12 +1271,7 @@ impl std::ops::BitOr<VkBool32> for Bvec4 {
     type Output = Self;
 
     fn bitor(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 | rhs,
-            self.1 | rhs,
-            self.2 | rhs,
-            self.3 | rhs,
-        )
+        Self(self.0 | rhs, self.1 | rhs, self.2 | rhs, self.3 | rhs)
     }
 }
 
@@ -1416,10 +1279,7 @@ impl std::ops::BitOr<Bvec2> for Bvec2 {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 | rhs.0,
-            self.1 | rhs.1,
-        )
+        Self(self.0 | rhs.0, self.1 | rhs.1)
     }
 }
 
@@ -1427,11 +1287,7 @@ impl std::ops::BitOr<Bvec3> for Bvec3 {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 | rhs.0,
-            self.1 | rhs.1,
-            self.2 | rhs.2,
-        )
+        Self(self.0 | rhs.0, self.1 | rhs.1, self.2 | rhs.2)
     }
 }
 
@@ -1452,10 +1308,7 @@ impl std::ops::BitAnd<VkBool32> for Bvec2 {
     type Output = Self;
 
     fn bitand(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 & rhs,
-            self.1 & rhs,
-        )
+        Self(self.0 & rhs, self.1 & rhs)
     }
 }
 
@@ -1463,11 +1316,7 @@ impl std::ops::BitAnd<VkBool32> for Bvec3 {
     type Output = Self;
 
     fn bitand(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 & rhs,
-            self.1 & rhs,
-            self.2 & rhs,
-        )
+        Self(self.0 & rhs, self.1 & rhs, self.2 & rhs)
     }
 }
 
@@ -1475,12 +1324,7 @@ impl std::ops::BitAnd<VkBool32> for Bvec4 {
     type Output = Self;
 
     fn bitand(self, rhs: VkBool32) -> Self::Output {
-        Self(
-            self.0 & rhs,
-            self.1 & rhs,
-            self.2 & rhs,
-            self.3 & rhs,
-        )
+        Self(self.0 & rhs, self.1 & rhs, self.2 & rhs, self.3 & rhs)
     }
 }
 
@@ -1488,10 +1332,7 @@ impl std::ops::BitAnd<Bvec2> for Bvec2 {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 & rhs.0,
-            self.1 & rhs.1,
-        )
+        Self(self.0 & rhs.0, self.1 & rhs.1)
     }
 }
 
@@ -1499,11 +1340,7 @@ impl std::ops::BitAnd<Bvec3> for Bvec3 {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 & rhs.0,
-            self.1 & rhs.1,
-            self.2 & rhs.2,
-        )
+        Self(self.0 & rhs.0, self.1 & rhs.1, self.2 & rhs.2)
     }
 }
 
@@ -1526,73 +1363,43 @@ impl std::ops::BitAnd<Self> for Bvec4 {
 
 impl Vec2 {
     pub fn abs(self) -> Self {
-        Self(
-            crate::abs(self.0),
-            crate::abs(self.1),
-        )
+        Self(crate::abs(self.0), crate::abs(self.1))
     }
 
     pub fn sign(self) -> Self {
-        Self(
-            crate::sign(self.0),
-            crate::sign(self.1),
-        )
+        Self(crate::sign(self.0), crate::sign(self.1))
     }
 
     pub fn floor(self) -> Self {
-        Self(
-            crate::floor(self.0),
-            crate::floor(self.1),
-        )
+        Self(crate::floor(self.0), crate::floor(self.1))
     }
 
     pub fn ceil(self) -> Self {
-        Self(
-            crate::ceil(self.0),
-            crate::ceil(self.1),
-        )
+        Self(crate::ceil(self.0), crate::ceil(self.1))
     }
 
     pub fn trunc(self) -> Self {
-        Self(
-            crate::trunc(self.0),
-            crate::trunc(self.1),
-        )
+        Self(crate::trunc(self.0), crate::trunc(self.1))
     }
 
     pub fn round(self) -> Self {
-        Self(
-            crate::round(self.0),
-            crate::round(self.1),
-        )
+        Self(crate::round(self.0), crate::round(self.1))
     }
 
     pub fn fract(self) -> Self {
-        Self(
-            crate::fract(self.0),
-            crate::fract(self.1),
-        )
+        Self(crate::fract(self.0), crate::fract(self.1))
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
-        Self(
-            crate::modulo(self.0, rhs.0),
-            crate::modulo(self.1, rhs.1),
-        )
+        Self(crate::modulo(self.0, rhs.0), crate::modulo(self.1, rhs.1))
     }
 
     pub fn min(x: Self, y: Self) -> Self {
-        Self(
-            crate::min(x.0, y.0),
-            crate::min(x.1, y.1),
-        )
+        Self(crate::min(x.0, y.0), crate::min(x.1, y.1))
     }
 
     pub fn max(x: Self, y: Self) -> Self {
-        Self(
-            crate::max(x.0, y.0),
-            crate::max(x.1, y.1),
-        )
+        Self(crate::max(x.0, y.0), crate::max(x.1, y.1))
     }
 
     pub fn clamp(self, min_val: Self, max_val: Self) -> Self {
@@ -1603,17 +1410,11 @@ impl Vec2 {
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
-        Self(
-            crate::mix(x.0, y.0, a.0),
-            crate::mix(x.1, y.1, a.1),
-        )
+        Self(crate::mix(x.0, y.0, a.0), crate::mix(x.1, y.1, a.1))
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
-        Self(
-            crate::step(edge.0, x.0),
-            crate::step(edge.1, x.1),
-        )
+        Self(crate::step(edge.0, x.0), crate::step(edge.1, x.1))
     }
 
     pub fn smoothstep(edge0: Self, edge1: Self, x: Self) -> Self {
@@ -1631,27 +1432,17 @@ impl Vec2 {
     }
 
     pub fn is_nan(self) -> Bvec2 {
-        Bvec2::from(
-            crate::is_nan(self.0),
-            crate::is_nan(self.1),
-        )
+        Bvec2::from(crate::is_nan(self.0), crate::is_nan(self.1))
     }
 
     pub fn is_inf(self) -> Bvec2 {
-        Bvec2::from(
-            crate::is_inf(self.0),
-            crate::is_inf(self.1),
-        )
+        Bvec2::from(crate::is_inf(self.0), crate::is_inf(self.1))
     }
 }
 
 impl Vec3 {
     pub fn abs(self) -> Self {
-        Self(
-            crate::abs(self.0),
-            crate::abs(self.1),
-            crate::abs(self.2),
-        )
+        Self(crate::abs(self.0), crate::abs(self.1), crate::abs(self.2))
     }
 
     pub fn sign(self) -> Self {
@@ -2127,95 +1918,53 @@ impl Vec4 {
 
 impl Vec2 {
     pub fn less_than(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 < rhs.0,
-            self.1 < rhs.1,
-        )
+        Bvec2::from(self.0 < rhs.0, self.1 < rhs.1)
     }
 
     pub fn less_than_equal(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 <= rhs.0,
-            self.1 <= rhs.1,
-        )
+        Bvec2::from(self.0 <= rhs.0, self.1 <= rhs.1)
     }
 
     pub fn greater_than(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 > rhs.0,
-            self.1 > rhs.1,
-        )
+        Bvec2::from(self.0 > rhs.0, self.1 > rhs.1)
     }
 
     pub fn greater_than_equal(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 >= rhs.0,
-            self.1 >= rhs.1,
-        )
+        Bvec2::from(self.0 >= rhs.0, self.1 >= rhs.1)
     }
 
     pub fn equal(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 == rhs.0,
-            self.1 == rhs.1,
-        )
+        Bvec2::from(self.0 == rhs.0, self.1 == rhs.1)
     }
 
     pub fn not_equal(self, rhs: Self) -> Bvec2 {
-        Bvec2::from(
-            self.0 != rhs.0,
-            self.1 != rhs.1,
-        )
+        Bvec2::from(self.0 != rhs.0, self.1 != rhs.1)
     }
 }
 
 impl Vec3 {
     pub fn less_than(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 < rhs.0,
-            self.1 < rhs.1,
-            self.2 < rhs.2,
-        )
+        Bvec3::from(self.0 < rhs.0, self.1 < rhs.1, self.2 < rhs.2)
     }
 
     pub fn less_than_equal(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 <= rhs.0,
-            self.1 <= rhs.1,
-            self.2 <= rhs.2,
-        )
+        Bvec3::from(self.0 <= rhs.0, self.1 <= rhs.1, self.2 <= rhs.2)
     }
 
     pub fn greater_than(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 > rhs.0,
-            self.1 > rhs.1,
-            self.2 > rhs.2,
-        )
+        Bvec3::from(self.0 > rhs.0, self.1 > rhs.1, self.2 > rhs.2)
     }
 
     pub fn greater_than_equal(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 >= rhs.0,
-            self.1 >= rhs.1,
-            self.2 >= rhs.2,
-        )
+        Bvec3::from(self.0 >= rhs.0, self.1 >= rhs.1, self.2 >= rhs.2)
     }
 
     pub fn equal(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 == rhs.0,
-            self.1 == rhs.1,
-            self.2 == rhs.2,
-        )
+        Bvec3::from(self.0 == rhs.0, self.1 == rhs.1, self.2 == rhs.2)
     }
 
     pub fn not_equal(self, rhs: Self) -> Bvec3 {
-        Bvec3::from(
-            self.0 != rhs.0,
-            self.1 != rhs.1,
-            self.2 != rhs.2,
-        )
+        Bvec3::from(self.0 != rhs.0, self.1 != rhs.1, self.2 != rhs.2)
     }
 }
 
@@ -2309,10 +2058,7 @@ impl std::ops::Not for Bvec2 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self(
-            !self.0,
-            !self.1,
-        )
+        Self(!self.0, !self.1)
     }
 }
 
@@ -2320,11 +2066,7 @@ impl std::ops::Not for Bvec3 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self(
-            !self.0,
-            !self.1,
-            !self.2,
-        )
+        Self(!self.0, !self.1, !self.2)
     }
 }
 
@@ -2332,12 +2074,6 @@ impl std::ops::Not for Bvec4 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self(
-            !self.0,
-            !self.1,
-            !self.2,
-            !self.3,
-        )
+        Self(!self.0, !self.1, !self.2, !self.3)
     }
 }
-

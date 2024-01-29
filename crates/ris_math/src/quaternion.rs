@@ -19,7 +19,7 @@ pub type AngleAxis = (f32, Vec3);
 
 impl Quat {
     pub fn identity() -> Self {
-        Self (0.,0.,0.,1.)
+        Self(0., 0., 0., 1.)
     }
 }
 
@@ -31,23 +31,13 @@ impl Default for Quat {
 
 impl From<Vec4> for Quat {
     fn from(value: Vec4) -> Self {
-        Self(
-            value.0,
-            value.1,
-            value.2,
-            value.3,
-        )
+        Self(value.0, value.1, value.2, value.3)
     }
 }
 
 impl From<Quat> for Vec4 {
     fn from(value: Quat) -> Self {
-        Self(
-            value.0,
-            value.1,
-            value.2,
-            value.3,
-        )
+        Self(value.0, value.1, value.2, value.3)
     }
 }
 
@@ -61,13 +51,7 @@ impl From<AngleAxis> for Quat {
         let re = super::cos(t);
         let im = super::sin(t);
 
-        Self (
-            n.0 * im,
-            n.1 * im,
-            n.2 * im,
-            re,
-        )
-
+        Self(n.0 * im, n.1 * im, n.2 * im, re)
     }
 }
 
@@ -84,17 +68,9 @@ impl From<Quat> for AngleAxis {
         let s = super::sqrt(1. - q.3 * q.3);
 
         let n = if s < 0.001 {
-            Vec3 (
-                1.,
-                0.,
-                0.,
-            )
+            Vec3(1., 0., 0.)
         } else {
-            Vec3 (
-                q.0 / s,
-                q.1 / s,
-                q.2 / s,
-            )
+            Vec3(q.0 / s, q.1 / s, q.2 / s)
         };
 
         (t, n)
@@ -109,7 +85,7 @@ impl Quat {
     pub fn x(self) -> f32 {
         self.0
     }
-    
+
     pub fn y(self) -> f32 {
         self.1
     }
@@ -121,7 +97,7 @@ impl Quat {
     pub fn w(self) -> f32 {
         self.3
     }
-    
+
     pub fn i(self) -> f32 {
         self.0
     }
@@ -141,7 +117,7 @@ impl Quat {
     pub fn set_x(&mut self, x: f32) {
         self.0 = x;
     }
-    
+
     pub fn set_y(&mut self, y: f32) {
         self.1 = y;
     }
@@ -157,7 +133,7 @@ impl Quat {
     pub fn set_i(&mut self, i: f32) {
         self.0 = i;
     }
-    
+
     pub fn set_j(&mut self, j: f32) {
         self.1 = j;
     }
@@ -211,17 +187,12 @@ impl Quat {
     pub fn dot(p: Quat, q: Quat) -> f32 {
         let p_ = Vec4::from(p);
         let q_ = Vec4::from(q);
-        
+
         p_.dot(q_)
     }
 
     pub fn conjugate(self) -> Self {
-        Self (
-            -self.0,
-            -self.1,
-            -self.2,
-            self.3,
-        )
+        Self(-self.0, -self.1, -self.2, self.3)
     }
 
     pub fn normalize(self) -> Self {
@@ -243,20 +214,11 @@ impl Quat {
     pub fn rotate(self, p: Vec3) -> Vec3 {
         let r = self;
         let r_ = self.conjugate();
-        let p = Quat (
-            p.0,
-            p.1,
-            p.2,
-            0.,
-        );
+        let p = Quat(p.0, p.1, p.2, 0.);
 
         let p_ = r * p * r_;
 
-        Vec3 (
-            p_.0,
-            p_.1,
-            p_.2,
-        )
+        Vec3(p_.0, p_.1, p_.2)
     }
 }
 

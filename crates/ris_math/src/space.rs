@@ -7,9 +7,9 @@ pub struct Space;
 impl Space {
     pub fn translation(translation: Vec3) -> Mat4x4 {
         let mut mat = Mat4x4::init(1.);
-        mat.3.0 = translation.0;
-        mat.3.1 = translation.1;
-        mat.3.2 = translation.2;
+        mat.3 .0 = translation.0;
+        mat.3 .1 = translation.1;
+        mat.3 .2 = translation.2;
 
         mat
     }
@@ -32,17 +32,17 @@ impl Space {
 
         let mut mat = Mat4x4::init(1.);
 
-        mat.0.0 = 1. - (yy + zz);
-        mat.1.0 = xy - wz;
-        mat.2.0 = xz + wy;
+        mat.0 .0 = 1. - (yy + zz);
+        mat.1 .0 = xy - wz;
+        mat.2 .0 = xz + wy;
 
-        mat.0.1 = xy + wz;
-        mat.1.1 = 1. - (xx + zz);
-        mat.2.1 = yz - wx;
+        mat.0 .1 = xy + wz;
+        mat.1 .1 = 1. - (xx + zz);
+        mat.2 .1 = yz - wx;
 
-        mat.0.2 = xz - wy;
-        mat.1.2 = yz + wx;
-        mat.2.2 = 1. - (xx + yy);
+        mat.0 .2 = xz - wy;
+        mat.1 .2 = yz + wx;
+        mat.2 .2 = 1. - (xx + yy);
 
         mat
     }
@@ -71,11 +71,11 @@ impl Space {
         let b = far * a;
 
         let mut mat = Mat4x4::init(0.0);
-        mat.0.0 = x;
-        mat.1.1 = y;
-        mat.2.2 = a;
-        mat.3.2 = b;
-        mat.2.3 = 1.;
+        mat.0 .0 = x;
+        mat.1 .1 = y;
+        mat.2 .2 = a;
+        mat.3 .2 = b;
+        mat.2 .3 = 1.;
 
         mat
     }
