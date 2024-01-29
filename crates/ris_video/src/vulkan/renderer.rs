@@ -295,7 +295,7 @@ impl Renderer {
 
         uniform_content.view = ubo.view;
         uniform_content.proj = ubo.proj;
-        uniform_content.view_proj = ubo.view_proj;
+        uniform_content.proj_view = ubo.proj_view;
 
         Ok(())
     }

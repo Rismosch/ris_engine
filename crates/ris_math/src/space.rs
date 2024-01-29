@@ -16,31 +16,33 @@ impl Space {
 
     pub fn rotation(rotation: Quat) -> Mat4x4 {
         let Quat(x, y, z, w) = rotation;
+
+        let x2 = x + x;
+        let y2 = y + y;
+        let z2 = z + z;
+        let xx = x * x2;
+        let xy = x * y2;
+        let xz = x * z2;
+        let yy = y * y2;
+        let yz = y * z2;
+        let zz = z * z2;
+        let wx = w * x2;
+        let wy = w * y2;
+        let wz = w * z2;
+
         let mut mat = Mat4x4::init(1.);
 
-        let sqx = x * x;
-        let sqy = y * y;
-        let sqz = z * z;
-        let sqw = w * w;
+        mat.0.0 = 1. - (yy + zz);
+        mat.1.0 = xy - wz;
+        mat.2.0 = xz + wy;
 
-        mat.0.0 = sqx - sqy - sqz + sqw;
-        mat.1.1 = -sqx + sqy - sqz + sqw;
-        mat.2.2 = -sqx - sqy + sqz + sqw;
+        mat.0.1 = xy + wz;
+        mat.1.1 = 1. - (xx + zz);
+        mat.2.1 = yz - wx;
 
-        let temp1 = x * y;
-        let temp2 = z * w;
-        mat.1.0 = 2. * (temp1 - temp2);
-        mat.0.1 = 2. * (temp1 + temp2);
-
-        let temp1 = x * z;
-        let temp2 = y * w;
-        mat.2.0 = 2. * (temp1 + temp2);
-        mat.0.2 = 2. * (temp1 - temp2);
-
-        let temp1 = y * z;
-        let temp2 = x * w;
-        mat.2.1 = 2. * (temp1 - temp2);
-        mat.1.2 = 2. * (temp1 + temp2);
+        mat.0.2 = xz - wy;
+        mat.1.2 = yz + wx;
+        mat.2.2 = 1. - (xx + yy);
 
         mat
     }

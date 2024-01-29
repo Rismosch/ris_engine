@@ -121,6 +121,22 @@ impl Quat {
     pub fn w(self) -> f32 {
         self.3
     }
+    
+    pub fn i(self) -> f32 {
+        self.0
+    }
+
+    pub fn j(self) -> f32 {
+        self.1
+    }
+
+    pub fn k(self) -> f32 {
+        self.2
+    }
+
+    pub fn re(self) -> f32 {
+        self.3
+    }
 
     pub fn set_x(&mut self, x: f32) {
         self.0 = x;
@@ -136,6 +152,22 @@ impl Quat {
 
     pub fn set_w(&mut self, w: f32) {
         self.3 = w;
+    }
+
+    pub fn set_i(&mut self, i: f32) {
+        self.0 = i;
+    }
+    
+    pub fn set_j(&mut self, j: f32) {
+        self.1 = j;
+    }
+
+    pub fn set_k(&mut self, k: f32) {
+        self.2 = k;
+    }
+
+    pub fn set_re(&mut self, re: f32) {
+        self.3 = re;
     }
 }
 
@@ -233,14 +265,14 @@ impl std::ops::Mul<Quat> for Quat {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self {
-        let p = self;
-        let q = rhs;
+        let Quat(b1, c1, d1, a1) = self;
+        let Quat(b2, c2, d2, a2) = rhs;
 
-        Self (
-            p.3 * q.2 + p.0 * q.3 + p.1 * q.2 - p.2 * q.1,
-            p.3 * q.1 - p.0 * q.2 + p.1 * q.3 + p.2 * q.0,
-            p.3 * q.0 + p.0 * q.1 - p.1 * q.0 + p.2 * q.3,
-            p.3 * q.3 - p.0 * q.0 - p.1 * q.1 - p.2 * q.2,
-        )
+        let re = a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2;
+        let i = a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2;
+        let j = a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2;
+        let k = a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2;
+
+        Self(i, j, k, re)
     }
 }

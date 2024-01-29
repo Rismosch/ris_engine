@@ -12,7 +12,7 @@ use ris_math::matrix::Mat4x4;
 pub struct UniformBufferObject {
     pub view: Mat4x4,
     pub proj: Mat4x4,
-    pub view_proj: Mat4x4,
+    pub proj_view: Mat4x4,
 }
 
 #[derive(BufferContents, Default)]

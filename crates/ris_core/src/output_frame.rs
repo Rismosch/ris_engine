@@ -128,12 +128,12 @@ impl OutputFrame {
         let far = 0.1;
         let proj = Space::proj(fovy, aspect_ratio, near, far);
 
-        let view_proj = proj * view;
+        let proj_view = proj * view;
 
         let ubo = UniformBufferObject {
             view,
             proj,
-            view_proj,
+            proj_view,
         };
         self.renderer.update_uniform(image as usize, &ubo)?;
 
