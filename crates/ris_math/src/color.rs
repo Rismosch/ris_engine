@@ -2,14 +2,18 @@
 
 #![allow(clippy::excessive_precision)]
 
-#[derive(Debug, Default, Clone, Copy)]
+use vulkano::buffer::BufferContents;
+
+#[derive(Debug, Default, Clone, Copy, BufferContents)]
+#[repr(C)]
 pub struct Lab {
     pub l: f32,
     pub a: f32,
     pub b: f32,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, BufferContents)]
+#[repr(C)]
 pub struct Rgb {
     pub r: f32,
     pub g: f32,

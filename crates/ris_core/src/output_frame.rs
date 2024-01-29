@@ -18,7 +18,7 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
-use ris_math::matrix4x4::Matrix4x4;
+use ris_math::space::Space;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::gpu_objects::UniformBufferObject;
 use ris_video::vulkan::renderer::Renderer;
@@ -118,21 +118,21 @@ impl OutputFrame {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view = Matrix4x4::view(state.back().camera_position, state.back().camera_rotation);
+        let view = Space::view(state.back().camera_position, state.back().camera_rotation);
 
-        let fovy = 60. * ris_math::DEG2RAD;
+        let fovy = ris_math::radians(60.);
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
         let aspect_ratio = w / h;
         let near = 0.01;
         let far = 0.1;
-        let proj = Matrix4x4::perspective_projection(fovy, aspect_ratio, near, far);
+        let proj = Space::proj(fovy, aspect_ratio, near, far);
 
-        let view_proj = proj * view;
+        let proj_view = proj * view;
 
         let ubo = UniformBufferObject {
             view,
             proj,
-            view_proj,
+            proj_view,
         };
         self.renderer.update_uniform(image as usize, &ubo)?;
 

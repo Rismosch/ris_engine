@@ -19,6 +19,9 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: 
 
 #[macro_export]
 macro_rules! assert_feq {
+    ($left:expr, $right:expr) => {{
+        $crate::assert_feq!($left, $right, ris_math::MIN_NORM, "");
+    }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         $crate::assert_feq!($left, $right, $tolerance, "");
     }};

@@ -19,9 +19,8 @@ use ris_input::general_logic::update_general;
 use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
-use ris_math::quaternion::Quaternion;
-use ris_math::vector3;
-use ris_math::vector3::Vector3;
+use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 5;
 
@@ -51,8 +50,11 @@ pub struct LogicFrame {
     // input
     event_pump: EventPump,
     keyboard_util: KeyboardUtil,
-
     gamepad_logic: GamepadLogic,
+
+    // camera
+    camera_horizontal_angle: f32,
+    camera_vertical_angle: f32,
 
     // general
     restart_timestamp: Instant,
@@ -69,6 +71,9 @@ impl LogicFrame {
             event_pump,
             keyboard_util,
             gamepad_logic: GamepadLogic::new(controller_subsystem),
+
+            camera_horizontal_angle: 0.,
+            camera_vertical_angle: 0.,
 
             crash_timestamp: Instant::now(),
             restart_timestamp: Instant::now(),
@@ -157,12 +162,12 @@ impl LogicFrame {
         if state.front().input.mouse.buttons.is_hold(action::OK) {
             let yrel = mouse_speed * state.front().input.mouse.yrel as f32;
             let xrel = mouse_speed * state.front().input.mouse.xrel as f32;
-            state.front_mut().camera_vertical_angle -= yrel;
-            state.front_mut().camera_horizontal_angle -= xrel;
+            self.camera_vertical_angle -= yrel;
+            self.camera_horizontal_angle -= xrel;
         } else if state.front().input.general.buttons.is_down(action::OK) {
-            state.front_mut().camera_horizontal_angle = 0.0;
-            state.front_mut().camera_vertical_angle = 0.0;
-            state.front_mut().camera_position = Vector3::new(0., -1., 0.);
+            self.camera_horizontal_angle = 0.0;
+            self.camera_vertical_angle = 0.0;
+            state.front_mut().camera_position = Vec3::backward();
         }
 
         if state
@@ -172,7 +177,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::CAMERA_UP)
         {
-            state.front_mut().camera_vertical_angle += rotation_speed;
+            self.camera_vertical_angle += rotation_speed;
         }
 
         if state
@@ -182,7 +187,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::CAMERA_DOWN)
         {
-            state.front_mut().camera_vertical_angle -= rotation_speed;
+            self.camera_vertical_angle -= rotation_speed;
         }
 
         if state
@@ -192,7 +197,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::CAMERA_LEFT)
         {
-            state.front_mut().camera_horizontal_angle += rotation_speed;
+            self.camera_horizontal_angle += rotation_speed;
         }
 
         if state
@@ -202,30 +207,27 @@ impl LogicFrame {
             .buttons
             .is_hold(action::CAMERA_RIGHT)
         {
-            state.front_mut().camera_horizontal_angle -= rotation_speed;
+            self.camera_horizontal_angle -= rotation_speed;
         }
 
-        let mut camera_horizontal_angle = state.front().camera_horizontal_angle;
-        let mut camera_vertical_angle = state.front().camera_vertical_angle;
-        while camera_horizontal_angle < 0. {
-            camera_horizontal_angle += ris_math::PI_2;
+        while self.camera_horizontal_angle < 0. {
+            self.camera_horizontal_angle += 2. * ris_math::PI;
         }
-        while camera_horizontal_angle > ris_math::PI_2 {
-            camera_horizontal_angle -= ris_math::PI_2;
+        while self.camera_horizontal_angle > 2. * ris_math::PI {
+            self.camera_horizontal_angle -= 2. * ris_math::PI;
         }
-        camera_vertical_angle =
-            ris_math::clamp(camera_vertical_angle, -ris_math::PI_0_5, ris_math::PI_0_5);
-        state.front_mut().camera_horizontal_angle = camera_horizontal_angle;
-        state.front_mut().camera_vertical_angle = camera_vertical_angle;
+        self.camera_vertical_angle = ris_math::clamp(
+            self.camera_vertical_angle,
+            -0.5 * ris_math::PI,
+            0.5 * ris_math::PI,
+        );
 
-        let rotation1 =
-            Quaternion::from_angle_axis(state.front().camera_vertical_angle, vector3::RIGHT);
-        let rotation2 =
-            Quaternion::from_angle_axis(state.front().camera_horizontal_angle, vector3::UP);
+        let rotation1 = Quat::from((self.camera_vertical_angle, Vec3::right()));
+        let rotation2 = Quat::from((self.camera_horizontal_angle, Vec3::up()));
         state.front_mut().camera_rotation = rotation2 * rotation1;
 
         if state.front().input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
+            let forward = state.front().camera_rotation.rotate(Vec3::forward());
             state.front_mut().camera_position += movement_speed * forward;
         }
 
@@ -236,7 +238,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::MOVE_DOWN)
         {
-            let forward = state.front().camera_rotation.rotate(vector3::FORWARD);
+            let forward = state.front().camera_rotation.rotate(Vec3::forward());
             state.front_mut().camera_position -= movement_speed * forward;
         }
 
@@ -247,7 +249,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::MOVE_LEFT)
         {
-            let right = state.front().camera_rotation.rotate(vector3::RIGHT);
+            let right = state.front().camera_rotation.rotate(Vec3::right());
             state.front_mut().camera_position -= movement_speed * right;
         }
 
@@ -258,7 +260,7 @@ impl LogicFrame {
             .buttons
             .is_hold(action::MOVE_RIGHT)
         {
-            let right = state.front().camera_rotation.rotate(vector3::RIGHT);
+            let right = state.front().camera_rotation.rotate(Vec3::right());
             state.front_mut().camera_position += movement_speed * right;
         }
 
@@ -286,6 +288,19 @@ impl LogicFrame {
                 }
             }
         }
+
+        //if state.front().input.general.buttons.hold() != 0 {
+        //    let camera_position = state.front().camera_position;
+        //    let camera_rotation = state.front().camera_rotation;
+        //    let camera_forward = camera_rotation.rotate(Vec3::forward());
+
+        //    ris_log::trace!("{} {} | {:?} {:?}",
+        //        self.camera_horizontal_angle,
+        //        self.camera_vertical_angle,
+        //        camera_position,
+        //        camera_forward,
+        //    );
+        //}
 
         if state.front().input.keyboard.keys.is_down(Scancode::F) {
             ris_log::debug!(

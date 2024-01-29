@@ -5,14 +5,14 @@ use vulkano::pipeline::graphics::vertex_input::VertexInputBindingDescription;
 use vulkano::pipeline::graphics::vertex_input::VertexInputRate;
 use vulkano::pipeline::graphics::vertex_input::VertexInputState;
 
-use ris_math::matrix4x4::Matrix4x4;
+use ris_math::matrix::Mat4x4;
 
 #[derive(BufferContents, Default)]
 #[repr(C)]
 pub struct UniformBufferObject {
-    pub view: Matrix4x4,
-    pub proj: Matrix4x4,
-    pub view_proj: Matrix4x4,
+    pub view: Mat4x4,
+    pub proj: Mat4x4,
+    pub proj_view: Mat4x4,
 }
 
 #[derive(BufferContents, Default)]

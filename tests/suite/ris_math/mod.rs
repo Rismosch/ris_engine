@@ -1,3 +1,3 @@
 pub mod color;
-pub mod matrix4x4;
+pub mod matrix;
 pub mod quaternion;

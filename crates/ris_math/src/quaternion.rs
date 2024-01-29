@@ -1,141 +1,240 @@
-use crate::vector3::Vector3;
+use vulkano::buffer::BufferContents;
 
-#[derive(Debug, Copy, Clone)]
-pub struct Quaternion {
-    pub w: f32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
+use crate::vector::Vec3;
+use crate::vector::Vec4;
 
-impl Quaternion {
-    // initialization
+//
+// definition
+//
+
+#[derive(Debug, Copy, Clone, BufferContents)]
+#[repr(C)]
+pub struct Quat(pub f32, pub f32, pub f32, pub f32);
+
+pub type AngleAxis = (f32, Vec3);
+
+//
+// constructors
+//
+
+impl Quat {
     pub fn identity() -> Self {
-        Self {
-            w: 1.,
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        }
-    }
-
-    pub fn from_angle_axis(angle: f32, axis: Vector3) -> Self {
-        let n = axis.normalized();
-        let t = angle * 0.5;
-        let re = super::cos(t);
-        let im = super::sin(t);
-
-        Self {
-            w: re,
-            x: n.x * im,
-            y: n.y * im,
-            z: n.z * im,
-        }
-    }
-
-    pub fn to_angle_axis(self) -> (f32, Vector3) {
-        let mut q = self;
-
-        // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
-        if super::abs(q.w) > 1. {
-            q = q.normalized();
-        }
-
-        let t = 2. * super::acos(q.w);
-        let s = super::sqrt(1. - q.w * q.w);
-
-        let n = if s < 0.001 {
-            Vector3 {
-                x: 1.,
-                y: 0.,
-                z: 0.,
-            }
-        } else {
-            Vector3 {
-                x: q.x / s,
-                y: q.y / s,
-                z: q.z / s,
-            }
-        };
-
-        (t, n)
-    }
-
-    // utility
-    pub fn dot(p: Quaternion, q: Quaternion) -> f32 {
-        p.w * q.w + p.x * q.x + p.y * q.y + p.z * q.z
-    }
-
-    pub fn conjugate(self) -> Self {
-        Self {
-            w: self.w,
-            x: -self.x,
-            y: -self.y,
-            z: -self.z,
-        }
-    }
-
-    pub fn normalized(self) -> Self {
-        let magnitude = self.magnitude();
-        if magnitude < super::MIN_NORM {
-            Self::identity()
-        } else {
-            Self {
-                w: self.w / magnitude,
-                x: self.x / magnitude,
-                y: self.y / magnitude,
-                z: self.z / magnitude,
-            }
-        }
-    }
-
-    pub fn magnitude_squared(self) -> f32 {
-        Self::dot(self, self)
-    }
-
-    pub fn magnitude(self) -> f32 {
-        super::sqrt(self.magnitude_squared())
-    }
-
-    // 3d transformation stuff
-    pub fn rotate(self, p: Vector3) -> Vector3 {
-        let r = self;
-        let r_ = self.conjugate();
-        let p = Quaternion {
-            w: 0.,
-            x: p.x,
-            y: p.y,
-            z: p.z,
-        };
-
-        let p_ = r * p * r_;
-
-        Vector3 {
-            x: p_.x,
-            y: p_.y,
-            z: p_.z,
-        }
+        Self(0., 0., 0., 1.)
     }
 }
 
-impl Default for Quaternion {
+impl Default for Quat {
     fn default() -> Self {
         Self::identity()
     }
 }
 
-// Hamilton Product: https://en.wikipedia.org/wiki/Quaternion#Hamilton_product
-impl std::ops::Mul<Quaternion> for Quaternion {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        let p = self;
-        let q = rhs;
+impl From<Vec4> for Quat {
+    fn from(value: Vec4) -> Self {
+        Self(value.0, value.1, value.2, value.3)
+    }
+}
 
-        Self {
-            w: p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z,
-            x: p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y,
-            y: p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x,
-            z: p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w,
+impl From<Quat> for Vec4 {
+    fn from(value: Quat) -> Self {
+        Self(value.0, value.1, value.2, value.3)
+    }
+}
+
+impl From<AngleAxis> for Quat {
+    fn from(value: AngleAxis) -> Self {
+        let angle = value.0;
+        let axis = value.1;
+
+        let n = axis.normalize();
+        let t = angle * 0.5;
+        let re = super::cos(t);
+        let im = super::sin(t);
+
+        Self(n.0 * im, n.1 * im, n.2 * im, re)
+    }
+}
+
+impl From<Quat> for AngleAxis {
+    fn from(value: Quat) -> Self {
+        let mut q = value;
+
+        // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
+        if super::abs(q.3) > 1. {
+            q = q.normalize();
         }
+
+        let t = 2. * super::acos(q.3);
+        let s = super::sqrt(1. - q.3 * q.3);
+
+        let n = if s < 0.001 {
+            Vec3(1., 0., 0.)
+        } else {
+            Vec3(q.0 / s, q.1 / s, q.2 / s)
+        };
+
+        (t, n)
+    }
+}
+
+//
+// Components
+//
+
+impl Quat {
+    pub fn x(self) -> f32 {
+        self.0
+    }
+
+    pub fn y(self) -> f32 {
+        self.1
+    }
+
+    pub fn z(self) -> f32 {
+        self.2
+    }
+
+    pub fn w(self) -> f32 {
+        self.3
+    }
+
+    pub fn i(self) -> f32 {
+        self.0
+    }
+
+    pub fn j(self) -> f32 {
+        self.1
+    }
+
+    pub fn k(self) -> f32 {
+        self.2
+    }
+
+    pub fn re(self) -> f32 {
+        self.3
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.0 = x;
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.1 = y;
+    }
+
+    pub fn set_z(&mut self, z: f32) {
+        self.2 = z;
+    }
+
+    pub fn set_w(&mut self, w: f32) {
+        self.3 = w;
+    }
+
+    pub fn set_i(&mut self, i: f32) {
+        self.0 = i;
+    }
+
+    pub fn set_j(&mut self, j: f32) {
+        self.1 = j;
+    }
+
+    pub fn set_k(&mut self, k: f32) {
+        self.2 = k;
+    }
+
+    pub fn set_re(&mut self, re: f32) {
+        self.3 = re;
+    }
+}
+
+impl std::ops::Index<usize> for Quat {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            3 => &self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Quat {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            3 => &mut self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+//
+// functions
+//
+
+impl Quat {
+    // initialization
+    // utility
+    pub fn dot(p: Quat, q: Quat) -> f32 {
+        let p_ = Vec4::from(p);
+        let q_ = Vec4::from(q);
+
+        p_.dot(q_)
+    }
+
+    pub fn conjugate(self) -> Self {
+        Self(-self.0, -self.1, -self.2, self.3)
+    }
+
+    pub fn normalize(self) -> Self {
+        let q_ = Vec4::from(self);
+        Quat::from(q_.normalize())
+    }
+
+    pub fn length_squared(self) -> f32 {
+        let q_ = Vec4::from(self);
+        q_.length_squared()
+    }
+
+    pub fn length(self) -> f32 {
+        let q_ = Vec4::from(self);
+        q_.length()
+    }
+
+    // 3d transformation stuff
+    pub fn rotate(self, p: Vec3) -> Vec3 {
+        let r = self;
+        let r_ = self.conjugate();
+        let p = Quat(p.0, p.1, p.2, 0.);
+
+        let p_ = r * p * r_;
+
+        Vec3(p_.0, p_.1, p_.2)
+    }
+}
+
+// Hamilton Product: https://en.wikipedia.org/wiki/Quaternion#Hamilton_product
+impl std::ops::Mul<Quat> for Quat {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        let Quat(b1, c1, d1, a1) = self;
+        let Quat(b2, c2, d2, a2) = rhs;
+
+        let re = a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2;
+        let i = a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2;
+        let j = a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2;
+        let k = a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2;
+
+        Self(i, j, k, re)
     }
 }

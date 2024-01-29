@@ -44,7 +44,7 @@ use vulkano::sync::future::GpuFuture;
 
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_error::RisResult;
-use ris_math::matrix4x4::Matrix4x4;
+use ris_math::matrix::Mat4x4;
 
 use crate::imgui::gpu_objects::ImguiVertex;
 use crate::vulkan::allocators::Allocators;
@@ -118,24 +118,12 @@ impl ImguiRenderer {
         let top = data.display_pos[1];
         let bottom = data.display_pos[1] + data.display_size[1];
 
-        let pc = Matrix4x4 {
-            m00: 2.0 / (right - left),
-            m01: 0.0,
-            m02: 0.0,
-            m03: 0.0,
-            m10: 0.0,
-            m11: 2.0 / (bottom - top),
-            m12: 0.0,
-            m13: 0.0,
-            m20: 0.0,
-            m21: 0.0,
-            m22: -1.0,
-            m23: 0.0,
-            m30: (right + left) / (left - right),
-            m31: (top + bottom) / (top - bottom),
-            m32: 0.0,
-            m33: 1.0,
-        };
+        let mut pc = Mat4x4::init(1.);
+        pc.0 .0 = 2. / (right - left);
+        pc.1 .1 = 2. / (bottom - top);
+        pc.2 .2 = -1.0;
+        pc.3 .0 = (right + left) / (left - right);
+        pc.3 .1 = (top + bottom) / (top - bottom);
 
         let dimensions = match target.image().dimensions() {
             ImageDimensions::Dim2d { width, height, .. } => [width, height],
