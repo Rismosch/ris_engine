@@ -5,8 +5,8 @@ use ris_error::RisResult;
 
 use crate::importer::*;
 
-pub const DEFAULT_SOURCE_DIRECTORY: &str = "raw_assets";
-pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/__imported_raw_assets";
+pub const DEFAULT_SOURCE_DIRECTORY: &str = "assets/__raw";
+pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/__imported_raw";
 
 pub enum ImporterKind {
     GLSL,

@@ -28,6 +28,7 @@ pub const MAGIC: [u8; 16] = [
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
 pub const DEFAULT_COMPILED_FILE: &str = "ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
+pub const DEFAULT_IGNORE_DIRECTORY: &str = "assets/__raw";
 
 /// compiles a directory from a .ris_asset file
 /// - `source`: the directory to be compiled
@@ -53,6 +54,13 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
             let metadata = ris_error::unroll!(entry.metadata(), "failed to read metadata")?;
 
             let entry_path = entry.path();
+
+            let to_ignore = PathBuf::from(DEFAULT_IGNORE_DIRECTORY);
+            if entry_path == to_ignore {
+                ris_log::debug!("ignoring {:?}", entry_path);
+                continue;
+            }
+
             if metadata.is_file() {
                 assets_lookup.insert(entry_path.clone(), assets.len());
                 assets.push(entry_path);
