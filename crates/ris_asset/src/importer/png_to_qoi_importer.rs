@@ -12,9 +12,13 @@ use crate::codecs::qoi::ColorSpace;
 use crate::codecs::qoi::QoiDesc;
 
 pub const IN_EXT: &str = "png";
-pub const OUT_EXT: &str = "qoi";
+pub const OUT_EXT: &[&str] = &["qoi"];
 
-pub fn import(input: &mut (impl Read + Seek), output: &mut (impl Write + Seek)) -> RisResult<()> {
+pub fn import(
+    _file: &str,
+    input: &mut (impl Read + Seek),
+    output: &mut [impl Write + Seek],
+) -> RisResult<()> {
     // decode png
     let decoder = png::Decoder::new(input);
     let mut reader = ris_error::unroll!(decoder.read_info(), "failed to read info",)?;
@@ -45,7 +49,7 @@ pub fn import(input: &mut (impl Read + Seek), output: &mut (impl Write + Seek)) 
 
     let encoded = ris_error::unroll!(qoi::encode(&pixels, desc), "failed to encode qoi",)?;
 
-    ris_file::write!(output, &encoded)?;
+    ris_file::write!(&mut output[0], &encoded)?;
 
     Ok(())
 }

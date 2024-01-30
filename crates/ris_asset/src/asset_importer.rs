@@ -15,7 +15,7 @@ pub enum ImporterKind {
 
 pub struct SpecificImporterInfo {
     pub source_file_path: PathBuf,
-    pub target_file_path: PathBuf,
+    pub target_file_paths: Vec<PathBuf>,
     pub importer: ImporterKind,
 }
 
@@ -30,9 +30,9 @@ pub enum ImporterInfo {
 }
 
 pub fn import(info: ImporterInfo) -> RisResult<()> {
-    let (source_path, target_path, importer) = match info {
+    let (source_path, target_paths, importer) = match info {
         ImporterInfo::Specific(info) => {
-            (info.source_file_path, info.target_file_path, info.importer)
+            (info.source_file_path, info.target_file_paths, info.importer)
         }
         ImporterInfo::DeduceFromFileName(info) => {
             let source_path = info.source_file_path;
@@ -62,11 +62,15 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
             )?;
             let source_stem = String::from(source_stem);
 
-            let (importer, target_extension) = match source_extension.as_str() {
-                glsl_to_spirv_importer::IN_EXT => {
-                    (ImporterKind::GLSL, glsl_to_spirv_importer::OUT_EXT)
-                }
-                png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
+            let (importer, target_extensions) = match source_extension.as_str() {
+                glsl_to_spirv_importer::IN_EXT => (
+                    ImporterKind::GLSL,
+                    glsl_to_spirv_importer::OUT_EXT,
+                ),
+                png_to_qoi_importer::IN_EXT => (
+                    ImporterKind::PNG,
+                    png_to_qoi_importer::OUT_EXT,
+                ),
                 // insert new inporter here...
                 _ => {
                     return ris_error::new_result!(
@@ -76,32 +80,24 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
                 }
             };
 
-            let mut target_path = PathBuf::new();
-            target_path.push(target_directory);
-            target_path.push(format!("{source_stem}.{target_extension}"));
+            let mut target_paths = Vec::new();
 
-            (source_path, target_path, importer)
+            for target_extension in target_extensions {
+                let mut target_path = PathBuf::new();
+                target_path.push(target_directory.clone());
+                target_path.push(format!("{source_stem}.{target_extension}"));
+
+                target_paths.push(target_path);
+            }
+
+            (source_path, target_paths, importer)
         }
     };
 
-    let parent = target_path.parent();
-    if let Some(parent) = parent {
-        if !parent.exists() {
-            ris_error::unroll!(
-                std::fs::create_dir_all(parent),
-                "failed to create target directory {:?}",
-                parent
-            )?;
-        }
-    }
-
-    if target_path.exists() {
-        ris_error::unroll!(
-            std::fs::remove_file(&target_path),
-            "failed to delete target file {:?}",
-            target_path,
-        )?;
-    }
+    let source_path = ris_error::unroll_option!(
+        source_path.to_str(),
+        "not a valid utf8",
+    )?;
 
     let mut source_file = ris_error::unroll!(
         File::open(&source_path),
@@ -109,22 +105,52 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
         source_path,
     )?;
 
-    let mut target_file = ris_error::unroll!(
-        File::create(&target_path),
-        "failed to create target file {:?}",
-        target_path,
-    )?;
+    let mut target_files = Vec::new();
 
-    let source_path = ris_error::unroll_option!(
-        source_path.to_str(),
-        "failed to convert source path to &str"
-    )?;
+    for target_path in target_paths {
+        let parent = target_path.parent();
+        if let Some(parent) = parent {
+            if !parent.exists() {
+                ris_error::unroll!(
+                    std::fs::create_dir_all(parent),
+                    "failed to create target directory {:?}",
+                    parent
+                )?;
+            }
+        }
+
+        if target_path.exists() {
+            ris_error::unroll!(
+                std::fs::remove_file(&target_path),
+                "failed to delete target file {:?}",
+                target_path,
+            )?;
+        }
+
+        let target_file = ris_error::unroll!(
+            File::create(&target_path),
+            "failed to create target file {:?}",
+            target_path,
+        )?;
+
+        target_files.push(target_file);
+    }
 
     match importer {
         ImporterKind::GLSL => {
-            glsl_to_spirv_importer::import(source_path, &mut source_file, &mut target_file)
-        }
-        ImporterKind::PNG => png_to_qoi_importer::import(&mut source_file, &mut target_file),
+            glsl_to_spirv_importer::import(
+                source_path,
+                &mut source_file,
+                &mut target_files,
+            )
+        },
+        ImporterKind::PNG => {
+            png_to_qoi_importer::import(
+                source_path,
+                &mut source_file,
+                &mut target_files,
+            )
+        },
         // insert more importers here...
     }
 }
