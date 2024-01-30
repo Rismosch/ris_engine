@@ -3,9 +3,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::TryLockError;
 
-use ris_util::throw;
-use ris_util::unwrap_or_throw;
-
 use crate::errors::BlockedOrEmpty;
 use crate::errors::BlockedOrFull;
 use crate::errors::IsEmpty;
@@ -44,8 +41,10 @@ impl JobBuffer {
             Ok(node) => node,
             Err(std::sync::TryLockError::WouldBlock) => {
                 return Err(BlockedOrFull { not_pushed: job })
-            }
-            Err(std::sync::TryLockError::Poisoned(e)) => throw!("mutex is poisoned: {}", e),
+            },
+            Err(std::sync::TryLockError::Poisoned(e)) => {
+                ris_error::throw!("mutex is poisoned: {}", e)
+            },
         };
 
         match *node {
@@ -74,7 +73,10 @@ impl JobBuffer {
             *head - 1
         };
 
-        let mut node = unwrap_or_throw!(self.jobs[new_head].lock(), "mutex is poisoned");
+        let mut node = ris_error::unwrap_or_throw!(
+            self.jobs[new_head].lock(),
+            "mutex is poisoned",
+        );
 
         match node.take() {
             None => Err(IsEmpty),
@@ -109,6 +111,6 @@ unsafe impl Sync for JobBuffer {}
 fn to_steal_error<T>(error: TryLockError<T>) -> BlockedOrEmpty {
     match error {
         std::sync::TryLockError::WouldBlock => BlockedOrEmpty,
-        std::sync::TryLockError::Poisoned(e) => throw!("mutex is poisoned: {}", e),
+        std::sync::TryLockError::Poisoned(e) => ris_error::throw!("mutex is poisoned: {}", e),
     }
 }

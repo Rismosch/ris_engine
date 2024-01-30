@@ -42,7 +42,7 @@ impl<T> ArefCell<T> {
         #[cfg(debug_assertions)]
         {
             let prev_refs = self.refs.fetch_add(1, Ordering::SeqCst);
-            ris_util::assert_or_throw!(
+            ris_error::assert_or_throw!(
                 prev_refs >= 0,
                 "AtomicCell: attempted to borrow while a mutable reference exists",
             );
@@ -61,7 +61,7 @@ impl<T> ArefCell<T> {
         #[cfg(debug_assertions)]
         {
             let prev_refs = self.refs.fetch_sub(1, Ordering::SeqCst);
-            ris_util::assert_or_throw!(
+            ris_error::assert_or_throw!(
                 prev_refs == 0,
                 "AtomicCell: attempted to mutable borrow while a reference exists",
             );
@@ -112,7 +112,7 @@ impl<T> std::ops::Deref for Aref<T> {
         #[cfg(debug_assertions)]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
-            ris_util::assert_or_throw!(
+            ris_error::assert_or_throw!(
                 prev_refs != isize::MAX,
                 "AtomicCell: attempted to deref a dangling reference, cell has been dropped",
             );
@@ -128,7 +128,7 @@ impl<T> std::ops::Deref for ArefMut<T> {
         #[cfg(debug_assertions)]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
-            ris_util::assert_or_throw!(
+            ris_error::assert_or_throw!(
                 prev_refs != isize::MAX,
                 "AtomicCell: attempted to deref a dangling reference, cell has been dropped",
             );
@@ -142,7 +142,7 @@ impl<T> std::ops::DerefMut for ArefMut<T> {
         #[cfg(debug_assertions)]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
-            ris_util::assert_or_throw!(
+            ris_error::assert_or_throw!(
                 prev_refs != isize::MAX,
                 "AtomicCell: attempted to deref mut a dangling reference, cell has been dropped",
             );
