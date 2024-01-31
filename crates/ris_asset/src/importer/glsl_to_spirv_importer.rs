@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
@@ -25,6 +28,12 @@ pub fn import(
 
     // pre processor
     let PreProcOutput { vert_glsl, frag_glsl } = pre_processor(source_text, file)?;
+
+    println!();
+    println!("{}", vert_glsl);
+    println!();
+    println!("{}", frag_glsl);
+    println!();
 
     // compile to spirv
     let compiler = ris_error::unroll_option!(
@@ -95,6 +104,9 @@ fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
     let mut vert_entry = Vec::new();
     let mut frag_entry = Vec::new();
 
+    let mut defines = HashMap::new();
+    let mut includes = HashSet::new();
+
     let mut current_region = Region::None;
 
     let mut line = 0;
@@ -129,9 +141,25 @@ fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
                 let region_kind = string_to_region_kind(splits[1], file, line)?;
                 current_region = Region::Entry(region_kind);
             },
-            //"#const" => (),
-            //"#include" => (),
-            //"#once" => (),
+            "#define" => {
+                preproc_assert_arg_count(splits.len(), 3, file, line)?;
+                let key = splits[1].to_string();
+                let value = splits[2].to_string();
+
+                let prev = defines.insert(key.clone(), value);
+                preproc_assert(
+                    prev.is_none(),
+                    &format!("define key \"{}\" was already defined", key),
+                    file,
+                    line,
+                )?;
+            },
+            "#include" => {
+                preproc_assert_arg_count(splits.len(), 2, file, line)?;
+                let to_include = splits[1].to_string();
+                println!("to be included: {}", to_include);
+                includes.insert(to_include);
+            },
             _ => {
                 if input_line.is_empty() {
                     continue;
@@ -165,6 +193,8 @@ fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
     let vert_glsl = build_glsl(
         &version,
         ShaderKind::Vertex,
+        &defines,
+        &includes,
         &vert_layout,
         None,
         Some(&vert_io_frag),
@@ -174,6 +204,8 @@ fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
     let frag_glsl = build_glsl(
         &version,
         ShaderKind::Fragment,
+        &defines,
+        &includes,
         &frag_layout,
         Some(&vert_io_frag),
         None,
@@ -186,9 +218,12 @@ fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_glsl(
     version: &str,
     kind: ShaderKind,
+    defines: &HashMap<String, String>,
+    includes: &HashSet<String>,
     layout: &[&str],
     io_in: Option<&[&str]>,
     io_out: Option<&[&str]>,
@@ -199,6 +234,8 @@ fn build_glsl(
     glsl.push_str(&format!("#version {}", version));
     glsl.push('\n');
     glsl.push_str(&format!("#pragma shader_stage({})", kind));
+
+    println!("\ndefines {:?}\nincludes {:?}\n", defines, includes);
 
     if let Some(layout_in) = io_in {
         for line in layout_in {
