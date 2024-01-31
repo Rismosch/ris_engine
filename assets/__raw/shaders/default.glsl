@@ -1,12 +1,11 @@
-#glsl_version 460
+#ris_glsl 460 vertex fragment
 
 #define ONE 1.0
-#define TWO 2.0
 
 #include test_a
 #include test_b
 
-#layout vertex
+#vertex
 vec3 invert_color(vec3 c) {
     return (1 - c) * 2;
 }
@@ -20,20 +19,20 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 proj_view;
 } ubo;
 
-#layout io vertex fragment
-layout(location = 0) OUT_IN vec3 f_color;
+#io vertex fragment
+layout(location = 0) IN_OUT vec3 f_color;
 
-#layout fragment
+#fragment
 layout(location = 0) out vec4 out_color;
 
-#entry vertex
+#vertex
 void main() {
-    gl_Position = ubo.proj_view * vec4(position, 1.0);
+    gl_Position = ubo.proj_view * vec4(position, ONE);
 
-    f_color = invert_color(color);
+    f_color = color;
 }
 
-#entry fragment
+#fragment
 void main() {
-    out_color = vec4(f_color, 1.0);
+    out_color = vec4(f_color, ONE);
 }

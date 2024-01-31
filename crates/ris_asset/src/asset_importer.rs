@@ -100,7 +100,7 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
     )?;
 
     let mut source_file = ris_error::unroll!(
-        File::open(&source_path),
+        File::open(source_path),
         "failed to open file {:?}",
         source_path,
     )?;

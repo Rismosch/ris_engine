@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 use std::io::Read;
 use std::io::Seek;
@@ -27,13 +26,115 @@ pub fn import(
     )?;
 
     // pre processor
-    let PreProcOutput { vert_glsl, frag_glsl } = pre_processor(source_text, file)?;
+    // init shaders
+    let first_line = ris_error::unroll_option!(
+        source_text.lines().next(),
+        "failed to get first line of source file \"{}\"",
+        file,
+    )?;
 
-    println!();
-    println!("{}", vert_glsl);
-    println!();
-    println!("{}", frag_glsl);
-    println!();
+    let magic = "#ris_glsl";
+    if !first_line.starts_with(magic) {
+        return preproc_fail(
+            &format!("expected shader to start with \"{}\"", magic),
+            file,
+            0,
+        );
+    }
+
+    let mut vert_glsl = Shader::new(ShaderKind::Vertex);
+    let mut frag_glsl = Shader::new(ShaderKind::Fragment);
+
+    let splits = first_line.split(' ').collect::<Vec<_>>();
+    preproc_assert(
+        splits.len() > 2,
+        "ris_glsl must have 2 or more argument: one glsl version and which shaders this file contains",
+        file,
+        0,
+    )?;
+
+    let version = splits[1];
+
+    for split in splits.iter().skip(2) {
+        match *split {
+            "vertex" => vert_glsl.init(version),
+            "fragment" => frag_glsl.init(version),
+            value => return preproc_fail(
+                &format!("invalid shaderkind value \"{}\"",value),
+                file,
+                0,
+            ),
+        }
+    }
+
+    // parse macros
+    let mut current_region = Region::None;
+    let mut define_map = HashMap::new();
+    let mut line = 0;
+    for input_line in source_text.lines().skip(1) {
+        line += 1;
+
+        let splits = input_line.split(' ').collect::<Vec<_>>();
+        let first_split = splits[0];
+
+        match first_split {
+            "#vertex" => current_region = Region::Shader(ShaderKind::Vertex),
+            "#fragment" => current_region = Region::Shader(ShaderKind::Fragment),
+            "#io" => {
+                preproc_assert_arg_count(splits.len(), 3, file, line)?;
+                let i = string_to_region_kind(splits[1], file, line)?;
+                let o = string_to_region_kind(splits[2], file, line)?;
+
+                current_region = Region::IO(i, o);
+            },
+            "#define" => {
+                preproc_assert(
+                    splits.len() > 2,
+                    "to few arguments for #define",
+                    file,
+                    line,
+                )?;
+
+                let key = splits[1].to_string();
+                let value = splits.iter().skip(2).cloned().collect::<Vec<_>>().join(" ");
+
+                let prev = define_map.insert(key.clone(), value);
+                preproc_assert(
+                    prev.is_none(),
+                    &format!("define key \"{}\" was already defined", key),
+                    file,
+                    line,
+                )?;
+            },
+            "#include" => {
+                preproc_assert_arg_count(splits.len(), 2, file, line)?;
+                let include = splits[1].to_string();
+
+                println!("handle include {}", include);
+
+                //includes.insert(to_include);
+            },
+            _ => {
+                if input_line.is_empty() {
+                    continue;
+                }
+
+                match &current_region {
+                    Region::None => preproc_fail("encountered code outside a dedicated region", file, line)?,
+                    Region::Shader(ShaderKind::Vertex) => vert_glsl.push(input_line, &define_map),
+                    Region::Shader(ShaderKind::Fragment) => frag_glsl.push(input_line, &define_map),
+                    Region::IO(ShaderKind::Vertex, ShaderKind::Fragment) => {
+                        let vert_line = input_line.replace("IN_OUT", "out");
+                        let frag_line = input_line.replace("IN_OUT", "in");
+
+                        vert_glsl.push(&vert_line, &define_map);
+                        frag_glsl.push(&frag_line, &define_map);
+                    },
+                    region => ris_error::new_result!("invalid region: {:?}", region)?,
+                };
+            },
+        }
+    }
 
     // compile to spirv
     let compiler = ris_error::unroll_option!(
@@ -47,39 +148,23 @@ pub fn import(
     options.set_warnings_as_errors();
     options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
-    compile_and_write_to_stream(
-        &compiler,
-        &options,
-        file,
-        ShaderKind::Vertex,
-        &vert_glsl,
-        &mut output[0],
-    )?;
-
-    compile_and_write_to_stream(
-        &compiler,
-        &options,
-        file,
-        ShaderKind::Fragment,
-        &frag_glsl,
-        &mut output[1],
-    )?;
+    vert_glsl.compile(file, &compiler, &options, &mut output[0])?;
+    frag_glsl.compile(file, &compiler, &options, &mut output[1])?;
 
     Ok(())
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Region {
+    None,
+    Shader(ShaderKind),
+    IO(ShaderKind, ShaderKind),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum ShaderKind {
     Vertex,
     Fragment,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum Region {
-    None,
-    Layout(ShaderKind),
-    LayoutIO(ShaderKind, ShaderKind),
-    Entry(ShaderKind),
 }
 
 impl std::fmt::Display for ShaderKind {
@@ -91,179 +176,87 @@ impl std::fmt::Display for ShaderKind {
     }
 }
 
-struct PreProcOutput {
-    vert_glsl: String,
-    frag_glsl: String,
-}
-
-fn pre_processor(input: String, file: &str) -> RisResult<PreProcOutput> {
-    let mut glsl_version = None;
-    let mut vert_layout = Vec::new();
-    let mut frag_layout = Vec::new();
-    let mut vert_io_frag = Vec::new();
-    let mut vert_entry = Vec::new();
-    let mut frag_entry = Vec::new();
-
-    let mut defines = HashMap::new();
-    let mut includes = HashSet::new();
-
-    let mut current_region = Region::None;
-
-    let mut line = 0;
-    for input_line in input.lines() {
-        line += 1;
-
-        let splits: Vec<&str> = input_line.split(' ').collect();
-        let first_split = splits[0];
-
-        match first_split {
-            "#glsl_version" => {
-                preproc_assert_arg_count(splits.len(), 2, file, line)?;
-                glsl_version = Some(splits[1].to_string());
-            },
-            "#layout" => {
-                match splits.len() {
-                    2 => {
-                        let region_kind = string_to_region_kind(splits[1], file, line)?;
-                        current_region = Region::Layout(region_kind);
-                    },
-                    4 => {
-                        preproc_assert(splits[1] == "io", "invalid argument", file, line)?;
-                        let i = string_to_region_kind(splits[2], file, line)?;
-                        let o = string_to_region_kind(splits[3], file, line)?;
-                        current_region = Region::LayoutIO(i, o);
-                    },
-                    _ => preproc_assert_arg_count(0, 1, file, line)?,
-                }
-            },
-            "#entry" => {
-                preproc_assert_arg_count(splits.len(), 2, file, line)?;
-                let region_kind = string_to_region_kind(splits[1], file, line)?;
-                current_region = Region::Entry(region_kind);
-            },
-            "#define" => {
-                preproc_assert_arg_count(splits.len(), 3, file, line)?;
-                let key = splits[1].to_string();
-                let value = splits[2].to_string();
-
-                let prev = defines.insert(key.clone(), value);
-                preproc_assert(
-                    prev.is_none(),
-                    &format!("define key \"{}\" was already defined", key),
-                    file,
-                    line,
-                )?;
-            },
-            "#include" => {
-                preproc_assert_arg_count(splits.len(), 2, file, line)?;
-                let to_include = splits[1].to_string();
-                println!("to be included: {}", to_include);
-                includes.insert(to_include);
-            },
-            _ => {
-                if input_line.is_empty() {
-                    continue;
-                }
-
-                preproc_assert(
-                    current_region != Region::None,
-                    "encountered code outside a dedicated region",
-                    file,
-                    line,
-                )?;
-
-                match &current_region {
-                    Region::None => preproc_fail("encountered code outside a dedicated region", file, line)?,
-                    Region::Layout(ShaderKind::Vertex) => vert_layout.push(input_line),
-                    Region::Layout(ShaderKind::Fragment) => frag_layout.push(input_line),
-                    Region::LayoutIO(ShaderKind::Vertex, ShaderKind::Fragment) => vert_io_frag.push(input_line),
-                    Region::Entry(ShaderKind::Vertex) => vert_entry.push(input_line),
-                    Region::Entry(ShaderKind::Fragment) => frag_entry.push(input_line),
-                    region => ris_error::new_result!("invalid region: {:?}", region)?,
-                };
-            },
-        }
-    }
-
-    let version = match glsl_version {
-        Some(version) => version,
-        None => return preproc_fail("shader contains no glsl_version", file, 0),
-    };
-
-    let vert_glsl = build_glsl(
-        &version,
-        ShaderKind::Vertex,
-        &defines,
-        &includes,
-        &vert_layout,
-        None,
-        Some(&vert_io_frag),
-        &vert_entry,
-    );
-
-    let frag_glsl = build_glsl(
-        &version,
-        ShaderKind::Fragment,
-        &defines,
-        &includes,
-        &frag_layout,
-        Some(&vert_io_frag),
-        None,
-        &frag_entry,
-    );
-
-    Ok(PreProcOutput {
-        vert_glsl,
-        frag_glsl,
-    })
-}
-
-#[allow(clippy::too_many_arguments)]
-fn build_glsl(
-    version: &str,
+struct Shader{
     kind: ShaderKind,
-    defines: &HashMap<String, String>,
-    includes: &HashSet<String>,
-    layout: &[&str],
-    io_in: Option<&[&str]>,
-    io_out: Option<&[&str]>,
-    entry: &[&str],
-) -> String {
-    let mut glsl = String::new();
+    source: Option<String>,
+}
 
-    glsl.push_str(&format!("#version {}", version));
-    glsl.push('\n');
-    glsl.push_str(&format!("#pragma shader_stage({})", kind));
-
-    println!("\ndefines {:?}\nincludes {:?}\n", defines, includes);
-
-    if let Some(layout_in) = io_in {
-        for line in layout_in {
-            let line = line.replace("OUT_IN", "in");
-            glsl.push('\n');
-            glsl.push_str(&line);
+impl Shader {
+    pub fn new(kind: ShaderKind) -> Self {
+        Self {
+            kind,
+            source: None,
         }
     }
 
-    for line in layout {
-        glsl.push('\n');
-        glsl.push_str(line);
+    pub fn init(&mut self, version: &str) {
+        self.source = Some(format!(
+                "#version {}\n#pragma shader_stage({})",
+                version,
+                self.kind,
+        ));
     }
 
-    if let Some(layout_out) = io_out {
-        for line in layout_out {
-            let line = line.replace("OUT_IN", "out");
-            glsl.push('\n');
-            glsl.push_str(&line);
+    pub fn push(&mut self, line: &str, define_map: &HashMap<String, String>) {
+        if let Some(shader) = &mut self.source {
+            shader.push('\n');
+
+            let mut to_push = line.to_string();
+
+            for (key, value) in define_map {
+                to_push = to_push.replace(key, value);
+            }
+
+            shader.push_str(&to_push);
         }
     }
 
-    for line in entry {
-        glsl.push('\n');
-        glsl.push_str(line);
-    }
+    pub fn compile(
+        self,
+        file: &str,
+        compiler: &shaderc::Compiler,
+        options: &shaderc::CompileOptions,
+        output: &mut (impl Write + Seek),
+    ) -> RisResult<usize> {
+        let source = match self.source {
+            Some(source) => source,
+            None => return Ok(0),
+        };
 
-    glsl
+        let file_path = PathBuf::from(file);
+        let file_stem = ris_error::unroll_option!(
+            file_path.file_stem(),
+            "file {:?} has no stem",
+            file_path,
+        )?;
+        let file_stem = ris_error::unroll_option!(
+            file_stem.to_str(),
+            "failed to convert path to string",
+        )?;
+
+        let extension = match self.kind {
+            ShaderKind::Vertex => OUT_EXT[0],
+            ShaderKind::Fragment => OUT_EXT[1],
+        };
+
+        let file = format!("{}.{}",file_stem, extension);
+
+        let artifact = ris_error::unroll!(
+            compiler.compile_into_spirv(
+                &source,
+                shaderc::ShaderKind::InferFromSource,
+                &file,
+                "main",
+                Some(options),
+            ),
+            "failed to compile shader {}",
+            file,
+        )?;
+        let bytes = artifact.as_binary_u8();
+
+
+        ris_file::write!(output, bytes)
+    }
 }
 
 fn string_to_region_kind(value: &str, file: &str, line: usize) -> RisResult<ShaderKind> {
@@ -298,47 +291,5 @@ fn preproc_fail<T>(message: &str, file: &str, line: usize) -> RisResult<T> {
         file,
         line,
     )
-}
-
-fn compile_and_write_to_stream(
-    compiler: &shaderc::Compiler,
-    options: &shaderc::CompileOptions,
-    file: &str,
-    kind: ShaderKind,
-    source: &str,
-    output: &mut (impl Write + Seek),
-) -> RisResult<usize> {
-    let file_path = PathBuf::from(file);
-    let file_stem = ris_error::unroll_option!(
-        file_path.file_stem(),
-        "file {:?} has no stem",
-        file_path,
-    )?;
-    let file_stem = ris_error::unroll_option!(
-        file_stem.to_str(),
-        "failed to convert path to string",
-    )?;
-
-    let extension = match kind {
-        ShaderKind::Vertex => OUT_EXT[0],
-        ShaderKind::Fragment => OUT_EXT[1],
-    };
-
-    let file = format!("{}.{}",file_stem, extension);
-
-    let artifact = ris_error::unroll!(
-        compiler.compile_into_spirv(
-            source,
-            shaderc::ShaderKind::InferFromSource,
-            &file,
-            "main",
-            Some(options),
-        ),
-        "failed to compile shader {}",
-        file,
-    )?;
-    let bytes = artifact.as_binary_u8();
-
-    ris_file::write!(output, bytes)
 }
 
