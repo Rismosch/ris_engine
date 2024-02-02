@@ -1,15 +1,8 @@
 #ris_glsl 460 vertex fragment
 
-#define ONE 1.0
-
-#include test_a
-#include test_b
+#include util/util.glsl
 
 #vertex
-vec3 invert_color(vec3 c) {
-    return (1 - c) * 2;
-}
-
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 color;
 
@@ -29,7 +22,7 @@ layout(location = 0) out vec4 out_color;
 void main() {
     gl_Position = ubo.proj_view * vec4(position, ONE);
 
-    f_color = color;
+    f_color = invert_color(color);
 }
 
 #fragment
