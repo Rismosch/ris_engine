@@ -80,7 +80,7 @@ fn main() {
     };
 
     if let Err(error) = result {
-        log(&format!("error: {:?}", error,));
+        log(&format!("error: {}", error,));
         print_help();
     }
 

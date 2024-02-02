@@ -2,8 +2,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::TryLockError;
 
-use ris_util::throw;
-
 use crate::job_system;
 
 struct Inner<T> {
@@ -42,7 +40,7 @@ impl<T> SettableJobFuture<T> {
         } else {
             match self.inner.lock() {
                 Ok(guard) => guard,
-                Err(e) => throw!("mutex is poisoned: {}", e),
+                Err(e) => ris_error::throw!("mutex is poisoned: {}", e),
             }
         };
 
@@ -69,7 +67,7 @@ impl<T> JobFuture<T> {
                 }
                 Err(e) => {
                     if let TryLockError::Poisoned(e) = e {
-                        throw!("couldn't take job future: {}", e);
+                        ris_error::throw!("couldn't take job future: {}", e);
                     }
                 }
             }

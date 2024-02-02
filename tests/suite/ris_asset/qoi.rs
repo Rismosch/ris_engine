@@ -47,7 +47,7 @@ fn should_encode_and_decode_raw_assets() {
     raw_assets_directory.push("..");
     raw_assets_directory.push("..");
     raw_assets_directory.push("..");
-    raw_assets_directory.push("raw_assets");
+    raw_assets_directory.push("assets/__raw");
 
     let mut pngs = Vec::new();
     let mut directories = std::collections::VecDeque::new();

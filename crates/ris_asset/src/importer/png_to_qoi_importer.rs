@@ -1,6 +1,5 @@
-use std::io::Read;
-use std::io::Seek;
-use std::io::Write;
+use std::fs::File;
+use std::path::PathBuf;
 
 use png::ColorType;
 
@@ -12,9 +11,12 @@ use crate::codecs::qoi::ColorSpace;
 use crate::codecs::qoi::QoiDesc;
 
 pub const IN_EXT: &str = "png";
-pub const OUT_EXT: &str = "qoi";
+pub const OUT_EXT: &[&str] = &["qoi"];
 
-pub fn import(input: &mut (impl Read + Seek), output: &mut (impl Write + Seek)) -> RisResult<()> {
+pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
+    // open file
+    let input = ris_error::unroll!(File::open(&source), "failed to open file {:?}", source,)?;
+
     // decode png
     let decoder = png::Decoder::new(input);
     let mut reader = ris_error::unroll!(decoder.read_info(), "failed to read info",)?;
@@ -45,7 +47,8 @@ pub fn import(input: &mut (impl Read + Seek), output: &mut (impl Write + Seek)) 
 
     let encoded = ris_error::unroll!(qoi::encode(&pixels, desc), "failed to encode qoi",)?;
 
-    ris_file::write!(output, &encoded)?;
+    let mut output = crate::asset_importer::create_file(&targets[0])?;
+    ris_file::write!(&mut output, &encoded)?;
 
     Ok(())
 }

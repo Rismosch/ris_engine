@@ -11,8 +11,6 @@ use std::sync::TryLockError;
 use std::thread;
 use std::thread::JoinHandle;
 
-use ris_util::throw;
-
 use crate as ris_jobs;
 use crate::errors::BlockedOrEmpty;
 use crate::errors::IsEmpty;
@@ -173,7 +171,7 @@ pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
                 run_pending_job(file!(), line!());
             }
             Err(TryLockError::Poisoned(e)) => {
-                throw!("mutex is poisoned: {}", e);
+                ris_error::throw!("mutex is poisoned: {}", e);
             }
         }
     }
@@ -187,7 +185,7 @@ pub fn lock_read<T>(rw_lock: &RwLock<T>) -> RwLockReadGuard<T> {
                 run_pending_job(file!(), line!());
             }
             Err(TryLockError::Poisoned(e)) => {
-                throw!("mutex is poisoned: {}", e);
+                ris_error::throw!("mutex is poisoned: {}", e);
             }
         }
     }
@@ -201,7 +199,7 @@ pub fn lock_write<T>(rw_lock: &RwLock<T>) -> RwLockWriteGuard<T> {
                 run_pending_job(file!(), line!());
             }
             Err(TryLockError::Poisoned(e)) => {
-                throw!("mutex is poisoned: {}", e);
+                ris_error::throw!("mutex is poisoned: {}", e);
             }
         }
     }
