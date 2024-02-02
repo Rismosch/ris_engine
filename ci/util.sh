@@ -11,11 +11,12 @@ GetAndClearCiOutDir() {
     __target_name="${__caller_filename%.*}"
     __target_dir="$CI_OUT_DIR/$__target_name"
 
-    echo "destination directory is: \`$__target_dir\`"
-
     if [ ! -d "$CI_OUT_DIR" ]; then
         mkdir "$CI_OUT_DIR"
     fi
+
+    __target_dir=$(realpath $__target_dir)
+    echo "destination directory is: \`$__target_dir\`"
 
     if [ -d "$__target_dir" ]; then
         echo

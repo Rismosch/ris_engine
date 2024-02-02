@@ -3,6 +3,8 @@
 echo
 echo "This script generates build info and compiles the workspace as a release ready package."
 echo
+echo
+echo
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 

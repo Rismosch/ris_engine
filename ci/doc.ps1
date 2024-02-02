@@ -1,6 +1,7 @@
 Write-Host
-Write-Host "This script generates docs and moves them to another folder. `
-This prevents ``cargo clean`` to delete the docs. In case the workspace doesn't compile, having the docs available is invaluable."
+Write-Host "This script generates docs and moves them to another folder, thus ``cargo clean`` wont be able to delete them. This is very helpful in the situation that the workspace doesn't compile, which means the workspace is in a state where ``cargo doc`` will fail."
+Write-Host
+Write-Host
 Write-Host
 
 $ErrorActionPreference = "Stop"

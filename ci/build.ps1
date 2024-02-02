@@ -1,6 +1,8 @@
 Write-Host
 Write-Host "This script generates build info and compiles the workspace as a release ready package."
 Write-Host
+Write-Host
+Write-Host
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force

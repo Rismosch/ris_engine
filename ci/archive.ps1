@@ -1,5 +1,7 @@
 Write-Host
-Write-Host "This script is used to archive the entire workspace."
+Write-Host "This script is used to archive the entire workspace. The script cleans the repo, vendors dependencies, and compresses the result.`n`nTo compress the repo, 7-Zip and a WSL (Windows Subsystem for Linux) are required. If they are missing, the compression step at the very end will most likely fail."
+Write-Host
+Write-Host
 Write-Host
 
 $ErrorActionPreference = "Stop"
