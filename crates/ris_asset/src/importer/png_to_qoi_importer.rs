@@ -1,7 +1,4 @@
 use std::fs::File;
-use std::io::Read;
-use std::io::Seek;
-use std::io::Write;
 use std::path::PathBuf;
 
 use png::ColorType;
@@ -18,11 +15,7 @@ pub const OUT_EXT: &[&str] = &["qoi"];
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // open file
-    let mut input = ris_error::unroll!(
-        File::open(&source),
-        "failed to open file {:?}",
-        source,
-    )?;
+    let input = ris_error::unroll!(File::open(&source), "failed to open file {:?}", source,)?;
 
     // decode png
     let decoder = png::Decoder::new(input);

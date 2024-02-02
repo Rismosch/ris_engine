@@ -1,10 +1,6 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
-
 use std::fs::File;
 use std::io::Read;
-use std::io::Seek;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -17,17 +13,10 @@ pub const OUT_EXT: &[&str] = &["vert.spirv", "frag.spirv"];
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file
-    let file = ris_error::unroll_option!(
-        source.to_str(),
-        "failed to convert {:?} to string",
-        source,
-    )?;
-    
-    let mut input = ris_error::unroll!(
-        File::open(file),
-        "failed to open file {:?}",
-        file,
-    )?;
+    let file =
+        ris_error::unroll_option!(source.to_str(), "failed to convert {:?} to string", source,)?;
+
+    let mut input = ris_error::unroll!(File::open(file), "failed to open file {:?}", file,)?;
 
     let file_size = ris_file::seek!(input, SeekFrom::End(0))?;
     ris_file::seek!(input, SeekFrom::Start(0))?;
@@ -78,11 +67,9 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
         match *split {
             "vertex" => vert_glsl.init(version),
             "fragment" => frag_glsl.init(version),
-            value => return preproc_fail(
-                &format!("invalid shaderkind value \"{}\"",value),
-                file,
-                0,
-            ),
+            value => {
+                return preproc_fail(&format!("invalid shaderkind value \"{}\"", value), file, 0)
+            }
         }
     }
 
@@ -106,10 +93,10 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
                 let o = string_to_region_kind(splits[2], file, line)?;
 
                 current_region = Region::IO(i, o);
-            },
+            }
             "#define" => {
                 add_define(&mut define_map, &splits, file, line)?;
-            },
+            }
             "#include" => {
                 let file_path = PathBuf::from(file);
                 let root_dir = ris_error::unroll_option!(
@@ -138,7 +125,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
                     &mut frag_glsl,
                     &define_map,
                 )?;
-            },
+            }
             _ => {
                 add_content(
                     input_line,
@@ -147,15 +134,9 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
                     &mut frag_glsl,
                     &define_map,
                 )?;
-            },
+            }
         }
     }
-
-    println!();
-    println!("{}", vert_glsl.source.as_ref().unwrap());
-    println!();
-    println!("{}", frag_glsl.source.as_ref().unwrap());
-    println!();
 
     // compile to spirv
     let compiler = ris_error::unroll_option!(
@@ -186,7 +167,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
         if let Some(artifact) = artifact {
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
-            
+
             ris_file::write!(&mut output, bytes)?;
         }
     }
@@ -216,24 +197,20 @@ impl std::fmt::Display for ShaderKind {
     }
 }
 
-struct Shader{
+struct Shader {
     kind: ShaderKind,
     source: Option<String>,
 }
 
 impl Shader {
     pub fn new(kind: ShaderKind) -> Self {
-        Self {
-            kind,
-            source: None,
-        }
+        Self { kind, source: None }
     }
 
     pub fn init(&mut self, version: &str) {
         self.source = Some(format!(
-                "#version {}\n#pragma shader_stage({})",
-                version,
-                self.kind,
+            "#version {}\n#pragma shader_stage({})",
+            version, self.kind,
         ));
     }
 
@@ -263,22 +240,17 @@ impl Shader {
         };
 
         let file_path = PathBuf::from(file);
-        let file_stem = ris_error::unroll_option!(
-            file_path.file_stem(),
-            "file {:?} has no stem",
-            file_path,
-        )?;
-        let file_stem = ris_error::unroll_option!(
-            file_stem.to_str(),
-            "failed to convert path to string",
-        )?;
+        let file_stem =
+            ris_error::unroll_option!(file_path.file_stem(), "file {:?} has no stem", file_path,)?;
+        let file_stem =
+            ris_error::unroll_option!(file_stem.to_str(), "failed to convert path to string",)?;
 
         let extension = match self.kind {
             ShaderKind::Vertex => OUT_EXT[0],
             ShaderKind::Fragment => OUT_EXT[1],
         };
 
-        let file = format!("{}.{}",file_stem, extension);
+        let file = format!("{}.{}", file_stem, extension);
 
         let artifact = ris_error::unroll!(
             compiler.compile_into_spirv(
@@ -304,7 +276,12 @@ fn string_to_region_kind(value: &str, file: &str, line: usize) -> RisResult<Shad
     }
 }
 
-fn preproc_assert_arg_count(actual: usize, expected: usize, file: &str, line: usize) -> RisResult<()> {
+fn preproc_assert_arg_count(
+    actual: usize,
+    expected: usize,
+    file: &str,
+    line: usize,
+) -> RisResult<()> {
     preproc_assert(
         actual == expected,
         "incorrect number of arguments",
@@ -322,12 +299,7 @@ fn preproc_assert(value: bool, message: &str, file: &str, line: usize) -> RisRes
 }
 
 fn preproc_fail<T>(message: &str, file: &str, line: usize) -> RisResult<T> {
-    ris_error::new_result!(
-        "preproc assert failed: {} in {}:{}",
-        message,
-        file,
-        line,
-    )
+    ris_error::new_result!("preproc assert failed: {} in {}:{}", message, file, line,)
 }
 
 fn resolve_include(
@@ -339,7 +311,6 @@ fn resolve_include(
     file: &str,
     line: usize,
 ) -> RisResult<String> {
-    
     // create path
     preproc_assert_arg_count(splits.len(), 2, file, line)?;
     let to_include = splits[1];
@@ -348,19 +319,13 @@ fn resolve_include(
     include_path.push(root_dir);
     include_path.push(to_include);
 
-    println!("debug:  {:?}", already_included);
     for path in already_included.iter() {
-        println!("check  {:?} == {:?} : {}", include_path, *path, include_path == *path);
-        
         if include_path == *path {
             return Ok(String::new());
         }
     }
 
-    println!("pushin {:?}", include_path);
     already_included.push(include_path.clone());
-    println!("after push:  {:?}", already_included);
-
 
     let file = ris_error::unroll_option!(
         include_path.to_str(),
@@ -423,7 +388,7 @@ fn resolve_include(
         match first_split {
             "#define" => {
                 add_define(define_map, &splits, file, line)?;
-            },
+            }
             "#include" => {
                 let include_content = resolve_include(
                     &splits,
@@ -437,7 +402,7 @@ fn resolve_include(
 
                 result.push('\n');
                 result.push_str(&include_content);
-            },
+            }
             _ => {
                 if input_line.is_empty() {
                     continue;
@@ -445,7 +410,7 @@ fn resolve_include(
 
                 result.push('\n');
                 result.push_str(input_line);
-            },
+            }
         }
     }
 
@@ -458,12 +423,7 @@ fn add_define(
     file: &str,
     line: usize,
 ) -> RisResult<()> {
-    preproc_assert(
-        splits.len() > 2,
-        "to few arguments for #define",
-        file,
-        line,
-    )?;
+    preproc_assert(splits.len() > 2, "to few arguments for #define", file, line)?;
 
     let key = splits[1].to_string();
     let value = splits.iter().skip(2).cloned().collect::<Vec<_>>().join(" ");
@@ -494,7 +454,7 @@ fn add_content(
         Region::None => {
             vert.push(content, define_map);
             frag.push(content, define_map);
-        },
+        }
         Region::Shader(ShaderKind::Vertex) => vert.push(content, define_map),
         Region::Shader(ShaderKind::Fragment) => frag.push(content, define_map),
         Region::IO(ShaderKind::Vertex, ShaderKind::Fragment) => {
@@ -503,7 +463,7 @@ fn add_content(
 
             vert.push(&vert_line, define_map);
             frag.push(&frag_line, define_map);
-        },
+        }
         region => ris_error::new_result!("invalid region: {:?}", region)?,
     };
 

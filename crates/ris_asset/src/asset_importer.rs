@@ -1,6 +1,6 @@
 use std::fs::File;
-use std::path::PathBuf;
 use std::path::Path;
+use std::path::PathBuf;
 
 use ris_error::RisResult;
 
@@ -52,14 +52,10 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
             let source_extension = source_extension.to_lowercase();
 
             let (importer, target_extensions) = match source_extension.as_str() {
-                glsl_to_spirv_importer::IN_EXT => (
-                    ImporterKind::GLSL,
-                    glsl_to_spirv_importer::OUT_EXT,
-                ),
-                png_to_qoi_importer::IN_EXT => (
-                    ImporterKind::PNG,
-                    png_to_qoi_importer::OUT_EXT,
-                ),
+                glsl_to_spirv_importer::IN_EXT => {
+                    (ImporterKind::GLSL, glsl_to_spirv_importer::OUT_EXT)
+                }
+                png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
                 // insert new inporter here...
                 _ => {
                     return ris_error::new_result!(
@@ -130,18 +126,8 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
     //}
 
     match importer {
-        ImporterKind::GLSL => {
-            glsl_to_spirv_importer::import(
-                source_path,
-                target_paths,
-            )
-        },
-        ImporterKind::PNG => {
-            png_to_qoi_importer::import(
-                source_path,
-                target_paths,
-            )
-        },
+        ImporterKind::GLSL => glsl_to_spirv_importer::import(source_path, target_paths),
+        ImporterKind::PNG => png_to_qoi_importer::import(source_path, target_paths),
         // insert more importers here...
     }
 }
@@ -230,14 +216,14 @@ pub fn create_file(file_path: &Path) -> RisResult<File> {
 
     if file_path.exists() {
         ris_error::unroll!(
-            std::fs::remove_file(&file_path),
+            std::fs::remove_file(file_path),
             "failed to delete target file {:?}",
             file_path,
         )?;
     }
 
     ris_error::unroll!(
-        File::create(&file_path),
+        File::create(file_path),
         "failed to create target file {:?}",
         file_path,
     )

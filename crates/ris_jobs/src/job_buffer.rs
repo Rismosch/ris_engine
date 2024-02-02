@@ -41,10 +41,10 @@ impl JobBuffer {
             Ok(node) => node,
             Err(std::sync::TryLockError::WouldBlock) => {
                 return Err(BlockedOrFull { not_pushed: job })
-            },
+            }
             Err(std::sync::TryLockError::Poisoned(e)) => {
                 ris_error::throw!("mutex is poisoned: {}", e)
-            },
+            }
         };
 
         match *node {
@@ -73,10 +73,8 @@ impl JobBuffer {
             *head - 1
         };
 
-        let mut node = ris_error::unwrap_or_throw!(
-            self.jobs[new_head].lock(),
-            "mutex is poisoned",
-        );
+        let mut node =
+            ris_error::unwrap_or_throw!(self.jobs[new_head].lock(), "mutex is poisoned",);
 
         match node.take() {
             None => Err(IsEmpty),
