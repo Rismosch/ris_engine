@@ -32,6 +32,7 @@ use vulkano::VulkanLibrary;
 use vulkano::VulkanObject;
 
 use ris_asset::loader::scenes_loader::Scenes;
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::vulkan::allocators::Allocators;
@@ -58,22 +59,19 @@ pub struct Renderer {
 impl Renderer {
     pub fn initialize(window: &Window, scenes: Scenes) -> RisResult<Self> {
         // instance
-        let library = ris_error::unroll!(VulkanLibrary::new(), "no local vulkano library")?;
+        let library = VulkanLibrary::new()?;
         let instance_extensions = InstanceExtensions::from_iter(
             window
                 .vulkan_instance_extensions()
                 .map_err(|e| ris_error::new!("failed to get vulkan instance extensions: {}", e))?,
         );
 
-        let instance = ris_error::unroll!(
-            Instance::new(
-                library,
-                InstanceCreateInfo {
-                    enabled_extensions: instance_extensions,
-                    ..Default::default()
-                },
-            ),
-            "failed to create instance"
+        let instance = Instance::new(
+            library,
+            InstanceCreateInfo {
+                enabled_extensions: instance_extensions,
+                ..Default::default()
+            },
         )?;
 
         // surface
@@ -102,21 +100,18 @@ impl Renderer {
         )?;
 
         // device
-        let (device, mut queues) = ris_error::unroll!(
-            Device::new(
-                physical_device.clone(),
-                DeviceCreateInfo {
-                    queue_create_infos: vec![QueueCreateInfo {
-                        queue_family_index,
-                        ..Default::default()
-                    }],
-                    enabled_extensions: device_extensions,
+        let (device, mut queues) = Device::new(
+            physical_device.clone(),
+            DeviceCreateInfo {
+                queue_create_infos: vec![QueueCreateInfo {
+                    queue_family_index,
                     ..Default::default()
-                },
-            ),
-            "failed to create device"
+                }],
+                enabled_extensions: device_extensions,
+                ..Default::default()
+            },
         )?;
-        let queue = ris_error::unroll_option!(queues.next(), "no queues available")?;
+        let queue = queues.next().unroll()?;
 
         // shaders
         let vs_future = super::shader::load_async(device.clone(), scenes.default_vs.clone());
@@ -288,10 +283,7 @@ impl Renderer {
         index: usize,
         ubo: &super::gpu_objects::UniformBufferObject,
     ) -> RisResult<()> {
-        let mut uniform_content = ris_error::unroll!(
-            self.buffers.uniforms[index].0.write(),
-            "failed to update uniform"
-        )?;
+        let mut uniform_content = self.buffers.uniforms[index].0.write()?;
 
         uniform_content.view = ubo.view;
         uniform_content.proj = ubo.proj;

@@ -31,11 +31,7 @@ impl ImguiBackend {
         dir.push("imgui");
 
         if !dir.exists() {
-            ris_error::unroll!(
-                std::fs::create_dir_all(&dir),
-                "failed to create imgui dir: {:?}",
-                &dir,
-            )?;
+            std::fs::create_dir_all(&dir)?;
         }
 
         let mut ini_filepath = PathBuf::from(&dir);

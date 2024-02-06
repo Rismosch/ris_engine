@@ -106,25 +106,19 @@ impl GodObject {
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = ris_error::unroll!(
-            asset_loader::load_async(scenes_id).wait(),
-            "failed to load ris_scenes"
-        )?;
+        let scenes_bytes = asset_loader::load_async(scenes_id).wait()?;
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
         let video_subsystem = sdl_context
             .video()
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
-        let window = ris_error::unroll!(
-            video_subsystem
-                .window("ris_engine", 640, 480)
-                //.resizable()
-                .position_centered()
-                .vulkan()
-                .build(),
-            "failed to build window"
-        )?;
+        let window = video_subsystem
+            .window("ris_engine", 640, 480)
+            //.resizable()
+            .position_centered()
+            .vulkan()
+            .build()?;
 
         let renderer = Renderer::initialize(&window, scenes.clone())?;
 

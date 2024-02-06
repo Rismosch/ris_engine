@@ -114,7 +114,7 @@ impl OutputFrame {
         }
 
         if let Some(fence) = &self.fences[image as usize] {
-            ris_error::unroll!(fence.wait(None), "failed to wait on fence")?;
+            fence.wait(None)?;
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
@@ -137,18 +137,12 @@ impl OutputFrame {
         self.renderer.update_uniform(image as usize, &ubo)?;
 
         let swapchain_image = &self.renderer.images[image as usize];
-        let imgui_target = ris_error::unroll!(
-            ImageView::new_default(swapchain_image.clone()),
-            "failed to create image view",
-        )?;
+        let imgui_target = ImageView::new_default(swapchain_image.clone())?;
         let draw_data = self.imgui.backend.context().render();
-        let mut imgui_command_buffer_builder = ris_error::unroll!(
-            AutoCommandBufferBuilder::primary(
-                &self.renderer.allocators.command_buffer,
-                self.renderer.queue.queue_family_index(),
-                vulkano::command_buffer::CommandBufferUsage::OneTimeSubmit,
-            ),
-            "failed to create auto command buffer builder",
+        let mut imgui_command_buffer_builder = AutoCommandBufferBuilder::primary(
+            &self.renderer.allocators.command_buffer,
+            self.renderer.queue.queue_family_index(),
+            vulkano::command_buffer::CommandBufferUsage::OneTimeSubmit,
         )?;
         self.imgui.renderer.draw(
             imgui_target,
@@ -156,17 +150,14 @@ impl OutputFrame {
             &self.renderer.allocators,
             draw_data,
         )?;
-        let imgui_command_buffer = ris_error::unroll!(
-            imgui_command_buffer_builder.build(),
-            "failed to build auto command buffer builder",
-        )?;
+        let imgui_command_buffer = imgui_command_buffer_builder.build()?;
 
         let use_gpu_resources = false;
         let previous_future = match self.fences[self.previous_fence].clone() {
             None => self.renderer.synchronize().boxed(),
             Some(fence) => {
                 if use_gpu_resources {
-                    ris_error::unroll!(fence.wait(None), "failed to wait on fence")?;
+                    fence.wait(None)?;
                 }
 
                 fence.boxed()

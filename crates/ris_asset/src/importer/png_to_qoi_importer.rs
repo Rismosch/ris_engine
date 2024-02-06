@@ -15,13 +15,13 @@ pub const OUT_EXT: &[&str] = &["qoi"];
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // open file
-    let input = ris_error::unroll!(File::open(&source), "failed to open file {:?}", source,)?;
+    let input = File::open(source)?;
 
     // decode png
     let decoder = png::Decoder::new(input);
-    let mut reader = ris_error::unroll!(decoder.read_info(), "failed to read info",)?;
+    let mut reader = decoder.read_info()?;
     let mut pixels = vec![0; reader.output_buffer_size()];
-    let info = ris_error::unroll!(reader.next_frame(&mut pixels), "failed to get next frame",)?;
+    let info = reader.next_frame(&mut pixels)?;
 
     // encode qoi
     let width = info.width;
@@ -45,7 +45,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
         color_space,
     };
 
-    let encoded = ris_error::unroll!(qoi::encode(&pixels, desc), "failed to encode qoi",)?;
+    let encoded = qoi::encode(&pixels, desc)?;
 
     let mut output = crate::asset_importer::create_file(&targets[0])?;
     ris_file::write!(&mut output, &encoded)?;

@@ -11,6 +11,7 @@ use vulkano::memory::allocator::MemoryUsage;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::Pipeline;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::color;
 
@@ -161,37 +162,31 @@ impl Buffers {
 
         //panic!("{} vertices {} indices", vertices.len(), indices.len());
 
-        let vertex = ris_error::unroll!(
-            Buffer::from_iter(
-                &allocators.memory,
-                BufferCreateInfo {
-                    usage: BufferUsage::VERTEX_BUFFER,
-                    ..Default::default()
-                },
-                AllocationCreateInfo {
-                    usage: MemoryUsage::Upload,
-                    ..Default::default()
-                },
-                vertices,
-            ),
-            "failed to create vertex buffer",
+        let vertex = Buffer::from_iter(
+            &allocators.memory,
+            BufferCreateInfo {
+                usage: BufferUsage::VERTEX_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
+            vertices,
         )?;
 
         // index
-        let index = ris_error::unroll!(
-            Buffer::from_iter(
-                &allocators.memory,
-                BufferCreateInfo {
-                    usage: BufferUsage::INDEX_BUFFER,
-                    ..Default::default()
-                },
-                AllocationCreateInfo {
-                    usage: MemoryUsage::Upload,
-                    ..Default::default()
-                },
-                indices,
-            ),
-            "failed to create index buffer",
+        let index = Buffer::from_iter(
+            &allocators.memory,
+            BufferCreateInfo {
+                usage: BufferUsage::INDEX_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
+            indices,
         )?;
 
         // uniform
@@ -199,34 +194,25 @@ impl Buffers {
         for _ in 0..uniform_buffer_count {
             let ubo = UniformBufferObject::default();
 
-            let uniform_buffer = ris_error::unroll!(
-                Buffer::from_data(
-                    &allocators.memory,
-                    BufferCreateInfo {
-                        usage: BufferUsage::UNIFORM_BUFFER,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        usage: MemoryUsage::Upload,
-                        ..Default::default()
-                    },
-                    ubo,
-                ),
-                "failed to create uniform buffer",
+            let uniform_buffer = Buffer::from_data(
+                &allocators.memory,
+                BufferCreateInfo {
+                    usage: BufferUsage::UNIFORM_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    usage: MemoryUsage::Upload,
+                    ..Default::default()
+                },
+                ubo,
             )?;
 
-            let descriptor_set_layout = ris_error::unroll_option!(
-                pipeline.layout().set_layouts().first(),
-                "failed to get descriptor set layout",
-            )?;
+            let descriptor_set_layout = pipeline.layout().set_layouts().first().unroll()?;
 
-            let descriptor_set = ris_error::unroll!(
-                PersistentDescriptorSet::new(
-                    &allocators.descriptor_set,
-                    descriptor_set_layout.clone(),
-                    [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
-                ),
-                "failed to create persistent descriptor set",
+            let descriptor_set = PersistentDescriptorSet::new(
+                &allocators.descriptor_set,
+                descriptor_set_layout.clone(),
+                [WriteDescriptorSet::buffer(0, uniform_buffer.clone())],
             )?;
 
             uniforms.push((uniform_buffer, descriptor_set));

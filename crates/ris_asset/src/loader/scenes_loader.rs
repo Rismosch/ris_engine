@@ -1,3 +1,4 @@
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::loader::ris_loader;
@@ -12,10 +13,7 @@ pub struct Scenes {
 }
 
 pub fn load(bytes: &[u8]) -> RisResult<Scenes> {
-    let data = ris_error::unroll_option!(
-        ris_loader::load(bytes)?,
-        "failed to load ris asset from scenes"
-    )?;
+    let data = ris_loader::load(bytes)?.unroll()?;
 
     let default_vs = data.references[0].clone();
     let default_fs = data.references[1].clone();

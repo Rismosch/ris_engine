@@ -122,8 +122,8 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
             command.arg(arg);
         }
 
-        let child = ris_error::unroll!(command.spawn(), "child could not be spawned")?;
-        let output = ris_error::unroll!(child.wait_with_output(), "child could not be awaited")?;
+        let child = command.spawn()?;
+        let output = child.wait_with_output()?;
 
         let exit_code = if let Some(code) = output.status.code() {
             eprintln!("process finished with code {}", code);

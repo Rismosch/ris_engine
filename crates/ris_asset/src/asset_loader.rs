@@ -89,12 +89,9 @@ pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     }
 
     // create internal loader
-    let metadata = ris_error::unroll!(asset_path.metadata(), "failed to get metadata")?;
+    let metadata = asset_path.metadata()?;
     let internal = if metadata.is_file() {
-        let loader = ris_error::unroll!(
-            AssetLoaderCompiled::new(asset_path),
-            "failed to create compiled asset loader"
-        )?;
+        let loader = AssetLoaderCompiled::new(asset_path)?;
         ris_log::debug!("compiled asset loader was created");
         InternalLoader::Compiled(loader)
     } else if metadata.is_dir() {

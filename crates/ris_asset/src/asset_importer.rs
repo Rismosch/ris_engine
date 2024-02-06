@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::importer::*;
@@ -39,16 +40,8 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
             let source_path = info.source_file_path;
             let target_directory = info.target_directory;
 
-            let source_extension = ris_error::unroll_option!(
-                source_path.extension(),
-                "failed to find extension from {:?}",
-                source_path
-            )?;
-            let source_extension = ris_error::unroll_option!(
-                source_extension.to_str(),
-                "failed to convert extension {:?} to string",
-                source_extension
-            )?;
+            let source_extension = source_path.extension().unroll()?;
+            let source_extension = source_extension.to_str().unroll()?;
             let source_extension = source_extension.to_lowercase();
 
             let (importer, target_extensions) = match source_extension.as_str() {
@@ -65,16 +58,8 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
                 }
             };
 
-            let source_stem = ris_error::unroll_option!(
-                source_path.file_stem(),
-                "failed to find file stem from {:?}",
-                source_path
-            )?;
-            let source_stem = ris_error::unroll_option!(
-                source_stem.to_str(),
-                "failed to convert stem {:?} to string",
-                source_stem,
-            )?;
+            let source_stem = source_path.file_stem().unroll()?;
+            let source_stem = source_stem.to_str().unroll()?;
             let source_stem = String::from(source_stem);
 
             let mut target_paths = Vec::new();
@@ -91,40 +76,6 @@ pub fn import(info: ImporterInfo) -> RisResult<()> {
         }
     };
 
-    //let source_path = ris_error::unroll_option!(
-    //    source_path.to_str(),
-    //    "not a valid utf8",
-    //)?;
-
-    //for target_path in target_paths {
-    //    let parent = target_path.parent();
-    //    if let Some(parent) = parent {
-    //        if !parent.exists() {
-    //            ris_error::unroll!(
-    //                std::fs::create_dir_all(parent),
-    //                "failed to create target directory {:?}",
-    //                parent
-    //            )?;
-    //        }
-    //    }
-
-    //    if target_path.exists() {
-    //        ris_error::unroll!(
-    //            std::fs::remove_file(&target_path),
-    //            "failed to delete target file {:?}",
-    //            target_path,
-    //        )?;
-    //    }
-
-    //    let target_file = ris_error::unroll!(
-    //        File::create(&target_path),
-    //        "failed to create target file {:?}",
-    //        target_path,
-    //    )?;
-
-    //    target_files.push(target_file);
-    //}
-
     match importer {
         ImporterKind::GLSL => glsl_to_spirv_importer::import(source_path, target_paths),
         ImporterKind::PNG => png_to_qoi_importer::import(source_path, target_paths),
@@ -139,22 +90,15 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> RisResult<(
 
     let target_directory_path = PathBuf::from(target_directory);
     if target_directory_path.exists() {
-        ris_error::unroll!(
-            std::fs::remove_dir_all(target_directory_path),
-            "failed to delete target directory"
-        )?;
+        std::fs::remove_dir_all(target_directory_path)?;
     }
 
     while let Some(current) = directories.pop_front() {
-        let entries = ris_error::unroll!(
-            std::fs::read_dir(&current),
-            "failed to read directory \"{:?}\"",
-            current,
-        )?;
+        let entries = std::fs::read_dir(&current)?;
 
         for entry in entries {
-            let entry = ris_error::unroll!(entry, "failed to read entry")?;
-            let metadata = ris_error::unroll!(entry.metadata(), "failed to read metadata")?;
+            let entry = entry?;
+            let metadata = entry.metadata()?;
             let entry_path = entry.path();
 
             if metadata.is_file() {
@@ -169,10 +113,7 @@ pub fn import_all(source_directory: &str, target_directory: &str) -> RisResult<(
                     target_directory.push('/');
                 }
 
-                let source_path = ris_error::unroll_option!(
-                    entry_path.to_str(),
-                    "failed to convert path to string"
-                )?;
+                let source_path = entry_path.to_str().unroll()?;
                 let mut target_path_part = source_path.replace('\\', "/");
                 target_path_part.replace_range(0..source_directory.len(), "");
 
@@ -206,25 +147,14 @@ pub fn create_file(file_path: &Path) -> RisResult<File> {
     let parent = file_path.parent();
     if let Some(parent) = parent {
         if !parent.exists() {
-            ris_error::unroll!(
-                std::fs::create_dir_all(parent),
-                "failed to create target directory {:?}",
-                parent
-            )?;
+            std::fs::create_dir_all(parent)?;
         }
     }
 
     if file_path.exists() {
-        ris_error::unroll!(
-            std::fs::remove_file(file_path),
-            "failed to delete target file {:?}",
-            file_path,
-        )?;
+        std::fs::remove_file(file_path)?;
     }
 
-    ris_error::unroll!(
-        File::create(file_path),
-        "failed to create target file {:?}",
-        file_path,
-    )
+    let file = File::create(file_path)?;
+    Ok(file)
 }

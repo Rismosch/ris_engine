@@ -75,14 +75,14 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.get_workers()));
     yaml.add_empty();
 
-    let string = ris_error::unroll!(yaml.to_string(), "failed to serialize yaml",)?;
+    let string = yaml.to_string()?;
 
     let bytes = string.as_bytes().to_vec();
     Ok(bytes)
 }
 
 fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
-    let string = ris_error::unroll!(String::from_utf8(bytes.to_vec()), "failed to parse bytes",)?;
+    let string = String::from_utf8(bytes.to_vec())?;
 
     let mut result = Settings::default();
     let yaml = RisYaml::from(&string)?;
