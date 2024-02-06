@@ -67,10 +67,10 @@ impl OutputFrame {
             return Ok(());
         }
 
-        let (recreate_viewport, reload_shaders) = if state.back().reload_shaders {
+        let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
             (true, true)
         } else {
-            match state.back().window_event {
+            match *state.back.window_event.borrow() {
                 WindowEvent::SizeChanged(..) => (true, false),
                 WindowEvent::None => (false, false),
             }
@@ -118,7 +118,10 @@ impl OutputFrame {
         }
 
         // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view = Space::view(state.back().camera_position, state.back().camera_rotation);
+        let view = Space::view(
+            *state.back.camera_position.borrow(),
+            *state.back.camera_rotation.borrow(),
+        );
 
         let fovy = ris_math::radians(60.);
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);

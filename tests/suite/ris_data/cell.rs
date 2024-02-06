@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ris_data::cell::ArefCell;
 
 //-----------------------------//
@@ -127,7 +129,7 @@ fn should_deref_from_different_thread() {
 
 #[test]
 fn should_deref_mut_and_deref_from_different_threads() {
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
 
     let cell_copy = cell.clone();
     let handle = std::thread::spawn(move || {
@@ -143,7 +145,7 @@ fn should_deref_mut_and_deref_from_different_threads() {
 
 #[test]
 fn should_not_panic_when_borrowing_multiple_times_from_different_threads() {
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
 
     let mut handles = Vec::new();
     for _ in 0..100 {
@@ -168,7 +170,7 @@ fn should_not_panic_when_borrowing_multiple_times_from_different_threads() {
 fn should_panic_when_borrowing_while_ref_mut_exists_in_multiple_threads() {
     unsafe { ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false };
 
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
     let cell_copy = cell.clone();
 
     let handle1 = std::thread::spawn(move || {
@@ -192,7 +194,7 @@ fn should_panic_when_borrowing_while_ref_mut_exists_in_multiple_threads() {
 fn should_panic_when_borrowing_mut_while_ref_exists_in_other_thread() {
     unsafe { ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false };
 
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
     let cell_copy = cell.clone();
 
     let handle1 = std::thread::spawn(move || {
@@ -216,7 +218,7 @@ fn should_panic_when_borrowing_mut_while_ref_exists_in_other_thread() {
 fn should_panic_when_borrowing_mut_while_ref_mut_exists_in_other_thread() {
     unsafe { ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false };
 
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
     let cell_copy = cell.clone();
 
     let handle1 = std::thread::spawn(move || {
@@ -240,7 +242,7 @@ fn should_panic_when_borrowing_mut_while_ref_mut_exists_in_other_thread() {
 fn should_panic_when_deref_and_cell_was_dropped_in_different_thread() {
     unsafe { ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false };
 
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
     let cell_copy = cell.clone();
 
     let handle = std::thread::spawn(move || {
@@ -261,7 +263,7 @@ fn should_panic_when_deref_and_cell_was_dropped_in_different_thread() {
 fn should_panic_when_deref_mut_and_cell_was_dropped_in_multiple_threads() {
     unsafe { ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false };
 
-    let cell = ArefCell::new(42);
+    let cell = Arc::new(ArefCell::new(42));
     let cell_copy = cell.clone();
 
     let handle = std::thread::spawn(move || {

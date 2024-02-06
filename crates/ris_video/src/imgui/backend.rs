@@ -70,16 +70,16 @@ impl ImguiBackend {
 
         io.update_delta_time(frame.previous_duration());
 
-        // mouse input
-        let mouse = &state.back().input.mouse;
+        let input = state.back.input.borrow();
 
-        let x = mouse.wheel_xrel;
-        let y = mouse.wheel_yrel;
+        // mouse input
+        let x = input.mouse.wheel_xrel;
+        let y = input.mouse.wheel_yrel;
         if x != 0 || y != 0 {
             io.add_mouse_wheel_event([x as f32, y as f32]);
         }
 
-        let buttons = &mouse.buttons;
+        let buttons = &input.mouse.buttons;
         forward_mouse_button_event(io, buttons, 0);
         forward_mouse_button_event(io, buttons, 1);
         forward_mouse_button_event(io, buttons, 2);
@@ -87,9 +87,7 @@ impl ImguiBackend {
         forward_mouse_button_event(io, buttons, 4);
 
         // keyboard input
-        let keyboard = &state.back().input.keyboard;
-
-        let mod_state = keyboard.mod_state;
+        let mod_state = input.keyboard.mod_state;
 
         io.add_key_event(
             imgui::Key::ModShift,
@@ -108,8 +106,8 @@ impl ImguiBackend {
             mod_state.intersects(Mod::LGUIMOD | Mod::RGUIMOD),
         );
 
-        let keys_down = keyboard.keys.down();
-        let keys_up = keyboard.keys.up();
+        let keys_down = input.keyboard.keys.down();
+        let keys_up = input.keyboard.keys.up();
         for i in 0..KEY_STATE_SIZE {
             let down = keys_down[i];
             let up = keys_up[i];
@@ -130,7 +128,7 @@ impl ImguiBackend {
         }
 
         // text input
-        for text in &keyboard.text_input {
+        for text in &input.keyboard.text_input {
             text.chars().for_each(|c| io.add_input_character(c));
         }
 
@@ -146,7 +144,7 @@ impl ImguiBackend {
             ris_log::warning!("set mouse pos not implemented!");
         }
 
-        io.mouse_pos = [mouse.x as f32, mouse.y as f32];
+        io.mouse_pos = [input.mouse.x as f32, input.mouse.y as f32];
 
         if !io
             .config_flags

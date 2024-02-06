@@ -1,12 +1,9 @@
 use std::sync::Arc;
-use std::sync::RwLock;
-use std::sync::RwLockReadGuard;
-use std::sync::RwLockWriteGuard;
 
-use ris_jobs::job_system;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+use crate::cell::ArefCell;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -25,80 +22,61 @@ impl Default for WindowEvent {
 #[derive(Default, Clone)]
 pub struct GodStateData {
     // events
-    pub reload_shaders: bool,
-    pub window_event: WindowEvent,
+    pub reload_shaders: Arc<ArefCell<bool>>,
+    pub window_event: Arc<ArefCell<WindowEvent>>,
 
     // input
-    pub input: Input,
+    pub input: Arc<ArefCell<Input>>,
 
     // general
-    pub camera_position: Vec3,
-    pub camera_rotation: Quat,
+    pub camera_position: Arc<ArefCell<Vec3>>,
+    pub camera_rotation: Arc<ArefCell<Quat>>,
 
     // settings
-    pub settings: Settings,
+    pub settings: Arc<ArefCell<Settings>>,
 }
 
-pub type GodStateLock = RwLock<GodStateData>;
-
+#[derive(Default)]
 pub struct GodState {
-    front: GodStateLock,
-    back: GodStateLock,
-}
-
-impl GodStateData {
-    pub fn new(settings: Settings) -> GodStateLock {
-        let data = GodStateData {
-            settings,
-            ..Default::default()
-        };
-
-        RwLock::new(data)
-    }
+    pub front: GodStateData,
+    pub back: GodStateData,
 }
 
 impl GodState {
-    pub fn new(front: GodStateLock, back: GodStateLock) -> Arc<Self> {
+    pub fn new(settings: Settings) -> Arc<Self> {
+        let front = GodStateData {
+            settings: Arc::new(ArefCell::new(settings.clone())),
+            ..Default::default()
+        };
+        let back = GodStateData {
+            settings: Arc::new(ArefCell::new(settings)),
+            ..Default::default()
+        };
+
         let double_buffer = GodState { front, back };
 
         Arc::new(double_buffer)
     }
 
-    pub fn front(&self) -> RwLockReadGuard<GodStateData> {
-        job_system::lock_read(&self.front)
-    }
-
-    pub fn front_mut(&self) -> RwLockWriteGuard<GodStateData> {
-        job_system::lock_write(&self.front)
-    }
-
-    pub fn back(&self) -> RwLockReadGuard<GodStateData> {
-        job_system::lock_read(&self.back)
-    }
-
-    pub fn back_mut(&self) -> RwLockWriteGuard<GodStateData> {
-        job_system::lock_write(&self.back)
-    }
-
     pub fn copy_front_to_back(&self) {
-        let mut front = self.front_mut();
-        let mut back = self.back_mut();
+        let front = &self.front;
+        let back = &self.back;
 
         // events
-        back.reload_shaders = front.reload_shaders;
-        front.reload_shaders = false;
-        back.window_event = front.window_event;
-        front.window_event = WindowEvent::None;
+        *back.reload_shaders.borrow_mut() = *front.reload_shaders.borrow();
+        *front.reload_shaders.borrow_mut() = false;
+        *back.window_event.borrow_mut() = *front.window_event.borrow();
+        *front.window_event.borrow_mut() = WindowEvent::None;
 
         // input
-        back.input = front.input.clone();
+        *back.input.borrow_mut() = front.input.borrow().clone();
 
         // general
-        back.camera_position = front.camera_position;
-        back.camera_rotation = front.camera_rotation;
+        *back.camera_position.borrow_mut() = *front.camera_position.borrow();
+        *back.camera_rotation.borrow_mut() = *front.camera_rotation.borrow();
 
         // settings
-        back.settings = front.settings.clone();
-        front.settings.reset();
+        *back.settings.borrow_mut() = front.settings.borrow().clone();
+        front.settings.borrow_mut().reset();
     }
 }
