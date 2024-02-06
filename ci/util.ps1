@@ -11,10 +11,13 @@ function GetAndClearCiOutDir {
         New-Item -Path $ci_out_dir -ItemType Directory | out-null
     }
 
-    $target_dir = Resolve-Path $target_dir
-    Write-Host "destination directory is: ``$target_dir``"
+    $destinationDirectoryWasLogged = $false
 
     if (Test-Path $target_dir) {
+        $target_dir = Resolve-Path $target_dir
+        Write-Host "destination directory is: ``$target_dir``"
+        $destinationDirectoryWasLogged = $true
+
         Write-Host
         Write-Host "WARNING: destination directory exists already"
         $target_dir = Resolve-Path $target_dir
@@ -24,12 +27,17 @@ function GetAndClearCiOutDir {
             Remove-Item -Recurse -Force $target_dir
             Write-Host "deleted ``$target_dir``"
         }
-
     }
 
     $target_dir_exists = Test-Path $target_dir
     if (!$target_dir_exists) {
         New-Item -Path $target_dir -ItemType Directory | out-null
+    }
+
+    if ($destinationDirectoryWasLogged -eq $false) {
+        $target_dir = Resolve-Path $target_dir
+        Write-Host "destination directory is: ``$target_dir``"
+        $destinationDirectoryWasLogged = $true
     }
 
     Write-Host

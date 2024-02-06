@@ -15,10 +15,13 @@ GetAndClearCiOutDir() {
         mkdir "$CI_OUT_DIR"
     fi
 
-    __target_dir=$(realpath $__target_dir)
-    echo "destination directory is: \`$__target_dir\`"
+    __destination_directory_was_logged=0
 
     if [ -d "$__target_dir" ]; then
+        __target_dir=$(realpath $__target_dir)
+        echo "destination directory is: \`$__target_dir\`"
+        __destination_directory_was_logged=1
+
         echo
         echo "WARNING: destination directory exists already"
         read -p "are you sure you want to delete \`$__target_dir\`? (y/N)" user_input
@@ -35,6 +38,12 @@ GetAndClearCiOutDir() {
 
     if [ ! -d "$__target_dir" ]; then
         mkdir "$__target_dir"
+    fi
+
+    if [ "$__destination_directory_was_logged" -eq 0 ]; then
+        __target_dir=$(realpath $__target_dir)
+        echo "destination directory is: \`$__target_dir\`"
+        __destination_directory_was_logged=1
     fi
 
     echo

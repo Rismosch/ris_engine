@@ -160,7 +160,7 @@ impl Buffers {
             }
         }
 
-        //panic!("{} vertices {} indices", vertices.len(), indices.len());
+        // panic!("{} vertices {} indices", vertices.len(), indices.len());
 
         let vertex = Buffer::from_iter(
             &allocators.memory,
