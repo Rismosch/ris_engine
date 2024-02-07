@@ -34,6 +34,9 @@ members = [
     "crates/ris_video",
 ]
 
+[dev-dependencies]
+criterion = "0.3"
+
 [dependencies]
 chrono = "0.4"
 imgui = "0.11.0"
@@ -85,3 +88,7 @@ rpath = false
 # https://nnethercote.github.io/perf-book/build-configuration.html#cpu-specific-instructions
 # [build]
 # rustflags = ["-C", "target-cpu=native"]
+
+[[bench]]
+name = "map"
+harness = false
