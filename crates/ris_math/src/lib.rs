@@ -7,6 +7,15 @@ pub mod vector;
 pub const MIN_NORM: f32 = 0.000_001f32;
 
 //
+// convertion
+//
+
+// returns 1.0 if x == true, otherwise 0.0
+pub fn btof(x: bool) -> f32 {
+    x as usize as f32
+}
+
+//
 // angle and trigonometry functions
 // function parameters specified as _angle_ are assumed to be in units of radians
 //
@@ -223,4 +232,37 @@ pub fn is_nan(x: f32) -> bool {
 /// returns true if x holds a positive infinity or negative infinity. returns false otherwise
 pub fn is_inf(x: f32) -> bool {
     f32::is_infinite(x)
+}
+
+//
+// fast functions
+//
+
+/// returns (sin(angle), cos(angle)), less acurate, but faster than using the other sin and cos functions.
+/// panics when angle < 0 or angle > 2 * PI
+///
+/// inspired by Kaze Emanuar: https://youtu.be/xFKFoGiGlXQ?si=DzyEiuwSqKfE4q2Q&t=885
+pub fn fast_sincos(angle: f32) -> (f32, f32) {
+    debug_assert!(angle >= 0.);
+    debug_assert!(angle <= 2. * PI);
+
+    let sin_part1 = bhaskara(angle - 0.5 * PI);
+    let sin_part2 = -bhaskara(angle - 1.5 * PI);
+    let sin_choose = angle > PI;
+
+    let flipsign = angle > 0.5 * PI && angle < 1.5 * PI;
+    let sign = mix(1., -1., btof(flipsign));
+
+    let sin = mix(sin_part1, sin_part2, btof(sin_choose));
+    let cos = sign * sqrt(1. - sin * sin);
+
+    (sin, cos)
+}
+
+/// computes (pi^2 - 4x^2) / (pi^2 + x^2). used by sincos_bhaskara
+pub fn bhaskara(x: f32) -> f32 {
+    let pi2 = PI * PI;
+    let xx = x * x;
+    let xx4 = xx + xx + xx + xx;
+    (pi2 - xx4) / (pi2 + xx)
 }

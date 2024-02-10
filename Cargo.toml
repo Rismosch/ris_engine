@@ -34,11 +34,9 @@ members = [
     "crates/ris_video",
 ]
 
-[dev-dependencies]
-criterion = "0.3"
-
 [dependencies]
 chrono = "0.4"
+criterion = "0.3"
 imgui = "0.11.0"
 png = "0.17.10"
 sdl2 = "0.34.5"
@@ -91,4 +89,8 @@ rpath = false
 
 [[bench]]
 name = "map"
+harness = false
+
+[[bench]]
+name = "math"
 harness = false

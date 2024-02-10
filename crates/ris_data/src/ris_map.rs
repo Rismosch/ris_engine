@@ -167,4 +167,3 @@ impl<T> RisMap<T> {
         }
     }
 }
-
