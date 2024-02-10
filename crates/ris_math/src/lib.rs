@@ -238,10 +238,15 @@ pub fn is_inf(x: f32) -> bool {
 // fast functions
 //
 
-/// returns (sin(angle), cos(angle)), less acurate, but faster than using the other sin and cos functions.
-/// panics when angle < 0 or angle > 2 * PI
+/// returns (sin(angle), cos(angle)). less accurate than the other sin cos functions, but
+/// significantly faster. max error: ~0.00202
 ///
 /// inspired by Kaze Emanuar: https://youtu.be/xFKFoGiGlXQ?si=DzyEiuwSqKfE4q2Q&t=885
+///
+/// # Panics
+///
+/// panics if angle < 0 or angle > 2 * PI
+///
 pub fn fast_sincos(angle: f32) -> (f32, f32) {
     debug_assert!(angle >= 0.);
     debug_assert!(angle <= 2. * PI);
