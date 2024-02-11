@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 echo
-echo "This script generates docs and moves them to another folder. \
-This prevents \`cargo clean\` to delete the docs. In case the workspace doesn't compile, having the docs available is invaluable."
+echo "This script generates docs and moves them to another folder, thus \`cargo clean\` wont be able to delete them. This is very helpful in the situation that the workspace doesn't compile, which means the workspace is in a state where \`cargo doc\` will fail."
+echo
+echo
 echo
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)

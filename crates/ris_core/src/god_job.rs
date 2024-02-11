@@ -40,7 +40,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             let settings_serializer = god_object.settings_serializer;
             let state = state_for_save_settings;
 
-            let settings = &state.back().settings;
+            let settings = &state.back.settings.borrow();
 
             let result = if settings.save_requested() {
                 settings_serializer.serialize(settings)
@@ -62,13 +62,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         god_object.settings_serializer = new_settings_serializer;
 
         // restart job system
-        if god_state.front().settings.job().changed() {
+        let settings = god_state.front.settings.borrow();
+        if settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers =
-                crate::determine_thread_count(&god_object.app_info, &god_state.front().settings);
+            let workers = crate::determine_thread_count(&god_object.app_info, &settings);
 
             let new_guard = unsafe {
                 job_system::init(

@@ -1,8 +1,6 @@
 use std::sync::Arc;
-use std::sync::RwLock;
 
 use ris_data::god_state::GodState;
-use ris_data::god_state::GodStateData;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_input::general_logic::update_general;
 use ris_rng::rng::Rng;
@@ -17,10 +15,7 @@ impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new().unwrap());
 
-        let data = GodStateData::default();
-        let front = RwLock::new(data.clone());
-        let back = RwLock::new(data);
-        let state = GodState::new(front, back);
+        let state = Arc::new(GodState::default());
 
         Self { rng, state }
     }
@@ -43,11 +38,18 @@ fn should_forward_buttons_by_default() {
     for i in 0..32 {
         let input = 1 << i;
 
-        context.state.front_mut().input.mouse.buttons.update(input);
+        context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .mouse
+            .buttons
+            .update(input);
 
         update_general(context.state.clone());
 
-        let actual = context.state.front().input.general.buttons.hold();
+        let actual = context.state.front.input.borrow().general.buttons.hold();
         assert_eq!(input, actual, "{}", i);
     }
 }
@@ -60,22 +62,29 @@ fn can_block_buttons() {
 
     RebindMatrix::copy(
         &empty_rebind_matrix,
-        &mut context.state.front_mut().input.keyboard.rebind_matrix,
+        &mut context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .keyboard
+            .rebind_matrix,
     );
 
     for i in 0..32 {
         let input = i << 1;
         context
             .state
-            .front_mut()
+            .front
             .input
+            .borrow_mut()
             .keyboard
             .buttons
             .update(input);
 
         update_general(context.state.clone());
 
-        let actual = context.state.front().input.general.buttons.hold();
+        let actual = context.state.front.input.borrow().general.buttons.hold();
         assert_eq!(0, actual, "{}", i);
     }
 }
@@ -90,8 +99,9 @@ fn should_rebind_buttons() {
 
         context
             .state
-            .front_mut()
+            .front
             .input
+            .borrow_mut()
             .gamepad
             .buttons
             .update(input);
@@ -100,13 +110,13 @@ fn should_rebind_buttons() {
 
         RebindMatrix::copy(
             &rebind_matrix,
-            &mut context.state.front_mut().input.gamepad.rebind_matrix,
+            &mut context.state.front.input.borrow_mut().gamepad.rebind_matrix,
         );
 
         update_general(context.state.clone());
 
         let expected = rebind_matrix.data[input_index as usize];
-        let actual = context.state.front().input.general.buttons.hold();
+        let actual = context.state.front.input.borrow().general.buttons.hold();
         assert_eq!(expected, actual);
     }
 }
@@ -117,22 +127,25 @@ fn should_bitwise_or_all_inputs() {
 
     context
         .state
-        .front_mut()
+        .front
         .input
+        .borrow_mut()
         .mouse
         .buttons
         .update(0b0000_0000_0000_1111);
     context
         .state
-        .front_mut()
+        .front
         .input
+        .borrow_mut()
         .keyboard
         .buttons
         .update(0b0000_0000_1111_0000);
     context
         .state
-        .front_mut()
+        .front
         .input
+        .borrow_mut()
         .gamepad
         .buttons
         .update(0b0000_1111_0000_0000);
@@ -140,7 +153,7 @@ fn should_bitwise_or_all_inputs() {
     update_general(context.state.clone());
 
     let expected = 0b0000_1111_1111_1111;
-    let actual = context.state.front().input.general.buttons.hold();
+    let actual = context.state.front.input.borrow().general.buttons.hold();
     assert_eq!(expected, actual);
 }
 
@@ -148,44 +161,100 @@ fn should_bitwise_or_all_inputs() {
 fn should_not_be_down_when_other_input_holds() {
     let context = TestContext::new();
 
-    context.state.front_mut().input.mouse.buttons.update(1);
+    context
+        .state
+        .front
+        .input
+        .borrow_mut()
+        .mouse
+        .buttons
+        .update(1);
     update_general(context.state.clone());
-    assert_eq!(context.state.front().input.general.buttons.down(), 1);
+    assert_eq!(context.state.front.input.borrow().general.buttons.down(), 1);
 
     for _ in 0..100 {
-        context.state.front_mut().input.gamepad.buttons.update(1);
+        context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .gamepad
+            .buttons
+            .update(1);
         update_general(context.state.clone());
-        assert_eq!(context.state.front().input.general.buttons.down(), 0);
+        assert_eq!(context.state.front.input.borrow().general.buttons.down(), 0);
 
-        context.state.front_mut().input.gamepad.buttons.update(0);
+        context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .gamepad
+            .buttons
+            .update(0);
         update_general(context.state.clone());
-        assert_eq!(context.state.front().input.general.buttons.down(), 0);
+        assert_eq!(context.state.front.input.borrow().general.buttons.down(), 0);
     }
 
-    context.state.front_mut().input.mouse.buttons.update(0);
+    context
+        .state
+        .front
+        .input
+        .borrow_mut()
+        .mouse
+        .buttons
+        .update(0);
     update_general(context.state.clone());
-    assert_eq!(context.state.front().input.general.buttons.down(), 0);
+    assert_eq!(context.state.front.input.borrow().general.buttons.down(), 0);
 }
 
 #[test]
 fn should_not_be_up_when_other_input_holds() {
     let context = TestContext::new();
 
-    context.state.front_mut().input.mouse.buttons.update(1);
+    context
+        .state
+        .front
+        .input
+        .borrow_mut()
+        .mouse
+        .buttons
+        .update(1);
     update_general(context.state.clone());
-    assert_eq!(context.state.front().input.general.buttons.up(), 0);
+    assert_eq!(context.state.front.input.borrow().general.buttons.up(), 0);
 
     for _ in 0..100 {
-        context.state.front_mut().input.gamepad.buttons.update(1);
+        context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .gamepad
+            .buttons
+            .update(1);
         update_general(context.state.clone());
-        assert_eq!(context.state.front().input.general.buttons.up(), 0);
+        assert_eq!(context.state.front.input.borrow().general.buttons.up(), 0);
 
-        context.state.front_mut().input.gamepad.buttons.update(0);
+        context
+            .state
+            .front
+            .input
+            .borrow_mut()
+            .gamepad
+            .buttons
+            .update(0);
         update_general(context.state.clone());
-        assert_eq!(context.state.front().input.general.buttons.up(), 0);
+        assert_eq!(context.state.front.input.borrow().general.buttons.up(), 0);
     }
 
-    context.state.front_mut().input.mouse.buttons.update(0);
+    context
+        .state
+        .front
+        .input
+        .borrow_mut()
+        .mouse
+        .buttons
+        .update(0);
     update_general(context.state.clone());
-    assert_eq!(context.state.front().input.general.buttons.up(), 1);
+    assert_eq!(context.state.front.input.borrow().general.buttons.up(), 1);
 }

@@ -73,8 +73,7 @@ impl JobBuffer {
             *head - 1
         };
 
-        let mut node =
-            ris_error::unwrap_or_throw!(self.jobs[new_head].lock(), "mutex is poisoned",);
+        let mut node = ris_error::unwrap!(self.jobs[new_head].lock(), "mutex is poisoned",);
 
         match node.take() {
             None => Err(IsEmpty),

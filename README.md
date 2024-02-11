@@ -30,6 +30,12 @@ Barebones game engine. Home made passion project.
   - [ ] Phong shading
   - [x] Hotswappable shaders during runtime
 - [x] Debug GUI via Dear ImGui
+- [ ] Debug gizmos
+  - [ ] Point
+  - [ ] Line/ray
+  - [ ] Sphere
+  - [ ] Bounding box
+  - [ ] Text
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
@@ -37,15 +43,9 @@ Barebones game engine. Home made passion project.
 - [x] Codecs
   - [x] GLSL to SpirV
   - [x] QOI
-- [x] Global mutable state
+- [x] Safe global accessible mutable state
   - [x] Settings/Configuration
   - [ ] Gameobjects
-- [ ] Debug gizmos
-  - [ ] Point
-  - [ ] Line/ray
-  - [ ] Sphere
-  - [ ] Bounding box
-  - [ ] Text
 - [ ] Audio
 
 ---
@@ -54,7 +54,7 @@ Barebones game engine. Home made passion project.
 
 To compile this repo, you need a working Rust compiler. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
 
-The current target platform is x86_64, both Windows and Linux.
+The current target platform is x86_64, both Windows and Linux. This engine may compile for other platforms, but I don't give guarantees.
 
 The renderer is based on Vulkan. If your hardware does not support Vulkan, you will most likely run into a runtime error.
 
@@ -154,7 +154,7 @@ Linux:
 
     bash ./ci/build.sh
 
-The build script will generate building information, compile the entire workspace and move all required files into a single folder. Once executed, you will find the following files in `./ci_out/build/`:
+These build scripts will generate building information, compile the entire workspace and move all required files into a single folder. Note that these script build with all optimizations enabled, which significantly increases the build time. Once a script is finished, you will find the following files in `./ci_out/build/`:
 
 1. **ris_engine.exe**  
    This is the compiled engine. It contains all logic to run the game.
@@ -164,6 +164,8 @@ The build script will generate building information, compile the entire workspac
 
 3. **SDL2.dll** (only on windows)  
    This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
+
+For more info on the scripts, check out [./ci/README.md](ci/README.md).
 
 ## Testing
 

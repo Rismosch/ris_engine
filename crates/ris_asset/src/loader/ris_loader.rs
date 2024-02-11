@@ -34,10 +34,7 @@ pub fn load(bytes: &[u8]) -> RisResult<Option<RisAssetData>> {
             let mut reference_bytes = vec![0; reference_len as usize];
             ris_file::read!(input, reference_bytes)?;
 
-            let reference_string = ris_error::unroll!(
-                String::from_utf8(reference_bytes),
-                "failed to get reference string"
-            )?;
+            let reference_string = String::from_utf8(reference_bytes)?;
 
             reference_string
                 .split('\0')

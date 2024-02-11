@@ -28,13 +28,10 @@ pub fn create_command_buffers(
     for (i, framebuffer) in framebuffers.iter().enumerate() {
         let pipeline_layout = pipeline.layout();
 
-        let mut builder = ris_error::unroll!(
-            AutoCommandBufferBuilder::primary(
-                &allocators.command_buffer,
-                queue.queue_family_index(),
-                CommandBufferUsage::MultipleSubmit,
-            ),
-            "failed to create auto command buffer builder"
+        let mut builder = AutoCommandBufferBuilder::primary(
+            &allocators.command_buffer,
+            queue.queue_family_index(),
+            CommandBufferUsage::MultipleSubmit,
         )?;
 
         builder

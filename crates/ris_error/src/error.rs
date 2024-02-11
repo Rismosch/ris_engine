@@ -3,63 +3,28 @@ use std::error::Error;
 use std::sync::Arc;
 
 pub type SourceError = Option<Arc<dyn Error + 'static>>;
+pub type RisResult<T> = Result<T, RisError>;
 
 #[derive(Clone)]
 pub struct RisError {
-    source: SourceError,
-    message: String,
-    file: String,
-    line: u32,
-    backtrace: Arc<Backtrace>,
-}
-
-impl RisError {
-    pub fn new(
-        source: SourceError,
-        message: String,
-        file: String,
-        line: u32,
-        backtrace: Arc<Backtrace>,
-    ) -> Self {
-        Self {
-            source,
-            message,
-            file,
-            line,
-            backtrace,
-        }
-    }
-
-    pub fn message(&self) -> &String {
-        &self.message
-    }
-
-    pub fn file(&self) -> &String {
-        &self.file
-    }
-
-    pub fn line(&self) -> &u32 {
-        &self.line
-    }
-
-    pub fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-}
-
-impl Error for RisError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_ref().map(|e| e.as_ref())
-    }
+    pub source: SourceError,
+    pub message: Option<String>,
+    pub file: String,
+    pub line: u32,
+    pub backtrace: Arc<Backtrace>,
 }
 
 impl std::fmt::Display for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(source) = self.source() {
-            write!(f, "{}\n    ", source)?;
+        if let Some(source) = &self.source {
+            write!(f, "{}", source)?;
         }
 
-        write!(f, "\"{}\", {}:{}", self.message, self.file, self.line,)
+        if let Some(message) = &self.message {
+            write!(f, "\n    message: \"{}\"", message)?;
+        }
+
+        write!(f, "\n    at {}:{}", self.file, self.line)
     }
 }
 
@@ -80,57 +45,29 @@ impl std::fmt::Display for OptionError {
     }
 }
 
-#[macro_export]
-macro_rules! unroll {
-    ($result:expr, $($arg:tt)*) => {{
-        use std::sync::Arc;
-
-        use $crate::error::RisError;
-        use $crate::error::SourceError;
-
-        match $result {
-            Ok(value) => Ok(value),
-            Err(error) => {
-                let source: SourceError = Some(Arc::new(error));
-                let message = format!($($arg)*);
-                let file = String::from(file!());
-                let line = line!();
-                let backtrace = $crate::get_backtrace!();
-                let result = RisError::new(
-                    source,
-                    message,
-                    file,
-                    line,
-                    backtrace,
-                );
-                Err(result)
-            }
+impl<E: Error + 'static> From<E> for RisError {
+    fn from(value: E) -> Self {
+        Self {
+            source: Some(Arc::new(value)),
+            message: None,
+            file: String::from(file!()),
+            line: line!(),
+            backtrace: crate::get_backtrace!(),
         }
-    }};
+    }
 }
 
-#[macro_export]
-macro_rules! unroll_option {
-    ($result:expr, $($arg:tt)*) => {{
-        use std::sync::Arc;
+pub trait Extensions<T> {
+    fn unroll(self) -> Result<T, RisError>;
+}
 
-        use $crate::error::OptionError;
-        use $crate::error::RisError;
-        use $crate::error::SourceError;
-
-        match $result {
+impl<T> Extensions<T> for Option<T> {
+    fn unroll(self) -> Result<T, RisError> {
+        match self {
             Some(value) => Ok(value),
-            None => {
-                let source: SourceError = Some(Arc::new(OptionError));
-                let message = format!($($arg)*);
-                let file = String::from(file!());
-                let line = line!();
-                let backtrace = $crate::get_backtrace!();
-                let result = RisError::new(source, message, file, line, backtrace);
-                Err(result)
-            },
+            None => Err(RisError::from(OptionError)),
         }
-    }};
+    }
 }
 
 #[macro_export]
@@ -139,11 +76,11 @@ macro_rules! new {
         use $crate::error::RisError;
 
         let source = None;
-        let message = format!($($arg)*);
+        let message = Some(format!($($arg)*));
         let file = String::from(file!());
         let line = line!();
         let backtrace = $crate::get_backtrace!();
-        RisError::new(source, message, file, line, backtrace)
+        RisError{source, message, file, line, backtrace}
     }};
 }
 

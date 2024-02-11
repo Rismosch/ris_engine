@@ -1,6 +1,8 @@
 Write-Host
 Write-Host "This script generates build info and compiles the workspace as a release ready package."
 Write-Host
+Write-Host
+Write-Host
 
 $ErrorActionPreference = "Stop"
 Import-Module "$PSScriptRoot/util.ps1" -force
@@ -128,6 +130,10 @@ try {
         Write-Host "cleaning workspace..."
         cargo clean
     }
+
+
+    Write-Host "setting rustflags..."
+    $RUSTFLAGS="-C target-cpu=native"
     
     Write-Host "importing assets..."
     cargo run -p ris_asset_compiler importall
@@ -135,7 +141,7 @@ try {
     cargo run -p ris_asset_compiler compile
     
     Write-Host "compiling workspace..."
-    cargo build -r
+    cargo build --release
     
     Write-Host "moving files..."
     

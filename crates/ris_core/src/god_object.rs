@@ -9,7 +9,6 @@ use ris_asset::loader::scenes_loader::Scenes;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
-use ris_data::god_state::GodStateData;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
@@ -106,25 +105,19 @@ impl GodObject {
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = ris_error::unroll!(
-            asset_loader::load_async(scenes_id).wait(),
-            "failed to load ris_scenes"
-        )?;
+        let scenes_bytes = asset_loader::load_async(scenes_id).wait()?;
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
         let video_subsystem = sdl_context
             .video()
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
-        let window = ris_error::unroll!(
-            video_subsystem
-                .window("ris_engine", 640, 480)
-                //.resizable()
-                .position_centered()
-                .vulkan()
-                .build(),
-            "failed to build window"
-        )?;
+        let window = video_subsystem
+            .window("ris_engine", 640, 480)
+            //.resizable()
+            .position_centered()
+            .vulkan()
+            .build()?;
 
         let renderer = Renderer::initialize(&window, scenes.clone())?;
 
@@ -144,23 +137,24 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let front = GodStateData::new(settings.clone());
-        let back = GodStateData::new(settings);
-        let state = GodState::new(front, back);
+        let state = GodState::new(settings);
 
-        state.front_mut().input.keyboard.keymask[0] = Scancode::Return;
-        state.front_mut().input.keyboard.keymask[15] = Scancode::W;
-        state.front_mut().input.keyboard.keymask[16] = Scancode::S;
-        state.front_mut().input.keyboard.keymask[17] = Scancode::A;
-        state.front_mut().input.keyboard.keymask[18] = Scancode::D;
-        state.front_mut().input.keyboard.keymask[19] = Scancode::Up;
-        state.front_mut().input.keyboard.keymask[20] = Scancode::Down;
-        state.front_mut().input.keyboard.keymask[21] = Scancode::Left;
-        state.front_mut().input.keyboard.keymask[22] = Scancode::Right;
-        state.front_mut().input.keyboard.keymask[28] = Scancode::Kp8;
-        state.front_mut().input.keyboard.keymask[29] = Scancode::Kp2;
-        state.front_mut().input.keyboard.keymask[30] = Scancode::Kp4;
-        state.front_mut().input.keyboard.keymask[31] = Scancode::Kp6;
+        {
+            let input = &mut state.front.input.borrow_mut();
+            input.keyboard.keymask[0] = Scancode::Return;
+            input.keyboard.keymask[15] = Scancode::W;
+            input.keyboard.keymask[16] = Scancode::S;
+            input.keyboard.keymask[17] = Scancode::A;
+            input.keyboard.keymask[18] = Scancode::D;
+            input.keyboard.keymask[19] = Scancode::Up;
+            input.keyboard.keymask[20] = Scancode::Down;
+            input.keyboard.keymask[21] = Scancode::Left;
+            input.keyboard.keymask[22] = Scancode::Right;
+            input.keyboard.keymask[28] = Scancode::Kp8;
+            input.keyboard.keymask[29] = Scancode::Kp2;
+            input.keyboard.keymask[30] = Scancode::Kp4;
+            input.keyboard.keymask[31] = Scancode::Kp6;
+        }
 
         state.copy_front_to_back();
 

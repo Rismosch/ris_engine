@@ -5,15 +5,17 @@ pub static mut SHOW_MESSAGE_BOX_ON_THROW: bool = true;
 #[macro_export]
 macro_rules! throw {
     ($($arg:tt)*) => {{
-        let panic_message = format!($($arg)*);
-        ris_log::fatal!("{}", panic_message);
-        $crate::throw::show_panic_message_box(&panic_message);
-        panic!("{}", panic_message);
+        let message = format!($($arg)*);
+        let backtrace = $crate::get_backtrace!();
+
+        ris_log::fatal!("{} backtrace:\n{}", message, backtrace);
+        $crate::throw::show_panic_message_box(&message);
+        panic!("{}", message);
     }};
 }
 
 #[macro_export]
-macro_rules! unwrap_or_throw {
+macro_rules! unwrap {
     ($result:expr, $($arg:tt)*) => {{
         match $result {
             Ok(value) => value,
@@ -26,7 +28,7 @@ macro_rules! unwrap_or_throw {
 }
 
 #[macro_export]
-macro_rules! assert_or_throw {
+macro_rules! assert {
     ($result:expr, $($arg:tt)*) => {{
         if !$result {
             let client_message = format!($($arg)*);

@@ -1,6 +1,5 @@
 pub mod error;
 pub mod throw;
 
-use crate::error::RisError;
-
-pub type RisResult<T> = Result<T, RisError>;
+pub use error::Extensions;
+pub use error::RisResult;

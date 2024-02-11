@@ -5,22 +5,23 @@ use ris_data::input::buttons::Buttons;
 use ris_data::input::rebind_matrix::RebindMatrix;
 
 pub fn update_general(state: Arc<GodState>) {
-    let rebound_mouse = rebind(
-        &state.front().input.mouse.buttons,
-        &state.front().input.mouse.rebind_matrix,
-    );
-    let rebound_keyboard = rebind(
-        &state.front().input.keyboard.buttons,
-        &state.front().input.keyboard.rebind_matrix,
-    );
-    let rebound_gamepad = rebind(
-        &state.front().input.gamepad.buttons,
-        &state.front().input.gamepad.rebind_matrix,
-    );
+    let new_state = {
+        let input = state.front.input.borrow();
 
-    let new_state = rebound_mouse | rebound_keyboard | rebound_gamepad;
+        let rebound_mouse = rebind(&input.mouse.buttons, &input.mouse.rebind_matrix);
+        let rebound_keyboard = rebind(&input.keyboard.buttons, &input.keyboard.rebind_matrix);
+        let rebound_gamepad = rebind(&input.gamepad.buttons, &input.gamepad.rebind_matrix);
 
-    state.front_mut().input.general.buttons.update(new_state);
+        rebound_mouse | rebound_keyboard | rebound_gamepad
+    };
+
+    state
+        .front
+        .input
+        .borrow_mut()
+        .general
+        .buttons
+        .update(new_state);
 }
 
 fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {

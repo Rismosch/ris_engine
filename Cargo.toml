@@ -35,6 +35,8 @@ members = [
 ]
 
 [dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
 chrono = "0.4"
 imgui = "0.11.0"
 png = "0.17.10"
@@ -42,6 +44,7 @@ sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 vulkano = "0.33.0"
 shaderc = "0.8"
+
 ris_asset = { path = "crates/ris_asset" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
@@ -81,7 +84,14 @@ incremental = false
 codegen-units = 1
 rpath = false
 
-# test when a native fps counter is working
-# https://nnethercote.github.io/perf-book/build-configuration.html#cpu-specific-instructions
-# [build]
-# rustflags = ["-C", "target-cpu=native"]
+[[bench]]
+name = "map"
+harness = false
+
+[[bench]]
+name = "sincos"
+harness = false
+
+[[bench]]
+name = "math"
+harness = false

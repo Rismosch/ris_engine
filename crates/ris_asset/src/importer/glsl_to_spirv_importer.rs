@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use shaderc::CompilationArtifact;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
@@ -13,27 +14,19 @@ pub const OUT_EXT: &[&str] = &["vert.spirv", "frag.spirv"];
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file
-    let file =
-        ris_error::unroll_option!(source.to_str(), "failed to convert {:?} to string", source,)?;
+    let file = source.to_str().unroll()?;
 
-    let mut input = ris_error::unroll!(File::open(file), "failed to open file {:?}", file,)?;
+    let mut input = File::open(file)?;
 
     let file_size = ris_file::seek!(input, SeekFrom::End(0))?;
     ris_file::seek!(input, SeekFrom::Start(0))?;
     let mut file_content = vec![0u8; file_size as usize];
     ris_file::read!(input, file_content)?;
-    let source_text = ris_error::unroll!(
-        String::from_utf8(file_content),
-        "failed to convert source to string",
-    )?;
+    let source_text = String::from_utf8(file_content)?;
 
     // pre processor
     // init shaders
-    let first_line = ris_error::unroll_option!(
-        source_text.lines().next(),
-        "failed to get first line of source file \"{}\"",
-        file,
-    )?;
+    let first_line = source_text.lines().next().unroll()?;
 
     let magic = "#ris_glsl";
     preproc_assert(
@@ -99,11 +92,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
             }
             "#include" => {
                 let file_path = PathBuf::from(file);
-                let root_dir = ris_error::unroll_option!(
-                    file_path.parent(),
-                    "{:?} has no parent",
-                    file_path,
-                )?;
+                let root_dir = file_path.parent().unroll()?;
 
                 let mut dependency_history = Vec::new();
                 dependency_history.push(file_path.clone());
@@ -139,14 +128,8 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     }
 
     // compile to spirv
-    let compiler = ris_error::unroll_option!(
-        shaderc::Compiler::new(),
-        "failed to initialize shaderc compiler"
-    )?;
-    let mut options = ris_error::unroll_option!(
-        shaderc::CompileOptions::new(),
-        "failed to initialize shaderc options"
-    )?;
+    let compiler = shaderc::Compiler::new().unroll()?;
+    let mut options = shaderc::CompileOptions::new().unroll()?;
     options.set_warnings_as_errors();
     options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
@@ -240,10 +223,8 @@ impl Shader {
         };
 
         let file_path = PathBuf::from(file);
-        let file_stem =
-            ris_error::unroll_option!(file_path.file_stem(), "file {:?} has no stem", file_path,)?;
-        let file_stem =
-            ris_error::unroll_option!(file_stem.to_str(), "failed to convert path to string",)?;
+        let file_stem = file_path.file_stem().unroll()?;
+        let file_stem = file_stem.to_str().unroll()?;
 
         let extension = match self.kind {
             ShaderKind::Vertex => OUT_EXT[0],
@@ -252,16 +233,12 @@ impl Shader {
 
         let file = format!("{}.{}", file_stem, extension);
 
-        let artifact = ris_error::unroll!(
-            compiler.compile_into_spirv(
-                &source,
-                shaderc::ShaderKind::InferFromSource,
-                &file,
-                "main",
-                Some(options),
-            ),
-            "failed to compile shader {}",
-            file,
+        let artifact = compiler.compile_into_spirv(
+            &source,
+            shaderc::ShaderKind::InferFromSource,
+            &file,
+            "main",
+            Some(options),
         )?;
 
         Ok(Some(artifact))
@@ -327,11 +304,7 @@ fn resolve_include(
 
     already_included.push(include_path.clone());
 
-    let file = ris_error::unroll_option!(
-        include_path.to_str(),
-        "failed to convert {:?} to a string",
-        include_path,
-    )?;
+    let file = include_path.to_str().unroll()?;
 
     // check for circular dependency
     if dependency_history.iter().any(|x| *x == include_path) {
@@ -348,24 +321,12 @@ fn resolve_include(
     dependency_history.push(include_path.clone());
 
     // read file
-    let mut include_file = ris_error::unroll!(
-        std::fs::File::open(&include_path),
-        "failed to open {:?}",
-        include_path,
-    )?;
+    let mut include_file = std::fs::File::open(&include_path)?;
 
     let mut file_content = String::new();
-    ris_error::unroll!(
-        include_file.read_to_string(&mut file_content),
-        "failed to read {:?}",
-        include_path,
-    )?;
+    include_file.read_to_string(&mut file_content)?;
 
-    let first_line = ris_error::unroll_option!(
-        file_content.lines().next(),
-        "failed to get the first line of {:?}",
-        include_path,
-    )?;
+    let first_line = file_content.lines().next().unroll()?;
 
     let magic = "#ris_glsl header";
     preproc_assert(

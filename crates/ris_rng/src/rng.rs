@@ -8,10 +8,7 @@ impl Seed {
     #[cfg(not(miri))]
     pub fn new() -> RisResult<Self> {
         let now = std::time::SystemTime::now();
-        let duration_since_epoch = ris_error::unroll!(
-            now.duration_since(std::time::UNIX_EPOCH),
-            "failed to get time",
-        )?;
+        let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH)?;
         let bytes = duration_since_epoch.as_millis().to_le_bytes();
         let seed = Seed(bytes);
 

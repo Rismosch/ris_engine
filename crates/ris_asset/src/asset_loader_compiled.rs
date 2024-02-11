@@ -15,8 +15,7 @@ pub struct AssetLoaderCompiled {
 
 impl AssetLoaderCompiled {
     pub fn new(asset_path: &Path) -> RisResult<Self> {
-        let mut file =
-            ris_error::unroll!(File::open(asset_path), "could not open compiled asset file")?;
+        let mut file = File::open(asset_path)?;
         let f = &mut file;
 
         let file_size = ris_file::seek!(f, SeekFrom::End(0))?;

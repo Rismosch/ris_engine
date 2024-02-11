@@ -1,9 +1,5 @@
 // inspired by the mask-step-index (MSI) hash table by Chris Wellons:
 // https://nullprogram.com/blog/2022/08/08/
-//
-// while interesting, benchmarking revealed that this implementation is about 10x slower than
-// std::collections::HashMap. as such, i will use the standard HashMap, but i keep this
-// implementation in case i feel adventurous and want to optimize it.
 
 fn ht_lookup(hash: u64, exp: usize, idx: usize) -> usize {
     let mask: usize = ((1u32 << exp) - 1) as usize;
@@ -112,6 +108,29 @@ pub struct RisMap<T> {
     buf: Vec<Option<T>>,
 }
 
+impl<T: Copy> Default for RisMap<T> {
+    fn default() -> Self {
+        let mut ht_init = Vec::with_capacity(1 << EXP);
+        let mut buf_init = Vec::with_capacity(1 << EXP);
+
+        for _ in 0..1 << EXP {
+            ht_init.push(None);
+            buf_init.push(None);
+        }
+
+        let ht = Ht {
+            ht: ht_init,
+            len: 0,
+        };
+
+        Self {
+            ht,
+            len: 0,
+            buf: buf_init,
+        }
+    }
+}
+
 impl<T> RisMap<T> {
     /// inserts the key and assigns the item to it. overwrites the item that is already assigned to
     /// that key
@@ -145,29 +164,6 @@ impl<T> RisMap<T> {
         match result {
             Ok(index) => Ok(self.buf[index].as_mut()),
             Err(OutOfMemory) => Err(OutOfMemory),
-        }
-    }
-}
-
-impl<T: Copy> Default for RisMap<T> {
-    fn default() -> Self {
-        let mut ht_init = Vec::with_capacity(1 << EXP);
-        let mut buf_init = Vec::with_capacity(1 << EXP);
-
-        for _ in 0..1 << EXP {
-            ht_init.push(None);
-            buf_init.push(None);
-        }
-
-        let ht = Ht {
-            ht: ht_init,
-            len: 0,
-        };
-
-        Self {
-            ht,
-            len: 0,
-            buf: buf_init,
         }
     }
 }

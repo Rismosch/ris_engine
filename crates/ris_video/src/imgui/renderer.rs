@@ -43,6 +43,7 @@ use vulkano::sampler::SamplerCreateInfo;
 use vulkano::sync::future::GpuFuture;
 
 use ris_asset::loader::scenes_loader::Scenes;
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4x4;
 
@@ -141,26 +142,20 @@ impl ImguiRenderer {
 
         let layout = self.pipeline.layout().clone();
 
-        let framebuffer = ris_error::unroll!(
-            Framebuffer::new(
-                self.render_pass.clone(),
-                FramebufferCreateInfo {
-                    attachments: vec![target],
-                    ..Default::default()
-                }
-            ),
-            "failed to create frame buffer",
+        let framebuffer = Framebuffer::new(
+            self.render_pass.clone(),
+            FramebufferCreateInfo {
+                attachments: vec![target],
+                ..Default::default()
+            },
         )?;
 
-        ris_error::unroll!(
-            command_buffer_builder.begin_render_pass(
-                RenderPassBeginInfo {
-                    clear_values: vec![None],
-                    ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-                },
-                SubpassContents::Inline,
-            ),
-            "failed to begin render pass",
+        command_buffer_builder.begin_render_pass(
+            RenderPassBeginInfo {
+                clear_values: vec![None],
+                ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
+            },
+            SubpassContents::Inline,
         )?;
 
         for draw_list in data.draw_lists() {
@@ -171,36 +166,30 @@ impl ImguiRenderer {
 
             let indices = draw_list.idx_buffer().iter().cloned();
 
-            let vertex_buffer = ris_error::unroll!(
-                Buffer::from_iter(
-                    &allocators.memory,
-                    BufferCreateInfo {
-                        usage: BufferUsage::VERTEX_BUFFER,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        usage: MemoryUsage::Upload,
-                        ..Default::default()
-                    },
-                    vertices,
-                ),
-                "failed to create vertex buffer",
+            let vertex_buffer = Buffer::from_iter(
+                &allocators.memory,
+                BufferCreateInfo {
+                    usage: BufferUsage::VERTEX_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    usage: MemoryUsage::Upload,
+                    ..Default::default()
+                },
+                vertices,
             )?;
 
-            let index_buffer = ris_error::unroll!(
-                Buffer::from_iter(
-                    &allocators.memory,
-                    BufferCreateInfo {
-                        usage: BufferUsage::INDEX_BUFFER,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        usage: MemoryUsage::Upload,
-                        ..Default::default()
-                    },
-                    indices,
-                ),
-                "failed to create index buffer",
+            let index_buffer = Buffer::from_iter(
+                &allocators.memory,
+                BufferCreateInfo {
+                    usage: BufferUsage::INDEX_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    usage: MemoryUsage::Upload,
+                    ..Default::default()
+                },
+                indices,
             )?;
 
             for draw_cmd in draw_list.commands() {
@@ -240,22 +229,16 @@ impl ImguiRenderer {
 
                             let texture = self.lookup_texture(texture_id)?;
 
-                            let descriptor_set_layout = ris_error::unroll_option!(
-                                layout.set_layouts().first(),
-                                "failed to get descriptor set layout"
-                            )?;
+                            let descriptor_set_layout = layout.set_layouts().first().unroll()?;
 
-                            let descriptor_set = ris_error::unroll!(
-                                PersistentDescriptorSet::new(
-                                    &allocators.descriptor_set,
-                                    descriptor_set_layout.clone(),
-                                    [WriteDescriptorSet::image_view_sampler(
-                                        0,
-                                        texture.0.clone(),
-                                        texture.1.clone(),
-                                    )],
-                                ),
-                                "failed to create persistent descriptor set",
+                            let descriptor_set = PersistentDescriptorSet::new(
+                                &allocators.descriptor_set,
+                                descriptor_set_layout.clone(),
+                                [WriteDescriptorSet::image_view_sampler(
+                                    0,
+                                    texture.0.clone(),
+                                    texture.1.clone(),
+                                )],
                             )?;
 
                             command_buffer_builder
@@ -289,10 +272,7 @@ impl ImguiRenderer {
             }
         }
 
-        ris_error::unroll!(
-            command_buffer_builder.end_render_pass(),
-            "failed to end render pass",
-        )?;
+        command_buffer_builder.end_render_pass()?;
 
         Ok(())
     }
@@ -322,56 +302,37 @@ impl ImguiRenderer {
 
         let texture = font_atlas.build_rgba32_texture();
 
-        let mut command_buffer_builder = ris_error::unroll!(
-            AutoCommandBufferBuilder::primary(
-                &allocators.command_buffer,
-                queue.queue_family_index(),
-                CommandBufferUsage::OneTimeSubmit,
-            ),
-            "failed to build command buffer",
+        let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
+            &allocators.command_buffer,
+            queue.queue_family_index(),
+            CommandBufferUsage::OneTimeSubmit,
         )?;
 
-        let image = ris_error::unroll!(
-            ImmutableImage::from_iter(
-                &allocators.memory,
-                texture.data.iter().cloned(),
-                ImageDimensions::Dim2d {
-                    width: texture.width,
-                    height: texture.height,
-                    array_layers: 1,
-                },
-                MipmapsCount::One,
-                Format::R8G8B8A8_SRGB,
-                &mut command_buffer_builder,
-            ),
-            "failed to create image",
+        let image = ImmutableImage::from_iter(
+            &allocators.memory,
+            texture.data.iter().cloned(),
+            ImageDimensions::Dim2d {
+                width: texture.width,
+                height: texture.height,
+                array_layers: 1,
+            },
+            MipmapsCount::One,
+            Format::R8G8B8A8_SRGB,
+            &mut command_buffer_builder,
         )?;
 
         let image_view_create_info = ImageViewCreateInfo::from_image(&image);
-        let image_view = ris_error::unroll!(
-            ImageView::new(image, image_view_create_info,),
-            "failed to create image view",
-        )?;
+        let image_view = ImageView::new(image, image_view_create_info)?;
 
-        let sampler = ris_error::unroll!(
-            Sampler::new(device.clone(), SamplerCreateInfo::simple_repeat_linear()),
-            "failed to create sampler",
-        )?;
+        let sampler = Sampler::new(device.clone(), SamplerCreateInfo::simple_repeat_linear())?;
 
-        let primary = ris_error::unroll!(
-            command_buffer_builder.build(),
-            "failed to build command buffer",
-        )?;
+        let primary = command_buffer_builder.build()?;
 
-        let future =
-            ris_error::unroll!(primary.execute(queue), "failed to execute command buffer",)?;
+        let future = primary.execute(queue)?;
 
-        let fence = ris_error::unroll!(
-            future.then_signal_fence_and_flush(),
-            "failed to signal fence and flush",
-        )?;
+        let fence = future.then_signal_fence_and_flush()?;
 
-        ris_error::unroll!(fence.wait(None), "failed to wait on fence",)?;
+        fence.wait(None)?;
 
         font_atlas.tex_id = TextureId::from(usize::MAX);
         ris_log::debug!("imgui renderer uploaded font texture!");

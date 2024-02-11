@@ -5,6 +5,7 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::loader::ris_loader;
@@ -43,16 +44,11 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
     // find all asset files
     while let Some(current) = directories.pop_front() {
-        let entries = ris_error::unroll!(
-            std::fs::read_dir(&current),
-            "failed to read directory \"{:?}\"",
-            current
-        )?;
+        let entries = std::fs::read_dir(&current)?;
 
         for entry in entries {
-            let entry = ris_error::unroll!(entry, "failed to read entry")?;
-            let metadata = ris_error::unroll!(entry.metadata(), "failed to read metadata")?;
-
+            let entry = entry?;
+            let metadata = entry.metadata()?;
             let entry_path = entry.path();
 
             let to_ignore = PathBuf::from(DEFAULT_IGNORE_DIRECTORY);
@@ -83,18 +79,10 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
     // create the target file
     let target_path = Path::new(target);
     if target_path.exists() {
-        ris_error::unroll!(
-            std::fs::remove_file(target_path),
-            "failed to remove \"{:?}\"",
-            target_path
-        )?;
+        std::fs::remove_file(target_path)?;
     }
 
-    let mut target_file = ris_error::unroll!(
-        File::create(target_path),
-        "failed to create \"{:?}\"",
-        target_path
-    )?;
+    let mut target_file = File::create(target_path)?;
 
     // write magic
     ris_file::seek!(&mut target_file, SeekFrom::Start(0))?;
@@ -115,8 +103,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
     // compile assets
     for (i, asset) in assets.iter().enumerate() {
-        let mut file =
-            ris_error::unroll!(File::open(asset), "failed to open asset \"{:?}\"", &asset)?;
+        let mut file = File::open(asset)?;
 
         let file_size = ris_file::seek!(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
@@ -146,11 +133,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
                             id_path.push(id);
                             let lookup_value = assets_lookup.get(&id_path);
 
-                            let compiled_id = ris_error::unroll_option!(
-                                lookup_value,
-                                "asset references another asset that doesn't exist: {:?}",
-                                id_path
-                            )?;
+                            let compiled_id = lookup_value.unroll()?;
 
                             let id_to_write = *compiled_id as u32;
                             let id_bytes = u32::to_le_bytes(id_to_write);
@@ -195,10 +178,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
     // compile original paths
     for (i, asset) in assets.iter().enumerate() {
-        let mut original_path = String::from(ris_error::unroll_option!(
-            asset.to_str(),
-            "asset path is not valid UTF8"
-        )?);
+        let mut original_path = String::from(asset.to_str().unroll()?);
         original_path.replace_range(0..source.len(), "");
         let mut original_path = original_path.replace('\\', "/");
         if original_path.starts_with('/') {
@@ -225,23 +205,12 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     // preparations
     let target = Path::new(target);
     if target.exists() {
-        ris_error::unroll!(
-            std::fs::remove_dir_all(target),
-            "failed to delete target {:?}",
-            target
-        )?;
+        std::fs::remove_dir_all(target)?;
     }
-    ris_error::unroll!(
-        std::fs::create_dir_all(target),
-        "failed to create target {:?}",
-        target
-    )?;
 
-    let mut source = ris_error::unroll!(
-        File::open(source),
-        "failed to open source file {:?}",
-        source
-    )?;
+    std::fs::create_dir_all(target)?;
+
+    let mut source = File::open(source)?;
 
     // read magic
     let mut magic = [0; 16];
@@ -274,10 +243,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     let orig_paths_len = file_end - addr_original_paths;
 
     let mut original_paths = Vec::with_capacity(orig_paths_len as usize);
-    let read_bytes = ris_error::unroll!(
-        source.read_to_end(&mut original_paths),
-        "failed to read to the end"
-    )?;
+    let read_bytes = source.read_to_end(&mut original_paths)?;
     if read_bytes != orig_paths_len as usize {
         return ris_error::new_result!(
             "expected to read {} bytes but actually read{}",
@@ -286,10 +252,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         );
     }
 
-    let original_paths_string = ris_error::unroll!(
-        String::from_utf8(original_paths),
-        "could not convert original paths to a string"
-    )?;
+    let original_paths_string = String::from_utf8(original_paths)?;
     let mut original_paths: Vec<String> = original_paths_string
         .split('\0')
         .map(String::from)
@@ -370,21 +333,10 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let mut asset_path = PathBuf::new();
         asset_path.push(target);
         asset_path.push(original_path);
-        let parent = ris_error::unroll_option!(
-            asset_path.parent(),
-            "asset does not have a parent directory"
-        )?;
-        ris_error::unroll!(
-            std::fs::create_dir_all(parent),
-            "failed to create asset parent \"{:?}\"",
-            parent
-        )?;
+        let parent = asset_path.parent().unroll()?;
+        std::fs::create_dir_all(parent)?;
 
-        let mut asset_file = ris_error::unroll!(
-            File::create(asset_path.clone()),
-            "failed to create asset \"{:?}\"",
-            asset_path.clone()
-        )?;
+        let mut asset_file = File::create(&asset_path)?;
         ris_file::write!(&mut asset_file, &modified_file_bytes)?;
     }
 

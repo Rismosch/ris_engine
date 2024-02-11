@@ -7,6 +7,7 @@ use vulkano::device::QueueFlags;
 use vulkano::instance::Instance;
 use vulkano::swapchain::Surface;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub fn select_physical_device(
@@ -14,22 +15,20 @@ pub fn select_physical_device(
     surface: Arc<Surface>,
     device_extensions: &DeviceExtensions,
 ) -> RisResult<(Arc<PhysicalDevice>, u32)> {
-    let available_devices = ris_error::unroll!(
-        instance.enumerate_physical_devices(),
-        "failed to enumerate_physical_devices"
-    )?
-    .filter(|p| p.supported_extensions().contains(device_extensions))
-    .filter_map(|p| {
-        p.queue_family_properties()
-            .iter()
-            .enumerate()
-            .position(|(i, q)| {
-                q.queue_flags.contains(QueueFlags::GRAPHICS)
-                    && p.surface_support(i as u32, &surface).unwrap_or(false)
-            })
-            .map(|q| (p, q as u32))
-    })
-    .collect::<Vec<_>>();
+    let available_devices = instance
+        .enumerate_physical_devices()?
+        .filter(|p| p.supported_extensions().contains(device_extensions))
+        .filter_map(|p| {
+            p.queue_family_properties()
+                .iter()
+                .enumerate()
+                .position(|(i, q)| {
+                    q.queue_flags.contains(QueueFlags::GRAPHICS)
+                        && p.surface_support(i as u32, &surface).unwrap_or(false)
+                })
+                .map(|q| (p, q as u32))
+        })
+        .collect::<Vec<_>>();
 
     let log_string = match available_devices.len() {
         0 => String::from("no available devices"),
@@ -52,19 +51,17 @@ pub fn select_physical_device(
 
     ris_log::info!("{}", log_string);
 
-    let result = ris_error::unroll_option!(
-        available_devices
-            .into_iter()
-            .min_by_key(|(p, _)| match p.properties().device_type {
-                PhysicalDeviceType::DiscreteGpu => 0,
-                PhysicalDeviceType::IntegratedGpu => 1,
-                PhysicalDeviceType::VirtualGpu => 2,
-                PhysicalDeviceType::Cpu => 3,
-                PhysicalDeviceType::Other => 4,
-                _ => 5,
-            }),
-        "no devices available"
-    )?;
+    let result = available_devices
+        .into_iter()
+        .min_by_key(|(p, _)| match p.properties().device_type {
+            PhysicalDeviceType::DiscreteGpu => 0,
+            PhysicalDeviceType::IntegratedGpu => 1,
+            PhysicalDeviceType::VirtualGpu => 2,
+            PhysicalDeviceType::Cpu => 3,
+            PhysicalDeviceType::Other => 4,
+            _ => 5,
+        })
+        .unroll()?;
 
     let properties = result.0.properties();
 

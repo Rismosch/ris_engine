@@ -10,22 +10,21 @@ pub fn create_render_pass(
     device: Arc<Device>,
     swapchain: Arc<Swapchain>,
 ) -> RisResult<Arc<RenderPass>> {
-    ris_error::unroll!(
-        vulkano::single_pass_renderpass!(
-            device.clone(),
-            attachments: {
-                color: {
-                    load: Load,
-                    store: Store,
-                    format: swapchain.image_format(),
-                    samples: 1,
-                }
-            },
-            pass: {
-                color: [color],
-                depth_stencil: {}
+    let render_pass = vulkano::single_pass_renderpass!(
+        device.clone(),
+        attachments: {
+            color: {
+                load: Load,
+                store: Store,
+                format: swapchain.image_format(),
+                samples: 1,
             }
-        ),
-        "failed to create render pass for imgui"
-    )
+        },
+        pass: {
+            color: [color],
+            depth_stencil: {}
+        }
+    )?;
+
+    Ok(render_pass)
 }

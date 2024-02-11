@@ -18,14 +18,9 @@ pub fn load_async(
 
         let future = asset_loader::load_async(asset_id.clone());
 
-        let bytes =
-            ris_error::unroll!(future.wait(), "failed to load shader asset {:?}", asset_id,)?;
+        let bytes = future.wait()?;
 
-        let shader = ris_error::unroll!(
-            unsafe { ShaderModule::from_bytes(device.clone(), &bytes) },
-            "failed to load shader module {:?}",
-            asset_id,
-        )?;
+        let shader = unsafe { ShaderModule::from_bytes(device.clone(), &bytes) }?;
 
         ris_log::trace!("loaded shader! {:?}", asset_id,);
 
