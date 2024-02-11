@@ -11,7 +11,7 @@ use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
 fn map_insert(c: &mut Criterion) {
-    let mut group = c.benchmark_group("insert");
+    let mut group = c.benchmark_group("map_insert");
 
     let low = ris_map::EXP / 4;
     let medium = ris_map::EXP / 2;
@@ -46,7 +46,7 @@ fn map_insert(c: &mut Criterion) {
 }
 
 fn map_retreive(c: &mut Criterion) {
-    let mut group = c.benchmark_group("retreive");
+    let mut group = c.benchmark_group("map_retreive");
 
     let low = ris_map::EXP / 4;
     let medium = ris_map::EXP / 2;

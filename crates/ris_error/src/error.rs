@@ -19,12 +19,12 @@ impl std::fmt::Display for RisError {
         if let Some(source) = &self.source {
             write!(f, "{}", source)?;
         }
-
+        
         if let Some(message) = &self.message {
             write!(f, "\n    message: \"{}\"", message)?;
         }
-
-        write!(f, "\n    at {}:{}", self.file, self.line,)
+        
+        write!(f, "\n    at {}:{}", self.file, self.line)
     }
 }
 
@@ -74,7 +74,7 @@ impl<T> Extensions<T> for Option<T> {
 macro_rules! new {
     ($($arg:tt)*) => {{
         use $crate::error::RisError;
-
+        
         let source = None;
         let message = Some(format!($($arg)*));
         let file = String::from(file!());
@@ -97,14 +97,14 @@ macro_rules! get_backtrace {
     () => {{
         use std::backtrace::Backtrace;
         use std::sync::Arc;
-
+        
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(
             "\u{001B}[93mWARNING\u{001B}[0m: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
             file!(),
             line!(),
         );
-
+        
         backtrace
     }}
 }
