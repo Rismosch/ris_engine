@@ -130,6 +130,10 @@ try {
         Write-Host "cleaning workspace..."
         cargo clean
     }
+
+
+    Write-Host "setting rustflags..."
+    $RUSTFLAGS="-C target-cpu=native"
     
     Write-Host "importing assets..."
     cargo run -p ris_asset_compiler importall
@@ -137,7 +141,7 @@ try {
     cargo run -p ris_asset_compiler compile
     
     Write-Host "compiling workspace..."
-    cargo build -r
+    cargo build --release
     
     Write-Host "moving files..."
     

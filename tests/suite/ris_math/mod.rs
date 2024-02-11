@@ -103,12 +103,7 @@ fn should_compute_fastinversesqrt() {
         let std = 1. / f32::sqrt(f);
         let fast = ris_math::fastinversesqrt(f);
 
-        let max_error = if f < 1. {
-            0.43313
-        } else {
-            0.00153
-        };
-
+        let max_error = if f < 1. { 0.43313 } else { 0.00153 };
 
         ris_util::assert_feq!(std, fast, max_error, "value: {}", f);
     }

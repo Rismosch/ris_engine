@@ -165,13 +165,16 @@ if [ "$cli_cargo_clean_value" = true ]; then
     cargo clean
 fi
 
+echo "setting rustflags..."
+RUSTFLAGS="-C target-cpu=native"
+
 echo "importing assets..."
 cargo run -p ris_asset_compiler importall
 echo "compiling assets..."
 cargo run -p ris_asset_compiler compile
 
 echo "compiling workspace..."
-cargo build -r
+cargo build --release 
 
 echo "moving files..."
 target_dir="$ROOT_DIR/target/release"

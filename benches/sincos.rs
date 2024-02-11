@@ -99,7 +99,11 @@ pub fn sincos_bhaskara_without_sqrt(angle: f32) -> (f32, f32) {
     let sin_choose = (angle > ris_math::PI) as usize as f32;
 
     let cos_angle_choose = (angle > 1.5 * ris_math::PI) as usize as f32;
-    let cos_angle = ris_math::mix(angle + 0.5 * ris_math::PI, angle - 1.5 * ris_math::PI, cos_angle_choose);
+    let cos_angle = ris_math::mix(
+        angle + 0.5 * ris_math::PI,
+        angle - 1.5 * ris_math::PI,
+        cos_angle_choose,
+    );
 
     let cos_part1 = bhaskara(cos_angle - 0.5 * ris_math::PI);
     let cos_part2 = -bhaskara(cos_angle - 1.5 * ris_math::PI);

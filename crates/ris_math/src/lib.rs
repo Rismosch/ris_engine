@@ -89,7 +89,6 @@ pub fn asinh(x: f32) -> f32 {
 
 /// arc hyperbolic cosine; returns the non-negative inverse of cosh
 pub fn acosh(x: f32) -> f32 {
-  
     f32::acosh(x)
 }
 /// arc hyperbolic tangent; returns the inverse of tanh

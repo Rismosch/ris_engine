@@ -19,7 +19,7 @@ fn abs(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let abs = f32::abs(*value);
                 black_box(abs);
@@ -28,7 +28,7 @@ fn abs(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic_1", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let bytes = u32::from_be_bytes(value.to_be_bytes());
                 let modified = bytes & 0x7FFF_FFFF;
@@ -40,7 +40,7 @@ fn abs(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic_2", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let mut bytes = value.to_be_bytes();
                 bytes[0] &= 0x7F;
@@ -67,7 +67,7 @@ fn negate(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = -value;
                 black_box(result);
@@ -76,7 +76,7 @@ fn negate(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let mut bytes = value.to_be_bytes();
                 bytes[0] ^= 0x80;
@@ -103,7 +103,7 @@ fn log2(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = f32::log2(*value);
                 black_box(result);
@@ -112,7 +112,7 @@ fn log2(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = ris_math::fastlog2(*value);
                 black_box(result);
@@ -136,7 +136,7 @@ fn exp2(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = f32::exp2(*value);
                 black_box(result);
@@ -145,7 +145,7 @@ fn exp2(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = ris_math::fastexp2(*value);
                 black_box(result);
@@ -170,7 +170,7 @@ fn pow(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for (value1, value2) in &values {
                 let result = f32::powf(*value1, *value2);
                 black_box(result);
@@ -179,7 +179,7 @@ fn pow(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for (value1, value2) in &values {
                 let result = ris_math::fastpow(*value1, *value2);
                 black_box(result);
@@ -188,7 +188,6 @@ fn pow(c: &mut Criterion) {
     });
 
     group.finish();
-
 }
 
 fn sqrt(c: &mut Criterion) {
@@ -204,7 +203,7 @@ fn sqrt(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = f32::sqrt(*value);
                 black_box(result);
@@ -213,7 +212,7 @@ fn sqrt(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = ris_math::fastsqrt(*value);
                 black_box(result);
@@ -237,7 +236,7 @@ fn inversesqrt(c: &mut Criterion) {
     }
 
     group.bench_function("std", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = 1. / f32::sqrt(*value);
                 black_box(result);
@@ -246,7 +245,7 @@ fn inversesqrt(c: &mut Criterion) {
     });
 
     group.bench_function("bit_magic", |b| {
-        b.iter(||{
+        b.iter(|| {
             for value in &values {
                 let result = ris_math::fastinversesqrt(*value);
                 black_box(result);
