@@ -2,11 +2,13 @@ pub mod color;
 pub mod matrix;
 pub mod quaternion;
 
+use ris_util::testing::miri_choose;
+
 #[test]
 fn should_compute_fastsincos() {
     let max_error = 0.00202;
 
-    let count = 1 << 16;
+    let count = 1 << miri_choose(16, 4);
     for i in 0..count {
         let f = std::f32::consts::PI * (i as f32) / (count as f32);
 
@@ -24,7 +26,7 @@ fn should_compute_fastsincos() {
 fn should_compute_fastlog2() {
     let max_error = 0.09;
 
-    let count = 1 << 16;
+    let count = 1 << miri_choose(16, 4);
     for i in 0..count {
         let f = 1000. * ((i + 1) as f32) / (count as f32);
 
@@ -49,7 +51,7 @@ fn should_compute_fastlog2_around_powers_of_2() {
 
 #[test]
 fn should_compute_fastexp2() {
-    for i in -127..128 {
+    for i in miri_choose(-127..128, -16..16) {
         let f = i as f32;
 
         let std = f32::exp2(f);
@@ -83,7 +85,7 @@ fn should_compute_fastexp2() {
 fn should_compute_fastsqrt() {
     let max_error = 0.03925;
 
-    let count = 1 << 16;
+    let count = 1 << miri_choose(16, 4);
     for i in 0..count {
         let f = 1000. * (i as f32) / (count as f32);
 
@@ -96,13 +98,14 @@ fn should_compute_fastsqrt() {
 
 #[test]
 fn should_compute_fastinversesqrt() {
-    let count = 1 << 16;
+    let count = 1 << miri_choose(16, 4);
     for i in 0..count {
         let f = 1000. * ((i + 1) as f32) / (count as f32);
 
         let std = 1. / f32::sqrt(f);
         let fast = ris_math::fastinversesqrt(f);
 
+        // the error is greater, the closer f is to 0
         let max_error = if f < 1. { 0.43313 } else { 0.00153 };
 
         ris_util::assert_feq!(std, fast, max_error, "value: {}", f);
