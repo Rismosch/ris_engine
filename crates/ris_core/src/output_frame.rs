@@ -161,71 +161,72 @@ impl OutputFrame {
         };
         self.renderer.update_uniform(image as usize, &ubo)?;
 
-        let swapchain_image = &self.renderer.images[image as usize];
-        let imgui_target = ImageView::new_default(swapchain_image.clone())?;
-        let draw_data = self.imgui.backend.context().render();
-        let mut imgui_command_buffer_builder = AutoCommandBufferBuilder::primary(
-            &self.renderer.allocators.command_buffer,
-            self.renderer.queue.queue_family_index(),
-            vulkano::command_buffer::CommandBufferUsage::OneTimeSubmit,
-        )?;
-        self.imgui.renderer.draw(
-            imgui_target,
-            &mut imgui_command_buffer_builder,
-            &self.renderer.allocators,
-            draw_data,
-        )?;
-        let imgui_command_buffer = imgui_command_buffer_builder.build()?;
+        todo!("wanting to render");
+        //let swapchain_image = &self.renderer.images[image as usize];
+        //let imgui_target = ImageView::new_default(swapchain_image.clone())?;
+        //let draw_data = self.imgui.backend.context().render();
+        //let mut imgui_command_buffer_builder = AutoCommandBufferBuilder::primary(
+        //    &self.renderer.allocators.command_buffer,
+        //    self.renderer.queue.queue_family_index(),
+        //    vulkano::command_buffer::CommandBufferUsage::OneTimeSubmit,
+        //)?;
+        //self.imgui.renderer.draw(
+        //    imgui_target,
+        //    &mut imgui_command_buffer_builder,
+        //    &self.renderer.allocators,
+        //    draw_data,
+        //)?;
+        //let imgui_command_buffer = imgui_command_buffer_builder.build()?;
 
-        let use_gpu_resources = false;
-        let previous_future = match self.fences[self.previous_fence].clone() {
-            None => self.renderer.synchronize().boxed(),
-            Some(fence) => {
-                if use_gpu_resources {
-                    fence.wait(None)?;
-                }
+        //let use_gpu_resources = false;
+        //let previous_future = match self.fences[self.previous_fence].clone() {
+        //    None => self.renderer.synchronize().boxed(),
+        //    Some(fence) => {
+        //        if use_gpu_resources {
+        //            fence.wait(None)?;
+        //        }
 
-                fence.boxed()
-            }
-        };
+        //        fence.boxed()
+        //    }
+        //};
 
-        if use_gpu_resources {
-            // logic that can use every GPU resource (the GPU is sleeping)
-        }
+        //if use_gpu_resources {
+        //    // logic that can use every GPU resource (the GPU is sleeping)
+        //}
 
-        let fence = previous_future
-            .join(acquire_future)
-            .then_execute(
-                self.renderer.queue.clone(),
-                self.renderer.command_buffers[image as usize].clone(),
-            )
-            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
-            .then_execute(self.renderer.queue.clone(), imgui_command_buffer)
-            .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
-            .then_swapchain_present(
-                self.renderer.queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(self.renderer.swapchain.clone(), image),
-            )
-            .then_signal_fence_and_flush();
+        //let fence = previous_future
+        //    .join(acquire_future)
+        //    .then_execute(
+        //        self.renderer.queue.clone(),
+        //        self.renderer.command_buffers[image as usize].clone(),
+        //    )
+        //    .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
+        //    .then_execute(self.renderer.queue.clone(), imgui_command_buffer)
+        //    .map_err(|e| ris_error::new!("failed to execute command buffer: {}", e))?
+        //    .then_swapchain_present(
+        //        self.renderer.queue.clone(),
+        //        SwapchainPresentInfo::swapchain_image_index(self.renderer.swapchain.clone(), image),
+        //    )
+        //    .then_signal_fence_and_flush();
 
-        self.fences[image as usize] = match fence {
-            Ok(fence) => {
-                #[allow(clippy::arc_with_non_send_sync)]
-                // false positive, since `FenceSignalFuture` indeed implements `Send`:
-                // doc/vulkano/sync/future/struct.FenceSignalFuture.html#impl-Send-for-FenceSignalFuture%3CF%3E
-                Some(Arc::new(fence))
-            }
-            Err(FlushError::OutOfDate) => {
-                self.recreate_swapchain = true;
-                None
-            }
-            Err(e) => {
-                ris_log::warning!("failed to flush future: {}", e);
-                None
-            }
-        };
+        //self.fences[image as usize] = match fence {
+        //    Ok(fence) => {
+        //        #[allow(clippy::arc_with_non_send_sync)]
+        //        // false positive, since `FenceSignalFuture` indeed implements `Send`:
+        //        // doc/vulkano/sync/future/struct.FenceSignalFuture.html#impl-Send-for-FenceSignalFuture%3CF%3E
+        //        Some(Arc::new(fence))
+        //    }
+        //    Err(FlushError::OutOfDate) => {
+        //        self.recreate_swapchain = true;
+        //        None
+        //    }
+        //    Err(e) => {
+        //        ris_log::warning!("failed to flush future: {}", e);
+        //        None
+        //    }
+        //};
 
-        self.previous_fence = image as usize;
+        //self.previous_fence = image as usize;
 
         Ok(())
     }

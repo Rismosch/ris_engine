@@ -63,39 +63,40 @@ pub struct ImguiRenderer {
 
 impl ImguiRenderer {
     pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
-        let device = renderer.device.clone();
-        let queue = renderer.queue.clone();
-        let swapchain = renderer.swapchain.clone();
-        let allocators = &renderer.allocators;
+        todo!();
+        // let device = renderer.device.clone();
+        // let queue = renderer.queue.clone();
+        // let swapchain = renderer.swapchain.clone();
+        // let allocators = &renderer.allocators;
 
-        let vs_future = shader::load_async(device.clone(), scenes.imgui_vs.clone());
-        let fs_future = shader::load_async(device.clone(), scenes.imgui_fs.clone());
+        // let vs_future = shader::load_async(device.clone(), scenes.imgui_vs.clone());
+        // let fs_future = shader::load_async(device.clone(), scenes.imgui_fs.clone());
 
-        let vs = vs_future.wait(None)??;
-        let fs = fs_future.wait(None)??;
+        // let vs = vs_future.wait(None)??;
+        // let fs = fs_future.wait(None)??;
 
-        let render_pass =
-            super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
+        // let render_pass =
+        //     super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
 
-        let pipeline = super::pipeline::create_pipeline(
-            device.clone(),
-            vs.clone(),
-            fs.clone(),
-            render_pass.clone(),
-        )?;
+        // let pipeline = super::pipeline::create_pipeline(
+        //     device.clone(),
+        //     vs.clone(),
+        //     fs.clone(),
+        //     render_pass.clone(),
+        // )?;
 
-        let textures = Textures::new();
-        let font_texture =
-            Self::upload_font_texture(context.fonts(), device.clone(), queue.clone(), allocators)?;
+        // let textures = Textures::new();
+        // let font_texture =
+        //     Self::upload_font_texture(context.fonts(), device.clone(), queue.clone(), allocators)?;
 
-        context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
+        // context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
-        Ok(Self {
-            render_pass,
-            pipeline,
-            font_texture,
-            textures,
-        })
+        // Ok(Self {
+        //     render_pass,
+        //     pipeline,
+        //     font_texture,
+        //     textures,
+        // })
     }
 
     pub fn draw<I>(

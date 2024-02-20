@@ -70,6 +70,15 @@ impl<T> Extensions<T> for Option<T> {
     }
 }
 
+impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
+    fn unroll(self) -> Result<T, RisError> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(e) => crate::new_result!("{}", e),
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! new {
     ($($arg:tt)*) => {{

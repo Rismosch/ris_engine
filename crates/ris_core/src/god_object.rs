@@ -120,7 +120,7 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let renderer = Renderer::initialize(&window, scenes.clone())?;
+        let renderer = Renderer::initialize(&app_info, &window, scenes.clone())?;
 
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
