@@ -1,48 +1,30 @@
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 use std::sync::Arc;
 
 use ash::vk;
 use sdl2::video::Window;
-use vulkano::command_buffer::PrimaryAutoCommandBuffer;
-use vulkano::device::Device;
-use vulkano::device::DeviceCreateInfo;
-use vulkano::device::DeviceExtensions;
-use vulkano::device::Queue;
-use vulkano::device::QueueCreateInfo;
-use vulkano::image::SwapchainImage;
-use vulkano::instance::Instance;
-use vulkano::instance::InstanceCreateInfo;
-use vulkano::instance::InstanceExtensions;
-use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::pipeline::GraphicsPipeline;
-use vulkano::render_pass::Framebuffer;
-use vulkano::render_pass::RenderPass;
-use vulkano::shader::ShaderModule;
-use vulkano::swapchain;
 use vulkano::swapchain::AcquireError;
-use vulkano::swapchain::Surface;
-use vulkano::swapchain::SurfaceApi;
-use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainAcquireFuture;
-use vulkano::swapchain::SwapchainCreateInfo;
-use vulkano::swapchain::SwapchainCreationError;
-use vulkano::sync;
 use vulkano::sync::future::NowFuture;
-use vulkano::sync::GpuFuture;
-use vulkano::Handle;
-use vulkano::VulkanLibrary;
-use vulkano::VulkanObject;
 
 use ris_data::info::app_info::AppInfo;
 use ris_asset::loader::scenes_loader::Scenes;
-use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::vulkan::allocators::Allocators;
-use crate::vulkan::buffers::Buffers;
+use crate::vulkan::util;
+
+//const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
+const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_NV_optimus", "VK_LAYER_OBS_HOOK"];
+#[cfg(not(debug_assertions))]
+const VALIDATION_ENABLED: bool = false;
+#[cfg(debug_assertions)]
+const VALIDATION_ENABLED: bool = true;
 
 pub struct Renderer {
+    _entry: ash::Entry,
+    instance: ash::Instance,
 //    pub instance: Arc<Instance>,
 //    pub device: Arc<Device>,
 //    pub queue: Arc<Queue>,
@@ -60,8 +42,20 @@ pub struct Renderer {
 //    pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
 }
 
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping renderer...");
+
+        unsafe {self.instance.destroy_instance(None)};
+
+        ris_log::info!("renderer dropped!");
+    }
+}
+
 impl Renderer {
     pub fn initialize(app_info: &AppInfo, window: &Window, scenes: Scenes) -> RisResult<Self> {
+        let entry = unsafe {ash::Entry::load()?};
+        
         // extensions
         let mut count = 0;
         if unsafe {
@@ -78,17 +72,62 @@ impl Renderer {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
+        // validation layers
+        let available_layers = if !VALIDATION_ENABLED {
+            ris_log::info!("instance layers are disabled");
+            (0, ptr::null())
+        } else {
+            let layer_properties = entry.enumerate_instance_layer_properties()?;
+
+            if layer_properties.is_empty() {
+                ris_log::warning!("no available instance layers");
+                (0, ptr::null())
+            } else {
+                let mut log_message = String::from("available instance layers:");
+                for layer in layer_properties.iter() {
+                    let name = util::vk_to_string(&layer.layer_name)?;
+                    log_message.push_str(&format!("\n    - {}", name));
+                }
+                ris_log::trace!("{}", log_message);
+
+                let mut available_layers = Vec::new();
+                let mut log_message = String::from("instance layers to be enabled:");
+
+                for required_layer in REQUIRED_VALIDATION_LAYERS {
+                    let mut layer_found = false;
+
+                    for layer in layer_properties.iter() {
+                        let name = util::vk_to_string(&layer.layer_name)?;
+                        if (*required_layer) == name {
+                            available_layers.push(layer.layer_name.as_ptr());
+                            layer_found = true;
+                            break;
+                        }
+                    }
+
+                    if !layer_found {
+                        ris_log::warning!("layer \"{}\" is not available", required_layer);
+                    } else {
+                        log_message.push_str(&format!("\n    - {}", required_layer));
+                    }
+                }
+
+                ris_log::info!("{}", log_message);
+
+                (0, available_layers.as_ptr())
+            }
+        };
+
+
         // instance
-        let entry = unsafe {ash::Entry::load()?};
-        let app_name = CString::new(app_info.package.name.clone())?;
-        let engine_name = CString::new("vulkan (ash) engine")?;
+        let name = CString::new(app_info.package.name.clone())?;
         let vk_app_info = vk::ApplicationInfo {
             s_type: vk::StructureType::APPLICATION_INFO,
             p_next: ptr::null(),
-            p_application_name: app_name.as_ptr(),
-            application_version: vk::make_api_version(0, 0, 1, 0),
-            p_engine_name: engine_name.as_ptr(),
-            engine_version: vk::make_api_version(0, 0, 1, 0),
+            p_application_name: name.as_ptr(),
+            application_version: vk::make_api_version(0, 1, 0, 0),
+            p_engine_name: name.as_ptr(),
+            engine_version: vk::make_api_version(0, 1, 0, 0),
             api_version: vk::make_api_version(0, 1, 0, 92),
         };
 
@@ -97,8 +136,8 @@ impl Renderer {
             p_next: ptr::null(),
             flags: vk::InstanceCreateFlags::empty(),
             p_application_info: &vk_app_info,
-            pp_enabled_layer_names: ptr::null(),
-            enabled_layer_count: 0,
+            pp_enabled_layer_names: available_layers.1,
+            enabled_layer_count: available_layers.0,
             pp_enabled_extension_names: extensions.as_ptr(),
             enabled_extension_count: extensions.len() as u32,
         };
@@ -107,60 +146,143 @@ impl Renderer {
             entry.create_instance(&create_info, None)?
         };
 
-        ris_error::new_result!("reached end 10");
-        // // allocators
-        // let allocators = super::allocators::Allocators::new(device.clone());
+        Ok(Self {
+            _entry: entry,
+            instance,
+        })
 
-        // // frame buffers
-        // let framebuffers = super::swapchain::create_framebuffers(
-        //     &allocators,
-        //     dimensions,
-        //     &images,
-        //     render_pass.clone(),
-        // )?;
+        //// instance
+        //let library = VulkanLibrary::new()?;
+        //let instance_extensions = InstanceExtensions::from_iter(
+        //    window
+        //        .vulkan_instance_extensions()
+        //        .map_err(|e| ris_error::new!("failed to get vulkan instance extensions: {}", e))?,
+        //);
 
-        // // pipeline
-        // let vs = vs_future.wait(None)??;
-        // let fs = fs_future.wait(None)??;
+        //let instance = Instance::new(
+        //    library,
+        //    InstanceCreateInfo {
+        //        enabled_extensions: instance_extensions,
+        //        ..Default::default()
+        //    },
+        //)?;
 
-        // let pipeline = super::pipeline::create_pipeline(
-        //     device.clone(),
-        //     vs.clone(),
-        //     fs.clone(),
-        //     render_pass.clone(),
-        //     &viewport,
-        // )?;
+        //// surface
+        //let surface_handle = window
+        //    .vulkan_create_surface(instance.handle().as_raw() as _)
+        //    .map_err(|e| ris_error::new!("failed to create instance: {}", e))?;
+        //let surface = unsafe {
+        //    Surface::from_handle(
+        //        instance.clone(),
+        //        <_ as Handle>::from_raw(surface_handle),
+        //        SurfaceApi::Win32,
+        //        None,
+        //    )
+        //};
+        //let surface = Arc::new(surface);
 
-        // // buffers
-        // let buffers = super::buffers::Buffers::new(&allocators, images.len(), pipeline.clone())?;
+        //// physical device
+        //let device_extensions = DeviceExtensions {
+        //    khr_swapchain: true,
+        //    ..DeviceExtensions::empty()
+        //};
+        //let (physical_device, queue_family_index) = super::physical_device::select_physical_device(
+        //    instance.clone(),
+        //    surface.clone(),
+        //    &device_extensions,
+        //)?;
 
-        // // command buffers
-        // let command_buffers = super::command_buffers::create_command_buffers(
-        //     &allocators,
-        //     queue.clone(),
-        //     pipeline.clone(),
-        //     &framebuffers,
-        //     &buffers,
-        // )?;
+        //// device
+        //let (device, mut queues) = Device::new(
+        //    physical_device.clone(),
+        //    DeviceCreateInfo {
+        //        queue_create_infos: vec![QueueCreateInfo {
+        //            queue_family_index,
+        //            ..Default::default()
+        //        }],
+        //        enabled_extensions: device_extensions,
+        //        ..Default::default()
+        //    },
+        //)?;
+        //let queue = queues.next().unroll()?;
 
-        // // return
-        // Ok(Self {
-        //     instance,
-        //     device,
-        //     queue,
-        //     swapchain,
-        //     images,
-        //     render_pass,
-        //     framebuffers,
-        //     allocators,
-        //     buffers,
-        //     vertex_shader: vs,
-        //     fragment_shader: fs,
-        //     scenes,
-        //     viewport,
-        //     pipeline,
-        //     command_buffers,
-        // })
+        //// shaders
+        //let vs_future = super::shader::load_async(device.clone(), scenes.default_vs.clone());
+        //let fs_future = super::shader::load_async(device.clone(), scenes.default_fs.clone());
+
+        //// swapchain
+        //let dimensions = window.vulkan_drawable_size();
+        //let (swapchain, images) = super::swapchain::create_swapchain(
+        //    physical_device.clone(),
+        //    dimensions,
+        //    device.clone(),
+        //    surface.clone(),
+        //)?;
+
+        //// render pass
+        //let render_pass =
+        //    super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
+
+        //// viewport
+        //let viewport = Viewport {
+        //    origin: [0.0, 0.0],
+        //    dimensions: [dimensions.0 as f32, dimensions.1 as f32],
+        //    depth_range: 0.0..1.0,
+        //};
+
+        //// allocators
+        //let allocators = super::allocators::Allocators::new(device.clone());
+
+        //// frame buffers
+        //let framebuffers = super::swapchain::create_framebuffers(
+        //    &allocators,
+        //    dimensions,
+        //    &images,
+        //    render_pass.clone(),
+        //)?;
+
+        //// pipeline
+        //let vs = vs_future.wait()?;
+        //let fs = fs_future.wait()?;
+
+        //let pipeline = super::pipeline::create_pipeline(
+        //    device.clone(),
+        //    vs.clone(),
+        //    fs.clone(),
+        //    render_pass.clone(),
+        //    &viewport,
+        //)?;
+
+        //// buffers
+        //let buffers = super::buffers::Buffers::new(&allocators, images.len(), pipeline.clone())?;
+
+        //// command buffers
+        //let command_buffers = super::command_buffers::create_command_buffers(
+        //    &allocators,
+        //    queue.clone(),
+        //    pipeline.clone(),
+        //    &framebuffers,
+        //    &buffers,
+        //)?;
+
+        //// return
+        //Ok(Self {
+        //    instance,
+        //    device,
+        //    queue,
+        //    swapchain,
+        //    images,
+        //    render_pass,
+        //    framebuffers,
+        //    allocators,
+        //    buffers,
+        //    vertex_shader: vs,
+        //    fragment_shader: fs,
+        //    scenes,
+        //    viewport,
+        //    pipeline,
+        //    command_buffers,
+        //})
     }
 
     pub fn recreate_swapchain(&mut self, dimensions: (u32, u32)) -> RisResult<()> {

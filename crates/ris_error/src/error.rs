@@ -2,6 +2,9 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
+use chrono::DateTime;
+use chrono::Local;
+
 pub type SourceError = Option<Arc<dyn Error + 'static>>;
 pub type RisResult<T> = Result<T, RisError>;
 
@@ -79,6 +82,10 @@ impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
     }
 }
 
+pub fn get_timestamp() -> DateTime<Local> {
+    Local::now()
+}
+
 #[macro_export]
 macro_rules! new {
     ($($arg:tt)*) => {{
@@ -107,9 +114,13 @@ macro_rules! get_backtrace {
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
+        let timestamp = $crate::error::get_timestamp().format("%T");
+
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(
-            "\u{001B}[93mWARNING\u{001B}[0m: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
+            "[{}] \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}\n",
+            timestamp,
+            env!("CARGO_PKG_NAME"),
             file!(),
             line!(),
         );

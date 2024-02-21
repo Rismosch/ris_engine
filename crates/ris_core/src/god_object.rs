@@ -122,6 +122,8 @@ impl GodObject {
 
         let renderer = Renderer::initialize(&app_info, &window, scenes.clone())?;
 
+        return ris_error::new_result!("renderer was initialized");
+
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
