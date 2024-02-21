@@ -2,9 +2,7 @@ All files in `./3rd_party/` are not mine and are licensed under their respective
 
 ## SDL2-2.0.12
 
-repository: https://github.com/libsdl-org/SDL/  
-release: https://github.com/libsdl-org/SDL/releases/tag/release-2.0.12  
-package: SDL2-devel-2.0.12-VC.zip  
+download: https://vulkan.lunarg.com/
 license: zlib License
 
 ## Shaderc

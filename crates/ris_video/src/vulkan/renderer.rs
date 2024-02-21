@@ -1,5 +1,6 @@
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::os::raw::c_void;
 use std::ptr;
 use std::sync::Arc;
 
@@ -16,11 +17,41 @@ use ris_error::RisResult;
 use crate::vulkan::util;
 
 //const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
-const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_NV_optimus", "VK_LAYER_OBS_HOOK"];
+const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 #[cfg(not(debug_assertions))]
 const VALIDATION_ENABLED: bool = false;
 #[cfg(debug_assertions)]
 const VALIDATION_ENABLED: bool = true;
+
+unsafe extern "system" fn debug_callback(
+    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
+    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
+    _p_user_data: *mut c_void,
+) -> vk::Bool32 {
+    use ris_log::log_level::LogLevel;
+
+    let log_level = match message_severity {
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => LogLevel::Trace,
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => LogLevel::Info,
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => LogLevel::Warning,
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => LogLevel::Error,
+        _ => LogLevel::Debug,
+    };
+
+    let type_flag = match message_type {
+        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "General",
+        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "Performance",
+        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "Validation",
+        _ => "unknown",
+    };
+
+    let message = CStr::from_ptr((*p_callback_data).p_message);
+
+    ris_log::log!(log_level, "Vulkan {} | {:?}", type_flag, message);
+
+    vk::FALSE
+}
 
 pub struct Renderer {
     _entry: ash::Entry,
@@ -45,6 +76,10 @@ pub struct Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         ris_log::debug!("dropping renderer...");
+
+        if VALIDATION_ENABLED {
+
+        }
 
         unsafe {self.instance.destroy_instance(None)};
 
@@ -73,12 +108,17 @@ impl Renderer {
         }
 
         // validation layers
+        //let mut debug_utils_messenger_create_info = ptr::null();
+
         let available_layers = if !VALIDATION_ENABLED {
             ris_log::info!("instance layers are disabled");
             (0, ptr::null())
         } else {
-            let layer_properties = entry.enumerate_instance_layer_properties()?;
+            // add debug util extension
+            extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
 
+            // find and collect available layers
+            let layer_properties = entry.enumerate_instance_layer_properties()?;
             if layer_properties.is_empty() {
                 ris_log::warning!("no available instance layers");
                 (0, ptr::null())
@@ -93,7 +133,7 @@ impl Renderer {
                 let mut available_layers = Vec::new();
                 let mut log_message = String::from("instance layers to be enabled:");
 
-                for required_layer in REQUIRED_VALIDATION_LAYERS {
+                for required_layer in REQUIRED_INSTANCE_LAYERS {
                     let mut layer_found = false;
 
                     for layer in layer_properties.iter() {
@@ -117,7 +157,6 @@ impl Renderer {
                 (0, available_layers.as_ptr())
             }
         };
-
 
         // instance
         let name = CString::new(app_info.package.name.clone())?;
@@ -145,6 +184,31 @@ impl Renderer {
         let instance = unsafe {
             entry.create_instance(&create_info, None)?
         };
+
+        let test = if !VALIDATION_ENABLED {
+            None
+        } else {
+            let debug_utils_messenger_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
+                s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                p_next: ptr::null(),
+                flags: vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
+                message_severity:
+                    vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
+                    vk::DebugUtilsMessageSeverityFlagsEXT::INFO |
+                    vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
+                    vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
+                message_type:
+                    vk::DebugUtilsMessageTypeFlagsEXT::GENERAL |
+                    vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
+                    vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
+                pfn_user_callback: Some(debug_callback),
+                p_user_data: ptr::null_mut(),
+            };
+
+            Some(42)
+        };
+
+        return ris_error::new_result!("test");
 
         Ok(Self {
             _entry: entry,
