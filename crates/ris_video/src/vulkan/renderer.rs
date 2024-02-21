@@ -1,48 +1,30 @@
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 use std::sync::Arc;
 
 use ash::vk;
 use sdl2::video::Window;
-use vulkano::command_buffer::PrimaryAutoCommandBuffer;
-use vulkano::device::Device;
-use vulkano::device::DeviceCreateInfo;
-use vulkano::device::DeviceExtensions;
-use vulkano::device::Queue;
-use vulkano::device::QueueCreateInfo;
-use vulkano::image::SwapchainImage;
-use vulkano::instance::Instance;
-use vulkano::instance::InstanceCreateInfo;
-use vulkano::instance::InstanceExtensions;
-use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::pipeline::GraphicsPipeline;
-use vulkano::render_pass::Framebuffer;
-use vulkano::render_pass::RenderPass;
-use vulkano::shader::ShaderModule;
-use vulkano::swapchain;
 use vulkano::swapchain::AcquireError;
-use vulkano::swapchain::Surface;
-use vulkano::swapchain::SurfaceApi;
-use vulkano::swapchain::Swapchain;
 use vulkano::swapchain::SwapchainAcquireFuture;
-use vulkano::swapchain::SwapchainCreateInfo;
-use vulkano::swapchain::SwapchainCreationError;
-use vulkano::sync;
 use vulkano::sync::future::NowFuture;
-use vulkano::sync::GpuFuture;
-use vulkano::Handle;
-use vulkano::VulkanLibrary;
-use vulkano::VulkanObject;
 
 use ris_data::info::app_info::AppInfo;
 use ris_asset::loader::scenes_loader::Scenes;
-use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::vulkan::allocators::Allocators;
-use crate::vulkan::buffers::Buffers;
+use crate::vulkan::util;
+
+//const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
+const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_NV_optimus", "VK_LAYER_OBS_HOOK"];
+#[cfg(not(debug_assertions))]
+const VALIDATION_ENABLED: bool = false;
+#[cfg(debug_assertions)]
+const VALIDATION_ENABLED: bool = true;
 
 pub struct Renderer {
+    _entry: ash::Entry,
+    instance: ash::Instance,
 //    pub instance: Arc<Instance>,
 //    pub device: Arc<Device>,
 //    pub queue: Arc<Queue>,
@@ -60,8 +42,20 @@ pub struct Renderer {
 //    pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
 }
 
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping renderer...");
+
+        unsafe {self.instance.destroy_instance(None)};
+
+        ris_log::info!("renderer dropped!");
+    }
+}
+
 impl Renderer {
     pub fn initialize(app_info: &AppInfo, window: &Window, scenes: Scenes) -> RisResult<Self> {
+        let entry = unsafe {ash::Entry::load()?};
+        
         // extensions
         let mut count = 0;
         if unsafe {
@@ -78,17 +72,62 @@ impl Renderer {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
+        // validation layers
+        let available_layers = if !VALIDATION_ENABLED {
+            ris_log::info!("instance layers are disabled");
+            (0, ptr::null())
+        } else {
+            let layer_properties = entry.enumerate_instance_layer_properties()?;
+
+            if layer_properties.is_empty() {
+                ris_log::warning!("no available instance layers");
+                (0, ptr::null())
+            } else {
+                let mut log_message = String::from("available instance layers:");
+                for layer in layer_properties.iter() {
+                    let name = util::vk_to_string(&layer.layer_name)?;
+                    log_message.push_str(&format!("\n    - {}", name));
+                }
+                ris_log::trace!("{}", log_message);
+
+                let mut available_layers = Vec::new();
+                let mut log_message = String::from("instance layers to be enabled:");
+
+                for required_layer in REQUIRED_VALIDATION_LAYERS {
+                    let mut layer_found = false;
+
+                    for layer in layer_properties.iter() {
+                        let name = util::vk_to_string(&layer.layer_name)?;
+                        if (*required_layer) == name {
+                            available_layers.push(layer.layer_name.as_ptr());
+                            layer_found = true;
+                            break;
+                        }
+                    }
+
+                    if !layer_found {
+                        ris_log::warning!("layer \"{}\" is not available", required_layer);
+                    } else {
+                        log_message.push_str(&format!("\n    - {}", required_layer));
+                    }
+                }
+
+                ris_log::info!("{}", log_message);
+
+                (0, available_layers.as_ptr())
+            }
+        };
+
+
         // instance
-        let entry = unsafe {ash::Entry::load()?};
-        let app_name = CString::new(app_info.package.name.clone())?;
-        let engine_name = CString::new("vulkan (ash) engine")?;
+        let name = CString::new(app_info.package.name.clone())?;
         let vk_app_info = vk::ApplicationInfo {
             s_type: vk::StructureType::APPLICATION_INFO,
             p_next: ptr::null(),
-            p_application_name: app_name.as_ptr(),
-            application_version: vk::make_api_version(0, 0, 1, 0),
-            p_engine_name: engine_name.as_ptr(),
-            engine_version: vk::make_api_version(0, 0, 1, 0),
+            p_application_name: name.as_ptr(),
+            application_version: vk::make_api_version(0, 1, 0, 0),
+            p_engine_name: name.as_ptr(),
+            engine_version: vk::make_api_version(0, 1, 0, 0),
             api_version: vk::make_api_version(0, 1, 0, 92),
         };
 
@@ -97,8 +136,8 @@ impl Renderer {
             p_next: ptr::null(),
             flags: vk::InstanceCreateFlags::empty(),
             p_application_info: &vk_app_info,
-            pp_enabled_layer_names: ptr::null(),
-            enabled_layer_count: 0,
+            pp_enabled_layer_names: available_layers.1,
+            enabled_layer_count: available_layers.0,
             pp_enabled_extension_names: extensions.as_ptr(),
             enabled_extension_count: extensions.len() as u32,
         };
@@ -107,7 +146,10 @@ impl Renderer {
             entry.create_instance(&create_info, None)?
         };
 
-        ris_error::new_result!("reached end 9")
+        Ok(Self {
+            _entry: entry,
+            instance,
+        })
 
         //// instance
         //let library = VulkanLibrary::new()?;
