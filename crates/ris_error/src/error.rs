@@ -118,7 +118,7 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(
-            "[{}] \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}\n",
+            "\n[{}] \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}",
             timestamp,
             env!("CARGO_PKG_NAME"),
             file!(),

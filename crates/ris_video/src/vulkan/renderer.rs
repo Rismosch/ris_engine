@@ -16,7 +16,6 @@ use ris_error::RisResult;
 
 use crate::vulkan::util;
 
-//const REQUIRED_VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 #[cfg(not(debug_assertions))]
 const VALIDATION_ENABLED: bool = false;
@@ -40,15 +39,15 @@ unsafe extern "system" fn debug_callback(
     };
 
     let type_flag = match message_type {
-        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "General",
-        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "Performance",
-        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "Validation",
+        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "GENERAL",
+        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "PERFORMANCE",
+        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "VALIDATION",
         _ => "unknown",
     };
 
     let message = CStr::from_ptr((*p_callback_data).p_message);
 
-    ris_log::log!(log_level, "Vulkan {} | {:?}", type_flag, message);
+    ris_log::log!(log_level, "VULKAN {} | {:?}", type_flag, message);
 
     vk::FALSE
 }
@@ -56,6 +55,7 @@ unsafe extern "system" fn debug_callback(
 pub struct Renderer {
     _entry: ash::Entry,
     instance: ash::Instance,
+    debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
 //    pub instance: Arc<Instance>,
 //    pub device: Arc<Device>,
 //    pub queue: Arc<Queue>,
@@ -77,11 +77,15 @@ impl Drop for Renderer {
     fn drop(&mut self) {
         ris_log::debug!("dropping renderer...");
 
-        if VALIDATION_ENABLED {
+        unsafe {
+
+            if let Some((debug_utils, debug_utils_messenger)) = self.debug_utils.take() {
+                debug_utils.destroy_debug_utils_messenger(debug_utils_messenger, None);
+            }
+
+            self.instance.destroy_instance(None);
 
         }
-
-        unsafe {self.instance.destroy_instance(None)};
 
         ris_log::info!("renderer dropped!");
     }
@@ -185,9 +189,11 @@ impl Renderer {
             entry.create_instance(&create_info, None)?
         };
 
-        let test = if !VALIDATION_ENABLED {
+        let debug_utils = if !VALIDATION_ENABLED {
             None
         } else {
+            let debug_utils = ash::extensions::ext::DebugUtils::new(&entry, &instance);
+
             let debug_utils_messenger_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
                 s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                 p_next: ptr::null(),
@@ -205,14 +211,19 @@ impl Renderer {
                 p_user_data: ptr::null_mut(),
             };
 
-            Some(42)
+            let debug_utils_messenger = unsafe {
+                debug_utils.create_debug_utils_messenger(&debug_utils_messenger_create_info, None)?
+            };
+
+            Some((debug_utils, debug_utils_messenger))
         };
 
-        return ris_error::new_result!("test");
+        //return ris_error::new_result!("test");
 
         Ok(Self {
             _entry: entry,
             instance,
+            debug_utils,
         })
 
         //// instance
