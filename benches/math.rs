@@ -14,7 +14,7 @@ fn abs(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 
@@ -62,7 +62,7 @@ fn negate(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 
@@ -98,7 +98,7 @@ fn log2(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 
@@ -131,7 +131,7 @@ fn exp2(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 
@@ -164,8 +164,8 @@ fn pow(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value1 = rng.range_f(-1., 1.);
-        let value2 = rng.range_f(-1., 1.);
+        let value1 = rng.range_f(-1_000_000., 1_000_000.);
+        let value2 = rng.range_f(-1_000_000., 1_000_000.);
         values.push((value1, value2));
     }
 
@@ -198,7 +198,7 @@ fn sqrt(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 
@@ -231,7 +231,7 @@ fn inversesqrt(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(-1., 1.);
+        let value = rng.range_f(-1_000_000., 1_000_000.);
         values.push(value);
     }
 

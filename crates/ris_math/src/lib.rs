@@ -313,11 +313,11 @@ const ONE_AS_INT: i32 = 0x3f80_0000;
 const SCALE_UP: f32 = 0x00800000 as f32;
 const SCALE_DOWN: f32 = 1.0 / SCALE_UP;
 
-/// uses the bytes of x to initialize an i32. used by the fast functions
+/// uses the bytes of x to initialize an i32. used by fast functions
 pub fn as_int(x: f32) -> i32 {
     i32::from_be_bytes(x.to_be_bytes())
 }
-/// uses the bytes of x to initialize an f32. used by the fast functions
+/// uses the bytes of x to initialize an f32. used by fast functions
 pub fn as_float(x: i32) -> f32 {
     f32::from_be_bytes(x.to_be_bytes())
 }
