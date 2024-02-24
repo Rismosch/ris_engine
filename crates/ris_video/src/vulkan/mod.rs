@@ -8,6 +8,7 @@ pub mod render_pass;
 pub mod renderer;
 pub mod shader;
 pub mod swapchain;
+pub mod util;
 
 use vulkano::format::Format;
 
