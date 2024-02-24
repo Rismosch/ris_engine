@@ -18,7 +18,7 @@ pub fn load_async(
 
         let future = asset_loader::load_async(asset_id.clone());
 
-        let bytes = future.wait()?;
+        let bytes = future.wait(None)??;
 
         let shader = unsafe { ShaderModule::from_bytes(device.clone(), &bytes) }?;
 

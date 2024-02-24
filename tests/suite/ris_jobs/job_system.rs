@@ -202,7 +202,7 @@ fn should_run_jobs_while_waiting_on_future() {
             futures.push(future);
         }
 
-        let result = future.wait();
+        let result = future.wait(None).unwrap();
         let results = results.lock().unwrap();
 
         assert_eq!(result, "hello world");

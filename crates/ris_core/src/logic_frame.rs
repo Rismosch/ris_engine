@@ -253,7 +253,7 @@ impl LogicFrame {
         }
 
         if let Some(future) = import_shader_future {
-            future.wait();
+            future.wait(None)?;
         }
 
         Ok(GameloopState::WantsToContinue)

@@ -105,7 +105,7 @@ impl GodObject {
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = asset_loader::load_async(scenes_id).wait()?;
+        let scenes_bytes = asset_loader::load_async(scenes_id).wait(None)??;
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video

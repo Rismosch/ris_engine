@@ -129,7 +129,7 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
 
     let job = Job::new(move || {
         let result = job();
-        settable_future.set(result, true);
+        settable_future.set(result);
     });
 
     WORKER_THREAD.with(|worker_thread| {

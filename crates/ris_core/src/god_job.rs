@@ -54,8 +54,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let logic_result = god_object.logic_frame.run(frame, state_for_logic);
 
         // wait for jobs
-        let (new_output_frame, output_result) = output_future.wait();
-        let (new_settings_serializer, save_settings_result) = save_settings_future.wait();
+        let (new_output_frame, output_result) = output_future.wait(None)?;
+        let (new_settings_serializer, save_settings_result) = save_settings_future.wait(None)?;
 
         // update buffers
         god_object.output_frame = new_output_frame;

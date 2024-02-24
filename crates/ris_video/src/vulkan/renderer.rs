@@ -149,8 +149,8 @@ impl Renderer {
         )?;
 
         // pipeline
-        let vs = vs_future.wait()?;
-        let fs = fs_future.wait()?;
+        let vs = vs_future.wait(None)??;
+        let fs = fs_future.wait(None)??;
 
         let pipeline = super::pipeline::create_pipeline(
             device.clone(),
@@ -247,16 +247,16 @@ impl Renderer {
     pub fn reload_shaders(&mut self) -> RisResult<()> {
         ris_log::trace!("reloading shaders...");
 
-        let vertex_future =
+        let vs_future =
             super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
-        let fragment_future =
+        let fs_future =
             super::shader::load_async(self.device.clone(), self.scenes.default_fs.clone());
 
-        let vertex_shader = vertex_future.wait()?;
-        let fragment_shader = fragment_future.wait()?;
+        let vs = vs_future.wait(None)??;
+        let fs = fs_future.wait(None)??;
 
-        self.vertex_shader = vertex_shader;
-        self.fragment_shader = fragment_shader;
+        self.vertex_shader = vs;
+        self.fragment_shader = fs;
 
         ris_log::trace!("shaders reloaded!");
         Ok(())
