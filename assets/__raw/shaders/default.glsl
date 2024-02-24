@@ -23,7 +23,7 @@ void main() {
     gl_Position = ubo.proj_view * vec4(position, ONE);
 
     f_color = invert_color(color);
-    //f_color = color;
+    f_color = vec3(viewport_coord(gl_Position), 0);
 }
 
 #fragment

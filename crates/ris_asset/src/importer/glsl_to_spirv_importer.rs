@@ -233,6 +233,12 @@ impl Shader {
 
         let file = format!("{}.{}", file_stem, extension);
 
+        let mut source_trace = String::new();
+        for (i, source_line) in source.lines().enumerate() {
+            source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
+        }
+        ris_log::trace!("shader {}: \n{}", file, source_trace);
+
         let artifact = compiler.compile_into_spirv(
             &source,
             shaderc::ShaderKind::InferFromSource,
