@@ -44,78 +44,21 @@ fn should_set_and_wait() {
 }
 
 #[test]
-fn should_create_fence() {
-    repeat(miri_choose(1_000, 10), |_| {
-        let events = Arc::new(Mutex::new(Vec::new()));
-
-        let (settable, future) = SettableJobFuture::new();
-        let fence = future.fence();
-
-        let mut fence_handles = Vec::new();
-        for i in 0..10 {
-            let fence_clone = fence.clone();
-            let events_clone = events.clone();
-            let fence_handle = thread::spawn(move || {
-                fence_clone.wait(None).unwrap();
-                let event = format!("waited {}", i);
-                events_clone.lock().unwrap().push(event);
-            });
-            fence_handles.push(fence_handle);
-        }
-
-        let events_clone = events.clone();
-        let set_handle = thread::spawn(move || {
-            events_clone.lock().unwrap().push(String::from("set"));
-            settable.set(42);
-        });
-
-        for fence_handle in fence_handles {
-            fence_handle.join().unwrap();
-        }
-
-        set_handle.join().unwrap();
-
-        let events = events.lock().unwrap();
-        assert_eq!(events.len(), 11);
-        assert_eq!(events[0], "set");
-        for i in 0..10 {
-            let expected = format!("waited {}", i);
-            assert!(events.contains(&expected))
-        }
-    })
-}
-
-#[test]
 fn should_timeout() {
     repeat(miri_choose(1_000, 10), |_| {
-        let timeouts = Arc::new(Mutex::new(Vec::new()));
+        let timed_out = Arc::new(AtomicBool::new(false));
 
         let (_settable, future) = SettableJobFuture::<()>::new();
-        let fence = future.fence();
 
-        let mut fence_handles = Vec::new();
-        for _i in 0..10 {
-            let fence_clone = fence.clone();
-            let timeouts_clone = timeouts.clone();
-            let fence_handle = thread::spawn(move || {
-                let error = fence_clone.wait(Some(Duration::from_nanos(1))).unwrap_err();
-                timeouts_clone.lock().unwrap().push(error);
-            });
-            fence_handles.push(fence_handle);
-        }
-
-        let timeouts_clone = timeouts.clone();
+        let timed_out_clone = timed_out.clone();
         let poll_handle = thread::spawn(move || {
-            let error = future.wait(Some(Duration::from_nanos(1))).unwrap_err();
-            timeouts_clone.lock().unwrap().push(error);
+            future.wait(Some(Duration::from_nanos(1))).unwrap_err();
+            timed_out_clone.store(true, Ordering::SeqCst);
         });
 
-        for fence_handle in fence_handles {
-            fence_handle.join().unwrap();
-        }
         poll_handle.join().unwrap();
 
-        let timeouts = timeouts.lock().unwrap();
-        assert_eq!(timeouts.len(), 11);
+        let timed_out = timed_out.load(Ordering::SeqCst);
+        assert!(timed_out);
     })
 }

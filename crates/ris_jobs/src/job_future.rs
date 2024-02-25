@@ -17,11 +17,6 @@ pub struct JobFuture<T> {
     data: Arc<UnsafeCell<Option<T>>>,
 }
 
-#[derive(Clone)]
-pub struct JobFence {
-    is_ready: Arc<AtomicBool>,
-}
-
 #[derive(Debug)]
 pub struct TimeoutError {
     waited: Duration,
@@ -72,11 +67,6 @@ impl<T> JobFuture<T> {
             None => unreachable!(),
         }
     }
-
-    pub fn fence(&self) -> JobFence {
-        let is_ready = self.is_ready.clone();
-        JobFence { is_ready }
-    }
 }
 
 impl<T: Default> JobFuture<T> {
@@ -85,24 +75,6 @@ impl<T: Default> JobFuture<T> {
         let data = Arc::new(UnsafeCell::new(Some(T::default())));
 
         Self { is_ready, data }
-    }
-}
-
-impl JobFence {
-    pub fn wait(self, timeout: Option<Duration>) -> Result<(), TimeoutError> {
-        match timeout {
-            Some(timeout) => spinlock_with_timeout(self.is_ready.clone(), timeout),
-            None => {
-                spinlock(self.is_ready.clone());
-                Ok(())
-            }
-        }
-    }
-
-    pub fn done() -> Self {
-        let is_ready = Arc::new(AtomicBool::new(true));
-
-        Self { is_ready }
     }
 }
 
@@ -133,5 +105,4 @@ unsafe impl<T> Send for SettableJobFuture<T> {}
 unsafe impl<T> Sync for SettableJobFuture<T> {}
 unsafe impl<T> Send for JobFuture<T> {}
 unsafe impl<T> Sync for JobFuture<T> {}
-unsafe impl Send for JobFence {}
-unsafe impl Sync for JobFence {}
+

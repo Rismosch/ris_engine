@@ -1,5 +1,6 @@
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
+use ris_jobs::job_future::SettableJobFuture;
 use ris_jobs::job_system;
 
 use crate::god_object::GodObject;
@@ -27,11 +28,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let state_for_save_settings = god_state.clone();
 
         // game loop frame
+        let (settable_logic_future, logic_future) = SettableJobFuture::new();
+        
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
             let state = state_for_output;
 
-            let result = output_frame.run(frame, state);
+            let result = output_frame.run(frame, state, logic_future);
 
             (output_frame, result)
         });
@@ -52,6 +55,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         });
 
         let logic_result = god_object.logic_frame.run(frame, state_for_logic);
+        settable_logic_future.set(());
 
         // wait for jobs
         let (new_output_frame, output_result) = output_future.wait(None)?;

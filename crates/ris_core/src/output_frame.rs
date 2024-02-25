@@ -18,10 +18,14 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
+use ris_jobs::job_future::JobFuture;
 use ris_math::space::Space;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::gpu_objects::UniformBufferObject;
 use ris_video::vulkan::renderer::Renderer;
+
+use crate::ui_helper::UiHelper;
+use crate::ui_helper::UiHelperDrawData;
 
 type Fence = FenceSignalFuture<
     PresentFuture<
@@ -37,13 +41,20 @@ pub struct OutputFrame {
     fences: Vec<Option<Arc<Fence>>>,
     imgui: RisImgui,
 
+    ui_helper: UiHelper,
+
     // mut be dropped last
     renderer: Renderer,
     window: Window,
 }
 
 impl OutputFrame {
-    pub fn new(window: Window, renderer: Renderer, imgui: RisImgui) -> RisResult<Self> {
+    pub fn new(
+        window: Window,
+        renderer: Renderer,
+        imgui: RisImgui,
+        ui_helper: UiHelper,
+    ) -> RisResult<Self> {
         let frames_in_flight = renderer.get_image_count();
         let mut fences = Vec::with_capacity(frames_in_flight);
         for _ in 0..frames_in_flight {
@@ -55,12 +66,18 @@ impl OutputFrame {
             previous_fence: 0,
             fences,
             imgui,
+            ui_helper,
             renderer,
             window,
         })
     }
 
-    pub fn run(&mut self, frame: Frame, state: Arc<GodState>) -> RisResult<()> {
+    pub fn run(
+        &mut self,
+        frame: Frame,
+        state: Arc<GodState>,
+        logic_future: JobFuture<()>
+    ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -98,7 +115,11 @@ impl OutputFrame {
             (window_size.0 as f32, window_size.1 as f32),
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );
-        ui.show_demo_window(&mut true);
+        self.ui_helper.draw(UiHelperDrawData{
+            ui,
+            state: state.clone(),
+            logic_future,
+        })?;
 
         let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
             Ok(r) => r,

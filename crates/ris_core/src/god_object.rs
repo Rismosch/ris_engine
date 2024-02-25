@@ -22,6 +22,7 @@ use ris_video::vulkan::renderer::Renderer;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
+use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
@@ -131,8 +132,9 @@ impl GodObject {
         };
 
         // gameloop
+        let ui_helper = UiHelper::new(&app_info);
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, imgui)?;
+        let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 
