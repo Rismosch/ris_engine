@@ -147,7 +147,10 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
         });
 
         match not_pushed {
-            Some(not_pushed) => job = not_pushed,
+            Some(not_pushed) => {
+                run_pending_job(file!(), line!());
+                job = not_pushed;
+            },
             None => break,
         }
     }
