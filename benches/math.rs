@@ -27,25 +27,10 @@ fn abs(c: &mut Criterion) {
         });
     });
 
-    group.bench_function("bit_magic_1", |b| {
+    group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let bytes = u32::from_be_bytes(value.to_be_bytes());
-                let modified = bytes & 0x7FFF_FFFF;
-                let abs = f32::from_be_bytes(modified.to_be_bytes());
-
-                black_box(abs);
-            }
-        });
-    });
-
-    group.bench_function("bit_magic_2", |b| {
-        b.iter(|| {
-            for value in &values {
-                let mut bytes = value.to_be_bytes();
-                bytes[0] &= 0x7F;
-                let abs = f32::from_be_bytes(bytes);
-
+                let abs = ris_math::fast_abs(*value);
                 black_box(abs);
             }
         });
@@ -78,10 +63,7 @@ fn negate(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let mut bytes = value.to_be_bytes();
-                bytes[0] ^= 0x80;
-                let result = f32::from_be_bytes(bytes);
-
+                let result = ris_math::fast_negate(*value);
                 black_box(result);
             }
         });
