@@ -115,11 +115,14 @@ impl OutputFrame {
             (window_size.0 as f32, window_size.1 as f32),
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );
-        self.ui_helper.draw(UiHelperDrawData{
-            ui,
-            state: state.clone(),
+        self.ui_helper.draw(
+            UiHelperDrawData{
+                ui,
+                frame,
+                state: state.clone(),
+            },
             logic_future,
-        })?;
+        )?;
 
         let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
             Ok(r) => r,

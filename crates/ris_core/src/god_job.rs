@@ -29,7 +29,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // game loop frame
         let (settable_logic_future, logic_future) = SettableJobFuture::new();
-        
+
         let output_future = job_system::submit(move || {
             let mut output_frame = god_object.output_frame;
             let state = state_for_output;
