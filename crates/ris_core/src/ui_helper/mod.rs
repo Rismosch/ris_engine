@@ -82,10 +82,12 @@ impl UiHelper {
         self.selected = usize::min(self.selected, module_names.len() - 1);
         let selected_module = &mut self.modules[self.selected];
 
-        ui.checkbox("##", &mut selected_module.pinned);
+        ui.checkbox("##pinned", &mut selected_module.pinned);
         ui.same_line();
+        let checkbox_half_width = ui.item_rect_size()[0];
+        ui.set_next_item_width(ui.window_size()[0] - checkbox_half_width * 2.);
         ui.combo_simple_string(
-            "UiHelperModule",
+            "##modules",
             &mut self.selected,
             &module_names,
         );
