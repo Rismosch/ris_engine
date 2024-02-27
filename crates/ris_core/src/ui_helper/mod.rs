@@ -21,23 +21,19 @@ fn modules() -> Vec<Box<dyn UiHelperModule>> {
 
 pub trait UiHelperModule {
     fn name(&self) -> &'static str;
-    fn modifies_state(&self) -> bool;
     fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()>;
 }
 
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
+    pub logic_future: JobFuture<()>,
     pub frame: Frame,
     pub state: Arc<GodState>,
 }
 
-struct Module {
-    inner: Box<dyn UiHelperModule>,
-    pinned: bool,
-}
-
 pub struct UiHelper {
-    modules: Vec<Module>,
+    modules: Vec<Box<dyn UiHelperModule>>,
+    pinned: Vec<String>,
     selected: usize,
 }
 
@@ -45,26 +41,18 @@ impl UiHelper {
     pub fn new(app_info: &AppInfo) -> Self {
         let selected = 0;
 
-        let modules = modules()
-            .into_iter()
-            .map(|x| Module{
-                inner: x,
-                pinned: false,
-            })
-            .collect::<Vec<_>>();
-
-
         Self {
-            modules,
+            modules: modules(),
+            pinned: Vec::new(),
             selected,
         }
     }
 
-    pub fn draw(&mut self, data: UiHelperDrawData, logic_future: JobFuture<()>) -> RisResult<()> {
+    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
         let retval = data.ui.window("UiHelper")
             .position([0., 0.], imgui::Condition::Once)
             .movable(false)
-            .build(|| self.window_callback(data, logic_future));
+            .build(|| self.window_callback(data));
 
         match retval {
             Some(value) => value,
@@ -72,17 +60,25 @@ impl UiHelper {
         }
     }
 
-    fn window_callback(&mut self, data: UiHelperDrawData, logic_future: JobFuture<()>) -> RisResult<()> {
+    fn window_callback(&mut self, data: UiHelperDrawData) -> RisResult<()> {
         let ui = data.ui;
 
         let module_names = self.modules
             .iter()
-            .map(|x| x.inner.name())
+            .map(|x| x.name())
             .collect::<Vec<_>>();
         self.selected = usize::min(self.selected, module_names.len() - 1);
-        let selected_module = &mut self.modules[self.selected];
+        let selected_module = &self.modules[self.selected];
+        let mut pinned = self.pinned.contains(&selected_module.name().to_string());
 
-        ui.checkbox("##pinned", &mut selected_module.pinned);
+        if ui.checkbox("##pinned", &mut pinned) {
+            if pinned {
+                self.pinned.push(selected_module.name().to_string());
+            } else if let Some(index) = self.pinned.iter().position(|x| *x == selected_module.name()) {
+                self.pinned.remove(index);
+            }
+        }
+
         ui.same_line();
         let checkbox_half_width = ui.item_rect_size()[0];
         ui.set_next_item_width(ui.window_size()[0] - checkbox_half_width * 2.);
@@ -92,17 +88,22 @@ impl UiHelper {
             &module_names,
         );
 
+        if !self.pinned.is_empty() {
+            ui.new_line();
+        }
+        for pinned_module in self.pinned.iter() {
+            ui.same_line();
+            if ui.button(pinned_module) {
+                if let Some(index) = self.modules.iter().position(|x| *x.name() == *pinned_module) {
+                    self.selected = index;
+                }
+            }
+        }
+
         ui.separator();
 
         let selected_module = &mut self.modules[self.selected];
-
-        // when the module modifies state, then the logic frame MUST finish before drawing the
-        // module, to avoid any data races
-        if selected_module.inner.modifies_state() {
-            logic_future.wait(Some(std::time::Duration::from_secs(1)))?;
-        }
-
-        selected_module.inner.draw(data)?;
+        selected_module.draw(data)?;
 
         ui.separator();
 

@@ -7,8 +7,6 @@ pub struct Metrics;
 impl UiHelperModule for Metrics {
     fn name(&self) -> &'static str {"Metrics"}
 
-    fn modifies_state(&self) -> bool {false}
-
     fn draw(&mut self, data: UiHelperDrawData) -> ris_error::RisResult<()> {
         let ui = data.ui;
 

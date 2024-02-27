@@ -118,10 +118,10 @@ impl OutputFrame {
         self.ui_helper.draw(
             UiHelperDrawData{
                 ui,
+                logic_future,
                 frame,
                 state: state.clone(),
             },
-            logic_future,
         )?;
 
         let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
