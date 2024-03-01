@@ -132,7 +132,7 @@ impl GodObject {
         };
 
         // gameloop
-        let ui_helper = UiHelper::new(&app_info);
+        let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
         let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
 

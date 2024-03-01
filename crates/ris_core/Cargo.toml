@@ -14,6 +14,7 @@ vulkano = "0.33.0"
 ris_asset = { path = "../ris_asset" }
 ris_data = { path = "../ris_data" }
 ris_error = { path = "../ris_error" }
+ris_file = { path = "../ris_file" }
 ris_input = { path = "../ris_input" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }

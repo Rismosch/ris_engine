@@ -28,7 +28,7 @@ impl ImguiBackend {
     pub fn init(app_info: &AppInfo) -> RisResult<Self> {
         // setup context
         let mut dir = PathBuf::from(&app_info.file.pref_path);
-        dir.push("imgui");
+        dir.push("ui_helper");
 
         if !dir.exists() {
             std::fs::create_dir_all(&dir)?;

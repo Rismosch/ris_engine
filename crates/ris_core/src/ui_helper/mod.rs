@@ -1,15 +1,27 @@
 pub mod metrics;
 pub mod settings;
 
+use std::io::Seek;
+use std::io::SeekFrom;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use imgui::Ui;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
+use ris_data::settings::ris_yaml::RisYaml;
 use ris_data::info::app_info::AppInfo;
+use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_file::io;
 use ris_jobs::job_future::JobFuture;
+
+const PINNED: &str = "pinned";
+const SELECTED: &str = "selected";
 
 fn modules() -> Vec<Box<dyn UiHelperModule>> {
     vec![
@@ -35,23 +47,117 @@ pub struct UiHelper {
     modules: Vec<Box<dyn UiHelperModule>>,
     pinned: Vec<String>,
     selected: usize,
+    config_filepath: PathBuf,
 }
 
 impl UiHelper {
-    pub fn new(app_info: &AppInfo) -> Self {
-        let selected = 0;
+    pub fn new(app_info: &AppInfo) -> RisResult<Self> {
+        let mut dir = PathBuf::from(&app_info.file.pref_path);
+        dir.push("ui_helper");
 
-        Self {
-            modules: modules(),
-            pinned: Vec::new(),
-            selected,
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir)?;
         }
+
+        let mut config_filepath = PathBuf::from(&dir);
+        config_filepath.push("config.ris_yaml");
+
+        match Self::deserialize(&config_filepath) {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                ris_log::error!("failed to deserialize UiHelper: {}", e);
+
+                Ok(Self {
+                    modules: modules(),
+                    pinned: Vec::new(),
+                    selected: 0,
+                    config_filepath,
+                })
+            },
+        }
+
+
+    }
+
+    fn serialize(&self) -> RisResult<()> {
+        let selected_string = format!("{}", self.selected);
+        let mut pinned_string = String::new();
+
+        if let Some(first_module_name) = self.pinned.first() {
+            pinned_string.push_str(first_module_name);
+        }
+
+        for module_name in self.pinned.iter().skip(1) {
+            pinned_string.push_str(&format!(", {}", module_name));
+        }
+
+        let mut yaml = RisYaml::default();
+        yaml.add_key_value(PINNED, &pinned_string);
+        yaml.add_key_value(SELECTED, &selected_string);
+
+        let mut file = std::fs::File::create(&self.config_filepath)?;
+        let file_content = yaml.to_string()?;
+        let bytes = file_content.as_bytes();
+        file.write_all(bytes)?;
+
+        Ok(())
+    }
+
+    fn deserialize(config_filepath: &Path) -> RisResult<Self> {
+        // read file
+        let mut file = std::fs::File::open(config_filepath)?;
+        let file_size = file.seek(SeekFrom::End(0))?;
+        ris_file::seek!(file, SeekFrom::Start(0))?;
+        let mut bytes = vec![0; file_size as usize];
+        ris_file::read!(file, &mut bytes)?;
+        let file_content = String::from_utf8(bytes)?;
+        let yaml = RisYaml::try_from(file_content.as_str())?;
+
+        // parse yaml
+        let modules = modules();
+        let mut pinned = Vec::new();
+        let mut selected = 0;
+
+        for (i, entry) in yaml.entries.iter().enumerate() {
+            let (key, value) = match &entry.key_value {
+                Some(key_value) => key_value,
+                None => continue,
+            };
+
+            match key.as_str() {
+                PINNED => {
+                    let splits = value.split(',');
+                    for split in splits {
+                        let trimmed = split.trim();
+
+                        if pinned.contains(&trimmed.to_string()) {
+                            continue;
+                        }
+
+                        let module = modules.iter().find(|x| x.name() == trimmed).unroll()?;
+                        pinned.push(module.name().to_string());
+                    }
+                },
+                SELECTED => selected = value.parse::<usize>()?,
+                _ => return ris_error::new_result!("unkown key at line {}", i),
+            }
+        }
+
+        Ok(Self {
+            modules,
+            pinned,
+            selected,
+            config_filepath: config_filepath.to_path_buf(),
+        })
+
     }
 
     pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
         let retval = data.ui.window("UiHelper")
-            .position([0., 0.], imgui::Condition::Once)
             .movable(false)
+            .position([0., 0.], imgui::Condition::Once)
+            .size([200., 200.], imgui::Condition::Once)
+            .collapsed(true, imgui::Condition::FirstUseEver)
             .build(|| self.window_callback(data));
 
         match retval {
@@ -110,3 +216,16 @@ impl UiHelper {
         Ok(())
     }
 }
+
+impl Drop for UiHelper {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping UiHelper...");
+
+        if let Err(e) = self.serialize() {
+            ris_log::error!("failed to serialize UiHelper: {}", e);
+        }
+
+        ris_log::info!("dropped UiHelper!");
+    }
+}
+

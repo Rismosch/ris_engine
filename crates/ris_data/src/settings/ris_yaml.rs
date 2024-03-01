@@ -1,3 +1,4 @@
+use ris_error::RisError;
 use ris_error::RisResult;
 
 #[derive(Default, Debug)]
@@ -12,41 +13,13 @@ pub struct RisYaml {
     pub entries: Vec<RisYamlEntry>,
 }
 
-impl RisYaml {
-    pub fn add_empty(&mut self) {
-        let entry = RisYamlEntry::default();
-        self.entries.push(entry);
-    }
+impl TryFrom<&str> for RisYaml {
+    type Error = RisError;
 
-    pub fn add_key_value(&mut self, key: &str, value: &str) {
-        let entry = RisYamlEntry {
-            key_value: Some((key.to_owned(), value.to_owned())),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn add_comment(&mut self, comment: &str) {
-        let entry = RisYamlEntry {
-            comment: Some(comment.to_owned()),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn add_key_value_and_comment(&mut self, key: &str, value: &str, comment: &str) {
-        let entry = RisYamlEntry {
-            key_value: Some((key.to_owned(), value.to_owned())),
-            comment: Some(comment.to_owned()),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn from(string: &str) -> RisResult<Self> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let mut entries = Vec::new();
 
-        for (i, line) in string.lines().enumerate() {
+        for (i, line) in value.lines().enumerate() {
             let trimmed = line.trim();
 
             let mut comment_splits = trimmed.splitn(2, '#').map(|s| s.trim().to_string());
@@ -98,6 +71,38 @@ impl RisYaml {
         }
 
         Ok(RisYaml { entries })
+    }
+}
+
+impl RisYaml {
+    pub fn add_empty(&mut self) {
+        let entry = RisYamlEntry::default();
+        self.entries.push(entry);
+    }
+
+    pub fn add_key_value(&mut self, key: &str, value: &str) {
+        let entry = RisYamlEntry {
+            key_value: Some((key.to_owned(), value.to_owned())),
+            ..Default::default()
+        };
+        self.entries.push(entry);
+    }
+
+    pub fn add_comment(&mut self, comment: &str) {
+        let entry = RisYamlEntry {
+            comment: Some(comment.to_owned()),
+            ..Default::default()
+        };
+        self.entries.push(entry);
+    }
+
+    pub fn add_key_value_and_comment(&mut self, key: &str, value: &str, comment: &str) {
+        let entry = RisYamlEntry {
+            key_value: Some((key.to_owned(), value.to_owned())),
+            comment: Some(comment.to_owned()),
+            ..Default::default()
+        };
+        self.entries.push(entry);
     }
 
     pub fn to_string(&self) -> RisResult<String> {

@@ -13,7 +13,7 @@ use crate::settings::Settings;
 
 pub const DEFAULT: &str = "default";
 pub const DIRECTORY_NAME: &str = "settings";
-pub const EXTENSION: &str = ".ris_settings";
+pub const EXTENSION: &str = ".ris_yaml";
 
 pub struct SettingsSerializer {
     fallback_file: FallbackFileOverwrite,
@@ -85,7 +85,7 @@ fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
     let string = String::from_utf8(bytes.to_vec())?;
 
     let mut result = Settings::default();
-    let yaml = RisYaml::from(&string)?;
+    let yaml = RisYaml::try_from(string.as_str())?;
 
     for (i, entry) in yaml.entries.iter().enumerate() {
         let line = i + 1;
