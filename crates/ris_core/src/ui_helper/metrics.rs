@@ -5,7 +5,9 @@ use crate::ui_helper::UiHelperModule;
 pub struct Metrics;
 
 impl UiHelperModule for Metrics {
-    fn name(&self) -> &'static str {"Metrics"}
+    fn name(&self) -> &'static str {
+        "Metrics"
+    }
 
     fn draw(&mut self, data: UiHelperDrawData) -> ris_error::RisResult<()> {
         let ui = data.ui;

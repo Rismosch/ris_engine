@@ -70,13 +70,13 @@ fn should_not_serialize_when_comment_is_invalid() {
 // deserialize
 #[test]
 fn should_parse_empty() {
-    let yaml = RisYaml::from("").unwrap();
+    let yaml = RisYaml::try_from("").unwrap();
     assert!(yaml.entries.is_empty());
 }
 
 #[test]
 fn should_parse_key_value() {
-    let yaml = RisYaml::from("my key: my value").unwrap();
+    let yaml = RisYaml::try_from("my key: my value").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -91,7 +91,7 @@ fn should_parse_key_value() {
 
 #[test]
 fn should_parse_comment() {
-    let yaml = RisYaml::from("# my comment").unwrap();
+    let yaml = RisYaml::try_from("# my comment").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -105,7 +105,7 @@ fn should_parse_comment() {
 
 #[test]
 fn should_parse_mutliple_comments() {
-    let yaml = RisYaml::from(" # 1 # 2 # 3 # 4 ").unwrap();
+    let yaml = RisYaml::try_from(" # 1 # 2 # 3 # 4 ").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -119,7 +119,7 @@ fn should_parse_mutliple_comments() {
 
 #[test]
 fn should_parse_key_value_and_comment() {
-    let yaml = RisYaml::from("my key: my value # my comment").unwrap();
+    let yaml = RisYaml::try_from("my key: my value # my comment").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -136,7 +136,7 @@ fn should_parse_key_value_and_comment() {
 
 #[test]
 fn should_parse_everything() {
-    let yaml = RisYaml::from(
+    let yaml = RisYaml::try_from(
         "my first key: my first value # my first comment
 my second key: my second value # my second comment
 
@@ -191,12 +191,12 @@ this line: has no comment
 
 #[test]
 fn should_not_parse_when_key_is_empty() {
-    let yaml = RisYaml::from(": my value");
+    let yaml = RisYaml::try_from(": my value");
     assert!(yaml.is_err());
 }
 
 #[test]
 fn should_not_parse_when_value_is_invalid() {
-    let yaml = RisYaml::from("my key: my:value");
+    let yaml = RisYaml::try_from("my key: my:value");
     assert!(yaml.is_err());
 }

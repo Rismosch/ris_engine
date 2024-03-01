@@ -1,9 +1,6 @@
 pub mod metrics;
 pub mod settings;
 
-use std::io::Seek;
-use std::io::SeekFrom;
-use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -13,11 +10,10 @@ use imgui::Ui;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
-use ris_data::settings::ris_yaml::RisYaml;
 use ris_data::info::app_info::AppInfo;
+use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_file::io;
 use ris_jobs::job_future::JobFuture;
 
 const PINNED: &str = "pinned";
@@ -73,10 +69,8 @@ impl UiHelper {
                     selected: 0,
                     config_filepath,
                 })
-            },
+            }
         }
-
-
     }
 
     fn serialize(&self) -> RisResult<()> {
@@ -106,7 +100,7 @@ impl UiHelper {
     fn deserialize(config_filepath: &Path) -> RisResult<Self> {
         // read file
         let mut file = std::fs::File::open(config_filepath)?;
-        let file_size = file.seek(SeekFrom::End(0))?;
+        let file_size = ris_file::seek!(file, SeekFrom::End(0))?;
         ris_file::seek!(file, SeekFrom::Start(0))?;
         let mut bytes = vec![0; file_size as usize];
         ris_file::read!(file, &mut bytes)?;
@@ -137,7 +131,7 @@ impl UiHelper {
                         let module = modules.iter().find(|x| x.name() == trimmed).unroll()?;
                         pinned.push(module.name().to_string());
                     }
-                },
+                }
                 SELECTED => selected = value.parse::<usize>()?,
                 _ => return ris_error::new_result!("unkown key at line {}", i),
             }
@@ -149,11 +143,12 @@ impl UiHelper {
             selected,
             config_filepath: config_filepath.to_path_buf(),
         })
-
     }
 
     pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
-        let retval = data.ui.window("UiHelper")
+        let retval = data
+            .ui
+            .window("UiHelper")
             .movable(false)
             .position([0., 0.], imgui::Condition::Once)
             .size([200., 200.], imgui::Condition::Once)
@@ -169,10 +164,7 @@ impl UiHelper {
     fn window_callback(&mut self, data: UiHelperDrawData) -> RisResult<()> {
         let ui = data.ui;
 
-        let module_names = self.modules
-            .iter()
-            .map(|x| x.name())
-            .collect::<Vec<_>>();
+        let module_names = self.modules.iter().map(|x| x.name()).collect::<Vec<_>>();
         self.selected = usize::min(self.selected, module_names.len() - 1);
         let selected_module = &self.modules[self.selected];
         let mut pinned = self.pinned.contains(&selected_module.name().to_string());
@@ -180,7 +172,11 @@ impl UiHelper {
         if ui.checkbox("##pinned", &mut pinned) {
             if pinned {
                 self.pinned.push(selected_module.name().to_string());
-            } else if let Some(index) = self.pinned.iter().position(|x| *x == selected_module.name()) {
+            } else if let Some(index) = self
+                .pinned
+                .iter()
+                .position(|x| *x == selected_module.name())
+            {
                 self.pinned.remove(index);
             }
         }
@@ -188,11 +184,7 @@ impl UiHelper {
         ui.same_line();
         let checkbox_half_width = ui.item_rect_size()[0];
         ui.set_next_item_width(ui.window_size()[0] - checkbox_half_width * 2.);
-        ui.combo_simple_string(
-            "##modules",
-            &mut self.selected,
-            &module_names,
-        );
+        ui.combo_simple_string("##modules", &mut self.selected, &module_names);
 
         if !self.pinned.is_empty() {
             ui.new_line();
@@ -200,7 +192,11 @@ impl UiHelper {
         for pinned_module in self.pinned.iter() {
             ui.same_line();
             if ui.button(pinned_module) {
-                if let Some(index) = self.modules.iter().position(|x| *x.name() == *pinned_module) {
+                if let Some(index) = self
+                    .modules
+                    .iter()
+                    .position(|x| *x.name() == *pinned_module)
+                {
                     self.selected = index;
                 }
             }
@@ -228,4 +224,3 @@ impl Drop for UiHelper {
         ris_log::info!("dropped UiHelper!");
     }
 }
-

@@ -105,4 +105,3 @@ unsafe impl<T> Send for SettableJobFuture<T> {}
 unsafe impl<T> Sync for SettableJobFuture<T> {}
 unsafe impl<T> Send for JobFuture<T> {}
 unsafe impl<T> Sync for JobFuture<T> {}
-

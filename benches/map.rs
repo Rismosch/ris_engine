@@ -11,7 +11,6 @@ use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
 fn map_insert(c: &mut Criterion) {
-
     let low = ris_map::EXP / 4;
     let medium = ris_map::EXP / 2;
     let high = ris_map::EXP;

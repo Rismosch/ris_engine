@@ -136,9 +136,7 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
                 let push_result = unsafe { worker_thread.local_buffer.push(job) };
                 match push_result {
                     Ok(()) => None,
-                    Err(blocked_or_full) => {
-                        Some(blocked_or_full.not_pushed)
-                    }
+                    Err(blocked_or_full) => Some(blocked_or_full.not_pushed),
                 }
             } else {
                 ris_log::error!("couldn't submit job, calling thread isn't a worker thread");
@@ -150,7 +148,7 @@ pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
             Some(not_pushed) => {
                 run_pending_job(file!(), line!());
                 job = not_pushed;
-            },
+            }
             None => break,
         }
     }

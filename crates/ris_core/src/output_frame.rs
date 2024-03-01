@@ -76,7 +76,7 @@ impl OutputFrame {
         &mut self,
         frame: Frame,
         state: Arc<GodState>,
-        logic_future: JobFuture<()>
+        logic_future: JobFuture<()>,
     ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
@@ -115,14 +115,12 @@ impl OutputFrame {
             (window_size.0 as f32, window_size.1 as f32),
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );
-        self.ui_helper.draw(
-            UiHelperDrawData{
-                ui,
-                logic_future,
-                frame,
-                state: state.clone(),
-            },
-        )?;
+        self.ui_helper.draw(UiHelperDrawData {
+            ui,
+            logic_future,
+            frame,
+            state: state.clone(),
+        })?;
 
         let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
             Ok(r) => r,
