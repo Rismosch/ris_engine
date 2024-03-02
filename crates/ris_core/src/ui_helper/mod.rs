@@ -146,17 +146,17 @@ impl UiHelper {
     }
 
     pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
-        let retval = data
+        let result = data
             .ui
             .window("UiHelper")
             .movable(false)
             .position([0., 0.], imgui::Condition::Once)
-            .size([200., 200.], imgui::Condition::Once)
+            .size([200., 200.], imgui::Condition::FirstUseEver)
             .collapsed(true, imgui::Condition::FirstUseEver)
             .build(|| self.window_callback(data));
 
-        match retval {
-            Some(value) => value,
+        match result {
+            Some(result) => result,
             None => Ok(()),
         }
     }
@@ -166,43 +166,53 @@ impl UiHelper {
 
         let module_names = self.modules.iter().map(|x| x.name()).collect::<Vec<_>>();
         self.selected = usize::min(self.selected, module_names.len() - 1);
-        let selected_module = &self.modules[self.selected];
-        let mut pinned = self.pinned.contains(&selected_module.name().to_string());
 
-        if ui.checkbox("##pinned", &mut pinned) {
-            if pinned {
-                self.pinned.push(selected_module.name().to_string());
-            } else if let Some(index) = self
-                .pinned
-                .iter()
-                .position(|x| *x == selected_module.name())
-            {
-                self.pinned.remove(index);
-            }
-        }
-
-        ui.same_line();
-        let checkbox_half_width = ui.item_rect_size()[0];
-        ui.set_next_item_width(ui.window_size()[0] - checkbox_half_width * 2.);
+        ui.set_next_item_width(ui.content_region_avail()[0]);
         ui.combo_simple_string("##modules", &mut self.selected, &module_names);
 
-        if !self.pinned.is_empty() {
-            ui.new_line();
-        }
-        for pinned_module in self.pinned.iter() {
-            ui.same_line();
-            if ui.button(pinned_module) {
-                if let Some(index) = self
-                    .modules
-                    .iter()
-                    .position(|x| *x.name() == *pinned_module)
-                {
-                    self.selected = index;
+        if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
+            let selected = self.selected;
+            let selected_module = &self.modules[selected];
+            let selected_module = selected_module.name().to_string();
+            let is_pinned = self.pinned.contains(&selected_module);
+
+            let mut unpin = None;
+
+            for (pinned_index, pinned_module) in self.pinned.iter().enumerate() {
+                let os_name = std::ffi::OsStr::new(&pinned_module);
+                let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+
+                if unsafe{imgui::sys::igTabItemButton(os_name_ptr, 0)} {
+                    if let Some(new_index) = self.modules.iter().position(|x| x.name() == pinned_module) {
+                        if *pinned_module == selected_module {
+                            unpin = Some(pinned_index);
+                        } else {
+                            self.selected = new_index;
+                        }
+                    }
                 }
             }
-        }
 
-        ui.separator();
+            if let Some(pinned_index) = unpin {
+                self.pinned.remove(pinned_index);
+            }
+
+            if !is_pinned {
+                let os_name = std::ffi::OsStr::new(&selected_module);
+                let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+
+                let mut flags = 0;
+                flags |= 1 << 0; // UnsavedDocument
+                flags |= 1 << 7; // Trailing
+                flags |= 1 << 8; // NoAssumedClosure
+
+                if unsafe{imgui::sys::igTabItemButton(os_name_ptr, flags)} {
+                    self.pinned.push(selected_module);
+                }
+            }
+
+            tab_bar.end();
+        }
 
         let selected_module = &mut self.modules[self.selected];
         selected_module.draw(data)?;
