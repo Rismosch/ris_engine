@@ -85,13 +85,12 @@ impl UiHelper {
     }
 
     fn serialize(&self) -> RisResult<()> {
-        let pinned_strings = self.pinned
+        let pinned_strings = self
+            .pinned
             .iter()
-            .map(|x| {
-                match x.module_index {
-                    Some(index) => index.to_string(),
-                    None => String::from(UNASSIGNED),
-                }
+            .map(|x| match x.module_index {
+                Some(index) => index.to_string(),
+                None => String::from(UNASSIGNED),
             })
             .collect::<Vec<_>>();
 
@@ -145,8 +144,8 @@ impl UiHelper {
                                 None
                             }
                         };
-                        
-                        pinned.push(PinnedUiHelperModule{
+
+                        pinned.push(PinnedUiHelperModule {
                             module_index,
                             id: next_pinned_id,
                         });
@@ -198,8 +197,8 @@ impl UiHelper {
             let mut flags = 0;
             flags |= imgui::sys::ImGuiTabItemFlags_Trailing;
             flags |= imgui::sys::ImGuiTabItemFlags_NoTooltip;
-            if unsafe {imgui::sys::igTabItemButton(new_tab_ptr, flags as i32)} {
-                self.pinned.push(PinnedUiHelperModule{
+            if unsafe { imgui::sys::igTabItemButton(new_tab_ptr, flags as i32) } {
+                self.pinned.push(PinnedUiHelperModule {
                     module_index: None,
                     id: self.next_pinned_id,
                 });
@@ -235,8 +234,8 @@ impl UiHelper {
                     flags.set(imgui::TabItemFlags::SET_SELECTED, *active_tab == n);
                 }
 
-                if let Some(tab_item) = ui.tab_item_with_flags(name_with_id, Some(&mut open), flags) {
-
+                if let Some(tab_item) = ui.tab_item_with_flags(name_with_id, Some(&mut open), flags)
+                {
                     match pinned_module.module_index {
                         Some(index) => self.modules[index].draw(&mut data)?,
                         None => {
@@ -252,11 +251,10 @@ impl UiHelper {
 
                             if index > 0 {
                                 pinned_module.module_index = Some(index - 1);
-                                self.module_selected_event = Some(ModuleSelectedEvent{
-                                    active_tab: n,
-                                });
+                                self.module_selected_event =
+                                    Some(ModuleSelectedEvent { active_tab: n });
                             }
-                        },
+                        }
                     }
 
                     tab_item.end();
