@@ -35,7 +35,7 @@ impl Buffers {
     ) -> RisResult<Self> {
         let size = 0.01;
         let offset = 0.02;
-        let side = 128;
+        let side = 8;
 
         let mut vertices = Vec::new();
         let mut indices = Vec::new();

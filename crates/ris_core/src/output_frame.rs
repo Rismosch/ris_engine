@@ -117,7 +117,7 @@ impl OutputFrame {
         );
         self.ui_helper.draw(UiHelperDrawData {
             ui,
-            logic_future,
+            logic_future: Some(logic_future),
             frame,
             state: state.clone(),
         })?;

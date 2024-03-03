@@ -9,7 +9,7 @@ impl UiHelperModule for Metrics {
         "Metrics"
     }
 
-    fn draw(&mut self, data: UiHelperDrawData) -> ris_error::RisResult<()> {
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {
         let ui = data.ui;
 
         ui.text("metrics");

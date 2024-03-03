@@ -9,8 +9,10 @@ impl UiHelperModule for Settings {
         "Settings"
     }
 
-    fn draw(&mut self, data: UiHelperDrawData) -> ris_error::RisResult<()> {
-        data.logic_future.wait(None)?;
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {
+        if let Some(future) = data.logic_future.take() {
+            future.wait(None)?
+        }
 
         let ui = data.ui;
 

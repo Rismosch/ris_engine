@@ -1,6 +1,7 @@
 pub mod metrics;
 pub mod settings;
 
+use std::ffi::OsStr;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -29,19 +30,19 @@ fn modules() -> Vec<Box<dyn UiHelperModule>> {
 
 pub trait UiHelperModule {
     fn name(&self) -> &'static str;
-    fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()>;
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
 }
 
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
-    pub logic_future: JobFuture<()>,
+    pub logic_future: Option<JobFuture<()>>,
     pub frame: Frame,
     pub state: Arc<GodState>,
 }
 
 pub struct UiHelper {
     modules: Vec<Box<dyn UiHelperModule>>,
-    pinned: Vec<String>,
+    pinned: Vec<usize>,
     selected: usize,
     config_filepath: PathBuf,
 }
@@ -77,12 +78,14 @@ impl UiHelper {
         let selected_string = format!("{}", self.selected);
         let mut pinned_string = String::new();
 
-        if let Some(first_module_name) = self.pinned.first() {
-            pinned_string.push_str(first_module_name);
+        if let Some(first_pinned) = self.pinned.first() {
+            let first_pinned_module = &self.modules[*first_pinned];
+            pinned_string.push_str(&first_pinned_module.name().to_string());
         }
 
-        for module_name in self.pinned.iter().skip(1) {
-            pinned_string.push_str(&format!(", {}", module_name));
+        for pinned in self.pinned.iter().skip(1) {
+            let pinned_module = &self.modules[*pinned];
+            pinned_string.push_str(&format!(", {}", pinned_module.name()));
         }
 
         let mut yaml = RisYaml::default();
@@ -123,13 +126,14 @@ impl UiHelper {
                     let splits = value.split(',');
                     for split in splits {
                         let trimmed = split.trim();
-
-                        if pinned.contains(&trimmed.to_string()) {
+                        let pinned_index = trimmed.parse::<usize>()?;
+                        if pinned.contains(&pinned_index) {
                             continue;
                         }
 
-                        let module = modules.iter().find(|x| x.name() == trimmed).unroll()?;
-                        pinned.push(module.name().to_string());
+                        if pinned_index < modules.len() {
+                            pinned.push(pinned_index);
+                        }
                     }
                 }
                 SELECTED => selected = value.parse::<usize>()?,
@@ -161,61 +165,106 @@ impl UiHelper {
         }
     }
 
-    fn window_callback(&mut self, data: UiHelperDrawData) -> RisResult<()> {
+    fn window_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<()> {
         let ui = data.ui;
 
-        let module_names = self.modules.iter().map(|x| x.name()).collect::<Vec<_>>();
-        self.selected = usize::min(self.selected, module_names.len() - 1);
 
-        ui.set_next_item_width(ui.content_region_avail()[0]);
-        ui.combo_simple_string("##modules", &mut self.selected, &module_names);
 
-        if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
-            let selected = self.selected;
-            let selected_module = &self.modules[selected];
-            let selected_module = selected_module.name().to_string();
-            let is_pinned = self.pinned.contains(&selected_module);
+        //ui.show_demo_window(&mut true);
 
-            let mut unpin = None;
+        //let module_names = self.modules.iter().map(|x| x.name()).collect::<Vec<_>>();
+        //self.selected = usize::min(self.selected, module_names.len() - 1);
 
-            for (pinned_index, pinned_module) in self.pinned.iter().enumerate() {
-                let os_name = std::ffi::OsStr::new(&pinned_module);
-                let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+        //let mut is_pinned = self.pinned.contains(&self.selected);
+        //if ui.checkbox("##pinned_checkbox", &mut is_pinned) {
+        //    if is_pinned {
+        //        self.pinned.push(self.selected);
+        //    } else if let Some(index) = self.pinned.iter().find(|x| **x == self.selected) {
+        //        self.pinned.remove(*index);
+        //    }
+        //}
 
-                if unsafe{imgui::sys::igTabItemButton(os_name_ptr, 0)} {
-                    if let Some(new_index) = self.modules.iter().position(|x| x.name() == pinned_module) {
-                        if *pinned_module == selected_module {
-                            unpin = Some(pinned_index);
-                        } else {
-                            self.selected = new_index;
-                        }
-                    }
-                }
-            }
+        //ui.set_next_item_width(ui.content_region_avail()[0]);
+        //ui.combo_simple_string("##modules", &mut self.selected, &module_names);
 
-            if let Some(pinned_index) = unpin {
-                self.pinned.remove(pinned_index);
-            }
+        //if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
+        //    let mut draw_unpinned_module = !self.pinned.contains(&self.selected);
 
-            if !is_pinned {
-                let os_name = std::ffi::OsStr::new(&selected_module);
-                let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+        //    for pinned_module_index in self.pinned.iter() {
+        //        let pinned_module = &mut self.modules[*pinned_module_index];
+        //        let is_selected = *pinned_module_index == self.selected;
 
-                let mut flags = 0;
-                flags |= 1 << 0; // UnsavedDocument
-                flags |= 1 << 7; // Trailing
-                flags |= 1 << 8; // NoAssumedClosure
+        //        let mut flags = imgui::TabItemFlags::empty();
+        //        flags.set(imgui::TabItemFlags::SET_SELECTED, is_selected);
+        //        if let Some(tab_item) = ui.tab_item_with_flags(pinned_module.name(), None, flags) {
+        //            pinned_module.draw(&mut data)?;
+        //            //draw_unpinned_module = false;
+        //            tab_item.end();
+        //        }
+        //    }
 
-                if unsafe{imgui::sys::igTabItemButton(os_name_ptr, flags)} {
-                    self.pinned.push(selected_module);
-                }
-            }
+        //    if draw_unpinned_module {
+        //        // currently selected module is not pinned
+        //        let selected_module = &mut self.modules[self.selected];
 
-            tab_bar.end();
-        }
+        //        let mut flags = imgui::TabItemFlags::empty();
+        //        flags.set(imgui::TabItemFlags::SET_SELECTED, true);
+        //        if let Some(tab_item) = ui.tab_item_with_flags("not pinned", None, flags) {
+        //            selected_module.draw(&mut data)?;
 
-        let selected_module = &mut self.modules[self.selected];
-        selected_module.draw(data)?;
+        //            tab_item.end();
+        //        }
+        //    }
+
+        //    tab_bar.end();
+        //}
+
+        //if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
+        //    let selected = self.selected;
+        //    let selected_module = &self.modules[selected];
+        //    let selected_module = selected_module.name().to_string();
+        //    let is_pinned = self.pinned.contains(&selected_module);
+
+        //    let mut unpin = None;
+
+        //    for (pinned_index, pinned_module) in self.pinned.iter().enumerate() {
+        //        let os_name = std::ffi::OsStr::new(&pinned_module);
+        //        let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+
+        //        if unsafe{imgui::sys::igTabItemButton(os_name_ptr, 0)} {
+        //            if let Some(new_index) = self.modules.iter().position(|x| x.name() == pinned_module) {
+        //                if *pinned_module == selected_module {
+        //                    unpin = Some(pinned_index);
+        //                } else {
+        //                    self.selected = new_index;
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    if let Some(pinned_index) = unpin {
+        //        self.pinned.remove(pinned_index);
+        //    }
+
+        //    if !is_pinned {
+        //        let os_name = std::ffi::OsStr::new(&selected_module);
+        //        let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+
+        //        let mut flags = 0;
+        //        flags |= 1 << 0; // UnsavedDocument
+        //        flags |= 1 << 7; // Trailing
+        //        flags |= 1 << 8; // NoAssumedClosure
+
+        //        if unsafe{imgui::sys::igTabItemButton(os_name_ptr, flags)} {
+        //            self.pinned.push(selected_module);
+        //        }
+        //    }
+
+        //    tab_bar.end();
+        //}
+
+        //let selected_module = &mut self.modules[self.selected];
+        //selected_module.draw(data)?;
 
         ui.separator();
 
