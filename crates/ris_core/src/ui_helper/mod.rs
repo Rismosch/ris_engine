@@ -13,12 +13,11 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
-use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
 const PINNED: &str = "pinned";
-const SELECTED: &str = "selected";
+const UNASSIGNED: &str = "unassigned";
 
 fn modules() -> Vec<Box<dyn UiHelperModule>> {
     vec![
@@ -40,10 +39,20 @@ pub struct UiHelperDrawData<'a> {
     pub state: Arc<GodState>,
 }
 
+struct PinnedUiHelperModule {
+    pub module_index: Option<usize>,
+    pub id: usize,
+}
+
+struct ModuleSelectedEvent {
+    active_tab: usize,
+}
+
 pub struct UiHelper {
     modules: Vec<Box<dyn UiHelperModule>>,
-    pinned: Vec<usize>,
-    selected: usize,
+    pinned: Vec<PinnedUiHelperModule>,
+    next_pinned_id: usize,
+    module_selected_event: Option<ModuleSelectedEvent>,
     config_filepath: PathBuf,
 }
 
@@ -67,7 +76,8 @@ impl UiHelper {
                 Ok(Self {
                     modules: modules(),
                     pinned: Vec::new(),
-                    selected: 0,
+                    next_pinned_id: 0,
+                    module_selected_event: None,
                     config_filepath,
                 })
             }
@@ -75,22 +85,20 @@ impl UiHelper {
     }
 
     fn serialize(&self) -> RisResult<()> {
-        let selected_string = format!("{}", self.selected);
-        let mut pinned_string = String::new();
+        let pinned_strings = self.pinned
+            .iter()
+            .map(|x| {
+                match x.module_index {
+                    Some(index) => index.to_string(),
+                    None => String::from(UNASSIGNED),
+                }
+            })
+            .collect::<Vec<_>>();
 
-        if let Some(first_pinned) = self.pinned.first() {
-            let first_pinned_module = &self.modules[*first_pinned];
-            pinned_string.push_str(&first_pinned_module.name().to_string());
-        }
-
-        for pinned in self.pinned.iter().skip(1) {
-            let pinned_module = &self.modules[*pinned];
-            pinned_string.push_str(&format!(", {}", pinned_module.name()));
-        }
+        let pinned_string = pinned_strings.join(", ");
 
         let mut yaml = RisYaml::default();
         yaml.add_key_value(PINNED, &pinned_string);
-        yaml.add_key_value(SELECTED, &selected_string);
 
         let mut file = std::fs::File::create(&self.config_filepath)?;
         let file_content = yaml.to_string()?;
@@ -113,7 +121,8 @@ impl UiHelper {
         // parse yaml
         let modules = modules();
         let mut pinned = Vec::new();
-        let mut selected = 0;
+
+        let mut next_pinned_id = 0usize;
 
         for (i, entry) in yaml.entries.iter().enumerate() {
             let (key, value) = match &entry.key_value {
@@ -126,17 +135,25 @@ impl UiHelper {
                     let splits = value.split(',');
                     for split in splits {
                         let trimmed = split.trim();
-                        let pinned_index = trimmed.parse::<usize>()?;
-                        if pinned.contains(&pinned_index) {
-                            continue;
-                        }
+                        let module_index = if trimmed == UNASSIGNED {
+                            None
+                        } else {
+                            let index = trimmed.parse::<usize>()?;
+                            if index < modules.len() {
+                                Some(index)
+                            } else {
+                                None
+                            }
+                        };
+                        
+                        pinned.push(PinnedUiHelperModule{
+                            module_index,
+                            id: next_pinned_id,
+                        });
 
-                        if pinned_index < modules.len() {
-                            pinned.push(pinned_index);
-                        }
+                        next_pinned_id = next_pinned_id.wrapping_add(1);
                     }
                 }
-                SELECTED => selected = value.parse::<usize>()?,
                 _ => return ris_error::new_result!("unkown key at line {}", i),
             }
         }
@@ -144,7 +161,8 @@ impl UiHelper {
         Ok(Self {
             modules,
             pinned,
-            selected,
+            next_pinned_id,
+            module_selected_event: None,
             config_filepath: config_filepath.to_path_buf(),
         })
     }
@@ -168,105 +186,93 @@ impl UiHelper {
     fn window_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<()> {
         let ui = data.ui;
 
+        let mut flags = imgui::TabBarFlags::empty();
+        flags.set(imgui::TabBarFlags::AUTO_SELECT_NEW_TABS, true);
+        flags.set(imgui::TabBarFlags::TAB_LIST_POPUP_BUTTON, true);
+        flags.set(imgui::TabBarFlags::FITTING_POLICY_RESIZE_DOWN, true);
+        if let Some(tab_bar) = ui.tab_bar_with_flags("##modules", flags) {
+            // new tab button
+            let new_tab = OsStr::new("+");
+            let new_tab_ptr = new_tab.as_encoded_bytes().as_ptr() as *const i8;
 
+            let mut flags = 0;
+            flags |= imgui::sys::ImGuiTabItemFlags_Trailing;
+            flags |= imgui::sys::ImGuiTabItemFlags_NoTooltip;
+            if unsafe {imgui::sys::igTabItemButton(new_tab_ptr, flags as i32)} {
+                self.pinned.push(PinnedUiHelperModule{
+                    module_index: None,
+                    id: self.next_pinned_id,
+                });
 
-        //ui.show_demo_window(&mut true);
+                self.next_pinned_id = self.next_pinned_id.wrapping_add(1);
+            }
 
-        //let module_names = self.modules.iter().map(|x| x.name()).collect::<Vec<_>>();
-        //self.selected = usize::min(self.selected, module_names.len() - 1);
+            // imgui puts new tabs at the end. this is undesired, because renamed tabs are
+            // considere new tabs. renaming a tab puts it at the end, messing up the
+            // (de)serialization order of tabs. by assigning new ids to every tab, imgui thinks
+            // everything is new, thus keeping th original order
+            if self.module_selected_event.is_some() {
+                for pinned_module in self.pinned.iter_mut() {
+                    pinned_module.id = self.next_pinned_id;
+                    self.next_pinned_id = self.next_pinned_id.wrapping_add(1);
+                }
+            }
 
-        //let mut is_pinned = self.pinned.contains(&self.selected);
-        //if ui.checkbox("##pinned_checkbox", &mut is_pinned) {
-        //    if is_pinned {
-        //        self.pinned.push(self.selected);
-        //    } else if let Some(index) = self.pinned.iter().find(|x| **x == self.selected) {
-        //        self.pinned.remove(*index);
-        //    }
-        //}
+            let mut n = 0;
+            while n < self.pinned.len() {
+                let pinned_module = &mut self.pinned[n];
 
-        //ui.set_next_item_width(ui.content_region_avail()[0]);
-        //ui.combo_simple_string("##modules", &mut self.selected, &module_names);
+                let name = match pinned_module.module_index {
+                    Some(index) => self.modules[index].name(),
+                    None => UNASSIGNED,
+                };
 
-        //if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
-        //    let mut draw_unpinned_module = !self.pinned.contains(&self.selected);
+                let name_with_id = format!("{}##pinned_module_{}", name, pinned_module.id);
+                let mut open = true;
+                let mut flags = imgui::TabItemFlags::empty();
 
-        //    for pinned_module_index in self.pinned.iter() {
-        //        let pinned_module = &mut self.modules[*pinned_module_index];
-        //        let is_selected = *pinned_module_index == self.selected;
+                if let Some(ModuleSelectedEvent { active_tab }) = &self.module_selected_event {
+                    flags.set(imgui::TabItemFlags::SET_SELECTED, *active_tab == n);
+                }
 
-        //        let mut flags = imgui::TabItemFlags::empty();
-        //        flags.set(imgui::TabItemFlags::SET_SELECTED, is_selected);
-        //        if let Some(tab_item) = ui.tab_item_with_flags(pinned_module.name(), None, flags) {
-        //            pinned_module.draw(&mut data)?;
-        //            //draw_unpinned_module = false;
-        //            tab_item.end();
-        //        }
-        //    }
+                if let Some(tab_item) = ui.tab_item_with_flags(name_with_id, Some(&mut open), flags) {
 
-        //    if draw_unpinned_module {
-        //        // currently selected module is not pinned
-        //        let selected_module = &mut self.modules[self.selected];
+                    match pinned_module.module_index {
+                        Some(index) => self.modules[index].draw(&mut data)?,
+                        None => {
+                            let mut choices = Vec::with_capacity(self.modules.len() + 1);
+                            choices.push("select module...");
 
-        //        let mut flags = imgui::TabItemFlags::empty();
-        //        flags.set(imgui::TabItemFlags::SET_SELECTED, true);
-        //        if let Some(tab_item) = ui.tab_item_with_flags("not pinned", None, flags) {
-        //            selected_module.draw(&mut data)?;
+                            for module in self.modules.iter() {
+                                choices.push(module.name());
+                            }
 
-        //            tab_item.end();
-        //        }
-        //    }
+                            let mut index = 0;
+                            ui.combo_simple_string("##select_module", &mut index, &choices);
 
-        //    tab_bar.end();
-        //}
+                            if index > 0 {
+                                pinned_module.module_index = Some(index - 1);
+                                self.module_selected_event = Some(ModuleSelectedEvent{
+                                    active_tab: n,
+                                });
+                            }
+                        },
+                    }
 
-        //if let Some(tab_bar) = ui.tab_bar("##pinned_tabs") {
-        //    let selected = self.selected;
-        //    let selected_module = &self.modules[selected];
-        //    let selected_module = selected_module.name().to_string();
-        //    let is_pinned = self.pinned.contains(&selected_module);
+                    tab_item.end();
+                }
 
-        //    let mut unpin = None;
+                if open {
+                    n += 1;
+                } else {
+                    self.pinned.remove(n);
+                }
+            }
 
-        //    for (pinned_index, pinned_module) in self.pinned.iter().enumerate() {
-        //        let os_name = std::ffi::OsStr::new(&pinned_module);
-        //        let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
+            self.module_selected_event = None;
 
-        //        if unsafe{imgui::sys::igTabItemButton(os_name_ptr, 0)} {
-        //            if let Some(new_index) = self.modules.iter().position(|x| x.name() == pinned_module) {
-        //                if *pinned_module == selected_module {
-        //                    unpin = Some(pinned_index);
-        //                } else {
-        //                    self.selected = new_index;
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    if let Some(pinned_index) = unpin {
-        //        self.pinned.remove(pinned_index);
-        //    }
-
-        //    if !is_pinned {
-        //        let os_name = std::ffi::OsStr::new(&selected_module);
-        //        let os_name_ptr = os_name.as_encoded_bytes().as_ptr() as *const i8;
-
-        //        let mut flags = 0;
-        //        flags |= 1 << 0; // UnsavedDocument
-        //        flags |= 1 << 7; // Trailing
-        //        flags |= 1 << 8; // NoAssumedClosure
-
-        //        if unsafe{imgui::sys::igTabItemButton(os_name_ptr, flags)} {
-        //            self.pinned.push(selected_module);
-        //        }
-        //    }
-
-        //    tab_bar.end();
-        //}
-
-        //let selected_module = &mut self.modules[self.selected];
-        //selected_module.draw(data)?;
-
-        ui.separator();
+            tab_bar.end();
+        }
 
         Ok(())
     }
