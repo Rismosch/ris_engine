@@ -98,4 +98,3 @@ fn read_bytes(bytes: &[u8], app_info: &AppInfo) -> RisResult<Settings> {
 
     Ok(result)
 }
-

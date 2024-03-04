@@ -4,7 +4,6 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::cell::ArefCell;
-use crate::info::app_info::AppInfo;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -57,7 +56,7 @@ impl GodStateData {
             camera_rotation: Default::default(),
 
             // settings
-            settings: Arc::new(ArefCell::new(settings))
+            settings: Arc::new(ArefCell::new(settings)),
         }
     }
 }

@@ -2,9 +2,9 @@ use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::UiHelperModule;
 
 #[derive(Default)]
-pub struct Metrics;
+pub struct MetricsModule;
 
-impl UiHelperModule for Metrics {
+impl UiHelperModule for MetricsModule {
     fn name(&self) -> &'static str {
         "metrics"
     }

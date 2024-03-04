@@ -1,6 +1,3 @@
-pub mod metrics;
-pub mod settings;
-
 use std::ffi::OsStr;
 use std::io::Write;
 use std::path::Path;
@@ -16,13 +13,19 @@ use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
+pub mod metrics_module;
+pub mod settings_module;
+
+use crate::ui_helper::metrics_module::MetricsModule;
+use crate::ui_helper::settings_module::SettingsModule;
+
 const PINNED: &str = "pinned";
 const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> Vec<Box<dyn UiHelperModule>> {
     vec![
-        Box::new(crate::ui_helper::metrics::Metrics::default()),
-        Box::new(crate::ui_helper::settings::Settings::new(app_info)),
+        Box::new(MetricsModule),
+        Box::new(SettingsModule::new(app_info)),
         // insert new UiHelperModule here
     ]
 }
