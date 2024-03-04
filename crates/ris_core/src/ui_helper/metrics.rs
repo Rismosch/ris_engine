@@ -6,7 +6,7 @@ pub struct Metrics;
 
 impl UiHelperModule for Metrics {
     fn name(&self) -> &'static str {
-        "Metrics"
+        "metrics"
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {

@@ -237,7 +237,7 @@ impl Shader {
         for (i, source_line) in source.lines().enumerate() {
             source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
         }
-        ris_log::trace!("shader {}: \n{}", file, source_trace);
+        //ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
 
         let artifact = compiler.compile_into_spirv(
             &source,

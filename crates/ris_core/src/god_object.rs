@@ -69,10 +69,10 @@ impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
-        let settings = match settings_serializer.deserialize() {
+        let settings = match settings_serializer.deserialize(&app_info) {
             Some(settings) => settings,
             None => {
-                let new_settings = Settings::default();
+                let new_settings = Settings::new(&app_info);
                 settings_serializer.serialize(&new_settings)?;
                 new_settings
             }

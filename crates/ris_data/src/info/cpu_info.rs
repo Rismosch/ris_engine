@@ -2,7 +2,7 @@ use std::fmt;
 
 use ris_error::RisResult;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct CpuInfo {
     pub cpu_cache_line_size: i32,
     pub cpu_count: usize,

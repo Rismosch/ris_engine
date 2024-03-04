@@ -19,10 +19,10 @@ use ris_jobs::job_future::JobFuture;
 const PINNED: &str = "pinned";
 const UNASSIGNED: &str = "unassigned";
 
-fn modules() -> Vec<Box<dyn UiHelperModule>> {
+fn modules(app_info: &AppInfo) -> Vec<Box<dyn UiHelperModule>> {
     vec![
-        Box::<crate::ui_helper::metrics::Metrics>::default(),
-        Box::<crate::ui_helper::settings::Settings>::default(),
+        Box::new(crate::ui_helper::metrics::Metrics::default()),
+        Box::new(crate::ui_helper::settings::Settings::new(app_info)),
         // insert new UiHelperModule here
     ]
 }
@@ -68,13 +68,13 @@ impl UiHelper {
         let mut config_filepath = PathBuf::from(&dir);
         config_filepath.push("config.ris_yaml");
 
-        match Self::deserialize(&config_filepath) {
+        match Self::deserialize(&config_filepath, app_info) {
             Ok(result) => Ok(result),
             Err(e) => {
                 ris_log::error!("failed to deserialize UiHelper: {}", e);
 
                 Ok(Self {
-                    modules: modules(),
+                    modules: modules(app_info),
                     pinned: Vec::new(),
                     next_pinned_id: 0,
                     module_selected_event: None,
@@ -107,7 +107,7 @@ impl UiHelper {
         Ok(())
     }
 
-    fn deserialize(config_filepath: &Path) -> RisResult<Self> {
+    fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
         // read file
         let mut file = std::fs::File::open(config_filepath)?;
         let file_size = ris_file::seek!(file, SeekFrom::End(0))?;
@@ -118,7 +118,7 @@ impl UiHelper {
         let yaml = RisYaml::try_from(file_content.as_str())?;
 
         // parse yaml
-        let modules = modules();
+        let modules = modules(app_info);
         let mut pinned = Vec::new();
 
         let mut next_pinned_id = 0usize;
@@ -134,6 +134,10 @@ impl UiHelper {
                     let splits = value.split(',');
                     for split in splits {
                         let trimmed = split.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+
                         let module_index = if trimmed == UNASSIGNED {
                             None
                         } else {

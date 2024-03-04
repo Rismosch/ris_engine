@@ -1,17 +1,14 @@
-use std::fmt::Display;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use ris_error::RisResult;
 use ris_file::fallback_file::FallbackFileOverwrite;
 
 use crate::info::app_info::AppInfo;
 use crate::settings::key;
-use crate::settings::ris_yaml::error_on_line;
 use crate::settings::ris_yaml::RisYaml;
 use crate::settings::Settings;
 
-pub const DEFAULT: &str = "default";
+//pub const DEFAULT: &str = "default";
 pub const DIRECTORY_NAME: &str = "settings";
 pub const EXTENSION: &str = ".ris_yaml";
 
@@ -41,12 +38,12 @@ impl SettingsSerializer {
         Ok(())
     }
 
-    pub fn deserialize(&self) -> Option<Settings> {
+    pub fn deserialize(&self, app_info: &AppInfo) -> Option<Settings> {
         ris_log::debug!("deserializing settings...");
 
         for available_path in self.fallback_file.available_paths() {
             if let Some(bytes) = self.fallback_file.get_by_path(&available_path) {
-                match read_bytes(&bytes) {
+                match read_bytes(&bytes, app_info) {
                     Ok(settings) => {
                         ris_log::debug!("settings deserialized!");
                         return Some(settings);
@@ -72,7 +69,7 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     let mut yaml = RisYaml::default();
 
     yaml.add_comment("jobs");
-    yaml.add_key_value(key::JOB_WORKERS, &compose(&settings.job.get_workers()));
+    yaml.add_key_value(key::JOB_WORKERS, &settings.job.get_workers().to_string());
     yaml.add_empty();
 
     let string = yaml.to_string()?;
@@ -81,22 +78,20 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     Ok(bytes)
 }
 
-fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
+fn read_bytes(bytes: &[u8], app_info: &AppInfo) -> RisResult<Settings> {
     let string = String::from_utf8(bytes.to_vec())?;
 
-    let mut result = Settings::default();
+    let mut result = Settings::new(app_info);
     let yaml = RisYaml::try_from(string.as_str())?;
 
     for (i, entry) in yaml.entries.iter().enumerate() {
-        let line = i + 1;
-
         let (key, value) = match entry.key_value.as_ref() {
             Some(key_value) => key_value,
             None => continue,
         };
 
         match key.as_str() {
-            key::JOB_WORKERS => result.job.set_workers(parse(value, line)?),
+            key::JOB_WORKERS => result.job.set_workers(value.parse()?),
             _ => return ris_error::new_result!("unkown key at line {}", i),
         }
     }
@@ -104,24 +99,3 @@ fn read_bytes(bytes: &[u8]) -> RisResult<Settings> {
     Ok(result)
 }
 
-fn compose<T: Display>(value: &Option<T>) -> String {
-    match value.as_ref() {
-        Some(value) => (*value).to_string(),
-        None => String::from(DEFAULT),
-    }
-}
-
-fn parse<T>(value: &str, line: usize) -> RisResult<Option<T>>
-where
-    T: FromStr,
-    T::Err: Display,
-{
-    if value == DEFAULT {
-        Ok(None)
-    } else {
-        match value.parse::<T>() {
-            Ok(parsed) => Ok(Some(parsed)),
-            Err(error) => error_on_line(line, &error.to_string()),
-        }
-    }
-}

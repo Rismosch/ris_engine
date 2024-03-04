@@ -224,26 +224,6 @@ impl LogicFrame {
             *state.front.camera_position.borrow_mut() += movement_speed * right;
         }
 
-        {
-            let settings = &mut state.front.settings.borrow_mut();
-            let workers = settings.job().get_workers();
-            if let Some(workers) = workers {
-                if input.keyboard.keys.is_hold(Scancode::LCtrl) {
-                    if input.keyboard.keys.is_down(Scancode::Up) {
-                        let new_workers = Some(workers.saturating_add(1));
-                        settings.job_mut().set_workers(new_workers);
-                    }
-                    if input.keyboard.keys.is_down(Scancode::Down) {
-                        let new_workers = Some(workers.saturating_sub(1));
-                        settings.job_mut().set_workers(new_workers);
-                    }
-                    if input.keyboard.keys.is_down(Scancode::Return) {
-                        settings.request_save();
-                    }
-                }
-            }
-        }
-
         if input.keyboard.keys.is_down(Scancode::F) {
             ris_log::debug!(
                 "{:?} ({} fps)",

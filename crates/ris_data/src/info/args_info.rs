@@ -6,7 +6,7 @@ const NO_RESTART_ARG: &str = "--no-restart";
 const WORKERS_ARG: &str = "--workers";
 const ASSETS_ARG: &str = "--assets";
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct ArgsInfo {
     pub raw_args: Vec<String>,
     pub executable_path: String,

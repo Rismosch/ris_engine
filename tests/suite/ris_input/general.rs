@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use ris_data::god_state::GodState;
+use ris_data::info::app_info::AppInfo;
 use ris_data::input::rebind_matrix::RebindMatrix;
+use ris_data::settings::Settings;
 use ris_input::general_logic::update_general;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
@@ -15,7 +17,7 @@ impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new().unwrap());
 
-        let state = Arc::new(GodState::default());
+        let state = GodState::new(Settings::new(&AppInfo::default()));
 
         Self { rng, state }
     }

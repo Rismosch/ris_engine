@@ -5,7 +5,9 @@ pub mod serializer;
 
 use job_settings::JobSettings;
 
-#[derive(Default, Clone)]
+use crate::info::app_info::AppInfo;
+
+#[derive(Clone)]
 pub struct Settings {
     changed: bool,
     save_requested: bool,
@@ -14,6 +16,15 @@ pub struct Settings {
 }
 
 impl Settings {
+    pub fn new(app_info: &AppInfo) -> Self {
+        Self {
+            changed: false,
+            save_requested: false,
+
+            job: JobSettings::new(app_info),
+        }
+    }
+
     pub fn changed(&self) -> bool {
         self.changed || self.job.changed()
     }

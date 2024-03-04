@@ -7,7 +7,7 @@ use super::file_info::FileInfo;
 use super::package_info::PackageInfo;
 use super::sdl_info::SdlInfo;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct AppInfo {
     pub args: ArgsInfo,
     pub build: BuildInfo,
