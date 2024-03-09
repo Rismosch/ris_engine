@@ -26,6 +26,14 @@ impl Default for FrameCalculator {
     }
 }
 
+impl std::fmt::Display for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let millis = self.average_duration().as_millis();
+        let fps = self.average_fps();
+        write!(f,"{} ms ({} fps)", millis, fps)
+    }
+}
+
 impl FrameCalculator {
     pub fn bump_and_create_frame(&mut self) -> Frame {
         let current_index = self.number % FRAME_COUNT;
@@ -76,8 +84,8 @@ impl Frame {
         self.previous_duration().as_secs_f32()
     }
 
-    pub fn previous_fps(&self) -> f32 {
-        1. / self.previous_seconds()
+    pub fn previous_fps(&self) -> usize {
+        (1. / self.previous_seconds()) as usize
     }
 
     pub fn average_duration(&self) -> Duration {
@@ -88,7 +96,7 @@ impl Frame {
         self.average_duration().as_secs_f32()
     }
 
-    pub fn average_fps(&self) -> f32 {
-        1. / self.average_seconds()
+    pub fn average_fps(&self) -> usize {
+        (1. / self.average_seconds()) as usize
     }
 }

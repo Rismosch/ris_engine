@@ -24,7 +24,7 @@ const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> Vec<Box<dyn UiHelperModule>> {
     vec![
-        Box::new(MetricsModule),
+        Box::new(MetricsModule::default()),
         Box::new(SettingsModule::new(app_info)),
         // insert new UiHelperModule here
     ]

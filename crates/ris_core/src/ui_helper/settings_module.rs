@@ -29,7 +29,9 @@ impl UiHelperModule for SettingsModule {
         let ui = data.ui;
         let mut settings = data.state.front.settings.borrow_mut();
 
-        if ui.collapsing_header("jobs", imgui::TreeNodeFlags::empty()) {
+        let mut flags = imgui::TreeNodeFlags::empty();
+        flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
+        if ui.collapsing_header("jobs", flags) {
             let mut workers = settings.job().get_workers();
             if ui.slider("workers", 1, self.app_info.cpu.cpu_count, &mut workers) {
                 settings.job_mut().set_workers(workers);
