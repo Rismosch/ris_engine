@@ -41,12 +41,12 @@ pub fn create_swapchain(
             image_extent: [dimensions.0, dimensions.1],
             image_usage: ImageUsage::COLOR_ATTACHMENT,
             composite_alpha,
-            present_mode: vulkano::swapchain::PresentMode::Mailbox,
+            present_mode: vulkano::swapchain::PresentMode::Immediate,
             ..Default::default()
         },
     )?;
 
-    ris_log::trace!("swapchain image coint: {}", swapchain.0.image_count());
+    ris_log::trace!("swapchain image count: {}", swapchain.0.image_count());
 
     Ok(swapchain)
 }
