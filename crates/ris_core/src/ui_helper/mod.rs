@@ -24,15 +24,15 @@ const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> Vec<Box<dyn UiHelperModule>> {
     vec![
-        Box::new(MetricsModule::default()),
-        Box::new(SettingsModule::new(app_info)),
-        // insert new UiHelperModule here
+        MetricsModule::new(),
+        SettingsModule::new(app_info),
     ]
 }
 
 pub trait UiHelperModule {
     fn name(&self) -> &'static str;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
+    fn always(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
 }
 
 pub struct UiHelperDrawData<'a> {
@@ -173,7 +173,11 @@ impl UiHelper {
         })
     }
 
-    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
+    pub fn draw(&mut self, mut data: UiHelperDrawData) -> RisResult<()> {
+        for module in self.modules.iter_mut() {
+            module.always(&mut data)?;
+        }
+
         let result = data
             .ui
             .window("UiHelper")
@@ -294,3 +298,4 @@ impl Drop for UiHelper {
         ris_log::info!("dropped UiHelper!");
     }
 }
+

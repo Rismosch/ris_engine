@@ -7,13 +7,15 @@ use crate::ui_helper::UiHelperModule;
 
 pub struct SettingsModule {
     app_info: AppInfo,
+    saved: bool,
 }
 
 impl SettingsModule {
-    pub fn new(app_info: &AppInfo) -> Self {
-        Self {
+    pub fn new(app_info: &AppInfo) -> Box<Self> {
+        Box::new(Self {
             app_info: app_info.clone(),
-        }
+            saved: true,
+        })
     }
 }
 
@@ -29,31 +31,54 @@ impl UiHelperModule for SettingsModule {
         let ui = data.ui;
         let mut settings = data.state.front.settings.borrow_mut();
 
-        let mut flags = imgui::TreeNodeFlags::empty();
-        flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
-        if ui.collapsing_header("jobs", flags) {
+        if ui.collapsing_header("jobs", imgui::TreeNodeFlags::empty()) {
             let mut workers = settings.job().get_workers();
             if ui.slider("workers", 1, self.app_info.cpu.cpu_count, &mut workers) {
                 settings.job_mut().set_workers(workers);
+                self.saved = false;
             }
         }
 
-        if ui.button("save") {
-            settings.request_save();
-        }
+        let mut header_flags = imgui::TreeNodeFlags::empty();
+        header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
+        header_flags.set(imgui::TreeNodeFlags::BULLET, !self.saved);
+        if ui.collapsing_header("settings file", header_flags) {
 
-        if ui.button("load") {
-            let serializer = SettingsSerializer::new(&self.app_info);
-            if let Some(deserialized_settings) = serializer.deserialize(&self.app_info) {
-                *settings = deserialized_settings;
+            {
+                let disabled_token = ui.begin_disabled(self.saved);
+
+                if ui.button("save") {
+                    settings.request_save();
+                    self.saved = true;
+                }
+
+                ui.same_line();
+                if ui.button("load") {
+                    let serializer = SettingsSerializer::new(&self.app_info);
+                    if let Some(deserialized_settings) = serializer.deserialize(&self.app_info) {
+                        *settings = deserialized_settings;
+                    }
+                    self.saved = true;
+                }
+
+                if !self.saved {
+                    ui.same_line();
+                    ui.label_text("", "settings are not saved!");
+                }
+
+                disabled_token.end();
+            }
+
+            if ui.button("restore default") {
+                *settings = Settings::new(&self.app_info);
+                self.saved = false;
             }
         }
 
-        if ui.button("restore default") {
-            *settings = Settings::new(&self.app_info);
-            settings.request_save();
-        }
+        Ok(())
+    }
 
+    fn always(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {
         Ok(())
     }
 }
