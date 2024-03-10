@@ -22,17 +22,46 @@ use crate::ui_helper::settings_module::SettingsModule;
 const PINNED: &str = "pinned";
 const UNASSIGNED: &str = "unassigned";
 
-fn modules(app_info: &AppInfo) -> Vec<Box<dyn UiHelperModule>> {
-    vec![
+fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
+    let modules: Vec<Box<dyn UiHelperModule>> = vec![
         MetricsModule::new(),
         SettingsModule::new(app_info),
-    ]
+        // add new modules here...
+    ];
+
+    // assert valid names
+    let mut existing_names = std::collections::hash_set::HashSet::new();
+
+    for module in modules.iter() {
+        let name = module.name();
+        if existing_names.contains(name) {
+            return ris_error::new_result!(
+                "module names must be unique! offending name: \"{}\"",
+                name
+            );
+        }
+
+        existing_names.insert(name);
+
+        let splits = name.split('.').collect::<Vec<_>>();
+        if splits.len() != 1 {
+            return ris_error::new_result!(
+                "module name must not contain `.` (dot)! offending name: \"{}\"",
+                name
+            );
+        }
+    }
+
+    Ok(modules)
 }
 
 pub trait UiHelperModule {
     fn name(&self) -> &'static str;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
     fn always(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
+
+    fn serialize(&self) -> RisResult<RisYaml>;
+    fn deserialize(&mut self, yaml: RisYaml) -> RisResult<()>;
 }
 
 pub struct UiHelperDrawData<'a> {
@@ -77,7 +106,7 @@ impl UiHelper {
                 ris_log::error!("failed to deserialize UiHelper: {}", e);
 
                 Ok(Self {
-                    modules: modules(app_info),
+                    modules: modules(app_info)?,
                     pinned: Vec::new(),
                     next_pinned_id: 0,
                     module_selected_event: None,
@@ -88,6 +117,9 @@ impl UiHelper {
     }
 
     fn serialize(&self) -> RisResult<()> {
+        let mut yaml = RisYaml::default();
+
+        // serialize pinned
         let pinned_strings = self
             .pinned
             .iter()
@@ -99,9 +131,33 @@ impl UiHelper {
 
         let pinned_string = pinned_strings.join(", ");
 
-        let mut yaml = RisYaml::default();
         yaml.add_key_value(PINNED, &pinned_string);
 
+        // serialize modules
+        for module in self.modules.iter() {
+            let name = module.name();
+            let serialized = module.serialize()?;
+
+            for entry in serialized.entries {
+                let (key, value) = match entry.key_value {
+                    Some(key_value) => key_value,
+                    None => continue,
+                };
+
+                if key.contains('.') {
+                    return ris_error::new_result!(
+                        "failed to serialize module {}. key may not contain `.`: \"{}\"",
+                        name,
+                        key
+                    );
+                }
+
+                let module_key = format!("{}.{}", name, key);
+                yaml.add_key_value(&module_key, &value);
+            }
+        }
+
+        // write file
         let mut file = std::fs::File::create(&self.config_filepath)?;
         let file_content = yaml.to_string()?;
         let bytes = file_content.as_bytes();
@@ -121,12 +177,13 @@ impl UiHelper {
         let yaml = RisYaml::try_from(file_content.as_str())?;
 
         // parse yaml
-        let modules = modules(app_info);
+        let mut modules = modules(app_info)?;
         let mut pinned = Vec::new();
 
         let mut next_pinned_id = 0usize;
 
-        for (i, entry) in yaml.entries.iter().enumerate() {
+        // parse ui helper
+        for entry in yaml.entries.iter() {
             let (key, value) = match &entry.key_value {
                 Some(key_value) => key_value,
                 None => continue,
@@ -160,8 +217,35 @@ impl UiHelper {
                         next_pinned_id = next_pinned_id.wrapping_add(1);
                     }
                 }
-                _ => return ris_error::new_result!("unkown key at line {}", i),
+                _key => continue,
             }
+        }
+
+        // parse modules
+        for module in modules.iter_mut() {
+            let mut module_yaml = RisYaml::default();
+
+            for entry in yaml.entries.iter() {
+                let (key, value) = match &entry.key_value {
+                    Some(key_value) => key_value,
+                    None => continue,
+                };
+
+                let splits = key.split('.').collect::<Vec<_>>();
+
+                if splits.len() != 2 {
+                    continue;
+                }
+
+                let module_name = splits[0];
+                let module_key = splits[1];
+
+                if module_name == module.name() {
+                    module_yaml.add_key_value(module_key, value);
+                }
+            }
+
+            module.deserialize(module_yaml)?;
         }
 
         Ok(Self {
@@ -298,4 +382,3 @@ impl Drop for UiHelper {
         ris_log::info!("dropped UiHelper!");
     }
 }
-

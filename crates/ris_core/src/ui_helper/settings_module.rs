@@ -1,6 +1,8 @@
 use ris_data::info::app_info::AppInfo;
+use ris_data::settings::ris_yaml::RisYaml;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_error::RisResult;
 
 use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::UiHelperModule;
@@ -21,10 +23,10 @@ impl SettingsModule {
 
 impl UiHelperModule for SettingsModule {
     fn name(&self) -> &'static str {
-        "settings"
+        "metrics"
     }
 
-    fn draw(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
         if let Some(future) = data.logic_future.take() {
             future.wait(None)?
         }
@@ -43,7 +45,6 @@ impl UiHelperModule for SettingsModule {
         header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
         header_flags.set(imgui::TreeNodeFlags::BULLET, !self.saved);
         if ui.collapsing_header("settings file", header_flags) {
-
             {
                 let disabled_token = ui.begin_disabled(self.saved);
 
@@ -78,7 +79,15 @@ impl UiHelperModule for SettingsModule {
         Ok(())
     }
 
-    fn always(&mut self, data: &mut UiHelperDrawData) -> ris_error::RisResult<()> {
+    fn always(&mut self, _data: &mut UiHelperDrawData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn serialize(&self) -> RisResult<RisYaml> {
+        Ok(RisYaml::default())
+    }
+
+    fn deserialize(&mut self, _yaml: RisYaml) -> RisResult<()> {
         Ok(())
     }
 }

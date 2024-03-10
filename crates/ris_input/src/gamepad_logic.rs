@@ -74,11 +74,12 @@ impl GamepadLogic {
     }
 
     fn add_controller(&mut self, joystick_index: u32) {
-        let controller_to_open = self.subsystem.open(joystick_index);
-
-        let game_controller = match controller_to_open {
+        let game_controller = match self.subsystem.open(joystick_index) {
             Ok(game_controller) => game_controller,
-            _ => unreachable!(),
+            Err(e) => {
+                ris_log::error!("failed to open controller: {}", e);
+                return;
+            }
         };
 
         let instance_id = game_controller.instance_id();
