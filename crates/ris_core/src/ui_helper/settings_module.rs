@@ -23,7 +23,7 @@ impl SettingsModule {
 
 impl UiHelperModule for SettingsModule {
     fn name(&self) -> &'static str {
-        "metrics"
+        "settings"
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
