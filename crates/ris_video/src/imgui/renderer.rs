@@ -71,8 +71,8 @@ impl ImguiRenderer {
         let vs_future = shader::load_async(device.clone(), scenes.imgui_vs.clone());
         let fs_future = shader::load_async(device.clone(), scenes.imgui_fs.clone());
 
-        let vs = vs_future.wait()?;
-        let fs = fs_future.wait()?;
+        let vs = vs_future.wait(None)??;
+        let fs = fs_future.wait(None)??;
 
         let render_pass =
             super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;

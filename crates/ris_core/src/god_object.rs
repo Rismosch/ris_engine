@@ -22,6 +22,7 @@ use ris_video::vulkan::renderer::Renderer;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
+use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
@@ -68,10 +69,10 @@ impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
-        let settings = match settings_serializer.deserialize() {
+        let settings = match settings_serializer.deserialize(&app_info) {
             Some(settings) => settings,
             None => {
-                let new_settings = Settings::default();
+                let new_settings = Settings::new(&app_info);
                 settings_serializer.serialize(&new_settings)?;
                 new_settings
             }
@@ -105,7 +106,7 @@ impl GodObject {
 
         // scenes
         let scenes_id = scenes_id();
-        let scenes_bytes = asset_loader::load_async(scenes_id).wait()?;
+        let scenes_bytes = asset_loader::load_async(scenes_id).wait(None)??;
         let scenes = scenes_loader::load(&scenes_bytes)?;
 
         // video
@@ -131,8 +132,9 @@ impl GodObject {
         };
 
         // gameloop
+        let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, imgui)?;
+        let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 

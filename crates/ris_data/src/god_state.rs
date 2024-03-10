@@ -19,7 +19,7 @@ impl Default for WindowEvent {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct GodStateData {
     // events
     pub reload_shaders: Arc<ArefCell<bool>>,
@@ -36,22 +36,35 @@ pub struct GodStateData {
     pub settings: Arc<ArefCell<Settings>>,
 }
 
-#[derive(Default)]
 pub struct GodState {
     pub front: GodStateData,
     pub back: GodStateData,
 }
 
+impl GodStateData {
+    pub fn new(settings: Settings) -> Self {
+        Self {
+            // events
+            reload_shaders: Default::default(),
+            window_event: Default::default(),
+
+            // input
+            input: Default::default(),
+
+            // general
+            camera_position: Default::default(),
+            camera_rotation: Default::default(),
+
+            // settings
+            settings: Arc::new(ArefCell::new(settings)),
+        }
+    }
+}
+
 impl GodState {
     pub fn new(settings: Settings) -> Arc<Self> {
-        let front = GodStateData {
-            settings: Arc::new(ArefCell::new(settings.clone())),
-            ..Default::default()
-        };
-        let back = GodStateData {
-            settings: Arc::new(ArefCell::new(settings)),
-            ..Default::default()
-        };
+        let front = GodStateData::new(settings.clone());
+        let back = GodStateData::new(settings);
 
         let double_buffer = GodState { front, back };
 

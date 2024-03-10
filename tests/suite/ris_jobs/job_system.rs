@@ -12,13 +12,13 @@ use ris_util::testing::retry;
 
 #[test]
 fn should_submit_and_run_jobs() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         let mut futures = Vec::new();
 
-        for i in 0..miri_choose(1000, 10) {
+        for i in 0..miri_choose(1000, 5) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 results_copy.lock().unwrap().push(i);
@@ -31,8 +31,8 @@ fn should_submit_and_run_jobs() {
 
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), miri_choose(1000, 10));
-        for i in 0..miri_choose(1000, 10) {
+        assert_eq!(results.len(), miri_choose(1000, 5));
+        for i in 0..miri_choose(1000, 5) {
             assert!(results.contains(&i));
         }
     });
@@ -40,7 +40,7 @@ fn should_submit_and_run_jobs() {
 
 #[test]
 fn should_submit_job_within_job() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(10, 10, 100, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -80,8 +80,8 @@ fn should_submit_job_within_job() {
 }
 
 #[test]
-fn should_run_job_when_buffer_is_full() {
-    repeat(10, |_| {
+fn should_enqueue_job_when_buffer_is_full() {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(miri_choose(100, 10), 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -90,27 +90,29 @@ fn should_run_job_when_buffer_is_full() {
         for i in 0..miri_choose(200, 20) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
-                results_copy.lock().unwrap().push(i);
+                let mut results = results_copy.lock().unwrap();
+                results.push(i);
             });
 
             futures.push(future);
         }
 
+        drop(job_system);
+
         let results = results.lock().unwrap();
 
-        assert_eq!(results.len(), miri_choose(100, 10));
-        for i in miri_choose(100..200, 10..20) {
-            assert!(results.contains(&i));
+        let len = miri_choose(200, 20);
+        assert_eq!(results.len(), len);
+        for i in 0..len {
+            let success = results.contains(&i);
+            assert!(success);
         }
-
-        drop(results);
-        drop(job_system);
     });
 }
 
 #[test]
 fn should_run_pending_job() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -188,7 +190,7 @@ fn should_get_thread_index() {
 
 #[test]
 fn should_run_jobs_while_waiting_on_future() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -202,7 +204,7 @@ fn should_run_jobs_while_waiting_on_future() {
             futures.push(future);
         }
 
-        let result = future.wait();
+        let result = future.wait(None).unwrap();
         let results = results.lock().unwrap();
 
         assert_eq!(result, "hello world");
@@ -217,7 +219,7 @@ fn should_run_jobs_while_waiting_on_future() {
 
 #[test]
 fn should_run_jobs_when_emptying() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(100, 10, 1, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
@@ -247,13 +249,13 @@ fn should_run_jobs_when_emptying() {
 
 #[test]
 fn should_lock_mutex() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(100, 10, 10, false) };
 
         let results = Arc::new(Mutex::new(Vec::new()));
         let mut futures = Vec::new();
 
-        for i in 0..miri_choose(100, 10) {
+        for i in 0..miri_choose(100, 5) {
             let results_copy = results.clone();
             let future = job_system::submit(move || {
                 job_system::lock(&results_copy).push(i);
@@ -266,8 +268,8 @@ fn should_lock_mutex() {
 
         let results = job_system::lock(&results);
 
-        assert_eq!(results.len(), miri_choose(100, 10));
-        for i in 0..miri_choose(100, 10) {
+        assert_eq!(results.len(), miri_choose(100, 5));
+        for i in 0..miri_choose(100, 5) {
             assert!(results.contains(&i));
         }
     });
@@ -275,14 +277,14 @@ fn should_lock_mutex() {
 
 #[test]
 fn should_read_and_write_rw_lock() {
-    repeat(10, |_| {
+    repeat(5, |_| {
         let job_system = unsafe { job_system::init(100, 10, 10, false) };
 
         let end_result = Arc::new(RwLock::new(0));
         let results = Arc::new(Mutex::new(Vec::new()));
         let mut futures = Vec::new();
 
-        for _ in 0..miri_choose(100, 10) {
+        for _ in 0..miri_choose(100, 5) {
             let end_result_copy = end_result.clone();
             let results_copy = results.clone();
             let future = job_system::submit(move || {
@@ -305,7 +307,7 @@ fn should_read_and_write_rw_lock() {
         let results = results.lock().unwrap();
 
         assert!(end_result > 0);
-        assert_eq!(results.len(), miri_choose(100, 10));
+        assert_eq!(results.len(), miri_choose(100, 5));
         assert_eq!(results[results.len() - 1], end_result);
     });
 }

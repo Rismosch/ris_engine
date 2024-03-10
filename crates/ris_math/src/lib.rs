@@ -301,6 +301,7 @@ pub fn fastsincos(angle: f32) -> (f32, f32) {
 
     (sin, cos)
 }
+
 /// returns (pi^2 - 4x^2) / (pi^2 + x^2). used by fast_sincos
 pub fn bhaskara(x: f32) -> f32 {
     let pi2 = PI * PI;
@@ -313,13 +314,27 @@ const ONE_AS_INT: i32 = 0x3f80_0000;
 const SCALE_UP: f32 = 0x00800000 as f32;
 const SCALE_DOWN: f32 = 1.0 / SCALE_UP;
 
-/// uses the bytes of x to initialize an i32. used by the fast functions
+/// uses the bytes of x to initialize an i32. used by fast functions
 pub fn as_int(x: f32) -> i32 {
     i32::from_be_bytes(x.to_be_bytes())
 }
-/// uses the bytes of x to initialize an f32. used by the fast functions
+/// uses the bytes of x to initialize an f32. used by fast functions
 pub fn as_float(x: i32) -> f32 {
     f32::from_be_bytes(x.to_be_bytes())
+}
+
+/// returns abs(x)
+///
+/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201
+pub fn fast_abs(x: f32) -> f32 {
+    as_float(as_int(x) & 0x7FFF_FFFF)
+}
+
+/// returns -x
+///
+/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201
+pub fn fast_negate(x: f32) -> f32 {
+    as_float(as_int(x) ^ 0x8000_0000u32 as i32)
 }
 
 /// returns log2(x)

@@ -46,6 +46,8 @@ pub fn create_swapchain(
         },
     )?;
 
+    ris_log::trace!("swapchain image count: {}", swapchain.0.image_count());
+
     Ok(swapchain)
 }
 

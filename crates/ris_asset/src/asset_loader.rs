@@ -132,7 +132,7 @@ pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     if let Err(send_error) = result {
         let error = Err(LoadError::SendFailed);
         let request = send_error.0;
-        request.future.set(error, true);
+        request.future.set(error);
     }
 
     job_future
@@ -151,7 +151,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                     Err(LoadError::InvalidId)
                 };
 
-                request.future.set(result, false);
+                request.future.set(result);
             }
         }
         InternalLoader::Directory(loader) => {
@@ -165,7 +165,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                     Err(LoadError::InvalidId)
                 };
 
-                request.future.set(result, false);
+                request.future.set(result);
             }
         }
     }

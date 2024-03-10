@@ -23,6 +23,32 @@ fn should_compute_fastsincos() {
 }
 
 #[test]
+fn should_compute_abs() {
+    let count = 1 << miri_choose(16, 4);
+    for i in 0..count {
+        let f = 1000. * ((i + 1) as f32) / (count as f32);
+
+        let std = -f;
+        let fast = ris_math::fast_negate(f);
+
+        assert_eq!(std, fast);
+    }
+}
+
+#[test]
+fn should_compute_negative() {
+    let count = 1 << miri_choose(16, 4);
+    for i in 0..count {
+        let f = 1000. * ((i + 1) as f32) / (count as f32);
+
+        let std = f32::abs(f);
+        let fast = ris_math::fast_abs(f);
+
+        assert_eq!(std, fast);
+    }
+}
+
+#[test]
 fn should_compute_fastlog2() {
     let max_error = 0.09;
 

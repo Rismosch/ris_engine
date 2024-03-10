@@ -4,7 +4,7 @@ use ris_error::RisResult;
 
 use super::package_info::PackageInfo;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct FileInfo {
     /// The directory in which the executable sits. Used to locate directories/files that sit
     /// in the same directory as the executable.

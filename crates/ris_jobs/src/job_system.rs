@@ -123,31 +123,34 @@ pub unsafe fn init(
 pub fn submit<ReturnType: 'static, F: FnOnce() -> ReturnType + 'static>(
     job: F,
 ) -> JobFuture<ReturnType> {
-    let mut not_pushed = None;
-
     let (settable_future, future) = SettableJobFuture::new();
 
-    let job = Job::new(move || {
+    let mut job = Job::new(move || {
         let result = job();
-        settable_future.set(result, true);
+        settable_future.set(result);
     });
 
-    WORKER_THREAD.with(|worker_thread| {
-        if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
-            let push_result = unsafe { worker_thread.local_buffer.push(job) };
-            match push_result {
-                Ok(()) => (),
-                Err(blocked_or_full) => {
-                    not_pushed = Some(blocked_or_full.not_pushed);
+    loop {
+        let not_pushed = WORKER_THREAD.with(|worker_thread| {
+            if let Some(worker_thread) = worker_thread.borrow_mut().as_mut() {
+                let push_result = unsafe { worker_thread.local_buffer.push(job) };
+                match push_result {
+                    Ok(()) => None,
+                    Err(blocked_or_full) => Some(blocked_or_full.not_pushed),
                 }
+            } else {
+                ris_log::error!("couldn't submit job, calling thread isn't a worker thread");
+                None
             }
-        } else {
-            ris_log::error!("couldn't submit job, calling thread isn't a worker thread");
-        }
-    });
+        });
 
-    if let Some(mut to_invoke) = not_pushed {
-        to_invoke.invoke();
+        match not_pushed {
+            Some(not_pushed) => {
+                run_pending_job(file!(), line!());
+                job = not_pushed;
+            }
+            None => break,
+        }
     }
 
     future

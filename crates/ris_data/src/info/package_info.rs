@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct PackageInfo {
     pub name: String,
     pub version: String,
