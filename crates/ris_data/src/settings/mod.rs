@@ -7,7 +7,7 @@ use job_settings::JobSettings;
 
 use crate::info::app_info::AppInfo;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct Settings {
     changed: bool,
     save_requested: bool,

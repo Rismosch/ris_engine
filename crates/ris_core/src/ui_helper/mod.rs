@@ -286,13 +286,10 @@ impl UiHelper {
         flags.set(imgui::TabBarFlags::FITTING_POLICY_RESIZE_DOWN, true);
         if let Some(tab_bar) = ui.tab_bar_with_flags("##modules", flags) {
             // new tab button
-            let new_tab = OsStr::new("+");
-            let new_tab_ptr = new_tab.as_encoded_bytes().as_ptr() as *const i8;
-
             let mut flags = 0;
             flags |= imgui::sys::ImGuiTabItemFlags_Trailing;
             flags |= imgui::sys::ImGuiTabItemFlags_NoTooltip;
-            if unsafe { imgui::sys::igTabItemButton(new_tab_ptr, flags as i32) } {
+            if unsafe { imgui::sys::igTabItemButton(str_to_ptr("+"), flags as i32) } {
                 self.pinned.push(PinnedUiHelperModule {
                     module_index: None,
                     id: self.next_pinned_id,
@@ -381,4 +378,13 @@ impl Drop for UiHelper {
 
         ris_log::info!("dropped UiHelper!");
     }
+}
+
+pub fn str_to_ptr(value: &str) -> *const i8 {
+    let null_terminated = format!("{}\0", value);
+    let os_str = OsStr::new(&null_terminated);
+    let bytes = os_str.as_encoded_bytes();
+    let ptr = bytes.as_ptr();
+
+    ptr as *const i8
 }
