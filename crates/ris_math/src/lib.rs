@@ -146,9 +146,14 @@ pub fn inversesqrt(x: f32) -> f32 {
 // common functions
 //
 
-/// returns x is x >= 0, otherwise it returns -x
+/// returns x if x >= 0, otherwise it returns -x
 pub fn abs(x: f32) -> f32 {
-    f32::abs(x)
+    fast_abs(x)
+}
+
+/// returns x
+pub fn neg(x: f32) -> f32 {
+    fast_neg(x)
 }
 
 /// returns abs(x - y)
@@ -245,7 +250,7 @@ pub fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
 }
 
 /// returns 0.0 if x <= edge0 and 1.0 if x >= edge1 and performs smooth Hermite interpolation
-/// between 0 and 1, when edge0 < x < edge1. this is is a smoother version of smoothstep, as
+/// between 0 and 1, when edge0 < x < edge1. this is a smoother version of smoothstep, as
 /// smoothstep is only C1 continuous, while smoothstep is C2 continuous
 pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     let t = clamp((x - edge0) / (edge1 - edge0), 0., 1.);
@@ -333,7 +338,7 @@ pub fn fast_abs(x: f32) -> f32 {
 /// returns -x
 ///
 /// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201
-pub fn fast_negate(x: f32) -> f32 {
+pub fn fast_neg(x: f32) -> f32 {
     as_float(as_int(x) ^ 0x8000_0000u32 as i32)
 }
 
