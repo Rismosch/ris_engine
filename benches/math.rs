@@ -30,7 +30,7 @@ fn abs(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let abs = ris_math::fast_abs(*value);
+                let abs = ris_math::fastabs(*value);
                 black_box(abs);
             }
         });
@@ -63,7 +63,7 @@ fn negate(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::fast_negate(*value);
+                let result = ris_math::fastneg(*value);
                 black_box(result);
             }
         });

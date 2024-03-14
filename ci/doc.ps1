@@ -1,5 +1,5 @@
 Write-Host
-Write-Host "This script generates docs and moves them to another folder, thus ``cargo clean`` wont be able to delete them. This is very helpful in the situation that the workspace doesn't compile, which means the workspace is in a state where ``cargo doc`` will fail."
+Write-Host "This script generates docs and moves them to another folder, thus \`cargo clean\` wont be able to delete them. This is very helpful in the situation that the workspace and as such the docs don't compile."
 Write-Host
 Write-Host
 Write-Host
@@ -9,9 +9,6 @@ Import-Module "$PSScriptRoot/util.ps1" -force
 Push-Location $root_dir
 
 try {
-    Write-Host "clearing destination directory..."
-    $target_directory = GetAndClearCiOutDir
-
     Write-Host "asking for user input..."
     $cli_cargo_clean_value = $false
 
@@ -32,6 +29,8 @@ try {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "cargo doc succeeded!"
 
+        Write-Host "clearing destination directory..."
+        $target_directory = GetAndClearCiOutDir
         $source_directory = "$root_dir/target/doc"
 
         Write-Host "copying documentation..."

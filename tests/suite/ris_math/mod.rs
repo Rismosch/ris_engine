@@ -29,7 +29,7 @@ fn should_compute_abs() {
         let f = 1000. * ((i + 1) as f32) / (count as f32);
 
         let std = f32::abs(f);
-        let fast = ris_math::fast_abs(f);
+        let fast = ris_math::fastabs(f);
 
         assert_eq!(std, fast);
     }
@@ -42,7 +42,7 @@ fn should_compute_negative() {
         let f = 1000. * ((i + 1) as f32) / (count as f32);
 
         let std = -f;
-        let fast = ris_math::fast_neg(f);
+        let fast = ris_math::fastneg(f);
 
         assert_eq!(std, fast);
     }

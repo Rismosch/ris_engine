@@ -148,12 +148,12 @@ pub fn inversesqrt(x: f32) -> f32 {
 
 /// returns x if x >= 0, otherwise it returns -x
 pub fn abs(x: f32) -> f32 {
-    fast_abs(x)
+    fastabs(x)
 }
 
 /// returns x
 pub fn neg(x: f32) -> f32 {
-    fast_neg(x)
+    fastneg(x)
 }
 
 /// returns abs(x - y)
@@ -286,7 +286,7 @@ pub fn choose(x: f32, y: f32, a: bool) -> f32 {
 ///
 /// max error: ~ 0.00202
 ///
-/// inspired by Kaze Emanuar: https://youtu.be/xFKFoGiGlXQ?si=qY72yYASbnN5LS0l&t=680
+/// inspired by Kaze Emanuar: <https://youtu.be/xFKFoGiGlXQ?si=qY72yYASbnN5LS0l&t=680>
 ///
 /// # Panics
 ///
@@ -330,15 +330,15 @@ pub fn as_float(x: i32) -> f32 {
 
 /// returns abs(x)
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201
-pub fn fast_abs(x: f32) -> f32 {
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201>
+pub fn fastabs(x: f32) -> f32 {
     as_float(as_int(x) & 0x7FFF_FFFF)
 }
 
 /// returns -x
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201
-pub fn fast_neg(x: f32) -> f32 {
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201>
+pub fn fastneg(x: f32) -> f32 {
     as_float(as_int(x) ^ 0x8000_0000u32 as i32)
 }
 
@@ -347,7 +347,7 @@ pub fn fast_neg(x: f32) -> f32 {
 /// max error: ~ 0.09
 /// most accurate around powers of 2
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=293
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=293>
 ///
 /// # Panics
 ///
@@ -361,7 +361,7 @@ pub fn fastlog2(x: f32) -> f32 {
 ///
 /// very accurate for integers and negative floats, very inaccurate otherwise
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=20RYsxxHEF5ZYZGc&t=474
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=20RYsxxHEF5ZYZGc&t=474>
 pub fn fastexp2(x: f32) -> f32 {
     as_float(((x * SCALE_UP) as i32).wrapping_add(ONE_AS_INT))
 }
@@ -371,7 +371,7 @@ pub fn fastexp2(x: f32) -> f32 {
 /// decently accurate when both x and y are near positive 0, **very** innacurate otherwise.
 /// usefulness is questionable, due to its inaccuracy
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=vmcdBoVu1vAxR1hj&t=518
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=vmcdBoVu1vAxR1hj&t=518>
 pub fn fastpow(x: f32, y: f32) -> f32 {
     as_float(((y * (as_int(x).wrapping_sub(ONE_AS_INT)) as f32) as i32).wrapping_add(ONE_AS_INT))
 }
@@ -381,7 +381,7 @@ pub fn fastpow(x: f32, y: f32) -> f32 {
 /// max error: ~ 0.03925;
 /// decently accurate, approaching max error every second power of 2, e.g 2, 8, 32, 128, 512, etc.
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=vmcdBoVu1vAxR1hj&t=518
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=vmcdBoVu1vAxR1hj&t=518>
 ///
 /// # Panics
 ///
@@ -402,7 +402,7 @@ pub fn fastsqrt(x: f32) -> f32 {
 /// max error, if x > 1: ~ 0.00153
 /// the further away x from 0, the more accurate this function becomes
 ///
-/// inspired by Creel: https://youtu.be/ReTetN51r7A?si=CX-5iUHIqXBeuxBT&t=986
+/// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=CX-5iUHIqXBeuxBT&t=986>
 ///
 /// # Panics
 ///
