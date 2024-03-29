@@ -12,11 +12,13 @@ use vulkano::sync::future::NowFuture;
 
 use ris_data::info::app_info::AppInfo;
 use ris_asset::loader::scenes_loader::Scenes;
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::vulkan::util;
 
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
+const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] = &[ash::extensions::khr::Swapchain::name().as_ptr()];
 #[cfg(not(debug_assertions))]
 const VALIDATION_ENABLED: bool = false;
 #[cfg(debug_assertions)]
@@ -52,10 +54,21 @@ unsafe extern "system" fn debug_callback(
     vk::FALSE
 }
 
+struct SuitableDevice {
+    pub graphics_queue_family: u32,
+    pub present_queue_family: u32,
+    pub physical_device: vk::PhysicalDevice,
+}
+
 pub struct Renderer {
     _entry: ash::Entry,
     instance: ash::Instance,
     debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    surface_loader: ash::extensions::khr::Surface,
+    surface: vk::SurfaceKHR,
+    device: ash::Device,
+    graphics_queue: vk::Queue,
+    present_queue: vk::Queue,
 //    pub instance: Arc<Instance>,
 //    pub device: Arc<Device>,
 //    pub queue: Arc<Queue>,
@@ -78,6 +91,9 @@ impl Drop for Renderer {
         ris_log::debug!("dropping renderer...");
 
         unsafe {
+            self.device.destroy_device(None);
+
+            self.surface_loader.destroy_surface(self.surface, None);
 
             if let Some((debug_utils, debug_utils_messenger)) = self.debug_utils.take() {
                 debug_utils.destroy_debug_utils_messenger(debug_utils_messenger, None);
@@ -93,9 +109,9 @@ impl Drop for Renderer {
 
 impl Renderer {
     pub fn initialize(app_info: &AppInfo, window: &Window, scenes: Scenes) -> RisResult<Self> {
-        let entry = unsafe {ash::Entry::load()?};
+        let entry = unsafe {ash::Entry::load()}?;
         
-        // extensions
+        // instance extensions
         let mut count = 0;
         if unsafe {
             sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, ptr::null_mut())
@@ -103,23 +119,21 @@ impl Renderer {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
-        let mut extensions = vec![ptr::null(); count as usize];
+        let mut instance_extensions = vec![ptr::null(); count as usize];
 
         if unsafe {
-            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, extensions.as_mut_ptr())
+            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, instance_extensions.as_mut_ptr())
         } == sdl2_sys::SDL_bool::SDL_FALSE {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
         // validation layers
-        //let mut debug_utils_messenger_create_info = ptr::null();
-
         let available_layers = if !VALIDATION_ENABLED {
-            ris_log::info!("instance layers are disabled");
+            ris_log::debug!("instance layers are disabled");
             (0, ptr::null())
         } else {
             // add debug util extension
-            extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
+            instance_extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
 
             // find and collect available layers
             let layer_properties = entry.enumerate_instance_layer_properties()?;
@@ -129,8 +143,8 @@ impl Renderer {
             } else {
                 let mut log_message = String::from("available instance layers:");
                 for layer in layer_properties.iter() {
-                    let name = util::vk_to_string(&layer.layer_name)?;
-                    log_message.push_str(&format!("\n    - {}", name));
+                    let name = unsafe {util::VkStr::from(&layer.layer_name)}?;
+                    log_message.push_str(&format!("\n\t- {}", name));
                 }
                 ris_log::trace!("{}", log_message);
 
@@ -141,8 +155,8 @@ impl Renderer {
                     let mut layer_found = false;
 
                     for layer in layer_properties.iter() {
-                        let name = util::vk_to_string(&layer.layer_name)?;
-                        if (*required_layer) == name {
+                        let name = unsafe {util::VkStr::from(&layer.layer_name)}?;
+                        if (*required_layer) == name.as_str() {
                             available_layers.push(layer.layer_name.as_ptr());
                             layer_found = true;
                             break;
@@ -152,15 +166,22 @@ impl Renderer {
                     if !layer_found {
                         ris_log::warning!("layer \"{}\" is not available", required_layer);
                     } else {
-                        log_message.push_str(&format!("\n    - {}", required_layer));
+                        log_message.push_str(&format!("\n\t- {}", required_layer));
                     }
                 }
 
-                ris_log::info!("{}", log_message);
+                ris_log::debug!("{}", log_message);
 
                 (0, available_layers.as_ptr())
             }
         };
+
+        let mut log_message = format!("Vulkan Instance Extensions: {}", instance_extensions.len());
+        for extension in instance_extensions.iter() {
+            let extension_name = unsafe{CStr::from_ptr(*extension)}.to_str()?;
+            log_message.push_str(&format!("\n\t- {}", extension_name));
+        }
+        ris_log::trace!("{}", log_message);
 
         // instance
         let name = CString::new(app_info.package.name.clone())?;
@@ -181,8 +202,8 @@ impl Renderer {
             p_application_info: &vk_app_info,
             pp_enabled_layer_names: available_layers.1,
             enabled_layer_count: available_layers.0,
-            pp_enabled_extension_names: extensions.as_ptr(),
-            enabled_extension_count: extensions.len() as u32,
+            pp_enabled_extension_names: instance_extensions.as_ptr(),
+            enabled_extension_count: instance_extensions.len() as u32,
         };
 
         let instance = unsafe {
@@ -199,7 +220,7 @@ impl Renderer {
                 p_next: ptr::null(),
                 flags: vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
                 message_severity:
-                    vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
+                    //vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
                     vk::DebugUtilsMessageSeverityFlagsEXT::INFO |
                     vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
                     vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
@@ -218,12 +239,222 @@ impl Renderer {
             Some((debug_utils, debug_utils_messenger))
         };
 
-        //return ris_error::new_result!("test");
+        // surface
+        let instance_handle = vk::Handle::as_raw(instance.handle());
+        let surface_raw = window.vulkan_create_surface(instance_handle as usize).unroll()?;
+        let surface: vk::SurfaceKHR = vk::Handle::from_raw(surface_raw);
+        let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
+
+        // physical device
+        let physical_devices = unsafe {
+            instance.enumerate_physical_devices()?
+        };
+
+        let mut suitable_devices = Vec::new();
+
+        let mut log_message = format!("Vulkan Required Device Extensions: {}", REQUIRED_DEVICE_EXTENSIONS.len());
+        for extension in REQUIRED_DEVICE_EXTENSIONS {
+            let extension_str = unsafe {CStr::from_ptr(*extension)}.to_str()?;
+            log_message.push_str(&format!("\n\t- {}", extension_str));
+        }
+        ris_log::debug!("{}", log_message);
+
+        for &physical_device in physical_devices.iter() {
+
+            // gather physical device information
+            let device_properties = unsafe {instance.get_physical_device_properties(physical_device)};
+            let device_features = unsafe {instance.get_physical_device_features(physical_device)};
+            let device_queue_families = unsafe {instance.get_physical_device_queue_family_properties(physical_device)};
+
+            let device_type = match device_properties.device_type {
+                vk::PhysicalDeviceType::CPU => "cpu",
+                vk::PhysicalDeviceType::INTEGRATED_GPU => "integrated gpu",
+                vk::PhysicalDeviceType::DISCRETE_GPU => "descrete gpu",
+                vk::PhysicalDeviceType::VIRTUAL_GPU => "virtual gpu",
+                vk::PhysicalDeviceType::OTHER => "unkown",
+                _ => panic!(),
+            };
+
+            let mut log_message = String::from("Vulkan Physical Device");
+
+            let device_name = unsafe {util::VkStr::from(&device_properties.device_name)}?;
+            log_message.push_str(&format!("\n\tname: {}", device_name));
+            log_message.push_str(&format!("\n\tid: {}", device_properties.device_id));
+            log_message.push_str(&format!("\n\ttype: {}", device_type));
+
+            let api_version_variant = vk::api_version_variant(device_properties.api_version);
+            let api_version_major = vk::api_version_major(device_properties.api_version);
+            let api_version_minor = vk::api_version_minor(device_properties.api_version);
+            let api_version_patch = vk::api_version_patch(device_properties.api_version);
+            let api_version = format!(
+                "{}.{}.{}.{}",
+                api_version_variant,
+                api_version_major,
+                api_version_minor,
+                api_version_patch,
+            );
+            log_message.push_str(&format!("\n\tapi version: {}", api_version));
+
+            log_message.push_str(&format!("\n\tsupported queue families: {}", device_queue_families.len()));
+            log_message.push_str("\n\tqueue | graphics, compute, transfer, sparse binding");
+            for queue_family in device_queue_families.iter() {
+                let supports_graphics = queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS);
+                let supports_compute = queue_family.queue_flags.contains(vk::QueueFlags::COMPUTE);
+                let supports_transfer = queue_family.queue_flags.contains(vk::QueueFlags::TRANSFER);
+                let supports_sparse_binding = queue_family.queue_flags.contains(vk::QueueFlags::SPARSE_BINDING);
+
+                log_message.push_str(&format!(
+                    "\n\t{:5} | {:8}, {:7}, {:8}, {:14}",
+                    queue_family.queue_count,
+                    supports_graphics,
+                    supports_compute,
+                    supports_transfer,
+                    supports_sparse_binding,
+                ));
+            }
+
+            log_message.push_str(&format!("\n\tgeometry shader support: {}", device_features.geometry_shader == vk::TRUE));
+
+            // check device extension support
+            let available_extensions = unsafe {
+                instance.enumerate_device_extension_properties(physical_device)?
+            };
+
+            let mut supports_required_extensions = true;
+
+            for required_extension in REQUIRED_DEVICE_EXTENSIONS {
+                let mut extension_found = false;
+
+                for extension in available_extensions.iter() {
+                    let name = unsafe {util::VkStr::from(&extension.extension_name)}?;
+                    let left = unsafe{CStr::from_ptr(*required_extension)}.to_str()?;
+                    let right = name.as_str();
+                    if left == right {
+                        extension_found = true;
+                        break;
+                    }
+                }
+
+                if !extension_found {
+                    supports_required_extensions = false;
+                    break;
+                }
+            }
+
+            log_message.push_str(&format!("\n\trequired extension support: {}", supports_required_extensions));
+            //log_message.push_str(&format!("\n\tavailable extensions: {}", available_extensions.len()));
+            //for extension in available_extensions {
+            //    let name = unsafe{util::VkStr::from(&extension.extension_name)}?;
+            //    log_message.push_str(&format!("\n\t\t- {}", name));
+            //}
+
+            ris_log::info!("{}", log_message);
+
+            if !supports_required_extensions {
+                continue;
+            }
+
+            // find queue family
+            // a single queue that supports both graphics and presenting is more performant than
+            // two seperate queues. to prevent the edgecase, that two seperate queues are found
+            // before a single one, we search for a single one first, and then fall back to search
+            // seperately.
+            let mut graphics_queue_index = None;
+            let mut present_queue_index = None;
+
+            for (i, queue_family) in device_queue_families.iter().enumerate() {
+                if queue_family.queue_count > 0 &&
+                    queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) &&
+                    unsafe {surface_loader.get_physical_device_surface_support(physical_device, i as u32, surface)}?
+                {
+                    graphics_queue_index = Some(i);
+                    present_queue_index = Some(i);
+                    break;
+                }
+            }
+
+            if graphics_queue_index.is_none() || present_queue_index.is_none() {
+                for (i, queue_family) in device_queue_families.iter().enumerate() {
+                    if queue_family.queue_count == 0 {
+                        continue;
+                    }
+
+                    if queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) {
+                        graphics_queue_index = Some(i);
+                    }
+
+                    if unsafe {surface_loader.get_physical_device_surface_support(physical_device, i as u32, surface)}? {
+                        present_queue_index = Some(i);
+                    }
+
+                    if graphics_queue_index.is_some() && present_queue_index.is_some() {
+                        break;
+                    }
+                }
+            }
+
+            if let (Some(graphics), Some(present)) = (graphics_queue_index, present_queue_index) {
+                let suitable_device = SuitableDevice{
+                    graphics_queue_family: graphics as u32,
+                    present_queue_family: present as u32,
+                    physical_device,
+                };
+                suitable_devices.push(suitable_device);
+            }
+        }
+
+        // logical device
+        // TODO get the best device here
+        let suitable_device = suitable_devices.first().unroll()?;
+
+        let mut unique_queue_families = std::collections::HashSet::new();
+        unique_queue_families.insert(suitable_device.graphics_queue_family);
+        unique_queue_families.insert(suitable_device.present_queue_family);
+
+        let queue_priorities = [1.0_f32];
+        let mut queue_create_infos = Vec::new();
+        for queue_family in unique_queue_families {
+            let queue_create_info = vk::DeviceQueueCreateInfo {
+                s_type: vk::StructureType::DEVICE_QUEUE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::DeviceQueueCreateFlags::empty(),
+                queue_family_index: queue_family,
+                p_queue_priorities: queue_priorities.as_ptr(),
+                queue_count: queue_priorities.len() as u32,
+            };
+            queue_create_infos.push(queue_create_info);
+        }
+
+        let physical_device_features = vk::PhysicalDeviceFeatures {
+            ..Default::default()
+        };
+
+        let device_create_info = vk::DeviceCreateInfo {
+            s_type: vk::StructureType::DEVICE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DeviceCreateFlags::empty(),
+            queue_create_info_count: queue_create_infos.len() as u32,
+            p_queue_create_infos: queue_create_infos.as_ptr(),
+            pp_enabled_layer_names: available_layers.1,
+            enabled_layer_count: available_layers.0,
+            pp_enabled_extension_names: REQUIRED_DEVICE_EXTENSIONS.as_ptr(),
+            enabled_extension_count: REQUIRED_DEVICE_EXTENSIONS.len() as u32,
+            p_enabled_features: &physical_device_features,
+        };
+
+        let device = unsafe {instance.create_device(suitable_device.physical_device, &device_create_info, None)}?;
+        let graphics_queue = unsafe{device.get_device_queue(suitable_device.graphics_queue_family, 0)};
+        let present_queue = unsafe{device.get_device_queue(suitable_device.present_queue_family, 0)};
 
         Ok(Self {
             _entry: entry,
             instance,
             debug_utils,
+            surface_loader,
+            surface,
+            device,
+            graphics_queue,
+            present_queue,
         })
 
         //// instance
