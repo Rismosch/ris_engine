@@ -51,9 +51,16 @@ unsafe extern "system" fn debug_callback(
         _ => "unknown",
     };
 
-    let message = CStr::from_ptr((*p_callback_data).p_message);
+    let message_cstr = CStr::from_ptr((*p_callback_data).p_message);
+    let message = match message_cstr.to_str() {
+        Ok(message) => String::from(message),
+        Err(e) => {
+            ris_log::error!("the vulkan debug callback was called with invalid UTF-8 data. attempting to log cstr... error: {}", e);
+            format!("{:?}", message_cstr)
+        },
+    };
 
-    ris_log::log!(log_level, "VULKAN {} | {:?}", type_flag, message);
+    ris_log::log!(log_level, "VULKAN {} | {}", type_flag, message);
 
     vk::FALSE
 }
