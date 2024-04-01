@@ -10,7 +10,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
-pub const OUT_EXT: &[&str] = &["vert.spirv", "frag.spirv"];
+pub const OUT_EXT: &[&str] = &["vert.spv", "frag.spv"];
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file

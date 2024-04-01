@@ -2,7 +2,6 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
-use std::sync::Arc;
 
 use ash::vk;
 use sdl2::video::Window;
@@ -91,6 +90,7 @@ pub struct Renderer {
     swapchain_format: vk::SurfaceFormatKHR,
     swapchain_extent: vk::Extent2D,
     swapchain_images: Vec<vk::Image>,
+    swapchain_image_views: Vec<vk::ImageView>,
 
 //    pub instance: Arc<Instance>,
 //    pub device: Arc<Device>,
@@ -114,6 +114,10 @@ impl Drop for Renderer {
         ris_log::debug!("dropping renderer...");
 
         unsafe {
+            for swapchain_image_view in self.swapchain_image_views.iter() {
+                self.device.destroy_image_view(*swapchain_image_view, None);
+            }
+
             self.swapchain_loader.destroy_swapchain(self.swapchain, None);
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
@@ -594,6 +598,40 @@ impl Renderer {
             swapchain_loader.get_swapchain_images(swapchain)
         }?;
 
+        // image views
+        let mut swapchain_image_views = Vec::new();
+        for swapchain_image in swapchain_images.iter() {
+            let image_view_create_info = vk::ImageViewCreateInfo {
+                s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::ImageViewCreateFlags::empty(),
+                image: *swapchain_image,
+                view_type: vk::ImageViewType::TYPE_2D,
+                format: surface_format.format,
+                components: vk::ComponentMapping {
+                    r: vk::ComponentSwizzle::IDENTITY,
+                    g: vk::ComponentSwizzle::IDENTITY,
+                    b: vk::ComponentSwizzle::IDENTITY,
+                    a: vk::ComponentSwizzle::IDENTITY,
+                },
+                subresource_range: vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                },
+            };
+
+            let image_view = unsafe {
+                device.create_image_view(&image_view_create_info, None)
+            }?;
+
+            swapchain_image_views.push(image_view);
+        }
+
+        // graphics pipeline
+
         Ok(Self {
             entry,
             instance,
@@ -608,6 +646,7 @@ impl Renderer {
             swapchain_format: *surface_format,
             swapchain_extent,
             swapchain_images,
+            swapchain_image_views,
         })
 
         //// instance
