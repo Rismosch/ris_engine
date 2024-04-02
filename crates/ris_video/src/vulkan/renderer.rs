@@ -5,9 +5,6 @@ use std::ptr;
 
 use ash::vk;
 use sdl2::video::Window;
-use vulkano::swapchain::AcquireError;
-use vulkano::swapchain::SwapchainAcquireFuture;
-use vulkano::sync::future::NowFuture;
 
 use ris_data::info::app_info::AppInfo;
 use ris_asset::loader::scenes_loader::Scenes;
@@ -77,42 +74,29 @@ struct SuitableDevice {
 }
 
 pub struct Renderer {
-    entry: ash::Entry,
-    instance: ash::Instance,
-    debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
-    surface_loader: ash::extensions::khr::Surface,
-    surface: vk::SurfaceKHR,
-    device: ash::Device,
-    graphics_queue: vk::Queue,
-    present_queue: vk::Queue,
-    swapchain_loader: ash::extensions::khr::Swapchain,
-    swapchain: vk::SwapchainKHR,
-    swapchain_format: vk::SurfaceFormatKHR,
-    swapchain_extent: vk::Extent2D,
-    swapchain_images: Vec<vk::Image>,
-    swapchain_image_views: Vec<vk::ImageView>,
-    render_pass: vk::RenderPass,
-    pipeline_layout: vk::PipelineLayout,
-    graphics_pipeline: vk::Pipeline,
-    framebuffers: Vec<vk::Framebuffer>,
-    command_pool: vk::CommandPool,
-    command_buffer: vk::CommandBuffer,
-
-//    pub instance: Arc<Instance>,
-//    pub device: Arc<Device>,
-//    pub queue: Arc<Queue>,
-//    pub swapchain: Arc<Swapchain>,
-//    pub images: Vec<Arc<SwapchainImage>>,
-//    pub render_pass: Arc<RenderPass>,
-//    pub framebuffers: Vec<Arc<Framebuffer>>,
-//    pub allocators: Allocators,
-//    pub buffers: Buffers,
-//    pub vertex_shader: Arc<ShaderModule>,
-//    pub fragment_shader: Arc<ShaderModule>,
-//    pub scenes: Scenes,
-//    pub viewport: Viewport,
-//    pub pipeline: Arc<GraphicsPipeline>,
-//    pub command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
+    pub entry: ash::Entry,
+    pub instance: ash::Instance,
+    pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    pub surface_loader: ash::extensions::khr::Surface,
+    pub surface: vk::SurfaceKHR,
+    pub device: ash::Device,
+    pub graphics_queue: vk::Queue,
+    pub present_queue: vk::Queue,
+    pub swapchain_loader: ash::extensions::khr::Swapchain,
+    pub swapchain: vk::SwapchainKHR,
+    pub swapchain_format: vk::SurfaceFormatKHR,
+    pub swapchain_extent: vk::Extent2D,
+    pub swapchain_images: Vec<vk::Image>,
+    pub swapchain_image_views: Vec<vk::ImageView>,
+    pub render_pass: vk::RenderPass,
+    pub pipeline_layout: vk::PipelineLayout,
+    pub graphics_pipeline: vk::Pipeline,
+    pub framebuffers: Vec<vk::Framebuffer>,
+    pub command_pool: vk::CommandPool,
+    pub command_buffer: vk::CommandBuffer,
+    pub image_available_semaphore: vk::Semaphore,
+    pub render_finished_semaphore: vk::Semaphore,
+    pub in_flight_fence: vk::Fence,
 }
 
 impl Drop for Renderer {
@@ -120,6 +104,12 @@ impl Drop for Renderer {
         ris_log::debug!("dropping renderer...");
 
         unsafe {
+            self.device.device_wait_idle();
+
+            self.device.destroy_semaphore(self.image_available_semaphore, None);
+            self.device.destroy_semaphore(self.render_finished_semaphore, None);
+            self.device.destroy_fence(self.in_flight_fence, None);
+
             self.device.destroy_command_pool(self.command_pool, None);
 
             for &framebuffer in self.framebuffers.iter() {
@@ -678,6 +668,16 @@ impl Renderer {
             p_preserve_attachments: ptr::null(),
         }];
 
+        let supbass_dependencies = [vk::SubpassDependency {
+            src_subpass: vk::SUBPASS_EXTERNAL,
+            dst_subpass: 0,
+            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            src_access_mask: vk::AccessFlags::empty(),
+            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+            dependency_flags: vk::DependencyFlags::empty(),
+        }];
+
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
             p_next: ptr::null(),
@@ -686,8 +686,8 @@ impl Renderer {
             p_attachments: color_attachment_descriptions.as_ptr(),
             subpass_count: subpass_descriptions.len() as u32,
             p_subpasses: subpass_descriptions.as_ptr(),
-            dependency_count: 0,
-            p_dependencies: ptr::null(),
+            dependency_count: supbass_dependencies.len() as u32,
+            p_dependencies: supbass_dependencies.as_ptr(),
         };
 
         let render_pass = unsafe{device.create_render_pass(&render_pass_create_info, None)}?;
@@ -976,7 +976,22 @@ impl Renderer {
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
         let command_buffer = command_buffers.into_iter().next().unroll()?;
 
-        // record command buffer
+        // synchronization objects
+        let semaphore_create_info = vk::SemaphoreCreateInfo {
+            s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::SemaphoreCreateFlags::empty(),
+        };
+
+        let fence_create_info = vk::FenceCreateInfo {
+            s_type: vk::StructureType::FENCE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FenceCreateFlags::SIGNALED,
+        };
+
+        let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+        let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+        let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
 
         Ok(Self {
             entry,
@@ -999,285 +1014,9 @@ impl Renderer {
             framebuffers,
             command_pool,
             command_buffer,
+            image_available_semaphore,
+            render_finished_semaphore,
+            in_flight_fence,
         })
-
-        //// instance
-        //let library = VulkanLibrary::new()?;
-        //let instance_extensions = InstanceExtensions::from_iter(
-        //    window
-        //        .vulkan_instance_extensions()
-        //        .map_err(|e| ris_error::new!("failed to get vulkan instance extensions: {}", e))?,
-        //);
-
-        //let instance = Instance::new(
-        //    library,
-        //    InstanceCreateInfo {
-        //        enabled_extensions: instance_extensions,
-        //        ..Default::default()
-        //    },
-        //)?;
-
-        //// surface
-        //let surface_handle = window
-        //    .vulkan_create_surface(instance.handle().as_raw() as _)
-        //    .map_err(|e| ris_error::new!("failed to create instance: {}", e))?;
-        //let surface = unsafe {
-        //    Surface::from_handle(
-        //        instance.clone(),
-        //        <_ as Handle>::from_raw(surface_handle),
-        //        SurfaceApi::Win32,
-        //        None,
-        //    )
-        //};
-        //let surface = Arc::new(surface);
-
-        //// physical device
-        //let device_extensions = DeviceExtensions {
-        //    khr_swapchain: true,
-        //    ..DeviceExtensions::empty()
-        //};
-        //let (physical_device, queue_family_index) = super::physical_device::select_physical_device(
-        //    instance.clone(),
-        //    surface.clone(),
-        //    &device_extensions,
-        //)?;
-
-        //// device
-        //let (device, mut queues) = Device::new(
-        //    physical_device.clone(),
-        //    DeviceCreateInfo {
-        //        queue_create_infos: vec![QueueCreateInfo {
-        //            queue_family_index,
-        //            ..Default::default()
-        //        }],
-        //        enabled_extensions: device_extensions,
-        //        ..Default::default()
-        //    },
-        //)?;
-        //let queue = queues.next().unroll()?;
-
-        //// shaders
-        //let vs_future = super::shader::load_async(device.clone(), scenes.default_vs.clone());
-        //let fs_future = super::shader::load_async(device.clone(), scenes.default_fs.clone());
-
-        //// swapchain
-        //let dimensions = window.vulkan_drawable_size();
-        //let (swapchain, images) = super::swapchain::create_swapchain(
-        //    physical_device.clone(),
-        //    dimensions,
-        //    device.clone(),
-        //    surface.clone(),
-        //)?;
-
-        //// render pass
-        //let render_pass =
-        //    super::render_pass::create_render_pass(device.clone(), swapchain.clone())?;
-
-        //// viewport
-        //let viewport = Viewport {
-        //    origin: [0.0, 0.0],
-        //    dimensions: [dimensions.0 as f32, dimensions.1 as f32],
-        //    depth_range: 0.0..1.0,
-        //};
-
-        //// allocators
-        //let allocators = super::allocators::Allocators::new(device.clone());
-
-        //// frame buffers
-        //let framebuffers = super::swapchain::create_framebuffers(
-        //    &allocators,
-        //    dimensions,
-        //    &images,
-        //    render_pass.clone(),
-        //)?;
-
-        //// pipeline
-        //let vs = vs_future.wait()?;
-        //let fs = fs_future.wait()?;
-
-        //let pipeline = super::pipeline::create_pipeline(
-        //    device.clone(),
-        //    vs.clone(),
-        //    fs.clone(),
-        //    render_pass.clone(),
-        //    &viewport,
-        //)?;
-
-        //// buffers
-        //let buffers = super::buffers::Buffers::new(&allocators, images.len(), pipeline.clone())?;
-
-        //// command buffers
-        //let command_buffers = super::command_buffers::create_command_buffers(
-        //    &allocators,
-        //    queue.clone(),
-        //    pipeline.clone(),
-        //    &framebuffers,
-        //    &buffers,
-        //)?;
-
-        //// return
-        //Ok(Self {
-        //    instance,
-        //    device,
-        //    queue,
-        //    swapchain,
-        //    images,
-        //    render_pass,
-        //    framebuffers,
-        //    allocators,
-        //    buffers,
-        //    vertex_shader: vs,
-        //    fragment_shader: fs,
-        //    scenes,
-        //    viewport,
-        //    pipeline,
-        //    command_buffers,
-        //})
-    }
-
-    pub fn record_command_buffer(&self, image_index: usize) -> RisResult<()> {
-        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
-            flags: vk::CommandBufferUsageFlags::empty(),
-            p_inheritance_info: ptr::null(),
-        };
-
-        unsafe{self.device.begin_command_buffer(self.command_buffer, &command_buffer_begin_info)}?;
-
-        let clear_values = [vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: [0., 0., 0., 1.0],
-            },
-        }];
-
-        let render_pass_begin_info = vk::RenderPassBeginInfo {
-            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-            p_next: ptr::null(),
-            render_pass: self.render_pass,
-            framebuffer: self.framebuffers[image_index],
-            render_area: vk::Rect2D{
-                offset: vk::Offset2D {x: 0, y: 0},
-                extent: self.swapchain_extent,
-            },
-            clear_value_count: clear_values.len() as u32,
-            p_clear_values: clear_values.as_ptr(),
-        };
-
-        unsafe{self.device.cmd_begin_render_pass(self.command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
-        unsafe{self.device.cmd_bind_pipeline(self.command_buffer, vk::PipelineBindPoint::GRAPHICS, self.graphics_pipeline)};
-        // dynamic viewport/scissor here
-        unsafe{self.device.cmd_draw(self.command_buffer, 3, 1, 0, 0)};
-        unsafe{self.device.cmd_end_render_pass(self.command_buffer)};
-        unsafe{self.device.end_command_buffer(self.command_buffer)}?;
-
-        Ok(())
-    }
-
-    pub fn recreate_swapchain(&mut self, dimensions: (u32, u32)) -> RisResult<()> {
-        todo!();
-        //ris_log::trace!("recreating swapchain...");
-
-        //let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
-        //    image_extent: [dimensions.0, dimensions.1],
-        //    ..self.swapchain.create_info()
-        //}) {
-        //    Ok(r) => r,
-        //    Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => return Ok(()),
-        //    Err(e) => return ris_error::new_result!("failed to recreate swapchain: {}", e),
-        //};
-
-        //self.images = new_images;
-
-        //self.swapchain = new_swapchain;
-        //self.framebuffers = super::swapchain::create_framebuffers(
-        //    &self.allocators,
-        //    dimensions,
-        //    &self.images,
-        //    self.render_pass.clone(),
-        //)?;
-
-        //ris_log::trace!("swapcain recreated!");
-        //Ok(())
-    }
-
-    pub fn recreate_viewport(&mut self, dimensions: (u32, u32)) -> RisResult<()> {
-        todo!();
-        //ris_log::trace!("recreating viewport...");
-
-        //self.recreate_swapchain(dimensions)?;
-        //self.viewport.dimensions = [dimensions.0 as f32, dimensions.1 as f32];
-
-        //self.pipeline = super::pipeline::create_pipeline(
-        //    self.device.clone(),
-        //    self.vertex_shader.clone(),
-        //    self.fragment_shader.clone(),
-        //    self.render_pass.clone(),
-        //    &self.viewport,
-        //)?;
-
-        //self.command_buffers = super::command_buffers::create_command_buffers(
-        //    &self.allocators,
-        //    self.queue.clone(),
-        //    self.pipeline.clone(),
-        //    &self.framebuffers,
-        //    &self.buffers,
-        //)?;
-
-        //ris_log::trace!("viewport recreated!");
-        //Ok(())
-    }
-
-    pub fn reload_shaders(&mut self) -> RisResult<()> {
-        todo!();
-        //ris_log::trace!("reloading shaders...");
-
-        // let vs_future =
-        //     super::shader::load_async(self.device.clone(), self.scenes.default_vs.clone());
-        // let fs_future =
-        //     super::shader::load_async(self.device.clone(), self.scenes.default_fs.clone());
-
-        // let vs = vs_future.wait(None)??;
-        // let fs = fs_future.wait(None)??;
-
-        // self.vertex_shader = vs;
-        // self.fragment_shader = fs;
-
-        // ris_log::trace!("shaders reloaded!");
-        // Ok(())
-    }
-
-    pub fn get_image_count(&self) -> usize {
-        todo!();
-        //self.images.len()
-    }
-
-    pub fn acquire_swapchain_image(
-        &self,
-    ) -> Result<(u32, bool, SwapchainAcquireFuture), AcquireError> {
-        todo!();
-        //swapchain::acquire_next_image(self.swapchain.clone(), None)
-    }
-
-    pub fn synchronize(&self) -> NowFuture {
-        todo!();
-        //let mut now = sync::now(self.device.clone());
-        //now.cleanup_finished();
-        //now
-    }
-
-    pub fn update_uniform(
-        &self,
-        index: usize,
-        ubo: &super::gpu_objects::UniformBufferObject,
-    ) -> RisResult<()> {
-        todo!();
-        //let mut uniform_content = self.buffers.uniforms[index].0.write()?;
-
-        //uniform_content.view = ubo.view;
-        //uniform_content.proj = ubo.proj;
-        //uniform_content.proj_view = ubo.proj_view;
-
-        //Ok(())
     }
 }

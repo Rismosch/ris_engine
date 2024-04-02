@@ -1,5 +1,7 @@
+use std::ptr;
 use std::sync::Arc;
 
+use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
@@ -38,8 +40,8 @@ type Fence = FenceSignalFuture<
 pub struct OutputFrame {
     recreate_swapchain: bool,
     previous_fence: usize,
-    fences: Vec<Option<Arc<Fence>>>,
-    imgui: RisImgui,
+    //fences: Vec<Option<Arc<Fence>>>,
+    //imgui: RisImgui,
 
     ui_helper: UiHelper,
 
@@ -52,20 +54,20 @@ impl OutputFrame {
     pub fn new(
         window: Window,
         renderer: Renderer,
-        imgui: RisImgui,
+        //imgui: RisImgui,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
-        let frames_in_flight = renderer.get_image_count();
-        let mut fences = Vec::with_capacity(frames_in_flight);
-        for _ in 0..frames_in_flight {
-            fences.push(None);
-        }
+        //let frames_in_flight = renderer.get_image_count();
+        //let mut fences = Vec::with_capacity(frames_in_flight);
+        //for _ in 0..frames_in_flight {
+        //    fences.push(None);
+        //}
 
         Ok(Self {
             recreate_swapchain: false,
             previous_fence: 0,
-            fences,
-            imgui,
+            //fences,
+            //imgui,
             ui_helper,
             renderer,
             window,
@@ -84,84 +86,193 @@ impl OutputFrame {
             return Ok(());
         }
 
-        let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
-            (true, true)
-        } else {
-            match *state.back.window_event.borrow() {
-                WindowEvent::SizeChanged(..) => (true, false),
-                WindowEvent::None => (false, false),
-            }
+        let Renderer{
+            device,
+            graphics_queue,
+            present_queue,
+            swapchain_loader,
+            swapchain,
+            swapchain_extent,
+            render_pass,
+            graphics_pipeline,
+            framebuffers,
+            command_buffer,
+            image_available_semaphore,
+            render_finished_semaphore,
+            in_flight_fence,
+            ..
+        } = &self.renderer;
+        
+        // wait for the previous frame to finish
+        let fences = [*in_flight_fence];
+        unsafe{device.wait_for_fences(&fences, true, u64::MAX)}?;
+        unsafe{device.reset_fences(&fences)}?;
+
+        // acquire an image from the swap chain
+        let (image_index, is_sub_optimal) = unsafe{swapchain_loader.acquire_next_image(
+            *swapchain,
+            u64::MAX,
+            *image_available_semaphore,
+            vk::Fence::null(),
+        )}?;
+
+        // record a command buffer which draws the scene onto that image
+        let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
+        unsafe{device.reset_command_buffer(*command_buffer, command_buffer_reset_flags)}?;
+
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandBufferUsageFlags::empty(),
+            p_inheritance_info: ptr::null(),
         };
 
-        let window_size = self.window.size();
-        let window_drawable_size = self.window.vulkan_drawable_size();
+        unsafe{device.begin_command_buffer(*command_buffer, &command_buffer_begin_info)}?;
 
-        if recreate_viewport {
-            if reload_shaders {
-                self.renderer.reload_shaders()?;
-            }
+        let clear_values = [vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0., 0., 0., 1.0],
+            },
+        }];
 
-            self.renderer.recreate_viewport(window_drawable_size)?;
-        }
-
-        if self.recreate_swapchain {
-            self.recreate_swapchain = false;
-            self.renderer.recreate_swapchain(window_drawable_size)?;
-        }
-
-        let ui = self.imgui.backend.prepare_frame(
-            frame,
-            state.clone(),
-            (window_size.0 as f32, window_size.1 as f32),
-            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-        );
-        self.ui_helper.draw(UiHelperDrawData {
-            ui,
-            logic_future: Some(logic_future),
-            frame,
-            state: state.clone(),
-        })?;
-
-        let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
-            Ok(r) => r,
-            Err(AcquireError::OutOfDate) => {
-                self.recreate_swapchain = true;
-                return Ok(());
-            }
-            Err(e) => return ris_error::new_result!("failed to acquire next image: {}", e),
+        let render_pass_begin_info = vk::RenderPassBeginInfo {
+            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+            p_next: ptr::null(),
+            render_pass: *render_pass,
+            framebuffer: framebuffers[image_index as usize],
+            render_area: vk::Rect2D{
+                offset: vk::Offset2D {x: 0, y: 0},
+                extent: *swapchain_extent,
+            },
+            clear_value_count: clear_values.len() as u32,
+            p_clear_values: clear_values.as_ptr(),
         };
 
-        if suboptimal {
-            self.recreate_swapchain = true;
-        }
+        unsafe{device.cmd_begin_render_pass(*command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
+        unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *graphics_pipeline)};
+        // dynamic viewport/scissor here
+        unsafe{device.cmd_draw(*command_buffer, 3, 1, 0, 0)};
+        unsafe{device.cmd_end_render_pass(*command_buffer)};
+        unsafe{device.end_command_buffer(*command_buffer)}?;
 
-        if let Some(fence) = &self.fences[image as usize] {
-            fence.wait(None)?;
-        }
+        // submit the recorded command buffer
+        let wait_semaphores = [*image_available_semaphore];
+        let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+        let command_buffers = [*command_buffer];
+        let signal_semaphores = [*render_finished_semaphore];
+        
+        let submit_infos = [vk::SubmitInfo {
+            s_type: vk::StructureType::SUBMIT_INFO,
+            p_next: ptr::null(),
+            wait_semaphore_count: wait_semaphores.len() as u32,
+            p_wait_semaphores: wait_semaphores.as_ptr(),
+            p_wait_dst_stage_mask: wait_stages.as_ptr(),
+            command_buffer_count: command_buffers.len() as u32,
+            p_command_buffers: command_buffers.as_ptr(),
+            signal_semaphore_count: signal_semaphores.len() as u32,
+            p_signal_semaphores: signal_semaphores.as_ptr(),
+        }];
 
-        // logic that uses the GPU resources that are currently notused (have been waited upon)
-        let view = Space::view(
-            *state.back.camera_position.borrow(),
-            *state.back.camera_rotation.borrow(),
-        );
+        unsafe{device.queue_submit(
+            *graphics_queue,
+            &submit_infos,
+            *in_flight_fence,
+        )}?;
 
-        let fovy = ris_math::radians(60.);
-        let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        let aspect_ratio = w / h;
-        let near = 0.01;
-        let far = 0.1;
-        let proj = Space::proj(fovy, aspect_ratio, near, far);
+        // present the swap chain image
+        let swapchains = [*swapchain];
 
-        let proj_view = proj * view;
-
-        let ubo = UniformBufferObject {
-            view,
-            proj,
-            proj_view,
+        let present_info = vk::PresentInfoKHR {
+            s_type: vk::StructureType::PRESENT_INFO_KHR,
+            p_next: ptr::null(),
+            wait_semaphore_count: signal_semaphores.len() as u32,
+            p_wait_semaphores: signal_semaphores.as_ptr(),
+            swapchain_count: swapchains.len() as u32,
+            p_swapchains: swapchains.as_ptr(),
+            p_image_indices: &image_index,
+            p_results: ptr::null_mut(),
         };
-        self.renderer.update_uniform(image as usize, &ubo)?;
 
-        todo!("wanting to render");
+        unsafe{swapchain_loader.queue_present(*present_queue, &present_info)}?;
+
+        //let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
+        //    (true, true)
+        //} else {
+        //    match *state.back.window_event.borrow() {
+        //        WindowEvent::SizeChanged(..) => (true, false),
+        //        WindowEvent::None => (false, false),
+        //    }
+        //};
+
+        //let window_size = self.window.size();
+        //let window_drawable_size = self.window.vulkan_drawable_size();
+
+        //if recreate_viewport {
+        //    if reload_shaders {
+        //        self.renderer.reload_shaders()?;
+        //    }
+
+        //    self.renderer.recreate_viewport(window_drawable_size)?;
+        //}
+
+        //if self.recreate_swapchain {
+        //    self.recreate_swapchain = false;
+        //    self.renderer.recreate_swapchain(window_drawable_size)?;
+        //}
+
+        ////let ui = self.imgui.backend.prepare_frame(
+        ////    frame,
+        ////    state.clone(),
+        ////    (window_size.0 as f32, window_size.1 as f32),
+        ////    (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        ////);
+        ////self.ui_helper.draw(UiHelperDrawData {
+        ////    ui,
+        ////    logic_future: Some(logic_future),
+        ////    frame,
+        ////    state: state.clone(),
+        ////})?;
+
+        //let (image, suboptimal, acquire_future) = match self.renderer.acquire_swapchain_image() {
+        //    Ok(r) => r,
+        //    Err(AcquireError::OutOfDate) => {
+        //        self.recreate_swapchain = true;
+        //        return Ok(());
+        //    }
+        //    Err(e) => return ris_error::new_result!("failed to acquire next image: {}", e),
+        //};
+
+        //if suboptimal {
+        //    self.recreate_swapchain = true;
+        //}
+
+        //if let Some(fence) = &self.fences[image as usize] {
+        //    fence.wait(None)?;
+        //}
+
+        //// logic that uses the GPU resources that are currently notused (have been waited upon)
+        //let view = Space::view(
+        //    *state.back.camera_position.borrow(),
+        //    *state.back.camera_rotation.borrow(),
+        //);
+
+        //let fovy = ris_math::radians(60.);
+        //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        //let aspect_ratio = w / h;
+        //let near = 0.01;
+        //let far = 0.1;
+        //let proj = Space::proj(fovy, aspect_ratio, near, far);
+
+        //let proj_view = proj * view;
+
+        //let ubo = UniformBufferObject {
+        //    view,
+        //    proj,
+        //    proj_view,
+        //};
+        //self.renderer.update_uniform(image as usize, &ubo)?;
+
+        //todo!("wanting to render");
         //let swapchain_image = &self.renderer.images[image as usize];
         //let imgui_target = ImageView::new_default(swapchain_image.clone())?;
         //let draw_data = self.imgui.backend.context().render();
