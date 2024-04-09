@@ -7,6 +7,7 @@ use ash::vk;
 use sdl2::video::Window;
 
 use ris_data::info::app_info::AppInfo;
+use ris_asset::AssetId;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -23,6 +24,8 @@ const VALIDATION_ENABLED: bool = true;
 const PREFERRED_FORMAT: vk::Format = vk::Format::B8G8R8A8_SRGB;
 const PREFERRED_COLOR_SPACE: vk::ColorSpaceKHR = vk::ColorSpaceKHR::SRGB_NONLINEAR;
 const PREFERRED_PRESENT_MODE: vk::PresentModeKHR = vk::PresentModeKHR::IMMEDIATE;
+
+const MAX_FRAMES_IN_FLIGHT: u32 = 2;
 
 unsafe extern "system" fn debug_callback(
     message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
@@ -73,6 +76,13 @@ struct SuitableDevice {
     pub surface_present_modes: Vec<vk::PresentModeKHR>,
 }
 
+pub struct FrameInFlight {
+    pub command_buffer: vk::CommandBuffer,
+    pub image_available_semaphore: vk::Semaphore,
+    pub render_finished_semaphore: vk::Semaphore,
+    pub in_flight_fence: vk::Fence,
+}
+
 pub struct Renderer {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
@@ -93,10 +103,7 @@ pub struct Renderer {
     pub graphics_pipeline: vk::Pipeline,
     pub framebuffers: Vec<vk::Framebuffer>,
     pub command_pool: vk::CommandPool,
-    pub command_buffer: vk::CommandBuffer,
-    pub image_available_semaphore: vk::Semaphore,
-    pub render_finished_semaphore: vk::Semaphore,
-    pub in_flight_fence: vk::Fence,
+    pub frames_in_flight: Vec<FrameInFlight>,
 }
 
 impl Drop for Renderer {
@@ -106,9 +113,11 @@ impl Drop for Renderer {
         unsafe {
             self.device.device_wait_idle();
 
-            self.device.destroy_semaphore(self.image_available_semaphore, None);
-            self.device.destroy_semaphore(self.render_finished_semaphore, None);
-            self.device.destroy_fence(self.in_flight_fence, None);
+            for frame_in_flight in self.frames_in_flight.iter() {
+                self.device.destroy_fence(frame_in_flight.in_flight_fence, None);
+                self.device.destroy_semaphore(frame_in_flight.render_finished_semaphore, None);
+                self.device.destroy_semaphore(frame_in_flight.image_available_semaphore, None);
+            }
 
             self.device.destroy_command_pool(self.command_pool, None);
 
@@ -694,28 +703,19 @@ impl Renderer {
 
         // graphics pipeline
         // shaders
-        let mut vs_file = std::fs::File::open("C:/Users/Rismosch/Desktop/shaders/vert.spv")?;
-        let mut fs_file = std::fs::File::open("C:/Users/Rismosch/Desktop/shaders/frag.spv")?;
+        let vs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/tutorial.vert.spv"));
+        let fs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/tutorial.frag.spv"));
 
-        let vs_file_size = ris_file::seek!(vs_file, SeekFrom::End(0))?;
-        let fs_file_size = ris_file::seek!(fs_file, SeekFrom::End(0))?;
+        let vs_asset_future = ris_asset::load_async(vs_asset_id);
+        let fs_asset_future = ris_asset::load_async(fs_asset_id);
 
-        let mut vs_bytes = vec![0; vs_file_size as usize];
-        let mut fs_bytes = vec![0; fs_file_size as usize];
+        let vs_bytes = vs_asset_future.wait(None)??;
+        let fs_bytes = fs_asset_future.wait(None)??;
 
-        ris_file::seek!(vs_file, SeekFrom::Start(0))?;
-        ris_file::read!(vs_file, vs_bytes)?;
-
-        ris_file::seek!(fs_file, SeekFrom::Start(0))?;
-        ris_file::read!(fs_file, fs_bytes)?;
-
-        drop(vs_file);
-        drop(fs_file);
-
-        // spirv data is read in u8, but vulkan expects it to be u32.
+        // asset data is read in u8, but vulkan expects it to be in u32.
         // assert that the data is properly aligned
-        ris_error::assert!(vs_file_size % 4 == 0)?;
-        ris_error::assert!(fs_file_size % 4 == 0)?;
+        ris_error::assert!(vs_bytes.len() % 4 == 0)?;
+        ris_error::assert!(fs_bytes.len() % 4 == 0)?;
 
         let vs_shader_module_create_info = vk::ShaderModuleCreateInfo {
             s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,
@@ -970,28 +970,39 @@ impl Renderer {
             p_next: ptr::null(),
             command_pool,
             level: vk::CommandBufferLevel::PRIMARY,
-            command_buffer_count: 1,
+            command_buffer_count: MAX_FRAMES_IN_FLIGHT,
         };
 
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
-        let command_buffer = command_buffers.into_iter().next().unroll()?;
 
         // synchronization objects
-        let semaphore_create_info = vk::SemaphoreCreateInfo {
-            s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::SemaphoreCreateFlags::empty(),
-        };
+        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
+        for command_buffer in command_buffers {
+            let semaphore_create_info = vk::SemaphoreCreateInfo {
+                s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::SemaphoreCreateFlags::empty(),
+            };
 
-        let fence_create_info = vk::FenceCreateInfo {
-            s_type: vk::StructureType::FENCE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::FenceCreateFlags::SIGNALED,
-        };
+            let fence_create_info = vk::FenceCreateInfo {
+                s_type: vk::StructureType::FENCE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::FenceCreateFlags::SIGNALED,
+            };
 
-        let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
+            let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+            let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+            let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
+
+            let frame_in_flight = FrameInFlight {
+                command_buffer,
+                image_available_semaphore,
+                render_finished_semaphore,
+                in_flight_fence,
+            };
+
+            frames_in_flight.push(frame_in_flight);
+        }
 
         Ok(Self {
             entry,
@@ -1013,10 +1024,7 @@ impl Renderer {
             graphics_pipeline,
             framebuffers,
             command_pool,
-            command_buffer,
-            image_available_semaphore,
-            render_finished_semaphore,
-            in_flight_fence,
+            frames_in_flight,
         })
     }
 }

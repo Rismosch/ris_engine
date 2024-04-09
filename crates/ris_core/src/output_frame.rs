@@ -24,6 +24,7 @@ use ris_jobs::job_future::JobFuture;
 use ris_math::space::Space;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::gpu_objects::UniformBufferObject;
+use ris_video::vulkan::renderer::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
 
 use crate::ui_helper::UiHelper;
@@ -39,7 +40,8 @@ type Fence = FenceSignalFuture<
 
 pub struct OutputFrame {
     recreate_swapchain: bool,
-    previous_fence: usize,
+
+    current_frame: usize,
     //fences: Vec<Option<Arc<Fence>>>,
     //imgui: RisImgui,
 
@@ -65,7 +67,7 @@ impl OutputFrame {
 
         Ok(Self {
             recreate_swapchain: false,
-            previous_fence: 0,
+            current_frame: 0,
             //fences,
             //imgui,
             ui_helper,
@@ -96,17 +98,23 @@ impl OutputFrame {
             render_pass,
             graphics_pipeline,
             framebuffers,
+            frames_in_flight,
+            ..
+        } = &self.renderer;
+
+        let FrameInFlight {
             command_buffer,
             image_available_semaphore,
             render_finished_semaphore,
             in_flight_fence,
-            ..
-        } = &self.renderer;
+        } = &frames_in_flight[self.current_frame];
+
+        self.current_frame = (self.current_frame + 1) % frames_in_flight.len();
         
         // wait for the previous frame to finish
-        let fences = [*in_flight_fence];
-        unsafe{device.wait_for_fences(&fences, true, u64::MAX)}?;
-        unsafe{device.reset_fences(&fences)}?;
+        let fence = [*in_flight_fence];
+        unsafe{device.wait_for_fences(&fence, true, u64::MAX)}?;
+        unsafe{device.reset_fences(&fence)}?;
 
         // acquire an image from the swap chain
         let (image_index, is_sub_optimal) = unsafe{swapchain_loader.acquire_next_image(

@@ -10,6 +10,8 @@ pub mod loader;
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 pub const FAT_ADDR_SIZE: usize = 2 * ADDR_SIZE;
 
+pub use asset_loader::load_async;
+
 #[derive(Debug, Clone)]
 pub enum AssetId {
     Compiled(usize),

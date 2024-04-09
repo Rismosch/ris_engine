@@ -144,10 +144,18 @@ macro_rules! assert {
 #[cfg(debug_assertions)]
 macro_rules! debug_assert {
     ($value:expr) => {{
-        if $value {
+        #[cfg(not(debug_assertions))]
+        {
             Ok(())
-        } else {
-            ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            if $value {
+                Ok(())
+            } else {
+                ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
+            }
         }
     }};
 }
