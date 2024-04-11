@@ -6,13 +6,46 @@ use std::ptr;
 use ash::vk;
 use sdl2::video::Window;
 
-use ris_data::info::app_info::AppInfo;
 use ris_asset::AssetId;
 use ris_asset::loader::scenes_loader::Scenes;
+use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::vector::Vec2;
+use ris_math::color::Rgb;
 
 use crate::vulkan::util;
+
+#[repr(C)]
+struct Vertex {
+    pos: Vec2,
+    color: Rgb,
+}
+impl Vertex {
+    fn get_binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
+        [vk::VertexInputBindingDescription{
+            binding: 0,
+            stride: std::mem::size_of::<Self>() as u32,
+            input_rate: vk::VertexInputRate::VERTEX,
+        }]
+    }
+    fn get_attribute_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
+        [
+            vk::VertexInputAttributeDescription {
+                location: 0,
+                binding: 0,
+                format: vk::Format::R32G32_SFLOAT,
+                offset: std::mem::offset_of!(Self, pos) as u32,
+            },
+            vk::VertexInputAttributeDescription {
+                location: 0,
+                binding: 1,
+                format: vk::Format::R32G32B32_SFLOAT,
+                offset: std::mem::offset_of!(Self, color) as u32,
+            },
+        ]
+    }
+}
 
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] = &[ash::extensions::khr::Swapchain::name().as_ptr()];
@@ -540,6 +573,8 @@ impl Renderer {
             window.vulkan_drawable_size(),
         )?;
 
+        // vertex buffer
+
         // command buffer
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
@@ -887,14 +922,16 @@ impl SwapchainObjects {
 
         // graphics pipeline
         // pipeline
+        let vertex_binding_descriptions = Vertex::get_binding_descriptions();
+        let vertex_attribute_descriptions = Vertex::get_attribute_descriptions();
         let pipeline_vertex_input_state_create_info = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_binding_description_count: 0,
-            p_vertex_binding_descriptions: ptr::null(),
-            vertex_attribute_description_count: 0,
-            p_vertex_attribute_descriptions: ptr::null(),
+            vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
+            p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
+            vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
+            p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         }];
 
         let pipeline_input_assembly_state_info = [vk::PipelineInputAssemblyStateCreateInfo {

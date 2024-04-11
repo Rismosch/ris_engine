@@ -52,7 +52,7 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-To compile this repo, you need a working Rust compiler. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
+To compile this repo, you need a working Rust compiler, version 1.77.2 or higher. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
 
 The current target platform is x86_64, both Windows and Linux. This engine may compile for other platforms, but I don't give guarantees.
 
