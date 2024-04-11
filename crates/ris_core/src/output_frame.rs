@@ -4,16 +4,11 @@ use std::sync::Arc;
 use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
-use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::command_buffer::CommandBufferExecFuture;
-use vulkano::image::view::ImageView;
-use vulkano::swapchain::AcquireError;
 use vulkano::swapchain::PresentFuture;
 use vulkano::swapchain::SwapchainAcquireFuture;
-use vulkano::swapchain::SwapchainPresentInfo;
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::future::JoinFuture;
-use vulkano::sync::FlushError;
 use vulkano::sync::GpuFuture;
 
 use ris_data::gameloop::frame::Frame;
@@ -21,14 +16,11 @@ use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
-use ris_math::space::Space;
-use ris_video::imgui::RisImgui;
-use ris_video::vulkan::gpu_objects::UniformBufferObject;
 use ris_video::vulkan::renderer::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
+use ris_video::vulkan::renderer::SwapchainObjects;
 
 use crate::ui_helper::UiHelper;
-use crate::ui_helper::UiHelperDrawData;
 
 type Fence = FenceSignalFuture<
     PresentFuture<
@@ -39,7 +31,7 @@ type Fence = FenceSignalFuture<
 >;
 
 pub struct OutputFrame {
-    recreate_swapchain: bool,
+    //recreate_swapchain: bool,
 
     current_frame: usize,
     //fences: Vec<Option<Arc<Fence>>>,
@@ -66,7 +58,7 @@ impl OutputFrame {
         //}
 
         Ok(Self {
-            recreate_swapchain: false,
+            //recreate_swapchain: false,
             current_frame: 0,
             //fences,
             //imgui,
@@ -92,12 +84,15 @@ impl OutputFrame {
             device,
             graphics_queue,
             present_queue,
-            swapchain_loader,
-            swapchain,
-            swapchain_extent,
-            render_pass,
-            graphics_pipeline,
-            framebuffers,
+            swapchain_objects: SwapchainObjects{
+                swapchain_loader,
+                swapchain,
+                swapchain_extent,
+                render_pass,
+                graphics_pipeline,
+                framebuffers,
+                ..
+            },
             frames_in_flight,
             ..
         } = &self.renderer;
@@ -108,21 +103,35 @@ impl OutputFrame {
             render_finished_semaphore,
             in_flight_fence,
         } = &frames_in_flight[self.current_frame];
-
-        self.current_frame = (self.current_frame + 1) % frames_in_flight.len();
-        
+        let next_frame = (self.current_frame + 1) % frames_in_flight.len();
+ 
         // wait for the previous frame to finish
         let fence = [*in_flight_fence];
         unsafe{device.wait_for_fences(&fence, true, u64::MAX)}?;
         unsafe{device.reset_fences(&fence)}?;
 
         // acquire an image from the swap chain
-        let (image_index, is_sub_optimal) = unsafe{swapchain_loader.acquire_next_image(
+        //let (image_index, _is_sub_optimal) = unsafe{swapchain_loader.acquire_next_image(
+        //    *swapchain,
+        //    u64::MAX,
+        //    *image_available_semaphore,
+        //    vk::Fence::null(),
+        //)}?;
+
+        let acquire_image_result = unsafe{swapchain_loader.acquire_next_image(
             *swapchain,
             u64::MAX,
             *image_available_semaphore,
             vk::Fence::null(),
-        )}?;
+        )};
+
+        let image_index = match acquire_image_result {
+            Ok((image_index, _is_sub_optimal)) => image_index,
+            Err(vk_result) => match vk_result {
+                vk::Result::ERROR_OUT_OF_DATE_KHR => return self.renderer.recreate_swapchain(self.window.vulkan_drawable_size()),
+                vk_result => return ris_error::new_result!("failed to acquire chain image: {}", vk_result),
+            },
+        };
 
         // record a command buffer which draws the scene onto that image
         let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
@@ -201,7 +210,27 @@ impl OutputFrame {
             p_results: ptr::null_mut(),
         };
 
-        unsafe{swapchain_loader.queue_present(*present_queue, &present_info)}?;
+        let queue_present_result = unsafe{swapchain_loader.queue_present(*present_queue, &present_info)};
+        let window_event = match queue_present_result {
+            Ok(_) => {
+                *state.back.window_event.borrow()
+            },
+            Err(vk_result) => match vk_result {
+                vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
+                    ris_log::fatal!("zwei");
+                    let (width, height) = self.window.vulkan_drawable_size();
+                    WindowEvent::SizeChanged(width, height)
+                },
+                vk_result => return ris_error::new_result!("failed to present queue: {}", vk_result),
+            },
+        };
+
+        if let WindowEvent::SizeChanged(width, height) = window_event {
+            ris_log::fatal!("two");
+            self.renderer.recreate_swapchain((width, height))?;
+        }
+
+        self.current_frame = next_frame;
 
         //let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
         //    (true, true)

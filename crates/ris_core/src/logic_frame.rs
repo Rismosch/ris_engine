@@ -95,7 +95,7 @@ impl LogicFrame {
                 ..
             } = event
             {
-                *state.front.window_event.borrow_mut() = god_state::WindowEvent::SizeChanged(w, h);
+                *state.front.window_event.borrow_mut() = god_state::WindowEvent::SizeChanged(w as u32, h as u32);
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 

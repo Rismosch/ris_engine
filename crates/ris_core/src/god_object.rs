@@ -115,7 +115,7 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
-            //.resizable()
+            .resizable()
             .position_centered()
             .vulkan()
             .build()?;

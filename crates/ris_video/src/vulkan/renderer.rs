@@ -64,16 +64,19 @@ unsafe extern "system" fn debug_callback(
     vk::FALSE
 }
 
-struct SuitableDevice {
+pub struct SurfaceDetails {
+    pub capabilities: vk::SurfaceCapabilitiesKHR,
+    pub formats: Vec<vk::SurfaceFormatKHR>,
+    pub present_modes: Vec<vk::PresentModeKHR>,
+}
+
+pub struct SuitableDevice {
     // the lower the suitability, the better suited the device is to render. a dedicated gpu would
     // have a value of 0
     pub suitability: usize,
     pub graphics_queue_family: u32,
     pub present_queue_family: u32,
     pub physical_device: vk::PhysicalDevice,
-    pub surface_capabilities: vk::SurfaceCapabilitiesKHR,
-    pub surface_formats: Vec<vk::SurfaceFormatKHR>,
-    pub surface_present_modes: Vec<vk::PresentModeKHR>,
 }
 
 pub struct FrameInFlight {
@@ -83,15 +86,7 @@ pub struct FrameInFlight {
     pub in_flight_fence: vk::Fence,
 }
 
-pub struct Renderer {
-    pub entry: ash::Entry,
-    pub instance: ash::Instance,
-    pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
-    pub surface_loader: ash::extensions::khr::Surface,
-    pub surface: vk::SurfaceKHR,
-    pub device: ash::Device,
-    pub graphics_queue: vk::Queue,
-    pub present_queue: vk::Queue,
+pub struct SwapchainObjects {
     pub swapchain_loader: ash::extensions::khr::Swapchain,
     pub swapchain: vk::SwapchainKHR,
     pub swapchain_format: vk::SurfaceFormatKHR,
@@ -102,8 +97,45 @@ pub struct Renderer {
     pub pipeline_layout: vk::PipelineLayout,
     pub graphics_pipeline: vk::Pipeline,
     pub framebuffers: Vec<vk::Framebuffer>,
+}
+
+pub struct Renderer {
+    pub entry: ash::Entry,
+    pub instance: ash::Instance,
+    pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    pub surface_loader: ash::extensions::khr::Surface,
+    pub surface: vk::SurfaceKHR,
+    pub suitable_device: SuitableDevice,
+    pub device: ash::Device,
+    pub graphics_queue: vk::Queue,
+    pub present_queue: vk::Queue,
+    pub swapchain_objects: SwapchainObjects,
     pub command_pool: vk::CommandPool,
     pub frames_in_flight: Vec<FrameInFlight>,
+}
+
+impl SurfaceDetails {
+    pub fn query(
+        surface_loader: &ash::extensions::khr::Surface,
+        physical_device: vk::PhysicalDevice,
+        surface: vk::SurfaceKHR,
+    ) -> RisResult<Self> {
+        let capabilities = unsafe {
+            surface_loader.get_physical_device_surface_capabilities(physical_device, surface)
+        }?;
+        let formats = unsafe {
+            surface_loader.get_physical_device_surface_formats(physical_device, surface)
+        }?;
+        let present_modes = unsafe {
+            surface_loader.get_physical_device_surface_present_modes(physical_device, surface)
+        }?;
+
+        Ok(Self{
+            capabilities,
+            formats,
+            present_modes,
+        })
+    }
 }
 
 impl Drop for Renderer {
@@ -121,19 +153,7 @@ impl Drop for Renderer {
 
             self.device.destroy_command_pool(self.command_pool, None);
 
-            for &framebuffer in self.framebuffers.iter() {
-                self.device.destroy_framebuffer(framebuffer, None);
-            }
-
-            self.device.destroy_pipeline(self.graphics_pipeline, None);
-            self.device.destroy_pipeline_layout(self.pipeline_layout, None);
-            self.device.destroy_render_pass(self.render_pass, None);
-
-            for &swapchain_image_view in self.swapchain_image_views.iter() {
-                self.device.destroy_image_view(swapchain_image_view, None);
-            }
-
-            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+            self.swapchain_objects.cleanup(&self.device);
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
 
@@ -391,28 +411,24 @@ impl Renderer {
             //}
 
             // check swapchain support
-            let surface_capabilities = unsafe {
-                surface_loader.get_physical_device_surface_capabilities(physical_device, surface)
-            }?;
-            let surface_formats = unsafe {
-                surface_loader.get_physical_device_surface_formats(physical_device, surface)
-            }?;
-            let surface_present_modes = unsafe {
-                surface_loader.get_physical_device_surface_present_modes(physical_device, surface)
-            }?;
+            let SurfaceDetails{
+                formats,
+                present_modes,
+                ..
+            } = SurfaceDetails::query(&surface_loader, physical_device, surface)?;
 
-            log_message.push_str(&format!("\n\tsurface formats: {}", surface_formats.len()));
-            for format in surface_formats.iter() {
+            log_message.push_str(&format!("\n\tsurface formats: {}", formats.len()));
+            for format in formats.iter() {
                 log_message.push_str(&format!("\n\t\t- {:?}, {:?}", format.format, format.color_space));
             }
-            log_message.push_str(&format!("\n\tsurface present modes: {}", surface_present_modes.len()));
-            for present_mode in surface_present_modes.iter() {
+            log_message.push_str(&format!("\n\tsurface present modes: {}", present_modes.len()));
+            for present_mode in present_modes.iter() {
                 log_message.push_str(&format!("\n\t\t- {:?}", present_mode));
             }
 
             ris_log::info!("{}", log_message);
 
-            if !supports_required_extensions || surface_formats.is_empty() || surface_present_modes.is_empty() {
+            if !supports_required_extensions || formats.is_empty() || present_modes.is_empty() {
                 continue; // device not supported. skip
             }
 
@@ -462,9 +478,6 @@ impl Renderer {
                     graphics_queue_family: graphics as u32,
                     present_queue_family: present as u32,
                     physical_device,
-                    surface_capabilities,
-                    surface_formats,
-                    surface_present_modes,
                 };
                 suitable_devices.push(suitable_device);
             };
@@ -518,38 +531,152 @@ impl Renderer {
         let present_queue = unsafe{device.get_device_queue(suitable_device.present_queue_family, 0)};
 
         // swap chain
-        let preferred_surface_format = suitable_device.surface_formats
+        let swapchain_objects = SwapchainObjects::create(
+            &instance,
+            &surface_loader,
+            &surface,
+            &device,
+            &suitable_device,
+            window.vulkan_drawable_size(),
+        )?;
+
+        // command buffer
+        let command_pool_create_info = vk::CommandPoolCreateInfo {
+            s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
+            queue_family_index: suitable_device.graphics_queue_family,
+        };
+
+        let command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
+
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            command_pool,
+            level: vk::CommandBufferLevel::PRIMARY,
+            command_buffer_count: MAX_FRAMES_IN_FLIGHT,
+        };
+
+        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+
+        // synchronization objects
+        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
+        for command_buffer in command_buffers {
+            let semaphore_create_info = vk::SemaphoreCreateInfo {
+                s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::SemaphoreCreateFlags::empty(),
+            };
+
+            let fence_create_info = vk::FenceCreateInfo {
+                s_type: vk::StructureType::FENCE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::FenceCreateFlags::SIGNALED,
+            };
+
+            let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+            let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+            let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
+
+            let frame_in_flight = FrameInFlight {
+                command_buffer,
+                image_available_semaphore,
+                render_finished_semaphore,
+                in_flight_fence,
+            };
+
+            frames_in_flight.push(frame_in_flight);
+        }
+
+        Ok(Self {
+            entry,
+            instance,
+            debug_utils,
+            surface_loader,
+            surface,
+            suitable_device,
+            device,
+            graphics_queue,
+            present_queue,
+            swapchain_objects,
+            command_pool,
+            frames_in_flight,
+        })
+    }
+
+    pub fn recreate_swapchain(&mut self, window_size: (u32, u32)) -> RisResult<()> {
+        ris_log::trace!("recreating swapchain...");
+
+        unsafe {self.device.device_wait_idle()}?;
+
+        self.swapchain_objects.cleanup(&self.device);
+        self.swapchain_objects = SwapchainObjects::create(
+            &self.instance,
+            &self.surface_loader,
+            &self.surface,
+            &self.device,
+            &self.suitable_device,
+            window_size,
+        )?;
+
+        ris_log::trace!("swapchain recreated!");
+
+        Ok(())
+    }
+}
+
+impl SwapchainObjects {
+    fn create(
+        instance: &ash::Instance,
+        surface_loader: &ash::extensions::khr::Surface,
+        surface: &vk::SurfaceKHR,
+        device: &ash::Device,
+        suitable_device: &SuitableDevice,
+        window_size: (u32, u32),
+    ) -> RisResult<Self> {
+        let SurfaceDetails{
+            capabilities,
+            formats,
+            present_modes,
+        } = SurfaceDetails::query(
+            &surface_loader,
+            suitable_device.physical_device,
+            *surface,
+        )?;
+
+        // swap chain
+        let preferred_surface_format = formats
             .iter()
             .find(|x| x.format == PREFERRED_FORMAT && x.color_space == PREFERRED_COLOR_SPACE);
         let surface_format = match preferred_surface_format {
             Some(format) => format,
             // getting the first format if the preferred format does not exist. this should not
             // cause ub, becuase we checked if the list is empty at finding the suitable device.
-            None => &suitable_device.surface_formats[0],
+            None => &formats[0],
         };
 
-        let preferred_surface_present_mode = suitable_device.surface_present_modes
+        let preferred_surface_present_mode = present_modes
             .iter()
             .find(|&&x| x == PREFERRED_PRESENT_MODE);
         let surface_present_mode = match preferred_surface_present_mode {
             Some(present_mode) => present_mode,
             // getting the first present mode if the preferred format does not exist. this should
             // not cause ub, becuase we checked if the list is empty at finding the suitable device.
-            None => unsafe{suitable_device.surface_present_modes.get_unchecked(0)},
+            None => unsafe{present_modes.get_unchecked(0)},
         };
 
-        let surface_capabilities = suitable_device.surface_capabilities;
-        let swapchain_extent = if surface_capabilities.current_extent.width != u32::MAX {
-            surface_capabilities.current_extent
+        let swapchain_extent = if capabilities.current_extent.width != u32::MAX {
+            capabilities.current_extent
         } else {
-            let (window_width, window_height) = window.vulkan_drawable_size();
+            let (window_width, window_height) = window_size;
             let width = window_width.clamp(
-                surface_capabilities.min_image_extent.width,
-                surface_capabilities.max_image_extent.width,
+                capabilities.min_image_extent.width,
+                capabilities.max_image_extent.width,
             );
             let height = window_height.clamp(
-                surface_capabilities.min_image_extent.height,
-                surface_capabilities.max_image_extent.height,
+                capabilities.min_image_extent.height,
+                capabilities.max_image_extent.height,
             );
 
             vk::Extent2D {
@@ -558,14 +685,14 @@ impl Renderer {
             }
         };
 
-        let preferred_swapchain_image_count = surface_capabilities.min_image_count + 1;
-        let swapchain_image_count = if surface_capabilities.max_image_count == 0 {
+        let preferred_swapchain_image_count = capabilities.min_image_count + 1;
+        let swapchain_image_count = if capabilities.max_image_count == 0 {
             // SurfaceCapabilitiesKHR == 0 indicates there is no maximum
             preferred_swapchain_image_count
         } else {
             u32::min(
                 preferred_swapchain_image_count,
-                surface_capabilities.max_image_count,
+                capabilities.max_image_count,
             )
         };
 
@@ -587,7 +714,7 @@ impl Renderer {
             s_type: vk::StructureType::SWAPCHAIN_CREATE_INFO_KHR,
             p_next: ptr::null(),
             flags: vk::SwapchainCreateFlagsKHR::empty(),
-            surface,
+            surface: *surface,
             min_image_count: swapchain_image_count,
             image_color_space: surface_format.color_space,
             image_format: surface_format.format,
@@ -596,7 +723,7 @@ impl Renderer {
             image_sharing_mode,
             p_queue_family_indices: queue_family_indices.as_ptr(),
             queue_family_index_count,
-            pre_transform: surface_capabilities.current_transform,
+            pre_transform: capabilities.current_transform,
             composite_alpha: vk::CompositeAlphaFlagsKHR::OPAQUE,
             present_mode: *surface_present_mode,
             clipped: vk::TRUE,
@@ -955,64 +1082,7 @@ impl Renderer {
             framebuffers.push(framebuffer);
         }
 
-        // command buffer
-        let command_pool_create_info = vk::CommandPoolCreateInfo {
-            s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
-            queue_family_index: suitable_device.graphics_queue_family,
-        };
-
-        let command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
-
-        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            command_pool,
-            level: vk::CommandBufferLevel::PRIMARY,
-            command_buffer_count: MAX_FRAMES_IN_FLIGHT,
-        };
-
-        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
-
-        // synchronization objects
-        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
-        for command_buffer in command_buffers {
-            let semaphore_create_info = vk::SemaphoreCreateInfo {
-                s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::SemaphoreCreateFlags::empty(),
-            };
-
-            let fence_create_info = vk::FenceCreateInfo {
-                s_type: vk::StructureType::FENCE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::FenceCreateFlags::SIGNALED,
-            };
-
-            let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-            let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-            let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
-
-            let frame_in_flight = FrameInFlight {
-                command_buffer,
-                image_available_semaphore,
-                render_finished_semaphore,
-                in_flight_fence,
-            };
-
-            frames_in_flight.push(frame_in_flight);
-        }
-
-        Ok(Self {
-            entry,
-            instance,
-            debug_utils,
-            surface_loader,
-            surface,
-            device,
-            graphics_queue,
-            present_queue,
+        Ok(Self{
             swapchain_loader,
             swapchain,
             swapchain_format: *surface_format,
@@ -1023,8 +1093,24 @@ impl Renderer {
             pipeline_layout,
             graphics_pipeline,
             framebuffers,
-            command_pool,
-            frames_in_flight,
         })
+    }
+
+    fn cleanup(&mut self, device: &ash::Device) {
+        unsafe {
+            for &framebuffer in self.framebuffers.iter() {
+                device.destroy_framebuffer(framebuffer, None);
+            }
+
+            device.destroy_pipeline(self.graphics_pipeline, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
+            device.destroy_render_pass(self.render_pass, None);
+
+            for &swapchain_image_view in self.swapchain_image_views.iter() {
+                device.destroy_image_view(swapchain_image_view, None);
+            }
+
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+        }
     }
 }

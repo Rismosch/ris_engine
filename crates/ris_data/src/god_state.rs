@@ -10,7 +10,7 @@ use crate::settings::Settings;
 #[derive(Clone, Copy)]
 pub enum WindowEvent {
     None,
-    SizeChanged(i32, i32),
+    SizeChanged(u32, u32),
 }
 
 impl Default for WindowEvent {
