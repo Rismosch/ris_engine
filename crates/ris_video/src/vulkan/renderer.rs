@@ -17,19 +17,20 @@ use ris_math::color::Rgb;
 use crate::vulkan::util;
 
 #[repr(C)]
-struct Vertex {
+pub struct Vertex {
     pos: Vec2,
     color: Rgb,
 }
 impl Vertex {
-    fn get_binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
+    pub fn get_binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
         [vk::VertexInputBindingDescription{
             binding: 0,
             stride: std::mem::size_of::<Self>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
         }]
     }
-    fn get_attribute_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
+
+    pub fn get_attribute_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
         [
             vk::VertexInputAttributeDescription {
                 location: 0,
@@ -38,14 +39,29 @@ impl Vertex {
                 offset: std::mem::offset_of!(Self, pos) as u32,
             },
             vk::VertexInputAttributeDescription {
-                location: 0,
-                binding: 1,
+                location: 1,
+                binding: 0,
                 format: vk::Format::R32G32B32_SFLOAT,
                 offset: std::mem::offset_of!(Self, color) as u32,
             },
         ]
     }
 }
+
+pub const VERTICES: [Vertex; 3] = [
+    Vertex{
+        pos: Vec2(0.0, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec2(0.5, 0.5),
+        color: Rgb{r:0.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec2(-0.5, 0.5),
+        color: Rgb{r:0.0, g:0.0, b:1.0},
+    },
+];
 
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] = &[ash::extensions::khr::Swapchain::name().as_ptr()];
@@ -143,6 +159,8 @@ pub struct Renderer {
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
     pub swapchain_objects: SwapchainObjects,
+    pub vertex_buffer: vk::Buffer,
+    pub vertex_buffer_memory: vk::DeviceMemory,
     pub command_pool: vk::CommandPool,
     pub frames_in_flight: Vec<FrameInFlight>,
 }
@@ -187,6 +205,8 @@ impl Drop for Renderer {
             self.device.destroy_command_pool(self.command_pool, None);
 
             self.swapchain_objects.cleanup(&self.device);
+            self.device.destroy_buffer(self.vertex_buffer, None);
+            self.device.free_memory(self.vertex_buffer_memory, None);
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
 
@@ -574,6 +594,58 @@ impl Renderer {
         )?;
 
         // vertex buffer
+        let buffer_create_info = vk::BufferCreateInfo {
+            s_type: vk::StructureType::BUFFER_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::BufferCreateFlags::empty(),
+            size: std::mem::size_of_val(&VERTICES) as u64,
+            usage: vk::BufferUsageFlags::VERTEX_BUFFER,
+            sharing_mode: vk::SharingMode::EXCLUSIVE,
+            queue_family_index_count: 0,
+            p_queue_family_indices: ptr::null(),
+        };
+
+        let vertex_buffer = unsafe{device.create_buffer(&buffer_create_info, None)}?;
+
+        let memory_requirements = unsafe{device.get_buffer_memory_requirements(vertex_buffer)};
+        let memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+        let required_memory_flags: vk::MemoryPropertyFlags =
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+
+        let mut memory_type = None;
+        for (i, potential_memory_type) in memory_properties.memory_types.iter().enumerate() {
+            if (memory_requirements.memory_type_bits & (1 << i)) > 0 &&
+                potential_memory_type.property_flags.contains(required_memory_flags) {
+                memory_type = Some(i as u32);
+                break;
+            }
+        }
+        let memory_type = memory_type.unroll()?;
+
+        let memory_allocate_info = vk::MemoryAllocateInfo {
+            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            allocation_size: memory_requirements.size,
+            memory_type_index: memory_type,
+        };
+
+        let vertex_buffer_memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
+
+        unsafe{device.bind_buffer_memory(vertex_buffer, vertex_buffer_memory, 0)}?;
+        
+        unsafe{
+            let data_ptr =device.map_memory(
+                vertex_buffer_memory,
+                0,
+                buffer_create_info.size,
+                vk::MemoryMapFlags::empty(),
+            )? as *mut Vertex;
+
+            data_ptr.copy_from_nonoverlapping(VERTICES.as_ptr(), VERTICES.len());
+
+            device.unmap_memory(vertex_buffer_memory);
+        };
+
 
         // command buffer
         let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -635,6 +707,8 @@ impl Renderer {
             graphics_queue,
             present_queue,
             swapchain_objects,
+            vertex_buffer,
+            vertex_buffer_memory,
             command_pool,
             frames_in_flight,
         })
@@ -924,6 +998,7 @@ impl SwapchainObjects {
         // pipeline
         let vertex_binding_descriptions = Vertex::get_binding_descriptions();
         let vertex_attribute_descriptions = Vertex::get_attribute_descriptions();
+
         let pipeline_vertex_input_state_create_info = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),

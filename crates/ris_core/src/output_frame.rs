@@ -93,6 +93,7 @@ impl OutputFrame {
                 framebuffers,
                 ..
             },
+            vertex_buffer,
             frames_in_flight,
             ..
         } = &self.renderer;
@@ -167,8 +168,13 @@ impl OutputFrame {
 
         unsafe{device.cmd_begin_render_pass(*command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
         unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *graphics_pipeline)};
-        // dynamic viewport/scissor here
-        unsafe{device.cmd_draw(*command_buffer, 3, 1, 0, 0)};
+
+        let vertex_buffers = [*vertex_buffer];
+        let offsets = [0_u64];
+        unsafe{device.cmd_bind_vertex_buffers(*command_buffer, 0, &vertex_buffers, &offsets)};
+
+        let vertex_count = ris_video::vulkan::renderer::VERTICES.len() as u32;
+        unsafe{device.cmd_draw(*command_buffer, vertex_count, 1, 0, 0)};
         unsafe{device.cmd_end_render_pass(*command_buffer)};
         unsafe{device.end_command_buffer(*command_buffer)}?;
 
