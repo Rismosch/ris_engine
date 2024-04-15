@@ -148,6 +148,13 @@ pub struct SwapchainObjects {
     pub framebuffers: Vec<vk::Framebuffer>,
 }
 
+pub struct TransientCommand<'a> {
+    device: &'a ash::Device,
+    queue: &'a vk::Queue,
+    command_pool: &'a vk::CommandPool,
+    command_buffers: Vec<vk::CommandBuffer>,
+}
+
 pub struct Renderer {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
@@ -162,6 +169,7 @@ pub struct Renderer {
     pub vertex_buffer: vk::Buffer,
     pub vertex_buffer_memory: vk::DeviceMemory,
     pub command_pool: vk::CommandPool,
+    pub transient_command_pool: vk::CommandPool,
     pub frames_in_flight: Vec<FrameInFlight>,
 }
 
@@ -202,6 +210,7 @@ impl Drop for Renderer {
                 self.device.destroy_semaphore(frame_in_flight.image_available_semaphore, None);
             }
 
+            self.device.destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
 
             self.swapchain_objects.cleanup(&self.device);
@@ -486,54 +495,63 @@ impl Renderer {
             }
 
             // find queue family
-            // a single queue that supports both graphics and presenting is more performant than
-            // two seperate queues. to prevent the edgecase, that two seperate queues are found
-            // before a single one, we search for a single one first, and then fall back to search
-            // seperately.
-            let mut graphics_queue_index = None;
-            let mut present_queue_index = None;
-
+            let mut queue_supports = Vec::with_capacity(device_queue_families.len());
+            
             for (i, queue_family) in device_queue_families.iter().enumerate() {
-                if queue_family.queue_count > 0 &&
-                    queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) &&
-                    unsafe {surface_loader.get_physical_device_surface_support(physical_device, i as u32, surface)}?
-                {
-                    graphics_queue_index = Some(i);
-                    present_queue_index = Some(i);
-                    break;
+                if queue_family.queue_count == 0 {
+                    continue;
                 }
+
+                let graphics_queue_index = queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS).then_some(i);
+                let present_queue_index = unsafe {surface_loader.get_physical_device_surface_support(physical_device, i as u32, surface)}?.then_some(i);
+
+                queue_supports.push((
+                    i,
+                    graphics_queue_index,
+                    present_queue_index,
+                ));
             }
 
-            if graphics_queue_index.is_none() || present_queue_index.is_none() {
-                for (i, queue_family) in device_queue_families.iter().enumerate() {
-                    if queue_family.queue_count == 0 {
-                        continue;
+            // a preferred queue supports all flags
+            let preferred_queue = queue_supports.iter().find(|x| {
+                x.1.is_some() && x.2.is_some()
+            });
+
+            let (graphics, present) = match preferred_queue {
+                Some(&(i, ..)) => {
+                    (i, i)
+                },
+                None => {
+                    // no single queue exists, which supports all flags. attempt to find multiple
+                    // queues that together support all flags
+                    let mut graphics = None;
+                    let mut present = None;
+
+                    for (i, graphics_queue_index, present_queue_index) in queue_supports {
+                        if graphics_queue_index.is_some() {
+                            graphics = Some(i);
+                        }
+
+                        if present_queue_index.is_some() {
+                            present = Some(i);
+                        }
                     }
 
-                    if queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) {
-                        graphics_queue_index = Some(i);
+                    if let (Some(graphics), Some(present)) = (graphics, present) {
+                        (graphics, present)
+                    } else {
+                        continue; // device does not have all necessary queues. skip
                     }
-
-                    if unsafe {surface_loader.get_physical_device_surface_support(physical_device, i as u32, surface)}? {
-                        present_queue_index = Some(i);
-                    }
-
-                    if graphics_queue_index.is_some() && present_queue_index.is_some() {
-                        break;
-                    }
-                }
-            }
-
-            if let (Some(graphics), Some(present)) = (graphics_queue_index, present_queue_index) {
-                // device is supported and suitable. collect info and add to vec
-                let suitable_device = SuitableDevice{
-                    suitability,
-                    graphics_queue_family: graphics as u32,
-                    present_queue_family: present as u32,
-                    physical_device,
-                };
-                suitable_devices.push(suitable_device);
+                },
             };
+
+            let suitable_device = SuitableDevice{
+                suitability,
+                graphics_queue_family: graphics as u32,
+                present_queue_family: present as u32,
+                physical_device,
+            };
+            suitable_devices.push(suitable_device);
 
         } // end find suitable physical devices
 
@@ -547,6 +565,8 @@ impl Renderer {
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(suitable_device.graphics_queue_family);
         unique_queue_families.insert(suitable_device.present_queue_family);
+
+        ris_log::debug!("chosen queue families: {:?}", unique_queue_families);
 
         let queue_priorities = [1.0_f32];
         let mut queue_create_infos = Vec::new();
@@ -593,60 +613,6 @@ impl Renderer {
             window.vulkan_drawable_size(),
         )?;
 
-        // vertex buffer
-        let buffer_create_info = vk::BufferCreateInfo {
-            s_type: vk::StructureType::BUFFER_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::BufferCreateFlags::empty(),
-            size: std::mem::size_of_val(&VERTICES) as u64,
-            usage: vk::BufferUsageFlags::VERTEX_BUFFER,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: ptr::null(),
-        };
-
-        let vertex_buffer = unsafe{device.create_buffer(&buffer_create_info, None)}?;
-
-        let memory_requirements = unsafe{device.get_buffer_memory_requirements(vertex_buffer)};
-        let memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
-        let required_memory_flags: vk::MemoryPropertyFlags =
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
-
-        let mut memory_type = None;
-        for (i, potential_memory_type) in memory_properties.memory_types.iter().enumerate() {
-            if (memory_requirements.memory_type_bits & (1 << i)) > 0 &&
-                potential_memory_type.property_flags.contains(required_memory_flags) {
-                memory_type = Some(i as u32);
-                break;
-            }
-        }
-        let memory_type = memory_type.unroll()?;
-
-        let memory_allocate_info = vk::MemoryAllocateInfo {
-            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            allocation_size: memory_requirements.size,
-            memory_type_index: memory_type,
-        };
-
-        let vertex_buffer_memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
-
-        unsafe{device.bind_buffer_memory(vertex_buffer, vertex_buffer_memory, 0)}?;
-        
-        unsafe{
-            let data_ptr =device.map_memory(
-                vertex_buffer_memory,
-                0,
-                buffer_create_info.size,
-                vk::MemoryMapFlags::empty(),
-            )? as *mut Vertex;
-
-            data_ptr.copy_from_nonoverlapping(VERTICES.as_ptr(), VERTICES.len());
-
-            device.unmap_memory(vertex_buffer_memory);
-        };
-
-
         // command buffer
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
@@ -654,8 +620,15 @@ impl Renderer {
             flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
             queue_family_index: suitable_device.graphics_queue_family,
         };
-
         let command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
+
+        let command_pool_create_info = vk::CommandPoolCreateInfo {
+            s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandPoolCreateFlags::TRANSIENT,
+            queue_family_index: suitable_device.graphics_queue_family,
+        };
+        let transient_command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
 
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
@@ -666,6 +639,62 @@ impl Renderer {
         };
 
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+
+        // vertex buffer
+        let buffer_size = std::mem::size_of_val(&VERTICES) as vk::DeviceSize;
+        let device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+
+        let (staging_buffer, staging_buffer_memory) = create_buffer(
+            &device,
+            buffer_size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            &device_memory_properties,
+        )?;
+        
+        unsafe{
+            let data_ptr =device.map_memory(
+                staging_buffer_memory,
+                0,
+                buffer_size,
+                vk::MemoryMapFlags::empty(),
+            )? as *mut Vertex;
+
+            data_ptr.copy_from_nonoverlapping(VERTICES.as_ptr(), VERTICES.len());
+
+            device.unmap_memory(staging_buffer_memory);
+        };
+
+        let (vertex_buffer, vertex_buffer_memory) = create_buffer(
+            &device,
+            buffer_size,
+            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            &device_memory_properties,
+        )?;
+
+        {
+            let transient_command = TransientCommand::begin(
+                &device,
+                &graphics_queue,
+                &transient_command_pool,
+            )?;
+
+            let copy_reagions = [vk::BufferCopy {
+                src_offset: 0,
+                dst_offset: 0,
+                size: buffer_size,
+            }];
+
+            unsafe {device.cmd_copy_buffer(*transient_command.buffer(), staging_buffer, vertex_buffer, &copy_reagions)};
+
+            transient_command.end_and_submit()?;
+        }
+
+        unsafe {
+            device.destroy_buffer(staging_buffer, None);
+            device.free_memory(staging_buffer_memory, None);
+        }
 
         // synchronization objects
         let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
@@ -710,6 +739,7 @@ impl Renderer {
             vertex_buffer,
             vertex_buffer_memory,
             command_pool,
+            transient_command_pool,
             frames_in_flight,
         })
     }
@@ -735,7 +765,157 @@ impl Renderer {
     }
 }
 
+fn create_buffer(
+    device: &ash::Device,
+    size: vk::DeviceSize,
+    buffer_usage_flags: vk::BufferUsageFlags,
+    memory_property_flags: vk::MemoryPropertyFlags,
+    physical_device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
+) -> RisResult<(vk::Buffer, vk::DeviceMemory)> {
+    let buffer_create_info = vk::BufferCreateInfo {
+        s_type: vk::StructureType::BUFFER_CREATE_INFO,
+        p_next: ptr::null(),
+        flags: vk::BufferCreateFlags::empty(),
+        size,
+        usage: buffer_usage_flags,
+        sharing_mode: vk::SharingMode::EXCLUSIVE,
+        queue_family_index_count: 0,
+        p_queue_family_indices: ptr::null(),
+    };
+
+    let buffer = unsafe{device.create_buffer(&buffer_create_info, None)}?;
+
+    let memory_requirements = unsafe{device.get_buffer_memory_requirements(buffer)};
+
+    let mut memory_type = None;
+    for (i, potential_memory_type) in physical_device_memory_properties.memory_types.iter().enumerate() {
+        if (memory_requirements.memory_type_bits & (1 << i)) > 0 &&
+            potential_memory_type.property_flags.contains(memory_property_flags) {
+            memory_type = Some(i as u32);
+            break;
+        }
+    }
+    let memory_type = memory_type.unroll()?;
+
+    let memory_allocate_info = vk::MemoryAllocateInfo {
+        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+        p_next: ptr::null(),
+        allocation_size: memory_requirements.size,
+        memory_type_index: memory_type,
+    };
+
+    let buffer_memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
+
+    unsafe{device.bind_buffer_memory(buffer, buffer_memory, 0)}?;
+
+    Ok((buffer, buffer_memory))
+}
+
+impl<'a> TransientCommand<'a> {
+    fn begin(
+        device: &'a ash::Device,
+        queue: &'a vk::Queue,
+        command_pool: &'a vk::CommandPool) -> RisResult<Self> {
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            command_buffer_count: 1,
+            command_pool: *command_pool,
+            level: vk::CommandBufferLevel::PRIMARY,
+        };
+
+        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+        let command_buffer = command_buffers.first().unroll()?;
+
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+            p_inheritance_info: ptr::null(),
+        };
+
+        unsafe{device.begin_command_buffer(*command_buffer, &command_buffer_begin_info)}?;
+
+        Ok(Self{
+            device,
+            queue,
+            command_pool,
+            command_buffers,
+        })
+    }
+
+    fn buffer(&self) -> &vk::CommandBuffer {
+        // cannot cause ub, because `begin(1)` would've failed if no command buffer exists
+        unsafe{self.command_buffers.get_unchecked(0)}
+    }
+
+    fn end_and_submit(self) -> RisResult<()> {
+        let Self {
+            device,
+            queue,
+            command_buffers,
+            ..
+        } = &self;
+
+        unsafe{device.end_command_buffer(*self.buffer())}?;
+
+        let submit_info = [vk::SubmitInfo {
+            s_type: vk::StructureType::SUBMIT_INFO,
+            p_next: ptr::null(),
+            wait_semaphore_count: 0,
+            p_wait_semaphores: ptr::null(),
+            p_wait_dst_stage_mask: ptr::null(),
+            command_buffer_count: command_buffers.len() as u32,
+            p_command_buffers: command_buffers.as_ptr(),
+            signal_semaphore_count: 0,
+            p_signal_semaphores: ptr::null(),
+        }];
+
+        unsafe {device.queue_submit(**queue, &submit_info, vk::Fence::null())}?;
+
+        Ok(())
+    }
+}
+
+impl<'a> Drop for TransientCommand<'a> {
+    fn drop(&mut self) {
+        let Self {
+            device,
+            queue,
+            command_pool,
+            command_buffers,
+        } = self;
+
+        unsafe {
+            ris_error::unwrap!(
+                device.queue_wait_idle(**queue),
+                "failed to queue wait idle",
+            );
+
+            device.free_command_buffers(**command_pool, command_buffers);
+        }
+    }
+}
+
 impl SwapchainObjects {
+    fn cleanup(&mut self, device: &ash::Device) {
+        unsafe {
+            for &framebuffer in self.framebuffers.iter() {
+                device.destroy_framebuffer(framebuffer, None);
+            }
+
+            device.destroy_pipeline(self.graphics_pipeline, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
+            device.destroy_render_pass(self.render_pass, None);
+
+            for &swapchain_image_view in self.swapchain_image_views.iter() {
+                device.destroy_image_view(swapchain_image_view, None);
+            }
+
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+        }
+    }
+
     fn create(
         instance: &ash::Instance,
         surface_loader: &ash::extensions::khr::Surface,
@@ -771,7 +951,7 @@ impl SwapchainObjects {
         let surface_present_mode = match preferred_surface_present_mode {
             Some(present_mode) => present_mode,
             // getting the first present mode if the preferred format does not exist. this should
-            // not cause ub, becuase we checked if the list is empty at finding the suitable device.
+            // not cause ub, because we checked if the list is empty at finding the suitable device.
             None => unsafe{present_modes.get_unchecked(0)},
         };
 
@@ -1206,23 +1386,5 @@ impl SwapchainObjects {
             graphics_pipeline,
             framebuffers,
         })
-    }
-
-    fn cleanup(&mut self, device: &ash::Device) {
-        unsafe {
-            for &framebuffer in self.framebuffers.iter() {
-                device.destroy_framebuffer(framebuffer, None);
-            }
-
-            device.destroy_pipeline(self.graphics_pipeline, None);
-            device.destroy_pipeline_layout(self.pipeline_layout, None);
-            device.destroy_render_pass(self.render_pass, None);
-
-            for &swapchain_image_view in self.swapchain_image_views.iter() {
-                device.destroy_image_view(swapchain_image_view, None);
-            }
-
-            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
-        }
     }
 }
