@@ -10,7 +10,6 @@ readme = "README.md"
 homepage = "https://rismosch.com/"
 repository = "https://github.com/Rismosch/ris_engine"
 license = "GPL-3.0"
-license-file = "LICENSE"
 keywords = []
 categories = []
 #build = "Path to the package build script."

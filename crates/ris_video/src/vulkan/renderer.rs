@@ -48,20 +48,26 @@ impl Vertex {
     }
 }
 
-pub const VERTICES: [Vertex; 3] = [
+pub const VERTICES: [Vertex; 4] = [
     Vertex{
-        pos: Vec2(0.0, -0.5),
+        pos: Vec2(-0.5, -0.5),
         color: Rgb{r:1.0, g:0.0, b:0.0},
     },
     Vertex{
-        pos: Vec2(0.5, 0.5),
+        pos: Vec2(0.5, -0.5),
         color: Rgb{r:0.0, g:1.0, b:0.0},
     },
     Vertex{
-        pos: Vec2(-0.5, 0.5),
+        pos: Vec2(0.5, 0.5),
         color: Rgb{r:0.0, g:0.0, b:1.0},
     },
+    Vertex{
+        pos: Vec2(-0.5, 0.5),
+        color: Rgb{r:1.0, g:1.0, b:1.0},
+    },
 ];
+
+pub const INDICES: [u32; 6] = [0, 1, 2, 2, 3, 0];
 
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] = &[ash::extensions::khr::Swapchain::name().as_ptr()];
@@ -168,6 +174,8 @@ pub struct Renderer {
     pub swapchain_objects: SwapchainObjects,
     pub vertex_buffer: vk::Buffer,
     pub vertex_buffer_memory: vk::DeviceMemory,
+    pub index_buffer: vk::Buffer,
+    pub index_buffer_memory: vk::DeviceMemory,
     pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
     pub frames_in_flight: Vec<FrameInFlight>,
@@ -214,8 +222,12 @@ impl Drop for Renderer {
             self.device.destroy_command_pool(self.command_pool, None);
 
             self.swapchain_objects.cleanup(&self.device);
+
             self.device.destroy_buffer(self.vertex_buffer, None);
             self.device.free_memory(self.vertex_buffer_memory, None);
+            self.device.destroy_buffer(self.index_buffer, None);
+            self.device.free_memory(self.index_buffer_memory, None);
+
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
 
@@ -641,12 +653,12 @@ impl Renderer {
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
         // vertex buffer
-        let buffer_size = std::mem::size_of_val(&VERTICES) as vk::DeviceSize;
+        let vertex_buffer_size = std::mem::size_of_val(&VERTICES) as vk::DeviceSize;
         let device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
 
         let (staging_buffer, staging_buffer_memory) = create_buffer(
             &device,
-            buffer_size,
+            vertex_buffer_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
             &device_memory_properties,
@@ -656,7 +668,7 @@ impl Renderer {
             let data_ptr =device.map_memory(
                 staging_buffer_memory,
                 0,
-                buffer_size,
+                vertex_buffer_size,
                 vk::MemoryMapFlags::empty(),
             )? as *mut Vertex;
 
@@ -667,29 +679,67 @@ impl Renderer {
 
         let (vertex_buffer, vertex_buffer_memory) = create_buffer(
             &device,
-            buffer_size,
+            vertex_buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
             &device_memory_properties,
         )?;
 
-        {
-            let transient_command = TransientCommand::begin(
-                &device,
-                &graphics_queue,
-                &transient_command_pool,
-            )?;
+        copy_buffer(
+            &device,
+            &graphics_queue,
+            &transient_command_pool,
+            staging_buffer,
+            vertex_buffer,
+            vertex_buffer_size,
+        )?;
 
-            let copy_reagions = [vk::BufferCopy {
-                src_offset: 0,
-                dst_offset: 0,
-                size: buffer_size,
-            }];
-
-            unsafe {device.cmd_copy_buffer(*transient_command.buffer(), staging_buffer, vertex_buffer, &copy_reagions)};
-
-            transient_command.end_and_submit()?;
+        unsafe {
+            device.destroy_buffer(staging_buffer, None);
+            device.free_memory(staging_buffer_memory, None);
         }
+
+        // index buffer
+        let index_buffer_size = std::mem::size_of_val(&INDICES) as vk::DeviceSize;
+        let device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+
+        let (staging_buffer, staging_buffer_memory) = create_buffer(
+            &device,
+            index_buffer_size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            &device_memory_properties,
+        )?;
+        
+        unsafe{
+            let data_ptr =device.map_memory(
+                staging_buffer_memory,
+                0,
+                index_buffer_size,
+                vk::MemoryMapFlags::empty(),
+            )? as *mut u32;
+
+            data_ptr.copy_from_nonoverlapping(INDICES.as_ptr(), INDICES.len());
+
+            device.unmap_memory(staging_buffer_memory);
+        };
+
+        let (index_buffer, index_buffer_memory) = create_buffer(
+            &device,
+            index_buffer_size,
+            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            &device_memory_properties,
+        )?;
+
+        copy_buffer(
+            &device,
+            &graphics_queue,
+            &transient_command_pool,
+            staging_buffer,
+            index_buffer,
+            index_buffer_size,
+        )?;
 
         unsafe {
             device.destroy_buffer(staging_buffer, None);
@@ -738,6 +788,8 @@ impl Renderer {
             swapchain_objects,
             vertex_buffer,
             vertex_buffer_memory,
+            index_buffer,
+            index_buffer_memory,
             command_pool,
             transient_command_pool,
             frames_in_flight,
@@ -809,6 +861,33 @@ fn create_buffer(
     unsafe{device.bind_buffer_memory(buffer, buffer_memory, 0)}?;
 
     Ok((buffer, buffer_memory))
+}
+
+fn copy_buffer(
+    device: &ash::Device,
+    queue: &vk::Queue,
+    transient_command_pool: &vk::CommandPool,
+    src: vk::Buffer,
+    dst: vk::Buffer,
+    size: vk::DeviceSize,
+) -> RisResult<()> {
+    let transient_command = TransientCommand::begin(
+        &device,
+        &queue,
+        &transient_command_pool,
+    )?;
+
+    let copy_reagions = [vk::BufferCopy {
+        src_offset: 0,
+        dst_offset: 0,
+        size,
+    }];
+
+    unsafe {device.cmd_copy_buffer(*transient_command.buffer(), src, dst, &copy_reagions)};
+
+    transient_command.end_and_submit()?;
+
+    Ok(())
 }
 
 impl<'a> TransientCommand<'a> {

@@ -94,6 +94,7 @@ impl OutputFrame {
                 ..
             },
             vertex_buffer,
+            index_buffer,
             frames_in_flight,
             ..
         } = &self.renderer;
@@ -172,9 +173,10 @@ impl OutputFrame {
         let vertex_buffers = [*vertex_buffer];
         let offsets = [0_u64];
         unsafe{device.cmd_bind_vertex_buffers(*command_buffer, 0, &vertex_buffers, &offsets)};
+        unsafe{device.cmd_bind_index_buffer(*command_buffer, *index_buffer, 0, vk::IndexType::UINT32)};
 
-        let vertex_count = ris_video::vulkan::renderer::VERTICES.len() as u32;
-        unsafe{device.cmd_draw(*command_buffer, vertex_count, 1, 0, 0)};
+        let index_count = ris_video::vulkan::renderer::INDICES.len() as u32;
+        unsafe{device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0)};
         unsafe{device.cmd_end_render_pass(*command_buffer)};
         unsafe{device.end_command_buffer(*command_buffer)}?;
 
