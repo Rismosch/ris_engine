@@ -13,7 +13,7 @@ pub const IN_EXT: &str = "glsl";
 pub const OUT_EXT: &[&str] = &["vert.spv", "frag.spv"];
 
 // enable this to log the GLSL, that the preprocessor generates
-pub const TRACE_PREPROCESSED_GLSL: bool = false;
+pub const TRACE_PREPROCESSED_GLSL: bool = true;
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file

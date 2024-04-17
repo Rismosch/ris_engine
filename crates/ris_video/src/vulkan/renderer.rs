@@ -11,14 +11,15 @@ use ris_asset::loader::scenes_loader::Scenes;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_math::vector::Vec2;
 use ris_math::color::Rgb;
+use ris_math::matrix::Mat4;
+use ris_math::vector::Vec3;
 
 use crate::vulkan::util;
 
 #[repr(C)]
 pub struct Vertex {
-    pos: Vec2,
+    pos: Vec3,
     color: Rgb,
 }
 impl Vertex {
@@ -35,7 +36,7 @@ impl Vertex {
             vk::VertexInputAttributeDescription {
                 location: 0,
                 binding: 0,
-                format: vk::Format::R32G32_SFLOAT,
+                format: vk::Format::R32G32B32_SFLOAT,
                 offset: std::mem::offset_of!(Self, pos) as u32,
             },
             vk::VertexInputAttributeDescription {
@@ -48,26 +49,127 @@ impl Vertex {
     }
 }
 
-pub const VERTICES: [Vertex; 4] = [
+pub const VERTICES: [Vertex; 4 * 6] = [
+    // pos x
     Vertex{
-        pos: Vec2(-0.5, -0.5),
+        pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:1.0, g:0.0, b:0.0},
     },
     Vertex{
-        pos: Vec2(0.5, -0.5),
+        pos: Vec3(0.5, 0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, 0.5),
+        color: Rgb{r:1.0, g:0.0, b:0.0},
+    },
+    // pos y
+    Vertex{
+        pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:1.0, b:0.0},
     },
     Vertex{
-        pos: Vec2(0.5, 0.5),
+        pos: Vec3(-0.5, 0.5, 0.5),
+        color: Rgb{r:0.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, -0.5),
+        color: Rgb{r:0.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, 0.5, -0.5),
+        color: Rgb{r:0.0, g:1.0, b:0.0},
+    },
+    // pos z
+    Vertex{
+        pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:0.0, b:1.0},
     },
     Vertex{
-        pos: Vec2(-0.5, 0.5),
-        color: Rgb{r:1.0, g:1.0, b:1.0},
+        pos: Vec3(0.5, -0.5, 0.5),
+        color: Rgb{r:0.0, g:0.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, -0.5, 0.5),
+        color: Rgb{r:0.0, g:0.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, 0.5),
+        color: Rgb{r:0.0, g:0.0, b:1.0},
+    },
+    // neg x
+    Vertex{
+        pos: Vec3(-0.5, -0.5, -0.5),
+        color: Rgb{r:0.0, g:1.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, -0.5),
+        color: Rgb{r:0.0, g:1.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, 0.5),
+        color: Rgb{r:0.0, g:1.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, -0.5, 0.5),
+        color: Rgb{r:0.0, g:1.0, b:1.0},
+    },
+    // neg y
+    Vertex{
+        pos: Vec3(-0.5, -0.5, 0.5),
+        color: Rgb{r:1.0, g:0.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, 0.5),
+        color: Rgb{r:1.0, g:0.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:1.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:1.0},
+    },
+    // neg z
+    Vertex{
+        pos: Vec3(-0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(0.5, 0.5, -0.5),
+        color: Rgb{r:1.0, g:1.0, b:0.0},
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, -0.5),
+        color: Rgb{r:1.0, g:1.0, b:0.0},
     },
 ];
 
-pub const INDICES: [u32; 6] = [0, 1, 2, 2, 3, 0];
+pub const INDICES: [u32; 6 * 6] = [
+    0, 1, 2, 2, 3, 0,
+    4, 5, 6, 6, 7, 4,
+    8, 9, 10, 10, 11, 8,
+    12, 13, 14, 14, 15, 12,
+    16, 17, 18, 18, 19, 16,
+    20, 21, 22, 22, 23, 20,
+];
+
+
+#[repr(C)]
+pub struct UniformBufferObject {
+    pub model: Mat4,
+    pub view: Mat4,
+    pub proj: Mat4,
+}
 
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] = &[ash::extensions::khr::Swapchain::name().as_ptr()];
@@ -136,6 +238,10 @@ pub struct SuitableDevice {
 
 pub struct FrameInFlight {
     pub command_buffer: vk::CommandBuffer,
+    pub uniform_buffer: vk::Buffer,
+    pub uniform_buffer_memory: vk::DeviceMemory,
+    pub uniform_buffer_mapped: *mut UniformBufferObject,
+    pub descriptor_set: vk::DescriptorSet,
     pub image_available_semaphore: vk::Semaphore,
     pub render_finished_semaphore: vk::Semaphore,
     pub in_flight_fence: vk::Fence,
@@ -171,6 +277,8 @@ pub struct Renderer {
     pub device: ash::Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
+    pub descriptor_pool: vk::DescriptorPool,
     pub swapchain_objects: SwapchainObjects,
     pub vertex_buffer: vk::Buffer,
     pub vertex_buffer_memory: vk::DeviceMemory,
@@ -216,12 +324,18 @@ impl Drop for Renderer {
                 self.device.destroy_fence(frame_in_flight.in_flight_fence, None);
                 self.device.destroy_semaphore(frame_in_flight.render_finished_semaphore, None);
                 self.device.destroy_semaphore(frame_in_flight.image_available_semaphore, None);
+
+                self.device.destroy_buffer(frame_in_flight.uniform_buffer, None);
+                self.device.free_memory(frame_in_flight.uniform_buffer_memory, None);
             }
 
             self.device.destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
 
             self.swapchain_objects.cleanup(&self.device);
+
+            self.device.destroy_descriptor_pool(self.descriptor_pool, None);
+            self.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
             self.device.destroy_buffer(self.vertex_buffer, None);
             self.device.free_memory(self.vertex_buffer_memory, None);
@@ -615,6 +729,25 @@ impl Renderer {
         let graphics_queue = unsafe{device.get_device_queue(suitable_device.graphics_queue_family, 0)};
         let present_queue = unsafe{device.get_device_queue(suitable_device.present_queue_family, 0)};
 
+        // descriptor set layout
+        let ubo_layout_bindings = [vk::DescriptorSetLayoutBinding{
+            binding: 0,
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            p_immutable_samplers: ptr::null(),
+        }];
+
+        let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorSetLayoutCreateFlags::empty(),
+            binding_count: ubo_layout_bindings.len() as u32,
+            p_bindings: ubo_layout_bindings.as_ptr(),
+        };
+
+        let descriptor_set_layout = unsafe{device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)}?;
+
         // swap chain
         let swapchain_objects = SwapchainObjects::create(
             &instance,
@@ -622,6 +755,7 @@ impl Renderer {
             &surface,
             &device,
             &suitable_device,
+            &descriptor_set_layout,
             window.vulkan_drawable_size(),
         )?;
 
@@ -746,9 +880,84 @@ impl Renderer {
             device.free_memory(staging_buffer_memory, None);
         }
 
-        // synchronization objects
+        // descriptor pool
+        let descriptor_pool_sizes = [vk::DescriptorPoolSize {
+            ty: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: command_buffers.len() as u32,
+        }];
+
+        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorPoolCreateFlags::empty(),
+            max_sets: command_buffers.len() as u32,
+            pool_size_count: descriptor_pool_sizes.len() as u32,
+            p_pool_sizes: descriptor_pool_sizes.as_ptr(),
+        };
+
+        let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+
+        let mut descriptor_set_layouts = Vec::with_capacity(command_buffers.len());
+        for _ in 0..command_buffers.len() {
+            descriptor_set_layouts.push(descriptor_set_layout);
+        }
+
+        let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            descriptor_pool,
+            descriptor_set_count: descriptor_set_layouts.len() as u32,
+            p_set_layouts: descriptor_set_layouts.as_ptr(),
+        };
+
+        let descriptor_sets = unsafe{device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
+
+        // frames in flight
         let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
-        for command_buffer in command_buffers {
+        for i in 0..command_buffers.len() {
+            let command_buffer = command_buffers[i];
+            let descriptor_set = descriptor_sets[i];
+
+            // uniform buffer
+            let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+            ris_log::debug!("aschmo {}", uniform_buffer_size);
+            let (uniform_buffer, uniform_buffer_memory) = create_buffer(
+                &device,
+                uniform_buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                &device_memory_properties,
+            )?;
+            let uniform_buffer_mapped = unsafe{device.map_memory(
+                uniform_buffer_memory,
+                0,
+                uniform_buffer_size,
+                vk::MemoryMapFlags::empty()
+            )}? as *mut UniformBufferObject;
+
+            // descriptor set
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+                buffer: uniform_buffer,
+                offset: 0,
+                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            }];
+
+            let write_descriptor_set = [vk::WriteDescriptorSet {
+                s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                p_next: ptr::null(),
+                dst_set: descriptor_set,
+                dst_binding: 0,
+                dst_array_element: 0,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                p_image_info: ptr::null(),
+                p_buffer_info: descriptor_buffer_info.as_ptr(),
+                p_texel_buffer_view: ptr::null(),
+            }];
+
+            unsafe{device.update_descriptor_sets(&write_descriptor_set, &[])};
+
+            // synchronization objects
             let semaphore_create_info = vk::SemaphoreCreateInfo {
                 s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
                 p_next: ptr::null(),
@@ -767,6 +976,10 @@ impl Renderer {
 
             let frame_in_flight = FrameInFlight {
                 command_buffer,
+                descriptor_set,
+                uniform_buffer,
+                uniform_buffer_memory,
+                uniform_buffer_mapped,
                 image_available_semaphore,
                 render_finished_semaphore,
                 in_flight_fence,
@@ -785,6 +998,8 @@ impl Renderer {
             device,
             graphics_queue,
             present_queue,
+            descriptor_set_layout,
+            descriptor_pool,
             swapchain_objects,
             vertex_buffer,
             vertex_buffer_memory,
@@ -808,6 +1023,7 @@ impl Renderer {
             &self.surface,
             &self.device,
             &self.suitable_device,
+            &self.descriptor_set_layout,
             window_size,
         )?;
 
@@ -820,7 +1036,7 @@ impl Renderer {
 fn create_buffer(
     device: &ash::Device,
     size: vk::DeviceSize,
-    buffer_usage_flags: vk::BufferUsageFlags,
+    usage: vk::BufferUsageFlags,
     memory_property_flags: vk::MemoryPropertyFlags,
     physical_device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
 ) -> RisResult<(vk::Buffer, vk::DeviceMemory)> {
@@ -829,7 +1045,7 @@ fn create_buffer(
         p_next: ptr::null(),
         flags: vk::BufferCreateFlags::empty(),
         size,
-        usage: buffer_usage_flags,
+        usage,
         sharing_mode: vk::SharingMode::EXCLUSIVE,
         queue_family_index_count: 0,
         p_queue_family_indices: ptr::null(),
@@ -1001,6 +1217,7 @@ impl SwapchainObjects {
         surface: &vk::SurfaceKHR,
         device: &ash::Device,
         suitable_device: &SuitableDevice,
+        descriptor_set_layout: &vk::DescriptorSetLayout,
         window_size: (u32, u32),
     ) -> RisResult<Self> {
         let SurfaceDetails{
@@ -1386,12 +1603,14 @@ impl SwapchainObjects {
             blend_constants: [0., 0., 0., 0.,],
         }];
 
+        let descriptor_set_layouts = [*descriptor_set_layout];
+
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
-            set_layout_count: 0,
-            p_set_layouts: ptr::null(),
+            set_layout_count: descriptor_set_layouts.len() as u32,
+            p_set_layouts: descriptor_set_layouts.as_ptr(),
             push_constant_range_count: 0,
             p_push_constant_ranges: ptr::null(),
         };

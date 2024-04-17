@@ -16,6 +16,8 @@ use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
+use ris_math::matrix::Mat4;
+use ris_math::space::Space;
 use ris_video::vulkan::renderer::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::renderer::SwapchainObjects;
@@ -89,6 +91,7 @@ impl OutputFrame {
                 swapchain,
                 swapchain_extent,
                 render_pass,
+                pipeline_layout,
                 graphics_pipeline,
                 framebuffers,
                 ..
@@ -101,9 +104,12 @@ impl OutputFrame {
 
         let FrameInFlight {
             command_buffer,
+            uniform_buffer_mapped,
+            descriptor_set,
             image_available_semaphore,
             render_finished_semaphore,
             in_flight_fence,
+            ..
         } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
  
@@ -113,13 +119,6 @@ impl OutputFrame {
         unsafe{device.reset_fences(&fence)}?;
 
         // acquire an image from the swap chain
-        //let (image_index, _is_sub_optimal) = unsafe{swapchain_loader.acquire_next_image(
-        //    *swapchain,
-        //    u64::MAX,
-        //    *image_available_semaphore,
-        //    vk::Fence::null(),
-        //)}?;
-
         let acquire_image_result = unsafe{swapchain_loader.acquire_next_image(
             *swapchain,
             u64::MAX,
@@ -134,6 +133,31 @@ impl OutputFrame {
                 vk_result => return ris_error::new_result!("failed to acquire chain image: {}", vk_result),
             },
         };
+
+        // update uniform buffer
+        let camera_position = *state.back.camera_position.borrow();
+        let camera_rotation = *state.back.camera_rotation.borrow();
+
+        let view = Space::view(
+            camera_position,
+            camera_rotation,
+        );
+
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let fovy = ris_math::radians(60.);
+        let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        let aspect_ratio = w / h;
+        let near = 0.01;
+        let far = 0.1;
+        let proj = Space::proj(fovy, aspect_ratio, near, far);
+
+        let ubo = [ris_video::vulkan::renderer::UniformBufferObject {
+            model: Mat4::init(1.0),
+            view,
+            proj,
+        }];
+
+        unsafe{uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len())};
 
         // record a command buffer which draws the scene onto that image
         let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
@@ -150,7 +174,7 @@ impl OutputFrame {
 
         let clear_values = [vk::ClearValue {
             color: vk::ClearColorValue {
-                float32: [0., 0., 0., 1.0],
+                float32: [0.5, 0.0, 0.5, 0.0],
             },
         }];
 
@@ -174,6 +198,15 @@ impl OutputFrame {
         let offsets = [0_u64];
         unsafe{device.cmd_bind_vertex_buffers(*command_buffer, 0, &vertex_buffers, &offsets)};
         unsafe{device.cmd_bind_index_buffer(*command_buffer, *index_buffer, 0, vk::IndexType::UINT32)};
+        let descriptor_sets = [*descriptor_set];
+        unsafe{device.cmd_bind_descriptor_sets(
+            *command_buffer,
+            vk::PipelineBindPoint::GRAPHICS,
+            *pipeline_layout,
+            0,
+            &descriptor_sets,
+            &[],
+        )};
 
         let index_count = ris_video::vulkan::renderer::INDICES.len() as u32;
         unsafe{device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0)};

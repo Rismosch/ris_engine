@@ -1,6 +1,6 @@
 use vulkano::buffer::BufferContents;
 
-use crate::matrix::Mat2x2;
+use crate::matrix::Mat2;
 
 //
 // definition
@@ -111,8 +111,8 @@ impl Vec4 {
     }
 }
 
-impl From<Mat2x2> for Vec4 {
-    fn from(value: Mat2x2) -> Self {
+impl From<Mat2> for Vec4 {
+    fn from(value: Mat2) -> Self {
         Self(value.0 .0, value.0 .1, value.1 .0, value.1 .1)
     }
 }

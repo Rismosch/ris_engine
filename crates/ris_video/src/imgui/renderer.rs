@@ -45,7 +45,7 @@ use vulkano::sync::future::GpuFuture;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_math::matrix::Mat4x4;
+use ris_math::matrix::Mat4;
 
 use crate::imgui::gpu_objects::ImguiVertex;
 use crate::vulkan::allocators::Allocators;
@@ -120,7 +120,7 @@ impl ImguiRenderer {
         let top = data.display_pos[1];
         let bottom = data.display_pos[1] + data.display_size[1];
 
-        let mut pc = Mat4x4::init(1.);
+        let mut pc = Mat4::init(1.);
         pc.0 .0 = 2. / (right - left);
         pc.1 .1 = 2. / (bottom - top);
         pc.2 .2 = -1.0;
