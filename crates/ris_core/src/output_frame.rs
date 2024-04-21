@@ -18,9 +18,10 @@ use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 use ris_math::matrix::Mat4;
 use ris_math::space::Space;
-use ris_video::vulkan::renderer::FrameInFlight;
+use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
-use ris_video::vulkan::renderer::SwapchainObjects;
+use ris_video::vulkan::swapchain_objects::SwapchainObjects;
+use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;
 
@@ -151,7 +152,7 @@ impl OutputFrame {
         let far = 0.1;
         let proj = Space::proj(fovy, aspect_ratio, near, far);
 
-        let ubo = [ris_video::vulkan::renderer::UniformBufferObject {
+        let ubo = [UniformBufferObject {
             model: Mat4::init(1.0),
             view,
             proj,
@@ -194,10 +195,10 @@ impl OutputFrame {
         unsafe{device.cmd_begin_render_pass(*command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
         unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *graphics_pipeline)};
 
-        let vertex_buffers = [*vertex_buffer];
+        let vertex_buffers = [vertex_buffer.buffer];
         let offsets = [0_u64];
         unsafe{device.cmd_bind_vertex_buffers(*command_buffer, 0, &vertex_buffers, &offsets)};
-        unsafe{device.cmd_bind_index_buffer(*command_buffer, *index_buffer, 0, vk::IndexType::UINT32)};
+        unsafe{device.cmd_bind_index_buffer(*command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT32)};
         let descriptor_sets = [*descriptor_set];
         unsafe{device.cmd_bind_descriptor_sets(
             *command_buffer,
@@ -208,7 +209,7 @@ impl OutputFrame {
             &[],
         )};
 
-        let index_count = ris_video::vulkan::renderer::INDICES.len() as u32;
+        let index_count = ris_video::vulkan::INDICES.len() as u32;
         unsafe{device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0)};
         unsafe{device.cmd_end_render_pass(*command_buffer)};
         unsafe{device.end_command_buffer(*command_buffer)}?;

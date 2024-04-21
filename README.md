@@ -46,7 +46,6 @@ Barebones game engine. Home made passion project.
 - [x] Safe global accessible mutable state
   - [x] Settings/Configuration
   - [ ] Gameobjects
-- [ ] Audio
 
 ---
 
