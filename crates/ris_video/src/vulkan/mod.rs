@@ -1,5 +1,6 @@
 pub mod buffer;
 pub mod frame_in_flight;
+pub mod layers;
 pub mod renderer;
 pub mod suitable_device;
 pub mod surface_details;
