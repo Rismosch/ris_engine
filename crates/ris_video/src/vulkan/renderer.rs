@@ -21,6 +21,7 @@ use super::frame_in_flight::FrameInFlight;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::swapchain_objects::SwapchainObjects;
+use super::texture::Texture;
 use super::transient_command::TransientCommand;
 use super::uniform_buffer_object::UniformBufferObject;
 use super::util;
@@ -309,31 +310,16 @@ impl Renderer {
             &pixels,
         );
 
-        let image_create_info = vk::ImageCreateInfo {
-            s_type: vk::StructureType::IMAGE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::ImageCreateFlags::empty(),
-            image_type: vk::ImageType::TYPE_2D,
-            format: vk::Format::R8G8B8A8_SRGB,
-            extent: vk::Extent3D {
-                width: 1024,
-                height: 1024,
-                depth: 1,
-            },
-            mip_levels: 1,
-            array_layers: 1,
-            samples: vk::SampleCountFlags::TYPE_1,
-            tiling: vk::ImageTiling::OPTIMAL,
-            usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: ptr::null(),
-            initial_layout: vk::ImageLayout::UNDEFINED,
-        };
-
-        let texture_image = unsafe{device.create_image(&image_create_info, None)}?;
-
-        let image_memory_requirements = unsafe{device.get_image_memory_requirements(texture_image)};
+        let texture = Texture::alloc(
+            &device,
+            desc.width,
+            desc.height,
+            vk::Format::R8G8B8A8_SRGB,
+            vk::ImageTiling::OPTIMAL,
+            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            &device_memory_properties,
+        )?;
 
         staging_buffer.free(&device);
 

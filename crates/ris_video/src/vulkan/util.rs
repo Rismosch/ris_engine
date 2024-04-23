@@ -43,3 +43,17 @@ impl VkStr {
     }
 }
 
+pub fn find_memory_type(
+    type_filter: u32,
+    memory_property_flags: vk::MemoryPropertyFlags,
+    physical_device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
+) -> RisResult<Option<u32>> {
+    for (i, potential_memory_type) in physical_device_memory_properties.memory_types.iter().enumerate() {
+        if (type_filter & (1 << i)) > 0 &&
+            potential_memory_type.property_flags.contains(memory_property_flags) {
+            return Ok(Some(i as u32));
+        }
+    }
+
+    Ok(None)
+}

@@ -37,22 +37,17 @@ impl Buffer {
         let buffer = unsafe{device.create_buffer(&buffer_create_info, None)}?;
 
         let memory_requirements = unsafe{device.get_buffer_memory_requirements(buffer)};
-
-        let mut memory_type = None;
-        for (i, potential_memory_type) in physical_device_memory_properties.memory_types.iter().enumerate() {
-            if (memory_requirements.memory_type_bits & (1 << i)) > 0 &&
-                potential_memory_type.property_flags.contains(memory_property_flags) {
-                memory_type = Some(i as u32);
-                break;
-            }
-        }
-        let memory_type = memory_type.unroll()?;
+        let memory_type_index = super::util::find_memory_type(
+            memory_requirements.memory_type_bits,
+            memory_property_flags,
+            physical_device_memory_properties,
+        )?.unroll()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
             p_next: ptr::null(),
             allocation_size: memory_requirements.size,
-            memory_type_index: memory_type,
+            memory_type_index,
         };
 
         let memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
