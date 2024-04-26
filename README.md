@@ -23,12 +23,7 @@ Barebones game engine. Home made passion project.
   - [x] Color
     - [x] RGB
     - [x] OkLab
-- [x] Basic 3d renderer
-  - [x] Vertex and index buffers
-  - [x] Depth and Stencil buffer
-  - [ ] Texture sampling
-  - [ ] Phong shading
-  - [x] Hotswappable shaders during runtime
+- [x] Basic 3d renderer via Vulkan
 - [x] Debug GUI via Dear ImGui
 - [ ] Debug gizmos
   - [ ] Point

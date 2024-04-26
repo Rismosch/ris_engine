@@ -248,8 +248,8 @@ impl SwapchainObjects {
 
         // graphics pipeline
         // shaders
-        let vs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/tutorial.vert.spv"));
-        let fs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/tutorial.frag.spv"));
+        let vs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/default.vert.spv"));
+        let fs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/default.frag.spv"));
 
         let vs_asset_future = ris_asset::load_async(vs_asset_id);
         let fs_asset_future = ris_asset::load_async(fs_asset_id);

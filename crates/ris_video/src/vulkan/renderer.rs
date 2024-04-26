@@ -290,7 +290,7 @@ impl Renderer {
         let physical_device_properties = unsafe{instance.get_physical_device_properties(suitable_device.physical_device)};
 
         // texture
-        let texture_asset_id = ris_asset::AssetId::Directory(String::from("__imported_raw/images/ris_engine.qoi"));
+        let texture_asset_id = ris_asset::AssetId::Directory(String::from("__imported_raw/images/profile_pic_2020_1000x1000.qoi"));
 
         let texture = Texture::alloc(
             &device,
