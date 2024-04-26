@@ -36,129 +36,129 @@ const MAX_FRAMES_IN_FLIGHT: u32 = 2;
 pub const VERTICES: [Vertex; 4 * 6] = [
     // pos x
     Vertex{
-        pos: Vec3(0.5, -0.5, -0.5),
+        pos: Vec3(0.5, -0.5, 0.5),
         color: Rgb{r:1.0, g:0.0, b:0.0},
         uv: Vec2(0.0, 0.0),
     },
     Vertex{
-        pos: Vec3(0.5, -0.5, 0.5),
-        color: Rgb{r:1.0, g:0.0, b:0.0},
-        uv: Vec2(0.0, 1.0),
-    },
-    Vertex{
         pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:1.0, g:0.0, b:0.0},
-        uv: Vec2(1.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, 0.5, -0.5),
         color: Rgb{r:1.0, g:0.0, b:0.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(1.0, 1.0),
+    },
+    Vertex{
+        pos: Vec3(0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:0.0},
+        uv: Vec2(0.0, 1.0),
     },
     // pos y
     Vertex{
-        pos: Vec3(0.5, 0.5, -0.5),
+        pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:1.0, b:0.0},
         uv: Vec2(0.0, 0.0),
     },
     Vertex{
-        pos: Vec3(0.5, 0.5, 0.5),
-        color: Rgb{r:0.0, g:1.0, b:0.0},
-        uv: Vec2(0.0, 1.0),
-    },
-    Vertex{
         pos: Vec3(-0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:1.0, b:0.0},
-        uv: Vec2(1.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
         pos: Vec3(-0.5, 0.5, -0.5),
         color: Rgb{r:0.0, g:1.0, b:0.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(1.0, 1.0),
+    },
+    Vertex{
+        pos: Vec3(0.5, 0.5, -0.5),
+        color: Rgb{r:0.0, g:1.0, b:0.0},
+        uv: Vec2(0.0, 1.0),
     },
     // pos z
     Vertex{
-        pos: Vec3(-0.5, -0.5, 0.5),
-        color: Rgb{r:0.0, g:0.0, b:1.0},
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex{
         pos: Vec3(-0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:0.0, b:1.0},
-        uv: Vec2(0.0, 1.0),
+        uv: Vec2(0.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:0.0, b:1.0},
-        uv: Vec2(1.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, -0.5, 0.5),
         color: Rgb{r:0.0, g:0.0, b:1.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(1.0, 1.0),
+    },
+    Vertex{
+        pos: Vec3(-0.5, -0.5, 0.5),
+        color: Rgb{r:0.0, g:0.0, b:1.0},
+        uv: Vec2(0.0, 1.0),
     },
     // neg x
     Vertex{
-        pos: Vec3(-0.5, 0.5, -0.5),
+        pos: Vec3(-0.5, 0.5, 0.5),
         color: Rgb{r:0.0, g:1.0, b:1.0},
         uv: Vec2(0.0, 0.0),
     },
     Vertex{
-        pos: Vec3(-0.5, 0.5, 0.5),
+        pos: Vec3(-0.5, -0.5, 0.5),
         color: Rgb{r:0.0, g:1.0, b:1.0},
-        uv: Vec2(0.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
-        pos: Vec3(-0.5, -0.5, 0.5),
+        pos: Vec3(-0.5, -0.5, -0.5),
         color: Rgb{r:0.0, g:1.0, b:1.0},
         uv: Vec2(1.0, 1.0),
     },
     Vertex{
-        pos: Vec3(-0.5, -0.5, -0.5),
+        pos: Vec3(-0.5, 0.5, -0.5),
         color: Rgb{r:0.0, g:1.0, b:1.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(0.0, 1.0),
     },
     // neg y
     Vertex{
-        pos: Vec3(-0.5, -0.5, -0.5),
-        color: Rgb{r:1.0, g:0.0, b:1.0},
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex{
         pos: Vec3(-0.5, -0.5, 0.5),
         color: Rgb{r:1.0, g:0.0, b:1.0},
-        uv: Vec2(0.0, 1.0),
+        uv: Vec2(0.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, -0.5, 0.5),
         color: Rgb{r:1.0, g:0.0, b:1.0},
-        uv: Vec2(1.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, -0.5, -0.5),
         color: Rgb{r:1.0, g:0.0, b:1.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(1.0, 1.0),
+    },
+    Vertex{
+        pos: Vec3(-0.5, -0.5, -0.5),
+        color: Rgb{r:1.0, g:0.0, b:1.0},
+        uv: Vec2(0.0, 1.0),
     },
     // neg z
     Vertex{
-        pos: Vec3(-0.5, 0.5, -0.5),
+        pos: Vec3(-0.5, -0.5, -0.5),
         color: Rgb{r:1.0, g:1.0, b:0.0},
         uv: Vec2(0.0, 0.0),
     },
     Vertex{
-        pos: Vec3(-0.5, -0.5, -0.5),
-        color: Rgb{r:1.0, g:1.0, b:0.0},
-        uv: Vec2(0.0, 1.0),
-    },
-    Vertex{
         pos: Vec3(0.5, -0.5, -0.5),
         color: Rgb{r:1.0, g:1.0, b:0.0},
-        uv: Vec2(1.0, 1.0),
+        uv: Vec2(1.0, 0.0),
     },
     Vertex{
         pos: Vec3(0.5, 0.5, -0.5),
         color: Rgb{r:1.0, g:1.0, b:0.0},
-        uv: Vec2(1.0, 0.0),
+        uv: Vec2(1.0, 1.0),
+    },
+    Vertex{
+        pos: Vec3(-0.5, 0.5, -0.5),
+        color: Rgb{r:1.0, g:1.0, b:0.0},
+        uv: Vec2(0.0, 1.0),
     },
 ];
 

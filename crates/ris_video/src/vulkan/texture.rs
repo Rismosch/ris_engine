@@ -14,9 +14,9 @@ use super::buffer::Buffer;
 use super::image::Image;
 
 pub struct Texture {
-    image: Image,
-    view: vk::ImageView,
-    sampler: vk::Sampler,
+    pub image: Image,
+    pub view: vk::ImageView,
+    pub sampler: vk::Sampler,
 }
 
 impl Texture {
