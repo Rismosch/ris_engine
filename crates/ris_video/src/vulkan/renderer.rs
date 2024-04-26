@@ -18,6 +18,7 @@ use ris_math::vector::Vec2;
 
 use super::buffer::Buffer;
 use super::frame_in_flight::FrameInFlight;
+use super::image::Image;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::swapchain_objects::SwapchainObjects;
@@ -41,8 +42,7 @@ pub struct Renderer {
     pub descriptor_pool: vk::DescriptorPool,
     pub swapchain_objects: SwapchainObjects,
     pub command_pool: vk::CommandPool,
-    //pub texture_image: vk::Image,
-    //pub texture_image_memory: vk::DeviceMemory,
+    pub texture: Texture,
     pub vertex_buffer: Buffer,
     pub index_buffer: Buffer,
     pub transient_command_pool: vk::CommandPool,
@@ -72,8 +72,9 @@ impl Drop for Renderer {
             self.device.destroy_descriptor_pool(self.descriptor_pool, None);
             self.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
-            self.vertex_buffer.free(&self.device);
             self.index_buffer.free(&self.device);
+            self.vertex_buffer.free(&self.device);
+            self.texture.free(&self.device);
 
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
@@ -195,6 +196,7 @@ impl Renderer {
         }
 
         let physical_device_features = vk::PhysicalDeviceFeatures {
+            sampler_anisotropy: vk::TRUE,
             ..Default::default()
         };
 
@@ -272,56 +274,20 @@ impl Renderer {
 
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
-        let device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+        let physical_device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+        let physical_device_properties = unsafe{instance.get_physical_device_properties(suitable_device.physical_device)};
 
-        // texture image
+        // texture
         let texture_asset_id = ris_asset::AssetId::Directory(String::from("__imported_raw/images/ris_engine.qoi"));
-        let texture_file_content = ris_asset::load_async(texture_asset_id).wait(None)??;
-        let (pixels, desc) = ris_asset::codecs::qoi::decode(&texture_file_content, None)?;
-        ris_log::debug!("{:?} {:?}", desc, &pixels[0..10]);
-
-        // texture is in rgb format. add alpha channel to make it rgba
-        ris_error::assert!(pixels.len() % 3 == 0)?;
-        let pixels_with_alpha_length = (pixels.len() * 4) / 3;
-        let mut pixels_with_alpha = Vec::with_capacity(pixels_with_alpha_length);
-        for chunk in pixels.chunks_exact(3) {
-            let r = chunk[0];
-            let g = chunk[1];
-            let b = chunk[2];
-            let a = u8::MAX;
-
-            pixels_with_alpha.push(r);
-            pixels_with_alpha.push(g);
-            pixels_with_alpha.push(b);
-            pixels_with_alpha.push(a);
-        }
-        let pixels = pixels_with_alpha;
-
-        let staging_buffer = Buffer::alloc(
-            &device,
-            pixels.len() as vk::DeviceSize,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            &device_memory_properties,
-        )?;
-
-        staging_buffer.write(
-            &device,
-            &pixels,
-        );
 
         let texture = Texture::alloc(
             &device,
-            desc.width,
-            desc.height,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageTiling::OPTIMAL,
-            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            &device_memory_properties,
+            &graphics_queue,
+            &transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            texture_asset_id,
         )?;
-
-        staging_buffer.free(&device);
 
         // vertex buffer
         let vertex_buffer_size = std::mem::size_of_val(&super::VERTICES) as vk::DeviceSize;
@@ -331,7 +297,7 @@ impl Renderer {
             vertex_buffer_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            &device_memory_properties,
+            physical_device_memory_properties,
         )?;
 
         staging_buffer.write(
@@ -344,14 +310,14 @@ impl Renderer {
             vertex_buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            &device_memory_properties,
+            physical_device_memory_properties,
         )?;
 
-        staging_buffer.copy_to(
-            &vertex_buffer,
+        staging_buffer.copy_to_buffer(
             &device,
             &graphics_queue,
             &transient_command_pool,
+            &vertex_buffer,
             vertex_buffer_size,
         )?;
 
@@ -366,7 +332,7 @@ impl Renderer {
             index_buffer_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            &device_memory_properties,
+            physical_device_memory_properties,
         )?;
 
         staging_buffer.write(
@@ -379,14 +345,14 @@ impl Renderer {
             index_buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            &device_memory_properties,
+            physical_device_memory_properties,
         )?;
 
-        staging_buffer.copy_to(
-            &index_buffer,
+        staging_buffer.copy_to_buffer(
             &device,
             &graphics_queue,
             &transient_command_pool,
+            &index_buffer,
             index_buffer_size,
         )?;
 
@@ -432,13 +398,12 @@ impl Renderer {
 
             // uniform buffer
             let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-            ris_log::debug!("aschmo {}", uniform_buffer_size);
             let uniform_buffer = Buffer::alloc(
                 &device,
                 uniform_buffer_size,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
                 vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                &device_memory_properties,
+                physical_device_memory_properties,
             )?;
             let uniform_buffer_mapped = unsafe{device.map_memory(
                 uniform_buffer.memory,
@@ -513,8 +478,7 @@ impl Renderer {
             descriptor_pool,
             swapchain_objects,
             command_pool,
-            //texture_image,
-            //texture_image_memory,
+            texture,
             vertex_buffer,
             index_buffer,
             transient_command_pool,

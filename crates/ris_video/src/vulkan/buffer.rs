@@ -21,7 +21,7 @@ impl Buffer {
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
         memory_property_flags: vk::MemoryPropertyFlags,
-        physical_device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
         let buffer_create_info = vk::BufferCreateInfo {
             s_type: vk::StructureType::BUFFER_CREATE_INFO,
@@ -40,7 +40,7 @@ impl Buffer {
         let memory_type_index = super::util::find_memory_type(
             memory_requirements.memory_type_bits,
             memory_property_flags,
-            physical_device_memory_properties,
+            &physical_device_memory_properties,
         )?.unroll()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
@@ -86,12 +86,12 @@ impl Buffer {
         Ok(())
     }
 
-    pub fn copy_to(
+    pub fn copy_to_buffer(
         &self,
-        dst: &Self,
         device: &ash::Device,
         queue: &vk::Queue,
         transient_command_pool: &vk::CommandPool,
+        dst: &Self,
         size: vk::DeviceSize,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(
@@ -100,7 +100,7 @@ impl Buffer {
             &transient_command_pool,
         )?;
 
-        let copy_reagions = [vk::BufferCopy {
+        let copy_regions = [vk::BufferCopy {
             src_offset: 0,
             dst_offset: 0,
             size,
@@ -110,12 +110,59 @@ impl Buffer {
             *transient_command.buffer(),
             self.buffer,
             dst.buffer,
-            &copy_reagions,
+            &copy_regions,
         )};
 
         transient_command.end_and_submit()?;
-
         Ok(())
+    }
 
+    pub fn copy_to_image(
+        &self,
+        device: &ash::Device,
+        queue: &vk::Queue,
+        transient_command_pool: &vk::CommandPool,
+        image: vk::Image,
+        width: u32,
+        height: u32,
+    ) -> RisResult<()> {
+        let transient_command = TransientCommand::begin(
+            &device,
+            &queue,
+            &transient_command_pool,
+        )?;
+
+        let regions = [vk::BufferImageCopy {
+            buffer_offset: 0,
+            buffer_row_length: 0,
+            buffer_image_height: 0,
+            image_subresource: vk::ImageSubresourceLayers {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                mip_level: 0,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+            image_offset: vk::Offset3D {
+                x: 0,
+                y: 0,
+                z: 0,
+            },
+            image_extent: vk::Extent3D {
+                width,
+                height,
+                depth: 1,
+            },
+        }];
+
+        unsafe{device.cmd_copy_buffer_to_image(
+            *transient_command.buffer(),
+            self.buffer,
+            image,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            &regions,
+        )};
+
+        transient_command.end_and_submit()?;
+        Ok(())
     }
 }
