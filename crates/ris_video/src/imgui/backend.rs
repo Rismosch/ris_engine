@@ -70,7 +70,7 @@ impl ImguiBackend {
 
         io.update_delta_time(frame.previous_duration());
 
-        let input = state.back.input.borrow();
+        let input = &state.input;
 
         // mouse input
         let x = input.mouse.wheel_xrel;

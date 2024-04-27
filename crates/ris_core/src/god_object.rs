@@ -58,7 +58,7 @@ pub struct GodObject {
     pub output_frame: OutputFrame,
     pub scenes: Scenes,
 
-    pub state: Arc<GodState>,
+    pub state: GodState,
 
     // guards, must be dropped last
     pub asset_loader_guard: AssetLoaderGuard,
@@ -134,16 +134,15 @@ impl GodObject {
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        //let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
         let output_frame = OutputFrame::new(window, renderer, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let state = GodState::new(settings);
+        let mut state = GodState::new(settings);
 
         {
-            let input = &mut state.front.input.borrow_mut();
+            let input = &mut state.input;
             input.keyboard.keymask[0] = Scancode::Return;
             input.keyboard.keymask[15] = Scancode::W;
             input.keyboard.keymask[16] = Scancode::S;
@@ -158,8 +157,6 @@ impl GodObject {
             input.keyboard.keymask[30] = Scancode::Kp4;
             input.keyboard.keymask[31] = Scancode::Kp6;
         }
-
-        state.copy_front_to_back();
 
         // god object
         let god_object = GodObject {

@@ -1,5 +1,4 @@
 use std::ptr;
-use std::sync::Arc;
 
 use ash::vk;
 use sdl2::video::Window;
@@ -15,9 +14,7 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
 use ris_math::matrix::Mat4;
-use ris_math::space::Space;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain_objects::SwapchainObjects;
@@ -74,8 +71,7 @@ impl OutputFrame {
     pub fn run(
         &mut self,
         frame: Frame,
-        state: Arc<GodState>,
-        logic_future: JobFuture<()>,
+        state: &mut GodState,
     ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
@@ -136,21 +132,11 @@ impl OutputFrame {
         };
 
         // update uniform buffer
-        let camera_position = *state.back.camera_position.borrow();
-        let camera_rotation = *state.back.camera_rotation.borrow();
-
-        let view = Space::view(
-            camera_position,
-            camera_rotation,
-        );
-
         let window_drawable_size = self.window.vulkan_drawable_size();
-        let fovy = ris_math::radians(60.);
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        let aspect_ratio = w / h;
-        let near = 0.01;
-        let far = 0.1;
-        let proj = Space::proj(fovy, aspect_ratio, near, far);
+        state.camera.aspect_ratio = w / h;
+        let view = state.camera.view_matrix();
+        let proj = state.camera.projection_matrix();
 
         let ubo = [UniformBufferObject {
             model: Mat4::init(1.0),
@@ -255,7 +241,7 @@ impl OutputFrame {
         let queue_present_result = unsafe{swapchain_loader.queue_present(*present_queue, &present_info)};
         let window_event = match queue_present_result {
             Ok(_) => {
-                *state.back.window_event.borrow()
+                state.window_event
             },
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
