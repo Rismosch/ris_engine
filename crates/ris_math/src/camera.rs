@@ -22,7 +22,7 @@ impl Default for Camera {
             fovy: super::radians(60.),
             aspect_ratio: 16. / 9.,
             near: 0.1,
-            far: 1.0,
+            far: 10.0,
         }
     }
 }
@@ -44,7 +44,7 @@ impl Camera {
         let default_rotation = Quat::from((0.5 * super::PI, Vec3::right()));
         let camera_rotation = self.rotation.conjugate();
         let rotation = default_rotation * camera_rotation;
-        let translation = -1. * self.position;
+        let translation = -1.0 * self.position;
 
         let translation_mat = affine::translation(translation);
         let rotation_mat = affine::rotation(rotation);
@@ -53,18 +53,14 @@ impl Camera {
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
-        let focal_length = 1. / super::tan(self.fovy / 2.);
-        let x = focal_length / self.aspect_ratio;
-        let y = focal_length;
-        let a = self.near / (self.far - self.near);
-        let b = self.far * a;
+        let tan_half_fovy = super::tan(self.fovy / 2.0);
 
         let mut mat = Mat4::init(0.0);
-        mat.0 .0 = x;
-        mat.1 .1 = y;
-        mat.2 .2 = a;
-        mat.3 .2 = b;
-        mat.2 .3 = 1.;
+        mat.0 .0 = 1.0 / (self.aspect_ratio * tan_half_fovy);
+        mat.1 .1 = 1.0 / tan_half_fovy;
+        mat.2 .2 = self.far / (self.far - self.near);
+        mat.2 .3 = 1.0;
+        mat.3 .2 = -(self.far * self.near) / (self.far - self.near);
 
         mat
     }
