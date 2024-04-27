@@ -16,6 +16,7 @@ use ris_data::god_state::WindowEvent;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
+use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain_objects::SwapchainObjects;
 use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
@@ -87,9 +88,11 @@ impl OutputFrame {
                 swapchain_loader,
                 swapchain,
                 swapchain_extent,
-                render_pass,
-                pipeline_layout,
-                graphics_pipeline,
+                graphics_pipeline : GraphicsPipeline {
+                    render_pass,
+                    layout,
+                    pipeline,
+                },
                 framebuffers,
                 ..
             },
@@ -179,7 +182,7 @@ impl OutputFrame {
         };
 
         unsafe{device.cmd_begin_render_pass(*command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
-        unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *graphics_pipeline)};
+        unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *pipeline)};
 
         let vertex_buffers = [vertex_buffer.buffer];
         let offsets = [0_u64];
@@ -189,7 +192,7 @@ impl OutputFrame {
         unsafe{device.cmd_bind_descriptor_sets(
             *command_buffer,
             vk::PipelineBindPoint::GRAPHICS,
-            *pipeline_layout,
+            *layout,
             0,
             &descriptor_sets,
             &[],
@@ -245,7 +248,6 @@ impl OutputFrame {
             },
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
-                    ris_log::fatal!("zwei");
                     let (width, height) = self.window.vulkan_drawable_size();
                     WindowEvent::SizeChanged(width, height)
                 },
@@ -254,7 +256,6 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            ris_log::fatal!("two");
             self.renderer.recreate_swapchain((width, height))?;
         }
 

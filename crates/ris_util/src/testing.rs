@@ -76,7 +76,7 @@ macro_rules! assert_bytes_eq {
     ($left:expr, $right:expr, $($arg:tt)*) => {{
         use ris_util::testing::BytesEqualResult;
 
-        let result = ris_util::testing::bytes_eq_detailed($left, $right);
+        let result = ris_util::testing::bytes_eq_detailed(&$left, &$right);
         match result {
             BytesEqualResult::Equal => (),
             BytesEqualResult::DifferentLengths => panic!(

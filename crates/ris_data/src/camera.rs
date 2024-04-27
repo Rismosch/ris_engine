@@ -29,10 +29,18 @@ impl Default for Camera {
 
 impl Camera {
     pub fn view_matrix(&self) -> Mat4 {
-        // my coordinate system is x => right, y => forward and z => upward.
-        // Vulkans coordinat system is x => right, y => down and z => forward.
-        // both are right handed coordinate systems, therefore all relationships are equal.
-        // only a single default rotation is necessary, to convert my system to vulkan.
+        // my coordinate system is
+        //  x => right
+        //  y => forward
+        //  z => upward
+        //
+        // vulkans coordinate system is
+        //  x => right
+        //  y => down
+        //  z => forward
+        //
+        //  a single rotation is sufficiant to translate one to the other
+
         let default_rotation = Quat::from((0.5 * ris_math::PI, Vec3::right()));
         let camera_rotation = self.rotation.conjugate();
         let rotation = default_rotation * camera_rotation;

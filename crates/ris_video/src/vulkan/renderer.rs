@@ -255,7 +255,7 @@ impl Renderer {
             &surface,
             &device,
             &suitable_device,
-            &descriptor_set_layout,
+            descriptor_set_layout,
             window.vulkan_drawable_size(),
         )?;
 
@@ -538,7 +538,7 @@ impl Renderer {
             &self.surface,
             &self.device,
             &self.suitable_device,
-            &self.descriptor_set_layout,
+            self.descriptor_set_layout,
             window_size,
         )?;
 

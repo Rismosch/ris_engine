@@ -1,27 +1,75 @@
-// OK LAB by Björn Ottoson: https://bottosson.github.io/posts/oklab/
-
 #![allow(clippy::excessive_precision)]
 
-use vulkano::buffer::BufferContents;
+use std::ops::Index;
+use std::ops::IndexMut;
 
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
-#[derive(Debug, Default, Clone, Copy, BufferContents)]
+//
+// constants
+//
+
+pub const MIN_NORM: f32 = 1.0 / 255.0;
+
+pub const RGB_BLACK: Rgb = Rgb (0.,0.,0.);
+pub const RGB_WHITE: Rgb = Rgb (1.,1.,1.);
+pub const RGB_RED: Rgb = Rgb (1.,0.,0.);
+pub const RGB_GREEN: Rgb = Rgb (0.,1.,0.);
+pub const RGB_BLUE: Rgb = Rgb (0.,0.,1.);
+pub const RGB_CYAN: Rgb = Rgb (0.,1.,1.);
+pub const RGB_MAGENTA: Rgb = Rgb (1.,0.,1.);
+pub const RGB_YELLOW: Rgb = Rgb (1.,1.,0.);
+
+//
+// traits
+//
+
+pub trait Color3: Default + From<Vec3> + IndexMut<usize, Output = f32> {}
+pub trait Color4: Default + From<Vec4> + IndexMut<usize, Output = f32> {}
+
+pub trait ByteColor3: Color3 {
+    fn from_bytes(bytes: [u8; 3]) -> Self;
+    fn to_bytes(self) -> [u8; 3];
+}
+
+pub trait ByteColor4: Color4 {
+    fn from_bytes(bytes: [u8; 4]) -> Self;
+    fn to_bytes(self) -> [u8; 4];
+}
+
+//
+// structs
+//
+
+/// r: red
+/// g: green
+/// b: blue
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Rgb(pub f32, pub f32, pub f32);
 
-#[derive(Debug, Default, Clone, Copy, BufferContents)]
+/// OK LAB by Björn Ottoson: https://bottosson.github.io/posts/oklab/
+///
+/// l: luminocity / preceived lightness
+/// a: how green/red the color is
+/// b: how blue/yellow the color is
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct OkLab(pub f32, pub f32, pub f32);
 
-#[derive(Debug, Default, Clone, Copy, BufferContents)]
+/// OK LAB by Björn Ottoson: https://bottosson.github.io/posts/oklab/
+///
+/// l: luminocity / preceived lightness
+/// c: chroma / saturation
+/// h: hue
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct OkLch(pub f32, pub f32, pub f32);
 
-#[derive(Debug, Default, Clone, Copy, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct Alpha<T>{
+pub struct Alpha<T: Color3>{
     pub color: T,
     pub alpha: f32,
 }
@@ -30,9 +78,56 @@ pub type Rgba = Alpha<Rgb>;
 pub type OkLaba = Alpha<OkLab>;
 pub type OkLcha = Alpha<OkLch>;
 
+impl Color3 for Rgb {}
+impl Color3 for OkLab {}
+impl Color3 for OkLch {}
+impl<T: Color3> Color4 for Alpha<T> {}
+
 //
 // constructors
 //
+
+impl ByteColor3 for Rgb {
+    fn from_bytes(bytes: [u8; 3]) -> Self {
+        Self (
+            bytes[0] as f32 / 255.0,
+            bytes[1] as f32 / 255.0,
+            bytes[2] as f32 / 255.0,
+        )
+    }
+
+    fn to_bytes(self) -> [u8; 3] {
+        [
+            (self.0 * 255.0) as u8,
+            (self.1 * 255.0) as u8,
+            (self.2 * 255.0) as u8,
+        ]
+    }
+}
+
+impl<T: ByteColor3> ByteColor4 for Alpha<T> {
+    fn from_bytes(bytes: [u8; 4]) -> Self {
+        Self {
+            color: T::from_bytes([
+                bytes[0],
+                bytes[1],
+                bytes[2],
+            ]),
+            alpha: bytes[3] as f32 / 255.0,
+        }
+    }
+
+    fn to_bytes(self) -> [u8; 4] {
+        let color_bytes = self.color.to_bytes();
+        let alpha_byte = (self.alpha * 255.0) as u8;
+        [
+            color_bytes[0],
+            color_bytes[1],
+            color_bytes[2],
+            alpha_byte
+        ]
+    }
+}
 
 impl From<Rgb> for OkLab {
     fn from(value: Rgb) -> Self {
@@ -169,7 +264,7 @@ impl From<OkLch> for Vec3 {
     }
 }
 
-impl<T: From<Vec3>> From<Vec4> for Alpha<T> {
+impl<T: Color3> From<Vec4> for Alpha<T> {
     fn from(value: Vec4) -> Self {
         let color = T::from(Vec3::from(value));
         let alpha = value.3;
@@ -181,7 +276,7 @@ impl<T: From<Vec3>> From<Vec4> for Alpha<T> {
     }
 }
 
-impl<T: Into<Vec3>> From<Alpha<T>> for Vec4 where Vec3: From<T> {
+impl<T: Color3> From<Alpha<T>> for Vec4 where Vec3: From<T> {
     fn from(value: Alpha<T>) -> Self {
         let vec3 = Vec3::from(value.color);
         let alpha = value.alpha;
@@ -277,6 +372,120 @@ impl OkLch {
     }
 }
 
+impl Index<usize> for Rgb {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl IndexMut<usize> for Rgb {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Index<usize> for OkLab {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl IndexMut<usize> for OkLab {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Index<usize> for OkLch {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl IndexMut<usize> for OkLch {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 3);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl<T: Color3> Index<usize> for Alpha<T> {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => self.index(0),
+            1 => self.index(1),
+            2 => self.index(2),
+            3 => &self.alpha,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl<T: Color3> IndexMut<usize> for Alpha<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => self.index_mut(0),
+            1 => self.index_mut(1),
+            2 => self.index_mut(2),
+            3 => &mut self.alpha,
+            _ => unreachable!(),
+        }
+    }
+}
+
 //
 // functions
 //
@@ -312,15 +521,3 @@ impl OkLch {
     }
 }
 
-//
-// constants
-//
-
-pub const RGB_BLACK: Rgb = Rgb (0.,0.,0.);
-pub const RGB_WHITE: Rgb = Rgb (1.,1.,1.);
-pub const RGB_RED: Rgb = Rgb (1.,0.,0.);
-pub const RGB_GREEN: Rgb = Rgb (0.,1.,0.);
-pub const RGB_BLUE: Rgb = Rgb (0.,0.,1.);
-pub const RGB_CYAN: Rgb = Rgb (0.,1.,1.);
-pub const RGB_MAGENTA: Rgb = Rgb (1.,0.,1.);
-pub const RGB_YELLOW: Rgb = Rgb (1.,1.,0.);
