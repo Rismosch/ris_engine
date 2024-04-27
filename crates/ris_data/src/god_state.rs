@@ -1,7 +1,5 @@
-use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
+use ris_math::camera::Camera;
 
-use crate::camera::Camera;
 use crate::input::Input;
 use crate::settings::Settings;
 

@@ -9,8 +9,10 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::graphics_pipeline::GraphicsPipeline;
+use super::image::Image;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
+use super::util;
 use super::vertex::Vertex;
 
 pub struct SwapchainObjects {
@@ -21,6 +23,8 @@ pub struct SwapchainObjects {
     pub swapchain_images: Vec<vk::Image>,
     pub swapchain_image_views: Vec<vk::ImageView>,
     pub graphics_pipeline: GraphicsPipeline,
+    pub depth_image: Image,
+    pub depth_image_view: vk::ImageView,
     pub framebuffers: Vec<vk::Framebuffer>,
 }
 
@@ -32,6 +36,9 @@ impl SwapchainObjects {
             }
 
             self.graphics_pipeline.free(device);
+
+            self.depth_image.free(device);
+            device.destroy_image_view(self.depth_image_view, None);
 
             for &swapchain_image_view in self.swapchain_image_views.iter() {
                 device.destroy_image_view(swapchain_image_view, None);
@@ -45,8 +52,10 @@ impl SwapchainObjects {
         instance: &ash::Instance,
         surface_loader: &ash::extensions::khr::Surface,
         surface: &vk::SurfaceKHR,
-        device: &ash::Device,
         suitable_device: &SuitableDevice,
+        device: &ash::Device,
+        queue: &vk::Queue,
+        transient_command_pool: &vk::CommandPool,
         descriptor_set_layout: vk::DescriptorSetLayout,
         window_size: (u32, u32),
     ) -> RisResult<Self> {
@@ -158,55 +167,78 @@ impl SwapchainObjects {
         // image views
         let mut swapchain_image_views = Vec::new();
         for swapchain_image in swapchain_images.iter() {
-            let image_view_create_info = vk::ImageViewCreateInfo {
-                s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::ImageViewCreateFlags::empty(),
-                image: *swapchain_image,
-                view_type: vk::ImageViewType::TYPE_2D,
-                format: surface_format.format,
-                components: vk::ComponentMapping {
-                    r: vk::ComponentSwizzle::IDENTITY,
-                    g: vk::ComponentSwizzle::IDENTITY,
-                    b: vk::ComponentSwizzle::IDENTITY,
-                    a: vk::ComponentSwizzle::IDENTITY,
-                },
-                subresource_range: vk::ImageSubresourceRange {
-                    aspect_mask: vk::ImageAspectFlags::COLOR,
-                    base_mip_level: 0,
-                    level_count: 1,
-                    base_array_layer: 0,
-                    layer_count: 1,
-                },
-            };
-
-            let image_view = unsafe {
-                device.create_image_view(&image_view_create_info, None)
-            }?;
+            let image_view = Image::alloc_view(
+                device,
+                *swapchain_image,
+                surface_format.format,
+                vk::ImageAspectFlags::COLOR,
+            )?;
 
             swapchain_image_views.push(image_view);
         }
 
         // graphics pipeline
         let graphics_pipeline = GraphicsPipeline::alloc(
+            instance,
+            suitable_device.physical_device,
             device,
             surface_format.format,
             swapchain_extent,
             descriptor_set_layout,
         )?;
 
+        // depth buffer
+        let depth_format = util::find_depth_format(
+            instance,
+            suitable_device.physical_device,
+        )?;
+
+        let physical_device_memory_properties = unsafe{
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let depth_image = Image::alloc(
+            device,
+            swapchain_extent.width,
+            swapchain_extent.height,
+            depth_format,
+            vk::ImageTiling::OPTIMAL,
+            vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+
+        let depth_image_view = Image::alloc_view(
+            device,
+            depth_image.image,
+            depth_format,
+            vk::ImageAspectFlags::DEPTH,
+        )?;
+
+        depth_image.transition_layout(
+            device,
+            queue,
+            transient_command_pool,
+            depth_format,
+            vk::ImageLayout::UNDEFINED,
+            vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        )?;
+
         // frame buffers
         let mut framebuffers = Vec::with_capacity(swapchain_image_views.len());
         for &swapchain_image_view in swapchain_image_views.iter() {
-            let image_view = [swapchain_image_view];
+            let attachments = [
+                swapchain_image_view,
+                depth_image_view,
+            ];
 
             let framebuffer_create_info = vk::FramebufferCreateInfo {
                 s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
                 p_next: ptr::null(),
                 flags: vk::FramebufferCreateFlags::empty(),
                 render_pass: graphics_pipeline.render_pass, 
-                attachment_count: image_view.len() as u32,
-                p_attachments: image_view.as_ptr(),
+                attachment_count: attachments.len() as u32,
+                p_attachments: attachments.as_ptr(),
                 width: swapchain_extent.width,
                 height: swapchain_extent.height,
                 layers: 1,
@@ -224,6 +256,8 @@ impl SwapchainObjects {
             swapchain_images,
             swapchain_image_views,
             graphics_pipeline,
+            depth_image,
+            depth_image_view,
             framebuffers,
         })
     }

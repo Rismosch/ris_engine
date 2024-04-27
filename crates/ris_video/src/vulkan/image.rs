@@ -9,6 +9,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::transient_command::TransientCommand;
+use super::util;
 
 pub struct Image {
     pub image: vk::Image,
@@ -24,7 +25,7 @@ impl Image {
         tiling: vk::ImageTiling,
         usage: vk::ImageUsageFlags,
         memory_property_flags: vk::MemoryPropertyFlags,
-        physical_device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
         let image_create_info = vk::ImageCreateInfo {
             s_type: vk::StructureType::IMAGE_CREATE_INFO,
@@ -80,6 +81,41 @@ impl Image {
         }
     }
 
+    pub fn alloc_view(
+        device: &ash::Device,
+        image: vk::Image,
+        format: vk::Format,
+        aspect_mask: vk::ImageAspectFlags,
+    ) -> RisResult<vk::ImageView> {
+        let image_view_create_info = vk::ImageViewCreateInfo {
+            s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::ImageViewCreateFlags::empty(),
+            image,
+            view_type: vk::ImageViewType::TYPE_2D,
+            format,
+            components: vk::ComponentMapping {
+                r: vk::ComponentSwizzle::IDENTITY,
+                g: vk::ComponentSwizzle::IDENTITY,
+                b: vk::ComponentSwizzle::IDENTITY,
+                a: vk::ComponentSwizzle::IDENTITY,
+            },
+            subresource_range: vk::ImageSubresourceRange {
+                aspect_mask,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+        };
+
+        let view = unsafe{
+            device.create_image_view(&image_view_create_info, None)
+        }?;
+
+        Ok(view)
+    }
+
     pub fn transition_layout(
         &self,
         device: &ash::Device,
@@ -90,6 +126,18 @@ impl Image {
         new_layout: vk::ImageLayout,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
+
+        let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
+            let mut aspect_mask = vk::ImageAspectFlags::DEPTH;
+
+            if util::has_stencil_component(format) {
+                aspect_mask |= vk::ImageAspectFlags::STENCIL;
+            } 
+
+            aspect_mask
+        } else {
+            vk::ImageAspectFlags::COLOR
+        };
 
         let (
             src_access_mask,
@@ -109,6 +157,12 @@ impl Image {
                 vk::PipelineStageFlags::TRANSFER,
                 vk::PipelineStageFlags::FRAGMENT_SHADER,
             ),
+            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL) => (
+                vk::AccessFlags::empty(),
+                vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+                vk::PipelineStageFlags::TOP_OF_PIPE,
+                vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            ),
             transition => return ris_error::new_result!(
                 "unsupported transition from {:?} to {:?}",
                 transition.0,
@@ -127,7 +181,7 @@ impl Image {
             dst_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
             image: self.image,
             subresource_range: vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
+                aspect_mask,
                 base_mip_level: 0,
                 level_count: 1,
                 base_array_layer: 0,

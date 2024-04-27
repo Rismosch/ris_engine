@@ -78,56 +78,9 @@ pub type Rgba = Alpha<Rgb>;
 pub type OkLaba = Alpha<OkLab>;
 pub type OkLcha = Alpha<OkLch>;
 
-impl Color3 for Rgb {}
-impl Color3 for OkLab {}
-impl Color3 for OkLch {}
-impl<T: Color3> Color4 for Alpha<T> {}
-
 //
 // constructors
 //
-
-impl ByteColor3 for Rgb {
-    fn from_bytes(bytes: [u8; 3]) -> Self {
-        Self (
-            bytes[0] as f32 / 255.0,
-            bytes[1] as f32 / 255.0,
-            bytes[2] as f32 / 255.0,
-        )
-    }
-
-    fn to_bytes(self) -> [u8; 3] {
-        [
-            (self.0 * 255.0) as u8,
-            (self.1 * 255.0) as u8,
-            (self.2 * 255.0) as u8,
-        ]
-    }
-}
-
-impl<T: ByteColor3> ByteColor4 for Alpha<T> {
-    fn from_bytes(bytes: [u8; 4]) -> Self {
-        Self {
-            color: T::from_bytes([
-                bytes[0],
-                bytes[1],
-                bytes[2],
-            ]),
-            alpha: bytes[3] as f32 / 255.0,
-        }
-    }
-
-    fn to_bytes(self) -> [u8; 4] {
-        let color_bytes = self.color.to_bytes();
-        let alpha_byte = (self.alpha * 255.0) as u8;
-        [
-            color_bytes[0],
-            color_bytes[1],
-            color_bytes[2],
-            alpha_byte
-        ]
-    }
-}
 
 impl From<Rgb> for OkLab {
     fn from(value: Rgb) -> Self {
@@ -521,3 +474,53 @@ impl OkLch {
     }
 }
 
+//
+// trait impls
+//
+
+impl Color3 for Rgb {}
+impl Color3 for OkLab {}
+impl Color3 for OkLch {}
+impl<T: Color3> Color4 for Alpha<T> {}
+
+impl ByteColor3 for Rgb {
+    fn from_bytes(bytes: [u8; 3]) -> Self {
+        Self (
+            bytes[0] as f32 / 255.0,
+            bytes[1] as f32 / 255.0,
+            bytes[2] as f32 / 255.0,
+        )
+    }
+
+    fn to_bytes(self) -> [u8; 3] {
+        [
+            (self.0 * 255.0) as u8,
+            (self.1 * 255.0) as u8,
+            (self.2 * 255.0) as u8,
+        ]
+    }
+}
+
+impl<T: ByteColor3> ByteColor4 for Alpha<T> {
+    fn from_bytes(bytes: [u8; 4]) -> Self {
+        Self {
+            color: T::from_bytes([
+                bytes[0],
+                bytes[1],
+                bytes[2],
+            ]),
+            alpha: bytes[3] as f32 / 255.0,
+        }
+    }
+
+    fn to_bytes(self) -> [u8; 4] {
+        let color_bytes = self.color.to_bytes();
+        let alpha_byte = (self.alpha * 255.0) as u8;
+        [
+            color_bytes[0],
+            color_bytes[1],
+            color_bytes[2],
+            alpha_byte
+        ]
+    }
+}

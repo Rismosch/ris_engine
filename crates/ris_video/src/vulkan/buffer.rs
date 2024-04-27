@@ -40,7 +40,7 @@ impl Buffer {
         let memory_type_index = super::util::find_memory_type(
             memory_requirements.memory_type_bits,
             memory_property_flags,
-            &physical_device_memory_properties,
+            physical_device_memory_properties,
         )?.unroll()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {

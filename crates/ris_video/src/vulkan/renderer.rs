@@ -1,32 +1,21 @@
 use std::ffi::CStr;
 use std::ffi::CString;
-use std::os::raw::c_void;
 use std::ptr;
 
 use ash::vk;
 use sdl2::video::Window;
 
-use ris_asset::AssetId;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_math::color::Rgb;
-use ris_math::matrix::Mat4;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec2;
 
 use super::buffer::Buffer;
 use super::frame_in_flight::FrameInFlight;
-use super::image::Image;
 use super::suitable_device::SuitableDevice;
-use super::surface_details::SurfaceDetails;
 use super::swapchain_objects::SwapchainObjects;
 use super::texture::Texture;
-use super::transient_command::TransientCommand;
 use super::uniform_buffer_object::UniformBufferObject;
-use super::util;
-use super::vertex::Vertex;
 
 pub struct Renderer {
     pub entry: ash::Entry,
@@ -40,8 +29,8 @@ pub struct Renderer {
     pub present_queue: vk::Queue,
     pub descriptor_set_layout: vk::DescriptorSetLayout,
     pub descriptor_pool: vk::DescriptorPool,
-    pub swapchain_objects: SwapchainObjects,
     pub command_pool: vk::CommandPool,
+    pub swapchain_objects: SwapchainObjects,
     pub texture: Texture,
     pub vertex_buffer: Buffer,
     pub index_buffer: Buffer,
@@ -64,10 +53,10 @@ impl Drop for Renderer {
                 frame_in_flight.uniform_buffer.free(&self.device);
             }
 
+            self.swapchain_objects.cleanup(&self.device);
+
             self.device.destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
-
-            self.swapchain_objects.cleanup(&self.device);
 
             self.device.destroy_descriptor_pool(self.descriptor_pool, None);
             self.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
@@ -175,6 +164,9 @@ impl Renderer {
             return ris_error::new_result!("no suitable hardware found to initialize vulkan renderer");
         };
 
+        let physical_device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
+        let physical_device_properties = unsafe{instance.get_physical_device_properties(suitable_device.physical_device)};
+
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(suitable_device.graphics_queue_family);
         unique_queue_families.insert(suitable_device.present_queue_family);
@@ -248,17 +240,6 @@ impl Renderer {
 
         let descriptor_set_layout = unsafe{device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)}?;
 
-        // swap chain
-        let swapchain_objects = SwapchainObjects::create(
-            &instance,
-            &surface_loader,
-            &surface,
-            &device,
-            &suitable_device,
-            descriptor_set_layout,
-            window.vulkan_drawable_size(),
-        )?;
-
         // command pool
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
@@ -286,8 +267,18 @@ impl Renderer {
 
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
-        let physical_device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
-        let physical_device_properties = unsafe{instance.get_physical_device_properties(suitable_device.physical_device)};
+        // swap chain
+        let swapchain_objects = SwapchainObjects::create(
+            &instance,
+            &surface_loader,
+            &surface,
+            &suitable_device,
+            &device,
+            &graphics_queue,
+            &transient_command_pool,
+            descriptor_set_layout,
+            window.vulkan_drawable_size(),
+        )?;
 
         // texture
         let texture_asset_id = ris_asset::AssetId::Directory(String::from("__imported_raw/images/profile_pic_2020_1000x1000.qoi"));
@@ -315,7 +306,7 @@ impl Renderer {
         staging_buffer.write(
             &device,
             &super::VERTICES,
-        );
+        )?;
 
         let vertex_buffer = Buffer::alloc(
             &device,
@@ -349,7 +340,7 @@ impl Renderer {
         staging_buffer.write(
             &device,
             &super::INDICES,
-        );
+        )?;
 
         let index_buffer = Buffer::alloc(
             &device,
@@ -516,8 +507,8 @@ impl Renderer {
             present_queue,
             descriptor_set_layout,
             descriptor_pool,
-            swapchain_objects,
             command_pool,
+            swapchain_objects,
             texture,
             vertex_buffer,
             index_buffer,
@@ -536,8 +527,10 @@ impl Renderer {
             &self.instance,
             &self.surface_loader,
             &self.surface,
-            &self.device,
             &self.suitable_device,
+            &self.device,
+            &self.graphics_queue,
+            &self.transient_command_pool,
             self.descriptor_set_layout,
             window_size,
         )?;
