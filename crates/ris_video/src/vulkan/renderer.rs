@@ -46,14 +46,10 @@ impl Drop for Renderer {
             self.device.device_wait_idle();
 
             for frame_in_flight in self.frames_in_flight.iter() {
-                self.device.destroy_fence(frame_in_flight.in_flight_fence, None);
-                self.device.destroy_semaphore(frame_in_flight.render_finished_semaphore, None);
-                self.device.destroy_semaphore(frame_in_flight.image_available_semaphore, None);
-
-                frame_in_flight.uniform_buffer.free(&self.device);
+                frame_in_flight.free(&self.device);
             }
 
-            self.swapchain_objects.cleanup(&self.device);
+            self.swapchain_objects.free(&self.device);
 
             self.device.destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
@@ -268,7 +264,7 @@ impl Renderer {
         let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
         // swap chain
-        let swapchain_objects = SwapchainObjects::create(
+        let swapchain_objects = SwapchainObjects::alloc(
             &instance,
             &surface_loader,
             &surface,
@@ -407,90 +403,13 @@ impl Renderer {
             let command_buffer = command_buffers[i];
             let descriptor_set = descriptor_sets[i];
 
-            // uniform buffer
-            let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-            let uniform_buffer = Buffer::alloc(
+            let frame_in_flight = FrameInFlight::alloc(
                 &device,
-                uniform_buffer_size,
-                vk::BufferUsageFlags::UNIFORM_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                physical_device_memory_properties,
-            )?;
-            let uniform_buffer_mapped = unsafe{device.map_memory(
-                uniform_buffer.memory,
-                0,
-                uniform_buffer_size,
-                vk::MemoryMapFlags::empty()
-            )}? as *mut UniformBufferObject;
-
-            // descriptor set
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                buffer: uniform_buffer.buffer,
-                offset: 0,
-                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
-            }];
-
-            let descriptor_image_info = [vk::DescriptorImageInfo {
-                sampler: texture.sampler,
-                image_view: texture.view,
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            }];
-
-            let write_descriptor_set = [
-                vk::WriteDescriptorSet {
-                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
-                    dst_set: descriptor_set,
-                    dst_binding: 0,
-                    dst_array_element: 0,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_image_info: ptr::null(),
-                    p_buffer_info: descriptor_buffer_info.as_ptr(),
-                    p_texel_buffer_view: ptr::null(),
-                },
-                vk::WriteDescriptorSet {
-                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
-                    dst_set: descriptor_set,
-                    dst_binding: 1,
-                    dst_array_element: 0,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: descriptor_image_info.as_ptr(),
-                    p_buffer_info: ptr::null(),
-                    p_texel_buffer_view: ptr::null(),
-                },
-            ];
-
-            unsafe{device.update_descriptor_sets(&write_descriptor_set, &[])};
-
-            // synchronization objects
-            let semaphore_create_info = vk::SemaphoreCreateInfo {
-                s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::SemaphoreCreateFlags::empty(),
-            };
-
-            let fence_create_info = vk::FenceCreateInfo {
-                s_type: vk::StructureType::FENCE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::FenceCreateFlags::SIGNALED,
-            };
-
-            let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-            let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-            let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
-
-            let frame_in_flight = FrameInFlight {
                 command_buffer,
                 descriptor_set,
-                uniform_buffer,
-                uniform_buffer_mapped,
-                image_available_semaphore,
-                render_finished_semaphore,
-                in_flight_fence,
-            };
+                physical_device_memory_properties,
+                &texture,
+            )?;
 
             frames_in_flight.push(frame_in_flight);
         }
@@ -522,8 +441,8 @@ impl Renderer {
 
         unsafe {self.device.device_wait_idle()}?;
 
-        self.swapchain_objects.cleanup(&self.device);
-        self.swapchain_objects = SwapchainObjects::create(
+        self.swapchain_objects.free(&self.device);
+        self.swapchain_objects = SwapchainObjects::alloc(
             &self.instance,
             &self.surface_loader,
             &self.surface,

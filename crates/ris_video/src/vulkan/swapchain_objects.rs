@@ -29,26 +29,7 @@ pub struct SwapchainObjects {
 }
 
 impl SwapchainObjects {
-    pub fn cleanup(&mut self, device: &ash::Device) {
-        unsafe {
-            for &framebuffer in self.framebuffers.iter() {
-                device.destroy_framebuffer(framebuffer, None);
-            }
-
-            self.graphics_pipeline.free(device);
-
-            self.depth_image.free(device);
-            device.destroy_image_view(self.depth_image_view, None);
-
-            for &swapchain_image_view in self.swapchain_image_views.iter() {
-                device.destroy_image_view(swapchain_image_view, None);
-            }
-
-            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
-        }
-    }
-
-    pub fn create(
+    pub fn alloc(
         instance: &ash::Instance,
         surface_loader: &ash::extensions::khr::Surface,
         surface: &vk::SurfaceKHR,
@@ -86,7 +67,7 @@ impl SwapchainObjects {
         let surface_present_mode = match preferred_surface_present_mode {
             Some(present_mode) => present_mode,
             // getting the first present mode if the preferred format does not exist. this should
-            // not cause ub, because we checked if the list is empty at finding the suitable device.
+            // not cause ub, because we checked if the lis is empty at finding the suitable device.
             None => unsafe{present_modes.get_unchecked(0)},
         };
 
@@ -260,5 +241,24 @@ impl SwapchainObjects {
             depth_image_view,
             framebuffers,
         })
+    }
+
+    pub fn free(&mut self, device: &ash::Device) {
+        unsafe {
+            for &framebuffer in self.framebuffers.iter() {
+                device.destroy_framebuffer(framebuffer, None);
+            }
+
+            self.graphics_pipeline.free(device);
+
+            self.depth_image.free(device);
+            device.destroy_image_view(self.depth_image_view, None);
+
+            for &swapchain_image_view in self.swapchain_image_views.iter() {
+                device.destroy_image_view(swapchain_image_view, None);
+            }
+
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+        }
     }
 }
