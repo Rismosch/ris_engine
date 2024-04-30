@@ -7,6 +7,7 @@ pub mod renderer;
 pub mod suitable_device;
 pub mod surface_details;
 pub mod swapchain_objects;
+pub mod synchronization;
 pub mod texture;
 pub mod transient_command;
 pub mod uniform_buffer_object;

@@ -17,10 +17,10 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::frame_in_flight::Synchronization;
 use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain_objects::SwapchainObjects;
+use ris_video::vulkan::synchronization::Synchronization;
 use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;

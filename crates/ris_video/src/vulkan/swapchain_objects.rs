@@ -9,11 +9,11 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::frame_in_flight::FrameInFlight;
-use super::frame_in_flight::Synchronization;
 use super::graphics_pipeline::GraphicsPipeline;
 use super::image::Image;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
+use super::synchronization::Synchronization;
 use super::texture::Texture;
 use super::util;
 use super::vertex::Vertex;
@@ -48,8 +48,8 @@ impl SwapchainObjects {
         descriptor_pool: vk::DescriptorPool,
         window_size: (u32, u32),
         texture: &Texture,
-        mut descriptor_sets: Option<Vec<vk::DescriptorSet>>,
-        mut synchronizations: Option<Vec<Synchronization>>,
+        descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+        synchronizations: Option<Vec<Synchronization>>,
     ) -> RisResult<Self> {
         let SurfaceDetails{
             capabilities,
