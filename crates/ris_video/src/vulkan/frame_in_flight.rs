@@ -12,14 +12,52 @@ use super::buffer::Buffer;
 use super::texture::Texture;
 use super::uniform_buffer_object::UniformBufferObject;
 
+pub struct Synchronization {
+    pub image_available: vk::Semaphore,
+    pub render_finished: vk::Semaphore,
+    pub in_flight: vk::Fence,
+}
+
+impl Synchronization {
+    pub fn alloc(device: &ash::Device) -> RisResult<Self> {
+        let semaphore_create_info = vk::SemaphoreCreateInfo {
+            s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::SemaphoreCreateFlags::empty(),
+        };
+
+        let fence_create_info = vk::FenceCreateInfo {
+            s_type: vk::StructureType::FENCE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FenceCreateFlags::SIGNALED,
+        };
+
+        let image_available = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+        let render_finished = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
+        let in_flight = unsafe{device.create_fence(&fence_create_info, None)}?;
+
+        Ok(Self{
+            image_available,
+            render_finished,
+            in_flight,
+        })
+    }
+
+    pub fn free(&self, device: &ash::Device) {
+        unsafe {
+            device.destroy_fence(self.in_flight, None);
+            device.destroy_semaphore(self.render_finished, None);
+            device.destroy_semaphore(self.image_available, None);
+        }
+    }
+}
+
 pub struct FrameInFlight {
     pub command_buffer: vk::CommandBuffer,
     pub uniform_buffer: Buffer,
     pub uniform_buffer_mapped: *mut UniformBufferObject,
     pub descriptor_set: vk::DescriptorSet,
-    pub image_available_semaphore: vk::Semaphore,
-    pub render_finished_semaphore: vk::Semaphore,
-    pub in_flight_fence: vk::Fence,
+    pub synchronization: Option<Synchronization>,
 }
 
 impl FrameInFlight {
@@ -29,6 +67,7 @@ impl FrameInFlight {
         descriptor_set: vk::DescriptorSet,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         texture: &Texture,
+        mut synchronization: Option<Synchronization>,
     ) -> RisResult<Self> {
         // uniform buffer
         let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
@@ -89,41 +128,26 @@ impl FrameInFlight {
         unsafe{device.update_descriptor_sets(&write_descriptor_set, &[])};
 
         // synchronization objects
-        let semaphore_create_info = vk::SemaphoreCreateInfo {
-            s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::SemaphoreCreateFlags::empty(),
+        let synchronization = match synchronization.take() {
+            Some(x) => x,
+            None => Synchronization::alloc(device)?,
         };
-
-        let fence_create_info = vk::FenceCreateInfo {
-            s_type: vk::StructureType::FENCE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::FenceCreateFlags::SIGNALED,
-        };
-
-        let image_available_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let render_finished_semaphore = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let in_flight_fence = unsafe{device.create_fence(&fence_create_info, None)}?;
+        let synchronization = Some(synchronization);
 
         Ok(FrameInFlight {
             command_buffer,
             descriptor_set,
             uniform_buffer,
             uniform_buffer_mapped,
-            image_available_semaphore,
-            render_finished_semaphore,
-            in_flight_fence,
+            synchronization,
         })
     }
 
-    pub fn free(
-        &self,
-        device: &ash::Device,
-    ) {
+    pub fn free(&self, device: &ash::Device) {
         unsafe {
-            device.destroy_fence(self.in_flight_fence, None);
-            device.destroy_semaphore(self.render_finished_semaphore, None);
-            device.destroy_semaphore(self.image_available_semaphore, None);
+            if let Some(synchronization) = &self.synchronization {
+                synchronization.free(device);
+            }
 
             self.uniform_buffer.free(device);
         }

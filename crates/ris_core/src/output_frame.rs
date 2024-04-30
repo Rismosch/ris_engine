@@ -13,9 +13,11 @@ use vulkano::sync::GpuFuture;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
+use ris_video::vulkan::frame_in_flight::Synchronization;
 use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain_objects::SwapchainObjects;
@@ -94,11 +96,11 @@ impl OutputFrame {
                     pipeline,
                 },
                 framebuffers,
+                frames_in_flight,
                 ..
             },
             vertex_buffer,
             index_buffer,
-            frames_in_flight,
             ..
         } = &self.renderer;
 
@@ -106,15 +108,18 @@ impl OutputFrame {
             command_buffer,
             uniform_buffer_mapped,
             descriptor_set,
-            image_available_semaphore,
-            render_finished_semaphore,
-            in_flight_fence,
+            synchronization,
             ..
         } = &frames_in_flight[self.current_frame];
+        let Synchronization { 
+            image_available,
+            render_finished,
+            in_flight,
+        } = synchronization.as_ref().unroll()?;
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
  
         // wait for the previous frame to finish
-        let fence = [*in_flight_fence];
+        let fence = [*in_flight];
         unsafe{device.wait_for_fences(&fence, true, u64::MAX)}?;
         unsafe{device.reset_fences(&fence)}?;
 
@@ -122,7 +127,7 @@ impl OutputFrame {
         let acquire_image_result = unsafe{swapchain_loader.acquire_next_image(
             *swapchain,
             u64::MAX,
-            *image_available_semaphore,
+            *image_available,
             vk::Fence::null(),
         )};
 
@@ -212,10 +217,10 @@ impl OutputFrame {
         unsafe{device.end_command_buffer(*command_buffer)}?;
 
         // submit the recorded command buffer
-        let wait_semaphores = [*image_available_semaphore];
+        let wait_semaphores = [*image_available];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = [*command_buffer];
-        let signal_semaphores = [*render_finished_semaphore];
+        let signal_semaphores = [*render_finished];
         
         let submit_infos = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
@@ -232,7 +237,7 @@ impl OutputFrame {
         unsafe{device.queue_submit(
             *graphics_queue,
             &submit_infos,
-            *in_flight_fence,
+            *in_flight,
         )}?;
 
         // present the swap chain image

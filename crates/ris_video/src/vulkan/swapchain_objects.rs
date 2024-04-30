@@ -8,10 +8,13 @@ use ris_asset::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use super::frame_in_flight::FrameInFlight;
+use super::frame_in_flight::Synchronization;
 use super::graphics_pipeline::GraphicsPipeline;
 use super::image::Image;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
+use super::texture::Texture;
 use super::util;
 use super::vertex::Vertex;
 
@@ -26,6 +29,9 @@ pub struct SwapchainObjects {
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
     pub framebuffers: Vec<vk::Framebuffer>,
+
+    pub command_buffers: Vec<vk::CommandBuffer>,
+    pub frames_in_flight: Vec<FrameInFlight>,
 }
 
 impl SwapchainObjects {
@@ -38,7 +44,12 @@ impl SwapchainObjects {
         queue: &vk::Queue,
         transient_command_pool: &vk::CommandPool,
         descriptor_set_layout: vk::DescriptorSetLayout,
+        command_pool: vk::CommandPool,
+        descriptor_pool: vk::DescriptorPool,
         window_size: (u32, u32),
+        texture: &Texture,
+        mut descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+        mut synchronizations: Option<Vec<Synchronization>>,
     ) -> RisResult<Self> {
         let SurfaceDetails{
             capabilities,
@@ -229,6 +240,65 @@ impl SwapchainObjects {
             framebuffers.push(framebuffer);
         }
 
+        // frames in flight
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            command_pool,
+            level: vk::CommandBufferLevel::PRIMARY,
+            command_buffer_count: super::MAX_FRAMES_IN_FLIGHT as u32,
+        };
+
+        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+
+        let descriptor_sets = match descriptor_sets {
+            Some(x) => x,
+            None => {
+                let mut descriptor_set_layouts = Vec::with_capacity(command_buffers.len());
+                for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
+                    descriptor_set_layouts.push(descriptor_set_layout);
+                }
+
+                let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
+                    s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
+                    p_next: ptr::null(),
+                    descriptor_pool,
+                    descriptor_set_count: descriptor_set_layouts.len() as u32,
+                    p_set_layouts: descriptor_set_layouts.as_ptr(),
+                };
+
+                unsafe{device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?
+            }
+        };
+
+        let mut descriptor_sets = descriptor_sets
+            .into_iter()
+            .map(|x| Some(x))
+            .collect::<Vec<_>>();
+
+        let mut synchronizations: Vec<_> = match synchronizations {
+            Some(x) => x.into_iter().map(|x| Some(x)).collect(),
+            None => (0..super::MAX_FRAMES_IN_FLIGHT).into_iter().map(|_| None).collect()
+        };
+
+        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
+        for i in 0..super::MAX_FRAMES_IN_FLIGHT {
+            let command_buffer = command_buffers[i];
+            let descriptor_set = descriptor_sets[i].take().unroll()?;
+            let synchronization = synchronizations[i].take();
+
+            let frame_in_flight = FrameInFlight::alloc(
+                &device,
+                command_buffer,
+                descriptor_set,
+                physical_device_memory_properties,
+                &texture,
+                synchronization,
+            )?;
+
+            frames_in_flight.push(frame_in_flight);
+        }
+
         Ok(Self{
             swapchain_loader,
             swapchain,
@@ -240,19 +310,27 @@ impl SwapchainObjects {
             depth_image,
             depth_image_view,
             framebuffers,
+            command_buffers,
+            frames_in_flight,
         })
     }
 
-    pub fn free(&mut self, device: &ash::Device) {
+    pub fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
         unsafe {
+            self.depth_image.free(device);
+            device.destroy_image_view(self.depth_image_view, None);
+
+            device.free_command_buffers(command_pool, &self.command_buffers);
+
+            for frame_in_flight in self.frames_in_flight.iter() {
+                frame_in_flight.free(device);
+            }
+
             for &framebuffer in self.framebuffers.iter() {
                 device.destroy_framebuffer(framebuffer, None);
             }
 
             self.graphics_pipeline.free(device);
-
-            self.depth_image.free(device);
-            device.destroy_image_view(self.depth_image_view, None);
 
             for &swapchain_image_view in self.swapchain_image_views.iter() {
                 device.destroy_image_view(swapchain_image_view, None);
