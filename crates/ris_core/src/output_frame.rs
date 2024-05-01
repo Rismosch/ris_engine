@@ -19,8 +19,9 @@ use ris_math::matrix::Mat4;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
-use ris_video::vulkan::swapchain_objects::SwapchainObjects;
-use ris_video::vulkan::synchronization::Synchronization;
+use ris_video::vulkan::swapchain::BaseSwapchain;
+use ris_video::vulkan::swapchain::Swapchain;
+use ris_video::vulkan::swapchain::SwapchainEntry;
 use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;
@@ -37,7 +38,6 @@ pub struct OutputFrame {
     //recreate_swapchain: bool,
 
     current_frame: usize,
-    //fences: Vec<Option<Arc<Fence>>>,
     //imgui: RisImgui,
 
     ui_helper: UiHelper,
@@ -54,16 +54,9 @@ impl OutputFrame {
         //imgui: RisImgui,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
-        //let frames_in_flight = renderer.get_image_count();
-        //let mut fences = Vec::with_capacity(frames_in_flight);
-        //for _ in 0..frames_in_flight {
-        //    fences.push(None);
-        //}
-
         Ok(Self {
             //recreate_swapchain: false,
             current_frame: 0,
-            //fences,
             //imgui,
             ui_helper,
             renderer,
@@ -86,16 +79,19 @@ impl OutputFrame {
             device,
             graphics_queue,
             present_queue,
-            swapchain_objects: SwapchainObjects{
-                swapchain_loader,
-                swapchain,
-                swapchain_extent,
+            swapchain: Swapchain{
+                base: BaseSwapchain {
+                    extent: swapchain_extent,
+                    loader: swapchain_loader,
+                    swapchain,
+                    ..
+                },
                 graphics_pipeline : GraphicsPipeline {
                     render_pass,
                     layout,
                     pipeline,
                 },
-                framebuffers,
+                entries: swapchain_entries,
                 frames_in_flight,
                 ..
             },
@@ -104,18 +100,13 @@ impl OutputFrame {
             ..
         } = &self.renderer;
 
+        let frames_in_flight = frames_in_flight.as_ref().unroll()?;
+
         let FrameInFlight {
-            command_buffer,
-            uniform_buffer_mapped,
-            descriptor_set,
-            synchronization,
-            ..
-        } = &frames_in_flight[self.current_frame];
-        let Synchronization { 
             image_available,
             render_finished,
             in_flight,
-        } = synchronization.as_ref().unroll()?;
+        } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
  
         // wait for the previous frame to finish
@@ -138,6 +129,16 @@ impl OutputFrame {
                 vk_result => return ris_error::new_result!("failed to acquire chain image: {}", vk_result),
             },
         };
+
+        let SwapchainEntry {
+            image,
+            image_view,
+            uniform_buffer,
+            uniform_buffer_mapped,
+            descriptor_set,
+            framebuffer,
+            command_buffer,
+        } = &swapchain_entries[image_index as usize];
 
         // update uniform buffer
         let window_drawable_size = self.window.vulkan_drawable_size();
@@ -185,7 +186,7 @@ impl OutputFrame {
             s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
             p_next: ptr::null(),
             render_pass: *render_pass,
-            framebuffer: framebuffers[image_index as usize],
+            framebuffer: *framebuffer,
             render_area: vk::Rect2D{
                 offset: vk::Offset2D {x: 0, y: 0},
                 extent: *swapchain_extent,

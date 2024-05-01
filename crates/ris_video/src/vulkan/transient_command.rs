@@ -9,8 +9,8 @@ use ris_error::RisResult;
 
 pub struct TransientCommand<'a> {
     device: &'a ash::Device,
-    queue: &'a vk::Queue,
-    command_pool: &'a vk::CommandPool,
+    queue: vk::Queue,
+    command_pool: vk::CommandPool,
     command_buffers: Vec<vk::CommandBuffer>,
 }
 
@@ -25,11 +25,11 @@ impl<'a> Drop for TransientCommand<'a> {
 
         unsafe {
             ris_error::unwrap!(
-                device.queue_wait_idle(**queue),
+                device.queue_wait_idle(*queue),
                 "failed to queue wait idle",
             );
 
-            device.free_command_buffers(**command_pool, command_buffers);
+            device.free_command_buffers(*command_pool, command_buffers);
         }
     }
 }
@@ -37,13 +37,13 @@ impl<'a> Drop for TransientCommand<'a> {
 impl<'a> TransientCommand<'a> {
     pub fn begin(
         device: &'a ash::Device,
-        queue: &'a vk::Queue,
-        command_pool: &'a vk::CommandPool) -> RisResult<Self> {
+        queue: vk::Queue,
+        command_pool: vk::CommandPool) -> RisResult<Self> {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
             p_next: ptr::null(),
             command_buffer_count: 1,
-            command_pool: *command_pool,
+            command_pool,
             level: vk::CommandBufferLevel::PRIMARY,
         };
 
@@ -94,7 +94,7 @@ impl<'a> TransientCommand<'a> {
             p_signal_semaphores: ptr::null(),
         }];
 
-        unsafe {device.queue_submit(**queue, &submit_info, vk::Fence::null())}?;
+        unsafe {device.queue_submit(*queue, &submit_info, vk::Fence::null())}?;
 
         Ok(())
     }

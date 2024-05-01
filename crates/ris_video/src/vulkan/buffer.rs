@@ -89,15 +89,15 @@ impl Buffer {
     pub fn copy_to_buffer(
         &self,
         device: &ash::Device,
-        queue: &vk::Queue,
-        transient_command_pool: &vk::CommandPool,
+        queue: vk::Queue,
+        transient_command_pool: vk::CommandPool,
         dst: &Self,
         size: vk::DeviceSize,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(
             &device,
-            &queue,
-            &transient_command_pool,
+            queue,
+            transient_command_pool,
         )?;
 
         let copy_regions = [vk::BufferCopy {
@@ -120,16 +120,16 @@ impl Buffer {
     pub fn copy_to_image(
         &self,
         device: &ash::Device,
-        queue: &vk::Queue,
-        transient_command_pool: &vk::CommandPool,
+        queue: vk::Queue,
+        transient_command_pool: vk::CommandPool,
         image: vk::Image,
         width: u32,
         height: u32,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(
             &device,
-            &queue,
-            &transient_command_pool,
+            queue,
+            transient_command_pool,
         )?;
 
         let regions = [vk::BufferImageCopy {

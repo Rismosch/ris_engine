@@ -13,7 +13,8 @@ use ris_error::RisResult;
 use super::buffer::Buffer;
 use super::frame_in_flight::FrameInFlight;
 use super::suitable_device::SuitableDevice;
-use super::swapchain_objects::SwapchainObjects;
+use super::swapchain::BaseSwapchain;
+use super::swapchain::Swapchain;
 use super::texture::Texture;
 use super::uniform_buffer_object::UniformBufferObject;
 
@@ -31,7 +32,7 @@ pub struct Renderer {
     pub descriptor_pool: vk::DescriptorPool,
     pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
-    pub swapchain_objects: SwapchainObjects,
+    pub swapchain: Swapchain,
     pub texture: Texture,
     pub vertex_buffer: Buffer,
     pub index_buffer: Buffer,
@@ -44,7 +45,7 @@ impl Drop for Renderer {
         unsafe {
             self.device.device_wait_idle();
 
-            self.swapchain_objects.free(&self.device, self.command_pool);
+            self.swapchain.free(&self.device, self.command_pool);
 
             self.device.destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
@@ -228,29 +229,6 @@ impl Renderer {
 
         let descriptor_set_layout = unsafe{device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)}?;
 
-        // descriptor pool
-        let descriptor_pool_sizes = [
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: super::MAX_FRAMES_IN_FLIGHT as u32,
-            },
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: super::MAX_FRAMES_IN_FLIGHT as u32,
-            }
-        ];
-
-        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
-            s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: super::MAX_FRAMES_IN_FLIGHT as u32,
-            pool_size_count: descriptor_pool_sizes.len() as u32,
-            p_pool_sizes: descriptor_pool_sizes.as_ptr(),
-        };
-
-        let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
-
         // command pool
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
@@ -273,8 +251,8 @@ impl Renderer {
 
         let texture = Texture::alloc(
             &device,
-            &graphics_queue,
-            &transient_command_pool,
+            graphics_queue,
+            transient_command_pool,
             physical_device_memory_properties,
             physical_device_properties,
             texture_asset_id,
@@ -306,8 +284,8 @@ impl Renderer {
 
         staging_buffer.copy_to_buffer(
             &device,
-            &graphics_queue,
-            &transient_command_pool,
+            graphics_queue,
+            transient_command_pool,
             &vertex_buffer,
             vertex_buffer_size,
         )?;
@@ -340,8 +318,8 @@ impl Renderer {
 
         staging_buffer.copy_to_buffer(
             &device,
-            &graphics_queue,
-            &transient_command_pool,
+            graphics_queue,
+            transient_command_pool,
             &index_buffer,
             index_buffer_size,
         )?;
@@ -349,19 +327,55 @@ impl Renderer {
         staging_buffer.free(&device);
 
         // swap chain
-        let swapchain_objects = SwapchainObjects::alloc(
+        let (base_swapchain, swapchain_images) = BaseSwapchain::alloc(
             &instance,
             &surface_loader,
             &surface,
             &suitable_device,
             &device,
-            &graphics_queue,
-            &transient_command_pool,
-            descriptor_set_layout,
+            window.vulkan_drawable_size(),
+        )?;
+
+        let swapchain_entry_count = swapchain_images.len();
+
+        // descriptor pool
+        let descriptor_pool_sizes = [
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: swapchain_entry_count as u32,
+            },
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: swapchain_entry_count as u32,
+            }
+        ];
+
+        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorPoolCreateFlags::empty(),
+            max_sets: swapchain_entry_count as u32,
+            pool_size_count: descriptor_pool_sizes.len() as u32,
+            p_pool_sizes: descriptor_pool_sizes.as_ptr(),
+        };
+
+        let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+
+        let swapchain = Swapchain::alloc(
+            &instance,
+            &surface_loader,
+            surface,
+            &suitable_device,
+            &device,
+            graphics_queue,
             command_pool,
+            transient_command_pool,
+            descriptor_set_layout,
             descriptor_pool,
             window.vulkan_drawable_size(),
             &texture,
+            base_swapchain,
+            swapchain_images,
             None,
             None,
         )?;
@@ -380,7 +394,7 @@ impl Renderer {
             descriptor_pool,
             command_pool,
             transient_command_pool,
-            swapchain_objects,
+            swapchain,
             texture,
             vertex_buffer,
             index_buffer,
@@ -392,36 +406,7 @@ impl Renderer {
 
         unsafe {self.device.device_wait_idle()}?;
 
-        let mut descriptor_sets = Vec::new();
-        let mut synchronizations = Vec::new();
-        for frame_in_flight in self.swapchain_objects.frames_in_flight.iter_mut() {
-            let descriptor_set = frame_in_flight.descriptor_set;
-            let synchronization = frame_in_flight.synchronization.take().unroll()?;
-
-            descriptor_sets.push(descriptor_set);
-            synchronizations.push(synchronization);
-        }
-
-        let descriptor_sets = Some(descriptor_sets);
-        let synchronizations = Some(synchronizations);
-
-        self.swapchain_objects.free(&self.device, self.command_pool);
-        self.swapchain_objects = SwapchainObjects::alloc(
-            &self.instance,
-            &self.surface_loader,
-            &self.surface,
-            &self.suitable_device,
-            &self.device,
-            &self.graphics_queue,
-            &self.transient_command_pool,
-            self.descriptor_set_layout,
-            self.command_pool,
-            self.descriptor_pool,
-            window_size,
-            &self.texture,
-            descriptor_sets,
-            synchronizations,
-        )?;
+        self.swapchain = Swapchain::recreate(self, window_size)?;
 
         ris_log::trace!("swapchain recreated!");
 

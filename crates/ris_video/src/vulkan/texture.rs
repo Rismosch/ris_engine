@@ -22,8 +22,8 @@ pub struct Texture {
 impl Texture {
     pub fn alloc(
         device: &ash::Device,
-        queue: &vk::Queue,
-        transient_command_pool: &vk::CommandPool,
+        queue: vk::Queue,
+        transient_command_pool: vk::CommandPool,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         physical_device_properties: vk::PhysicalDeviceProperties,
         asset_id: AssetId,
@@ -84,8 +84,8 @@ impl Texture {
 
         image.transition_layout(
             &device,
-            &queue,
-            &transient_command_pool,
+            queue,
+            transient_command_pool,
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageLayout::UNDEFINED,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -93,8 +93,8 @@ impl Texture {
 
         staging_buffer.copy_to_image(
             &device,
-            &queue,
-            &transient_command_pool,
+            queue,
+            transient_command_pool,
             image.image,
             desc.width,
             desc.height,
@@ -102,8 +102,8 @@ impl Texture {
 
         image.transition_layout(
             &device,
-            &queue,
-            &transient_command_pool,
+            queue,
+            transient_command_pool,
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,

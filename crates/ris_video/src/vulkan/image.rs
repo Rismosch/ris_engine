@@ -119,8 +119,8 @@ impl Image {
     pub fn transition_layout(
         &self,
         device: &ash::Device,
-        queue: &vk::Queue,
-        transient_command_pool: &vk::CommandPool,
+        queue: vk::Queue,
+        transient_command_pool: vk::CommandPool,
         format: vk::Format,
         old_layout: vk::ImageLayout,
         new_layout: vk::ImageLayout,
