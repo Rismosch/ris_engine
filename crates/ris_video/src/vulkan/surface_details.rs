@@ -25,7 +25,7 @@ impl SurfaceDetails {
             surface_loader.get_physical_device_surface_present_modes(physical_device, surface)
         }?;
 
-        Ok(Self{
+        Ok(Self {
             capabilities,
             formats,
             present_modes,

@@ -12,14 +12,14 @@ use crate::vector::Vec4;
 
 pub const MIN_NORM: f32 = 1.0 / 255.0;
 
-pub const RGB_BLACK: Rgb = Rgb (0.,0.,0.);
-pub const RGB_WHITE: Rgb = Rgb (1.,1.,1.);
-pub const RGB_RED: Rgb = Rgb (1.,0.,0.);
-pub const RGB_GREEN: Rgb = Rgb (0.,1.,0.);
-pub const RGB_BLUE: Rgb = Rgb (0.,0.,1.);
-pub const RGB_CYAN: Rgb = Rgb (0.,1.,1.);
-pub const RGB_MAGENTA: Rgb = Rgb (1.,0.,1.);
-pub const RGB_YELLOW: Rgb = Rgb (1.,1.,0.);
+pub const RGB_BLACK: Rgb = Rgb(0., 0., 0.);
+pub const RGB_WHITE: Rgb = Rgb(1., 1., 1.);
+pub const RGB_RED: Rgb = Rgb(1., 0., 0.);
+pub const RGB_GREEN: Rgb = Rgb(0., 1., 0.);
+pub const RGB_BLUE: Rgb = Rgb(0., 0., 1.);
+pub const RGB_CYAN: Rgb = Rgb(0., 1., 1.);
+pub const RGB_MAGENTA: Rgb = Rgb(1., 0., 1.);
+pub const RGB_YELLOW: Rgb = Rgb(1., 1., 0.);
 
 //
 // traits
@@ -69,7 +69,7 @@ pub struct OkLch(pub f32, pub f32, pub f32);
 
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct Alpha<T: Color3>{
+pub struct Alpha<T: Color3> {
     pub color: T,
     pub alpha: f32,
 }
@@ -94,7 +94,7 @@ impl From<Rgb> for OkLab {
         let m_ = crate::cbrt(m);
         let s_ = crate::cbrt(s);
 
-        Self (
+        Self(
             0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
             1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
             0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
@@ -114,7 +114,7 @@ impl From<OkLab> for Rgb {
         let m = m_ * m_ * m_;
         let s = s_ * s_ * s_;
 
-        Self (
+        Self(
             4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
             -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
             -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
@@ -138,7 +138,7 @@ impl From<OkLab> for OkLch {
         let c = crate::sqrt(value.1 * value.1 + value.2 * value.2);
         let h = crate::atan2(value.2, value.1);
 
-        Self (l, c, h)
+        Self(l, c, h)
     }
 }
 
@@ -164,7 +164,7 @@ impl Rgba {
 }
 
 impl OkLaba {
-    pub fn new (l: f32, a: f32, b: f32, alpha: f32) -> Self {
+    pub fn new(l: f32, a: f32, b: f32, alpha: f32) -> Self {
         Self {
             color: OkLab(l, a, b),
             alpha,
@@ -173,7 +173,7 @@ impl OkLaba {
 }
 
 impl OkLcha {
-    pub fn new (l: f32, c: f32, h: f32, alpha: f32) -> Self {
+    pub fn new(l: f32, c: f32, h: f32, alpha: f32) -> Self {
         Self {
             color: OkLch(l, c, h),
             alpha,
@@ -222,23 +222,18 @@ impl<T: Color3> From<Vec4> for Alpha<T> {
         let color = T::from(Vec3::from(value));
         let alpha = value.3;
 
-        Self {
-            color,
-            alpha,
-        }
+        Self { color, alpha }
     }
 }
 
-impl<T: Color3> From<Alpha<T>> for Vec4 where Vec3: From<T> {
+impl<T: Color3> From<Alpha<T>> for Vec4
+where
+    Vec3: From<T>,
+{
     fn from(value: Alpha<T>) -> Self {
         let vec3 = Vec3::from(value.color);
         let alpha = value.alpha;
-        Self(
-            vec3.0,
-            vec3.1,
-            vec3.2,
-            alpha,
-        )
+        Self(vec3.0, vec3.1, vec3.2, alpha)
     }
 }
 
@@ -297,7 +292,6 @@ impl OkLab {
         self.2 = b;
     }
 }
-
 
 impl OkLch {
     pub fn l(self) -> f32 {
@@ -449,28 +443,19 @@ impl Rgb {
     }
 
     pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha {
-            color: self,
-            alpha,
-        }
+        Alpha { color: self, alpha }
     }
 }
 
 impl OkLab {
     pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha {
-            color: self,
-            alpha,
-        }
+        Alpha { color: self, alpha }
     }
 }
 
 impl OkLch {
     pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha {
-            color: self,
-            alpha,
-        }
+        Alpha { color: self, alpha }
     }
 }
 
@@ -485,7 +470,7 @@ impl<T: Color3> Color4 for Alpha<T> {}
 
 impl ByteColor3 for Rgb {
     fn from_bytes(bytes: [u8; 3]) -> Self {
-        Self (
+        Self(
             bytes[0] as f32 / 255.0,
             bytes[1] as f32 / 255.0,
             bytes[2] as f32 / 255.0,
@@ -504,11 +489,7 @@ impl ByteColor3 for Rgb {
 impl<T: ByteColor3> ByteColor4 for Alpha<T> {
     fn from_bytes(bytes: [u8; 4]) -> Self {
         Self {
-            color: T::from_bytes([
-                bytes[0],
-                bytes[1],
-                bytes[2],
-            ]),
+            color: T::from_bytes([bytes[0], bytes[1], bytes[2]]),
             alpha: bytes[3] as f32 / 255.0,
         }
     }
@@ -516,11 +497,6 @@ impl<T: ByteColor3> ByteColor4 for Alpha<T> {
     fn to_bytes(self) -> [u8; 4] {
         let color_bytes = self.color.to_bytes();
         let alpha_byte = (self.alpha * 255.0) as u8;
-        [
-            color_bytes[0],
-            color_bytes[1],
-            color_bytes[2],
-            alpha_byte
-        ]
+        [color_bytes[0], color_bytes[1], color_bytes[2], alpha_byte]
     }
 }

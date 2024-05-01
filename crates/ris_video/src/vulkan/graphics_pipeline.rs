@@ -61,28 +61,29 @@ impl GraphicsPipeline {
             layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         }];
 
-        let subpass_descriptions = [
-            vk::SubpassDescription {
-                flags: vk::SubpassDescriptionFlags::empty(),
-                pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
-                input_attachment_count: 0,
-                p_input_attachments: ptr::null(),
-                color_attachment_count: color_attachment_references.len() as u32,
-                p_color_attachments: color_attachment_references.as_ptr(),
-                p_resolve_attachments: ptr::null(),
-                p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
-                preserve_attachment_count: 0,
-                p_preserve_attachments: ptr::null(),
-            },
-        ];
+        let subpass_descriptions = [vk::SubpassDescription {
+            flags: vk::SubpassDescriptionFlags::empty(),
+            pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
+            input_attachment_count: 0,
+            p_input_attachments: ptr::null(),
+            color_attachment_count: color_attachment_references.len() as u32,
+            p_color_attachments: color_attachment_references.as_ptr(),
+            p_resolve_attachments: ptr::null(),
+            p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
+            preserve_attachment_count: 0,
+            p_preserve_attachments: ptr::null(),
+        }];
 
         let supbass_dependencies = [vk::SubpassDependency {
             src_subpass: vk::SUBPASS_EXTERNAL,
             dst_subpass: 0,
-            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
-            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
             src_access_mask: vk::AccessFlags::empty(),
-            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_WRITE | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
             dependency_flags: vk::DependencyFlags::empty(),
         }];
 
@@ -100,11 +101,13 @@ impl GraphicsPipeline {
             p_dependencies: supbass_dependencies.as_ptr(),
         };
 
-        let render_pass = unsafe{device.create_render_pass(&render_pass_create_info, None)}?;
+        let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;
 
         // shaders
-        let vs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/default.vert.spv"));
-        let fs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/default.frag.spv"));
+        let vs_asset_id =
+            AssetId::Directory(String::from("__imported_raw/shaders/default.vert.spv"));
+        let fs_asset_id =
+            AssetId::Directory(String::from("__imported_raw/shaders/default.frag.spv"));
 
         let vs_asset_future = ris_asset::load_async(vs_asset_id);
         let fs_asset_future = ris_asset::load_async(fs_asset_id);
@@ -132,8 +135,10 @@ impl GraphicsPipeline {
             p_code: fs_bytes.as_ptr() as *const u32,
         };
 
-        let vs_shader_module = unsafe{device.create_shader_module(&vs_shader_module_create_info, None)}?;
-        let fs_shader_module = unsafe{device.create_shader_module(&fs_shader_module_create_info, None)}?;
+        let vs_shader_module =
+            unsafe { device.create_shader_module(&vs_shader_module_create_info, None) }?;
+        let fs_shader_module =
+            unsafe { device.create_shader_module(&fs_shader_module_create_info, None) }?;
 
         let main_function_name = CString::new("main").unwrap();
 
@@ -190,7 +195,7 @@ impl GraphicsPipeline {
         }];
 
         let scissors = [vk::Rect2D {
-            offset: vk::Offset2D{x: 0, y: 0},
+            offset: vk::Offset2D { x: 0, y: 0 },
             extent: swapchain_extent,
         }];
 
@@ -265,10 +270,10 @@ impl GraphicsPipeline {
         //     } else {
         //         final_color = new_color;
         //     }
-        //     
+        //
         //     final_color = final_color & color_write_mask;
 
-        let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState{
+        let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
             blend_enable: vk::FALSE,
             src_color_blend_factor: vk::BlendFactor::ONE,
             dst_color_blend_factor: vk::BlendFactor::ZERO,
@@ -287,7 +292,7 @@ impl GraphicsPipeline {
             logic_op: vk::LogicOp::COPY,
             attachment_count: color_blend_attachment_states.len() as u32,
             p_attachments: color_blend_attachment_states.as_ptr(),
-            blend_constants: [0., 0., 0., 0.,],
+            blend_constants: [0., 0., 0., 0.],
         }];
 
         let descriptor_set_layouts = [descriptor_set_layout];
@@ -302,8 +307,8 @@ impl GraphicsPipeline {
             p_push_constant_ranges: ptr::null(),
         };
 
-        let layout = unsafe{device.create_pipeline_layout(&pipeline_layout_create_info, None)}?;
-        
+        let layout = unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
+
         // creation
         let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo {
             s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
@@ -327,17 +332,20 @@ impl GraphicsPipeline {
             base_pipeline_index: -1,
         }];
 
-        let graphics_pipelines = unsafe{device.create_graphics_pipelines(
-            vk::PipelineCache::null(),
-            &graphics_pipeline_create_info,
-            None,
-        )}.map_err(|e| e.1)?;
+        let graphics_pipelines = unsafe {
+            device.create_graphics_pipelines(
+                vk::PipelineCache::null(),
+                &graphics_pipeline_create_info,
+                None,
+            )
+        }
+        .map_err(|e| e.1)?;
         let pipeline = graphics_pipelines.into_iter().next().unroll()?;
 
-        unsafe {device.destroy_shader_module(vs_shader_module, None)};
-        unsafe {device.destroy_shader_module(fs_shader_module, None)};
+        unsafe { device.destroy_shader_module(vs_shader_module, None) };
+        unsafe { device.destroy_shader_module(fs_shader_module, None) };
 
-        Ok(Self{
+        Ok(Self {
             render_pass,
             layout,
             pipeline,

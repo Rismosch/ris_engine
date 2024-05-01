@@ -103,7 +103,10 @@ impl UiHelper {
         match Self::deserialize(&config_filepath, app_info) {
             Ok(result) => Ok(result),
             Err(e) => {
-                ris_log::error!("failed to deserialize UiHelper. generating new one... error: {}", e);
+                ris_log::error!(
+                    "failed to deserialize UiHelper. generating new one... error: {}",
+                    e
+                );
 
                 Ok(Self {
                     modules: modules(app_info)?,
@@ -381,4 +384,3 @@ impl Drop for UiHelper {
         ris_log::info!("dropped UiHelper!");
     }
 }
-

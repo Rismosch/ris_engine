@@ -49,14 +49,15 @@ impl Image {
             initial_layout: vk::ImageLayout::UNDEFINED,
         };
 
-        let image = unsafe{device.create_image(&image_create_info, None)}?;
+        let image = unsafe { device.create_image(&image_create_info, None) }?;
 
-        let image_memory_requirements = unsafe{device.get_image_memory_requirements(image)};
+        let image_memory_requirements = unsafe { device.get_image_memory_requirements(image) };
         let memory_type_index = super::util::find_memory_type(
             image_memory_requirements.memory_type_bits,
             memory_property_flags,
             physical_device_memory_properties,
-        )?.unroll()?;
+        )?
+        .unroll()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
@@ -65,13 +66,10 @@ impl Image {
             memory_type_index,
         };
 
-        let memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
-        unsafe{device.bind_image_memory(image, memory, 0)};
+        let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
+        unsafe { device.bind_image_memory(image, memory, 0) };
 
-        Ok(Self{
-            image,
-            memory,
-        })
+        Ok(Self { image, memory })
     }
 
     pub fn free(&self, device: &ash::Device) {
@@ -109,9 +107,7 @@ impl Image {
             },
         };
 
-        let view = unsafe{
-            device.create_image_view(&image_view_create_info, None)
-        }?;
+        let view = unsafe { device.create_image_view(&image_view_create_info, None) }?;
 
         Ok(view)
     }
@@ -132,43 +128,47 @@ impl Image {
 
             if util::has_stencil_component(format) {
                 aspect_mask |= vk::ImageAspectFlags::STENCIL;
-            } 
+            }
 
             aspect_mask
         } else {
             vk::ImageAspectFlags::COLOR
         };
 
-        let (
-            src_access_mask,
-            dst_access_mask,
-            stc_stage_mask,
-            dst_stage_mask,
-        ) = match (old_layout, new_layout) {
-            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => (
-                vk::AccessFlags::empty(),
-                vk::AccessFlags::TRANSFER_WRITE,
-                vk::PipelineStageFlags::TOP_OF_PIPE,
-                vk::PipelineStageFlags::TRANSFER,
-            ),
-            (vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL) => (
-                vk::AccessFlags::TRANSFER_WRITE,
-                vk::AccessFlags::SHADER_READ,
-                vk::PipelineStageFlags::TRANSFER,
-                vk::PipelineStageFlags::FRAGMENT_SHADER,
-            ),
-            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL) => (
-                vk::AccessFlags::empty(),
-                vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-                vk::PipelineStageFlags::TOP_OF_PIPE,
-                vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
-            ),
-            transition => return ris_error::new_result!(
-                "unsupported transition from {:?} to {:?}",
-                transition.0,
-                transition.1,
-            ),
-        };
+        let (src_access_mask, dst_access_mask, stc_stage_mask, dst_stage_mask) =
+            match (old_layout, new_layout) {
+                (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => (
+                    vk::AccessFlags::empty(),
+                    vk::AccessFlags::TRANSFER_WRITE,
+                    vk::PipelineStageFlags::TOP_OF_PIPE,
+                    vk::PipelineStageFlags::TRANSFER,
+                ),
+                (
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+                ) => (
+                    vk::AccessFlags::TRANSFER_WRITE,
+                    vk::AccessFlags::SHADER_READ,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::PipelineStageFlags::FRAGMENT_SHADER,
+                ),
+                (vk::ImageLayout::UNDEFINED, vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL) => {
+                    (
+                        vk::AccessFlags::empty(),
+                        vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
+                            | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+                        vk::PipelineStageFlags::TOP_OF_PIPE,
+                        vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+                    )
+                }
+                transition => {
+                    return ris_error::new_result!(
+                        "unsupported transition from {:?} to {:?}",
+                        transition.0,
+                        transition.1,
+                    )
+                }
+            };
 
         let image_memory_barriers = [vk::ImageMemoryBarrier {
             s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
@@ -189,15 +189,17 @@ impl Image {
             },
         }];
 
-        unsafe{device.cmd_pipeline_barrier(
-            *transient_command.buffer(),
-            stc_stage_mask,
-            dst_stage_mask,
-            vk::DependencyFlags::empty(),
-            &[],
-            &[],
-            &image_memory_barriers,
-        )};
+        unsafe {
+            device.cmd_pipeline_barrier(
+                *transient_command.buffer(),
+                stc_stage_mask,
+                dst_stage_mask,
+                vk::DependencyFlags::empty(),
+                &[],
+                &[],
+                &image_memory_barriers,
+            )
+        };
 
         transient_command.end_and_submit()?;
         Ok(())

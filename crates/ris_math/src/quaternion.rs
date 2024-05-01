@@ -1,5 +1,3 @@
-use vulkano::buffer::BufferContents;
-
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
@@ -7,7 +5,7 @@ use crate::vector::Vec4;
 // definition
 //
 
-#[derive(Debug, Copy, Clone, BufferContents)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Quat(pub f32, pub f32, pub f32, pub f32);
 

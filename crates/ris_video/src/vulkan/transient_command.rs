@@ -24,10 +24,7 @@ impl<'a> Drop for TransientCommand<'a> {
         } = self;
 
         unsafe {
-            ris_error::unwrap!(
-                device.queue_wait_idle(*queue),
-                "failed to queue wait idle",
-            );
+            ris_error::unwrap!(device.queue_wait_idle(*queue), "failed to queue wait idle",);
 
             device.free_command_buffers(*command_pool, command_buffers);
         }
@@ -38,7 +35,8 @@ impl<'a> TransientCommand<'a> {
     pub fn begin(
         device: &'a ash::Device,
         queue: vk::Queue,
-        command_pool: vk::CommandPool) -> RisResult<Self> {
+        command_pool: vk::CommandPool,
+    ) -> RisResult<Self> {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
             p_next: ptr::null(),
@@ -47,7 +45,8 @@ impl<'a> TransientCommand<'a> {
             level: vk::CommandBufferLevel::PRIMARY,
         };
 
-        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+        let command_buffers =
+            unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
         let command_buffer = command_buffers.first().unroll()?;
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
@@ -57,9 +56,9 @@ impl<'a> TransientCommand<'a> {
             p_inheritance_info: ptr::null(),
         };
 
-        unsafe{device.begin_command_buffer(*command_buffer, &command_buffer_begin_info)}?;
+        unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
 
-        Ok(Self{
+        Ok(Self {
             device,
             queue,
             command_pool,
@@ -69,7 +68,7 @@ impl<'a> TransientCommand<'a> {
 
     pub fn buffer(&self) -> &vk::CommandBuffer {
         // cannot cause ub, because `begin(1)` would've failed if no command buffer exists
-        unsafe{self.command_buffers.get_unchecked(0)}
+        unsafe { self.command_buffers.get_unchecked(0) }
     }
 
     pub fn end_and_submit(self) -> RisResult<()> {
@@ -80,7 +79,7 @@ impl<'a> TransientCommand<'a> {
             ..
         } = &self;
 
-        unsafe{device.end_command_buffer(*self.buffer())}?;
+        unsafe { device.end_command_buffer(*self.buffer()) }?;
 
         let submit_info = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
@@ -94,7 +93,7 @@ impl<'a> TransientCommand<'a> {
             p_signal_semaphores: ptr::null(),
         }];
 
-        unsafe {device.queue_submit(*queue, &submit_info, vk::Fence::null())}?;
+        unsafe { device.queue_submit(*queue, &submit_info, vk::Fence::null()) }?;
 
         Ok(())
     }

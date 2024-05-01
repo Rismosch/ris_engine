@@ -17,7 +17,9 @@ impl BuildInfo {
             git_commit: String::from(r"7d3494fd94de5e4e239f1b13594e32d7e708c974"),
             git_branch: String::from(r"ash"),
             rustc_version: String::from(r"rustc 1.77.2 (25ef9e3d8 2024-04-09)"),
-            rustup_toolchain: String::from(                r"stable-x86_64-pc-windows-msvc (directory override for C:UsersRismoschsourcereposris_engine)",            ),
+            rustup_toolchain: String::from(
+                r"stable-x86_64-pc-windows-msvc (directory override for C:UsersRismoschsourcereposris_engine)",
+            ),
             build_profile: profile(),
             build_date: String::from(r"2024-04-15 23:33:35.631318200+02:00"),
         }

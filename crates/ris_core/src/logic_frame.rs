@@ -104,10 +104,7 @@ impl LogicFrame {
             self.gamepad_logic.handle_event(&event);
         }
 
-        mouse_logic::post_events(
-            &mut state.input.mouse,
-            self.event_pump.mouse_state(),
-        );
+        mouse_logic::post_events(&mut state.input.mouse, self.event_pump.mouse_state());
 
         keyboard_logic::post_events(
             &mut state.input.keyboard,
@@ -115,8 +112,7 @@ impl LogicFrame {
             self.keyboard_util.mod_state(),
         );
 
-        self.gamepad_logic
-            .post_events(&mut state.input.gamepad);
+        self.gamepad_logic.post_events(&mut state.input.gamepad);
 
         update_general(state);
 

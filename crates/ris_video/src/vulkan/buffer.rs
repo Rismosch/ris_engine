@@ -34,14 +34,15 @@ impl Buffer {
             p_queue_family_indices: ptr::null(),
         };
 
-        let buffer = unsafe{device.create_buffer(&buffer_create_info, None)}?;
+        let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }?;
 
-        let memory_requirements = unsafe{device.get_buffer_memory_requirements(buffer)};
+        let memory_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
         let memory_type_index = super::util::find_memory_type(
             memory_requirements.memory_type_bits,
             memory_property_flags,
             physical_device_memory_properties,
-        )?.unroll()?;
+        )?
+        .unroll()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
@@ -50,12 +51,11 @@ impl Buffer {
             memory_type_index,
         };
 
-        let memory = unsafe{device.allocate_memory(&memory_allocate_info, None)}?;
+        let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
 
-        unsafe{device.bind_buffer_memory(buffer, memory, 0)}?;
+        unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
-        Ok(Self{buffer, memory})
-
+        Ok(Self { buffer, memory })
     }
 
     pub fn free(&self, device: &ash::Device) {
@@ -65,12 +65,8 @@ impl Buffer {
         }
     }
 
-    pub fn write<T>(
-        &self,
-        device: &ash::Device,
-        data: &[T],
-    ) -> RisResult<()> {
-        unsafe{
+    pub fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
+        unsafe {
             let data_ptr = device.map_memory(
                 self.memory,
                 0,
@@ -94,11 +90,7 @@ impl Buffer {
         dst: &Self,
         size: vk::DeviceSize,
     ) -> RisResult<()> {
-        let transient_command = TransientCommand::begin(
-            &device,
-            queue,
-            transient_command_pool,
-        )?;
+        let transient_command = TransientCommand::begin(&device, queue, transient_command_pool)?;
 
         let copy_regions = [vk::BufferCopy {
             src_offset: 0,
@@ -106,12 +98,14 @@ impl Buffer {
             size,
         }];
 
-        unsafe {device.cmd_copy_buffer(
-            *transient_command.buffer(),
-            self.buffer,
-            dst.buffer,
-            &copy_regions,
-        )};
+        unsafe {
+            device.cmd_copy_buffer(
+                *transient_command.buffer(),
+                self.buffer,
+                dst.buffer,
+                &copy_regions,
+            )
+        };
 
         transient_command.end_and_submit()?;
         Ok(())
@@ -126,11 +120,7 @@ impl Buffer {
         width: u32,
         height: u32,
     ) -> RisResult<()> {
-        let transient_command = TransientCommand::begin(
-            &device,
-            queue,
-            transient_command_pool,
-        )?;
+        let transient_command = TransientCommand::begin(&device, queue, transient_command_pool)?;
 
         let regions = [vk::BufferImageCopy {
             buffer_offset: 0,
@@ -142,11 +132,7 @@ impl Buffer {
                 base_array_layer: 0,
                 layer_count: 1,
             },
-            image_offset: vk::Offset3D {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
+            image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
             image_extent: vk::Extent3D {
                 width,
                 height,
@@ -154,13 +140,15 @@ impl Buffer {
             },
         }];
 
-        unsafe{device.cmd_copy_buffer_to_image(
-            *transient_command.buffer(),
-            self.buffer,
-            image,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            &regions,
-        )};
+        unsafe {
+            device.cmd_copy_buffer_to_image(
+                *transient_command.buffer(),
+                self.buffer,
+                image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &regions,
+            )
+        };
 
         transient_command.end_and_submit()?;
         Ok(())

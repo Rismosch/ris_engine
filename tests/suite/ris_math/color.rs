@@ -122,4 +122,3 @@ fn should_clamp_when_converting_bytes_to_rgb() {
     let bytes = color::Rgb(-1.0, 2.0, 0.5).to_bytes();
     assert_bytes_eq!(bytes, [0, 255, 127]);
 }
-

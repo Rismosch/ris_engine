@@ -47,4 +47,3 @@ pub fn rotation(rotation: Quat) -> Mat4 {
 // reflection
 // shear
 // scale
-

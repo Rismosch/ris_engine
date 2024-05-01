@@ -13,11 +13,7 @@ pub fn update_general(state: &mut GodState) {
         rebound_mouse | rebound_keyboard | rebound_gamepad
     };
 
-    state
-        .input
-        .general
-        .buttons
-        .update(new_state);
+    state.input.general.buttons.update(new_state);
 }
 
 fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {

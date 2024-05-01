@@ -47,11 +47,14 @@ impl Drop for Renderer {
 
             self.swapchain.free(&self.device, self.command_pool);
 
-            self.device.destroy_command_pool(self.transient_command_pool, None);
+            self.device
+                .destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
 
-            self.device.destroy_descriptor_pool(self.descriptor_pool, None);
-            self.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+            self.device
+                .destroy_descriptor_pool(self.descriptor_pool, None);
+            self.device
+                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
             self.index_buffer.free(&self.device);
             self.vertex_buffer.free(&self.device);
@@ -73,33 +76,37 @@ impl Drop for Renderer {
 
 impl Renderer {
     pub fn initialize(app_info: &AppInfo, window: &Window, scenes: Scenes) -> RisResult<Self> {
-        let entry = unsafe {ash::Entry::load()}?;
-        
+        let entry = unsafe { ash::Entry::load() }?;
+
         // instance extensions
         let mut count = 0;
         if unsafe {
             sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, ptr::null_mut())
-        } == sdl2_sys::SDL_bool::SDL_FALSE {
+        } == sdl2_sys::SDL_bool::SDL_FALSE
+        {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
         let mut instance_extensions = vec![ptr::null(); count as usize];
 
         if unsafe {
-            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, instance_extensions.as_mut_ptr())
-        } == sdl2_sys::SDL_bool::SDL_FALSE {
+            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(
+                window.raw(),
+                &mut count,
+                instance_extensions.as_mut_ptr(),
+            )
+        } == sdl2_sys::SDL_bool::SDL_FALSE
+        {
             return ris_error::new_result!("{}", sdl2::get_error());
         }
 
         // validation layers
-        let available_layers = super::layers::add_validation_layer(
-            &entry,
-            &mut instance_extensions,
-        )?;
+        let available_layers =
+            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
 
         let mut log_message = format!("Vulkan Instance Extensions: {}", instance_extensions.len());
         for extension in instance_extensions.iter() {
-            let extension_name = unsafe{CStr::from_ptr(*extension)}.to_str()?;
+            let extension_name = unsafe { CStr::from_ptr(*extension) }.to_str()?;
             log_message.push_str(&format!("\n\t- {}", extension_name));
         }
         ris_log::trace!("{}", log_message);
@@ -127,37 +134,34 @@ impl Renderer {
             enabled_extension_count: instance_extensions.len() as u32,
         };
 
-        let instance = unsafe {
-            entry.create_instance(&create_info, None)?
-        };
+        let instance = unsafe { entry.create_instance(&create_info, None)? };
 
-        let debug_utils = super::layers::setup_debugging(
-            &entry,
-            &instance,
-        )?;
+        let debug_utils = super::layers::setup_debugging(&entry, &instance)?;
 
         // surface
         let instance_handle = vk::Handle::as_raw(instance.handle());
-        let surface_raw = window.vulkan_create_surface(instance_handle as usize).unroll()?;
+        let surface_raw = window
+            .vulkan_create_surface(instance_handle as usize)
+            .unroll()?;
         let surface: vk::SurfaceKHR = vk::Handle::from_raw(surface_raw);
         let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
 
         // suitable devices
-        let suitable_devices = SuitableDevice::query(
-            &instance,
-            &surface_loader,
-            surface,
-        )?;
+        let suitable_devices = SuitableDevice::query(&instance, &surface_loader, surface)?;
 
         // logical device
-        let Some(suitable_device) = suitable_devices
-            .into_iter()
-            .min_by_key(|x| x.suitability) else {
-            return ris_error::new_result!("no suitable hardware found to initialize vulkan renderer");
+        let Some(suitable_device) = suitable_devices.into_iter().min_by_key(|x| x.suitability)
+        else {
+            return ris_error::new_result!(
+                "no suitable hardware found to initialize vulkan renderer"
+            );
         };
 
-        let physical_device_memory_properties = unsafe{instance.get_physical_device_memory_properties(suitable_device.physical_device)};
-        let physical_device_properties = unsafe{instance.get_physical_device_properties(suitable_device.physical_device)};
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(suitable_device.graphics_queue_family);
@@ -197,20 +201,24 @@ impl Renderer {
             p_enabled_features: &physical_device_features,
         };
 
-        let device = unsafe {instance.create_device(suitable_device.physical_device, &device_create_info, None)}?;
-        let graphics_queue = unsafe{device.get_device_queue(suitable_device.graphics_queue_family, 0)};
-        let present_queue = unsafe{device.get_device_queue(suitable_device.present_queue_family, 0)};
+        let device = unsafe {
+            instance.create_device(suitable_device.physical_device, &device_create_info, None)
+        }?;
+        let graphics_queue =
+            unsafe { device.get_device_queue(suitable_device.graphics_queue_family, 0) };
+        let present_queue =
+            unsafe { device.get_device_queue(suitable_device.present_queue_family, 0) };
 
         // descriptor set layout
         let ubo_layout_bindings = [
-            vk::DescriptorSetLayoutBinding{
+            vk::DescriptorSetLayoutBinding {
                 binding: 0,
                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::VERTEX,
                 p_immutable_samplers: ptr::null(),
             },
-            vk::DescriptorSetLayoutBinding{
+            vk::DescriptorSetLayoutBinding {
                 binding: 1,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
@@ -227,7 +235,9 @@ impl Renderer {
             p_bindings: ubo_layout_bindings.as_ptr(),
         };
 
-        let descriptor_set_layout = unsafe{device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)}?;
+        let descriptor_set_layout = unsafe {
+            device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
+        }?;
 
         // command pool
         let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -236,7 +246,7 @@ impl Renderer {
             flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
             queue_family_index: suitable_device.graphics_queue_family,
         };
-        let command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
+        let command_pool = unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
@@ -244,10 +254,13 @@ impl Renderer {
             flags: vk::CommandPoolCreateFlags::TRANSIENT,
             queue_family_index: suitable_device.graphics_queue_family,
         };
-        let transient_command_pool = unsafe{device.create_command_pool(&command_pool_create_info, None)}?;
+        let transient_command_pool =
+            unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
         // texture
-        let texture_asset_id = ris_asset::AssetId::Directory(String::from("__imported_raw/images/profile_pic_2020_1000x1000.qoi"));
+        let texture_asset_id = ris_asset::AssetId::Directory(String::from(
+            "__imported_raw/images/profile_pic_2020_1000x1000.qoi",
+        ));
 
         let texture = Texture::alloc(
             &device,
@@ -269,10 +282,7 @@ impl Renderer {
             physical_device_memory_properties,
         )?;
 
-        staging_buffer.write(
-            &device,
-            &super::VERTICES,
-        )?;
+        staging_buffer.write(&device, &super::VERTICES)?;
 
         let vertex_buffer = Buffer::alloc(
             &device,
@@ -303,10 +313,7 @@ impl Renderer {
             physical_device_memory_properties,
         )?;
 
-        staging_buffer.write(
-            &device,
-            &super::INDICES,
-        )?;
+        staging_buffer.write(&device, &super::INDICES)?;
 
         let index_buffer = Buffer::alloc(
             &device,
@@ -347,7 +354,7 @@ impl Renderer {
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: swapchain_entry_count as u32,
-            }
+            },
         ];
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
@@ -359,7 +366,8 @@ impl Renderer {
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
-        let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+        let descriptor_pool =
+            unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         // swapchain
         let swapchain = Swapchain::alloc(
@@ -405,7 +413,7 @@ impl Renderer {
     pub fn recreate_swapchain(&mut self, window_size: (u32, u32)) -> RisResult<()> {
         ris_log::trace!("recreating swapchain...");
 
-        unsafe {self.device.device_wait_idle()}?;
+        unsafe { self.device.device_wait_idle() }?;
 
         self.swapchain = Swapchain::recreate(self, window_size)?;
 
@@ -414,4 +422,3 @@ impl Renderer {
         Ok(())
     }
 }
-

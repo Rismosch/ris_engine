@@ -1,8 +1,8 @@
 use ash::vk;
 
 use ris_math::color::Rgb;
-use ris_math::vector::Vec3;
 use ris_math::vector::Vec2;
+use ris_math::vector::Vec3;
 
 #[repr(C)]
 pub struct Vertex {
@@ -13,7 +13,7 @@ pub struct Vertex {
 
 impl Vertex {
     pub fn get_binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
-        [vk::VertexInputBindingDescription{
+        [vk::VertexInputBindingDescription {
             binding: 0,
             stride: std::mem::size_of::<Self>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,

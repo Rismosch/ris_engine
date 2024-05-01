@@ -24,11 +24,11 @@ impl FrameInFlight {
             flags: vk::FenceCreateFlags::SIGNALED,
         };
 
-        let image_available = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let render_finished = unsafe{device.create_semaphore(&semaphore_create_info, None)}?;
-        let in_flight = unsafe{device.create_fence(&fence_create_info, None)}?;
+        let image_available = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let render_finished = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let in_flight = unsafe { device.create_fence(&fence_create_info, None) }?;
 
-        Ok(Self{
+        Ok(Self {
             image_available,
             render_finished,
             in_flight,

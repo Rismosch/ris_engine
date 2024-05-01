@@ -55,19 +55,15 @@ impl BaseSwapchain {
         device: &ash::Device,
         window_size: (u32, u32),
     ) -> RisResult<(Self, Vec<vk::Image>)> {
-        let SurfaceDetails{
+        let SurfaceDetails {
             capabilities,
             formats,
             present_modes,
-        } = SurfaceDetails::query(
-            &surface_loader,
-            suitable_device.physical_device,
-            *surface,
-        )?;
+        } = SurfaceDetails::query(&surface_loader, suitable_device.physical_device, *surface)?;
 
-        let preferred_surface_format = formats
-            .iter()
-            .find(|x| x.format == super::PREFERRED_FORMAT && x.color_space == super::PREFERRED_COLOR_SPACE);
+        let preferred_surface_format = formats.iter().find(|x| {
+            x.format == super::PREFERRED_FORMAT && x.color_space == super::PREFERRED_COLOR_SPACE
+        });
         let format = match preferred_surface_format {
             Some(format) => *format,
             None => formats[0],
@@ -94,10 +90,7 @@ impl BaseSwapchain {
                 capabilities.max_image_extent.height,
             );
 
-            vk::Extent2D {
-                width,
-                height,
-            }
+            vk::Extent2D { width, height }
         };
 
         let preferred_swapchain_image_count = capabilities.min_image_count + 1;
@@ -111,19 +104,19 @@ impl BaseSwapchain {
             )
         };
 
-        let (image_sharing_mode, queue_family_index_count, queue_family_indices) = 
-            if suitable_device.graphics_queue_family != suitable_device.present_queue_family {(
-                vk::SharingMode::CONCURRENT,
-                2,
-                vec![
-                suitable_device.graphics_queue_family,
-                suitable_device.present_queue_family,
-                ],
-            )} else {(
-                vk::SharingMode::EXCLUSIVE,
-                0,
-                vec![],
-            )};
+        let (image_sharing_mode, queue_family_index_count, queue_family_indices) =
+            if suitable_device.graphics_queue_family != suitable_device.present_queue_family {
+                (
+                    vk::SharingMode::CONCURRENT,
+                    2,
+                    vec![
+                        suitable_device.graphics_queue_family,
+                        suitable_device.present_queue_family,
+                    ],
+                )
+            } else {
+                (vk::SharingMode::EXCLUSIVE, 0, vec![])
+            };
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR {
             s_type: vk::StructureType::SWAPCHAIN_CREATE_INFO_KHR,
@@ -147,17 +140,13 @@ impl BaseSwapchain {
         };
 
         let loader = ash::extensions::khr::Swapchain::new(&instance, &device);
-        let swapchain = unsafe {
-            loader.create_swapchain(&swapchain_create_info, None)
-        }?;
+        let swapchain = unsafe { loader.create_swapchain(&swapchain_create_info, None) }?;
 
         // images
-        let images = unsafe {
-            loader.get_swapchain_images(swapchain)
-        }?;
+        let images = unsafe { loader.get_swapchain_images(swapchain) }?;
 
         Ok((
-            Self{
+            Self {
                 format,
                 extent,
                 loader,
@@ -203,12 +192,9 @@ impl Swapchain {
         )?;
 
         // depth buffer
-        let depth_format = util::find_depth_format(
-            instance,
-            suitable_device.physical_device,
-        )?;
+        let depth_format = util::find_depth_format(instance, suitable_device.physical_device)?;
 
-        let physical_device_memory_properties = unsafe{
+        let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
@@ -259,7 +245,7 @@ impl Swapchain {
                     p_set_layouts: descriptor_set_layouts.as_ptr(),
                 };
 
-                unsafe{device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?
+                unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?
             }
         };
 
@@ -272,7 +258,8 @@ impl Swapchain {
             command_buffer_count: swapchain_entry_count as u32,
         };
 
-        let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+        let command_buffers =
+            unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
 
         let mut entries = Vec::with_capacity(swapchain_entry_count);
         for (i, image) in images.into_iter().enumerate() {
@@ -293,12 +280,14 @@ impl Swapchain {
                 vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
                 physical_device_memory_properties,
             )?;
-            let uniform_buffer_mapped = unsafe{device.map_memory(
-                uniform_buffer.memory,
-                0,
-                uniform_buffer_size,
-                vk::MemoryMapFlags::empty()
-            )}? as *mut UniformBufferObject;
+            let uniform_buffer_mapped = unsafe {
+                device.map_memory(
+                    uniform_buffer.memory,
+                    0,
+                    uniform_buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             // descriptor set
             let descriptor_set = descriptor_sets[i];
@@ -342,19 +331,16 @@ impl Swapchain {
                 },
             ];
 
-            unsafe{device.update_descriptor_sets(&write_descriptor_set, &[])};
+            unsafe { device.update_descriptor_sets(&write_descriptor_set, &[]) };
 
             // frame buffer
-            let attachments = [
-                image_view,
-                depth_image_view,
-            ];
+            let attachments = [image_view, depth_image_view];
 
             let framebuffer_create_info = vk::FramebufferCreateInfo {
                 s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
                 p_next: ptr::null(),
                 flags: vk::FramebufferCreateFlags::empty(),
-                render_pass: graphics_pipeline.render_pass, 
+                render_pass: graphics_pipeline.render_pass,
                 attachment_count: attachments.len() as u32,
                 p_attachments: attachments.as_ptr(),
                 width: base.extent.width,
@@ -362,13 +348,13 @@ impl Swapchain {
                 layers: 1,
             };
 
-            let framebuffer = unsafe{device.create_framebuffer(&framebuffer_create_info, None)}?;
+            let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
 
             // command buffer
             let command_buffer = command_buffers[i];
 
             let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
-            unsafe{device.reset_command_buffer(command_buffer, command_buffer_reset_flags)}?;
+            unsafe { device.reset_command_buffer(command_buffer, command_buffer_reset_flags) }?;
 
             let command_buffer_begin_info = vk::CommandBufferBeginInfo {
                 s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
@@ -377,7 +363,7 @@ impl Swapchain {
                 p_inheritance_info: ptr::null(),
             };
 
-            unsafe{device.begin_command_buffer(command_buffer, &command_buffer_begin_info)}?;
+            unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }?;
 
             let clear_values = [
                 vk::ClearValue {
@@ -389,7 +375,7 @@ impl Swapchain {
                     depth_stencil: vk::ClearDepthStencilValue {
                         depth: 1.0,
                         stencil: 0,
-                    }
+                    },
                 },
             ];
 
@@ -398,35 +384,56 @@ impl Swapchain {
                 p_next: ptr::null(),
                 render_pass: graphics_pipeline.render_pass,
                 framebuffer,
-                render_area: vk::Rect2D{
-                    offset: vk::Offset2D {x: 0, y: 0},
+                render_area: vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
                     extent: base.extent,
                 },
                 clear_value_count: clear_values.len() as u32,
                 p_clear_values: clear_values.as_ptr(),
             };
 
-            unsafe{device.cmd_begin_render_pass(command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
-            unsafe{device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, graphics_pipeline.pipeline)};
+            unsafe {
+                device.cmd_begin_render_pass(
+                    command_buffer,
+                    &render_pass_begin_info,
+                    vk::SubpassContents::INLINE,
+                )
+            };
+            unsafe {
+                device.cmd_bind_pipeline(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    graphics_pipeline.pipeline,
+                )
+            };
 
             let vertex_buffers = [vertex_buffer.buffer];
             let offsets = [0_u64];
-            unsafe{device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets)};
-            unsafe{device.cmd_bind_index_buffer(command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT32)};
+            unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
+            unsafe {
+                device.cmd_bind_index_buffer(
+                    command_buffer,
+                    index_buffer.buffer,
+                    0,
+                    vk::IndexType::UINT32,
+                )
+            };
             let descriptor_sets = [descriptor_set];
-            unsafe{device.cmd_bind_descriptor_sets(
-                command_buffer,
-                vk::PipelineBindPoint::GRAPHICS,
-                graphics_pipeline.layout,
-                0,
-                &descriptor_sets,
-                &[],
-            )};
+            unsafe {
+                device.cmd_bind_descriptor_sets(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    graphics_pipeline.layout,
+                    0,
+                    &descriptor_sets,
+                    &[],
+                )
+            };
 
             let index_count = super::INDICES.len() as u32;
-            unsafe{device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0)};
-            unsafe{device.cmd_end_render_pass(command_buffer)};
-            unsafe{device.end_command_buffer(command_buffer)}?;
+            unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
+            unsafe { device.cmd_end_render_pass(command_buffer) };
+            unsafe { device.end_command_buffer(command_buffer) }?;
 
             // entry
             let swapchain_entry = SwapchainEntry {
@@ -448,9 +455,7 @@ impl Swapchain {
             None => {
                 let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
                 for i in 0..super::MAX_FRAMES_IN_FLIGHT {
-                    let frame_in_flight = FrameInFlight::alloc(
-                        &device,
-                    )?;
+                    let frame_in_flight = FrameInFlight::alloc(&device)?;
 
                     frames_in_flight.push(frame_in_flight);
                 }
@@ -459,8 +464,7 @@ impl Swapchain {
             }
         };
 
-
-        Ok(Self{
+        Ok(Self {
             base,
             graphics_pipeline,
             depth_image,
@@ -496,11 +500,7 @@ impl Swapchain {
         }
     }
 
-    pub fn recreate(
-        renderer: &mut Renderer,
-        window_size: (u32, u32),
-    ) -> RisResult<Self> {
-
+    pub fn recreate(renderer: &mut Renderer, window_size: (u32, u32)) -> RisResult<Self> {
         // gather data which should not be cleaned up
         let mut descriptor_sets = Vec::with_capacity(renderer.swapchain.entries.len());
         for entry in renderer.swapchain.entries.iter() {
@@ -512,7 +512,9 @@ impl Swapchain {
         let frames_in_flight = renderer.swapchain.frames_in_flight.take();
 
         // free old swapchain
-        renderer.swapchain.free(&renderer.device, renderer.command_pool);
+        renderer
+            .swapchain
+            .free(&renderer.device, renderer.command_pool);
 
         // create new swapchain
         let (base, images) = BaseSwapchain::alloc(

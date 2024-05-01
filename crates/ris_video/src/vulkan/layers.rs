@@ -29,7 +29,7 @@ pub fn add_validation_layer(
         } else {
             let mut log_message = String::from("available instance layers:");
             for layer in layer_properties.iter() {
-                let name = unsafe {util::VkStr::from(&layer.layer_name)}?;
+                let name = unsafe { util::VkStr::from(&layer.layer_name) }?;
                 log_message.push_str(&format!("\n\t- {}", name));
             }
             ris_log::trace!("{}", log_message);
@@ -41,7 +41,7 @@ pub fn add_validation_layer(
                 let mut layer_found = false;
 
                 for layer in layer_properties.iter() {
-                    let name = unsafe {util::VkStr::from(&layer.layer_name)}?;
+                    let name = unsafe { util::VkStr::from(&layer.layer_name) }?;
                     if (*required_layer) == name.as_str() {
                         available_layers.push(layer.layer_name.as_ptr());
                         layer_found = true;
@@ -68,10 +68,7 @@ pub fn add_validation_layer(
 pub fn setup_debugging(
     entry: &ash::Entry,
     instance: &ash::Instance,
-) -> RisResult<Option<(
-    ash::extensions::ext::DebugUtils,
-    vk::DebugUtilsMessengerEXT,
-)>> {
+) -> RisResult<Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>> {
     if !super::VALIDATION_ENABLED {
         Ok(None)
     } else {
@@ -131,7 +128,7 @@ pub unsafe extern "system" fn debug_callback(
         Err(e) => {
             ris_log::error!("the vulkan debug callback was called with invalid UTF-8 data. attempting to log cstr... error: {}", e);
             format!("{:?}", message_cstr)
-        },
+        }
     };
 
     ris_log::log!(log_level, "VULKAN {} | {}", type_flag, message);

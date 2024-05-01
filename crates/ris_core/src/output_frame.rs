@@ -36,10 +36,8 @@ type Fence = FenceSignalFuture<
 
 pub struct OutputFrame {
     //recreate_swapchain: bool,
-
     current_frame: usize,
     //imgui: RisImgui,
-
     ui_helper: UiHelper,
 
     // mut be dropped last
@@ -64,37 +62,36 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(
-        &mut self,
-        frame: Frame,
-        state: &mut GodState,
-    ) -> RisResult<()> {
+    pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
             return Ok(());
         }
 
-        let Renderer{
+        let Renderer {
             device,
             graphics_queue,
             present_queue,
-            swapchain: Swapchain{
-                base: BaseSwapchain {
-                    extent: swapchain_extent,
-                    loader: swapchain_loader,
-                    swapchain,
+            swapchain:
+                Swapchain {
+                    base:
+                        BaseSwapchain {
+                            extent: swapchain_extent,
+                            loader: swapchain_loader,
+                            swapchain,
+                            ..
+                        },
+                    graphics_pipeline:
+                        GraphicsPipeline {
+                            render_pass,
+                            layout,
+                            pipeline,
+                        },
+                    entries: swapchain_entries,
+                    frames_in_flight,
                     ..
                 },
-                graphics_pipeline : GraphicsPipeline {
-                    render_pass,
-                    layout,
-                    pipeline,
-                },
-                entries: swapchain_entries,
-                frames_in_flight,
-                ..
-            },
             vertex_buffer,
             index_buffer,
             ..
@@ -108,25 +105,33 @@ impl OutputFrame {
             in_flight,
         } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
- 
+
         // wait for the previous frame to finish
         let fence = [*in_flight];
-        unsafe{device.wait_for_fences(&fence, true, u64::MAX)}?;
-        unsafe{device.reset_fences(&fence)}?;
+        unsafe { device.wait_for_fences(&fence, true, u64::MAX) }?;
+        unsafe { device.reset_fences(&fence) }?;
 
         // acquire an image from the swap chain
-        let acquire_image_result = unsafe{swapchain_loader.acquire_next_image(
-            *swapchain,
-            u64::MAX,
-            *image_available,
-            vk::Fence::null(),
-        )};
+        let acquire_image_result = unsafe {
+            swapchain_loader.acquire_next_image(
+                *swapchain,
+                u64::MAX,
+                *image_available,
+                vk::Fence::null(),
+            )
+        };
 
         let image_index = match acquire_image_result {
             Ok((image_index, _is_sub_optimal)) => image_index,
             Err(vk_result) => match vk_result {
-                vk::Result::ERROR_OUT_OF_DATE_KHR => return self.renderer.recreate_swapchain(self.window.vulkan_drawable_size()),
-                vk_result => return ris_error::new_result!("failed to acquire chain image: {}", vk_result),
+                vk::Result::ERROR_OUT_OF_DATE_KHR => {
+                    return self
+                        .renderer
+                        .recreate_swapchain(self.window.vulkan_drawable_size())
+                }
+                vk_result => {
+                    return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
+                }
             },
         };
 
@@ -151,14 +156,14 @@ impl OutputFrame {
             proj,
         }];
 
-        unsafe{uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len())};
+        unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         // submit command buffer
         let wait_semaphores = [*image_available];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = [*command_buffer];
         let signal_semaphores = [*render_finished];
-        
+
         let submit_infos = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
             p_next: ptr::null(),
@@ -171,11 +176,7 @@ impl OutputFrame {
             p_signal_semaphores: signal_semaphores.as_ptr(),
         }];
 
-        unsafe{device.queue_submit(
-            *graphics_queue,
-            &submit_infos,
-            *in_flight,
-        )}?;
+        unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
 
         // present the swap chain image
         let swapchains = [*swapchain];
@@ -191,17 +192,18 @@ impl OutputFrame {
             p_results: ptr::null_mut(),
         };
 
-        let queue_present_result = unsafe{swapchain_loader.queue_present(*present_queue, &present_info)};
+        let queue_present_result =
+            unsafe { swapchain_loader.queue_present(*present_queue, &present_info) };
         let window_event = match queue_present_result {
-            Ok(_) => {
-                state.window_event
-            },
+            Ok(_) => state.window_event,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
                     let (width, height) = self.window.vulkan_drawable_size();
                     WindowEvent::SizeChanged(width, height)
-                },
-                vk_result => return ris_error::new_result!("failed to present queue: {}", vk_result),
+                }
+                vk_result => {
+                    return ris_error::new_result!("failed to present queue: {}", vk_result)
+                }
             },
         };
 

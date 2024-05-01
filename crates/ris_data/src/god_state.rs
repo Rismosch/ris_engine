@@ -31,7 +31,7 @@ pub struct GodState {
     pub settings: Settings,
 }
 
-impl GodState{
+impl GodState {
     pub fn new(settings: Settings) -> Self {
         Self {
             // events
@@ -56,4 +56,3 @@ impl GodState{
         self.settings.reset();
     }
 }
-

@@ -5,8 +5,8 @@ use std::ptr;
 
 use ash::vk;
 
-use ris_asset::AssetId;
 use ris_asset::codecs::qoi;
+use ris_asset::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -28,7 +28,6 @@ impl Texture {
         physical_device_properties: vk::PhysicalDeviceProperties,
         asset_id: AssetId,
     ) -> RisResult<Self> {
-
         // load asset
         let content = ris_asset::load_async(asset_id.clone()).wait(None)??;
         let (pixels, desc) = qoi::decode(&content, None)?;
@@ -56,7 +55,7 @@ impl Texture {
                 ris_log::trace!("added alpha channel to texture asset! {:?}", asset_id);
 
                 pixels_rgba
-            },
+            }
             qoi::Channels::RGBA => pixels,
         };
 
@@ -141,9 +140,9 @@ impl Texture {
             unnormalized_coordinates: vk::FALSE,
         };
 
-        let sampler = unsafe{device.create_sampler(&sampler_create_info, None)}?;
+        let sampler = unsafe { device.create_sampler(&sampler_create_info, None) }?;
 
-        Ok(Self{
+        Ok(Self {
             image,
             view,
             sampler,
@@ -151,7 +150,7 @@ impl Texture {
     }
 
     pub fn free(&self, device: &ash::Device) {
-        unsafe{
+        unsafe {
             device.destroy_sampler(self.sampler, None);
             device.destroy_image_view(self.view, None);
         }

@@ -25,16 +25,12 @@ impl VkStr {
             CStr::from_ptr(ptr)
         };
 
-        let result = cstr
-            .to_str()?
-            .to_owned();
+        let result = cstr.to_str()?.to_owned();
 
-        Ok(Self{
-            value: result,
-        })
+        Ok(Self { value: result })
     }
 
-    pub unsafe fn as_ptr(&self) -> *const i8{
+    pub unsafe fn as_ptr(&self) -> *const i8 {
         self.value.as_ptr() as *const i8
     }
 
@@ -48,9 +44,16 @@ pub fn find_memory_type(
     memory_property_flags: vk::MemoryPropertyFlags,
     physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
 ) -> RisResult<Option<u32>> {
-    for (i, potential_memory_type) in physical_device_memory_properties.memory_types.iter().enumerate() {
-        if (type_filter & (1 << i)) > 0 &&
-            potential_memory_type.property_flags.contains(memory_property_flags) {
+    for (i, potential_memory_type) in physical_device_memory_properties
+        .memory_types
+        .iter()
+        .enumerate()
+    {
+        if (type_filter & (1 << i)) > 0
+            && potential_memory_type
+                .property_flags
+                .contains(memory_property_flags)
+        {
             return Ok(Some(i as u32));
         }
     }
@@ -83,15 +86,18 @@ pub fn find_supported_format(
     features: vk::FormatFeatureFlags,
 ) -> RisResult<vk::Format> {
     for &candidate in candidates.iter() {
-        let format_properties = unsafe{
-            instance.get_physical_device_format_properties(physical_device, candidate)
-        };
+        let format_properties =
+            unsafe { instance.get_physical_device_format_properties(physical_device, candidate) };
 
-        if tiling == vk::ImageTiling::LINEAR && format_properties.linear_tiling_features.contains(features) {
+        if tiling == vk::ImageTiling::LINEAR
+            && format_properties.linear_tiling_features.contains(features)
+        {
             return Ok(candidate.clone());
         }
 
-        if tiling == vk::ImageTiling::OPTIMAL && format_properties.optimal_tiling_features.contains(features) {
+        if tiling == vk::ImageTiling::OPTIMAL
+            && format_properties.optimal_tiling_features.contains(features)
+        {
             return Ok(candidate.clone());
         }
     }
