@@ -32,10 +32,10 @@ pub struct Renderer {
     pub descriptor_pool: vk::DescriptorPool,
     pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
-    pub swapchain: Swapchain,
     pub texture: Texture,
     pub vertex_buffer: Buffer,
     pub index_buffer: Buffer,
+    pub swapchain: Swapchain,
 }
 
 impl Drop for Renderer {
@@ -326,7 +326,7 @@ impl Renderer {
 
         staging_buffer.free(&device);
 
-        // swap chain
+        // base swap chain
         let (base_swapchain, swapchain_images) = BaseSwapchain::alloc(
             &instance,
             &surface_loader,
@@ -361,10 +361,9 @@ impl Renderer {
 
         let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
 
+        // swapchain
         let swapchain = Swapchain::alloc(
             &instance,
-            &surface_loader,
-            surface,
             &suitable_device,
             &device,
             graphics_queue,
@@ -372,14 +371,16 @@ impl Renderer {
             transient_command_pool,
             descriptor_set_layout,
             descriptor_pool,
-            window.vulkan_drawable_size(),
             &texture,
+            &vertex_buffer,
+            &index_buffer,
             base_swapchain,
             swapchain_images,
             None,
             None,
         )?;
 
+        // renderer
         Ok(Self {
             entry,
             instance,
@@ -394,10 +395,10 @@ impl Renderer {
             descriptor_pool,
             command_pool,
             transient_command_pool,
-            swapchain,
             texture,
             vertex_buffer,
             index_buffer,
+            swapchain,
         })
     }
 

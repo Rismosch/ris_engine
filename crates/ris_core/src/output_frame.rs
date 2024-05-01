@@ -131,13 +131,11 @@ impl OutputFrame {
         };
 
         let SwapchainEntry {
-            image,
-            image_view,
-            uniform_buffer,
             uniform_buffer_mapped,
             descriptor_set,
             framebuffer,
             command_buffer,
+            ..
         } = &swapchain_entries[image_index as usize];
 
         // update uniform buffer
@@ -155,69 +153,7 @@ impl OutputFrame {
 
         unsafe{uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len())};
 
-        // record a command buffer which draws the scene onto that image
-        let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
-        unsafe{device.reset_command_buffer(*command_buffer, command_buffer_reset_flags)}?;
-
-        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
-            flags: vk::CommandBufferUsageFlags::empty(),
-            p_inheritance_info: ptr::null(),
-        };
-
-        unsafe{device.begin_command_buffer(*command_buffer, &command_buffer_begin_info)}?;
-
-        let clear_values = [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 0.0],
-                },
-            },
-            vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
-                    stencil: 0,
-                }
-            },
-        ];
-
-        let render_pass_begin_info = vk::RenderPassBeginInfo {
-            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-            p_next: ptr::null(),
-            render_pass: *render_pass,
-            framebuffer: *framebuffer,
-            render_area: vk::Rect2D{
-                offset: vk::Offset2D {x: 0, y: 0},
-                extent: *swapchain_extent,
-            },
-            clear_value_count: clear_values.len() as u32,
-            p_clear_values: clear_values.as_ptr(),
-        };
-
-        unsafe{device.cmd_begin_render_pass(*command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE)};
-        unsafe{device.cmd_bind_pipeline(*command_buffer, vk::PipelineBindPoint::GRAPHICS, *pipeline)};
-
-        let vertex_buffers = [vertex_buffer.buffer];
-        let offsets = [0_u64];
-        unsafe{device.cmd_bind_vertex_buffers(*command_buffer, 0, &vertex_buffers, &offsets)};
-        unsafe{device.cmd_bind_index_buffer(*command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT32)};
-        let descriptor_sets = [*descriptor_set];
-        unsafe{device.cmd_bind_descriptor_sets(
-            *command_buffer,
-            vk::PipelineBindPoint::GRAPHICS,
-            *layout,
-            0,
-            &descriptor_sets,
-            &[],
-        )};
-
-        let index_count = ris_video::vulkan::INDICES.len() as u32;
-        unsafe{device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0)};
-        unsafe{device.cmd_end_render_pass(*command_buffer)};
-        unsafe{device.end_command_buffer(*command_buffer)}?;
-
-        // submit the recorded command buffer
+        // submit command buffer
         let wait_semaphores = [*image_available];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = [*command_buffer];
