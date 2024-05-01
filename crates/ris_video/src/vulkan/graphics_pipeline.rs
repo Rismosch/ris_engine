@@ -1,4 +1,3 @@
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
@@ -216,7 +215,7 @@ impl GraphicsPipeline {
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
             polygon_mode: vk::PolygonMode::FILL,
-            cull_mode: vk::CullModeFlags::NONE,
+            cull_mode: vk::CullModeFlags::BACK,
             front_face: vk::FrontFace::CLOCKWISE,
             depth_bias_enable: vk::FALSE,
             depth_bias_constant_factor: 0.,
