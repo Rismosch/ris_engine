@@ -43,8 +43,6 @@ impl Drop for Renderer {
         ris_log::debug!("dropping renderer...");
 
         unsafe {
-            self.device.device_wait_idle();
-
             self.swapchain.free(&self.device, self.command_pool);
 
             self.device

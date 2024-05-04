@@ -123,18 +123,25 @@ impl GodObject {
         let renderer = Renderer::initialize(&app_info, &window, scenes.clone())?;
 
         // imgui
-        //let mut imgui_backend = ImguiBackend::init(&app_info)?;
-        //let context = imgui_backend.context();
-        //let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
-        //let imgui = RisImgui {
-        //    backend: imgui_backend,
-        //    renderer: imgui_renderer,
-        //};
+        let mut imgui_backend = ImguiBackend::init(&app_info)?;
+        let context = imgui_backend.context();
+        let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
+        let imgui = RisImgui {
+            backend: imgui_backend,
+            renderer: imgui_renderer,
+        };
 
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, ui_helper)?;
+        let output_frame = OutputFrame::new(
+            window,
+            renderer,
+            imgui,
+            ui_helper,
+        )?;
+
+        return ris_error::new_result!("hello");
 
         let frame_calculator = FrameCalculator::default();
 

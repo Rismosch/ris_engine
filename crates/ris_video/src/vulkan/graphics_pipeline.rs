@@ -21,14 +21,14 @@ impl GraphicsPipeline {
         instance: &ash::Instance,
         physical_device: vk::PhysicalDevice,
         device: &ash::Device,
-        surface_format: vk::Format,
+        color_format: vk::Format,
         swapchain_extent: vk::Extent2D,
         descriptor_set_layout: vk::DescriptorSetLayout,
     ) -> RisResult<Self> {
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: surface_format,
+            format: color_format,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,

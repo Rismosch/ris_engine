@@ -10,6 +10,7 @@ use ris_data::god_state::WindowEvent;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
+use ris_video::imgui::RisImgui;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
@@ -23,7 +24,7 @@ use crate::ui_helper::UiHelper;
 pub struct OutputFrame {
     //recreate_swapchain: bool,
     current_frame: usize,
-    //imgui: RisImgui,
+    imgui: RisImgui,
     ui_helper: UiHelper,
 
     // mut be dropped last
@@ -31,17 +32,31 @@ pub struct OutputFrame {
     window: Window,
 }
 
+impl Drop for OutputFrame {
+    fn drop(&mut self) { 
+        unsafe {
+            ris_error::unwrap!(
+                self.renderer.device.device_wait_idle(),
+                "",
+            );
+        }
+
+        self.imgui.renderer.free(&self.renderer.device);
+        // renderer is dropped here implicitly
+    }
+}
+
 impl OutputFrame {
     pub fn new(
         window: Window,
         renderer: Renderer,
-        //imgui: RisImgui,
+        imgui: RisImgui,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
             //recreate_swapchain: false,
             current_frame: 0,
-            //imgui,
+            imgui,
             ui_helper,
             renderer,
             window,
@@ -198,6 +213,21 @@ impl OutputFrame {
         }
 
         self.current_frame = next_frame;
+
+        // imgui prepare frame
+        let window_size = self.window.size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let imgui_ui = self.imgui.backend.prepare_frame(
+            frame,
+            state,
+            (window_size.0 as f32, window_size.1 as f32),
+            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        );
+
+        imgui_ui.show_demo_window(&mut true);
+
+        // imgui render
+        let draw_data = self.imgui.backend.context().render();
 
         //let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
         //    (true, true)
