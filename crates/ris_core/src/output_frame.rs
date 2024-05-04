@@ -3,12 +3,6 @@ use std::ptr;
 use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
-use vulkano::command_buffer::CommandBufferExecFuture;
-use vulkano::swapchain::PresentFuture;
-use vulkano::swapchain::SwapchainAcquireFuture;
-use vulkano::sync::future::FenceSignalFuture;
-use vulkano::sync::future::JoinFuture;
-use vulkano::sync::GpuFuture;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
@@ -25,14 +19,6 @@ use ris_video::vulkan::swapchain::SwapchainEntry;
 use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;
-
-type Fence = FenceSignalFuture<
-    PresentFuture<
-        CommandBufferExecFuture<
-            CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>,
-        >,
-    >,
->;
 
 pub struct OutputFrame {
     //recreate_swapchain: bool,
