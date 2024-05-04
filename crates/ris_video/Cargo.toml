@@ -10,7 +10,6 @@ ash = "0.37.3"
 imgui = "0.11.0"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
-vulkano = "0.33.0"
 shaderc = "0.8"
 ris_asset = { path = "../ris_asset" }
 ris_data = { path = "../ris_data" }
