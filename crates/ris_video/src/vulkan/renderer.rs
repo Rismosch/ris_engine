@@ -5,6 +5,7 @@ use std::ptr;
 use ash::vk;
 use sdl2::video::Window;
 
+use ris_asset::codecs::qoi;
 use ris_asset::loader::scenes_loader::Scenes;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
@@ -260,13 +261,45 @@ impl Renderer {
             "__imported_raw/images/profile_pic_2020_1000x1000.qoi",
         ));
 
+        let content = ris_asset::load_async(texture_asset_id.clone()).wait(None)??;
+        let (pixels, desc) = qoi::decode(&content, None)?;
+
+        let pixels_rgba = match desc.channels {
+            qoi::Channels::RGB => {
+                ris_log::trace!("adding alpha channel to texture asset... {:?}", texture_asset_id);
+
+                ris_error::assert!(pixels.len() % 3 == 0)?;
+                let pixels_rgba_len = (pixels.len() * 4) / 3;
+                let mut pixels_rgba = Vec::with_capacity(pixels_rgba_len);
+
+                for chunk in pixels.chunks_exact(3) {
+                    let r = chunk[0];
+                    let g = chunk[1];
+                    let b = chunk[2];
+                    let a = u8::MAX;
+
+                    pixels_rgba.push(r);
+                    pixels_rgba.push(g);
+                    pixels_rgba.push(b);
+                    pixels_rgba.push(a);
+                }
+
+                ris_log::trace!("added alpha channel to texture asset! {:?}", texture_asset_id);
+
+                pixels_rgba
+            }
+            qoi::Channels::RGBA => pixels,
+        };
+
         let texture = Texture::alloc(
             &device,
             graphics_queue,
             transient_command_pool,
             physical_device_memory_properties,
             physical_device_properties,
-            texture_asset_id,
+            desc.width,
+            desc.height,
+            &pixels_rgba,
         )?;
 
         // vertex buffer

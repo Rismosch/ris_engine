@@ -26,38 +26,13 @@ impl Texture {
         transient_command_pool: vk::CommandPool,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         physical_device_properties: vk::PhysicalDeviceProperties,
-        asset_id: AssetId,
-    ) -> RisResult<Self> {
-        // load asset
-        let content = ris_asset::load_async(asset_id.clone()).wait(None)??;
-        let (pixels, desc) = qoi::decode(&content, None)?;
-
-        let pixels_rgba = match desc.channels {
-            qoi::Channels::RGB => {
-                ris_log::trace!("adding alpha channel to texture asset... {:?}", asset_id);
-
-                ris_error::assert!(pixels.len() % 3 == 0)?;
-                let pixels_rgba_len = (pixels.len() * 4) / 3;
-                let mut pixels_rgba = Vec::with_capacity(pixels_rgba_len);
-
-                for chunk in pixels.chunks_exact(3) {
-                    let r = chunk[0];
-                    let g = chunk[1];
-                    let b = chunk[2];
-                    let a = u8::MAX;
-
-                    pixels_rgba.push(r);
-                    pixels_rgba.push(g);
-                    pixels_rgba.push(b);
-                    pixels_rgba.push(a);
-                }
-
-                ris_log::trace!("added alpha channel to texture asset! {:?}", asset_id);
-
-                pixels_rgba
-            }
-            qoi::Channels::RGBA => pixels,
-        };
+        width: u32,
+        height: u32,
+        pixels_rgba: &[u8],
+    ) -> RisResult<Self> { 
+        let actual_len = pixels_rgba.len();
+        let expected_len = (width * height * 4) as usize;
+        ris_error::debug_assert!(actual_len == expected_len)?;
 
         // create image and copy asset to it
         let staging_buffer = Buffer::alloc(
@@ -72,8 +47,8 @@ impl Texture {
 
         let image = Image::alloc(
             &device,
-            desc.width,
-            desc.height,
+            width,
+            height,
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageTiling::OPTIMAL,
             vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
@@ -95,8 +70,8 @@ impl Texture {
             queue,
             transient_command_pool,
             image.image,
-            desc.width,
-            desc.height,
+            width,
+            height,
         )?;
 
         image.transition_layout(

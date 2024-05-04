@@ -141,8 +141,6 @@ impl GodObject {
             ui_helper,
         )?;
 
-        return ris_error::new_result!("hello");
-
         let frame_calculator = FrameCalculator::default();
 
         // god state

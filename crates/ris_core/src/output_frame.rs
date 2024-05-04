@@ -137,6 +137,7 @@ impl OutputFrame {
         };
 
         let SwapchainEntry {
+            image_view,
             uniform_buffer_mapped,
             descriptor_set,
             framebuffer,
@@ -179,6 +180,21 @@ impl OutputFrame {
 
         unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
 
+        // imgui
+        let window_size = self.window.size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let imgui_ui = self.imgui.backend.prepare_frame(
+            frame,
+            state,
+            (window_size.0 as f32, window_size.1 as f32),
+            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        );
+
+        imgui_ui.show_demo_window(&mut true);
+
+        let draw_data = self.imgui.backend.context().render();
+        self.imgui.renderer.draw(&self.renderer, *image_view, draw_data)?;
+
         // present the swap chain image
         let swapchains = [*swapchain];
 
@@ -213,21 +229,6 @@ impl OutputFrame {
         }
 
         self.current_frame = next_frame;
-
-        // imgui prepare frame
-        let window_size = self.window.size();
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        let imgui_ui = self.imgui.backend.prepare_frame(
-            frame,
-            state,
-            (window_size.0 as f32, window_size.1 as f32),
-            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-        );
-
-        imgui_ui.show_demo_window(&mut true);
-
-        // imgui render
-        let draw_data = self.imgui.backend.context().render();
 
         //let (recreate_viewport, reload_shaders) = if *state.back.reload_shaders.borrow() {
         //    (true, true)

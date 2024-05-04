@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 use std::sync::Arc;
+use std::collections::HashMap;
 
 use ash::vk;
 
@@ -21,33 +22,40 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
-//use crate::imgui::gpu_objects::ImguiVertex;
-//use crate::vulkan::allocators::Allocators;
+use crate::vulkan::buffer::Buffer;
 use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
-//use crate::vulkan::shader;
+use crate::vulkan::texture::Texture;
+use crate::vulkan::transient_command::TransientCommand;
 
 pub struct ImguiRenderer {
     render_pass: vk::RenderPass,
+    descriptor_set_layout: vk::DescriptorSetLayout,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
-    //font_texture: Texture,
-    //textures: Textures<Texture>,
+    font_texture: Texture,
 }
 
 impl ImguiRenderer {
     pub fn free(&self, device: &ash::Device) {
         unsafe {
+            self.font_texture.free(device);
+
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
+            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
             device.destroy_render_pass(self.render_pass, None);
         }
     }
 
     pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
         let Renderer {
+            instance,
+            suitable_device,
             device,
+            graphics_queue,
+            transient_command_pool,
             swapchain : Swapchain {
                 base: BaseSwapchain {
                     format: swapchain_format,
@@ -124,7 +132,7 @@ impl ImguiRenderer {
             flags: vk::AttachmentDescriptionFlags::empty(),
             format: swapchain_format.format,
             samples: vk::SampleCountFlags::TYPE_1,
-            load_op: vk::AttachmentLoadOp::CLEAR,
+            load_op: vk::AttachmentLoadOp::LOAD,
             store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
@@ -282,7 +290,35 @@ impl ImguiRenderer {
             blend_constants: [0., 0., 0., 0.],
         }];
 
+        let descriptor_set_layout_bindings = [
+            vk::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                p_immutable_samplers: ptr::null(),
+            },
+        ];
+
+        let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorSetLayoutCreateFlags::empty(),
+            binding_count: descriptor_set_layout_bindings.len() as u32,
+            p_bindings: descriptor_set_layout_bindings.as_ptr(),
+        };
+
+        let descriptor_set_layout = unsafe {
+            device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
+        }?;
+
         let descriptor_set_layouts = [descriptor_set_layout];
+
+        let push_constant_ranges = [vk::PushConstantRange{
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: std::mem::size_of::<Mat4>() as u32,
+        }];
 
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
@@ -290,8 +326,8 @@ impl ImguiRenderer {
             flags: vk::PipelineLayoutCreateFlags::empty(),
             set_layout_count: descriptor_set_layouts.len() as u32,
             p_set_layouts: descriptor_set_layouts.as_ptr(),
-            push_constant_range_count: 0,
-            p_push_constant_ranges: ptr::null(),
+            push_constant_range_count: push_constant_ranges.len() as u32,
+            p_push_constant_ranges: push_constant_ranges.as_ptr(),
         };
 
         let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
@@ -331,273 +367,278 @@ impl ImguiRenderer {
         unsafe { device.destroy_shader_module(vs_shader_module, None) };
         unsafe { device.destroy_shader_module(fs_shader_module, None) };
 
+        // textures
+        let font_atlas_texture = context.fonts().build_rgba32_texture();
+        let transient_command = TransientCommand::begin(
+            device,
+            *graphics_queue,
+            *transient_command_pool,
+        )?;
 
-        //let textures = Textures::new();
-        //let font_texture =
-        //    Self::upload_font_texture(context.fonts(), device.clone(), queue.clone(), allocators)?;
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
+
+        let font_texture = Texture::alloc(
+            device,
+            *graphics_queue,
+            *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            font_atlas_texture.width,
+            font_atlas_texture.height,
+            font_atlas_texture.data,
+        )?;
+
+        // init
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
         Ok(Self {
             render_pass,
             pipeline_layout,
+            descriptor_set_layout,
             pipeline,
-            //font_texture,
-            //textures,
+            font_texture,
         })
     }
 
-    //pub fn draw<I>(
-    //    &mut self,
-    //    target: Arc<ImageView<I>>,
-    //    command_buffer_builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-    //    allocators: &Allocators,
-    //    data: &DrawData,
-    //) -> RisResult<()>
-    //where
-    //    I: ImageAccess + std::fmt::Debug + 'static,
-    //{
-    //    let fb_width = data.display_size[0] * data.framebuffer_scale[0];
-    //    let fb_height = data.display_size[1] * data.framebuffer_scale[1];
-    //    if fb_width <= 0.0 || fb_height <= 0.0 {
-    //        return Ok(());
-    //    }
-
-    //    let left = data.display_pos[0];
-    //    let right = data.display_pos[0] + data.display_size[0];
-    //    let top = data.display_pos[1];
-    //    let bottom = data.display_pos[1] + data.display_size[1];
-
-    //    let mut pc = Mat4::init(1.);
-    //    pc.0 .0 = 2. / (right - left);
-    //    pc.1 .1 = 2. / (bottom - top);
-    //    pc.2 .2 = -1.0;
-    //    pc.3 .0 = (right + left) / (left - right);
-    //    pc.3 .1 = (top + bottom) / (top - bottom);
-
-    //    let dimensions = match target.image().dimensions() {
-    //        ImageDimensions::Dim2d { width, height, .. } => [width, height],
-    //        dimensions => return ris_error::new_result!("bad image dimensions: {:?}", dimensions),
-    //    };
-
-    //    let viewport = Viewport {
-    //        origin: [0.0, 0.0],
-    //        dimensions: [dimensions[0] as f32, dimensions[1] as f32],
-    //        depth_range: 0.0..1.0,
-    //    };
-
-    //    let clip_off = data.display_pos;
-    //    let clip_scale = data.framebuffer_scale;
-
-    //    let layout = self.pipeline.layout().clone();
-
-    //    let framebuffer = Framebuffer::new(
-    //        self.render_pass.clone(),
-    //        FramebufferCreateInfo {
-    //            attachments: vec![target],
-    //            ..Default::default()
-    //        },
-    //    )?;
-
-    //    command_buffer_builder.begin_render_pass(
-    //        RenderPassBeginInfo {
-    //            clear_values: vec![None],
-    //            ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-    //        },
-    //        SubpassContents::Inline,
-    //    )?;
-
-    //    for draw_list in data.draw_lists() {
-    //        let vertices = draw_list
-    //            .vtx_buffer()
-    //            .iter()
-    //            .map(|&v| unsafe { std::mem::transmute::<DrawVert, ImguiVertex>(v) });
-
-    //        let indices = draw_list.idx_buffer().iter().cloned();
-
-    //        let vertex_buffer = Buffer::from_iter(
-    //            &allocators.memory,
-    //            BufferCreateInfo {
-    //                usage: BufferUsage::VERTEX_BUFFER,
-    //                ..Default::default()
-    //            },
-    //            AllocationCreateInfo {
-    //                usage: MemoryUsage::Upload,
-    //                ..Default::default()
-    //            },
-    //            vertices,
-    //        )?;
-
-    //        let index_buffer = Buffer::from_iter(
-    //            &allocators.memory,
-    //            BufferCreateInfo {
-    //                usage: BufferUsage::INDEX_BUFFER,
-    //                ..Default::default()
-    //            },
-    //            AllocationCreateInfo {
-    //                usage: MemoryUsage::Upload,
-    //                ..Default::default()
-    //            },
-    //            indices,
-    //        )?;
-
-    //        for draw_cmd in draw_list.commands() {
-    //            match draw_cmd {
-    //                DrawCmd::Elements {
-    //                    count,
-    //                    cmd_params:
-    //                        DrawCmdParams {
-    //                            clip_rect,
-    //                            texture_id,
-    //                            vtx_offset,
-    //                            idx_offset,
-    //                        },
-    //                } => {
-    //                    let clip_rect = [
-    //                        (clip_rect[0] - clip_off[0]) * clip_scale[0],
-    //                        (clip_rect[1] - clip_off[1]) * clip_scale[1],
-    //                        (clip_rect[2] - clip_off[0]) * clip_scale[0],
-    //                        (clip_rect[3] - clip_off[1]) * clip_scale[1],
-    //                    ];
-
-    //                    if clip_rect[0] < fb_width
-    //                        && clip_rect[1] < fb_height
-    //                        && clip_rect[2] >= 0.0
-    //                        && clip_rect[3] >= 0.0
-    //                    {
-    //                        let scissor = Scissor {
-    //                            origin: [
-    //                                f32::max(0.0, clip_rect[0]).floor() as u32,
-    //                                f32::max(0.0, clip_rect[1]).floor() as u32,
-    //                            ],
-    //                            dimensions: [
-    //                                (clip_rect[2] - clip_rect[0]).abs().ceil() as u32,
-    //                                (clip_rect[3] - clip_rect[1]).abs().ceil() as u32,
-    //                            ],
-    //                        };
-
-    //                        let texture = self.lookup_texture(texture_id)?;
-
-    //                        let descriptor_set_layout = layout.set_layouts().first().unroll()?;
-
-    //                        let descriptor_set = PersistentDescriptorSet::new(
-    //                            &allocators.descriptor_set,
-    //                            descriptor_set_layout.clone(),
-    //                            [WriteDescriptorSet::image_view_sampler(
-    //                                0,
-    //                                texture.0.clone(),
-    //                                texture.1.clone(),
-    //                            )],
-    //                        )?;
-
-    //                        command_buffer_builder
-    //                            .bind_pipeline_graphics(self.pipeline.clone())
-    //                            .set_viewport(0, [viewport.clone()])
-    //                            .set_scissor(0, [scissor])
-    //                            .bind_vertex_buffers(0, vertex_buffer.clone())
-    //                            .bind_index_buffer(index_buffer.clone())
-    //                            .bind_descriptor_sets(
-    //                                vulkano::pipeline::PipelineBindPoint::Graphics,
-    //                                layout.clone(),
-    //                                0,
-    //                                descriptor_set.clone(),
-    //                            )
-    //                            .push_constants(layout.clone(), 0, pc)
-    //                            .draw_indexed(
-    //                                count as u32,
-    //                                1,
-    //                                idx_offset as u32,
-    //                                vtx_offset as i32,
-    //                                0,
-    //                            )
-    //                            .map_err(|e| ris_error::new!("failed to draw: {}", e))?;
-    //                    }
-    //                }
-    //                DrawCmd::ResetRenderState => (),
-    //                DrawCmd::RawCallback { callback, raw_cmd } => unsafe {
-    //                    callback(draw_list.raw(), raw_cmd)
-    //                },
-    //            }
-    //        }
-    //    }
-
-    //    command_buffer_builder.end_render_pass()?;
-
-    //    Ok(())
-    //}
-
-    pub fn reload_font_texture(
+    pub fn draw(
         &mut self,
-        //context: &mut Context,
-        //device: Arc<Device>,
-        //queue: Arc<Queue>,
-        //allocators: &Allocators,
-    ) -> RisResult<()> {
-        //self.font_texture = Self::upload_font_texture(context.fonts(), device, queue, allocators)?;
-        Self::upload_font_texture();
+        renderer: &Renderer,
+        target: vk::ImageView,
+        data: &DrawData,
+    ) -> RisResult<()>
+    {
+        let Renderer {
+            instance,
+            suitable_device,
+            device,
+            graphics_queue,
+            transient_command_pool,
+            swapchain: Swapchain {
+                base: BaseSwapchain {
+                    extent: swapchain_extent,
+                    ..
+                },
+                ..
+            },
+            ..
+        } = renderer;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device)
+        };
+
+        let fb_width = data.display_size[0] * data.framebuffer_scale[0];
+        let fb_height = data.display_size[1] * data.framebuffer_scale[1];
+        if fb_width <= 0.0 || fb_height <= 0.0 {
+            return Ok(());
+        }
+
+        let left = data.display_pos[0];
+        let right = data.display_pos[0] + data.display_size[0];
+        let top = data.display_pos[1];
+        let bottom = data.display_pos[1] + data.display_size[1];
+
+        let mut pc = Mat4::init(1.);
+        pc.0 .0 = 2. / (right - left);
+        pc.1 .1 = 2. / (bottom - top);
+        pc.2 .2 = -1.0;
+        pc.3 .0 = (right + left) / (left - right);
+        pc.3 .1 = (top + bottom) / (top - bottom);
+
+        //let dimensions = match target.image().dimensions() {
+        //    ImageDimensions::Dim2d { width, height, .. } => [width, height],
+        //    dimensions => return ris_error::new_result!("bad image dimensions: {:?}", dimensions),
+        //};
+
+        //let viewport = Viewport {
+        //    origin: [0.0, 0.0],
+        //    dimensions: [dimensions[0] as f32, dimensions[1] as f32],
+        //    depth_range: 0.0..1.0,
+        //};
+
+        let clip_off = data.display_pos;
+        let clip_scale = data.framebuffer_scale;
+
+        //let layout = self.pipeline.layout().clone();
+
+        let attachments = [target];
+
+        let framebuffer_create_info = vk::FramebufferCreateInfo {
+            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FramebufferCreateFlags::empty(),
+            render_pass: self.render_pass,
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            width: swapchain_extent.width,
+            height: swapchain_extent.height,
+            layers: 1,
+        };
+
+        let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+
+        let clear_values = [vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.0, 0.0, 0.0, 0.0],
+            },
+        }];
+
+        let render_pass_begin_info = vk::RenderPassBeginInfo {
+            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+            p_next: ptr::null(),
+            render_pass: self.render_pass,
+            framebuffer,
+            render_area: vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: *swapchain_extent,
+            },
+            clear_value_count: clear_values.len() as u32,
+            p_clear_values: clear_values.as_ptr(),
+        };
+
+        let transient_command = TransientCommand::begin(
+            device,
+            *graphics_queue,
+            *transient_command_pool,
+        )?;
+
+        unsafe {
+            device.cmd_begin_render_pass(
+                *transient_command.buffer(),
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            )
+        };
+
+        for draw_list in data.draw_lists() {
+            let vertices = draw_list.vtx_buffer();
+            let indices = draw_list.idx_buffer();
+
+            // vertex buffer
+            let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+
+            let vertex_buffer = Buffer::alloc(
+                device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?;
+
+            vertex_buffer.write(&device, &vertices)?;
+
+            // index buffer
+            let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
+
+            let index_buffer = Buffer::alloc(
+                device,
+                index_buffer_size,
+                vk::BufferUsageFlags::INDEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?;
+
+            index_buffer.write(&device, &indices)?;
+
+            for draw_cmd in draw_list.commands() {
+                match draw_cmd {
+                    DrawCmd::Elements {
+                        count,
+                        cmd_params:
+                            DrawCmdParams {
+                                clip_rect,
+                                texture_id,
+                                vtx_offset,
+                                idx_offset,
+                            },
+                    } => {
+                        let clip_rect = [
+                            (clip_rect[0] - clip_off[0]) * clip_scale[0],
+                            (clip_rect[1] - clip_off[1]) * clip_scale[1],
+                            (clip_rect[2] - clip_off[0]) * clip_scale[0],
+                            (clip_rect[3] - clip_off[1]) * clip_scale[1],
+                        ];
+
+                        if clip_rect[0] < fb_width
+                            && clip_rect[1] < fb_height
+                            && clip_rect[2] >= 0.0
+                            && clip_rect[3] >= 0.0
+                        {
+                        //    let scissor = Scissor {
+                        //        origin: [
+                        //            f32::max(0.0, clip_rect[0]).floor() as u32,
+                        //            f32::max(0.0, clip_rect[1]).floor() as u32,
+                        //        ],
+                        //        dimensions: [
+                        //            (clip_rect[2] - clip_rect[0]).abs().ceil() as u32,
+                        //            (clip_rect[3] - clip_rect[1]).abs().ceil() as u32,
+                        //        ],
+                        //    };
+
+                        //    let texture = self.lookup_texture(texture_id)?;
+
+                        //    let descriptor_set_layout = layout.set_layouts().first().unroll()?;
+
+                        //    let descriptor_set = PersistentDescriptorSet::new(
+                        //        &allocators.descriptor_set,
+                        //        descriptor_set_layout.clone(),
+                        //        [WriteDescriptorSet::image_view_sampler(
+                        //            0,
+                        //            texture.0.clone(),
+                        //            texture.1.clone(),
+                        //        )],
+                        //    )?;
+
+                        //    command_buffer_builder
+                        //        .bind_pipeline_graphics(self.pipeline.clone())
+                        //        .set_viewport(0, [viewport.clone()])
+                        //        .set_scissor(0, [scissor])
+                        //        .bind_vertex_buffers(0, vertex_buffer.clone())
+                        //        .bind_index_buffer(index_buffer.clone())
+                        //        .bind_descriptor_sets(
+                        //            vulkano::pipeline::PipelineBindPoint::Graphics,
+                        //            layout.clone(),
+                        //            0,
+                        //            descriptor_set.clone(),
+                        //        )
+                        //        .push_constants(layout.clone(), 0, pc)
+                        //        .draw_indexed(
+                        //            count as u32,
+                        //            1,
+                        //            idx_offset as u32,
+                        //            vtx_offset as i32,
+                        //            0,
+                        //        )
+                        //        .map_err(|e| ris_error::new!("failed to draw: {}", e))?;
+                        }
+                    }
+                    DrawCmd::ResetRenderState => {
+                        ris_log::debug!("imgui reset render state");
+                    },
+                    DrawCmd::RawCallback { callback, raw_cmd } => unsafe {
+                        ris_log::debug!("imgui raw callback");
+                        callback(draw_list.raw(), raw_cmd)
+                    },
+                }
+            }
+
+            vertex_buffer.free(device);
+            index_buffer.free(device);
+        }
+
+        unsafe {device.cmd_end_render_pass(*transient_command.buffer())};
+        transient_command.end_and_submit()?;
+    
+        unsafe {device.destroy_framebuffer(framebuffer, None)};
+
         Ok(())
-    }
-
-    //pub fn textures(&mut self) -> &mut Textures<Texture> {
-    //    &mut self.textures
-    //}
-
-    fn upload_font_texture(
-        //font_atlas: &mut FontAtlas,
-        //device: Arc<Device>,
-        //queue: Arc<Queue>,
-        //allocators: &Allocators,
-    ) -> RisResult</*Texture*/()> {
-        todo!();
-        //ris_log::debug!("imgui renderer uploading font texture...");
-
-        //let texture = font_atlas.build_rgba32_texture();
-
-        //let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
-        //    &allocators.command_buffer,
-        //    queue.queue_family_index(),
-        //    CommandBufferUsage::OneTimeSubmit,
-        //)?;
-
-        //let image = ImmutableImage::from_iter(
-        //    &allocators.memory,
-        //    texture.data.iter().cloned(),
-        //    ImageDimensions::Dim2d {
-        //        width: texture.width,
-        //        height: texture.height,
-        //        array_layers: 1,
-        //    },
-        //    MipmapsCount::One,
-        //    Format::R8G8B8A8_SRGB,
-        //    &mut command_buffer_builder,
-        //)?;
-
-        //let image_view_create_info = ImageViewCreateInfo::from_image(&image);
-        //let image_view = ImageView::new(image, image_view_create_info)?;
-
-        //let sampler = Sampler::new(device.clone(), SamplerCreateInfo::simple_repeat_linear())?;
-
-        //let primary = command_buffer_builder.build()?;
-
-        //let future = primary.execute(queue)?;
-
-        //let fence = future.then_signal_fence_and_flush()?;
-
-        //fence.wait(None)?;
-
-        //font_atlas.tex_id = TextureId::from(usize::MAX);
-        //ris_log::debug!("imgui renderer uploaded font texture!");
-        //Ok((image_view, sampler))
-    }
-
-    fn lookup_texture(&self, texture_id: TextureId) -> RisResult</*&Texture*/()> {
-        todo!();
-        //if texture_id.id() == usize::MAX {
-        //    Ok(&self.font_texture)
-        //} else if let Some(texture) = self.textures.get(texture_id) {
-        //    Ok(texture)
-        //} else {
-        //    ris_error::new_result!("bad texture: {:?}", texture_id)
-        //}
     }
 }
