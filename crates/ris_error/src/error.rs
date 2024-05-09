@@ -2,6 +2,9 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
+use chrono::DateTime;
+use chrono::Local;
+
 pub type SourceError = Option<Arc<dyn Error + 'static>>;
 pub type RisResult<T> = Result<T, RisError>;
 
@@ -70,6 +73,19 @@ impl<T> Extensions<T> for Option<T> {
     }
 }
 
+impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
+    fn unroll(self) -> Result<T, RisError> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(e) => crate::new_result!("{}", e),
+        }
+    }
+}
+
+pub fn get_timestamp() -> DateTime<Local> {
+    Local::now()
+}
+
 #[macro_export]
 macro_rules! new {
     ($($arg:tt)*) => {{
@@ -98,13 +114,56 @@ macro_rules! get_backtrace {
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
+        let timestamp = $crate::error::get_timestamp().format("%T");
+
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(
-            "\u{001B}[93mWARNING\u{001B}[0m: created backtrace. this operation is expensive. excessive use may cost performance.\n    in {}:{}\n",
+            "\n[{}] \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}",
+            timestamp,
+            env!("CARGO_PKG_NAME"),
             file!(),
             line!(),
         );
 
         backtrace
     }}
+}
+
+#[macro_export]
+macro_rules! assert {
+    ($value:expr) => {{
+        if $value {
+            Ok(())
+        } else {
+            ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
+        }
+    }};
+}
+
+#[macro_export]
+#[cfg(debug_assertions)]
+macro_rules! debug_assert {
+    ($value:expr) => {{
+        #[cfg(not(debug_assertions))]
+        {
+            Ok(())
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            if $value {
+                Ok(())
+            } else {
+                ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
+            }
+        }
+    }};
+}
+
+#[macro_export]
+#[cfg(not(debug_assertions))]
+macro_rules! debug_assert {
+    ($value:expr) => {{
+        Ok(())
+    }};
 }

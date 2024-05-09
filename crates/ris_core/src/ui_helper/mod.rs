@@ -66,9 +66,8 @@ pub trait UiHelperModule {
 
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
-    pub logic_future: Option<JobFuture<()>>,
     pub frame: Frame,
-    pub state: Arc<GodState>,
+    pub state: &'a mut GodState,
 }
 
 struct PinnedUiHelperModule {
@@ -103,7 +102,10 @@ impl UiHelper {
         match Self::deserialize(&config_filepath, app_info) {
             Ok(result) => Ok(result),
             Err(e) => {
-                ris_log::error!("failed to deserialize UiHelper: {}", e);
+                ris_log::error!(
+                    "failed to deserialize UiHelper. generating new one... error: {}",
+                    e
+                );
 
                 Ok(Self {
                     modules: modules(app_info)?,
@@ -381,4 +383,3 @@ impl Drop for UiHelper {
         ris_log::info!("dropped UiHelper!");
     }
 }
-

@@ -3,6 +3,7 @@ name = "ris_engine"
 version = "0.1.0-dev"
 authors = ["Rismosch"]
 edition = "2021"
+rust-version = "1.77"
 description = "Barebones game engine. Home made passion project."
 #documentation = "URL of the package documentation."
 readme = "README.md"
@@ -37,12 +38,12 @@ members = [
 [dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
 
+ash = "0.37.3"
 chrono = "0.4"
 imgui = "0.11.0"
 png = "0.17.10"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
-vulkano = "0.33.0"
 shaderc = "0.8"
 
 ris_asset = { path = "crates/ris_asset" }

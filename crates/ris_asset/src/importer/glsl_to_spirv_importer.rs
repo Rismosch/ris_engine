@@ -10,7 +10,10 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
-pub const OUT_EXT: &[&str] = &["vert.spirv", "frag.spirv"];
+pub const OUT_EXT: &[&str] = &["vert.spv", "frag.spv"];
+
+// enable this to log the GLSL, that the preprocessor generates
+pub const TRACE_PREPROCESSED_GLSL: bool = true;
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file
@@ -233,11 +236,13 @@ impl Shader {
 
         let file = format!("{}.{}", file_stem, extension);
 
-        let mut source_trace = String::new();
-        for (i, source_line) in source.lines().enumerate() {
-            source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
+        if TRACE_PREPROCESSED_GLSL {
+            let mut source_trace = String::new();
+            for (i, source_line) in source.lines().enumerate() {
+                source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
+            }
+            ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
         }
-        //ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
 
         let artifact = compiler.compile_into_spirv(
             &source,

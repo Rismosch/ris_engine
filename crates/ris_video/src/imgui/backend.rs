@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use imgui::BackendFlags;
 use imgui::ConfigFlags;
@@ -61,7 +60,7 @@ impl ImguiBackend {
     pub fn prepare_frame(
         &mut self,
         frame: Frame,
-        state: Arc<GodState>,
+        state: &GodState,
         window_size: (f32, f32),
         window_drawable_size: (f32, f32),
     ) -> &mut Ui {
@@ -70,7 +69,7 @@ impl ImguiBackend {
 
         io.update_delta_time(frame.previous_duration());
 
-        let input = state.back.input.borrow();
+        let input = &state.input;
 
         // mouse input
         let x = input.mouse.wheel_xrel;

@@ -68,8 +68,7 @@ const OP_RGBA: u8 = 0xff; /* 11111111 */
 
 const MASK_2: u8 = 0xc0; /* 11000000 */
 
-// "qoif"
-const MAGIC: [u8; 4] = [0x71, 0x6f, 0x69, 0x66];
+const MAGIC: [u8; 4] = [0x71, 0x6f, 0x69, 0x66]; // "qoif"
 const HEADER_SIZE: u32 = 14;
 
 const DATA_MIN: usize = HEADER_SIZE as usize + PADDING.len();
@@ -206,10 +205,10 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 
     let mut bytes = Cursor::new(Vec::with_capacity(max_size as usize));
 
-    let _ = bytes.write(&MAGIC)?;
-    let _ = bytes.write(&desc.width.to_be_bytes())?;
-    let _ = bytes.write(&desc.height.to_be_bytes())?;
-    let _ = bytes.write(&[desc.channels as u8, desc.color_space as u8])?;
+    bytes.write(&MAGIC)?;
+    bytes.write(&desc.width.to_be_bytes())?;
+    bytes.write(&desc.height.to_be_bytes())?;
+    bytes.write(&[desc.channels as u8, desc.color_space as u8])?;
 
     let pixels = data;
 
@@ -241,12 +240,12 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         if px == px_prev {
             run += 1;
             if run == 62 || px_pos == px_end {
-                let _ = bytes.write(&[OP_RUN | (run - 1)])?;
+                bytes.write(&[OP_RUN | (run - 1)])?;
                 run = 0;
             }
         } else {
             if run > 0 {
-                let _ = bytes.write(&[OP_RUN | (run - 1)])?;
+                bytes.write(&[OP_RUN | (run - 1)])?;
                 run = 0;
             }
 
@@ -269,19 +268,19 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
                         let dr = ((vr + 2) << 4) as u8;
                         let dg = ((vg + 2) << 2) as u8;
                         let db = (vb + 2) as u8;
-                        let _ = bytes.write(&[OP_DIFF | dr | dg | db])?;
+                        bytes.write(&[OP_DIFF | dr | dg | db])?;
                     } else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8
                     {
                         let dr = ((vg_r + 8) << 4) as u8;
                         let dg = (vg + 32) as u8;
                         let db = (vg_b + 8) as u8;
-                        let _ = bytes.write(&[OP_LUMA | dg])?;
-                        let _ = bytes.write(&[dr | db])?;
+                        bytes.write(&[OP_LUMA | dg])?;
+                        bytes.write(&[dr | db])?;
                     } else {
-                        let _ = bytes.write(&[OP_RGB, px.r, px.g, px.b])?;
+                        bytes.write(&[OP_RGB, px.r, px.g, px.b])?;
                     }
                 } else {
-                    let _ = bytes.write(&[OP_RGBA, px.r, px.g, px.b, px.a])?;
+                    bytes.write(&[OP_RGBA, px.r, px.g, px.b, px.a])?;
                 }
             }
         }
@@ -289,7 +288,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         px_prev = px;
     }
 
-    let _ = bytes.write(&PADDING)?;
+    bytes.write(&PADDING)?;
 
     let result = bytes.into_inner();
     Ok(result)
@@ -307,9 +306,9 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
     let mut header_magic_bytes = [0; 4];
     let mut width_bytes = [0; 4];
     let mut height_bytes = [0; 4];
-    let _ = bytes.read(&mut header_magic_bytes)?;
-    let _ = bytes.read(&mut width_bytes)?;
-    let _ = bytes.read(&mut height_bytes)?;
+    bytes.read(&mut header_magic_bytes)?;
+    bytes.read(&mut width_bytes)?;
+    bytes.read(&mut height_bytes)?;
 
     let width = u32::from_be_bytes(width_bytes);
     let height = u32::from_be_bytes(height_bytes);
@@ -390,10 +389,10 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
             index[index_pos as usize] = px;
         }
 
-        let _ = pixels.write(&[px.r, px.g, px.b])?;
+        pixels.write(&[px.r, px.g, px.b])?;
 
         if channels == Channels::RGBA {
-            let _ = pixels.write(&[px.a])?;
+            pixels.write(&[px.a])?;
         }
     }
 
@@ -403,6 +402,6 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
 
 fn read_byte(stream: &mut impl Read) -> Result<u8, std::io::Error> {
     let mut bytes = [0];
-    let _ = stream.read(&mut bytes)?;
+    stream.read(&mut bytes)?;
     Ok(bytes[0])
 }

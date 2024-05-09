@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use ris_data::god_state::GodState;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::rebind_matrix::RebindMatrix;
 
-pub fn update_general(state: Arc<GodState>) {
+pub fn update_general(state: &mut GodState) {
     let new_state = {
-        let input = state.front.input.borrow();
+        let input = &mut state.input;
 
         let rebound_mouse = rebind(&input.mouse.buttons, &input.mouse.rebind_matrix);
         let rebound_keyboard = rebind(&input.keyboard.buttons, &input.keyboard.rebind_matrix);
@@ -15,13 +13,7 @@ pub fn update_general(state: Arc<GodState>) {
         rebound_mouse | rebound_keyboard | rebound_gamepad
     };
 
-    state
-        .front
-        .input
-        .borrow_mut()
-        .general
-        .buttons
-        .update(new_state);
+    state.input.general.buttons.update(new_state);
 }
 
 fn rebind(buttons: &Buttons, rebind_matrix: &RebindMatrix) -> u32 {

@@ -1,7 +1,8 @@
+pub mod affine;
+pub mod camera;
 pub mod color;
 pub mod matrix;
 pub mod quaternion;
-pub mod space;
 pub mod vector;
 
 pub const MIN_NORM: f32 = 0.000_001f32;
