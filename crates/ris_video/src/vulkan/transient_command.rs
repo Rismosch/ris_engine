@@ -66,9 +66,9 @@ impl<'a> TransientCommand<'a> {
         })
     }
 
-    pub fn buffer(&self) -> &vk::CommandBuffer {
-        // cannot cause ub, because `begin(1)` would've failed if no command buffer exists
-        unsafe { self.command_buffers.get_unchecked(0) }
+    pub fn buffer(&self) -> vk::CommandBuffer {
+        // cannot cause ub, because `begin()` would've failed if no command buffer exists
+        *unsafe { self.command_buffers.get_unchecked(0) }
     }
 
     pub fn end_and_submit(self) -> RisResult<()> {
@@ -79,7 +79,7 @@ impl<'a> TransientCommand<'a> {
             ..
         } = &self;
 
-        unsafe { device.end_command_buffer(*self.buffer()) }?;
+        unsafe { device.end_command_buffer(self.buffer()) }?;
 
         let submit_info = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,

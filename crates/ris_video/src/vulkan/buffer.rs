@@ -1,6 +1,3 @@
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::os::raw::c_void;
 use std::ptr;
 
 use ash::vk;
@@ -10,6 +7,7 @@ use ris_error::RisResult;
 
 use super::transient_command::TransientCommand;
 
+#[derive(Clone, Copy)]
 pub struct Buffer {
     pub buffer: vk::Buffer,
     pub memory: vk::DeviceMemory,
@@ -66,11 +64,12 @@ impl Buffer {
     }
 
     pub fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
+        let size = std::mem::size_of_val(data) as vk::DeviceSize;
         unsafe {
             let data_ptr = device.map_memory(
                 self.memory,
                 0,
-                data.len() as vk::DeviceSize,
+                size,
                 vk::MemoryMapFlags::empty(),
             )? as *mut T;
 
@@ -100,7 +99,7 @@ impl Buffer {
 
         unsafe {
             device.cmd_copy_buffer(
-                *transient_command.buffer(),
+                transient_command.buffer(),
                 self.buffer,
                 dst.buffer,
                 &copy_regions,
@@ -142,7 +141,7 @@ impl Buffer {
 
         unsafe {
             device.cmd_copy_buffer_to_image(
-                *transient_command.buffer(),
+                transient_command.buffer(),
                 self.buffer,
                 image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,

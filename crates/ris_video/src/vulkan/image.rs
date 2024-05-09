@@ -1,6 +1,3 @@
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::os::raw::c_void;
 use std::ptr;
 
 use ash::vk;
@@ -191,7 +188,7 @@ impl Image {
 
         unsafe {
             device.cmd_pipeline_barrier(
-                *transient_command.buffer(),
+                transient_command.buffer(),
                 stc_stage_mask,
                 dst_stage_mask,
                 vk::DependencyFlags::empty(),
