@@ -66,9 +66,8 @@ pub trait UiHelperModule {
 
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
-    pub logic_future: Option<JobFuture<()>>,
     pub frame: Frame,
-    pub state: Arc<GodState>,
+    pub state: &'a mut GodState,
 }
 
 struct PinnedUiHelperModule {

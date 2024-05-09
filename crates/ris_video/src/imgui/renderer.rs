@@ -722,6 +722,7 @@ impl ImguiRenderer {
 
         unsafe{device.cmd_end_render_pass(transient_command.buffer())};
         transient_command.end_and_submit()?;
+        unsafe{device.destroy_framebuffer(framebuffer, None)};
 
         Ok(())
     }
@@ -856,8 +857,11 @@ impl Mesh {
         draw_data: &DrawData,
     ) -> RisResult<()> {
         let vertices = Self::create_vertices(draw_data);
-        if draw_data.total_vtx_count as usize > self.vertex_count {
-            ris_log::trace!("resizing vertex buffer...");
+        let old_vertex_count = self.vertex_count;
+        let new_vertex_count = draw_data.total_vtx_count as usize;
+
+        if old_vertex_count < new_vertex_count {
+            //ris_log::trace!("resizing vertex buffer from {} to {}...", old_vertex_count, new_vertex_count);
 
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
             let new_vertex_buffer = Buffer::alloc(
@@ -878,8 +882,11 @@ impl Mesh {
         self.vertices.write(device, &vertices)?;
 
         let indices = Self::create_indices(draw_data);
-        if draw_data.total_idx_count as usize > self.index_count {
-            ris_log::trace!("resizing index buffer...");
+        let old_index_count = self.index_count;
+        let new_index_count = draw_data.total_idx_count as usize;
+
+        if old_index_count < new_index_count {
+            //ris_log::trace!("resizing index buffer from {} to {}...", old_index_count, new_index_count);
 
             let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
             let new_index_buffer = Buffer::alloc(
