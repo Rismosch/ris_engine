@@ -36,7 +36,7 @@ Barebones game engine. Home made passion project.
   - [x] Loading (use in engine)
   - [x] (De)compiling
 - [x] Codecs
-  - [x] GLSL to SpirV
+  - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
 - [x] Safe global accessible mutable state
   - [x] Settings/Configuration
@@ -46,11 +46,11 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-To compile this repo, you need a working Rust compiler, version 1.77.2 or higher. I recommend installing via [rustup](https://www.rust-lang.org/tools/install).
-
-The current target platform is x86_64, both Windows and Linux. This engine may compile for other platforms, but I don't give guarantees.
-
-The renderer is based on Vulkan. If your hardware does not support Vulkan, you will most likely run into a runtime error.
+|          |                          | Notes                                                    |
+| -------- | ------------------------ | ---------------------------------------------------------|
+| Compiler | rustc 1.77.2             | [Download Link](https://www.rust-lang.org/tools/install) | 
+| Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
+| Graphics | Vulkan capable Hardware  |                                                          |
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, choose one of the following methods:
 
