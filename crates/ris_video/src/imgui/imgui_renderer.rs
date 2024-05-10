@@ -1,18 +1,13 @@
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
-use std::sync::Arc;
-use std::collections::HashMap;
 
 use ash::vk;
 
-use imgui::internal::RawWrapper;
 use imgui::Context;
 use imgui::DrawCmd;
 use imgui::DrawCmdParams;
 use imgui::DrawData;
 use imgui::DrawVert;
-use imgui::FontAtlas;
 use imgui::TextureId;
 use imgui::Textures;
 
@@ -68,7 +63,6 @@ impl ImguiRenderer {
             swapchain : Swapchain {
                 base: BaseSwapchain {
                     format: swapchain_format,
-                    extent: swapchain_extent,
                     ..
                 },
                 ..
@@ -721,7 +715,7 @@ impl ImguiRenderer {
         }
 
         unsafe{device.cmd_end_render_pass(transient_command.buffer())};
-        transient_command.end_and_submit()?;
+        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
         unsafe{device.destroy_framebuffer(framebuffer, None)};
 
         Ok(())

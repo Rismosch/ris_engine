@@ -1,5 +1,3 @@
-use std::ffi::CStr;
-use std::ffi::CString;
 use std::ptr;
 
 use ash::vk;
@@ -71,7 +69,12 @@ impl<'a> TransientCommand<'a> {
         *unsafe { self.command_buffers.get_unchecked(0) }
     }
 
-    pub fn end_and_submit(self) -> RisResult<()> {
+    pub fn end_and_submit(
+        self,
+        wait_semaphores: &[vk::Semaphore],
+        signal_semaphores: &[vk::Semaphore],
+        fence: vk::Fence,
+    ) -> RisResult<()> {
         let Self {
             device,
             queue,
@@ -84,16 +87,16 @@ impl<'a> TransientCommand<'a> {
         let submit_info = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
             p_next: ptr::null(),
-            wait_semaphore_count: 0,
-            p_wait_semaphores: ptr::null(),
+            wait_semaphore_count: wait_semaphores.len() as u32,
+            p_wait_semaphores: wait_semaphores.as_ptr(),
             p_wait_dst_stage_mask: ptr::null(),
             command_buffer_count: command_buffers.len() as u32,
             p_command_buffers: command_buffers.as_ptr(),
-            signal_semaphore_count: 0,
-            p_signal_semaphores: ptr::null(),
+            signal_semaphore_count: signal_semaphores.len() as u32,
+            p_signal_semaphores: signal_semaphores.as_ptr(),
         }];
 
-        unsafe { device.queue_submit(*queue, &submit_info, vk::Fence::null()) }?;
+        unsafe { device.queue_submit(*queue, &submit_info, fence) }?;
 
         Ok(())
     }

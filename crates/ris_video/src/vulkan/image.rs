@@ -198,7 +198,7 @@ impl Image {
             )
         };
 
-        transient_command.end_and_submit()?;
+        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
         Ok(())
     }
 }

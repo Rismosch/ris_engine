@@ -1,6 +1,5 @@
 use ash::vk;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub struct SurfaceDetails {

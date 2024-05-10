@@ -12,12 +12,10 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::buffer::Buffer;
-use super::frame_in_flight::FrameInFlight;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::BaseSwapchain;
 use super::swapchain::Swapchain;
 use super::texture::Texture;
-use super::uniform_buffer_object::UniformBufferObject;
 
 pub struct Renderer {
     pub entry: ash::Entry,
