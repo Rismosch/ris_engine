@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -19,12 +20,13 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file
     let file = source.to_str().unroll()?;
 
-    let mut input = File::open(file)?;
+    let mut source = File::open(file)?;
+    let f = &mut source;
 
-    let file_size = ris_file::seek!(input, SeekFrom::End(0))?;
-    ris_file::seek!(input, SeekFrom::Start(0))?;
+    let file_size = ris_file::io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
-    ris_file::read!(input, file_content)?;
+    ris_file::io::seek(f, SeekFrom::Start(0))?;
+    ris_file::io::read(f, &mut file_content)?;
     let source_text = String::from_utf8(file_content)?;
 
     // pre processor
@@ -154,7 +156,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
-            ris_file::write!(&mut output, bytes)?;
+            ris_file::io::write(&mut output, bytes)?;
         }
     }
 

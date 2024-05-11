@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -20,10 +21,10 @@ impl AssetLoaderDirectory {
         path.push(id);
 
         let mut file = File::open(&path)?;
-        let file_size = ris_file::seek!(&mut file, SeekFrom::End(0))? as usize;
+        let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
-        ris_file::seek!(&mut file, SeekFrom::Start(0))?;
-        ris_file::read!(&mut file, file_content)?;
+        ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
+        ris_file::io::read(&mut file, &mut file_content)?;
 
         Ok(file_content)
     }

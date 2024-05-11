@@ -11,7 +11,7 @@ use imgui::DrawVert;
 use imgui::TextureId;
 use imgui::Textures;
 
-use ris_asset::ris::GodAsset;
+use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
@@ -52,7 +52,7 @@ impl ImguiRenderer {
         }
     }
 
-    pub fn init(renderer: &Renderer, god_asset: &GodAsset, context: &mut Context) -> RisResult<Self> {
+    pub fn init(renderer: &Renderer, god_asset: &RisGodAsset, context: &mut Context) -> RisResult<Self> {
         let Renderer {
             instance,
             suitable_device,

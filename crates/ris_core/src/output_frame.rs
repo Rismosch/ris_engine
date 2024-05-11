@@ -4,7 +4,7 @@ use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
-use ris_asset::ris::GodAsset;
+use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
@@ -69,7 +69,7 @@ impl OutputFrame {
         &mut self,
         frame: Frame,
         state: &mut GodState,
-        god_asset: &GodAsset,
+        god_asset: &RisGodAsset,
     ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;

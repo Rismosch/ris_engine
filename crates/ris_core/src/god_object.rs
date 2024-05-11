@@ -2,7 +2,7 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::ris::GodAsset;
+use ris_asset::RisGodAsset;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
@@ -53,7 +53,7 @@ pub struct GodObject {
     pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
-    pub god_asset: GodAsset,
+    pub god_asset: RisGodAsset,
 
     pub state: GodState,
 
@@ -104,7 +104,7 @@ impl GodObject {
         // god asset
         let god_asset_id = god_asset_id();
         let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
-        let god_asset = GodAsset::load(&god_asset_bytes)?;
+        let god_asset = RisGodAsset::load(&god_asset_bytes)?;
 
         // video
         let video_subsystem = sdl_context

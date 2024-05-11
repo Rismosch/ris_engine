@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
 use std::io::Write;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -171,10 +172,10 @@ impl UiHelper {
     fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
         // read file
         let mut file = std::fs::File::open(config_filepath)?;
-        let file_size = ris_file::seek!(file, SeekFrom::End(0))?;
-        ris_file::seek!(file, SeekFrom::Start(0))?;
+        let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
+        ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
         let mut bytes = vec![0; file_size as usize];
-        ris_file::read!(file, &mut bytes)?;
+        ris_file::io::read(&mut file, &mut bytes)?;
         let file_content = String::from_utf8(bytes)?;
         let yaml = RisYaml::try_from(file_content.as_str())?;
 

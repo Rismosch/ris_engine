@@ -6,7 +6,7 @@ use ash::vk;
 use sdl2::video::Window;
 
 use ris_asset::codecs::qoi;
-use ris_asset::ris::GodAsset;
+use ris_asset::RisGodAsset;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -72,7 +72,7 @@ impl Drop for Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(app_info: &AppInfo, window: &Window, god_asset: &GodAsset) -> RisResult<Self> {
+    pub fn initialize(app_info: &AppInfo, window: &Window, god_asset: &RisGodAsset) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -445,7 +445,7 @@ impl Renderer {
     pub fn recreate_swapchain(
         &mut self,
         window_size: (u32, u32),
-        god_asset: &GodAsset,
+        god_asset: &RisGodAsset,
     ) -> RisResult<()> {
         ris_log::trace!("recreating swapchain...");
 
