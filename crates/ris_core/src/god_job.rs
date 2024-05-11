@@ -39,11 +39,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         });
 
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
-        let output_result = god_object.output_frame.run(
-            frame,
-            &mut god_object.state,
-            &god_object.god_asset,
-        );
+        let output_result =
+            god_object
+                .output_frame
+                .run(frame, &mut god_object.state, &god_object.god_asset);
 
         // wait for jobs
         let (new_settings_serializer, save_settings_result) = save_settings_future.wait(None)?;

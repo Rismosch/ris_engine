@@ -72,7 +72,11 @@ impl Drop for Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(app_info: &AppInfo, window: &Window, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn initialize(
+        app_info: &AppInfo,
+        window: &Window,
+        god_asset: &RisGodAsset,
+    ) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -262,7 +266,10 @@ impl Renderer {
 
         let pixels_rgba = match desc.channels {
             qoi::Channels::RGB => {
-                ris_log::trace!("adding alpha channel to texture asset... {:?}", texture_asset_id);
+                ris_log::trace!(
+                    "adding alpha channel to texture asset... {:?}",
+                    texture_asset_id
+                );
 
                 ris_error::assert!(pixels.len() % 3 == 0)?;
                 let pixels_rgba_len = (pixels.len() * 4) / 3;
@@ -280,7 +287,10 @@ impl Renderer {
                     pixels_rgba.push(a);
                 }
 
-                ris_log::trace!("added alpha channel to texture asset! {:?}", texture_asset_id);
+                ris_log::trace!(
+                    "added alpha channel to texture asset! {:?}",
+                    texture_asset_id
+                );
 
                 pixels_rgba
             }

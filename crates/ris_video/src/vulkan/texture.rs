@@ -23,7 +23,7 @@ impl Texture {
         width: u32,
         height: u32,
         pixels_rgba: &[u8],
-    ) -> RisResult<Self> { 
+    ) -> RisResult<Self> {
         let actual_len = pixels_rgba.len();
         let expected_len = (width * height * 4) as usize;
         ris_error::debug_assert!(actual_len == expected_len)?;

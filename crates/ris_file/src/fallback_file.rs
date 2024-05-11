@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufRead;
-use std::io::Write;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 

@@ -34,12 +34,9 @@ pub struct OutputFrame {
 }
 
 impl Drop for OutputFrame {
-    fn drop(&mut self) { 
+    fn drop(&mut self) {
         unsafe {
-            ris_error::unwrap!(
-                self.renderer.device.device_wait_idle(),
-                "",
-            );
+            ris_error::unwrap!(self.renderer.device.device_wait_idle(), "",);
         }
 
         self.imgui.renderer.free(&self.renderer.device);
@@ -123,10 +120,9 @@ impl OutputFrame {
             Ok((image_index, _is_sub_optimal)) => image_index,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
-                    return self.renderer.recreate_swapchain(
-                        self.window.vulkan_drawable_size(),
-                        god_asset,
-                    )
+                    return self
+                        .renderer
+                        .recreate_swapchain(self.window.vulkan_drawable_size(), god_asset)
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
@@ -186,14 +182,16 @@ impl OutputFrame {
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );
 
-        self.ui_helper.draw(UiHelperDrawData{
+        self.ui_helper.draw(UiHelperDrawData {
             ui: imgui_ui,
             frame,
             state,
         })?;
 
         let draw_data = self.imgui.backend.context().render();
-        self.imgui.renderer.draw(&self.renderer, *image_view, draw_data)?;
+        self.imgui
+            .renderer
+            .draw(&self.renderer, *image_view, draw_data)?;
 
         // present the swap chain image
         let swapchains = [*swapchain];
@@ -225,7 +223,8 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            self.renderer.recreate_swapchain((width, height), god_asset)?;
+            self.renderer
+                .recreate_swapchain((width, height), god_asset)?;
         }
 
         self.current_frame = next_frame;

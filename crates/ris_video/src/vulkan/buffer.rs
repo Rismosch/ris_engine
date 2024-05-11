@@ -66,12 +66,8 @@ impl Buffer {
     pub fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
         let size = std::mem::size_of_val(data) as vk::DeviceSize;
         unsafe {
-            let data_ptr = device.map_memory(
-                self.memory,
-                0,
-                size,
-                vk::MemoryMapFlags::empty(),
-            )? as *mut T;
+            let data_ptr =
+                device.map_memory(self.memory, 0, size, vk::MemoryMapFlags::empty())? as *mut T;
 
             data_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len());
 

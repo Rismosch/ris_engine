@@ -20,11 +20,7 @@ impl Frames {
         count: usize,
     ) -> RisResult<Self> {
         let meshes = (0..count)
-            .map(|_| Mesh::alloc(
-                device,
-                physical_device_memory_properties,
-                draw_data,
-            ))
+            .map(|_| Mesh::alloc(device, physical_device_memory_properties, draw_data))
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {

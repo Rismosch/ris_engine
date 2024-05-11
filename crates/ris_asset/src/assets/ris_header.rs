@@ -37,7 +37,8 @@ impl RisHeader {
         if magic[0] != 0x72 || // `r`
             magic[1] != 0x69 || // `i`
             magic[2] != 0x73 || // `s`
-            magic[3] != 0x5f // `_`
+            magic[3] != 0x5f
+        // `_`
         {
             return Ok(None);
         }
@@ -63,7 +64,7 @@ impl RisHeader {
 
             let references = ris_file::io::read_strings(input, p_references)?
                 .into_iter()
-                .map(|x| AssetId::Directory(x))
+                .map(AssetId::Directory)
                 .collect();
 
             (references, p_content)
@@ -91,11 +92,6 @@ impl BinaryFormat for Reference {
     fn deserialize(buf: &[u8]) -> RisResult<Self> {
         ris_error::assert!(buf.len() == 4)?;
 
-        Ok(Self(u32::from_le_bytes([
-            buf[0],
-            buf[1],
-            buf[2],
-            buf[3],
-        ])))
+        Ok(Self(u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]])))
     }
 }

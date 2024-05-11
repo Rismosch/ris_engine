@@ -1,8 +1,8 @@
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::RisHeader;
 use crate::AssetId;
+use crate::RisHeader;
 
 #[derive(Clone)]
 pub struct RisGodAsset {
@@ -13,7 +13,7 @@ pub struct RisGodAsset {
     pub texture: AssetId,
 }
 
-impl RisGodAsset{
+impl RisGodAsset {
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
         let header = RisHeader::load(bytes)?.unroll()?;
 

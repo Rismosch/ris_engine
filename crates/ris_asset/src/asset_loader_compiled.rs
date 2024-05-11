@@ -2,8 +2,8 @@ use std::fs::File;
 use std::io::SeekFrom;
 use std::path::Path;
 
-use ris_file::io::FatPtr;
 use ris_error::RisResult;
+use ris_file::io::FatPtr;
 
 pub struct AssetLoaderCompiled {
     file: File,
@@ -41,7 +41,7 @@ impl AssetLoaderCompiled {
             fat_ptr_lookup.push(fat_ptr);
         }
 
-        Ok(Self{
+        Ok(Self {
             file,
             lookup: fat_ptr_lookup,
         })

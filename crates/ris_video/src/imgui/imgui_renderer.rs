@@ -51,20 +51,26 @@ impl ImguiRenderer {
         }
     }
 
-    pub fn init(renderer: &Renderer, god_asset: &RisGodAsset, context: &mut Context) -> RisResult<Self> {
+    pub fn init(
+        renderer: &Renderer,
+        god_asset: &RisGodAsset,
+        context: &mut Context,
+    ) -> RisResult<Self> {
         let Renderer {
             instance,
             suitable_device,
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain : Swapchain {
-                base: BaseSwapchain {
-                    format: swapchain_format,
+            swapchain:
+                Swapchain {
+                    base:
+                        BaseSwapchain {
+                            format: swapchain_format,
+                            ..
+                        },
                     ..
                 },
-                ..
-            },
             ..
         } = renderer;
 
@@ -256,15 +262,13 @@ impl ImguiRenderer {
         }];
 
         // pipeline layout
-        let descriptor_set_layout_bindings = [
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                p_immutable_samplers: ptr::null(),
-            },
-        ];
+        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding {
+            binding: 0,
+            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            p_immutable_samplers: ptr::null(),
+        }];
 
         let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -280,7 +284,7 @@ impl ImguiRenderer {
 
         let descriptor_set_layouts = [descriptor_set_layout];
 
-        let push_constant_ranges = [vk::PushConstantRange{
+        let push_constant_ranges = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
             offset: 0,
             size: std::mem::size_of::<Mat4>() as u32,
@@ -296,7 +300,8 @@ impl ImguiRenderer {
             p_push_constant_ranges: push_constant_ranges.as_ptr(),
         };
 
-        let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
+        let pipeline_layout =
+            unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
 
         // render pass
         let color_attachment = vk::AttachmentDescription {
@@ -337,7 +342,8 @@ impl ImguiRenderer {
             src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
             dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
             src_access_mask: vk::AccessFlags::empty(),
-            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ
+                | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
             dependency_flags: vk::DependencyFlags::empty(),
         }];
 
@@ -415,7 +421,7 @@ impl ImguiRenderer {
         fonts.tex_id = TextureId::from(usize::MAX);
 
         // descriptor pool
-        let descriptor_pool_sizes = [vk::DescriptorPoolSize{
+        let descriptor_pool_sizes = [vk::DescriptorPoolSize {
             ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             descriptor_count: 1,
         }];
@@ -428,7 +434,8 @@ impl ImguiRenderer {
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
-        let descriptor_pool = unsafe{device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+        let descriptor_pool =
+            unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         // descriptor set
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
@@ -439,16 +446,17 @@ impl ImguiRenderer {
             p_set_layouts: descriptor_set_layouts.as_ptr(),
         };
 
-        let descriptor_sets = unsafe{device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
+        let descriptor_sets =
+            unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
         let descriptor_set = descriptor_sets.into_iter().next().unroll()?;
 
-        let image_infos = [vk::DescriptorImageInfo{
+        let image_infos = [vk::DescriptorImageInfo {
             sampler: font_texture.sampler,
             image_view: font_texture.view,
             image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
         }];
 
-        let write_descriptor_sets = [vk::WriteDescriptorSet{
+        let write_descriptor_sets = [vk::WriteDescriptorSet {
             s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
             p_next: ptr::null(),
             dst_set: descriptor_set,
@@ -460,8 +468,8 @@ impl ImguiRenderer {
             p_buffer_info: ptr::null(),
             p_texel_buffer_view: ptr::null(),
         }];
-        
-        unsafe{device.update_descriptor_sets(&write_descriptor_sets, &[])};
+
+        unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // init
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
@@ -484,8 +492,7 @@ impl ImguiRenderer {
         renderer: &Renderer,
         target: vk::ImageView,
         draw_data: &DrawData,
-    ) -> RisResult<()>
-    {
+    ) -> RisResult<()> {
         if draw_data.total_vtx_count == 0 {
             return Ok(());
         }
@@ -496,14 +503,16 @@ impl ImguiRenderer {
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain: Swapchain {
-                base: BaseSwapchain {
-                    extent: swapchain_extent,
+            swapchain:
+                Swapchain {
+                    base:
+                        BaseSwapchain {
+                            extent: swapchain_extent,
+                            ..
+                        },
+                    entries,
                     ..
                 },
-                entries,
-                ..
-            },
             ..
         } = renderer;
 
@@ -521,13 +530,10 @@ impl ImguiRenderer {
         }
 
         let mesh = self.frames.as_mut().unroll()?.next();
-        mesh.update(
-            device,
-            physical_device_memory_properties,
-            draw_data,
-        )?;
+        mesh.update(device, physical_device_memory_properties, draw_data)?;
 
-        let transient_command = TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
+        let transient_command =
+            TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
 
         let attachments = [target];
 
@@ -545,14 +551,11 @@ impl ImguiRenderer {
 
         let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
 
-        let clear_values = [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 0.0],
-                },
+        let clear_values = [vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.0, 0.0, 0.0, 0.0],
             },
-        ];
-
+        }];
 
         let render_pass_begin_info = vk::RenderPassBeginInfo {
             s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
@@ -560,35 +563,39 @@ impl ImguiRenderer {
             render_pass: self.render_pass,
             framebuffer,
             render_area: vk::Rect2D {
-                offset: vk::Offset2D {x: 0, y: 0},
+                offset: vk::Offset2D { x: 0, y: 0 },
                 extent: *swapchain_extent,
             },
             clear_value_count: clear_values.len() as u32,
             p_clear_values: clear_values.as_ptr(),
         };
 
-        unsafe {device.cmd_begin_render_pass(
-            transient_command.buffer(),
-            &render_pass_begin_info,
-            vk::SubpassContents::INLINE,
-        )};
+        unsafe {
+            device.cmd_begin_render_pass(
+                transient_command.buffer(),
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            )
+        };
 
-        unsafe {device.cmd_bind_pipeline(
-            transient_command.buffer(),
-            vk::PipelineBindPoint::GRAPHICS,
-            self.pipeline,
-        )};
+        unsafe {
+            device.cmd_bind_pipeline(
+                transient_command.buffer(),
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            )
+        };
 
         let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
         let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
-        let viewports = [vk::Viewport{
+        let viewports = [vk::Viewport {
             width: framebuffer_width,
             height: framebuffer_height,
             max_depth: 1.0,
             ..Default::default()
         }];
 
-        unsafe {device.cmd_set_viewport(transient_command.buffer(), 0, &viewports)};
+        unsafe { device.cmd_set_viewport(transient_command.buffer(), 0, &viewports) };
 
         let mut projection = Mat4::init(1.0);
         let rml = draw_data.display_size[0];
@@ -596,13 +603,13 @@ impl ImguiRenderer {
         let tmb = -draw_data.display_size[1];
         let tpb = -draw_data.display_size[1];
         let fmn = 2.0;
-        projection.0.0 = 2.0 / rml;
-        projection.1.1 = -2.0 / tmb;
-        projection.2.2 = -1.0 / fmn;
-        projection.3.0 = -(rpl / rml);
-        projection.3.1 = -(tpb / tmb);
-        projection.3.2 = 1.0 / fmn;
-        projection.3.3 = 1.0;
+        projection.0 .0 = 2.0 / rml;
+        projection.1 .1 = -2.0 / tmb;
+        projection.2 .2 = -1.0 / fmn;
+        projection.3 .0 = -(rpl / rml);
+        projection.3 .1 = -(tpb / tmb);
+        projection.3 .2 = 1.0 / fmn;
+        projection.3 .3 = 1.0;
 
         unsafe {
             let push_ptr = (&projection) as *const Mat4 as *const u8;
@@ -617,19 +624,23 @@ impl ImguiRenderer {
             );
         }
 
-        unsafe {device.cmd_bind_index_buffer(
-            transient_command.buffer(),
-            mesh.indices.buffer,
-            0,
-            vk::IndexType::UINT16,
-        )};
+        unsafe {
+            device.cmd_bind_index_buffer(
+                transient_command.buffer(),
+                mesh.indices.buffer,
+                0,
+                vk::IndexType::UINT16,
+            )
+        };
 
-        unsafe {device.cmd_bind_vertex_buffers(
-            transient_command.buffer(),
-            0,
-            &[mesh.vertices.buffer],
-            &[0],
-        )};
+        unsafe {
+            device.cmd_bind_vertex_buffers(
+                transient_command.buffer(),
+                0,
+                &[mesh.vertices.buffer],
+                &[0],
+            )
+        };
 
         let mut index_offset = 0;
         let mut vertex_offset = 0;
@@ -641,12 +652,13 @@ impl ImguiRenderer {
                 match command {
                     DrawCmd::Elements {
                         count,
-                        cmd_params: DrawCmdParams {
-                            clip_rect,
-                            texture_id,
-                            vtx_offset,
-                            idx_offset,
-                        },
+                        cmd_params:
+                            DrawCmdParams {
+                                clip_rect,
+                                texture_id,
+                                vtx_offset,
+                                idx_offset,
+                            },
                     } => {
                         let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
                         let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
@@ -664,7 +676,7 @@ impl ImguiRenderer {
                             },
                         }];
 
-                        unsafe {device.cmd_set_scissor(transient_command.buffer(), 0, &scissors)};
+                        unsafe { device.cmd_set_scissor(transient_command.buffer(), 0, &scissors) };
 
                         if Some(texture_id) != current_texture_id {
                             let descriptor_set = self.lookup_descriptor_set(texture_id)?;
@@ -690,10 +702,10 @@ impl ImguiRenderer {
                                 0,
                             )
                         }
-                    },
+                    }
                     DrawCmd::ResetRenderState => {
                         ris_log::warning!("reset render state not supported");
-                    },
+                    }
                     DrawCmd::RawCallback { .. } => {
                         ris_log::warning!("raw callback not supported");
                     }
@@ -704,9 +716,9 @@ impl ImguiRenderer {
             vertex_offset += draw_list.vtx_buffer().len() as i32;
         }
 
-        unsafe{device.cmd_end_render_pass(transient_command.buffer())};
+        unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
         transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
-        unsafe{device.destroy_framebuffer(framebuffer, None)};
+        unsafe { device.destroy_framebuffer(framebuffer, None) };
 
         Ok(())
     }
@@ -721,4 +733,3 @@ impl ImguiRenderer {
         }
     }
 }
-

@@ -1,13 +1,13 @@
 use std::io::Read;
-use std::io::Write;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::Write;
 
 use ris_error::RisResult;
 
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
-pub trait BinaryFormat : Sized {
+pub trait BinaryFormat: Sized {
     fn serialized_length() -> usize;
     fn serialize(&self) -> RisResult<Vec<u8>>;
     fn deserialize(buf: &[u8]) -> RisResult<Self>;
@@ -22,13 +22,9 @@ pub struct FatPtr {
 impl FatPtr {
     pub fn begin_end(begin: u64, end: u64) -> RisResult<FatPtr> {
         if begin > end {
-            ris_error::new_result!(
-                "begin {} must be less or equal than end {}",
-                begin,
-                end,
-            )
+            ris_error::new_result!("begin {} must be less or equal than end {}", begin, end,)
         } else {
-            Ok(FatPtr{
+            Ok(FatPtr {
                 addr: begin,
                 len: end - begin,
             })
@@ -127,10 +123,7 @@ pub fn read_array<T: BinaryFormat>(stream: &mut impl Read) -> RisResult<Vec<T>> 
 pub fn read_fat_ptr(stream: &mut impl Read) -> RisResult<FatPtr> {
     let addr = read_u64(stream)?;
     let len = read_u64(stream)?;
-    Ok(FatPtr {
-        addr,
-        len,
-    })
+    Ok(FatPtr { addr, len })
 }
 
 pub fn read_unsized(stream: &mut (impl Read + Seek), ptr: FatPtr) -> RisResult<Vec<u8>> {
@@ -144,10 +137,7 @@ pub fn read_strings(stream: &mut (impl Read + Seek), ptr: FatPtr) -> RisResult<V
     let bytes = read_unsized(stream, ptr)?;
     let strings = String::from_utf8(bytes)?;
 
-    let splits = strings
-        .split('\0')
-        .map(|x| x.to_string())
-        .collect();
+    let splits = strings.split('\0').map(|x| x.to_string()).collect();
 
     Ok(splits)
 }
@@ -173,7 +163,6 @@ pub fn write(stream: &mut impl Write, buf: &[u8]) -> RisResult<()> {
             written_bytes,
         )
     }
-
 }
 
 pub fn write_i32(stream: &mut impl Write, value: i32) -> RisResult<()> {
@@ -222,7 +211,7 @@ pub fn write_fat_ptr(stream: &mut impl Write, value: FatPtr) -> RisResult<()> {
 pub fn write_unsized(stream: &mut (impl Write + Seek), buf: &[u8]) -> RisResult<FatPtr> {
     let addr = seek(stream, SeekFrom::Current(0))?;
     write(stream, buf)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr,
         len: buf.len().try_into()?,
     })
@@ -230,7 +219,7 @@ pub fn write_unsized(stream: &mut (impl Write + Seek), buf: &[u8]) -> RisResult<
 
 pub fn write_strings(stream: &mut (impl Write + Seek), strings: &[&str]) -> RisResult<FatPtr> {
     let begin = seek(stream, SeekFrom::Current(0))?;
-    if strings.len() >= 1 {
+    if !strings.is_empty() {
         let first = strings[0];
         let bytes = first.as_bytes();
         write(stream, bytes)?;

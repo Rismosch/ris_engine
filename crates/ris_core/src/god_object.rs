@@ -2,8 +2,8 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::RisGodAsset;
 use ris_asset::AssetId;
+use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -121,12 +121,7 @@ impl GodObject {
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(
-            window,
-            renderer,
-            imgui,
-            ui_helper,
-        )?;
+        let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 

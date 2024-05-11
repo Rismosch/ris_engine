@@ -121,7 +121,7 @@ pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
         *asset_loader_sender = Some(sender)
     }
 
-    Ok(AssetLoaderGuard{god_asset_id})
+    Ok(AssetLoaderGuard { god_asset_id })
 }
 
 pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
@@ -158,7 +158,10 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                         LoadError::LoadFailed
                     })
                 } else {
-                    ris_log::error!("invalid id. expected compiled but was directory. id: {:?}", request.id);
+                    ris_log::error!(
+                        "invalid id. expected compiled but was directory. id: {:?}",
+                        request.id
+                    );
                     Err(LoadError::InvalidId)
                 };
 
@@ -173,7 +176,10 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                         LoadError::LoadFailed
                     })
                 } else {
-                    ris_log::error!("invalid id. expected directory but was compiled. id: {:?}", request.id);
+                    ris_log::error!(
+                        "invalid id. expected directory but was compiled. id: {:?}",
+                        request.id
+                    );
                     Err(LoadError::InvalidId)
                 };
 

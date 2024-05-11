@@ -111,7 +111,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
         let modified_file_content = match RisHeader::load(&file_content)? {
             // asset is not a ris_asset, return unmodified
-            None => file_content, 
+            None => file_content,
 
             // asset is ris_asset, change directory id to compiled id
             Some(ris_header) => {
@@ -123,21 +123,23 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
                                 "attempted to compile an already compiled asset: {}",
                                 id,
                             );
-                        },
+                        }
                         AssetId::Directory(id) => {
                             let mut id_path = PathBuf::from(&source_path);
                             id_path.push(id);
                             let lookup_value = asset_lookup_hashmap.get(&id_path);
 
                             let compiled_id = *lookup_value.unroll()?;
-                            let reference = crate::assets::ris_header::Reference(compiled_id.try_into()?);
+                            let reference =
+                                crate::assets::ris_header::Reference(compiled_id.try_into()?);
                             references.push(reference);
-                        },
+                        }
                     }
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content =
+                    ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 ris_file::io::write(&mut modified_file_content, &ris_header.magic)?;
@@ -156,17 +158,20 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
     }
 
     // all assets are compiled, compile original paths
-    let original_paths = assets.iter()
-        .map(|x| Ok({
-            let mut original_path = x.to_str().unroll()?.to_string();
-            original_path.replace_range(0..source.len(), "");
-            let mut original_path = original_path.replace('\\', "/");
-            if original_path.starts_with('/') {
-                original_path.remove(0);
-            }
+    let original_paths = assets
+        .iter()
+        .map(|x| {
+            Ok({
+                let mut original_path = x.to_str().unroll()?.to_string();
+                original_path.replace_range(0..source.len(), "");
+                let mut original_path = original_path.replace('\\', "/");
+                if original_path.starts_with('/') {
+                    original_path.remove(0);
+                }
 
-            original_path
-        }))
+                original_path
+            })
+        })
         .collect::<RisResult<Vec<_>>>()?;
 
     let original_paths = original_paths
@@ -253,16 +258,17 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                                 "attempted to decompile an already decompiled asset: {}",
                                 id,
                             );
-                        },
+                        }
                         AssetId::Compiled(id) => {
                             let reference = &original_paths[id];
                             references.push(reference.as_str());
-                        },
+                        }
                     }
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content =
+                    ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 ris_file::io::write(&mut modified_file_content, &ris_header.magic)?;
@@ -304,14 +310,7 @@ impl BinaryFormat for AssetAddr {
         ris_error::assert!(buf.len() == 8)?;
 
         Ok(Self(u64::from_le_bytes([
-            buf[0],
-            buf[1],
-            buf[2],
-            buf[3],
-            buf[4],
-            buf[5],
-            buf[6],
-            buf[7],
+            buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
         ])))
     }
 }
