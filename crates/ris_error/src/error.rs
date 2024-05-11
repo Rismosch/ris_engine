@@ -145,6 +145,7 @@ macro_rules! debug_assert {
     ($value:expr) => {{
         #[cfg(not(debug_assertions))]
         {
+            let _ = $value;
             let result: ris_error::RisResult<()> = Ok(());
             result
         }

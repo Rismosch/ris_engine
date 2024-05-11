@@ -53,6 +53,7 @@ impl AssetLoaderCompiled {
             .get(id)
             .ok_or_else(|| ris_error::new!("asset does not exist"))?;
 
-        ris_file::io::read_unsized(&mut self.file, *p_asset)
+        let bytes = ris_file::io::read_unsized(&mut self.file, *p_asset)?;
+        Ok(bytes)
     }
 }

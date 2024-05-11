@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ris_data::god_state::GodState;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_data::settings::Settings;

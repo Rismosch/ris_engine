@@ -91,13 +91,13 @@ pub fn find_supported_format(
         if tiling == vk::ImageTiling::LINEAR
             && format_properties.linear_tiling_features.contains(features)
         {
-            return Ok(candidate.clone());
+            return Ok(candidate);
         }
 
         if tiling == vk::ImageTiling::OPTIMAL
             && format_properties.optimal_tiling_features.contains(features)
         {
-            return Ok(candidate.clone());
+            return Ok(candidate);
         }
     }
 

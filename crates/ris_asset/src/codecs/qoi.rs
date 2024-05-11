@@ -3,7 +3,6 @@
 
 use std::io::Cursor;
 use std::io::Read;
-use std::io::Write;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QoiDesc {
@@ -205,10 +204,10 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 
     let mut bytes = Cursor::new(Vec::with_capacity(max_size as usize));
 
-    bytes.write(&MAGIC)?;
-    bytes.write(&desc.width.to_be_bytes())?;
-    bytes.write(&desc.height.to_be_bytes())?;
-    bytes.write(&[desc.channels as u8, desc.color_space as u8])?;
+    ris_file::io::write(&mut bytes, &MAGIC)?;
+    ris_file::io::write(&mut bytes, &desc.width.to_be_bytes())?;
+    ris_file::io::write(&mut bytes, &desc.height.to_be_bytes())?;
+    ris_file::io::write(&mut bytes, &[desc.channels as u8, desc.color_space as u8])?;
 
     let pixels = data;
 
@@ -240,19 +239,19 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         if px == px_prev {
             run += 1;
             if run == 62 || px_pos == px_end {
-                bytes.write(&[OP_RUN | (run - 1)])?;
+                ris_file::io::write(&mut bytes, &[OP_RUN | (run - 1)])?;
                 run = 0;
             }
         } else {
             if run > 0 {
-                bytes.write(&[OP_RUN | (run - 1)])?;
+                ris_file::io::write(&mut bytes, &[OP_RUN | (run - 1)])?;
                 run = 0;
             }
 
             let index_pos = px.hash() % 64;
 
             if index[index_pos as usize] == px {
-                let _ = bytes.write(&[OP_INDEX | index_pos]);
+                ris_file::io::write(&mut bytes, &[OP_INDEX | index_pos])?;
             } else {
                 index[index_pos as usize] = px;
 
@@ -268,19 +267,19 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
                         let dr = ((vr + 2) << 4) as u8;
                         let dg = ((vg + 2) << 2) as u8;
                         let db = (vb + 2) as u8;
-                        bytes.write(&[OP_DIFF | dr | dg | db])?;
+                        ris_file::io::write(&mut bytes, &[OP_DIFF | dr | dg | db])?;
                     } else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8
                     {
                         let dr = ((vg_r + 8) << 4) as u8;
                         let dg = (vg + 32) as u8;
                         let db = (vg_b + 8) as u8;
-                        bytes.write(&[OP_LUMA | dg])?;
-                        bytes.write(&[dr | db])?;
+                        ris_file::io::write(&mut bytes, &[OP_LUMA | dg])?;
+                        ris_file::io::write(&mut bytes, &[dr | db])?;
                     } else {
-                        bytes.write(&[OP_RGB, px.r, px.g, px.b])?;
+                        ris_file::io::write(&mut bytes, &[OP_RGB, px.r, px.g, px.b])?;
                     }
                 } else {
-                    bytes.write(&[OP_RGBA, px.r, px.g, px.b, px.a])?;
+                    ris_file::io::write(&mut bytes, &[OP_RGBA, px.r, px.g, px.b, px.a])?;
                 }
             }
         }
@@ -288,7 +287,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
         px_prev = px;
     }
 
-    bytes.write(&PADDING)?;
+    ris_file::io::write(&mut bytes, &PADDING)?;
 
     let result = bytes.into_inner();
     Ok(result)
@@ -301,14 +300,14 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
         });
     }
 
-    let bytes = &mut Cursor::new(data);
+    let mut bytes = &mut Cursor::new(data);
 
     let mut header_magic_bytes = [0; 4];
     let mut width_bytes = [0; 4];
     let mut height_bytes = [0; 4];
-    bytes.read(&mut header_magic_bytes)?;
-    bytes.read(&mut width_bytes)?;
-    bytes.read(&mut height_bytes)?;
+    ris_file::io::read(&mut bytes, &mut header_magic_bytes)?;
+    ris_file::io::read(&mut bytes, &mut width_bytes)?;
+    ris_file::io::read(&mut bytes, &mut height_bytes)?;
 
     let width = u32::from_be_bytes(width_bytes);
     let height = u32::from_be_bytes(height_bytes);
@@ -389,10 +388,10 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
             index[index_pos as usize] = px;
         }
 
-        pixels.write(&[px.r, px.g, px.b])?;
+        ris_file::io::write(&mut pixels, &[px.r, px.g, px.b])?;
 
         if channels == Channels::RGBA {
-            pixels.write(&[px.a])?;
+            ris_file::io::write(&mut pixels, &[px.a])?;
         }
     }
 
@@ -402,6 +401,6 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
 
 fn read_byte(stream: &mut impl Read) -> Result<u8, std::io::Error> {
     let mut bytes = [0];
-    stream.read(&mut bytes)?;
+    ris_file::io::read(stream, &mut bytes)?;
     Ok(bytes[0])
 }

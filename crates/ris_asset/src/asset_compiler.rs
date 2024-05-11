@@ -302,12 +302,14 @@ impl BinaryFormat for AssetAddr {
         8
     }
 
-    fn serialize(&self) -> RisResult<Vec<u8>> {
+    fn serialize(&self) -> std::io::Result<Vec<u8>> {
         Ok(self.0.to_le_bytes().to_vec())
     }
 
-    fn deserialize(buf: &[u8]) -> RisResult<Self> {
-        ris_error::assert!(buf.len() == 8)?;
+    fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        if buf.len() != 8 {
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+        }
 
         Ok(Self(u64::from_le_bytes([
             buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],

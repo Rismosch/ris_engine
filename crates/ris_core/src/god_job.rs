@@ -57,7 +57,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             drop(god_object.job_system_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers = crate::determine_thread_count(&god_object.app_info, &settings);
+            let workers = crate::determine_thread_count(&god_object.app_info, settings);
 
             let new_guard = unsafe {
                 job_system::init(

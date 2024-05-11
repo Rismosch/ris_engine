@@ -2,7 +2,6 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::AssetId;
 use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
