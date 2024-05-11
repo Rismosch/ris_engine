@@ -7,7 +7,6 @@ use imgui::Context;
 use imgui::DrawCmd;
 use imgui::DrawCmdParams;
 use imgui::DrawData;
-use imgui::DrawVert;
 use imgui::TextureId;
 use imgui::Textures;
 
@@ -16,7 +15,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
-use crate::vulkan::buffer::Buffer;
+use crate::imgui::imgui_frames::Frames;
 use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
@@ -511,9 +510,6 @@ impl ImguiRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties =
-            unsafe { instance.get_physical_device_properties(suitable_device.physical_device)
-        };
 
         if self.frames.is_none() {
             self.frames.replace(Frames::alloc(
@@ -637,7 +633,7 @@ impl ImguiRenderer {
 
         let mut index_offset = 0;
         let mut vertex_offset = 0;
-        let mut current_texture_id: Option<TextureId> = None;
+        let current_texture_id: Option<TextureId> = None;
         let clip_offset = draw_data.display_pos;
         let clip_scale = draw_data.framebuffer_scale;
         for draw_list in draw_data.draw_lists() {
@@ -726,174 +722,3 @@ impl ImguiRenderer {
     }
 }
 
-struct Frames {
-    index: usize,
-    count: usize,
-    meshes: Vec<Mesh>,
-}
-
-impl Frames {
-    fn alloc(
-        device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        draw_data: &DrawData,
-        count: usize,
-    ) -> RisResult<Self> {
-        let meshes = (0..count)
-            .map(|_| Mesh::alloc(
-                device,
-                physical_device_memory_properties,
-                draw_data,
-            ))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(Self {
-            index: 0,
-            count,
-            meshes,
-        })
-    }
-
-    fn free(&self, device: &ash::Device) {
-        for mesh in self.meshes.iter() {
-            mesh.free(device);
-        }
-    }
-
-    fn next(&mut self) -> &mut Mesh {
-        let result = &mut self.meshes[self.index];
-        self.index = (self.index + 1) % self.count;
-        result
-    }
-}
-
-struct Mesh {
-    vertices: Buffer,
-    vertex_count: usize,
-    indices: Buffer,
-    index_count: usize,
-}
-
-impl Mesh {
-    fn alloc(
-        device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        draw_data: &DrawData,
-    ) -> RisResult<Self> {
-        let vertices = Self::create_vertices(draw_data);
-        let vertex_count = vertices.len();
-        let indices = Self::create_indices(draw_data);
-        let index_count = vertices.len();
-
-        let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
-        let vertex_buffer = Buffer::alloc(
-            device,
-            vertex_buffer_size,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
-
-        vertex_buffer.write(device, &vertices)?;
-
-        let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-        let index_buffer = Buffer::alloc(
-            device,
-            index_buffer_size,
-            vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
-
-        index_buffer.write(device, &indices)?;
-
-        Ok(Self{
-            vertices: vertex_buffer,
-            vertex_count,
-            indices: index_buffer,
-            index_count,
-        })
-    }
-
-    fn free(&self, device: &ash::Device) {
-        self.vertices.free(device);
-        self.indices.free(device);
-    }
-
-    fn create_vertices(draw_data: &DrawData) -> Vec<DrawVert> {
-        let vertex_count = draw_data.total_vtx_count as usize;
-        let mut vertices = Vec::with_capacity(vertex_count);
-        for draw_list in draw_data.draw_lists() {
-            vertices.extend_from_slice(draw_list.vtx_buffer());
-        }
-        vertices
-    }
-
-    fn create_indices(draw_data: &DrawData) -> Vec<u16> {
-        let index_count = draw_data.total_idx_count as usize;
-        let mut indices = Vec::with_capacity(index_count);
-        for draw_list in draw_data.draw_lists() {
-            indices.extend_from_slice(draw_list.idx_buffer());
-        }
-        indices
-    }
-
-    fn update(
-        &mut self,
-        device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        draw_data: &DrawData,
-    ) -> RisResult<()> {
-        let vertices = Self::create_vertices(draw_data);
-        let old_vertex_count = self.vertex_count;
-        let new_vertex_count = draw_data.total_vtx_count as usize;
-
-        if old_vertex_count < new_vertex_count {
-            //ris_log::trace!("resizing vertex buffer from {} to {}...", old_vertex_count, new_vertex_count);
-
-            let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
-            let new_vertex_buffer = Buffer::alloc(
-                device,
-                vertex_buffer_size,
-                vk::BufferUsageFlags::VERTEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
-
-            self.vertex_count = vertices.len();
-
-            let old_buffer = self.vertices;
-            self.vertices = new_vertex_buffer;
-
-            old_buffer.free(device);
-        }
-        self.vertices.write(device, &vertices)?;
-
-        let indices = Self::create_indices(draw_data);
-        let old_index_count = self.index_count;
-        let new_index_count = draw_data.total_idx_count as usize;
-
-        if old_index_count < new_index_count {
-            //ris_log::trace!("resizing index buffer from {} to {}...", old_index_count, new_index_count);
-
-            let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-            let new_index_buffer = Buffer::alloc(
-                device,
-                index_buffer_size,
-                vk::BufferUsageFlags::INDEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
-
-            self.index_count = indices.len();
-
-            let old_buffer = self.indices;
-            self.indices = new_index_buffer;
-
-            old_buffer.free(device);
-        }
-        self.indices.write(device, &indices)?;
-
-        Ok(())
-    }
-}

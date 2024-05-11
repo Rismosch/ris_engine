@@ -3,7 +3,6 @@ use std::io::Write;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use imgui::Ui;
 
@@ -12,7 +11,6 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
 
 pub mod metrics_module;
 pub mod settings_module;

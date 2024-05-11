@@ -13,7 +13,6 @@ use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::graphics_pipeline::GraphicsPipeline;
 use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain::BaseSwapchain;
 use ris_video::vulkan::swapchain::Swapchain;
@@ -85,23 +84,14 @@ impl OutputFrame {
                 Swapchain {
                     base:
                         BaseSwapchain {
-                            extent: swapchain_extent,
                             loader: swapchain_loader,
                             swapchain,
                             ..
-                        },
-                    graphics_pipeline:
-                        GraphicsPipeline {
-                            render_pass,
-                            layout,
-                            pipeline,
                         },
                     entries: swapchain_entries,
                     frames_in_flight,
                     ..
                 },
-            vertex_buffer,
-            index_buffer,
             ..
         } = &self.renderer;
 
@@ -147,8 +137,6 @@ impl OutputFrame {
         let SwapchainEntry {
             image_view,
             uniform_buffer_mapped,
-            descriptor_set,
-            framebuffer,
             command_buffer,
             ..
         } = &swapchain_entries[image_index as usize];

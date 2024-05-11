@@ -455,7 +455,7 @@ impl Swapchain {
             Some(x) => Some(x),
             None => {
                 let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
-                for i in 0..super::MAX_FRAMES_IN_FLIGHT {
+                for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
                     let frame_in_flight = FrameInFlight::alloc(&device)?;
 
                     frames_in_flight.push(frame_in_flight);

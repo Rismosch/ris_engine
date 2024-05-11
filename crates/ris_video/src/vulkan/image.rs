@@ -64,7 +64,7 @@ impl Image {
         };
 
         let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
-        unsafe { device.bind_image_memory(image, memory, 0) };
+        unsafe { device.bind_image_memory(image, memory, 0) }?;
 
         Ok(Self { image, memory })
     }

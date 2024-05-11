@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 
 use sdl2::event::Event;

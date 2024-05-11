@@ -6,14 +6,14 @@ use ris_error::RisResult;
 
 use crate::imgui::imgui_mesh::Mesh;
 
-struct Frames {
-    index: usize,
-    count: usize,
-    meshes: Vec<Mesh>,
+pub struct Frames {
+    pub index: usize,
+    pub count: usize,
+    pub meshes: Vec<Mesh>,
 }
 
 impl Frames {
-    fn alloc(
+    pub fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
@@ -34,13 +34,13 @@ impl Frames {
         })
     }
 
-    fn free(&self, device: &ash::Device) {
+    pub fn free(&self, device: &ash::Device) {
         for mesh in self.meshes.iter() {
             mesh.free(device);
         }
     }
 
-    fn next(&mut self) -> &mut Mesh {
+    pub fn next(&mut self) -> &mut Mesh {
         let result = &mut self.meshes[self.index];
         self.index = (self.index + 1) % self.count;
         result
