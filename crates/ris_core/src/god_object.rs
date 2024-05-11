@@ -2,8 +2,7 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::loader::scenes_loader;
-use ris_asset::loader::scenes_loader::Scenes;
+use ris_asset::ris::GodAsset;
 use ris_asset::AssetId;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
@@ -39,12 +38,12 @@ fn import_assets() -> RisResult<()> {
 }
 
 #[cfg(debug_assertions)]
-fn scenes_id() -> AssetId {
-    AssetId::Directory(String::from("root.ris_scenes"))
+fn god_asset_id() -> AssetId {
+    AssetId::Directory(String::from("root.god_asset"))
 }
 
 #[cfg(not(debug_assertions))]
-fn scenes_id() -> AssetId {
+fn god_asset_id() -> AssetId {
     AssetId::Compiled(0)
 }
 
@@ -54,7 +53,7 @@ pub struct GodObject {
     pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
-    pub scenes: Scenes,
+    pub god_asset: GodAsset,
 
     pub state: GodState,
 
@@ -102,10 +101,10 @@ impl GodObject {
             .game_controller()
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
-        // scenes
-        let scenes_id = scenes_id();
-        let scenes_bytes = asset_loader::load_async(scenes_id).wait(None)??;
-        let scenes = scenes_loader::load(&scenes_bytes)?;
+        // god asset
+        let god_asset_id = god_asset_id();
+        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
+        let god_asset = GodAsset::load(&god_asset_bytes)?;
 
         // video
         let video_subsystem = sdl_context
@@ -118,12 +117,12 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let renderer = Renderer::initialize(&app_info, &window, scenes.clone())?;
+        let renderer = Renderer::initialize(&app_info, &window, &god_asset)?;
 
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
+        let imgui_renderer = ImguiRenderer::init(&renderer, &god_asset, context)?;
         let imgui = RisImgui {
             backend: imgui_backend,
             renderer: imgui_renderer,
@@ -168,7 +167,7 @@ impl GodObject {
             frame_calculator,
             logic_frame,
             output_frame,
-            scenes,
+            god_asset,
 
             state,
 

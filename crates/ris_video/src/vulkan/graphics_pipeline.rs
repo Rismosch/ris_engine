@@ -24,6 +24,8 @@ impl GraphicsPipeline {
         color_format: vk::Format,
         swapchain_extent: vk::Extent2D,
         descriptor_set_layout: vk::DescriptorSetLayout,
+        vs_asset_id: AssetId,
+        fs_asset_id: AssetId,
     ) -> RisResult<Self> {
         // render pass
         let color_attachment = vk::AttachmentDescription {
@@ -103,11 +105,6 @@ impl GraphicsPipeline {
         let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;
 
         // shaders
-        let vs_asset_id =
-            AssetId::Directory(String::from("__imported_raw/shaders/default.vert.spv"));
-        let fs_asset_id =
-            AssetId::Directory(String::from("__imported_raw/shaders/default.frag.spv"));
-
         let vs_asset_future = ris_asset::load_async(vs_asset_id);
         let fs_asset_future = ris_asset::load_async(fs_asset_id);
 

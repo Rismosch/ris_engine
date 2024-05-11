@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::loader::ris_loader;
+use crate::ris::Header;
 
 /// # File Format
 ///
@@ -111,7 +111,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
         ris_file::read!(&mut file, file_content)?;
 
         // change directory ids to compiled ids
-        let modified_file_content = match ris_loader::load(&file_content)? {
+        let modified_file_content = match Header::load(&file_content)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
                 ris_file::write!(&mut asset_bytes, &ris_asset.magic)?;
@@ -281,7 +281,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         ris_file::read!(&mut source, file_bytes)?;
 
         // reassign ids
-        let modified_file_bytes = match ris_loader::load(&file_bytes)? {
+        let modified_file_bytes = match Header::load(&file_bytes)? {
             Some(ris_asset) => {
                 let mut asset_bytes = Cursor::new(Vec::new());
                 ris_file::write!(&mut asset_bytes, &ris_asset.magic)?;

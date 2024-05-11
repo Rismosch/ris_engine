@@ -6,7 +6,7 @@ use ash::vk;
 use sdl2::video::Window;
 
 use ris_asset::codecs::qoi;
-use ris_asset::loader::scenes_loader::Scenes;
+use ris_asset::ris::GodAsset;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -72,7 +72,7 @@ impl Drop for Renderer {
 }
 
 impl Renderer {
-    pub fn initialize(app_info: &AppInfo, window: &Window, scenes: Scenes) -> RisResult<Self> {
+    pub fn initialize(app_info: &AppInfo, window: &Window, god_asset: &GodAsset) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -191,11 +191,12 @@ impl Renderer {
             flags: vk::DeviceCreateFlags::empty(),
             queue_create_info_count: queue_create_infos.len() as u32,
             p_queue_create_infos: queue_create_infos.as_ptr(),
-            pp_enabled_layer_names: available_layers.1,
-            enabled_layer_count: available_layers.0,
+            //pp_enabled_layer_names: available_layers.1,
+            //enabled_layer_count: available_layers.0,
             pp_enabled_extension_names: super::REQUIRED_DEVICE_EXTENSIONS.as_ptr(),
             enabled_extension_count: super::REQUIRED_DEVICE_EXTENSIONS.len() as u32,
             p_enabled_features: &physical_device_features,
+            ..Default::default()
         };
 
         let device = unsafe {
@@ -415,6 +416,8 @@ impl Renderer {
             swapchain_images,
             None,
             None,
+            god_asset.default_vs.clone(),
+            god_asset.default_fs.clone(),
         )?;
 
         // renderer
@@ -439,12 +442,21 @@ impl Renderer {
         })
     }
 
-    pub fn recreate_swapchain(&mut self, window_size: (u32, u32)) -> RisResult<()> {
+    pub fn recreate_swapchain(
+        &mut self,
+        window_size: (u32, u32),
+        god_asset: &GodAsset,
+    ) -> RisResult<()> {
         ris_log::trace!("recreating swapchain...");
 
         unsafe { self.device.device_wait_idle() }?;
 
-        self.swapchain = Swapchain::recreate(self, window_size)?;
+        self.swapchain = Swapchain::recreate(
+            self,
+            window_size,
+            god_asset.default_vs.clone(),
+            god_asset.default_fs.clone(),
+        )?;
 
         ris_log::trace!("swapchain recreated!");
 

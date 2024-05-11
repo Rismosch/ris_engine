@@ -4,6 +4,7 @@ use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
+use ris_asset::ris::GodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_data::god_state::WindowEvent;
@@ -64,7 +65,12 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<()> {
+    pub fn run(
+        &mut self,
+        frame: Frame,
+        state: &mut GodState,
+        god_asset: &GodAsset,
+    ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -127,9 +133,10 @@ impl OutputFrame {
             Ok((image_index, _is_sub_optimal)) => image_index,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
-                    return self
-                        .renderer
-                        .recreate_swapchain(self.window.vulkan_drawable_size())
+                    return self.renderer.recreate_swapchain(
+                        self.window.vulkan_drawable_size(),
+                        god_asset,
+                    )
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
@@ -230,7 +237,7 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            self.renderer.recreate_swapchain((width, height))?;
+            self.renderer.recreate_swapchain((width, height), god_asset)?;
         }
 
         self.current_frame = next_frame;

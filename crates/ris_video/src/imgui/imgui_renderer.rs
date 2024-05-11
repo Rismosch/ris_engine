@@ -11,8 +11,7 @@ use imgui::DrawVert;
 use imgui::TextureId;
 use imgui::Textures;
 
-use ris_asset::AssetId;
-use ris_asset::loader::scenes_loader::Scenes;
+use ris_asset::ris::GodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
@@ -53,7 +52,7 @@ impl ImguiRenderer {
         }
     }
 
-    pub fn init(renderer: &Renderer, scenes: &Scenes, context: &mut Context) -> RisResult<Self> {
+    pub fn init(renderer: &Renderer, god_asset: &GodAsset, context: &mut Context) -> RisResult<Self> {
         let Renderer {
             instance,
             suitable_device,
@@ -71,13 +70,8 @@ impl ImguiRenderer {
         } = renderer;
 
         // shaders
-        let vs_asset_id =
-            AssetId::Directory(String::from("__imported_raw/shaders/imgui.vert.spv"));
-        let fs_asset_id =
-            AssetId::Directory(String::from("__imported_raw/shaders/imgui.frag.spv"));
-
-        let vs_asset_future = ris_asset::load_async(vs_asset_id);
-        let fs_asset_future = ris_asset::load_async(fs_asset_id);
+        let vs_asset_future = ris_asset::load_async(god_asset.imgui_vs.clone());
+        let fs_asset_future = ris_asset::load_async(god_asset.imgui_fs.clone());
 
         let vs_bytes = vs_asset_future.wait(None)??;
         let fs_bytes = fs_asset_future.wait(None)??;

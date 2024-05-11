@@ -2,6 +2,7 @@ use std::ptr;
 
 use ash::vk;
 
+use ris_asset::AssetId;
 use ris_error::RisResult;
 
 use super::buffer::Buffer;
@@ -176,6 +177,8 @@ impl Swapchain {
         images: Vec<vk::Image>,
         descriptor_sets: Option<Vec<vk::DescriptorSet>>,
         frames_in_flight: Option<Vec<FrameInFlight>>,
+        vs_asset_id: AssetId,
+        fs_asset_id: AssetId,
     ) -> RisResult<Self> {
         // graphics pipeline
         let graphics_pipeline = GraphicsPipeline::alloc(
@@ -185,6 +188,8 @@ impl Swapchain {
             base.format.format,
             base.extent,
             descriptor_set_layout,
+            vs_asset_id,
+            fs_asset_id,
         )?;
 
         // depth buffer
@@ -496,7 +501,12 @@ impl Swapchain {
         }
     }
 
-    pub fn recreate(renderer: &mut Renderer, window_size: (u32, u32)) -> RisResult<Self> {
+    pub fn recreate(
+        renderer: &mut Renderer,
+        window_size: (u32, u32),
+        vs_asset_id: AssetId,
+        fs_asset_id: AssetId,
+    ) -> RisResult<Self> {
         // gather data which should not be cleaned up
         let mut descriptor_sets = Vec::with_capacity(renderer.swapchain.entries.len());
         for entry in renderer.swapchain.entries.iter() {
@@ -538,6 +548,8 @@ impl Swapchain {
             images,
             descriptor_sets,
             frames_in_flight,
+            vs_asset_id,
+            fs_asset_id,
         )
     }
 }
