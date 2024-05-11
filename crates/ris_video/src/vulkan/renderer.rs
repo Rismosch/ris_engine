@@ -256,10 +256,7 @@ impl Renderer {
             unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
         // texture
-        let texture_asset_id = ris_asset::AssetId::Directory(String::from(
-            "__imported_raw/images/profile_pic_2020_1000x1000.qoi",
-        ));
-
+        let texture_asset_id = god_asset.texture.clone();
         let content = ris_asset::load_async(texture_asset_id.clone()).wait(None)??;
         let (pixels, desc) = qoi::decode(&content, None)?;
 
@@ -416,8 +413,8 @@ impl Renderer {
             swapchain_images,
             None,
             None,
-            god_asset.default_vs.clone(),
-            god_asset.default_fs.clone(),
+            god_asset.default_vert_spv.clone(),
+            god_asset.default_frag_spv.clone(),
         )?;
 
         // renderer
@@ -454,8 +451,8 @@ impl Renderer {
         self.swapchain = Swapchain::recreate(
             self,
             window_size,
-            god_asset.default_vs.clone(),
-            god_asset.default_fs.clone(),
+            god_asset.default_vert_spv.clone(),
+            god_asset.default_frag_spv.clone(),
         )?;
 
         ris_log::trace!("swapchain recreated!");

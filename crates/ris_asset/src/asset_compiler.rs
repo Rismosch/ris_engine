@@ -266,7 +266,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 ris_file::io::write(&mut modified_file_content, &ris_header.magic)?;
-                ris_file::io::write_bool(&mut modified_file_content, true)?;
+                ris_file::io::write_bool(&mut modified_file_content, false)?;
                 ris_file::io::write_strings(&mut modified_file_content, &references)?;
                 ris_file::io::write(&mut modified_file_content, &ris_asset_content)?;
 

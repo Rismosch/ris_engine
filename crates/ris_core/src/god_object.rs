@@ -37,16 +37,6 @@ fn import_assets() -> RisResult<()> {
     Ok(())
 }
 
-#[cfg(debug_assertions)]
-fn god_asset_id() -> AssetId {
-    AssetId::Directory(String::from("root.god_asset"))
-}
-
-#[cfg(not(debug_assertions))]
-fn god_asset_id() -> AssetId {
-    AssetId::Compiled(0)
-}
-
 pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
@@ -102,7 +92,7 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
         // god asset
-        let god_asset_id = god_asset_id();
+        let god_asset_id = asset_loader_guard.god_asset_id.clone();
         let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
         let god_asset = RisGodAsset::load(&god_asset_bytes)?;
 

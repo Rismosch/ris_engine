@@ -141,12 +141,12 @@ macro_rules! assert {
 }
 
 #[macro_export]
-#[cfg(debug_assertions)]
 macro_rules! debug_assert {
     ($value:expr) => {{
         #[cfg(not(debug_assertions))]
         {
-            Ok(())
+            let result: ris_error::RisResult<()> = Ok(());
+            result
         }
 
         #[cfg(debug_assertions)]
@@ -160,10 +160,3 @@ macro_rules! debug_assert {
     }};
 }
 
-#[macro_export]
-#[cfg(not(debug_assertions))]
-macro_rules! debug_assert {
-    ($value:expr) => {{
-        Ok(())
-    }};
-}

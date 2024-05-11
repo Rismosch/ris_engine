@@ -51,7 +51,9 @@ impl std::fmt::Display for LoadError {
 
 static ASSET_LOADER_SENDER: Mutex<Option<Sender<Request>>> = Mutex::new(None);
 
-pub struct AssetLoaderGuard;
+pub struct AssetLoaderGuard {
+    pub god_asset_id: AssetId,
+}
 
 impl Drop for AssetLoaderGuard {
     fn drop(&mut self) {
@@ -90,28 +92,36 @@ pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
 
     // create internal loader
     let metadata = asset_path.metadata()?;
-    let internal = if metadata.is_file() {
+    let (internal_loader, god_asset_id) = if metadata.is_file() {
+        // compiled
         let loader = AssetLoaderCompiled::new(asset_path)?;
+        let internal_loader = InternalLoader::Compiled(loader);
+        let god_asset_id = AssetId::Compiled(0);
         ris_log::debug!("compiled asset loader was created");
-        InternalLoader::Compiled(loader)
+
+        (internal_loader, god_asset_id)
     } else if metadata.is_dir() {
+        // directory
         let loader = AssetLoaderDirectory::new(asset_path);
+        let internal_loader = InternalLoader::Directory(loader);
+        let god_asset_id = AssetId::Directory(String::from("god_asset.ris_god_asset"));
         ris_log::debug!("directory asset loader was created");
-        InternalLoader::Directory(loader)
+
+        (internal_loader, god_asset_id)
     } else {
         return ris_error::new_result!("assets are neither a file nor a directory");
     };
 
     // set up thread
     let (sender, receiver) = channel();
-    let _ = std::thread::spawn(|| load_asset_thread(receiver, internal));
+    let _ = std::thread::spawn(|| load_asset_thread(receiver, internal_loader));
 
     {
         let mut asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
         *asset_loader_sender = Some(sender)
     }
 
-    Ok(AssetLoaderGuard)
+    Ok(AssetLoaderGuard{god_asset_id})
 }
 
 pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
@@ -144,10 +154,11 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
             for request in receiver.iter() {
                 let result = if let AssetId::Compiled(id) = request.id {
                     loader.load(id).map_err(|e| {
-                        ris_log::error!("{}", e);
+                        ris_log::error!("failed loading {:?}: {}", id, e);
                         LoadError::LoadFailed
                     })
                 } else {
+                    ris_log::error!("invalid id. expected compiled but was directory. id: {:?}", request.id);
                     Err(LoadError::InvalidId)
                 };
 
@@ -157,11 +168,12 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
         InternalLoader::Directory(loader) => {
             for request in receiver.iter() {
                 let result = if let AssetId::Directory(id) = request.id {
-                    loader.load(id).map_err(|e| {
-                        ris_log::error!("{}", e);
+                    loader.load(id.clone()).map_err(|e| {
+                        ris_log::error!("failed loading {:?}: {}", id, e);
                         LoadError::LoadFailed
                     })
                 } else {
+                    ris_log::error!("invalid id. expected directory but was compiled. id: {:?}", request.id);
                     Err(LoadError::InvalidId)
                 };
 
