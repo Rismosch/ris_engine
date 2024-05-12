@@ -16,6 +16,9 @@ use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 use crate::AssetId;
 
+const GOD_ASSET_PATH: &str = "god_asset.ris_god_asset";
+const UNNAMED_GOD_ASSET_PATH: &str = "asset_0";
+
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
     Directory(AssetLoaderDirectory),
@@ -104,7 +107,19 @@ pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
         // directory
         let loader = AssetLoaderDirectory::new(asset_path);
         let internal_loader = InternalLoader::Directory(loader);
-        let god_asset_id = AssetId::Directory(String::from("god_asset.ris_god_asset"));
+
+        let god_asset_path = if PathBuf::from(asset_path).join(GOD_ASSET_PATH).exists() {
+            GOD_ASSET_PATH
+        } else if PathBuf::from(asset_path)
+            .join(UNNAMED_GOD_ASSET_PATH)
+            .exists()
+        {
+            UNNAMED_GOD_ASSET_PATH
+        } else {
+            return ris_error::new_result!("failed to locate god asset");
+        };
+
+        let god_asset_id = AssetId::Directory(god_asset_path.to_string());
         ris_log::debug!("directory asset loader was created");
 
         (internal_loader, god_asset_id)
@@ -149,43 +164,39 @@ pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
 }
 
 fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
-    match &mut loader {
-        InternalLoader::Compiled(loader) => {
-            for request in receiver.iter() {
-                let result = if let AssetId::Compiled(id) = request.id {
-                    loader.load(id).map_err(|e| {
-                        ris_log::error!("failed loading {:?}: {}", id, e);
-                        LoadError::LoadFailed
-                    })
-                } else {
+    for request in receiver.iter() {
+        ris_log::trace!("loading asset {:?}...", request.id);
+
+        let result = match &mut loader {
+            InternalLoader::Compiled(loader) => match &request.id {
+                AssetId::Compiled(id) => loader.load(*id).map_err(|e| {
+                    ris_log::error!("failed loading {:?}: {}", id, e);
+                    LoadError::LoadFailed
+                }),
+                AssetId::Directory(id) => {
                     ris_log::error!(
                         "invalid id. expected compiled but was directory. id: {:?}",
-                        request.id
+                        id
                     );
                     Err(LoadError::InvalidId)
-                };
-
-                request.future.set(result);
-            }
-        }
-        InternalLoader::Directory(loader) => {
-            for request in receiver.iter() {
-                let result = if let AssetId::Directory(id) = request.id {
-                    loader.load(id.clone()).map_err(|e| {
-                        ris_log::error!("failed loading {:?}: {}", id, e);
-                        LoadError::LoadFailed
-                    })
-                } else {
+                }
+            },
+            InternalLoader::Directory(loader) => match request.id {
+                AssetId::Compiled(id) => {
                     ris_log::error!(
                         "invalid id. expected directory but was compiled. id: {:?}",
-                        request.id
+                        id
                     );
                     Err(LoadError::InvalidId)
-                };
+                }
+                AssetId::Directory(id) => loader.load(id.clone()).map_err(|e| {
+                    ris_log::error!("failed loading {:?}: {}", id, e);
+                    LoadError::LoadFailed
+                }),
+            },
+        };
 
-                request.future.set(result);
-            }
-        }
+        request.future.set(result);
     }
 
     ris_log::info!("load asset thread ended");

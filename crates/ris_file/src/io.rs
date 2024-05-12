@@ -14,13 +14,17 @@ pub trait BinaryFormat: Sized {
     fn deserialize(buf: &[u8]) -> Result<Self>;
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct FatPtr {
     pub addr: u64,
     pub len: u64,
 }
 
 impl FatPtr {
+    pub fn null() -> FatPtr {
+        Self { addr: 0, len: 0 }
+    }
+
     pub fn begin_end(begin: u64, end: u64) -> Result<FatPtr> {
         if begin > end {
             Err(Error::from(ErrorKind::InvalidInput))
@@ -34,6 +38,10 @@ impl FatPtr {
 
     pub fn end(self) -> u64 {
         self.addr + self.len
+    }
+
+    pub fn is_null(self) -> bool {
+        self.addr == 0 && self.len == 0
     }
 }
 
@@ -137,11 +145,15 @@ pub fn read_unsized(stream: &mut (impl Read + Seek), ptr: FatPtr) -> Result<Vec<
 
 pub fn read_strings(stream: &mut (impl Read + Seek), ptr: FatPtr) -> Result<Vec<String>> {
     let bytes = read_unsized(stream, ptr)?;
-    let strings = String::from_utf8(bytes).map_err(|_| Error::from(ErrorKind::InvalidData))?;
+    if bytes.is_empty() {
+        Ok(Vec::new())
+    } else {
+        let strings = String::from_utf8(bytes).map_err(|_| Error::from(ErrorKind::InvalidData))?;
 
-    let splits = strings.split('\0').map(|x| x.to_string()).collect();
+        let splits = strings.split('\0').map(|x| x.to_string()).collect();
 
-    Ok(splits)
+        Ok(splits)
+    }
 }
 
 //

@@ -33,11 +33,16 @@ pub const DEFAULT_COMPILED_FILE: &str = "ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
 pub const DEFAULT_IGNORE_DIRECTORY: &str = "assets/__raw";
 
+#[derive(Default, Debug, Clone, Copy)]
+pub struct CompileOptions {
+    pub include_original_paths: bool,
+}
+
 /// compiles a directory to a ris_asset file
 /// - `source`: the directory to be compiled
 /// - `target`: the path to the final compiled file. if this file exists already, it will be
 /// overwritten
-pub fn compile(source: &str, target: &str) -> RisResult<()> {
+pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult<()> {
     let mut assets = Vec::new();
     let mut asset_lookup_hashmap = HashMap::new();
     let mut directories = std::collections::VecDeque::new();
@@ -93,7 +98,7 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
     // write ptr to original paths
     let addr_p_original_asset_names = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
-    ris_file::io::write_fat_ptr(target_file, FatPtr::default())?; // placeholder
+    ris_file::io::write_fat_ptr(target_file, FatPtr::null())?; // placeholder
 
     // write lookup
     let addr_asset_lookup = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
@@ -102,6 +107,8 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
 
     // compile assets
     for (i, asset) in assets.iter().enumerate() {
+        ris_log::info!("compiling... {}/{} {:?}", i + 1, assets.len(), asset);
+
         let mut file = File::open(asset)?;
 
         let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))? as usize;
@@ -142,10 +149,11 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
                     ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
-                ris_file::io::write(&mut modified_file_content, &ris_header.magic)?;
-                ris_file::io::write_bool(&mut modified_file_content, true)?;
-                ris_file::io::write_array(&mut modified_file_content, &references)?;
-                ris_file::io::write(&mut modified_file_content, &ris_asset_content)?;
+                let stream = &mut modified_file_content;
+                ris_file::io::write(stream, &ris_header.magic)?;
+                ris_file::io::write_bool(stream, true)?;
+                ris_file::io::write_array(stream, &references)?;
+                ris_file::io::write(stream, &ris_asset_content)?;
 
                 modified_file_content.into_inner()
             }
@@ -158,28 +166,33 @@ pub fn compile(source: &str, target: &str) -> RisResult<()> {
     }
 
     // all assets are compiled, compile original paths
-    let original_paths = assets
-        .iter()
-        .map(|x| {
-            Ok({
-                let mut original_path = x.to_str().unroll()?.to_string();
-                original_path.replace_range(0..source.len(), "");
-                let mut original_path = original_path.replace('\\', "/");
-                if original_path.starts_with('/') {
-                    original_path.remove(0);
-                }
+    let p_original_asset_names = if options.include_original_paths {
+        let original_paths = assets
+            .iter()
+            .map(|x| {
+                Ok({
+                    let mut original_path = x.to_str().unroll()?.to_string();
+                    original_path.replace_range(0..source.len(), "");
+                    let mut original_path = original_path.replace('\\', "/");
+                    if original_path.starts_with('/') {
+                        original_path.remove(0);
+                    }
 
-                original_path
+                    original_path
+                })
             })
-        })
-        .collect::<RisResult<Vec<_>>>()?;
+            .collect::<RisResult<Vec<_>>>()?;
 
-    let original_paths = original_paths
-        .iter()
-        .map(|x| x.as_str())
-        .collect::<Vec<_>>();
+        let original_paths = original_paths
+            .iter()
+            .map(|x| x.as_str())
+            .collect::<Vec<_>>();
 
-    let p_original_asset_names = ris_file::io::write_strings(target_file, &original_paths)?;
+        ris_file::io::write_strings(target_file, &original_paths)?
+    } else {
+        let addr = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
+        FatPtr { addr, len: 0 }
+    };
 
     // fill placeholder
     ris_file::io::seek(target_file, SeekFrom::Start(addr_p_original_asset_names))?;
@@ -221,12 +234,16 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     let asset_lookup = ris_file::io::read_array::<AssetAddr>(source)?;
 
     // read original paths
-    let mut original_paths = ris_file::io::read_strings(source, p_original_asset_names)?;
+    let mut original_paths = if p_original_asset_names.is_null() {
+        Vec::new()
+    } else {
+        ris_file::io::read_strings(source, p_original_asset_names)?
+    };
 
     let mut i = original_paths.len();
     while original_paths.len() < asset_lookup.len() {
+        original_paths.push(format!("asset_{}", i));
         i += 1;
-        original_paths.push(format!("unnamed_asset_{}", i));
     }
 
     // read assets
@@ -234,12 +251,20 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let asset_begin = asset_lookup[i].0;
         let original_path = &original_paths[i];
 
+        ris_log::info!(
+            "decompiling... {}/{} {:?}",
+            i + 1,
+            asset_lookup.len(),
+            original_path,
+        );
+
         let asset_end = if i == asset_lookup.len() - 1 {
             p_original_asset_names.addr
         } else {
             asset_lookup[i + 1].0
         };
 
+        ris_log::debug!(" hoi {} {}", asset_begin, asset_end);
         let p_asset = FatPtr::begin_end(asset_begin, asset_end)?;
         let file_content = ris_file::io::read_unsized(source, p_asset)?;
 
@@ -271,10 +296,15 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                     ris_file::io::read_unsized(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
-                ris_file::io::write(&mut modified_file_content, &ris_header.magic)?;
-                ris_file::io::write_bool(&mut modified_file_content, false)?;
-                ris_file::io::write_strings(&mut modified_file_content, &references)?;
-                ris_file::io::write(&mut modified_file_content, &ris_asset_content)?;
+                let stream = &mut modified_file_content;
+                ris_file::io::write(stream, &ris_header.magic)?;
+                ris_file::io::write_bool(stream, false)?;
+                let addr_p_content = ris_file::io::seek(stream, SeekFrom::Current(0))?;
+                ris_file::io::write_fat_ptr(stream, FatPtr::null())?; // placeholder
+                ris_file::io::write_strings(stream, &references)?;
+                let p_content = ris_file::io::write_unsized(stream, &ris_asset_content)?;
+                ris_file::io::seek(stream, SeekFrom::Start(addr_p_content))?;
+                ris_file::io::write_fat_ptr(stream, p_content)?;
 
                 modified_file_content.into_inner()
             }

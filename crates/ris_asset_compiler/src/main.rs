@@ -2,6 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 use ris_asset::asset_compiler;
+use ris_asset::asset_compiler::CompileOptions;
 use ris_asset::asset_importer;
 use ris_log::appenders::console_appender::ConsoleAppender;
 use ris_log::log;
@@ -36,11 +37,16 @@ fn main() {
     };
 
     let result = if command.eq("compile") {
+        let compile_options = CompileOptions {
+            include_original_paths: true,
+        };
+
         match source_target {
-            Some((source, target)) => asset_compiler::compile(source, target),
+            Some((source, target)) => asset_compiler::compile(source, target, compile_options),
             None => asset_compiler::compile(
                 asset_compiler::DEFAULT_ASSET_DIRECTORY,
                 asset_compiler::DEFAULT_COMPILED_FILE,
+                compile_options,
             ),
         }
     } else if command.eq("decompile") {
@@ -80,7 +86,7 @@ fn main() {
     };
 
     if let Err(error) = result {
-        log(&format!("error: {}", error,));
+        ris_log::error!("error: {:?}", error);
         print_help();
     }
 
