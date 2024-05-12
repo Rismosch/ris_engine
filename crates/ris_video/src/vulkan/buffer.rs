@@ -85,7 +85,7 @@ impl Buffer {
         dst: &Self,
         size: vk::DeviceSize,
     ) -> RisResult<()> {
-        let transient_command = TransientCommand::begin(&device, queue, transient_command_pool)?;
+        let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
         let copy_regions = [vk::BufferCopy {
             src_offset: 0,
@@ -115,7 +115,7 @@ impl Buffer {
         width: u32,
         height: u32,
     ) -> RisResult<()> {
-        let transient_command = TransientCommand::begin(&device, queue, transient_command_pool)?;
+        let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
         let regions = [vk::BufferImageCopy {
             buffer_offset: 0,

@@ -53,11 +53,11 @@ pub fn read_unchecked(stream: &mut impl Read, buf: &mut [u8]) -> Result<usize> {
     stream.read(buf)
 }
 
-pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
+pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<usize> {
     let read_bytes = read_unchecked(stream, buf)?;
     let buf_len = buf.len();
     if read_bytes == buf_len {
-        Ok(())
+        Ok(read_bytes)
     } else {
         Err(Error::from(ErrorKind::Other))
     }
@@ -152,60 +152,63 @@ pub fn write_unchecked(stream: &mut impl Write, buf: &[u8]) -> Result<usize> {
     stream.write(buf)
 }
 
-pub fn write(stream: &mut impl Write, buf: &[u8]) -> Result<()> {
+pub fn write(stream: &mut impl Write, buf: &[u8]) -> Result<usize> {
     let written_bytes = stream.write(buf)?;
     let buf_len = buf.len();
     if written_bytes == buf_len {
-        Ok(())
+        Ok(written_bytes)
     } else {
         Err(Error::from(ErrorKind::Other))
     }
 }
 
-pub fn write_i32(stream: &mut impl Write, value: i32) -> Result<()> {
+pub fn write_i32(stream: &mut impl Write, value: i32) -> Result<usize> {
     let bytes = value.to_le_bytes();
     write(stream, &bytes)
 }
 
-pub fn write_u32(stream: &mut impl Write, value: u32) -> Result<()> {
+pub fn write_u32(stream: &mut impl Write, value: u32) -> Result<usize> {
     let bytes = value.to_le_bytes();
     write(stream, &bytes)
 }
 
-pub fn write_u64(stream: &mut impl Write, value: u64) -> Result<()> {
+pub fn write_u64(stream: &mut impl Write, value: u64) -> Result<usize> {
     let bytes = value.to_le_bytes();
     write(stream, &bytes)
 }
 
-pub fn write_f32(stream: &mut impl Write, value: f32) -> Result<()> {
+pub fn write_f32(stream: &mut impl Write, value: f32) -> Result<usize> {
     let bytes = value.to_le_bytes();
     write(stream, &bytes)
 }
 
-pub fn write_bool(stream: &mut impl Write, value: bool) -> Result<()> {
+pub fn write_bool(stream: &mut impl Write, value: bool) -> Result<usize> {
     match value {
         true => write(stream, &[1]),
         false => write(stream, &[0]),
     }
 }
 
-pub fn write_array<T: BinaryFormat>(stream: &mut impl Write, value: &[T]) -> Result<()> {
+pub fn write_array<T: BinaryFormat>(stream: &mut impl Write, value: &[T]) -> Result<usize> {
     let len = value
         .len()
         .try_into()
         .map_err(|_| Error::from(ErrorKind::InvalidData))?;
-    write_u32(stream, len)?;
+    let mut written_bytes = write_u32(stream, len)?;
     for entry in value.iter() {
         let bytes = entry.serialize()?;
-        write(stream, &bytes)?;
+        written_bytes += write(stream, &bytes)?;
     }
 
-    Ok(())
+    Ok(written_bytes)
 }
 
-pub fn write_fat_ptr(stream: &mut impl Write, value: FatPtr) -> Result<()> {
-    write_u64(stream, value.addr)?;
-    write_u64(stream, value.len)
+pub fn write_fat_ptr(stream: &mut impl Write, value: FatPtr) -> Result<usize> {
+    let mut written_bytes = 0;
+    written_bytes += write_u64(stream, value.addr)?;
+    written_bytes += write_u64(stream, value.len)?;
+
+    Ok(written_bytes)
 }
 
 pub fn write_unsized(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {

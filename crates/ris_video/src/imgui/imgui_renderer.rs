@@ -146,13 +146,13 @@ impl ImguiRenderer {
                 location: 1,
                 binding: 0,
                 format: vk::Format::R32G32_SFLOAT,
-                offset: 8 as u32,
+                offset: 8u32,
             },
             vk::VertexInputAttributeDescription {
                 location: 2,
                 binding: 0,
                 format: vk::Format::R8G8B8A8_UNORM,
-                offset: 16 as u32,
+                offset: 16u32,
             },
         ];
 
@@ -529,7 +529,7 @@ impl ImguiRenderer {
             )?);
         }
 
-        let mesh = self.frames.as_mut().unroll()?.next();
+        let mesh = self.frames.as_mut().unroll()?.acquire_next_mesh();
         mesh.update(device, physical_device_memory_properties, draw_data)?;
 
         let transient_command =

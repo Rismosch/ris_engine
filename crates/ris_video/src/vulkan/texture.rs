@@ -30,17 +30,17 @@ impl Texture {
 
         // create image and copy asset to it
         let staging_buffer = Buffer::alloc(
-            &device,
+            device,
             pixels_rgba.len() as vk::DeviceSize,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
             physical_device_memory_properties,
         )?;
 
-        staging_buffer.write(&device, &pixels_rgba)?;
+        staging_buffer.write(device, pixels_rgba)?;
 
         let image = Image::alloc(
-            &device,
+            device,
             width,
             height,
             vk::Format::R8G8B8A8_SRGB,
@@ -51,7 +51,7 @@ impl Texture {
         )?;
 
         image.transition_layout(
-            &device,
+            device,
             queue,
             transient_command_pool,
             vk::Format::R8G8B8A8_SRGB,
@@ -60,7 +60,7 @@ impl Texture {
         )?;
 
         staging_buffer.copy_to_image(
-            &device,
+            device,
             queue,
             transient_command_pool,
             image.image,
@@ -69,7 +69,7 @@ impl Texture {
         )?;
 
         image.transition_layout(
-            &device,
+            device,
             queue,
             transient_command_pool,
             vk::Format::R8G8B8A8_SRGB,
@@ -77,7 +77,7 @@ impl Texture {
             vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
         )?;
 
-        staging_buffer.free(&device);
+        staging_buffer.free(device);
 
         // create image view
         let view = Image::alloc_view(

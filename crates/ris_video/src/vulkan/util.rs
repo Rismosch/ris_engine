@@ -29,7 +29,7 @@ impl VkStr {
         Ok(Self { value: result })
     }
 
-    pub unsafe fn as_ptr(&self) -> *const i8 {
+    pub fn as_ptr(&self) -> *const i8 {
         self.value.as_ptr() as *const i8
     }
 

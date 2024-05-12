@@ -70,7 +70,7 @@ pub fn setup_debugging(
     if !super::VALIDATION_ENABLED {
         Ok(None)
     } else {
-        let debug_utils = ash::extensions::ext::DebugUtils::new(&entry, &instance);
+        let debug_utils = ash::extensions::ext::DebugUtils::new(entry, instance);
 
         let debug_utils_messenger_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
             s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -97,6 +97,9 @@ pub fn setup_debugging(
     }
 }
 
+/// # Safety
+///
+/// dereferences `p_callback_data`.
 pub unsafe extern "system" fn debug_callback(
     message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
     message_type: vk::DebugUtilsMessageTypeFlagsEXT,

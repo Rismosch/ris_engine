@@ -56,7 +56,7 @@ impl BaseSwapchain {
             capabilities,
             formats,
             present_modes,
-        } = SurfaceDetails::query(&surface_loader, suitable_device.physical_device, *surface)?;
+        } = SurfaceDetails::query(surface_loader, suitable_device.physical_device, *surface)?;
 
         let preferred_surface_format = formats.iter().find(|x| {
             x.format == super::PREFERRED_FORMAT && x.color_space == super::PREFERRED_COLOR_SPACE
@@ -136,7 +136,7 @@ impl BaseSwapchain {
             image_array_layers: 1,
         };
 
-        let loader = ash::extensions::khr::Swapchain::new(&instance, &device);
+        let loader = ash::extensions::khr::Swapchain::new(instance, device);
         let swapchain = unsafe { loader.create_swapchain(&swapchain_create_info, None) }?;
 
         // images
@@ -275,7 +275,7 @@ impl Swapchain {
             // uniform buffer
             let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
             let uniform_buffer = Buffer::alloc(
-                &device,
+                device,
                 uniform_buffer_size,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
                 vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
@@ -456,7 +456,7 @@ impl Swapchain {
             None => {
                 let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
                 for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
-                    let frame_in_flight = FrameInFlight::alloc(&device)?;
+                    let frame_in_flight = FrameInFlight::alloc(device)?;
 
                     frames_in_flight.push(frame_in_flight);
                 }

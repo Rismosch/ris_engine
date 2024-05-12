@@ -36,7 +36,7 @@ impl Frames {
         }
     }
 
-    pub fn next(&mut self) -> &mut Mesh {
+    pub fn acquire_next_mesh(&mut self) -> &mut Mesh {
         let result = &mut self.meshes[self.index];
         self.index = (self.index + 1) % self.count;
         result

@@ -139,7 +139,7 @@ impl SuitableDevice {
                 formats,
                 present_modes,
                 ..
-            } = SurfaceDetails::query(&surface_loader, physical_device, surface)?;
+            } = SurfaceDetails::query(surface_loader, physical_device, surface)?;
 
             log_message.push_str(&format!("\n\tsurface formats: {}", formats.len()));
             for format in formats.iter() {
