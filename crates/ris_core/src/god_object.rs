@@ -11,7 +11,7 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::imgui::backend::ImguiBackend;
+use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::renderer::Renderer;

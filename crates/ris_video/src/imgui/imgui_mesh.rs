@@ -15,7 +15,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn alloc(
+    pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
@@ -59,7 +59,7 @@ impl Mesh {
         })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);
     }
@@ -96,24 +96,26 @@ impl Mesh {
             //ris_log::trace!("resizing vertex buffer from {} to {}...", old_vertex_count, new_vertex_count);
 
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
-            let new_vertex_buffer = Buffer::alloc(
-                device,
-                vertex_buffer_size,
-                vk::BufferUsageFlags::VERTEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE
-                    | vk::MemoryPropertyFlags::HOST_COHERENT
-                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
+            let new_vertex_buffer = unsafe {
+                Buffer::alloc(
+                    device,
+                    vertex_buffer_size,
+                    vk::BufferUsageFlags::VERTEX_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE
+                        | vk::MemoryPropertyFlags::HOST_COHERENT
+                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    physical_device_memory_properties,
+                )
+            }?;
 
             self.vertex_count = vertices.len();
 
             let old_buffer = self.vertices;
             self.vertices = new_vertex_buffer;
 
-            old_buffer.free(device);
+            unsafe { old_buffer.free(device) };
         }
-        self.vertices.write(device, &vertices)?;
+        unsafe { self.vertices.write(device, &vertices) }?;
 
         let indices = Self::create_indices(draw_data);
         let old_index_count = self.index_count;
@@ -123,24 +125,26 @@ impl Mesh {
             //ris_log::trace!("resizing index buffer from {} to {}...", old_index_count, new_index_count);
 
             let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-            let new_index_buffer = Buffer::alloc(
-                device,
-                index_buffer_size,
-                vk::BufferUsageFlags::INDEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE
-                    | vk::MemoryPropertyFlags::HOST_COHERENT
-                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
+            let new_index_buffer = unsafe {
+                Buffer::alloc(
+                    device,
+                    index_buffer_size,
+                    vk::BufferUsageFlags::INDEX_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE
+                        | vk::MemoryPropertyFlags::HOST_COHERENT
+                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    physical_device_memory_properties,
+                )
+            }?;
 
             self.index_count = indices.len();
 
             let old_buffer = self.indices;
             self.indices = new_index_buffer;
 
-            old_buffer.free(device);
+            unsafe { old_buffer.free(device) };
         }
-        self.indices.write(device, &indices)?;
+        unsafe { self.indices.write(device, &indices) }?;
 
         Ok(())
     }

@@ -1388,7 +1388,10 @@ impl Vec2 {
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
-        Self(crate::f32::modulo(self.0, rhs.0), crate::f32::modulo(self.1, rhs.1))
+        Self(
+            crate::f32::modulo(self.0, rhs.0),
+            crate::f32::modulo(self.1, rhs.1),
+        )
     }
 
     pub fn min(x: Self, y: Self) -> Self {
@@ -1407,7 +1410,10 @@ impl Vec2 {
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
-        Self(crate::f32::mix(x.0, y.0, a.0), crate::f32::mix(x.1, y.1, a.1))
+        Self(
+            crate::f32::mix(x.0, y.0, a.0),
+            crate::f32::mix(x.1, y.1, a.1),
+        )
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
@@ -1439,7 +1445,11 @@ impl Vec2 {
 
 impl Vec3 {
     pub fn abs(self) -> Self {
-        Self(crate::f32::abs(self.0), crate::f32::abs(self.1), crate::f32::abs(self.2))
+        Self(
+            crate::f32::abs(self.0),
+            crate::f32::abs(self.1),
+            crate::f32::abs(self.2),
+        )
     }
 
     pub fn sign(self) -> Self {

@@ -14,7 +14,7 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn alloc(
+    pub unsafe fn alloc(
         device: &ash::Device,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
@@ -56,14 +56,14 @@ impl Buffer {
         Ok(Self { buffer, memory })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_buffer(self.buffer, None);
             device.free_memory(self.memory, None);
         }
     }
 
-    pub fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
+    pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
         let size = std::mem::size_of_val(data) as vk::DeviceSize;
         unsafe {
             let data_ptr =
@@ -77,7 +77,7 @@ impl Buffer {
         Ok(())
     }
 
-    pub fn copy_to_buffer(
+    pub unsafe fn copy_to_buffer(
         &self,
         device: &ash::Device,
         queue: vk::Queue,
@@ -106,7 +106,7 @@ impl Buffer {
         Ok(())
     }
 
-    pub fn copy_to_image(
+    pub unsafe fn copy_to_image(
         &self,
         device: &ash::Device,
         queue: vk::Queue,

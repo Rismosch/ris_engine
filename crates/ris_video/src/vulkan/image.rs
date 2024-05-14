@@ -14,7 +14,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn alloc(
+    pub unsafe fn alloc(
         device: &ash::Device,
         width: u32,
         height: u32,
@@ -69,14 +69,14 @@ impl Image {
         Ok(Self { image, memory })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_image(self.image, None);
             device.free_memory(self.memory, None);
         }
     }
 
-    pub fn alloc_view(
+    pub unsafe fn alloc_view(
         device: &ash::Device,
         image: vk::Image,
         format: vk::Format,

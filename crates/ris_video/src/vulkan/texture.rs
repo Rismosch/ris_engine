@@ -14,7 +14,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn alloc(
+    pub unsafe fn alloc(
         device: &ash::Device,
         queue: vk::Queue,
         transient_command_pool: vk::CommandPool,
@@ -118,7 +118,7 @@ impl Texture {
         })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_sampler(self.sampler, None);
             device.destroy_image_view(self.view, None);

@@ -11,7 +11,7 @@ pub struct FrameInFlight {
 }
 
 impl FrameInFlight {
-    pub fn alloc(device: &ash::Device) -> RisResult<Self> {
+    pub unsafe fn alloc(device: &ash::Device) -> RisResult<Self> {
         let semaphore_create_info = vk::SemaphoreCreateInfo {
             s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
             p_next: ptr::null(),
@@ -35,7 +35,7 @@ impl FrameInFlight {
         })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_fence(self.in_flight, None);
             device.destroy_semaphore(self.render_finished, None);

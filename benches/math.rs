@@ -64,7 +64,8 @@ fn negate(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::f32::as_float(ris_math::f32::as_int(*value) ^ 0x8000_0000u32 as i32);
+                let result =
+                    ris_math::f32::as_float(ris_math::f32::as_int(*value) ^ 0x8000_0000u32 as i32);
                 black_box(result);
             }
         });
@@ -275,11 +276,7 @@ fn sign(c: &mut Criterion) {
             for value in &values {
                 let result = ris_math::f32::choose(
                     0.,
-                    ris_math::f32::choose(
-                        1.,
-                        -1.,
-                        *value > 0.,
-                    ),
+                    ris_math::f32::choose(1., -1., *value > 0.),
                     *value == 0.,
                 );
                 black_box(result);
@@ -307,11 +304,7 @@ fn min(c: &mut Criterion) {
             for chunk in values.chunks_exact(2) {
                 let x = chunk[0];
                 let y = chunk[1];
-                let result = if y < x {
-                    y
-                } else {
-                    x
-                };
+                let result = if y < x { y } else { x };
                 black_box(result);
             }
         });
@@ -348,11 +341,7 @@ fn max(c: &mut Criterion) {
             for chunk in values.chunks_exact(2) {
                 let x = chunk[0];
                 let y = chunk[1];
-                let result = if x < y {
-                    y
-                } else {
-                    x
-                };
+                let result = if x < y { y } else { x };
                 black_box(result);
             }
         });

@@ -84,7 +84,8 @@ pub fn sincos_bhaskara_branchless(angle: f32) -> (f32, f32) {
     let sin_part2 = -bhaskara(angle - 1.5 * ris_math::f32::PI);
     let sin_choose = (angle > ris_math::f32::PI) as usize as f32;
 
-    let flipsign = (angle > 0.5 * ris_math::f32::PI && angle < 1.5 * ris_math::f32::PI) as usize as f32;
+    let flipsign =
+        (angle > 0.5 * ris_math::f32::PI && angle < 1.5 * ris_math::f32::PI) as usize as f32;
     let sign = ris_math::f32::mix(1., -1., flipsign);
 
     let sin = ris_math::f32::mix(sin_part1, sin_part2, sin_choose);

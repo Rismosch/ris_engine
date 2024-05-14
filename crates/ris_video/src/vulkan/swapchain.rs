@@ -44,7 +44,7 @@ pub struct SwapchainEntry {
 }
 
 impl BaseSwapchain {
-    pub fn alloc(
+    pub unsafe fn alloc(
         instance: &ash::Instance,
         surface_loader: &ash::extensions::khr::Surface,
         surface: &vk::SurfaceKHR,
@@ -153,7 +153,7 @@ impl BaseSwapchain {
         ))
     }
 
-    pub fn free(&self) {
+    pub unsafe fn free(&self) {
         unsafe {
             self.loader.destroy_swapchain(self.swapchain, None);
         }
@@ -161,7 +161,7 @@ impl BaseSwapchain {
 }
 
 impl Swapchain {
-    pub fn alloc(
+    pub unsafe fn alloc(
         instance: &ash::Instance,
         suitable_device: &SuitableDevice,
         device: &ash::Device,
@@ -476,7 +476,7 @@ impl Swapchain {
         })
     }
 
-    pub fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
+    pub unsafe fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
         unsafe {
             self.depth_image.free(device);
             device.destroy_image_view(self.depth_image_view, None);
@@ -518,38 +518,44 @@ impl Swapchain {
         let frames_in_flight = renderer.swapchain.frames_in_flight.take();
 
         // free old swapchain
-        renderer
-            .swapchain
-            .free(&renderer.device, renderer.command_pool);
+        unsafe {
+            renderer
+                .swapchain
+                .free(&renderer.device, renderer.command_pool)
+        };
 
         // create new swapchain
-        let (base, images) = BaseSwapchain::alloc(
-            &renderer.instance,
-            &renderer.surface_loader,
-            &renderer.surface,
-            &renderer.suitable_device,
-            &renderer.device,
-            window_size,
-        )?;
+        let (base, images) = unsafe {
+            BaseSwapchain::alloc(
+                &renderer.instance,
+                &renderer.surface_loader,
+                &renderer.surface,
+                &renderer.suitable_device,
+                &renderer.device,
+                window_size,
+            )
+        }?;
 
-        Self::alloc(
-            &renderer.instance,
-            &renderer.suitable_device,
-            &renderer.device,
-            renderer.graphics_queue,
-            renderer.command_pool,
-            renderer.transient_command_pool,
-            renderer.descriptor_set_layout,
-            renderer.descriptor_pool,
-            &renderer.texture,
-            &renderer.vertex_buffer,
-            &renderer.index_buffer,
-            base,
-            images,
-            descriptor_sets,
-            frames_in_flight,
-            vs_asset_id,
-            fs_asset_id,
-        )
+        unsafe {
+            Self::alloc(
+                &renderer.instance,
+                &renderer.suitable_device,
+                &renderer.device,
+                renderer.graphics_queue,
+                renderer.command_pool,
+                renderer.transient_command_pool,
+                renderer.descriptor_set_layout,
+                renderer.descriptor_pool,
+                &renderer.texture,
+                &renderer.vertex_buffer,
+                &renderer.index_buffer,
+                base,
+                images,
+                descriptor_sets,
+                frames_in_flight,
+                vs_asset_id,
+                fs_asset_id,
+            )
+        }
     }
 }

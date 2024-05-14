@@ -406,16 +406,18 @@ impl ImguiRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-        let font_texture = Texture::alloc(
-            device,
-            *graphics_queue,
-            *transient_command_pool,
-            physical_device_memory_properties,
-            physical_device_properties,
-            font_atlas_texture.width,
-            font_atlas_texture.height,
-            font_atlas_texture.data,
-        )?;
+        let font_texture = unsafe {
+            Texture::alloc(
+                device,
+                *graphics_queue,
+                *transient_command_pool,
+                physical_device_memory_properties,
+                physical_device_properties,
+                font_atlas_texture.width,
+                font_atlas_texture.height,
+                font_atlas_texture.data,
+            )
+        }?;
 
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);
@@ -521,12 +523,15 @@ impl ImguiRenderer {
         };
 
         if self.frames.is_none() {
-            self.frames.replace(Frames::alloc(
-                device,
-                physical_device_memory_properties,
-                draw_data,
-                entries.len(),
-            )?);
+            let frames = unsafe {
+                Frames::alloc(
+                    device,
+                    physical_device_memory_properties,
+                    draw_data,
+                    entries.len(),
+                )
+            }?;
+            self.frames.replace(frames);
         }
 
         let mesh = self.frames.as_mut().unroll()?.acquire_next_mesh();

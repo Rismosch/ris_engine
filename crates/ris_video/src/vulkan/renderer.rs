@@ -297,88 +297,104 @@ impl Renderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let texture = Texture::alloc(
-            &device,
-            graphics_queue,
-            transient_command_pool,
-            physical_device_memory_properties,
-            physical_device_properties,
-            desc.width,
-            desc.height,
-            &pixels_rgba,
-        )?;
+        let texture = unsafe {
+            Texture::alloc(
+                &device,
+                graphics_queue,
+                transient_command_pool,
+                physical_device_memory_properties,
+                physical_device_properties,
+                desc.width,
+                desc.height,
+                &pixels_rgba,
+            )
+        }?;
 
         // vertex buffer
         let vertex_buffer_size = std::mem::size_of_val(&super::VERTICES) as vk::DeviceSize;
 
-        let staging_buffer = Buffer::alloc(
-            &device,
-            vertex_buffer_size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            physical_device_memory_properties,
-        )?;
+        let staging_buffer = unsafe {
+            Buffer::alloc(
+                &device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::TRANSFER_SRC,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )
+        }?;
 
-        staging_buffer.write(&device, &super::VERTICES)?;
+        unsafe { staging_buffer.write(&device, &super::VERTICES) }?;
 
-        let vertex_buffer = Buffer::alloc(
-            &device,
-            vertex_buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
+        let vertex_buffer = unsafe {
+            Buffer::alloc(
+                &device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )
+        }?;
 
-        staging_buffer.copy_to_buffer(
-            &device,
-            graphics_queue,
-            transient_command_pool,
-            &vertex_buffer,
-            vertex_buffer_size,
-        )?;
+        unsafe {
+            staging_buffer.copy_to_buffer(
+                &device,
+                graphics_queue,
+                transient_command_pool,
+                &vertex_buffer,
+                vertex_buffer_size,
+            )
+        }?;
 
-        staging_buffer.free(&device);
+        unsafe { staging_buffer.free(&device) };
 
         // index buffer
         let index_buffer_size = std::mem::size_of_val(&super::INDICES) as vk::DeviceSize;
 
-        let staging_buffer = Buffer::alloc(
-            &device,
-            index_buffer_size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            physical_device_memory_properties,
-        )?;
+        let staging_buffer = unsafe {
+            Buffer::alloc(
+                &device,
+                index_buffer_size,
+                vk::BufferUsageFlags::TRANSFER_SRC,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )
+        }?;
 
-        staging_buffer.write(&device, &super::INDICES)?;
+        unsafe { staging_buffer.write(&device, &super::INDICES) }?;
 
-        let index_buffer = Buffer::alloc(
-            &device,
-            index_buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
+        let index_buffer = unsafe {
+            Buffer::alloc(
+                &device,
+                index_buffer_size,
+                vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
+                vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )
+        }?;
 
-        staging_buffer.copy_to_buffer(
-            &device,
-            graphics_queue,
-            transient_command_pool,
-            &index_buffer,
-            index_buffer_size,
-        )?;
+        unsafe {
+            staging_buffer.copy_to_buffer(
+                &device,
+                graphics_queue,
+                transient_command_pool,
+                &index_buffer,
+                index_buffer_size,
+            )
+        }?;
 
-        staging_buffer.free(&device);
+        unsafe { staging_buffer.free(&device) };
 
         // base swap chain
-        let (base_swapchain, swapchain_images) = BaseSwapchain::alloc(
-            &instance,
-            &surface_loader,
-            &surface,
-            &suitable_device,
-            &device,
-            window.vulkan_drawable_size(),
-        )?;
+        let (base_swapchain, swapchain_images) = unsafe {
+            BaseSwapchain::alloc(
+                &instance,
+                &surface_loader,
+                &surface,
+                &suitable_device,
+                &device,
+                window.vulkan_drawable_size(),
+            )
+        }?;
 
         let swapchain_entry_count = swapchain_images.len();
 
@@ -407,25 +423,27 @@ impl Renderer {
             unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         // swapchain
-        let swapchain = Swapchain::alloc(
-            &instance,
-            &suitable_device,
-            &device,
-            graphics_queue,
-            command_pool,
-            transient_command_pool,
-            descriptor_set_layout,
-            descriptor_pool,
-            &texture,
-            &vertex_buffer,
-            &index_buffer,
-            base_swapchain,
-            swapchain_images,
-            None,
-            None,
-            god_asset.default_vert_spv.clone(),
-            god_asset.default_frag_spv.clone(),
-        )?;
+        let swapchain = unsafe {
+            Swapchain::alloc(
+                &instance,
+                &suitable_device,
+                &device,
+                graphics_queue,
+                command_pool,
+                transient_command_pool,
+                descriptor_set_layout,
+                descriptor_pool,
+                &texture,
+                &vertex_buffer,
+                &index_buffer,
+                base_swapchain,
+                swapchain_images,
+                None,
+                None,
+                god_asset.default_vert_spv.clone(),
+                god_asset.default_frag_spv.clone(),
+            )
+        }?;
 
         // renderer
         Ok(Self {

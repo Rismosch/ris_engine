@@ -5,4 +5,3 @@ pub mod f32;
 pub mod matrix;
 pub mod quaternion;
 pub mod vector;
-

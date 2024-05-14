@@ -17,7 +17,7 @@ pub struct GraphicsPipeline {
 }
 
 impl GraphicsPipeline {
-    pub fn alloc(
+    pub unsafe fn alloc(
         instance: &ash::Instance,
         physical_device: vk::PhysicalDevice,
         device: &ash::Device,
@@ -348,7 +348,7 @@ impl GraphicsPipeline {
         })
     }
 
-    pub fn free(&self, device: &ash::Device) {
+    pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.layout, None);
