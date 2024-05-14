@@ -21,7 +21,7 @@ fn should_normalize_quaternion() {
         let expected_magnitude = 1.;
         let actual_magnitude = normalized_quaternion.length();
 
-        assert_feq!(expected_magnitude, actual_magnitude, ris_math::MIN_NORM);
+        assert_feq!(expected_magnitude, actual_magnitude);
     });
 }
 
@@ -37,16 +37,16 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
     let quaternion = Quat::from((angle, axis));
     let (angle_copy, axis_copy) = quaternion.into();
 
-    assert_feq!(angle, angle_copy, ris_math::MIN_NORM);
-    assert_feq!(axis_copy.x(), 1., ris_math::MIN_NORM);
-    assert_feq!(axis_copy.y(), 0., ris_math::MIN_NORM);
-    assert_feq!(axis_copy.z(), 0., ris_math::MIN_NORM);
+    assert_feq!(angle, angle_copy);
+    assert_feq!(axis_copy.x(), 1.);
+    assert_feq!(axis_copy.y(), 0.);
+    assert_feq!(axis_copy.z(), 0.);
 }
 
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
     let mut rng = Rng::new(Seed::new().unwrap());
-    let angle = 2. * ris_math::PI;
+    let angle = 2. * ris_math::f32::PI;
     let x = rng.next_f();
     let y = rng.next_f();
     let z = rng.next_f();
@@ -55,15 +55,15 @@ fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
     let quaternion = Quat::from((angle, axis));
     let (angle_copy, axis_copy) = quaternion.into();
 
-    assert_feq!(angle, angle_copy, ris_math::MIN_NORM);
-    assert_feq!(axis_copy.x(), 1., ris_math::MIN_NORM);
-    assert_feq!(axis_copy.y(), 0., ris_math::MIN_NORM);
-    assert_feq!(axis_copy.z(), 0., ris_math::MIN_NORM);
+    assert_feq!(angle, angle_copy);
+    assert_feq!(axis_copy.x(), 1.);
+    assert_feq!(axis_copy.y(), 0.);
+    assert_feq!(axis_copy.z(), 0.);
 }
 
 #[test]
 fn should_rotate_around_up() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::up()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::up()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() < 0.);
     assert!(result.y() > 0.);
@@ -72,7 +72,7 @@ fn should_rotate_around_up() {
 
 #[test]
 fn should_rotate_around_down() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::down()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::down()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() > 0.);
     assert!(result.y() > 0.);
@@ -81,7 +81,7 @@ fn should_rotate_around_down() {
 
 #[test]
 fn should_rotate_around_left() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::left()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::left()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() > 0.);
@@ -90,7 +90,7 @@ fn should_rotate_around_left() {
 
 #[test]
 fn should_rotate_around_right() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::right()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::right()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() > 0.);
@@ -99,7 +99,7 @@ fn should_rotate_around_right() {
 
 #[test]
 fn should_rotate_around_forward() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::forward()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::forward()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() == 1.);
@@ -108,7 +108,7 @@ fn should_rotate_around_forward() {
 
 #[test]
 fn should_rotate_around_backward() {
-    let rotation = Quat::from((0.25 * ris_math::PI, Vec3::backward()));
+    let rotation = Quat::from((0.25 * ris_math::f32::PI, Vec3::backward()));
     let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() == 1.);

@@ -1360,213 +1360,213 @@ impl std::ops::BitAnd<Self> for VkBvec4 {
 
 impl Vec2 {
     pub fn abs(self) -> Self {
-        Self(crate::abs(self.0), crate::abs(self.1))
+        Self(crate::f32::abs(self.0), crate::f32::abs(self.1))
     }
 
     pub fn sign(self) -> Self {
-        Self(crate::sign(self.0), crate::sign(self.1))
+        Self(crate::f32::sign(self.0), crate::f32::sign(self.1))
     }
 
     pub fn floor(self) -> Self {
-        Self(crate::floor(self.0), crate::floor(self.1))
+        Self(crate::f32::floor(self.0), crate::f32::floor(self.1))
     }
 
     pub fn ceil(self) -> Self {
-        Self(crate::ceil(self.0), crate::ceil(self.1))
+        Self(crate::f32::ceil(self.0), crate::f32::ceil(self.1))
     }
 
     pub fn trunc(self) -> Self {
-        Self(crate::trunc(self.0), crate::trunc(self.1))
+        Self(crate::f32::trunc(self.0), crate::f32::trunc(self.1))
     }
 
     pub fn round(self) -> Self {
-        Self(crate::round(self.0), crate::round(self.1))
+        Self(crate::f32::round(self.0), crate::f32::round(self.1))
     }
 
     pub fn fract(self) -> Self {
-        Self(crate::fract(self.0), crate::fract(self.1))
+        Self(crate::f32::fract(self.0), crate::f32::fract(self.1))
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
-        Self(crate::modulo(self.0, rhs.0), crate::modulo(self.1, rhs.1))
+        Self(crate::f32::modulo(self.0, rhs.0), crate::f32::modulo(self.1, rhs.1))
     }
 
     pub fn min(x: Self, y: Self) -> Self {
-        Self(crate::min(x.0, y.0), crate::min(x.1, y.1))
+        Self(crate::f32::min(x.0, y.0), crate::f32::min(x.1, y.1))
     }
 
     pub fn max(x: Self, y: Self) -> Self {
-        Self(crate::max(x.0, y.0), crate::max(x.1, y.1))
+        Self(crate::f32::max(x.0, y.0), crate::f32::max(x.1, y.1))
     }
 
     pub fn clamp(self, min_val: Self, max_val: Self) -> Self {
         Self(
-            crate::clamp(self.0, min_val.0, max_val.0),
-            crate::clamp(self.1, min_val.1, max_val.1),
+            crate::f32::clamp(self.0, min_val.0, max_val.0),
+            crate::f32::clamp(self.1, min_val.1, max_val.1),
         )
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
-        Self(crate::mix(x.0, y.0, a.0), crate::mix(x.1, y.1, a.1))
+        Self(crate::f32::mix(x.0, y.0, a.0), crate::f32::mix(x.1, y.1, a.1))
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
-        Self(crate::step(edge.0, x.0), crate::step(edge.1, x.1))
+        Self(crate::f32::step(edge.0, x.0), crate::f32::step(edge.1, x.1))
     }
 
     pub fn smoothstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smoothstep(edge0.0, edge1.0, x.0),
-            crate::smoothstep(edge0.1, edge1.1, x.1),
+            crate::f32::smoothstep(edge0.0, edge1.0, x.0),
+            crate::f32::smoothstep(edge0.1, edge1.1, x.1),
         )
     }
 
     pub fn smootherstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smootherstep(edge0.0, edge1.0, x.0),
-            crate::smootherstep(edge0.1, edge1.1, x.1),
+            crate::f32::smootherstep(edge0.0, edge1.0, x.0),
+            crate::f32::smootherstep(edge0.1, edge1.1, x.1),
         )
     }
 
     pub fn is_nan(self) -> VkBvec2 {
-        VkBvec2::from(crate::is_nan(self.0), crate::is_nan(self.1))
+        VkBvec2::from(crate::f32::is_nan(self.0), crate::f32::is_nan(self.1))
     }
 
     pub fn is_inf(self) -> VkBvec2 {
-        VkBvec2::from(crate::is_inf(self.0), crate::is_inf(self.1))
+        VkBvec2::from(crate::f32::is_inf(self.0), crate::f32::is_inf(self.1))
     }
 }
 
 impl Vec3 {
     pub fn abs(self) -> Self {
-        Self(crate::abs(self.0), crate::abs(self.1), crate::abs(self.2))
+        Self(crate::f32::abs(self.0), crate::f32::abs(self.1), crate::f32::abs(self.2))
     }
 
     pub fn sign(self) -> Self {
         Self(
-            crate::sign(self.0),
-            crate::sign(self.1),
-            crate::sign(self.2),
+            crate::f32::sign(self.0),
+            crate::f32::sign(self.1),
+            crate::f32::sign(self.2),
         )
     }
 
     pub fn floor(self) -> Self {
         Self(
-            crate::floor(self.0),
-            crate::floor(self.1),
-            crate::floor(self.2),
+            crate::f32::floor(self.0),
+            crate::f32::floor(self.1),
+            crate::f32::floor(self.2),
         )
     }
 
     pub fn ceil(self) -> Self {
         Self(
-            crate::ceil(self.0),
-            crate::ceil(self.1),
-            crate::ceil(self.2),
+            crate::f32::ceil(self.0),
+            crate::f32::ceil(self.1),
+            crate::f32::ceil(self.2),
         )
     }
 
     pub fn trunc(self) -> Self {
         Self(
-            crate::trunc(self.0),
-            crate::trunc(self.1),
-            crate::trunc(self.2),
+            crate::f32::trunc(self.0),
+            crate::f32::trunc(self.1),
+            crate::f32::trunc(self.2),
         )
     }
 
     pub fn round(self) -> Self {
         Self(
-            crate::round(self.0),
-            crate::round(self.1),
-            crate::round(self.2),
+            crate::f32::round(self.0),
+            crate::f32::round(self.1),
+            crate::f32::round(self.2),
         )
     }
 
     pub fn fract(self) -> Self {
         Self(
-            crate::fract(self.0),
-            crate::fract(self.1),
-            crate::fract(self.2),
+            crate::f32::fract(self.0),
+            crate::f32::fract(self.1),
+            crate::f32::fract(self.2),
         )
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
         Self(
-            crate::modulo(self.0, rhs.0),
-            crate::modulo(self.1, rhs.1),
-            crate::modulo(self.2, rhs.2),
+            crate::f32::modulo(self.0, rhs.0),
+            crate::f32::modulo(self.1, rhs.1),
+            crate::f32::modulo(self.2, rhs.2),
         )
     }
 
     pub fn min(x: Self, y: Self) -> Self {
         Self(
-            crate::min(x.0, y.0),
-            crate::min(x.1, y.1),
-            crate::min(x.2, y.2),
+            crate::f32::min(x.0, y.0),
+            crate::f32::min(x.1, y.1),
+            crate::f32::min(x.2, y.2),
         )
     }
 
     pub fn max(x: Self, y: Self) -> Self {
         Self(
-            crate::max(x.0, y.0),
-            crate::max(x.1, y.1),
-            crate::max(x.2, y.2),
+            crate::f32::max(x.0, y.0),
+            crate::f32::max(x.1, y.1),
+            crate::f32::max(x.2, y.2),
         )
     }
 
     pub fn clamp(self, min_val: Self, max_val: Self) -> Self {
         Self(
-            crate::clamp(self.0, min_val.0, max_val.0),
-            crate::clamp(self.1, min_val.1, max_val.1),
-            crate::clamp(self.2, min_val.2, max_val.2),
+            crate::f32::clamp(self.0, min_val.0, max_val.0),
+            crate::f32::clamp(self.1, min_val.1, max_val.1),
+            crate::f32::clamp(self.2, min_val.2, max_val.2),
         )
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
         Self(
-            crate::mix(x.0, y.0, a.0),
-            crate::mix(x.1, y.1, a.1),
-            crate::mix(x.2, y.2, a.2),
+            crate::f32::mix(x.0, y.0, a.0),
+            crate::f32::mix(x.1, y.1, a.1),
+            crate::f32::mix(x.2, y.2, a.2),
         )
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
         Self(
-            crate::step(edge.0, x.0),
-            crate::step(edge.1, x.1),
-            crate::step(edge.2, x.2),
+            crate::f32::step(edge.0, x.0),
+            crate::f32::step(edge.1, x.1),
+            crate::f32::step(edge.2, x.2),
         )
     }
 
     pub fn smoothstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smoothstep(edge0.0, edge1.0, x.0),
-            crate::smoothstep(edge0.1, edge1.1, x.1),
-            crate::smoothstep(edge0.2, edge1.2, x.2),
+            crate::f32::smoothstep(edge0.0, edge1.0, x.0),
+            crate::f32::smoothstep(edge0.1, edge1.1, x.1),
+            crate::f32::smoothstep(edge0.2, edge1.2, x.2),
         )
     }
 
     pub fn smootherstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smootherstep(edge0.0, edge1.0, x.0),
-            crate::smootherstep(edge0.1, edge1.1, x.1),
-            crate::smootherstep(edge0.2, edge1.2, x.2),
+            crate::f32::smootherstep(edge0.0, edge1.0, x.0),
+            crate::f32::smootherstep(edge0.1, edge1.1, x.1),
+            crate::f32::smootherstep(edge0.2, edge1.2, x.2),
         )
     }
 
     pub fn is_nan(self) -> VkBvec3 {
         VkBvec3::from(
-            crate::is_nan(self.0),
-            crate::is_nan(self.1),
-            crate::is_nan(self.2),
+            crate::f32::is_nan(self.0),
+            crate::f32::is_nan(self.1),
+            crate::f32::is_nan(self.2),
         )
     }
 
     pub fn is_inf(self) -> VkBvec3 {
         VkBvec3::from(
-            crate::is_inf(self.0),
-            crate::is_inf(self.1),
-            crate::is_inf(self.2),
+            crate::f32::is_inf(self.0),
+            crate::f32::is_inf(self.1),
+            crate::f32::is_inf(self.2),
         )
     }
 }
@@ -1574,154 +1574,154 @@ impl Vec3 {
 impl Vec4 {
     pub fn abs(self) -> Self {
         Self(
-            crate::abs(self.0),
-            crate::abs(self.1),
-            crate::abs(self.2),
-            crate::abs(self.3),
+            crate::f32::abs(self.0),
+            crate::f32::abs(self.1),
+            crate::f32::abs(self.2),
+            crate::f32::abs(self.3),
         )
     }
 
     pub fn sign(self) -> Self {
         Self(
-            crate::sign(self.0),
-            crate::sign(self.1),
-            crate::sign(self.2),
-            crate::sign(self.3),
+            crate::f32::sign(self.0),
+            crate::f32::sign(self.1),
+            crate::f32::sign(self.2),
+            crate::f32::sign(self.3),
         )
     }
 
     pub fn floor(self) -> Self {
         Self(
-            crate::floor(self.0),
-            crate::floor(self.1),
-            crate::floor(self.2),
-            crate::floor(self.3),
+            crate::f32::floor(self.0),
+            crate::f32::floor(self.1),
+            crate::f32::floor(self.2),
+            crate::f32::floor(self.3),
         )
     }
 
     pub fn ceil(self) -> Self {
         Self(
-            crate::ceil(self.0),
-            crate::ceil(self.1),
-            crate::ceil(self.2),
-            crate::ceil(self.3),
+            crate::f32::ceil(self.0),
+            crate::f32::ceil(self.1),
+            crate::f32::ceil(self.2),
+            crate::f32::ceil(self.3),
         )
     }
 
     pub fn trunc(self) -> Self {
         Self(
-            crate::trunc(self.0),
-            crate::trunc(self.1),
-            crate::trunc(self.2),
-            crate::trunc(self.3),
+            crate::f32::trunc(self.0),
+            crate::f32::trunc(self.1),
+            crate::f32::trunc(self.2),
+            crate::f32::trunc(self.3),
         )
     }
 
     pub fn round(self) -> Self {
         Self(
-            crate::round(self.0),
-            crate::round(self.1),
-            crate::round(self.2),
-            crate::round(self.3),
+            crate::f32::round(self.0),
+            crate::f32::round(self.1),
+            crate::f32::round(self.2),
+            crate::f32::round(self.3),
         )
     }
 
     pub fn fract(self) -> Self {
         Self(
-            crate::fract(self.0),
-            crate::fract(self.1),
-            crate::fract(self.2),
-            crate::fract(self.3),
+            crate::f32::fract(self.0),
+            crate::f32::fract(self.1),
+            crate::f32::fract(self.2),
+            crate::f32::fract(self.3),
         )
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
         Self(
-            crate::modulo(self.0, rhs.0),
-            crate::modulo(self.1, rhs.1),
-            crate::modulo(self.2, rhs.2),
-            crate::modulo(self.3, rhs.3),
+            crate::f32::modulo(self.0, rhs.0),
+            crate::f32::modulo(self.1, rhs.1),
+            crate::f32::modulo(self.2, rhs.2),
+            crate::f32::modulo(self.3, rhs.3),
         )
     }
 
     pub fn min(x: Self, y: Self) -> Self {
         Self(
-            crate::min(x.0, y.0),
-            crate::min(x.1, y.1),
-            crate::min(x.2, y.2),
-            crate::min(x.3, y.3),
+            crate::f32::min(x.0, y.0),
+            crate::f32::min(x.1, y.1),
+            crate::f32::min(x.2, y.2),
+            crate::f32::min(x.3, y.3),
         )
     }
 
     pub fn max(x: Self, y: Self) -> Self {
         Self(
-            crate::max(x.0, y.0),
-            crate::max(x.1, y.1),
-            crate::max(x.2, y.2),
-            crate::max(x.3, y.3),
+            crate::f32::max(x.0, y.0),
+            crate::f32::max(x.1, y.1),
+            crate::f32::max(x.2, y.2),
+            crate::f32::max(x.3, y.3),
         )
     }
 
     pub fn clamp(self, min_val: Self, max_val: Self) -> Self {
         Self(
-            crate::clamp(self.0, min_val.0, max_val.0),
-            crate::clamp(self.1, min_val.1, max_val.1),
-            crate::clamp(self.2, min_val.2, max_val.2),
-            crate::clamp(self.3, min_val.3, max_val.3),
+            crate::f32::clamp(self.0, min_val.0, max_val.0),
+            crate::f32::clamp(self.1, min_val.1, max_val.1),
+            crate::f32::clamp(self.2, min_val.2, max_val.2),
+            crate::f32::clamp(self.3, min_val.3, max_val.3),
         )
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
         Self(
-            crate::mix(x.0, y.0, a.0),
-            crate::mix(x.1, y.1, a.1),
-            crate::mix(x.2, y.2, a.2),
-            crate::mix(x.3, y.3, a.3),
+            crate::f32::mix(x.0, y.0, a.0),
+            crate::f32::mix(x.1, y.1, a.1),
+            crate::f32::mix(x.2, y.2, a.2),
+            crate::f32::mix(x.3, y.3, a.3),
         )
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
         Self(
-            crate::step(edge.0, x.0),
-            crate::step(edge.1, x.1),
-            crate::step(edge.2, x.2),
-            crate::step(edge.3, x.3),
+            crate::f32::step(edge.0, x.0),
+            crate::f32::step(edge.1, x.1),
+            crate::f32::step(edge.2, x.2),
+            crate::f32::step(edge.3, x.3),
         )
     }
 
     pub fn smoothstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smoothstep(edge0.0, edge1.0, x.0),
-            crate::smoothstep(edge0.1, edge1.1, x.1),
-            crate::smoothstep(edge0.2, edge1.2, x.2),
-            crate::smoothstep(edge0.3, edge1.3, x.3),
+            crate::f32::smoothstep(edge0.0, edge1.0, x.0),
+            crate::f32::smoothstep(edge0.1, edge1.1, x.1),
+            crate::f32::smoothstep(edge0.2, edge1.2, x.2),
+            crate::f32::smoothstep(edge0.3, edge1.3, x.3),
         )
     }
 
     pub fn smootherstep(edge0: Self, edge1: Self, x: Self) -> Self {
         Self(
-            crate::smootherstep(edge0.0, edge1.0, x.0),
-            crate::smootherstep(edge0.1, edge1.1, x.1),
-            crate::smootherstep(edge0.2, edge1.2, x.2),
-            crate::smootherstep(edge0.3, edge1.3, x.3),
+            crate::f32::smootherstep(edge0.0, edge1.0, x.0),
+            crate::f32::smootherstep(edge0.1, edge1.1, x.1),
+            crate::f32::smootherstep(edge0.2, edge1.2, x.2),
+            crate::f32::smootherstep(edge0.3, edge1.3, x.3),
         )
     }
 
     pub fn is_nan(self) -> VkBvec4 {
         VkBvec4::from(
-            crate::is_nan(self.0),
-            crate::is_nan(self.1),
-            crate::is_nan(self.2),
-            crate::is_nan(self.3),
+            crate::f32::is_nan(self.0),
+            crate::f32::is_nan(self.1),
+            crate::f32::is_nan(self.2),
+            crate::f32::is_nan(self.3),
         )
     }
 
     pub fn is_inf(self) -> VkBvec4 {
         VkBvec4::from(
-            crate::is_inf(self.0),
-            crate::is_inf(self.1),
-            crate::is_inf(self.2),
-            crate::is_inf(self.3),
+            crate::f32::is_inf(self.0),
+            crate::f32::is_inf(self.1),
+            crate::f32::is_inf(self.2),
+            crate::f32::is_inf(self.3),
         )
     }
 }
@@ -1736,7 +1736,7 @@ impl Vec2 {
     }
 
     pub fn length(self) -> f32 {
-        crate::sqrt(self.length_squared())
+        crate::f32::sqrt(self.length_squared())
     }
 
     pub fn distance_squared(self, rhs: Self) -> f32 {
@@ -1782,7 +1782,7 @@ impl Vec2 {
         if k < 0. {
             Self::init(0.)
         } else {
-            eta * i - (eta * n.dot(i) + crate::sqrt(k)) * n
+            eta * i - (eta * n.dot(i) + crate::f32::sqrt(k)) * n
         }
     }
 }
@@ -1793,7 +1793,7 @@ impl Vec3 {
     }
 
     pub fn length(self) -> f32 {
-        crate::sqrt(self.length_squared())
+        crate::f32::sqrt(self.length_squared())
     }
 
     pub fn distance_squared(self, rhs: Self) -> f32 {
@@ -1847,7 +1847,7 @@ impl Vec3 {
         if k < 0. {
             Self::init(0.)
         } else {
-            eta * i - (eta * n.dot(i) + crate::sqrt(k)) * n
+            eta * i - (eta * n.dot(i) + crate::f32::sqrt(k)) * n
         }
     }
 }
@@ -1858,7 +1858,7 @@ impl Vec4 {
     }
 
     pub fn length(self) -> f32 {
-        crate::sqrt(self.length_squared())
+        crate::f32::sqrt(self.length_squared())
     }
 
     pub fn distance_squared(self, rhs: Self) -> f32 {
@@ -1904,7 +1904,7 @@ impl Vec4 {
         if k < 0. {
             Self::init(0.)
         } else {
-            eta * i - (eta * n.dot(i) + crate::sqrt(k)) * n
+            eta * i - (eta * n.dot(i) + crate::f32::sqrt(k)) * n
         }
     }
 }

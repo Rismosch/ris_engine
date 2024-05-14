@@ -21,8 +21,8 @@ fn abs(c: &mut Criterion) {
     group.bench_function("std", |b| {
         b.iter(|| {
             for value in &values {
-                let abs = f32::abs(*value);
-                black_box(abs);
+                let result = f32::abs(*value);
+                black_box(result);
             }
         });
     });
@@ -30,8 +30,8 @@ fn abs(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let abs = ris_math::fastabs(*value);
-                black_box(abs);
+                let result = ris_math::f32::as_float(ris_math::f32::as_int(*value) & 0x7FFF_FFFF);
+                black_box(result);
             }
         });
     });
@@ -54,7 +54,8 @@ fn negate(c: &mut Criterion) {
     group.bench_function("std", |b| {
         b.iter(|| {
             for value in &values {
-                let result = -value;
+                //let result = -value;
+                let result = std::ops::Neg::neg(value);
                 black_box(result);
             }
         });
@@ -63,7 +64,7 @@ fn negate(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::fastneg(*value);
+                let result = ris_math::f32::as_float(ris_math::f32::as_int(*value) ^ 0x8000_0000u32 as i32);
                 black_box(result);
             }
         });
@@ -96,7 +97,7 @@ fn log2(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::fastlog2(*value);
+                let result = ris_math::f32::fastlog2(*value);
                 black_box(result);
             }
         });
@@ -129,7 +130,7 @@ fn exp2(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::fastexp2(*value);
+                let result = ris_math::f32::fastexp2(*value);
                 black_box(result);
             }
         });
@@ -163,7 +164,7 @@ fn pow(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for (value1, value2) in &values {
-                let result = ris_math::fastpow(*value1, *value2);
+                let result = ris_math::f32::fastpow(*value1, *value2);
                 black_box(result);
             }
         });
@@ -172,37 +173,41 @@ fn pow(c: &mut Criterion) {
     group.finish();
 }
 
-fn sqrt(c: &mut Criterion) {
-    let mut group = c.benchmark_group("math_sqrt");
+fn sqrt(_c: &mut Criterion) {
+    // cannot run bench, because `ris_math::f32::fastsqrt` was commented out. bench proofed it's
+    // substentially slower due to a newton step. unfortunately, removing the newton step
+    // drastically decreases accuracy, making the function useless.
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    //let mut group = c.benchmark_group("math_sqrt");
 
-    let count = 1_000_000;
-    let mut values = Vec::with_capacity(count);
-    for _ in 0..count {
-        let value = rng.range_f(-1_000_000., 1_000_000.);
-        values.push(value);
-    }
+    //let mut rng = Rng::new(Seed::new().unwrap());
 
-    group.bench_function("std", |b| {
-        b.iter(|| {
-            for value in &values {
-                let result = f32::sqrt(*value);
-                black_box(result);
-            }
-        });
-    });
+    //let count = 1_000_000;
+    //let mut values = Vec::with_capacity(count);
+    //for _ in 0..count {
+    //    let value = rng.range_f(-1_000_000., 1_000_000.);
+    //    values.push(value);
+    //}
 
-    group.bench_function("bit_magic", |b| {
-        b.iter(|| {
-            for value in &values {
-                let result = ris_math::fastsqrt(*value);
-                black_box(result);
-            }
-        });
-    });
+    //group.bench_function("std", |b| {
+    //    b.iter(|| {
+    //        for value in &values {
+    //            let result = f32::sqrt(*value);
+    //            black_box(result);
+    //        }
+    //    });
+    //});
 
-    group.finish();
+    //group.bench_function("bit_magic", |b| {
+    //    b.iter(|| {
+    //        for value in &values {
+    //            let result = ris_math::f32::fastsqrt(*value);
+    //            black_box(result);
+    //        }
+    //    });
+    //});
+
+    //group.finish();
 }
 
 fn inversesqrt(c: &mut Criterion) {
@@ -229,7 +234,7 @@ fn inversesqrt(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result = ris_math::fastinversesqrt(*value);
+                let result = ris_math::f32::fastinversesqrt(*value);
                 black_box(result);
             }
         });
@@ -238,5 +243,146 @@ fn inversesqrt(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, abs, negate, log2, exp2, pow, sqrt, inversesqrt);
+fn sign(c: &mut Criterion) {
+    let mut group = c.benchmark_group("math_sign");
+
+    let mut rng = Rng::new(Seed::new().unwrap());
+
+    let count = 1_000_000;
+    let mut values = Vec::with_capacity(count);
+    for _ in 0..count {
+        let value = rng.range_f(-1_000_000., 1_000_000.);
+        values.push(value);
+    }
+
+    group.bench_function("branched", |b| {
+        b.iter(|| {
+            for value in &values {
+                let result = if *value == 0. {
+                    0.
+                } else if *value > 0. {
+                    1.
+                } else {
+                    -1.
+                };
+                black_box(result);
+            }
+        });
+    });
+
+    group.bench_function("branchless", |b| {
+        b.iter(|| {
+            for value in &values {
+                let result = ris_math::f32::choose(
+                    0.,
+                    ris_math::f32::choose(
+                        1.,
+                        -1.,
+                        *value > 0.,
+                    ),
+                    *value == 0.,
+                );
+                black_box(result);
+            }
+        });
+    });
+
+    group.finish();
+}
+
+fn min(c: &mut Criterion) {
+    let mut group = c.benchmark_group("math_min");
+
+    let mut rng = Rng::new(Seed::new().unwrap());
+
+    let count = 1_000_000;
+    let mut values = Vec::with_capacity(count);
+    for _ in 0..count {
+        let value = rng.range_f(-1_000_000., 1_000_000.);
+        values.push(value);
+    }
+
+    group.bench_function("branched", |b| {
+        b.iter(|| {
+            for chunk in values.chunks_exact(2) {
+                let x = chunk[0];
+                let y = chunk[1];
+                let result = if y < x {
+                    y
+                } else {
+                    x
+                };
+                black_box(result);
+            }
+        });
+    });
+
+    group.bench_function("branchless", |b| {
+        b.iter(|| {
+            for chunk in values.chunks_exact(2) {
+                let x = chunk[0];
+                let y = chunk[1];
+                let result = ris_math::f32::choose(y, x, y < x);
+                black_box(result);
+            }
+        });
+    });
+
+    group.finish();
+}
+
+fn max(c: &mut Criterion) {
+    let mut group = c.benchmark_group("math_max");
+
+    let mut rng = Rng::new(Seed::new().unwrap());
+
+    let count = 1_000_000;
+    let mut values = Vec::with_capacity(count);
+    for _ in 0..count {
+        let value = rng.range_f(-1_000_000., 1_000_000.);
+        values.push(value);
+    }
+
+    group.bench_function("branched", |b| {
+        b.iter(|| {
+            for chunk in values.chunks_exact(2) {
+                let x = chunk[0];
+                let y = chunk[1];
+                let result = if x < y {
+                    y
+                } else {
+                    x
+                };
+                black_box(result);
+            }
+        });
+    });
+
+    group.bench_function("branchless", |b| {
+        b.iter(|| {
+            for chunk in values.chunks_exact(2) {
+                let x = chunk[0];
+                let y = chunk[1];
+                let result = ris_math::f32::choose(y, x, x < y);
+                black_box(result);
+            }
+        });
+    });
+
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    abs,
+    negate,
+    log2,
+    exp2,
+    pow,
+    sqrt,
+    inversesqrt,
+    sign,
+    min,
+    max,
+);
 criterion_main!(benches);

@@ -19,7 +19,7 @@ impl Default for Camera {
         Self {
             position: Default::default(),
             rotation: Default::default(),
-            fovy: super::radians(60.),
+            fovy: crate::f32::radians(60.),
             aspect_ratio: 16. / 9.,
             near: 0.1,
             far: 10.0,
@@ -41,7 +41,7 @@ impl Camera {
         //
         //  a single rotation is sufficiant to translate one to the other
 
-        let default_rotation = Quat::from((0.5 * super::PI, Vec3::right()));
+        let default_rotation = Quat::from((0.5 * crate::f32::PI, Vec3::right()));
         let camera_rotation = self.rotation.conjugate();
         let rotation = default_rotation * camera_rotation;
         let translation = -1.0 * self.position;
@@ -53,7 +53,7 @@ impl Camera {
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
-        let tan_half_fovy = super::tan(self.fovy / 2.0);
+        let tan_half_fovy = crate::f32::tan(self.fovy / 2.0);
 
         let mut mat = Mat4::init(0.0);
         mat.0 .0 = 1.0 / (self.aspect_ratio * tan_half_fovy);

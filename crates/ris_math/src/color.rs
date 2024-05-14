@@ -90,9 +90,9 @@ impl From<Rgb> for OkLab {
         let m = 0.2119034982 * c.0 + 0.6806995451 * c.1 + 0.1073969566 * c.2;
         let s = 0.0883024619 * c.0 + 0.2817188376 * c.1 + 0.6299787005 * c.2;
 
-        let l_ = crate::cbrt(l);
-        let m_ = crate::cbrt(m);
-        let s_ = crate::cbrt(s);
+        let l_ = crate::f32::cbrt(l);
+        let m_ = crate::f32::cbrt(m);
+        let s_ = crate::f32::cbrt(s);
 
         Self(
             0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
@@ -125,8 +125,8 @@ impl From<OkLab> for Rgb {
 impl From<OkLch> for OkLab {
     fn from(value: OkLch) -> Self {
         let l = value.0;
-        let a = value.1 * crate::cos(value.2);
-        let b = value.1 * crate::sin(value.2);
+        let a = value.1 * crate::f32::cos(value.2);
+        let b = value.1 * crate::f32::sin(value.2);
 
         Self(l, a, b)
     }
@@ -135,8 +135,8 @@ impl From<OkLch> for OkLab {
 impl From<OkLab> for OkLch {
     fn from(value: OkLab) -> Self {
         let l = value.0;
-        let c = crate::sqrt(value.1 * value.1 + value.2 * value.2);
-        let h = crate::atan2(value.2, value.1);
+        let c = crate::f32::sqrt(value.1 * value.1 + value.2 * value.2);
+        let h = crate::f32::atan2(value.2, value.1);
 
         Self(l, c, h)
     }

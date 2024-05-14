@@ -84,12 +84,12 @@ fn should_convert_lch_to_rgb() {
         // only when the color is not white
         let t = 0.99;
         if rgb.r() < t || rgb.g() < t || rgb.b() < t {
-            let diff = ris_math::diff(lch.h(), lch_.h());
+            let diff = ris_math::f32::diff(lch.h(), lch_.h());
             if diff < color::MIN_NORM {
                 // success, hue is identical
             } else {
                 // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
-                assert_feq!(diff, 2.0 * ris_math::PI, color::MIN_NORM);
+                assert_feq!(diff, 2.0 * ris_math::f32::PI, color::MIN_NORM);
             }
         }
     });
