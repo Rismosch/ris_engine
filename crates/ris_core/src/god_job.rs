@@ -15,11 +15,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     loop {
         let frame = frame_calculator.bump_and_create_frame();
 
-        let state_for_save_settings = god_object.state.clone();
+        // reset events
+        let previous_state = god_object.state.clone();
+        god_object.state.reset_events();
 
+        // game loop frame
         let save_settings_future = job_system::submit(move || {
             let settings_serializer = god_object.settings_serializer;
-            let state = state_for_save_settings;
+            let state = previous_state;
 
             let settings = &state.settings;
 
@@ -32,10 +35,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             (settings_serializer, result)
         });
 
-        // reset events
-        god_object.state.reset_events();
-
-        // game loop frame
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
         let output_result =
             god_object

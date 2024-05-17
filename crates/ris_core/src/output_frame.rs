@@ -210,7 +210,17 @@ impl OutputFrame {
         let queue_present_result =
             unsafe { swapchain_loader.queue_present(*present_queue, &present_info) };
         let window_event = match queue_present_result {
-            Ok(_) => state.window_event,
+            Ok(_) => match state.window_event {
+                WindowEvent::SizeChanged(..) => state.window_event,
+                WindowEvent::None => {
+                    if state.reload_shaders {
+                        let (width, height) = self.window.vulkan_drawable_size();
+                        WindowEvent::SizeChanged(width, height)
+                    } else {
+                        WindowEvent::None
+                    }
+                }
+            },
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
                     let (width, height) = self.window.vulkan_drawable_size();
