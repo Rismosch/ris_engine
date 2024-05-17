@@ -20,11 +20,15 @@ pub struct RisError {
 impl std::fmt::Display for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(source) = &self.source {
-            write!(f, "{}", source)?;
+            write!(f, "source: {}", source)?;
+        } else {
+            write!(f, "source: none")?;
         }
 
         if let Some(message) = &self.message {
             write!(f, "\n    message: \"{}\"", message)?;
+        } else {
+            write!(f, "\n    message: none")?;
         }
 
         write!(f, "\n    at {}:{}", self.file, self.line)

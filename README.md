@@ -47,8 +47,8 @@ Barebones game engine. Home made passion project.
 ## Requirements
 
 |          |                          | Notes                                                    |
-|----------|--------------------------|----------------------------------------------------------|
-| Compiler | rustc 1.77.2             | [Download Link](https://www.rust-lang.org/tools/install) | 
+| -------- | ------------------------ | -------------------------------------------------------- |
+| Compiler | rustc 1.77.2             | [Download Link](https://www.rust-lang.org/tools/install) |
 | Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
 | Graphics | Vulkan capable Hardware  |                                                          |
 
@@ -60,6 +60,7 @@ You also require an internet connection, to download dependencies from [crates.i
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Depending on your platform, follow the instructions below.
 
+---
 
 ### Linux
 
@@ -67,11 +68,15 @@ Examples use the `pacman` package manager from Arch.
 
 #### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
 
-    sudo pacman -S sdl2
+```bash
+sudo pacman -S sdl2
+```
 
 #### 2. Install [shaderc](https://archlinux.org/packages/extra/x86_64/shaderc/)
 
-    sudo pacman -S shaderc
+```bash
+sudo pacman -S shaderc
+```
 
 #### 3. Install [Vulkan](https://wiki.archlinux.org/title/Vulkan)
 
@@ -83,25 +88,27 @@ https://wiki.archlinux.org/title/Vulkan#Installation
 
 ### Windows
 
-In this repo you will find the   `./3rd_party/` directory. It contains all required libraries for Windows.
+In this repo you will find the   `./external/` directory. It contains all required libraries.  For information where I got these from, read [./external/README.md](3rd_party/README.md). If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
 
-For information where I got these from, read [./3rd_party/README.md](3rd_party/README.md). 
+#### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
 
-#### 1. Copy _EVERY_ `*.dll` in `./3rd_party/bin/` to the root of this repository.
+These DLLs need to be available in your environment. So either assign it to your environment variables or move them to the root of the directory.
 
-`cargo run` expects all necessary DLLs to be in the root directory. Also, the `./ci/build.ps1` script expects these to be in the root directory as well.
+#### 2. Set the environment variable `SHADERC_LIB_DIR` to `./external/bin/`
 
-#### 2. Set the environment variable `SHADERC_LIB_DIR` to `./3rd_party/bin/`
+[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`.
 
-[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. It has a feature, which stores and compiles shader code inside Rust source files. `ris_engine` does not use this feature, but nevertheless, `shaderc` does try to search the DLL while building. The environment variable `SHADERC_LIB_DIR` is the directory where `shaderc` searches for the DLL.
 
-#### 3. Copy _EVERY_ `*.lib` in `./3rd_party/lib/` to the directory, which the linker searches for static libraries.
 
-If you are using `rustup`, this directory probably is:
+For more info, check this link: <TODO>
 
-    C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
+#### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
 
-Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
+```powershell
+C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
+```
+
+Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against these.
 
 ---
 
@@ -109,38 +116,38 @@ Rust still needs to link. And this directory is the one that `cargo` searches fo
 
 Assuming everything is installed correctly, you can now compile and run the engine with:
 
-    cargo run
+```bash
+cargo run
+```
 
-Alternatively, you can build a release-ready package, by running a build script found under `./ci/`.
+Alternatively, you can build a release-ready package, by running the following command:
 
-Windows:
+```bash
+cargo run -p ci build no-debug
+```
 
-    ./ci/build.ps1
+`ci` is a command line tool to enable continuous integration. For all available commands and their usages, run
 
-Linux:
+```bash
+cargo run -p ci help
+```
 
-    bash ./ci/build.sh
+`ci build` generates building information, compile the entire workspace and move all required files into a single folder. Passing the flag `no-debug` will remove all debug features, like logging or development UI, and potentially improve performance.
 
-These build scripts will generate building information, compile the entire workspace and move all required files into a single folder. Note that these script build with all optimizations enabled, which significantly increases the build time. Once a script is finished, you will find the following files in `./ci_out/build/`:
+Note that `ci build` will build with all optimizations enabled, which takes significantly longer than `cargo run`.
 
-1. **ris_engine.exe**  
-   This is the compiled engine. It contains all logic to run the game.
-
-2. **ris_assets**  
-   This file contains all assets used by the engine. Without assets, the game cannot be run.
-
-3. **SDL2.dll** (only on windows)  
-   This is a multi media library, which provides low level access to audio, keyboard, mouse, joystick and windowing.
-
-For more info on the scripts, check out [./ci/README.md](ci/README.md).
+---
 
 ## Testing
 
 All tests are found under `./tests/suite/` and can be run with:
 
-    cargo test
+```bash
+cargo test
+```
 
 If you have [miri](https://github.com/rust-lang/miri) installed, tests can be run with:
 
-    cargo miri test
-
+```bash
+cargo miri test
+```
