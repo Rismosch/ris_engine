@@ -47,46 +47,39 @@ Barebones game engine. Home made passion project.
 ## Requirements
 
 |          |                          | Notes                                                    |
-| -------- | ------------------------ | ---------------------------------------------------------|
+|----------|--------------------------|----------------------------------------------------------|
 | Compiler | rustc 1.77.2             | [Download Link](https://www.rust-lang.org/tools/install) | 
 | Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
 | Graphics | Vulkan capable Hardware  |                                                          |
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). If you have an internet connection, you have everything you need and you can jump straight to [Installation](#Installation). If you do not have access to the internet, choose one of the following methods:
-
-### Method 1: cargo vendor
-
-While you have internet access, you can download all dependencies with the following command:
-
-    cargo vendor
-
-This should generate the directory `./vendor/`, which contains all necessary packages.
-
-Then create the file `./cargo/config.toml` with this content:
-
-    [source.crates-io]
-    replace-with = "vendored-sources"
-    
-    [source.vendored-sources]
-    directory = "vendor"
-
-This tells `cargo` to use the packages in `./vendor/` instead of searching the internet.
-
-For more information on `cargo vendor` check the following link: https://doc.rust-lang.org/cargo/commands/cargo-vendor.html
-
-### Method 2: Get an archived repo
-
-An archived repo contains all required packages. You can get one from my website:
-
-https://www.rismosch.com/archive
-
-Note that I make these archives sporadically, meaning they may not be up to date. Check the date, when the archives have been generated.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive).  Note that I make these archives sporadically, meaning they may not be up to date.
 
 ---
 
 ## Installation
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Depending on your platform, follow the instructions below.
+
+
+### Linux
+
+Examples use the `pacman` package manager from Arch.
+
+#### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
+
+    sudo pacman -S sdl2
+
+#### 2. Install [shaderc](https://archlinux.org/packages/extra/x86_64/shaderc/)
+
+    sudo pacman -S shaderc
+
+#### 3. Install [Vulkan](https://wiki.archlinux.org/title/Vulkan)
+
+Depending on your graphics card, you need to install a different package. Follow the instructions in the link below:
+
+https://wiki.archlinux.org/title/Vulkan#Installation
+
+---
 
 ### Windows
 
@@ -109,26 +102,6 @@ If you are using `rustup`, this directory probably is:
     C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 
 Rust still needs to link. And this directory is the one that `cargo` searches for libraries.
-
----
-
-### Linux
-
-Examples use the `pacman` package manager from Arch.
-
-#### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
-
-    sudo pacman -S sdl2
-
-#### 2. Install [shaderc](https://archlinux.org/packages/extra/x86_64/shaderc/)
-
-    sudo pacman -S shaderc
-
-#### 3. Install [Vulkan](https://wiki.archlinux.org/title/Vulkan)
-
-Depending on your graphics card, you need to install a different package. Follow the instructions in the link below:
-
-https://wiki.archlinux.org/title/Vulkan#Installation
 
 ---
 
@@ -167,27 +140,7 @@ All tests are found under `./tests/suite/` and can be run with:
 
     cargo test
 
-If you have [miri](https://github.com/rust-lang/miri) installed, instead tests can be run with:
+If you have [miri](https://github.com/rust-lang/miri) installed, tests can be run with:
 
     cargo miri test
 
-Some notes about miri:
-
-`miri` requires crates of very specific versions for a given `rustc` version. A vendored or archived repo may not work, and you possibly need an internet connection when running `miri`.
-
-Running tests with `miri` is significantly slower and may take a few minutes.
-
-Also, you need a `nightly` toolchain. At the time of writing, `ris_engine` only compiles with a `stable` toolchain.
-
-Use `nightly` for `miri`.  
-Use `stable` for everything else.
-
-Assuming `stable` and `nightly` toolchains are installed, switching toolchains can be achieved by running:
-
-    rustup override set <toolchain>
-
-Where `<toolchain>` is either `stable` or `nightly`.
-
-To check installed toolchains, and which one is currently in use, run:
-
-    rustup show
