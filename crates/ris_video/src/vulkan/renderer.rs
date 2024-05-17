@@ -158,6 +158,8 @@ impl Renderer {
             );
         };
 
+        ris_log::info!("chosen Vulkan Physical Device: {}", suitable_device.name);
+
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };

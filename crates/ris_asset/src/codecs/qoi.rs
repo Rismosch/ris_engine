@@ -2,7 +2,6 @@
 // original format and C encoder/decoder by Dominic Szablewski: https://qoiformat.org/
 
 use std::io::Cursor;
-use std::io::Read;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QoiDesc {

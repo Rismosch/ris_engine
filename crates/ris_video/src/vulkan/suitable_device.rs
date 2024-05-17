@@ -8,6 +8,7 @@ use super::surface_details::SurfaceDetails;
 use super::util;
 
 pub struct SuitableDevice {
+    pub name: String,
     // the lower the suitability, the better suited the device is to render. a dedicated gpu would
     // have a value of 0
     pub suitability: usize,
@@ -218,6 +219,7 @@ impl SuitableDevice {
             };
 
             let suitable_device = SuitableDevice {
+                name: device_name.to_string(),
                 suitability,
                 graphics_queue_family: graphics as u32,
                 present_queue_family: present as u32,
