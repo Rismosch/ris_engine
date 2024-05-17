@@ -32,7 +32,7 @@ impl RisHeader {
     pub fn load(bytes: &[u8]) -> RisResult<Option<Self>> {
         let input = &mut Cursor::new(bytes);
         let mut magic = [0; 16];
-        ris_file::io::read(input, &mut magic)?;
+        ris_file::io::read_checked(input, &mut magic)?;
 
         if magic[0] != 0x72 || // `r`
             magic[1] != 0x69 || // `i`

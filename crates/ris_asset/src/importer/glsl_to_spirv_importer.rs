@@ -26,7 +26,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     let file_size = ris_file::io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
     ris_file::io::seek(f, SeekFrom::Start(0))?;
-    ris_file::io::read(f, &mut file_content)?;
+    ris_file::io::read_checked(f, &mut file_content)?;
     let source_text = String::from_utf8(file_content)?;
 
     // pre processor
@@ -156,7 +156,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
-            ris_file::io::write(&mut output, bytes)?;
+            ris_file::io::write_checked(&mut output, bytes)?;
         }
     }
 

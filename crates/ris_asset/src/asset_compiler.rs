@@ -94,7 +94,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     // write magic
     ris_file::io::seek(target_file, SeekFrom::Start(0))?;
-    ris_file::io::write(target_file, &MAGIC)?;
+    ris_file::io::write_checked(target_file, &MAGIC)?;
 
     // write ptr to original paths
     let addr_p_original_asset_names = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
@@ -114,7 +114,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
         ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
-        ris_file::io::read(&mut file, &mut file_content)?;
+        ris_file::io::read_checked(&mut file, &mut file_content)?;
 
         let modified_file_content = match RisHeader::load(&file_content)? {
             // asset is not a ris_asset, return unmodified
@@ -150,10 +150,10 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
-                ris_file::io::write(stream, &ris_header.magic)?;
+                ris_file::io::write_checked(stream, &ris_header.magic)?;
                 ris_file::io::write_bool(stream, true)?;
                 ris_file::io::write_array(stream, &references)?;
-                ris_file::io::write(stream, &ris_asset_content)?;
+                ris_file::io::write_checked(stream, &ris_asset_content)?;
 
                 modified_file_content.into_inner()
             }
@@ -162,7 +162,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         // write to compiled file
         let asset_addr = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
         asset_lookup[i] = AssetAddr(asset_addr);
-        ris_file::io::write(target_file, &modified_file_content)?;
+        ris_file::io::write_checked(target_file, &modified_file_content)?;
     }
 
     // all assets are compiled, compile original paths
@@ -222,7 +222,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 
     // read magic
     let mut magic = [0; 16];
-    ris_file::io::read(source, &mut magic)?;
+    ris_file::io::read_checked(source, &mut magic)?;
     if !ris_util::testing::bytes_eq(&magic, &MAGIC) {
         return ris_error::new_result!("expected magic to be {:?} but was {:?}", magic, MAGIC);
     }
@@ -297,7 +297,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
-                ris_file::io::write(stream, &ris_header.magic)?;
+                ris_file::io::write_checked(stream, &ris_header.magic)?;
                 ris_file::io::write_bool(stream, false)?;
                 let addr_p_content = ris_file::io::seek(stream, SeekFrom::Current(0))?;
                 ris_file::io::write_fat_ptr(stream, FatPtr::null())?; // placeholder
@@ -318,7 +318,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         std::fs::create_dir_all(parent)?;
 
         let mut decompiled_file = File::create(&asset_path)?;
-        ris_file::io::write(&mut decompiled_file, &modified_file_content)?;
+        ris_file::io::write_checked(&mut decompiled_file, &modified_file_content)?;
     }
 
     Ok(())
