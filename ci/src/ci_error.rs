@@ -59,5 +59,5 @@ macro_rules! get_backtrace {
         use std::sync::Arc;
 
         Arc::new(Backtrace::force_capture())
-    }}
+    }};
 }

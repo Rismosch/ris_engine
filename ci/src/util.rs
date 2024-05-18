@@ -5,10 +5,7 @@ use crate::CiResult;
 pub fn run_cmd(cmd: &str) -> CiResult<std::process::Output> {
     eprintln!("running `{}`...", cmd);
 
-    let splits = cmd
-        .split(' ')
-        .map(|x| x.trim())
-        .collect::<Vec<_>>();
+    let splits = cmd.split(' ').map(|x| x.trim()).collect::<Vec<_>>();
     if splits.is_empty() {
         return crate::new_error_result!("cannot run empty cmd");
     }

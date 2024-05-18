@@ -1,5 +1,5 @@
-pub mod commands;
 pub mod ci_error;
+pub mod commands;
 pub mod util;
 
 use std::path::Path;
@@ -32,15 +32,10 @@ macro_rules! command_vec {
 }
 
 fn main() {
-    let commands = command_vec!(
-        archive,
-        build,
-        doc,
-        pipeline,
-    );
-    
+    let commands = command_vec!(archive, build, doc, pipeline,);
+
     let raw_args = std::env::args().collect::<Vec<_>>();
-    
+
     if raw_args.len() < 2 {
         print_help(None);
         return;
@@ -53,9 +48,7 @@ fn main() {
     }
 
     let trimmed_arg = arg1.trim().to_lowercase();
-    let command = commands
-        .into_iter()
-        .find(|x| x.name == trimmed_arg);
+    let command = commands.into_iter().find(|x| x.name == trimmed_arg);
 
     match command {
         Some(Command { name, run, usage }) => {
@@ -67,16 +60,23 @@ fn main() {
                 }
             }
 
+            let start = std::time::SystemTime::now();
+
             let result = match get_target_dir(&raw_args[0], &name) {
-                Ok(target_dir) =>run(raw_args, target_dir),
+                Ok(target_dir) => run(raw_args, target_dir),
                 Err(e) => Err(e),
             };
 
-            if let Err(error) = result {
-                eprintln!("ERROR: {}", error);
-                return;
+            match result {
+                Ok(()) => {
+                    let end = std::time::SystemTime::now();
+                    if let Ok(duration) = end.duration_since(start) {
+                        eprintln!("finished in {:?}", duration);
+                    }
+                }
+                Err(error) => eprintln!("ERROR: {}", error),
             }
-        },
+        }
         None => {
             eprintln!("unkown command: {}", arg1);
         }
@@ -100,22 +100,21 @@ fn print_help(to_print: Option<Vec<Command>>) {
 fn is_help_arg(arg: &str) -> bool {
     let arg = arg.trim().to_lowercase();
 
-    arg == "h" ||
-        arg == "-h" ||
-        arg == "--h" ||
-        arg == "help" ||
-        arg == "-help" ||
-        arg == "--help" ||
-        arg == "man" ||
-        arg == "-man" ||
-        arg == "--man" ||
-        arg == "manual" ||
-        arg == "-manual" ||
-        arg == "--manual"
+    arg == "h"
+        || arg == "-h"
+        || arg == "--h"
+        || arg == "help"
+        || arg == "-help"
+        || arg == "--help"
+        || arg == "man"
+        || arg == "-man"
+        || arg == "--man"
+        || arg == "manual"
+        || arg == "-manual"
+        || arg == "--manual"
 }
 
 fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
-
     let parent = match get_root_dir() {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
@@ -124,15 +123,12 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
             .to_path_buf(),
     };
 
-    let target_dir = parent
-        .join("ci_out")
-        .join(command);
+    let target_dir = parent.join("ci_out").join(command);
 
     Ok(target_dir)
 }
 
 fn get_root_dir() -> CiResult<PathBuf> {
-
     let output = std::process::Command::new(env!("CARGO"))
         .arg("locate-project")
         .arg("--workspace")
@@ -141,10 +137,7 @@ fn get_root_dir() -> CiResult<PathBuf> {
         .stdout;
     let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
 
-    let root_dir = cargo_path
-        .parent()
-        .to_ci_result()?
-        .to_path_buf();
+    let root_dir = cargo_path.parent().to_ci_result()?.to_path_buf();
 
     Ok(root_dir)
 }

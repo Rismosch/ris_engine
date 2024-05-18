@@ -41,9 +41,7 @@ pub fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
     crate::util::copy_dir_all(doc_dir, &target_dir)?;
 
     eprintln!("done! docs can be found in {:?}", target_dir);
-    let index_file = target_dir
-        .join("ris_engine")
-        .join("index.html");
+    let index_file = target_dir.join("ris_engine").join("index.html");
     eprintln!("you will find the index in {:?}", index_file);
 
     Ok(())

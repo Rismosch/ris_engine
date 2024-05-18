@@ -397,4 +397,3 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
     let result = pixels.into_inner();
     Ok((result, desc))
 }
-
