@@ -2,6 +2,7 @@ pub mod commands;
 pub mod ci_error;
 pub mod util;
 
+use std::path::Path;
 use std::path::PathBuf;
 
 pub use ci_error::CiResult;
@@ -114,11 +115,49 @@ fn is_help_arg(arg: &str) -> bool {
 }
 
 fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
-    let target_dir = PathBuf::from(program)
-        .parent()
-        .to_ci_result()?
+
+    let parent = match get_cargo_target_dir(program) {
+        Ok(cargo_target_dir) => cargo_target_dir,
+        Err(_) => PathBuf::from(program)
+            .parent()
+            .to_ci_result()?
+            .to_path_buf(),
+    };
+
+    let target_dir = parent
         .join("ci_out")
         .join(command);
 
     Ok(target_dir)
+}
+
+fn get_cargo_target_dir(program: &str) -> CiResult<PathBuf> {
+    let program = PathBuf::from(program);
+    let parent = program
+        .parent()
+        .to_ci_result()?;
+
+    let parent_parent = parent
+        .parent()
+        .to_ci_result()?;
+
+    let parent_name = parent
+        .file_name()
+        .to_ci_result()?
+        .to_str()
+        .to_ci_result()?;
+
+    let parent_parent_name = parent_parent
+        .file_name()
+        .to_ci_result()?
+        .to_str()
+        .to_ci_result()?;
+
+    if parent_parent_name == "target" {
+        if parent_name == "debug" || parent_name == "release" {
+            return Ok(parent.to_path_buf());
+        }
+    }
+
+    crate::new_error_result!("failed to find cargo target dir")
 }
