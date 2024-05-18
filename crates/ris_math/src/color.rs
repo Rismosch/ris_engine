@@ -49,7 +49,7 @@ pub trait ByteColor4: Color4 {
 #[repr(C)]
 pub struct Rgb(pub f32, pub f32, pub f32);
 
-/// OK LAB by Björn Ottoson: https://bottosson.github.io/posts/oklab/
+/// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
 ///
 /// l: luminocity / preceived lightness
 /// a: how green/red the color is
@@ -58,7 +58,7 @@ pub struct Rgb(pub f32, pub f32, pub f32);
 #[repr(C)]
 pub struct OkLab(pub f32, pub f32, pub f32);
 
-/// OK LAB by Björn Ottoson: https://bottosson.github.io/posts/oklab/
+/// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
 ///
 /// l: luminocity / preceived lightness
 /// c: chroma / saturation

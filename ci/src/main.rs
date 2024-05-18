@@ -2,13 +2,16 @@ pub mod commands;
 pub mod ci_error;
 pub mod util;
 
+use std::path::PathBuf;
+
 pub use ci_error::CiResult;
+pub use ci_error::CiResultExtensions;
 pub use commands::*;
 
 struct Command {
     name: String,
-    run: Box<dyn Fn(Vec<String>) -> CiResult<()>>,
-    usage: Box<dyn Fn() -> &'static str>,
+    run: Box<dyn Fn(Vec<String>, PathBuf) -> CiResult<()>>,
+    usage: Box<dyn Fn() -> String>,
 }
 
 macro_rules! command {
@@ -54,7 +57,7 @@ fn main() {
         .find(|x| x.name == trimmed_arg);
 
     match command {
-        Some(Command { name: _, run, usage }) => {
+        Some(Command { name, run, usage }) => {
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
@@ -63,7 +66,11 @@ fn main() {
                 }
             }
 
-            let result = run(raw_args);
+            let result = match get_target_dir(&raw_args[0], &name) {
+                Ok(target_dir) =>run(raw_args, target_dir),
+                Err(e) => Err(e),
+            };
+
             if let Err(error) = result {
                 eprintln!("ERROR: {}", error);
                 return;
@@ -104,4 +111,14 @@ fn is_help_arg(arg: &str) -> bool {
         arg == "manual" ||
         arg == "-manual" ||
         arg == "--manual"
+}
+
+fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
+    let target_dir = PathBuf::from(program)
+        .parent()
+        .to_ci_result()?
+        .join("ci_out")
+        .join(command);
+
+    Ok(target_dir)
 }

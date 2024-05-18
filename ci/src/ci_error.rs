@@ -21,6 +21,19 @@ impl<E: Error + 'static> From<E> for CiError {
     }
 }
 
+pub trait CiResultExtensions<T> {
+    fn to_ci_result(self) -> CiResult<T>;
+}
+
+impl<T> CiResultExtensions<T> for Option<T> {
+    fn to_ci_result(self) -> CiResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => crate::new_error_result!("option was none"),
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! new_error {
     ($($arg:tt)*) => {{
