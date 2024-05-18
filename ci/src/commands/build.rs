@@ -6,6 +6,10 @@ pub fn usage() -> String {
     format!("build usage")
 }
 
-pub fn run(_args: Vec<String>, _target_dir: PathBuf, _log_dir: PathBuf) -> CiResult<()> {
+pub fn run(
+    _args: Vec<String>,
+    _target_dir: PathBuf,
+    _log_dir: PathBuf,
+) -> CiResult<()> {
     crate::new_error_result!("build")
 }

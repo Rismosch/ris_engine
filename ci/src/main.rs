@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub use ci_error::CiResult;
 pub use ci_error::CiResultExtensions;
 pub use cmd_stream::CmdStream;
+pub use cmd_stream::EmptyWrite;
 pub use commands::*;
 
 struct Command {
@@ -34,7 +35,13 @@ macro_rules! command_vec {
 }
 
 fn main() {
-    let commands = command_vec!(archive, build, doc, pipeline,);
+    let commands = command_vec!(
+        archive,
+        build,
+        clean,
+        doc,
+        pipeline,
+    );
 
     let raw_args = std::env::args().collect::<Vec<_>>();
 
@@ -127,9 +134,6 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<(PathBuf, PathBuf)> 
 
     let target_dir = parent.join("ci_out").join(command);
     let log_dir = parent.join("ci_out").join("log").join(command);
-
-    std::fs::create_dir_all(&target_dir)?;
-    std::fs::create_dir_all(&log_dir)?;
 
     Ok((target_dir, log_dir))
 }

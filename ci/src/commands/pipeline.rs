@@ -12,7 +12,11 @@ pub fn usage() -> String {
     )
 }
 
-pub fn run(_args: Vec<String>, _target_dir: PathBuf, log_dir: PathBuf) -> CiResult<()> {
+pub fn run(
+    _args: Vec<String>,
+    _target_dir: PathBuf,
+    log_dir: PathBuf,
+) -> CiResult<()> {
     let now = chrono::Local::now();
     let result_dir_name = crate::util::sanitize_path(&now.to_rfc3339());
     let result_dir = log_dir.join(result_dir_name);
@@ -47,7 +51,7 @@ pub fn run(_args: Vec<String>, _target_dir: PathBuf, log_dir: PathBuf) -> CiResu
 fn test<'a>(result_dir: &'a Path, cmd: &'a str) -> std::io::Result<(&'a str, bool)> {
     let stream = CmdStream::new(result_dir, cmd)?;
 
-    let output = crate::util::run_cmd(cmd, stream);
+    let output = crate::util::run_cmd(cmd, Some(stream));
     let success = match output {
         Ok(output) => match output.status.code() {
             Some(code) => code == 0,

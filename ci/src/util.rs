@@ -9,7 +9,7 @@ use crate::CiResultExtensions;
 
 pub fn run_cmd<Tstdout: Write, Tstderr: Write>(
     cmd: &str,
-    mut stream: CmdStream<Tstdout, Tstderr>,
+    mut stream: Option<CmdStream<Tstdout, Tstderr>>,
 ) -> CiResult<std::process::Output> {
     eprintln!("running `{}`...", cmd);
 
@@ -23,16 +23,21 @@ pub fn run_cmd<Tstdout: Write, Tstderr: Write>(
         command.arg(arg);
     }
 
-    command.stdout(std::process::Stdio::piped());
-    command.stderr(std::process::Stdio::piped());
+    if stream.is_some() {
+        command.stdout(std::process::Stdio::piped());
+        command.stderr(std::process::Stdio::piped());
+    }
+
     let mut process = command.spawn()?;
 
-    let mut stdout_bytes = Vec::new();
-    let mut stderr_bytes = Vec::new();
-    process.stdout.take().to_ci_result()?.read_to_end(&mut stdout_bytes)?;
-    process.stderr.take().to_ci_result()?.read_to_end(&mut stderr_bytes)?;
-    stream.stdout.write(&stdout_bytes)?;
-    stream.stderr.write(&stderr_bytes)?;
+    if let Some(mut stream) = stream.take() {
+        let mut stdout_bytes = Vec::new();
+        let mut stderr_bytes = Vec::new();
+        process.stdout.take().to_ci_result()?.read_to_end(&mut stdout_bytes)?;
+        process.stderr.take().to_ci_result()?.read_to_end(&mut stderr_bytes)?;
+        stream.stdout.write(&stdout_bytes)?;
+        stream.stderr.write(&stderr_bytes)?;
+    }
 
     let output = process.wait_with_output()?;
 

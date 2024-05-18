@@ -9,7 +9,11 @@ pub fn usage() -> String {
     format!("{} doc [clean]    Generates docs and moves them to another folder. Pass `clean` to run `cargo clean`.", name, )
 }
 
-pub fn run(args: Vec<String>, target_dir: PathBuf, log_dir: PathBuf) -> CiResult<()> {
+pub fn run(
+    args: Vec<String>,
+    target_dir: PathBuf,
+    log_dir: PathBuf,
+) -> CiResult<()> {
     let mut clean = false;
 
     for arg in &args[2..] {
@@ -22,12 +26,12 @@ pub fn run(args: Vec<String>, target_dir: PathBuf, log_dir: PathBuf) -> CiResult
     if clean {
         let cargo_clean = "cargo clean";
         let stream = CmdStream::new(&log_dir, cargo_clean)?;
-        crate::util::run_cmd(cargo_clean, stream)?;
+        crate::util::run_cmd(cargo_clean, Some(stream))?;
     }
 
     let cargo_doc = "cargo doc";
     let stream = CmdStream::new(&log_dir, cargo_doc)?;
-    let output = crate::util::run_cmd(cargo_doc, stream)?;
+    let output = crate::util::run_cmd(cargo_doc, Some(stream))?;
 
     if !crate::util::has_exit_code(&output, 0) {
         return crate::new_error_result!("`{}` failed", cargo_doc);

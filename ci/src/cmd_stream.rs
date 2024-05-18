@@ -27,3 +27,15 @@ impl CmdStream<File, File> {
         })
     }
 }
+
+pub struct EmptyWrite;
+
+impl Write for EmptyWrite {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        Ok(0)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
