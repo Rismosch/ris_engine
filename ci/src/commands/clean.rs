@@ -22,7 +22,8 @@ pub fn run(
         .to_str()
         .to_ci_result()?;
 
-    if parent_name == "ci_out" {
+    if parent_name == "ci_out" && parent.exists() {
+        eprintln!("removing {:?}...", parent);
         std::fs::remove_dir_all(parent)?;
     }
 

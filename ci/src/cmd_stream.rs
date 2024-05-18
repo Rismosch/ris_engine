@@ -31,7 +31,7 @@ impl CmdStream<File, File> {
 pub struct EmptyWrite;
 
 impl Write for EmptyWrite {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
         Ok(0)
     }
 
