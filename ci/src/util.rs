@@ -1,8 +1,16 @@
+use std::io::Read;
+use std::io::Write;
 use std::path::Path;
 
+use crate::CmdStream;
 use crate::CiResult;
+use crate::CiResultExtensions;
 
-pub fn run_cmd(cmd: &str) -> CiResult<std::process::Output> {
+
+pub fn run_cmd<Tstdout: Write, Tstderr: Write>(
+    cmd: &str,
+    mut stream: CmdStream<Tstdout, Tstderr>,
+) -> CiResult<std::process::Output> {
     eprintln!("running `{}`...", cmd);
 
     let splits = cmd.split(' ').map(|x| x.trim()).collect::<Vec<_>>();
@@ -15,8 +23,18 @@ pub fn run_cmd(cmd: &str) -> CiResult<std::process::Output> {
         command.arg(arg);
     }
 
-    let child = command.spawn()?;
-    let output = child.wait_with_output()?;
+    command.stdout(std::process::Stdio::piped());
+    command.stderr(std::process::Stdio::piped());
+    let mut process = command.spawn()?;
+
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    process.stdout.take().to_ci_result()?.read_to_end(&mut stdout_bytes)?;
+    process.stderr.take().to_ci_result()?.read_to_end(&mut stderr_bytes)?;
+    stream.stdout.write(&stdout_bytes)?;
+    stream.stderr.write(&stderr_bytes)?;
+
+    let output = process.wait_with_output()?;
 
     match output.status.code() {
         Some(code) => eprintln!("`{}` finished with exit code {}", cmd, code),
@@ -75,4 +93,15 @@ pub fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Re
     }
 
     Ok(())
+}
+
+pub fn sanitize_path(value: &str) -> String {
+    const INVALID_CHARS: [char; 9] = [':', '*', '?', '"', '<', '>', '|', '\\', '/'];
+
+    let mut value = String::from(value);
+    for invalid_char in INVALID_CHARS {
+        value = value.replace(invalid_char, "_");
+    }
+
+    value
 }

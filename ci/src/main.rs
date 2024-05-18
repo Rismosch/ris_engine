@@ -1,4 +1,5 @@
 pub mod ci_error;
+pub mod cmd_stream;
 pub mod commands;
 pub mod util;
 
@@ -7,11 +8,12 @@ use std::path::PathBuf;
 
 pub use ci_error::CiResult;
 pub use ci_error::CiResultExtensions;
+pub use cmd_stream::CmdStream;
 pub use commands::*;
 
 struct Command {
     name: String,
-    run: Box<dyn Fn(Vec<String>, PathBuf) -> CiResult<()>>,
+    run: Box<dyn Fn(Vec<String>, PathBuf, PathBuf) -> CiResult<()>>,
     usage: Box<dyn Fn() -> String>,
 }
 
@@ -63,7 +65,7 @@ fn main() {
             let start = std::time::SystemTime::now();
 
             let result = match get_target_dir(&raw_args[0], &name) {
-                Ok(target_dir) => run(raw_args, target_dir),
+                Ok((target_dir, log_dir)) => run(raw_args, target_dir, log_dir),
                 Err(e) => Err(e),
             };
 
@@ -114,7 +116,7 @@ fn is_help_arg(arg: &str) -> bool {
         || arg == "--manual"
 }
 
-fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
+fn get_target_dir(program: &str, command: &str) -> CiResult<(PathBuf, PathBuf)> {
     let parent = match get_root_dir() {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
@@ -124,8 +126,12 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
     };
 
     let target_dir = parent.join("ci_out").join(command);
+    let log_dir = parent.join("ci_out").join("log").join(command);
 
-    Ok(target_dir)
+    std::fs::create_dir_all(&target_dir)?;
+    std::fs::create_dir_all(&log_dir)?;
+
+    Ok((target_dir, log_dir))
 }
 
 fn get_root_dir() -> CiResult<PathBuf> {
