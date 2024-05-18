@@ -98,8 +98,6 @@ These DLLs need to be available in your environment. So either assign it to your
 
 [shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`.
 
-
-
 For more info, check this link: <TODO>
 
 #### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
@@ -120,27 +118,25 @@ Assuming everything is installed correctly, you can now compile and run the engi
 cargo run
 ```
 
-Alternatively, you can build a release-ready package, by running the following command:
+Alternatively, you can build a release-ready package, by running the command below. Note that this builds with all optimizations enabled, which takes significantly longer than just using `cargo run`.
 
 ```bash
-cargo run -p ci build no-debug
+cargo run -p ci build
 ```
 
-`ci` is a command line tool to enable continuous integration. For all available commands and their usages, run
+`ci` is a command line tool to enable continuous integration. For all available commands and their usages, run:
 
 ```bash
 cargo run -p ci help
 ```
 
-`ci build` generates building information, compile the entire workspace and move all required files into a single folder. Passing the flag `no-debug` will remove all debug features, like logging or development UI, and potentially improve performance.
-
-Note that `ci build` will build with all optimizations enabled, which takes significantly longer than `cargo run`.
+**Note:** `ci` may fail if your current working directory is not somewhere inside the `ris_engine` repo directory.
 
 ---
 
 ## Testing
 
-All tests are found under `./tests/suite/` and can be run with:
+All tests are found under `./tests/` and can be run with:rk
 
 ```bash
 cargo test
