@@ -26,7 +26,7 @@ pub fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
     let output = crate::util::run_cmd(cargo_doc)?;
 
     if !crate::util::has_exit_code(&output, 0) {
-        return crate::new_error_result!("`{} doc` failed", cargo_doc);
+        return crate::new_error_result!("`{}` failed", cargo_doc);
     }
 
     let doc_dir = PathBuf::from(&args[0])
@@ -36,9 +36,15 @@ pub fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
         .join("..")
         .join("doc");
 
-    eprintln!("hello {:?} {:?}", doc_dir, target_dir);
-
     crate::util::clean_or_create_dir(&target_dir)?;
+    eprintln!("copying files...");
+    crate::util::copy_dir_all(doc_dir, &target_dir)?;
+
+    eprintln!("done! docs can be found in {:?}", target_dir);
+    let index_file = target_dir
+        .join("ris_engine")
+        .join("index.html");
+    eprintln!("you will find the index in {:?}", index_file);
 
     Ok(())
 }

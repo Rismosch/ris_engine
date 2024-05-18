@@ -39,7 +39,7 @@ pub fn has_exit_code(output: &std::process::Output, exit_code: i32) -> bool {
     false
 }
 
-pub fn clean_or_create_dir(dir: &Path) -> CiResult<()> {
+pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
     if !dir.exists() {
         eprintln!("creating dir... {:?}", dir);
         std::fs::create_dir_all(dir)?;
@@ -54,11 +54,27 @@ pub fn clean_or_create_dir(dir: &Path) -> CiResult<()> {
             } else if metadata.is_dir() {
                 std::fs::remove_dir_all(path)?;
             } else {
-                return crate::new_error_result!("cannot delete {:?}", path);
+                return Err(std::io::Error::from(std::io::ErrorKind::Other));
             }
         }
 
         eprintln!("finished cleaning {:?}!", dir);
+    }
+
+    Ok(())
+}
+
+pub fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
+    std::fs::create_dir_all(&dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let src = entry.path();
+        let dst = dst.as_ref().join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_all(src, dst)?;
+        } else {
+            std::fs::copy(src, dst)?;
+        }
     }
 
     Ok(())

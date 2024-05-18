@@ -116,8 +116,8 @@ fn is_help_arg(arg: &str) -> bool {
 
 fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
 
-    let parent = match get_cargo_target_dir(program) {
-        Ok(cargo_target_dir) => cargo_target_dir,
+    let parent = match get_root_dir() {
+        Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
             .to_ci_result()?
@@ -131,33 +131,20 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
     Ok(target_dir)
 }
 
-fn get_cargo_target_dir(program: &str) -> CiResult<PathBuf> {
-    let program = PathBuf::from(program);
-    let parent = program
+fn get_root_dir() -> CiResult<PathBuf> {
+
+    let output = std::process::Command::new(env!("CARGO"))
+        .arg("locate-project")
+        .arg("--workspace")
+        .arg("--message-format=plain")
+        .output()?
+        .stdout;
+    let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
+
+    let root_dir = cargo_path
         .parent()
-        .to_ci_result()?;
-
-    let parent_parent = parent
-        .parent()
-        .to_ci_result()?;
-
-    let parent_name = parent
-        .file_name()
         .to_ci_result()?
-        .to_str()
-        .to_ci_result()?;
+        .to_path_buf();
 
-    let parent_parent_name = parent_parent
-        .file_name()
-        .to_ci_result()?
-        .to_str()
-        .to_ci_result()?;
-
-    if parent_parent_name == "target" {
-        if parent_name == "debug" || parent_name == "release" {
-            return Ok(parent.to_path_buf());
-        }
-    }
-
-    crate::new_error_result!("failed to find cargo target dir")
+    Ok(root_dir)
 }
