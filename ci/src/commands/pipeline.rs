@@ -28,17 +28,21 @@ impl ICommand for Pipeline {
         results.push(test("cargo clippy -r --tests -- -Dwarnings")?);
         results.push(test("cargo +nightly miri test")?);
 
-        println!("pipeline results:");
-        for (cmd, success) in results {
+        println!("results:");
+        for (cmd, success) in results.iter() {
             let success_str = match success {
-                true => "OK:    ",
-                false => "FAILED:",
+                true => "  OK:    ",
+                false => "  FAILED:",
             };
 
             println!("{} {}", success_str, cmd);
         }
 
-        Ok(())
+        if results.iter().all(|x| x.1) {
+            Ok(())
+        } else {
+            crate::new_error_result!("pipeline failed")
+        }
     }
 }
 

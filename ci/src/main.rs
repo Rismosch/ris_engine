@@ -17,20 +17,20 @@ pub use commands::clean::Clean;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
 
-fn main() {
+fn main() -> Result<(), String> {
     let commands = command_vec!(Archive, Build, Clean, Doc, Pipeline,);
 
     let raw_args = std::env::args().collect::<Vec<_>>();
 
     if raw_args.len() < 2 {
         print_help(commands);
-        return;
+        return Ok(());
     }
 
     let arg1 = &raw_args[1];
     if is_help_arg(arg1) {
         print_help(commands);
-        return;
+        return Ok(());
     }
 
     let trimmed_arg = arg1.trim().to_lowercase();
@@ -42,7 +42,7 @@ fn main() {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
                     eprintln!("usage: ci {}", usage());
-                    return;
+                    return Ok(());
                 }
             }
 
@@ -53,19 +53,17 @@ fn main() {
                 Err(e) => Err(e),
             };
 
-            match result {
-                Ok(()) => {
-                    let end = std::time::SystemTime::now();
-                    if let Ok(duration) = end.duration_since(start) {
-                        eprintln!("finished in {:?}", duration);
-                    }
-                }
-                Err(error) => eprintln!("ERROR: {}", error),
+            let end = std::time::SystemTime::now();
+            if let Ok(duration) = end.duration_since(start) {
+                eprintln!("finished in {:?}", duration);
             }
+
+            result.map_err(|e| e.to_string())
         }
         None => {
             eprintln!("unkown command: {}", arg1);
             print_commands(commands);
+            Ok(())
         }
     }
 }
