@@ -7,9 +7,10 @@ use crate::ICommand;
 pub struct Pipeline;
 
 impl ICommand for Pipeline {
-
     fn usage() -> String {
-        format!("pipeline       Runs various tests to determine, if the repo is in an acceptable state")
+        format!(
+            "pipeline    Runs various tests, to determine if the repo is in an acceptable state"
+        )
     }
 
     fn run(_args: Vec<String>, _target_dir: PathBuf) -> CiResult<()> {

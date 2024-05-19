@@ -7,19 +7,15 @@ use crate::ICommand;
 pub struct Clean;
 
 impl ICommand for Clean {
-
     fn usage() -> String {
-        format!("clean          runs `cargo clean` and removes `./ci_out/`")
+        format!("clean       Runs `cargo clean` and removes `./ci_out/`")
     }
 
     fn run(_args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
         crate::cmd::run("cargo clean")?;
 
         let parent = target_dir.parent().to_ci_result()?;
-        let parent_name = parent.file_name()
-            .to_ci_result()?
-            .to_str()
-            .to_ci_result()?;
+        let parent_name = parent.file_name().to_ci_result()?.to_str().to_ci_result()?;
 
         if parent_name == "ci_out" && parent.exists() {
             eprintln!("removing {:?}...", parent);

@@ -18,29 +18,23 @@ pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
 
 fn main() {
-    let commands = command_vec!(
-        Archive,
-        Build,
-        Clean,
-        Doc,
-        Pipeline,
-    );
+    let commands = command_vec!(Archive, Build, Clean, Doc, Pipeline,);
 
     let raw_args = std::env::args().collect::<Vec<_>>();
 
     if raw_args.len() < 2 {
-        print_help(None);
+        print_help(commands);
         return;
     }
 
     let arg1 = &raw_args[1];
     if is_help_arg(arg1) {
-        print_help(Some(commands));
+        print_help(commands);
         return;
     }
 
     let trimmed_arg = arg1.trim().to_lowercase();
-    let command = commands.into_iter().find(|x| x.name == trimmed_arg);
+    let command = commands.iter().find(|x| x.name == trimmed_arg);
 
     match command {
         Some(Command { name, run, usage }) => {
@@ -71,21 +65,21 @@ fn main() {
         }
         None => {
             eprintln!("unkown command: {}", arg1);
+            print_commands(commands);
         }
     }
 }
 
-fn print_help(to_print: Option<Vec<Command>>) {
+fn print_help(to_print: Vec<Command>) {
     let name = env!("CARGO_PKG_NAME");
     eprintln!("usage: {} <command> [help]", name);
+    print_commands(to_print);
+}
 
-    if let Some(commands) = to_print {
-        eprintln!("commands:");
-        for command in commands {
-            eprintln!("    {}", (command.usage)());
-        }
-    } else {
-        eprintln!("use `{} help` to list all available commands", name);
+fn print_commands(to_print: Vec<Command>) {
+    eprintln!("commands:");
+    for command in to_print {
+        eprintln!("    {}", (command.usage)());
     }
 }
 

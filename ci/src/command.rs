@@ -30,4 +30,3 @@ macro_rules! command_vec {
         vec![$(command!($cmd)),+]
     }};
 }
-

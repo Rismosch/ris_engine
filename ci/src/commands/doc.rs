@@ -8,23 +8,10 @@ pub struct Doc;
 
 impl ICommand for Doc {
     fn usage() -> String {
-        format!("doc [clean]    Generates docs and moves them to another folder. Pass `clean` to run `cargo clean`.")
+        format!("doc         Generates docs and moves them to another folder")
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
-        let mut clean = false;
-
-        for arg in &args[2..] {
-            match arg.trim().to_lowercase().as_str() {
-                "clean" => clean = true,
-                _ => return crate::new_error_result!("unkown arg `{}`", arg),
-            }
-        }
-
-        if clean {
-            crate::cmd::run("cargo clean")?;
-        }
-
         let cargo_doc = "cargo doc";
         let exit_status = crate::cmd::run(cargo_doc)?;
 

@@ -14,6 +14,7 @@ try {
     $sdl2_dll_exists = Test-Path $sdl2_dll_path
 
     if (!$sdl2_dll_exists) {
+    :q
         throw "could not find ``SDL2.dll`` in the root directory"
     }
 
