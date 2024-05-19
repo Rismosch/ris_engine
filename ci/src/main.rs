@@ -18,9 +18,9 @@ pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
 
 fn main() -> Result<(), String> {
-    let commands = command_vec!(Archive, Build, Clean, Doc, Pipeline,);
-
+    let start = std::time::SystemTime::now();
     let raw_args = std::env::args().collect::<Vec<_>>();
+    let commands = command_vec!(Archive, Build, Clean, Doc, Pipeline,);
 
     if raw_args.len() < 2 {
         print_help(commands);
@@ -29,7 +29,20 @@ fn main() -> Result<(), String> {
 
     let arg1 = &raw_args[1];
     if is_help_arg(arg1) {
-        print_help(commands);
+        if raw_args.len() > 2 {
+            let arg2 = &raw_args[2];
+            let trimmed_arg = arg2.trim().to_lowercase();
+            let command = commands.iter().find(|x| x.name == trimmed_arg);
+            match command {
+                Some(Command { usage, .. }) => eprintln!("usage: ci {}", usage()),
+                None => {
+                    eprintln!("unkown command: {}", arg2);
+                    print_commands(commands);
+                }
+            }
+        } else {
+            print_help(commands);
+        }
         return Ok(());
     }
 
@@ -45,8 +58,6 @@ fn main() -> Result<(), String> {
                     return Ok(());
                 }
             }
-
-            let start = std::time::SystemTime::now();
 
             let result = match get_target_dir(&raw_args[0], &name) {
                 Ok(target_dir) => run(raw_args, target_dir),
