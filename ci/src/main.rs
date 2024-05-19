@@ -1,5 +1,6 @@
 pub mod ci_error;
-pub mod cmd_stream;
+pub mod cmd;
+pub mod command;
 pub mod commands;
 pub mod util;
 
@@ -8,39 +9,21 @@ use std::path::PathBuf;
 
 pub use ci_error::CiResult;
 pub use ci_error::CiResultExtensions;
-pub use cmd_stream::CmdStream;
-pub use cmd_stream::EmptyWrite;
-pub use commands::*;
-
-struct Command {
-    name: String,
-    run: Box<dyn Fn(Vec<String>, PathBuf, PathBuf) -> CiResult<()>>,
-    usage: Box<dyn Fn() -> String>,
-}
-
-macro_rules! command {
-    ($cmd:ident) => {{
-        Command {
-            name: stringify!($cmd).to_string(),
-            run: Box::new($cmd::run),
-            usage: Box::new($cmd::usage),
-        }
-    }};
-}
-
-macro_rules! command_vec {
-    ($($cmd:ident),+ $(,)*) => {{
-        vec![$(command!($cmd)),+]
-    }};
-}
+pub use command::Command;
+pub use command::ICommand;
+pub use commands::archive::Archive;
+pub use commands::build::Build;
+pub use commands::clean::Clean;
+pub use commands::doc::Doc;
+pub use commands::pipeline::Pipeline;
 
 fn main() {
     let commands = command_vec!(
-        archive,
-        build,
-        clean,
-        doc,
-        pipeline,
+        Archive,
+        Build,
+        Clean,
+        Doc,
+        Pipeline,
     );
 
     let raw_args = std::env::args().collect::<Vec<_>>();
@@ -64,7 +47,7 @@ fn main() {
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
-                    eprintln!("usage: {}", usage());
+                    eprintln!("usage: ci {}", usage());
                     return;
                 }
             }
@@ -72,7 +55,7 @@ fn main() {
             let start = std::time::SystemTime::now();
 
             let result = match get_target_dir(&raw_args[0], &name) {
-                Ok((target_dir, log_dir)) => run(raw_args, target_dir, log_dir),
+                Ok(target_dir) => run(raw_args, target_dir),
                 Err(e) => Err(e),
             };
 
@@ -123,7 +106,7 @@ fn is_help_arg(arg: &str) -> bool {
         || arg == "--manual"
 }
 
-fn get_target_dir(program: &str, command: &str) -> CiResult<(PathBuf, PathBuf)> {
+fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
     let parent = match get_root_dir() {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
@@ -133,9 +116,8 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<(PathBuf, PathBuf)> 
     };
 
     let target_dir = parent.join("ci_out").join(command);
-    let log_dir = parent.join("ci_out").join("log").join(command);
 
-    Ok((target_dir, log_dir))
+    Ok(target_dir)
 }
 
 fn get_root_dir() -> CiResult<PathBuf> {

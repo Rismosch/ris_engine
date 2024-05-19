@@ -2,30 +2,30 @@ use std::path::PathBuf;
 
 use crate::CiResult;
 use crate::CiResultExtensions;
-use crate::EmptyWrite;
+use crate::ICommand;
 
-pub fn usage() -> String {
-    let name = env!("CARGO_PKG_NAME");
-    format!("{} clean          runs `cargo clean` and removes `./ci_out/`", name, )
-}
+pub struct Clean;
 
-pub fn run(
-    _args: Vec<String>, 
-    target_dir: PathBuf, 
-    _log_dir: PathBuf,
-) -> CiResult<()> {
-    crate::util::run_cmd::<EmptyWrite, EmptyWrite>("cargo clean", None)?;
+impl ICommand for Clean {
 
-    let parent = target_dir.parent().to_ci_result()?;
-    let parent_name = parent.file_name()
-        .to_ci_result()?
-        .to_str()
-        .to_ci_result()?;
-
-    if parent_name == "ci_out" && parent.exists() {
-        eprintln!("removing {:?}...", parent);
-        std::fs::remove_dir_all(parent)?;
+    fn usage() -> String {
+        format!("clean          runs `cargo clean` and removes `./ci_out/`")
     }
 
-    Ok(())
+    fn run(_args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
+        crate::cmd::run("cargo clean")?;
+
+        let parent = target_dir.parent().to_ci_result()?;
+        let parent_name = parent.file_name()
+            .to_ci_result()?
+            .to_str()
+            .to_ci_result()?;
+
+        if parent_name == "ci_out" && parent.exists() {
+            eprintln!("removing {:?}...", parent);
+            std::fs::remove_dir_all(parent)?;
+        }
+
+        Ok(())
+    }
 }

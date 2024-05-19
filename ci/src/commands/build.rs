@@ -1,15 +1,15 @@
 use std::path::PathBuf;
 
 use crate::CiResult;
+use crate::ICommand;
 
-pub fn usage() -> String {
-    format!("build usage")
-}
+pub struct Build;
+impl ICommand for Build {
+    fn usage() -> String {
+        format!("build")
+    }
 
-pub fn run(
-    _args: Vec<String>,
-    _target_dir: PathBuf,
-    _log_dir: PathBuf,
-) -> CiResult<()> {
-    crate::new_error_result!("build")
+    fn run(_args: Vec<String>, _target_dir: PathBuf) -> CiResult<()> {
+        crate::new_error_result!("build")
+    }
 }

@@ -1,15 +1,16 @@
 use std::path::PathBuf;
 
 use crate::CiResult;
+use crate::ICommand;
 
-pub fn usage() -> String {
-    format!("archive usage")
-}
+pub struct Archive;
 
-pub fn run(
-    _args: Vec<String>,
-    _target_dir: PathBuf,
-    _log_dir: PathBuf,
-) -> CiResult<()> {
-    crate::new_error_result!("archive")
+impl ICommand for Archive {
+    fn usage() -> String {
+        format!("archive")
+    }
+
+    fn run(_args: Vec<String>, _target_dir: PathBuf) -> CiResult<()> {
+        crate::new_error_result!("archive")
+    }
 }
