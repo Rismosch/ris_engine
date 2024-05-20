@@ -127,7 +127,7 @@ cargo run -p ci build
 `ci` is a command line tool to enable continuous integration. For all available commands and their usages, run:
 
 ```bash
-cargo run -p ci help
+cargo run -p ci
 ```
 
 **Note:** `ci` may fail if your current working directory is not somewhere inside the `ris_engine` repo directory.

@@ -65,6 +65,8 @@ fn main() -> Result<(), String> {
             let end = std::time::SystemTime::now();
             if let Ok(duration) = end.duration_since(start) {
                 eprintln!("finished in {:?}", duration);
+            } else {
+                eprintln!("failed to determine duration");
             }
 
             result.map_err(|e| e.to_string())

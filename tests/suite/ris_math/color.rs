@@ -54,7 +54,16 @@ fn should_convert_lab_to_lch() {
         assert_feq!(lab.b(), lab_.b(), color::MIN_NORM);
         assert_feq!(lch.l(), lch_.l(), color::MIN_NORM);
         assert_feq!(lch.c(), lch_.c(), color::MIN_NORM);
-        assert_feq!(lch.h(), lch_.h(), color::MIN_NORM);
+        assert_feq!(
+            lch.h(),
+            lch_.h(),
+            color::MIN_NORM,
+            "{:?} {:?} {:?} {:?}",
+            lab,
+            lch,
+            lab_,
+            lch_,
+        );
     });
 }
 
@@ -89,7 +98,16 @@ fn should_convert_lch_to_rgb() {
                 // success, hue is identical
             } else {
                 // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
-                assert_feq!(diff, 2.0 * ris_math::f32::PI, color::MIN_NORM);
+                assert_feq!(
+                    diff,
+                    2.0 * ris_math::f32::PI,
+                    color::MIN_NORM,
+                    "{:?} {:?} {:?} {:?}",
+                    rgb,
+                    lch,
+                    rgb_,
+                    lch_,
+                );
             }
         }
     });
