@@ -121,4 +121,3 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
 
     Ok(target_dir)
 }
-

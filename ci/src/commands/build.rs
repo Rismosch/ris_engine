@@ -8,6 +8,9 @@ use crate::ICommand;
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
 
+const EXE_NAME: &str = "ris_engine";
+const ASSETS_NAME: &str = "ris_assets";
+
 struct AutoGenerateParseData<'a> {
     is_generating: bool,
     to_replace: &'a str,
@@ -57,7 +60,7 @@ impl ICommand for Build {
         let rustup_toolchain = rustup_toolchain.trim();
         let build_date = build_date.trim();
 
-        eprintln!("read... {:?}", build_info_path);
+        eprintln!("read previous build info... {:?}", build_info_path);
 
         let mut file_content = String::new();
         {
@@ -65,7 +68,7 @@ impl ICommand for Build {
             file.read_to_string(&mut file_content)?;
         }
 
-        eprintln!("parse and overwrite...");
+        eprintln!("parse build info...");
 
         let mut data = AutoGenerateParseData {
             is_generating: false,
@@ -116,15 +119,37 @@ impl ICommand for Build {
             }
         }
 
+        eprintln!("write new build info...");
+
         {
             let new_content = data.result.as_bytes();
             let mut file = std::fs::File::create(&build_info_path)?;
             file.write_all(new_content)?;
         }
 
-        //crate::util::clean_or_create_dir(&target_dir)?;
+        eprintln!("importing assets...");
+        crate::cmd::run("cargo run -p ris_asset_compiler importall", None)?;
+        eprintln!("compiling assets...");
+        crate::cmd::run("cargo run -p ris_asset_compiler compile", None)?;
 
-        crate::new_error_result!("end")
+        eprintln!("compiling workspace...");
+        crate::cmd::run("cargo build --release", None)?;
+
+        crate::util::clean_or_create_dir(&target_dir)?;
+
+        eprintln!("moving files...");
+        let src_exe_path = root_dir.join("target").join("release").join(EXE_NAME);
+        let dst_exe_path = target_dir.join(EXE_NAME);
+
+        let src_asset_path = root_dir.join(ASSETS_NAME);
+        let dst_asset_path = target_dir.join(ASSETS_NAME);
+
+        std::fs::copy(src_exe_path, dst_exe_path)?;
+        std::fs::copy(src_asset_path, dst_asset_path)?;
+
+        eprintln!("done! final build can be found under {:?}", target_dir);
+
+        Ok(())
     }
 }
 
@@ -137,36 +162,27 @@ fn parse_multi_line(line: &str, data: &mut AutoGenerateParseData) {
             _ => continue,
         }
 
-        let end_found =
-            (data.total_quotation_marks > 0) &&
-            (data.total_quotation_marks % 2 == 0) &&
-            (data.total_open_paranthesis > 0) &&
-            (data.total_close_paranthesis > 0) &&
-            (data.total_open_paranthesis == data.total_close_paranthesis);
+        let end_found = (data.total_quotation_marks > 0)
+            && (data.total_quotation_marks % 2 == 0)
+            && (data.total_open_paranthesis > 0)
+            && (data.total_close_paranthesis > 0)
+            && (data.total_open_paranthesis == data.total_close_paranthesis);
 
         if end_found {
             // end found! we can parse!
             data.multi_line += &format!("{}\n", line);
 
-            let splits = data.multi_line
-                .split('\"')
-                .collect::<Vec<_>>();
+            let splits = data.multi_line.split('\"').collect::<Vec<_>>();
             let string1 = splits[0];
             let string2 = splits[splits.len() - 1];
 
-            data.result += &format!(
-                "{}\"{}\"{}",
-                string1,
-                data.to_replace,
-                string2,
-            );
+            data.result += &format!("{}\"{}\"{}", string1, data.to_replace, string2,);
 
             data.multi_line = String::new();
             data.total_quotation_marks = 0;
             data.total_open_paranthesis = 0;
             data.total_close_paranthesis = 0;
             data.is_multi_line = false;
-
         } else {
             // end not found
             data.multi_line += &format!("{}\n", line);
