@@ -12,14 +12,13 @@ pub use command::Command;
 pub use command::ICommand;
 pub use commands::archive::Archive;
 pub use commands::build::Build;
-pub use commands::clean::Clean;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
 
 fn main() -> Result<(), String> {
     let start = std::time::SystemTime::now();
     let raw_args = std::env::args().collect::<Vec<_>>();
-    let commands = command_vec!(Archive, Build, Clean, Doc, Pipeline,);
+    let commands = command_vec!(Archive, Build, Doc, Pipeline,);
 
     if raw_args.len() < 2 {
         print_help(commands);
