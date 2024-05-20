@@ -136,7 +136,7 @@ cargo run -p ci help
 
 ## Testing
 
-All tests are found under `./tests/` and can be run with:rk
+All tests are found under `./tests/` and can be run with:
 
 ```bash
 cargo test

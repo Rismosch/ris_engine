@@ -13,6 +13,9 @@ pub struct Frames {
 }
 
 impl Frames {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
@@ -30,6 +33,9 @@ impl Frames {
         })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         for mesh in self.meshes.iter() {
             mesh.free(device);

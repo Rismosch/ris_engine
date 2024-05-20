@@ -14,6 +14,9 @@ pub struct Image {
 }
 
 impl Image {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         width: u32,
@@ -69,6 +72,9 @@ impl Image {
         Ok(Self { image, memory })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_image(self.image, None);
@@ -76,6 +82,9 @@ impl Image {
         }
     }
 
+    /// # Safety
+    ///
+    /// the resulting `ImageView` must be explicitly destroyed.
     pub unsafe fn alloc_view(
         device: &ash::Device,
         image: vk::Image,

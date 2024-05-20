@@ -14,6 +14,9 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         size: vk::DeviceSize,
@@ -56,6 +59,9 @@ impl Buffer {
         Ok(Self { buffer, memory })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_buffer(self.buffer, None);
@@ -63,6 +69,9 @@ impl Buffer {
         }
     }
 
+    /// # Safety
+    ///
+    /// Must make sure that the buffer is big enough to hold `data`.
     pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
         let size = std::mem::size_of_val(data) as vk::DeviceSize;
         unsafe {
@@ -77,6 +86,9 @@ impl Buffer {
         Ok(())
     }
 
+    /// # Safety
+    ///
+    /// Must make sure that `dst` is big enough to hold `self`.
     pub unsafe fn copy_to_buffer(
         &self,
         device: &ash::Device,
@@ -106,6 +118,9 @@ impl Buffer {
         Ok(())
     }
 
+    /// # Safety
+    ///
+    /// Must make sure that the image is big enough to hold the data of this buffer.
     pub unsafe fn copy_to_image(
         &self,
         device: &ash::Device,

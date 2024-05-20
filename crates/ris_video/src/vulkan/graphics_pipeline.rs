@@ -16,17 +16,33 @@ pub struct GraphicsPipeline {
     pub pipeline: vk::Pipeline,
 }
 
+pub struct GraphicsPipelineCreateInfo<'a> {
+    pub instance: &'a ash::Instance,
+    pub physical_device: vk::PhysicalDevice,
+    pub device: &'a ash::Device,
+    pub color_format: vk::Format,
+    pub swapchain_extent: vk::Extent2D,
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
+    pub vs_asset_id: AssetId,
+    pub fs_asset_id: AssetId,
+}
+
 impl GraphicsPipeline {
-    pub unsafe fn alloc(
-        instance: &ash::Instance,
-        physical_device: vk::PhysicalDevice,
-        device: &ash::Device,
-        color_format: vk::Format,
-        swapchain_extent: vk::Extent2D,
-        descriptor_set_layout: vk::DescriptorSetLayout,
-        vs_asset_id: AssetId,
-        fs_asset_id: AssetId,
-    ) -> RisResult<Self> {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(info: GraphicsPipelineCreateInfo) -> RisResult<Self> {
+        let GraphicsPipelineCreateInfo {
+            instance,
+            physical_device,
+            device,
+            color_format,
+            swapchain_extent,
+            descriptor_set_layout,
+            vs_asset_id,
+            fs_asset_id,
+        } = info;
+
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
@@ -348,6 +364,9 @@ impl GraphicsPipeline {
         })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_pipeline(self.pipeline, None);

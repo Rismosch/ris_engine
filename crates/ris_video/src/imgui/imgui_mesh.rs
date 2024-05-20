@@ -15,6 +15,9 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
@@ -59,6 +62,9 @@ impl Mesh {
         })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);

@@ -8,6 +8,7 @@ use ris_error::RisResult;
 use super::buffer::Buffer;
 use super::frame_in_flight::FrameInFlight;
 use super::graphics_pipeline::GraphicsPipeline;
+use super::graphics_pipeline::GraphicsPipelineCreateInfo;
 use super::image::Image;
 use super::renderer::Renderer;
 use super::suitable_device::SuitableDevice;
@@ -44,6 +45,9 @@ pub struct SwapchainEntry {
 }
 
 impl BaseSwapchain {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         instance: &ash::Instance,
         surface_loader: &ash::extensions::khr::Surface,
@@ -153,6 +157,9 @@ impl BaseSwapchain {
         ))
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self) {
         unsafe {
             self.loader.destroy_swapchain(self.swapchain, None);
@@ -161,6 +168,9 @@ impl BaseSwapchain {
 }
 
 impl Swapchain {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         instance: &ash::Instance,
         suitable_device: &SuitableDevice,
@@ -182,15 +192,16 @@ impl Swapchain {
     ) -> RisResult<Self> {
         // graphics pipeline
         let graphics_pipeline = GraphicsPipeline::alloc(
-            instance,
-            suitable_device.physical_device,
-            device,
-            base.format.format,
-            base.extent,
-            descriptor_set_layout,
-            vs_asset_id,
-            fs_asset_id,
-        )?;
+            GraphicsPipelineCreateInfo{
+                instance,
+                physical_device: suitable_device.physical_device,
+                device,
+                color_format: base.format.format,
+                swapchain_extent: base.extent,
+                descriptor_set_layout,
+                vs_asset_id,
+                fs_asset_id,
+        })?;
 
         // depth buffer
         let depth_format = util::find_depth_format(instance, suitable_device.physical_device)?;
@@ -476,6 +487,9 @@ impl Swapchain {
         })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
         unsafe {
             self.depth_image.free(device);
