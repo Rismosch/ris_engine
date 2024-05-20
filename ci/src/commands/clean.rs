@@ -12,7 +12,7 @@ impl ICommand for Clean {
     }
 
     fn run(_args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
-        crate::cmd::run("cargo clean")?;
+        crate::cmd::run("cargo clean", None)?;
 
         let parent = target_dir.parent().to_ci_result()?;
         let parent_name = parent.file_name().to_ci_result()?.to_str().to_ci_result()?;

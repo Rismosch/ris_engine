@@ -4,7 +4,6 @@ pub mod command;
 pub mod commands;
 pub mod util;
 
-use std::path::Path;
 use std::path::PathBuf;
 
 pub use ci_error::CiResult;
@@ -110,7 +109,7 @@ fn is_help_arg(arg: &str) -> bool {
 }
 
 fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
-    let parent = match get_root_dir() {
+    let parent = match crate::util::get_root_dir() {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
@@ -123,16 +122,3 @@ fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
     Ok(target_dir)
 }
 
-fn get_root_dir() -> CiResult<PathBuf> {
-    let output = std::process::Command::new(env!("CARGO"))
-        .arg("locate-project")
-        .arg("--workspace")
-        .arg("--message-format=plain")
-        .output()?
-        .stdout;
-    let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
-
-    let root_dir = cargo_path.parent().to_ci_result()?.to_path_buf();
-
-    Ok(root_dir)
-}

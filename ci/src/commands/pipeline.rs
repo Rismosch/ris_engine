@@ -46,7 +46,7 @@ impl ICommand for Pipeline {
 }
 
 fn test<'a>(cmd: &'a str) -> std::io::Result<(&'a str, bool)> {
-    let exit_status = crate::cmd::run(cmd);
+    let exit_status = crate::cmd::run(cmd, None);
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
             Some(code) => code == 0,

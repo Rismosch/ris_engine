@@ -1,6 +1,9 @@
-use crate::CiResult;
+use std::io::Read;
 
-pub fn run(cmd: &str) -> CiResult<std::process::ExitStatus> {
+use crate::CiResult;
+use crate::CiResultExtensions;
+
+pub fn run(cmd: &str, stdout: Option<&mut String>) -> CiResult<std::process::ExitStatus> {
     eprintln!("running `{}`...", cmd);
 
     let splits = cmd.split(' ').map(|x| x.trim()).collect::<Vec<_>>();
@@ -13,7 +16,15 @@ pub fn run(cmd: &str) -> CiResult<std::process::ExitStatus> {
         command.arg(arg);
     }
 
+    if stdout.is_some() {
+        command.stdout(std::process::Stdio::piped());
+    }
+
     let mut process = command.spawn()?;
+    if let Some(stdout_string) = stdout {
+        let process_stdout = process.stdout.as_mut().to_ci_result()?;
+        process_stdout.read_to_string(stdout_string)?;
+    }
     let exit_status = process.wait()?;
 
     match exit_status.code() {

@@ -1,4 +1,8 @@
 use std::path::Path;
+use std::path::PathBuf;
+
+use crate::CiResult;
+use crate::CiResultExtensions;
 
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
     if !dir.exists() {
@@ -50,4 +54,18 @@ pub fn sanitize_path(value: &str) -> String {
     }
 
     value
+}
+
+pub fn get_root_dir() -> CiResult<PathBuf> {
+    let output = std::process::Command::new(env!("CARGO"))
+        .arg("locate-project")
+        .arg("--workspace")
+        .arg("--message-format=plain")
+        .output()?
+        .stdout;
+    let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
+
+    let root_dir = cargo_path.parent().to_ci_result()?.to_path_buf();
+
+    Ok(root_dir)
 }
