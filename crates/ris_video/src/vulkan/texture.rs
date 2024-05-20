@@ -6,6 +6,7 @@ use ris_error::RisResult;
 
 use super::buffer::Buffer;
 use super::image::Image;
+use super::image::ImageCreateInfo;
 
 pub struct Texture {
     pub image: Image,
@@ -13,17 +14,33 @@ pub struct Texture {
     pub sampler: vk::Sampler,
 }
 
+pub struct TextureCreateInfo<'a> {
+    pub device: &'a ash::Device,
+    pub queue: vk::Queue,
+    pub transient_command_pool: vk::CommandPool,
+    pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+    pub physical_device_properties: vk::PhysicalDeviceProperties,
+    pub width: u32,
+    pub height: u32,
+    pub pixels_rgba: &'a [u8],
+}
+
 impl Texture {
-    pub unsafe fn alloc(
-        device: &ash::Device,
-        queue: vk::Queue,
-        transient_command_pool: vk::CommandPool,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        physical_device_properties: vk::PhysicalDeviceProperties,
-        width: u32,
-        height: u32,
-        pixels_rgba: &[u8],
-    ) -> RisResult<Self> {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
+        let TextureCreateInfo {
+            device,
+            queue,
+            transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width,
+            height,
+            pixels_rgba,
+        } = info;
+
         let actual_len = pixels_rgba.len();
         let expected_len = (width * height * 4) as usize;
         ris_error::debug_assert!(actual_len == expected_len)?;
@@ -39,16 +56,16 @@ impl Texture {
 
         staging_buffer.write(device, pixels_rgba)?;
 
-        let image = Image::alloc(
+        let image = Image::alloc(ImageCreateInfo {
             device,
             width,
             height,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageTiling::OPTIMAL,
-            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            format: vk::Format::R8G8B8A8_SRGB,
+            tiling: vk::ImageTiling::OPTIMAL,
+            usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+            memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
-        )?;
+        })?;
 
         image.transition_layout(
             device,
@@ -118,6 +135,9 @@ impl Texture {
         })
     }
 
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_sampler(self.sampler, None);

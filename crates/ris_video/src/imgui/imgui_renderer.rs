@@ -20,6 +20,7 @@ use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::texture::Texture;
+use crate::vulkan::texture::TextureCreateInfo;
 use crate::vulkan::transient_command::TransientCommand;
 
 pub struct ImguiRenderer {
@@ -407,16 +408,16 @@ impl ImguiRenderer {
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         let font_texture = unsafe {
-            Texture::alloc(
+            Texture::alloc(TextureCreateInfo {
                 device,
-                *graphics_queue,
-                *transient_command_pool,
+                queue: *graphics_queue,
+                transient_command_pool: *transient_command_pool,
                 physical_device_memory_properties,
                 physical_device_properties,
-                font_atlas_texture.width,
-                font_atlas_texture.height,
-                font_atlas_texture.data,
-            )
+                width: font_atlas_texture.width,
+                height: font_atlas_texture.height,
+                pixels_rgba: font_atlas_texture.data,
+            })
         }?;
 
         let fonts = context.fonts();

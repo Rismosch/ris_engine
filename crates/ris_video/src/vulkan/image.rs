@@ -13,20 +13,33 @@ pub struct Image {
     pub memory: vk::DeviceMemory,
 }
 
+pub struct ImageCreateInfo<'a> {
+    pub device: &'a ash::Device,
+    pub width: u32,
+    pub height: u32,
+    pub format: vk::Format,
+    pub tiling: vk::ImageTiling,
+    pub usage: vk::ImageUsageFlags,
+    pub memory_property_flags: vk::MemoryPropertyFlags,
+    pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+}
+
 impl Image {
     /// # Safety
     ///
     /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
-        device: &ash::Device,
-        width: u32,
-        height: u32,
-        format: vk::Format,
-        tiling: vk::ImageTiling,
-        usage: vk::ImageUsageFlags,
-        memory_property_flags: vk::MemoryPropertyFlags,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-    ) -> RisResult<Self> {
+    pub unsafe fn alloc(info: ImageCreateInfo) -> RisResult<Self> {
+        let ImageCreateInfo {
+            device,
+            width,
+            height,
+            format,
+            tiling,
+            usage,
+            memory_property_flags,
+            physical_device_memory_properties,
+        } = info;
+
         let image_create_info = vk::ImageCreateInfo {
             s_type: vk::StructureType::IMAGE_CREATE_INFO,
             p_next: ptr::null(),

@@ -15,7 +15,9 @@ use super::buffer::Buffer;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::BaseSwapchain;
 use super::swapchain::Swapchain;
+use super::swapchain::SwapchainCreateInfo;
 use super::texture::Texture;
+use super::texture::TextureCreateInfo;
 
 pub struct Renderer {
     pub entry: ash::Entry,
@@ -300,16 +302,16 @@ impl Renderer {
         };
 
         let texture = unsafe {
-            Texture::alloc(
-                &device,
-                graphics_queue,
+            Texture::alloc(TextureCreateInfo {
+                device: &device,
+                queue: graphics_queue,
                 transient_command_pool,
                 physical_device_memory_properties,
                 physical_device_properties,
-                desc.width,
-                desc.height,
-                &pixels_rgba,
-            )
+                width: desc.width,
+                height: desc.height,
+                pixels_rgba: &pixels_rgba,
+            })
         }?;
 
         // vertex buffer
@@ -426,25 +428,25 @@ impl Renderer {
 
         // swapchain
         let swapchain = unsafe {
-            Swapchain::alloc(
-                &instance,
-                &suitable_device,
-                &device,
+            Swapchain::alloc(SwapchainCreateInfo {
+                instance: &instance,
+                suitable_device: &suitable_device,
+                device: &device,
                 graphics_queue,
                 command_pool,
                 transient_command_pool,
                 descriptor_set_layout,
                 descriptor_pool,
-                &texture,
-                &vertex_buffer,
-                &index_buffer,
-                base_swapchain,
-                swapchain_images,
-                None,
-                None,
-                god_asset.default_vert_spv.clone(),
-                god_asset.default_frag_spv.clone(),
-            )
+                texture: &texture,
+                vertex_buffer: &vertex_buffer,
+                index_buffer: &index_buffer,
+                base: base_swapchain,
+                images: swapchain_images,
+                descriptor_sets: None,
+                frames_in_flight: None,
+                vs_asset_id: god_asset.default_vert_spv.clone(),
+                fs_asset_id: god_asset.default_frag_spv.clone(),
+            })
         }?;
 
         // renderer

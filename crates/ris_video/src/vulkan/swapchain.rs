@@ -10,6 +10,7 @@ use super::frame_in_flight::FrameInFlight;
 use super::graphics_pipeline::GraphicsPipeline;
 use super::graphics_pipeline::GraphicsPipelineCreateInfo;
 use super::image::Image;
+use super::image::ImageCreateInfo;
 use super::renderer::Renderer;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
@@ -42,6 +43,26 @@ pub struct SwapchainEntry {
     pub descriptor_set: vk::DescriptorSet,
     pub framebuffer: vk::Framebuffer,
     pub command_buffer: vk::CommandBuffer,
+}
+
+pub struct SwapchainCreateInfo<'a> {
+    pub instance: &'a ash::Instance,
+    pub suitable_device: &'a SuitableDevice,
+    pub device: &'a ash::Device,
+    pub graphics_queue: vk::Queue,
+    pub command_pool: vk::CommandPool,
+    pub transient_command_pool: vk::CommandPool,
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
+    pub descriptor_pool: vk::DescriptorPool,
+    pub texture: &'a Texture,
+    pub vertex_buffer: &'a Buffer,
+    pub index_buffer: &'a Buffer,
+    pub base: BaseSwapchain,
+    pub images: Vec<vk::Image>,
+    pub descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+    pub frames_in_flight: Option<Vec<FrameInFlight>>,
+    pub vs_asset_id: AssetId,
+    pub fs_asset_id: AssetId,
 }
 
 impl BaseSwapchain {
@@ -171,36 +192,37 @@ impl Swapchain {
     /// # Safety
     ///
     /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
-        instance: &ash::Instance,
-        suitable_device: &SuitableDevice,
-        device: &ash::Device,
-        graphics_queue: vk::Queue,
-        command_pool: vk::CommandPool,
-        transient_command_pool: vk::CommandPool,
-        descriptor_set_layout: vk::DescriptorSetLayout,
-        descriptor_pool: vk::DescriptorPool,
-        texture: &Texture,
-        vertex_buffer: &Buffer,
-        index_buffer: &Buffer,
-        base: BaseSwapchain,
-        images: Vec<vk::Image>,
-        descriptor_sets: Option<Vec<vk::DescriptorSet>>,
-        frames_in_flight: Option<Vec<FrameInFlight>>,
-        vs_asset_id: AssetId,
-        fs_asset_id: AssetId,
-    ) -> RisResult<Self> {
+    pub unsafe fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
+        let SwapchainCreateInfo {
+            instance,
+            suitable_device,
+            device,
+            graphics_queue,
+            command_pool,
+            transient_command_pool,
+            descriptor_set_layout,
+            descriptor_pool,
+            texture,
+            vertex_buffer,
+            index_buffer,
+            base,
+            images,
+            descriptor_sets,
+            frames_in_flight,
+            vs_asset_id,
+            fs_asset_id,
+        } = info;
+
         // graphics pipeline
-        let graphics_pipeline = GraphicsPipeline::alloc(
-            GraphicsPipelineCreateInfo{
-                instance,
-                physical_device: suitable_device.physical_device,
-                device,
-                color_format: base.format.format,
-                swapchain_extent: base.extent,
-                descriptor_set_layout,
-                vs_asset_id,
-                fs_asset_id,
+        let graphics_pipeline = GraphicsPipeline::alloc(GraphicsPipelineCreateInfo {
+            instance,
+            physical_device: suitable_device.physical_device,
+            device,
+            color_format: base.format.format,
+            swapchain_extent: base.extent,
+            descriptor_set_layout,
+            vs_asset_id,
+            fs_asset_id,
         })?;
 
         // depth buffer
@@ -210,16 +232,16 @@ impl Swapchain {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let depth_image = Image::alloc(
+        let depth_image = Image::alloc(ImageCreateInfo {
             device,
-            base.extent.width,
-            base.extent.height,
-            depth_format,
-            vk::ImageTiling::OPTIMAL,
-            vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            width: base.extent.width,
+            height: base.extent.height,
+            format: depth_format,
+            tiling: vk::ImageTiling::OPTIMAL,
+            usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+            memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
-        )?;
+        })?;
 
         let depth_image_view = Image::alloc_view(
             device,
@@ -551,25 +573,25 @@ impl Swapchain {
         }?;
 
         unsafe {
-            Self::alloc(
-                &renderer.instance,
-                &renderer.suitable_device,
-                &renderer.device,
-                renderer.graphics_queue,
-                renderer.command_pool,
-                renderer.transient_command_pool,
-                renderer.descriptor_set_layout,
-                renderer.descriptor_pool,
-                &renderer.texture,
-                &renderer.vertex_buffer,
-                &renderer.index_buffer,
+            Self::alloc(SwapchainCreateInfo {
+                instance: &renderer.instance,
+                suitable_device: &renderer.suitable_device,
+                device: &renderer.device,
+                graphics_queue: renderer.graphics_queue,
+                command_pool: renderer.command_pool,
+                transient_command_pool: renderer.transient_command_pool,
+                descriptor_set_layout: renderer.descriptor_set_layout,
+                descriptor_pool: renderer.descriptor_pool,
+                texture: &renderer.texture,
+                vertex_buffer: &renderer.vertex_buffer,
+                index_buffer: &renderer.index_buffer,
                 base,
                 images,
                 descriptor_sets,
                 frames_in_flight,
                 vs_asset_id,
                 fs_asset_id,
-            )
+            })
         }
     }
 }
