@@ -106,7 +106,7 @@ For more info, check this link: <TODO>
 C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
 ```
 
-Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against these.
+Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against the required LIBs.
 
 ---
 
@@ -129,8 +129,6 @@ cargo run -p ci build
 ```bash
 cargo run -p ci
 ```
-
-**Note:** `ci` may fail if your current working directory is not somewhere inside the `ris_engine` repo directory.
 
 ---
 
