@@ -4,6 +4,11 @@ use std::path::PathBuf;
 use crate::CiResult;
 use crate::CiResultExtensions;
 
+pub fn print_help_for_command(name: &str, args: String, explanation: String) {
+    eprintln!("usage: ci {} {}", name, args);
+    eprintln!("    {}", explanation);
+}
+
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
     if !dir.exists() {
         eprintln!("creating dir... {:?}", dir);

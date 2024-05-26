@@ -36,7 +36,7 @@ fn main() -> Result<(), String> {
             match command {
                 Some(Command { name, args, explanation, .. }) => 
                 {
-                    print_help_for_command(name.to_string(), args(), explanation());
+                    crate::util::print_help_for_command(name, args(), explanation());
                 },
                 None => {
                     eprintln!("unkown command: {}", arg2);
@@ -59,7 +59,7 @@ fn main() -> Result<(), String> {
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
-                    print_help_for_command(name.to_string(), args(), explanation());
+                    crate::util::print_help_for_command(name, args(), explanation());
                     return Ok(());
                 }
             }
@@ -130,11 +130,6 @@ fn print_help(to_print: Vec<Command>) {
             eprintln!("{}", line);
         }
     }
-}
-
-fn print_help_for_command(name: String, args: String, explanation: String) {
-    eprintln!("usage: ci {} {}", name, args);
-    eprintln!("    {}", explanation);
 }
 
 fn is_help_arg(arg: &str) -> bool {
