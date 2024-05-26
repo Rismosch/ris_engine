@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 
 use sdl2::event::Event;
@@ -80,10 +79,10 @@ impl LogicFrame {
         }
     }
 
-    pub fn run(&mut self, frame: Frame, state: Arc<GodState>) -> RisResult<GameloopState> {
+    pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<GameloopState> {
         // input
-        mouse_logic::pre_events(&mut state.front.input.borrow_mut().mouse);
-        keyboard_logic::pre_events(&mut state.front.input.borrow_mut().keyboard);
+        mouse_logic::pre_events(&mut state.input.mouse);
+        keyboard_logic::pre_events(&mut state.input.keyboard);
 
         for event in self.event_pump.poll_iter() {
             if let Event::Quit { .. } = event {
@@ -95,32 +94,28 @@ impl LogicFrame {
                 ..
             } = event
             {
-                *state.front.window_event.borrow_mut() = god_state::WindowEvent::SizeChanged(w, h);
+                state.window_event = god_state::WindowEvent::SizeChanged(w as u32, h as u32);
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
-            mouse_logic::handle_event(&mut state.front.input.borrow_mut().mouse, &event);
-            keyboard_logic::handle_event(&mut state.front.input.borrow_mut().keyboard, &event);
+            mouse_logic::handle_event(&mut state.input.mouse, &event);
+            keyboard_logic::handle_event(&mut state.input.keyboard, &event);
             self.gamepad_logic.handle_event(&event);
         }
 
-        mouse_logic::post_events(
-            &mut state.front.input.borrow_mut().mouse,
-            self.event_pump.mouse_state(),
-        );
+        mouse_logic::post_events(&mut state.input.mouse, self.event_pump.mouse_state());
 
         keyboard_logic::post_events(
-            &mut state.front.input.borrow_mut().keyboard,
+            &mut state.input.keyboard,
             self.event_pump.keyboard_state(),
             self.keyboard_util.mod_state(),
         );
 
-        self.gamepad_logic
-            .post_events(&mut state.front.input.borrow_mut().gamepad);
+        self.gamepad_logic.post_events(&mut state.input.gamepad);
 
-        update_general(state.clone());
+        update_general(state);
 
-        let input = state.front.input.borrow();
+        let input = &state.input;
 
         // manual restart
         if input.keyboard.keys.is_hold(Scancode::F1) {
@@ -151,7 +146,7 @@ impl LogicFrame {
         // reload shaders
         let mut import_shader_future = None;
         if input.keyboard.keys.is_down(Scancode::F6) {
-            *state.front.reload_shaders.borrow_mut() = true;
+            state.reload_shaders = true;
             let future = reload_shaders();
             import_shader_future = Some(future);
         }
@@ -169,7 +164,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             self.camera_horizontal_angle = 0.0;
             self.camera_vertical_angle = 0.0;
-            *state.front.camera_position.borrow_mut() = Vec3::backward();
+            state.camera.position = Vec3::backward();
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -189,39 +184,39 @@ impl LogicFrame {
         }
 
         while self.camera_horizontal_angle < 0. {
-            self.camera_horizontal_angle += 2. * ris_math::PI;
+            self.camera_horizontal_angle += 2. * ris_math::f32::PI;
         }
-        while self.camera_horizontal_angle > 2. * ris_math::PI {
-            self.camera_horizontal_angle -= 2. * ris_math::PI;
+        while self.camera_horizontal_angle > 2. * ris_math::f32::PI {
+            self.camera_horizontal_angle -= 2. * ris_math::f32::PI;
         }
-        self.camera_vertical_angle = ris_math::clamp(
+        self.camera_vertical_angle = ris_math::f32::clamp(
             self.camera_vertical_angle,
-            -0.5 * ris_math::PI,
-            0.5 * ris_math::PI,
+            -0.5 * ris_math::f32::PI,
+            0.5 * ris_math::f32::PI,
         );
 
         let rotation1 = Quat::from((self.camera_vertical_angle, Vec3::right()));
         let rotation2 = Quat::from((self.camera_horizontal_angle, Vec3::up()));
-        *state.front.camera_rotation.borrow_mut() = rotation2 * rotation1;
+        state.camera.rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = state.front.camera_rotation.borrow().rotate(Vec3::forward());
-            *state.front.camera_position.borrow_mut() += movement_speed * forward;
+            let forward = state.camera.rotation.rotate(Vec3::forward());
+            state.camera.position += movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = state.front.camera_rotation.borrow().rotate(Vec3::forward());
-            *state.front.camera_position.borrow_mut() -= movement_speed * forward;
+            let forward = state.camera.rotation.rotate(Vec3::forward());
+            state.camera.position -= movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = state.front.camera_rotation.borrow().rotate(Vec3::right());
-            *state.front.camera_position.borrow_mut() -= movement_speed * right;
+            let right = state.camera.rotation.rotate(Vec3::right());
+            state.camera.position -= movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = state.front.camera_rotation.borrow().rotate(Vec3::right());
-            *state.front.camera_position.borrow_mut() += movement_speed * right;
+            let right = state.camera.rotation.rotate(Vec3::right());
+            state.camera.position += movement_speed * right;
         }
 
         if input.keyboard.keys.is_down(Scancode::F) {

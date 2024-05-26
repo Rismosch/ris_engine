@@ -1,8 +1,8 @@
 use std::ffi::OsStr;
+use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use imgui::Ui;
 
@@ -11,7 +11,6 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
 
 pub mod metrics_module;
 pub mod settings_module;
@@ -66,9 +65,8 @@ pub trait UiHelperModule {
 
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
-    pub logic_future: Option<JobFuture<()>>,
     pub frame: Frame,
-    pub state: Arc<GodState>,
+    pub state: &'a mut GodState,
 }
 
 struct PinnedUiHelperModule {
@@ -103,7 +101,10 @@ impl UiHelper {
         match Self::deserialize(&config_filepath, app_info) {
             Ok(result) => Ok(result),
             Err(e) => {
-                ris_log::error!("failed to deserialize UiHelper: {}", e);
+                ris_log::error!(
+                    "failed to deserialize UiHelper. generating new one... error: {}",
+                    e
+                );
 
                 Ok(Self {
                     modules: modules(app_info)?,
@@ -169,10 +170,10 @@ impl UiHelper {
     fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
         // read file
         let mut file = std::fs::File::open(config_filepath)?;
-        let file_size = ris_file::seek!(file, SeekFrom::End(0))?;
-        ris_file::seek!(file, SeekFrom::Start(0))?;
+        let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
+        ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
         let mut bytes = vec![0; file_size as usize];
-        ris_file::read!(file, &mut bytes)?;
+        ris_file::io::read_checked(&mut file, &mut bytes)?;
         let file_content = String::from_utf8(bytes)?;
         let yaml = RisYaml::try_from(file_content.as_str())?;
 
@@ -289,7 +290,9 @@ impl UiHelper {
             let mut flags = 0;
             flags |= imgui::sys::ImGuiTabItemFlags_Trailing;
             flags |= imgui::sys::ImGuiTabItemFlags_NoTooltip;
-            if unsafe { imgui::sys::igTabItemButton(str_to_ptr("+"), flags as i32) } {
+
+            let label = OsStr::new("+\0").as_encoded_bytes().as_ptr() as *const i8;
+            if unsafe { imgui::sys::igTabItemButton(label, flags as i32) } {
                 self.pinned.push(PinnedUiHelperModule {
                     module_index: None,
                     id: self.next_pinned_id,
@@ -378,13 +381,4 @@ impl Drop for UiHelper {
 
         ris_log::info!("dropped UiHelper!");
     }
-}
-
-pub fn str_to_ptr(value: &str) -> *const i8 {
-    let null_terminated = format!("{}\0", value);
-    let os_str = OsStr::new(&null_terminated);
-    let bytes = os_str.as_encoded_bytes();
-    let ptr = bytes.as_ptr();
-
-    ptr as *const i8
 }

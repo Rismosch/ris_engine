@@ -22,7 +22,7 @@ impl FileAppender {
 
     pub fn print(&mut self, message: &str) {
         let file = self.fallback_file.current();
-        let result = writeln!(file, "{}\n", message);
+        let result = writeln!(file, "\n{}", message);
 
         if result.is_err() {
             let error_message = format!("failed to log the following message: {}", message);

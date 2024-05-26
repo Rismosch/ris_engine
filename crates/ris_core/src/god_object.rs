@@ -1,12 +1,8 @@
-use std::sync::Arc;
-
 use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::loader::scenes_loader;
-use ris_asset::loader::scenes_loader::Scenes;
-use ris_asset::AssetId;
+use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -15,8 +11,8 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::imgui::backend::ImguiBackend;
-use ris_video::imgui::renderer::ImguiRenderer;
+use ris_video::imgui::imgui_backend::ImguiBackend;
+use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::renderer::Renderer;
 
@@ -40,25 +36,15 @@ fn import_assets() -> RisResult<()> {
     Ok(())
 }
 
-#[cfg(debug_assertions)]
-fn scenes_id() -> AssetId {
-    AssetId::Directory(String::from("root.ris_scenes"))
-}
-
-#[cfg(not(debug_assertions))]
-fn scenes_id() -> AssetId {
-    AssetId::Compiled(0)
-}
-
 pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
-    pub scenes: Scenes,
+    pub god_asset: RisGodAsset,
 
-    pub state: Arc<GodState>,
+    pub state: GodState,
 
     // guards, must be dropped last
     pub asset_loader_guard: AssetLoaderGuard,
@@ -104,10 +90,10 @@ impl GodObject {
             .game_controller()
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
-        // scenes
-        let scenes_id = scenes_id();
-        let scenes_bytes = asset_loader::load_async(scenes_id).wait(None)??;
-        let scenes = scenes_loader::load(&scenes_bytes)?;
+        // god asset
+        let god_asset_id = asset_loader_guard.god_asset_id.clone();
+        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
+        let god_asset = RisGodAsset::load(&god_asset_bytes)?;
 
         // video
         let video_subsystem = sdl_context
@@ -115,17 +101,17 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
-            //.resizable()
+            .resizable()
             .position_centered()
             .vulkan()
             .build()?;
 
-        let renderer = Renderer::initialize(&window, scenes.clone())?;
+        let renderer = Renderer::initialize(&app_info, &window, &god_asset)?;
 
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(&renderer, &scenes, context)?;
+        let imgui_renderer = ImguiRenderer::init(&renderer, &god_asset, context)?;
         let imgui = RisImgui {
             backend: imgui_backend,
             renderer: imgui_renderer,
@@ -139,10 +125,10 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let state = GodState::new(settings);
+        let mut state = GodState::new(settings);
 
         {
-            let input = &mut state.front.input.borrow_mut();
+            let input = &mut state.input;
             input.keyboard.keymask[0] = Scancode::Return;
             input.keyboard.keymask[15] = Scancode::W;
             input.keyboard.keymask[16] = Scancode::S;
@@ -158,8 +144,6 @@ impl GodObject {
             input.keyboard.keymask[31] = Scancode::Kp6;
         }
 
-        state.copy_front_to_back();
-
         // god object
         let god_object = GodObject {
             app_info,
@@ -167,7 +151,7 @@ impl GodObject {
             frame_calculator,
             logic_frame,
             output_frame,
-            scenes,
+            god_asset,
 
             state,
 

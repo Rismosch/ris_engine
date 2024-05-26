@@ -20,7 +20,7 @@ use crate::job_future::JobFuture;
 use crate::job_future::SettableJobFuture;
 
 thread_local! {
-    static WORKER_THREAD: RefCell<Option<WorkerThread>> = RefCell::new(None);
+    static WORKER_THREAD: RefCell<Option<WorkerThread>> = const { RefCell::new(None) };
 }
 
 struct WorkerThread {

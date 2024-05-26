@@ -28,7 +28,7 @@ macro_rules! unwrap {
 }
 
 #[macro_export]
-macro_rules! assert {
+macro_rules! throw_assert {
     ($result:expr, $($arg:tt)*) => {{
         if !$result {
             let client_message = format!($($arg)*);

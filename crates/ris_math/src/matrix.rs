@@ -1,5 +1,3 @@
-use vulkano::buffer::BufferContents;
-
 use crate::vector::Vec2;
 use crate::vector::Vec3;
 use crate::vector::Vec4;
@@ -11,53 +9,53 @@ use crate::vector::Vec4;
 // the first number in the type is the number of columns, the second is the number of rows. note
 // that the vecs are columns, not rows!
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct Mat2x2(pub Vec2, pub Vec2);
+pub struct Mat2(pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat2x3(pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat2x4(pub Vec4, pub Vec4);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat3x2(pub Vec2, pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct Mat3x3(pub Vec3, pub Vec3, pub Vec3);
+pub struct Mat3(pub Vec3, pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat3x4(pub Vec4, pub Vec4, pub Vec4);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat4x2(pub Vec2, pub Vec2, pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Mat4x3(pub Vec3, pub Vec3, pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Copy, Clone, BufferContents)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct Mat4x4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
+pub struct Mat4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
 
 //
 // constructors
 //
 
-impl Mat2x2 {
+impl Mat2 {
     pub fn init(value: f32) -> Self {
         Self(Vec2(value, 0.), Vec2(0., value))
     }
 }
 
-impl Mat3x3 {
+impl Mat3 {
     pub fn init(value: f32) -> Self {
         Self(
             Vec3(value, 0., 0.),
@@ -67,7 +65,7 @@ impl Mat3x3 {
     }
 }
 
-impl Mat4x4 {
+impl Mat4 {
     pub fn init(value: f32) -> Self {
         Self(
             Vec4(value, 0., 0., 0.),
@@ -78,8 +76,8 @@ impl Mat4x4 {
     }
 }
 
-impl From<Mat2x2> for Mat3x3 {
-    fn from(value: Mat2x2) -> Self {
+impl From<Mat2> for Mat3 {
+    fn from(value: Mat2) -> Self {
         let mut r = Self::init(1.);
 
         r.0 .0 = value.0 .0;
@@ -92,8 +90,8 @@ impl From<Mat2x2> for Mat3x3 {
     }
 }
 
-impl From<Mat2x2> for Mat4x4 {
-    fn from(value: Mat2x2) -> Self {
+impl From<Mat2> for Mat4 {
+    fn from(value: Mat2) -> Self {
         let mut r = Self::init(1.);
 
         r.0 .0 = value.0 .0;
@@ -106,8 +104,8 @@ impl From<Mat2x2> for Mat4x4 {
     }
 }
 
-impl From<Mat3x3> for Mat4x4 {
-    fn from(value: Mat3x3) -> Self {
+impl From<Mat3> for Mat4 {
+    fn from(value: Mat3) -> Self {
         let mut r = Self::init(1.);
 
         r.0 .0 = value.0 .0;
@@ -130,7 +128,7 @@ impl From<Mat3x3> for Mat4x4 {
 // components
 //
 
-impl std::ops::Index<usize> for Mat2x2 {
+impl std::ops::Index<usize> for Mat2 {
     type Output = Vec2;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -144,7 +142,7 @@ impl std::ops::Index<usize> for Mat2x2 {
     }
 }
 
-impl std::ops::IndexMut<usize> for Mat2x2 {
+impl std::ops::IndexMut<usize> for Mat2 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 2);
 
@@ -236,7 +234,7 @@ impl std::ops::IndexMut<usize> for Mat3x2 {
     }
 }
 
-impl std::ops::Index<usize> for Mat3x3 {
+impl std::ops::Index<usize> for Mat3 {
     type Output = Vec3;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -251,7 +249,7 @@ impl std::ops::Index<usize> for Mat3x3 {
     }
 }
 
-impl std::ops::IndexMut<usize> for Mat3x3 {
+impl std::ops::IndexMut<usize> for Mat3 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
 
@@ -352,7 +350,7 @@ impl std::ops::IndexMut<usize> for Mat4x3 {
     }
 }
 
-impl std::ops::Index<usize> for Mat4x4 {
+impl std::ops::Index<usize> for Mat4 {
     type Output = Vec4;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -368,7 +366,7 @@ impl std::ops::Index<usize> for Mat4x4 {
     }
 }
 
-impl std::ops::IndexMut<usize> for Mat4x4 {
+impl std::ops::IndexMut<usize> for Mat4 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 4);
 
@@ -386,10 +384,10 @@ impl std::ops::IndexMut<usize> for Mat4x4 {
 // operations
 //
 
-impl std::ops::Mul<Mat2x2> for Vec2 {
+impl std::ops::Mul<Mat2> for Vec2 {
     type Output = Vec2;
 
-    fn mul(self, rhs: Mat2x2) -> Self::Output {
+    fn mul(self, rhs: Mat2) -> Self::Output {
         let v = self;
         let mut u = Vec2::default();
         let m = rhs;
@@ -401,10 +399,10 @@ impl std::ops::Mul<Mat2x2> for Vec2 {
     }
 }
 
-impl std::ops::Mul<Mat3x3> for Vec3 {
+impl std::ops::Mul<Mat3> for Vec3 {
     type Output = Vec3;
 
-    fn mul(self, rhs: Mat3x3) -> Self::Output {
+    fn mul(self, rhs: Mat3) -> Self::Output {
         let v = self;
         let mut u = Vec3::default();
         let m = rhs;
@@ -417,10 +415,10 @@ impl std::ops::Mul<Mat3x3> for Vec3 {
     }
 }
 
-impl std::ops::Mul<Mat4x4> for Vec4 {
+impl std::ops::Mul<Mat4> for Vec4 {
     type Output = Vec4;
 
-    fn mul(self, rhs: Mat4x4) -> Self::Output {
+    fn mul(self, rhs: Mat4) -> Self::Output {
         let v = self;
         let mut u = Vec4::default();
         let m = rhs;
@@ -434,7 +432,7 @@ impl std::ops::Mul<Mat4x4> for Vec4 {
     }
 }
 
-impl std::ops::Mul<Vec2> for Mat2x2 {
+impl std::ops::Mul<Vec2> for Mat2 {
     type Output = Vec2;
 
     fn mul(self, rhs: Vec2) -> Self::Output {
@@ -449,7 +447,7 @@ impl std::ops::Mul<Vec2> for Mat2x2 {
     }
 }
 
-impl std::ops::Mul<Vec3> for Mat3x3 {
+impl std::ops::Mul<Vec3> for Mat3 {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Self::Output {
@@ -465,7 +463,7 @@ impl std::ops::Mul<Vec3> for Mat3x3 {
     }
 }
 
-impl std::ops::Mul<Vec4> for Mat4x4 {
+impl std::ops::Mul<Vec4> for Mat4 {
     type Output = Vec4;
 
     fn mul(self, rhs: Vec4) -> Self::Output {
@@ -482,13 +480,13 @@ impl std::ops::Mul<Vec4> for Mat4x4 {
     }
 }
 
-impl std::ops::Mul<Mat2x2> for Mat2x2 {
-    type Output = Mat2x2;
+impl std::ops::Mul<Mat2> for Mat2 {
+    type Output = Mat2;
 
-    fn mul(self, rhs: Mat2x2) -> Self::Output {
+    fn mul(self, rhs: Mat2) -> Self::Output {
         let m = self;
         let n = rhs;
-        let mut r = Mat2x2::default();
+        let mut r = Mat2::default();
 
         r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1;
         r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1;
@@ -500,13 +498,13 @@ impl std::ops::Mul<Mat2x2> for Mat2x2 {
     }
 }
 
-impl std::ops::Mul<Mat3x3> for Mat3x3 {
-    type Output = Mat3x3;
+impl std::ops::Mul<Mat3> for Mat3 {
+    type Output = Mat3;
 
-    fn mul(self, rhs: Mat3x3) -> Self::Output {
+    fn mul(self, rhs: Mat3) -> Self::Output {
         let m = self;
         let n = rhs;
-        let mut r = Mat3x3::default();
+        let mut r = Mat3::default();
 
         r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1 + m.2 .0 * n.0 .2;
         r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1 + m.2 .0 * n.1 .2;
@@ -524,13 +522,13 @@ impl std::ops::Mul<Mat3x3> for Mat3x3 {
     }
 }
 
-impl std::ops::Mul<Mat4x4> for Mat4x4 {
-    type Output = Mat4x4;
+impl std::ops::Mul<Mat4> for Mat4 {
+    type Output = Mat4;
 
-    fn mul(self, rhs: Mat4x4) -> Self::Output {
+    fn mul(self, rhs: Mat4) -> Self::Output {
         let m = self;
         let n = rhs;
-        let mut r = Mat4x4::default();
+        let mut r = Mat4::default();
 
         r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1 + m.2 .0 * n.0 .2 + m.3 .0 * n.0 .3;
         r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1 + m.2 .0 * n.1 .2 + m.3 .0 * n.1 .3;
@@ -560,7 +558,7 @@ impl std::ops::Mul<Mat4x4> for Mat4x4 {
 // functions
 //
 
-impl Mat2x2 {
+impl Mat2 {
     /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
     /// of self.i.j and rhs.i.j
     ///
@@ -609,21 +607,21 @@ impl Mat2x2 {
 
     /// returns the determinant of m
     pub fn determinant(self) -> f32 {
-        let Mat2x2(Vec2(a, b), Vec2(c, d)) = self;
+        let Mat2(Vec2(a, b), Vec2(c, d)) = self;
         a * d - b * c
     }
 
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if det < crate::MIN_NORM {
+        if det < crate::f32::MIN_NORM {
             return None; // matrix is not invertible
         }
 
-        let Mat2x2(Vec2(a, b), Vec2(c, d)) = self;
+        let Mat2(Vec2(a, b), Vec2(c, d)) = self;
 
         // adjoint matrix
-        let mut r = Mat2x2(Vec2(d, -b), Vec2(-c, a));
+        let mut r = Mat2(Vec2(d, -b), Vec2(-c, a));
 
         // multiply by 1 / det
         r.0 /= det;
@@ -808,7 +806,7 @@ impl Mat3x2 {
     }
 }
 
-impl Mat3x3 {
+impl Mat3 {
     /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
     /// of self.i.j and rhs.i.j
     ///
@@ -875,10 +873,10 @@ impl Mat3x3 {
 
     /// returns the determinant of m
     pub fn determinant(self) -> f32 {
-        let Mat3x3(Vec3(a, b, c), Vec3(d, e, f), Vec3(g, h, i)) = self;
-        let ma = Mat2x2(Vec2(e, f), Vec2(h, i));
-        let md = Mat2x2(Vec2(b, c), Vec2(h, i));
-        let mg = Mat2x2(Vec2(b, c), Vec2(e, f));
+        let Mat3(Vec3(a, b, c), Vec3(d, e, f), Vec3(g, h, i)) = self;
+        let ma = Mat2(Vec2(e, f), Vec2(h, i));
+        let md = Mat2(Vec2(b, c), Vec2(h, i));
+        let mg = Mat2(Vec2(b, c), Vec2(e, f));
 
         a * ma.determinant() - d * md.determinant() + g * mg.determinant()
     }
@@ -886,26 +884,26 @@ impl Mat3x3 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::abs(det) < crate::MIN_NORM {
+        if crate::f32::abs(det) < crate::f32::MIN_NORM {
             return None; // matrix is not invertible
         }
 
-        let Mat3x3(Vec3(a, b, c), Vec3(d, e, f), Vec3(g, h, i)) = self;
+        let Mat3(Vec3(a, b, c), Vec3(d, e, f), Vec3(g, h, i)) = self;
 
         // matrix of minors
-        let mut mm = Mat3x3::default();
+        let mut mm = Mat3::default();
 
-        mm.0 .0 = Mat2x2(Vec2(e, f), Vec2(h, i)).determinant();
-        mm.1 .0 = Mat2x2(Vec2(b, c), Vec2(h, i)).determinant();
-        mm.2 .0 = Mat2x2(Vec2(b, c), Vec2(e, f)).determinant();
+        mm.0 .0 = Mat2(Vec2(e, f), Vec2(h, i)).determinant();
+        mm.1 .0 = Mat2(Vec2(b, c), Vec2(h, i)).determinant();
+        mm.2 .0 = Mat2(Vec2(b, c), Vec2(e, f)).determinant();
 
-        mm.0 .1 = Mat2x2(Vec2(d, f), Vec2(g, i)).determinant();
-        mm.1 .1 = Mat2x2(Vec2(a, c), Vec2(g, i)).determinant();
-        mm.2 .1 = Mat2x2(Vec2(a, c), Vec2(d, f)).determinant();
+        mm.0 .1 = Mat2(Vec2(d, f), Vec2(g, i)).determinant();
+        mm.1 .1 = Mat2(Vec2(a, c), Vec2(g, i)).determinant();
+        mm.2 .1 = Mat2(Vec2(a, c), Vec2(d, f)).determinant();
 
-        mm.0 .2 = Mat2x2(Vec2(d, e), Vec2(g, h)).determinant();
-        mm.1 .2 = Mat2x2(Vec2(a, b), Vec2(g, h)).determinant();
-        mm.2 .2 = Mat2x2(Vec2(a, b), Vec2(d, e)).determinant();
+        mm.0 .2 = Mat2(Vec2(d, e), Vec2(g, h)).determinant();
+        mm.1 .2 = Mat2(Vec2(a, b), Vec2(g, h)).determinant();
+        mm.2 .2 = Mat2(Vec2(a, b), Vec2(d, e)).determinant();
 
         // matrix of cofactors
         let mut mcf = mm;
@@ -919,7 +917,7 @@ impl Mat3x3 {
         let madj = mcf.transpose();
 
         // multiply by 1 / det
-        let r = Mat3x3(madj.0 / det, madj.1 / det, madj.2 / det);
+        let r = Mat3(madj.0 / det, madj.1 / det, madj.2 / det);
 
         Some(r)
     }
@@ -1140,7 +1138,7 @@ impl Mat4x3 {
     }
 }
 
-impl Mat4x4 {
+impl Mat4 {
     /// multiply matrix self by matrix rhs component-wise. i.e., result.i.j is the scalar product
     /// of self.i.j and rhs.i.j
     ///
@@ -1231,11 +1229,11 @@ impl Mat4x4 {
 
     /// returns the determinant of m
     pub fn determinant(self) -> f32 {
-        let Mat4x4(Vec4(a, b, c, d), Vec4(e, f, g, h), Vec4(i, j, k, l), Vec4(m, n, o, p)) = self;
-        let ma = Mat3x3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p));
-        let me = Mat3x3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p));
-        let mi = Mat3x3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p));
-        let mm = Mat3x3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l));
+        let Mat4(Vec4(a, b, c, d), Vec4(e, f, g, h), Vec4(i, j, k, l), Vec4(m, n, o, p)) = self;
+        let ma = Mat3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p));
+        let me = Mat3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p));
+        let mi = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p));
+        let mm = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l));
 
         a * ma.determinant() - e * me.determinant() + i * mi.determinant() - m * mm.determinant()
     }
@@ -1243,34 +1241,34 @@ impl Mat4x4 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::abs(det) < crate::MIN_NORM {
+        if crate::f32::abs(det) < crate::f32::MIN_NORM {
             return None; // matrix is not invertible
         }
 
-        let Mat4x4(Vec4(a, b, c, d), Vec4(e, f, g, h), Vec4(i, j, k, l), Vec4(m, n, o, p)) = self;
+        let Mat4(Vec4(a, b, c, d), Vec4(e, f, g, h), Vec4(i, j, k, l), Vec4(m, n, o, p)) = self;
 
         // matrix of minors
-        let mut mm = Mat4x4::default();
+        let mut mm = Mat4::default();
 
-        mm.0 .0 = Mat3x3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p)).determinant();
-        mm.1 .0 = Mat3x3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p)).determinant();
-        mm.2 .0 = Mat3x3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p)).determinant();
-        mm.3 .0 = Mat3x3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l)).determinant();
+        mm.0 .0 = Mat3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p)).determinant();
+        mm.1 .0 = Mat3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p)).determinant();
+        mm.2 .0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p)).determinant();
+        mm.3 .0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l)).determinant();
 
-        mm.0 .1 = Mat3x3(Vec3(e, g, h), Vec3(i, k, l), Vec3(m, o, p)).determinant();
-        mm.1 .1 = Mat3x3(Vec3(a, c, d), Vec3(i, k, l), Vec3(m, o, p)).determinant();
-        mm.2 .1 = Mat3x3(Vec3(a, c, d), Vec3(e, g, h), Vec3(m, o, p)).determinant();
-        mm.3 .1 = Mat3x3(Vec3(a, c, d), Vec3(e, g, h), Vec3(i, k, l)).determinant();
+        mm.0 .1 = Mat3(Vec3(e, g, h), Vec3(i, k, l), Vec3(m, o, p)).determinant();
+        mm.1 .1 = Mat3(Vec3(a, c, d), Vec3(i, k, l), Vec3(m, o, p)).determinant();
+        mm.2 .1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(m, o, p)).determinant();
+        mm.3 .1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(i, k, l)).determinant();
 
-        mm.0 .2 = Mat3x3(Vec3(e, f, h), Vec3(i, j, l), Vec3(m, n, p)).determinant();
-        mm.1 .2 = Mat3x3(Vec3(a, b, d), Vec3(i, j, l), Vec3(m, n, p)).determinant();
-        mm.2 .2 = Mat3x3(Vec3(a, b, d), Vec3(e, f, h), Vec3(m, n, p)).determinant();
-        mm.3 .2 = Mat3x3(Vec3(a, b, d), Vec3(e, f, h), Vec3(i, j, l)).determinant();
+        mm.0 .2 = Mat3(Vec3(e, f, h), Vec3(i, j, l), Vec3(m, n, p)).determinant();
+        mm.1 .2 = Mat3(Vec3(a, b, d), Vec3(i, j, l), Vec3(m, n, p)).determinant();
+        mm.2 .2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(m, n, p)).determinant();
+        mm.3 .2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(i, j, l)).determinant();
 
-        mm.0 .3 = Mat3x3(Vec3(e, f, g), Vec3(i, j, k), Vec3(m, n, o)).determinant();
-        mm.1 .3 = Mat3x3(Vec3(a, b, c), Vec3(i, j, k), Vec3(m, n, o)).determinant();
-        mm.2 .3 = Mat3x3(Vec3(a, b, c), Vec3(e, f, g), Vec3(m, n, o)).determinant();
-        mm.3 .3 = Mat3x3(Vec3(a, b, c), Vec3(e, f, g), Vec3(i, j, k)).determinant();
+        mm.0 .3 = Mat3(Vec3(e, f, g), Vec3(i, j, k), Vec3(m, n, o)).determinant();
+        mm.1 .3 = Mat3(Vec3(a, b, c), Vec3(i, j, k), Vec3(m, n, o)).determinant();
+        mm.2 .3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(m, n, o)).determinant();
+        mm.3 .3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(i, j, k)).determinant();
 
         // matrix of cofactors
         let mut mcf = mm;
@@ -1288,7 +1286,7 @@ impl Mat4x4 {
         let madj = mcf.transpose();
 
         // multiply by 1 / det
-        let r = Mat4x4(madj.0 / det, madj.1 / det, madj.2 / det, madj.3 / det);
+        let r = Mat4(madj.0 / det, madj.1 / det, madj.2 / det, madj.3 / det);
 
         Some(r)
     }

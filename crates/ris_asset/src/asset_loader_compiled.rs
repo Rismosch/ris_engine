@@ -1,16 +1,13 @@
 use std::fs::File;
+use std::io::SeekFrom;
 use std::path::Path;
 
 use ris_error::RisResult;
-
-struct AssetEntry {
-    addr: u64,
-    len: usize,
-}
+use ris_file::io::FatPtr;
 
 pub struct AssetLoaderCompiled {
     file: File,
-    lookup: Vec<AssetEntry>,
+    lookup: Vec<FatPtr>,
 }
 
 impl AssetLoaderCompiled {
@@ -18,70 +15,45 @@ impl AssetLoaderCompiled {
         let mut file = File::open(asset_path)?;
         let f = &mut file;
 
-        let file_size = ris_file::seek!(f, SeekFrom::End(0))?;
-        ris_file::seek!(f, SeekFrom::Start(0))?;
+        ris_file::io::seek(f, SeekFrom::Start(0))?;
 
         let mut magic_bytes = [0u8; 16];
-        ris_file::read!(f, magic_bytes)?;
+        ris_file::io::read_checked(f, &mut magic_bytes)?;
 
         if !ris_util::testing::bytes_eq(&magic_bytes, &crate::asset_compiler::MAGIC) {
             return ris_error::new_result!("unkown magic value: {:?}", magic_bytes);
         }
 
-        let mut addr_original_paths_bytes = [0u8; 8];
-        ris_file::read!(f, addr_original_paths_bytes)?;
-        let addr_original_paths = u64::from_le_bytes(addr_original_paths_bytes);
+        let p_original_asset_names = ris_file::io::read_fat_ptr(f)?;
 
-        let mut lookup_len_bytes = [0u8; 8];
-        ris_file::read!(f, lookup_len_bytes)?;
-        let lookup_len = u64::from_le_bytes(lookup_len_bytes);
+        let asset_lookup = ris_file::io::read_array::<crate::asset_compiler::AssetAddr>(f)?;
+        let mut fat_ptr_lookup = Vec::with_capacity(asset_lookup.len());
 
-        let mut lookup = Vec::with_capacity(lookup_len as usize);
-
-        let mut next_addr_bytes = [0u8; 8];
-        ris_file::read!(f, next_addr_bytes)?;
-        let mut next_addr = u64::from_le_bytes(next_addr_bytes);
-        for i in 0..lookup_len {
-            let addr = next_addr;
-            next_addr = if i == lookup_len - 1 {
-                addr_original_paths
+        for i in 0..asset_lookup.len() {
+            let begin = asset_lookup[i].0;
+            let end = if i == asset_lookup.len() - 1 {
+                p_original_asset_names.addr
             } else {
-                let mut next_addr_bytes = [0u8; 8];
-                ris_file::read!(f, next_addr_bytes)?;
-                u64::from_le_bytes(next_addr_bytes)
+                asset_lookup[i + 1].0
             };
 
-            if next_addr > file_size {
-                return ris_error::new_result!("asset was larger than file size");
-            }
-
-            if addr > next_addr {
-                return ris_error::new_result!(
-                    "current addr {} was larger than next addr {}",
-                    addr,
-                    next_addr
-                );
-            }
-
-            let len = (next_addr - addr) as usize;
-            ris_log::trace!("asset {} {} {}", i, addr, len);
-            let asset_entry = AssetEntry { addr, len };
-
-            lookup.push(asset_entry);
+            let fat_ptr = FatPtr::begin_end(begin, end)?;
+            fat_ptr_lookup.push(fat_ptr);
         }
 
-        Ok(Self { file, lookup })
+        Ok(Self {
+            file,
+            lookup: fat_ptr_lookup,
+        })
     }
 
     pub fn load(&mut self, id: usize) -> RisResult<Vec<u8>> {
-        let entry = self
+        let p_asset = self
             .lookup
             .get(id)
             .ok_or_else(|| ris_error::new!("asset does not exist"))?;
-        let f = &mut self.file;
-        let mut bytes = vec![0u8; entry.len];
-        ris_file::seek!(f, SeekFrom::Start(entry.addr))?;
-        ris_file::read!(f, bytes)?;
+
+        let bytes = ris_file::io::read_unsized(&mut self.file, *p_asset)?;
         Ok(bytes)
     }
 }

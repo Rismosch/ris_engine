@@ -6,14 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ash = "0.37.3"
 imgui = "0.11.0"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
-vulkano = "0.33.0"
 shaderc = "0.8"
 ris_asset = { path = "../ris_asset" }
 ris_data = { path = "../ris_data" }
 ris_error = { path = "../ris_error" }
+ris_file = { path = "../ris_file" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }

@@ -20,13 +20,13 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: 
 #[macro_export]
 macro_rules! assert_feq {
     ($left:expr, $right:expr) => {{
-        $crate::assert_feq!($left, $right, ris_math::MIN_NORM, "");
+        $crate::assert_feq!($left, $right, ris_math::f32::MIN_NORM, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         $crate::assert_feq!($left, $right, $tolerance, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr, $($arg:tt)*) => {{
-        let diff = ris_math::diff($left, $right);
+        let diff = ris_math::f32::diff($left, $right);
         let message = format!($($arg)*);
         assert!(
             diff < $tolerance,
@@ -76,7 +76,7 @@ macro_rules! assert_bytes_eq {
     ($left:expr, $right:expr, $($arg:tt)*) => {{
         use ris_util::testing::BytesEqualResult;
 
-        let result = ris_util::testing::bytes_eq_detailed($left, $right);
+        let result = ris_util::testing::bytes_eq_detailed(&$left, &$right);
         match result {
             BytesEqualResult::Equal => (),
             BytesEqualResult::DifferentLengths => panic!(

@@ -1,6 +1,6 @@
-use ris_math::matrix::Mat2x2;
-use ris_math::matrix::Mat3x3;
-use ris_math::matrix::Mat4x4;
+use ris_math::matrix::Mat2;
+use ris_math::matrix::Mat3;
+use ris_math::matrix::Mat4;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
@@ -8,12 +8,12 @@ use ris_util::assert_feq;
 
 #[test]
 fn should_multiply_2_by_2() {
-    let a = Mat2x2(Vec2(3., 4.), Vec2(1., 2.));
-    let b = Mat2x2(Vec2(2., 1.), Vec2(3., 5.));
-    let c = Mat2x2(Vec2(3., 2.), Vec2(-1., 5.));
-    let d = Mat2x2(Vec2(-2., -3.), Vec2(4., 1.));
-    let p = Mat2x2(Vec2(-2., 1.), Vec2(5., -3.));
-    let q = Mat2x2(Vec2(4., 3.), Vec2(-2., 2.));
+    let a = Mat2(Vec2(3., 4.), Vec2(1., 2.));
+    let b = Mat2(Vec2(2., 1.), Vec2(3., 5.));
+    let c = Mat2(Vec2(3., 2.), Vec2(-1., 5.));
+    let d = Mat2(Vec2(-2., -3.), Vec2(4., 1.));
+    let p = Mat2(Vec2(-2., 1.), Vec2(5., -3.));
+    let q = Mat2(Vec2(4., 3.), Vec2(-2., 2.));
 
     let ab = a * b;
     assert_feq!(ab.0 .0, 7.);
@@ -42,10 +42,10 @@ fn should_multiply_2_by_2() {
 
 #[test]
 fn should_multiply_3_by_3() {
-    let a = Mat3x3(Vec3(2., 3., -4.), Vec3(0., 5., 1.), Vec3(-1., 2., 4.));
-    let b = Mat3x3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
-    let c = Mat3x3(Vec3(3., 0., -4.), Vec3(-2., -1., 2.), Vec3(5., 6., -1.));
-    let d = Mat3x3(Vec3(2., 3., 1.), Vec3(-1., -5., 4.), Vec3(0., 2., -2.));
+    let a = Mat3(Vec3(2., 3., -4.), Vec3(0., 5., 1.), Vec3(-1., 2., 4.));
+    let b = Mat3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
+    let c = Mat3(Vec3(3., 0., -4.), Vec3(-2., -1., 2.), Vec3(5., 6., -1.));
+    let d = Mat3(Vec3(2., 3., 1.), Vec3(-1., -5., 4.), Vec3(0., 2., -2.));
 
     let ab = a * b;
     assert_feq!(ab.0 .0, 8.);
@@ -94,25 +94,25 @@ fn should_multiply_3_by_3() {
 
 #[test]
 fn should_multiply_4_by_4() {
-    let a = Mat4x4(
+    let a = Mat4(
         Vec4(1., 1., 4., 5.),
         Vec4(3., 3., 3., 2.),
         Vec4(5., 1., 9., 0.),
         Vec4(9., 7., 7., 9.),
     );
-    let b = Mat4x4(
+    let b = Mat4(
         Vec4(5., 0., 6., 0.),
         Vec4(1., 9., 1., 0.),
         Vec4(1., 1., 8., 1.),
         Vec4(0., 1., 0., 2.),
     );
-    let c = Mat4x4(
+    let c = Mat4(
         Vec4(-10., 5., 10., -8.),
         Vec4(1., -5., -8., -4.),
         Vec4(-10., -5., -6., 3.),
         Vec4(3., 6., 8., -2.),
     );
-    let d = Mat4x4(
+    let d = Mat4(
         Vec4(7., 2., -9., 10.),
         Vec4(0., -1., 0., -8.),
         Vec4(8., -10., 8., -9.),
@@ -194,11 +194,11 @@ fn should_multiply_4_by_4() {
 
 #[test]
 fn should_calculate_the_determinant_of_2_by_2() {
-    let a = Mat2x2(Vec2(2., 1.), Vec2(5., -3.));
-    let b = Mat2x2(Vec2(3., 2.), Vec2(-5., 1.));
-    let c = Mat2x2(Vec2(-2., -6.), Vec2(4., 2.));
-    let d = Mat2x2(Vec2(-3., 4.), Vec2(-1., -5.));
-    let e = Mat2x2(Vec2(5., -4.), Vec2(-3., 2.));
+    let a = Mat2(Vec2(2., 1.), Vec2(5., -3.));
+    let b = Mat2(Vec2(3., 2.), Vec2(-5., 1.));
+    let c = Mat2(Vec2(-2., -6.), Vec2(4., 2.));
+    let d = Mat2(Vec2(-3., 4.), Vec2(-1., -5.));
+    let e = Mat2(Vec2(5., -4.), Vec2(-3., 2.));
 
     let da = a.determinant();
     let db = b.determinant();
@@ -215,11 +215,11 @@ fn should_calculate_the_determinant_of_2_by_2() {
 
 #[test]
 fn should_calculate_the_determinant_of_3_by_3() {
-    let a = Mat3x3(Vec3(3., 2., -3.), Vec3(0., -5., 1.), Vec3(-1., 4., 3.));
-    let b = Mat3x3(Vec3(2., 4., -5.), Vec3(-3., 2., 3.), Vec3(1., -1., -2.));
-    let c = Mat3x3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
-    let d = Mat3x3(Vec3(2., 3., -4.), Vec3(0., 5., 1.), Vec3(-1., 2., 4.));
-    let e = Mat3x3(Vec3(2., 3., 1.), Vec3(-1., -5., 4.), Vec3(0., 2., -2.));
+    let a = Mat3(Vec3(3., 2., -3.), Vec3(0., -5., 1.), Vec3(-1., 4., 3.));
+    let b = Mat3(Vec3(2., 4., -5.), Vec3(-3., 2., 3.), Vec3(1., -1., -2.));
+    let c = Mat3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
+    let d = Mat3(Vec3(2., 3., -4.), Vec3(0., 5., 1.), Vec3(-1., 2., 4.));
+    let e = Mat3(Vec3(2., 3., 1.), Vec3(-1., -5., 4.), Vec3(0., 2., -2.));
 
     let da = a.determinant();
     let db = b.determinant();
@@ -236,25 +236,25 @@ fn should_calculate_the_determinant_of_3_by_3() {
 
 #[test]
 fn should_calculate_the_determinant_of_4_by_4() {
-    let a = Mat4x4(
+    let a = Mat4(
         Vec4(1., 1., 4., 5.),
         Vec4(3., 3., 3., 2.),
         Vec4(5., 1., 9., 0.),
         Vec4(9., 7., 7., 9.),
     );
-    let b = Mat4x4(
+    let b = Mat4(
         Vec4(5., 0., 6., 0.),
         Vec4(1., 9., 1., 0.),
         Vec4(1., 1., 8., 1.),
         Vec4(0., 1., 0., 2.),
     );
-    let c = Mat4x4(
+    let c = Mat4(
         Vec4(-10., 5., 10., -8.),
         Vec4(1., -5., -8., -4.),
         Vec4(-10., -5., -6., 3.),
         Vec4(3., 6., 8., -2.),
     );
-    let d = Mat4x4(
+    let d = Mat4(
         Vec4(7., 2., -9., 10.),
         Vec4(0., -1., 0., -8.),
         Vec4(8., -10., 8., -9.),
@@ -274,17 +274,17 @@ fn should_calculate_the_determinant_of_4_by_4() {
 
 #[test]
 fn should_calculate_the_inverse_of_2_by_2() {
-    let assert_is_identity = |m: Mat2x2| {
+    let assert_is_identity = |m: Mat2| {
         assert_feq!(m.0 .0, 1.);
         assert_feq!(m.1 .0, 0.);
         assert_feq!(m.0 .1, 0.);
         assert_feq!(m.1 .1, 1.);
     };
 
-    let a = Mat2x2(Vec2(3., 4.), Vec2(1., 2.));
-    let b = Mat2x2(Vec2(2., 1.), Vec2(3., 5.));
-    let c = Mat2x2(Vec2(3., 2.), Vec2(-1., 5.));
-    let d = Mat2x2(Vec2(2., 4.), Vec2(3., 5.));
+    let a = Mat2(Vec2(3., 4.), Vec2(1., 2.));
+    let b = Mat2(Vec2(2., 1.), Vec2(3., 5.));
+    let c = Mat2(Vec2(3., 2.), Vec2(-1., 5.));
+    let d = Mat2(Vec2(2., 4.), Vec2(3., 5.));
 
     let inva = a.inverse().unwrap();
     assert_feq!(inva.0 .0, 1.);
@@ -316,7 +316,7 @@ fn should_calculate_the_inverse_of_2_by_2() {
 
 #[test]
 fn should_calculate_the_inverse_of_3_by_3() {
-    let assert_is_identity = |m: Mat3x3| {
+    let assert_is_identity = |m: Mat3| {
         assert_feq!(m.0 .0, 1.);
         assert_feq!(m.1 .0, 0.);
         assert_feq!(m.2 .0, 0.);
@@ -328,10 +328,10 @@ fn should_calculate_the_inverse_of_3_by_3() {
         assert_feq!(m.2 .2, 1.);
     };
 
-    let a = Mat3x3(Vec3(3., 2., -3.), Vec3(0., -5., 1.), Vec3(-1., 4., 3.));
-    let b = Mat3x3(Vec3(2., 4., -5.), Vec3(-3., 2., 3.), Vec3(1., -1., -2.));
-    let c = Mat3x3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
-    let d = Mat3x3(Vec3(1., 2., 3.), Vec3(4., 5., 6.), Vec3(7., 8., 9.));
+    let a = Mat3(Vec3(3., 2., -3.), Vec3(0., -5., 1.), Vec3(-1., 4., 3.));
+    let b = Mat3(Vec3(2., 4., -5.), Vec3(-3., 2., 3.), Vec3(1., -1., -2.));
+    let c = Mat3(Vec3(5., -1., 2.), Vec3(1., 0., -3.), Vec3(-2., 4., 3.));
+    let d = Mat3(Vec3(1., 2., 3.), Vec3(4., 5., 6.), Vec3(7., 8., 9.));
 
     let inva = a.inverse().unwrap();
     assert_feq!(inva.0 .0, 0.4318182);
@@ -378,7 +378,7 @@ fn should_calculate_the_inverse_of_3_by_3() {
 
 #[test]
 fn should_calculate_the_inverse_of_4_by_4() {
-    let assert_is_identity = |m: Mat4x4| {
+    let assert_is_identity = |m: Mat4| {
         assert_feq!(m.0 .0, 1.);
         assert_feq!(m.1 .0, 0.);
         assert_feq!(m.2 .0, 0.);
@@ -397,25 +397,25 @@ fn should_calculate_the_inverse_of_4_by_4() {
         assert_feq!(m.3 .3, 1.);
     };
 
-    let a = Mat4x4(
+    let a = Mat4(
         Vec4(1., 1., 4., 5.),
         Vec4(3., 3., 3., 2.),
         Vec4(5., 1., 9., 0.),
         Vec4(9., 7., 7., 9.),
     );
-    let b = Mat4x4(
+    let b = Mat4(
         Vec4(5., 0., 6., 0.),
         Vec4(1., 9., 1., 0.),
         Vec4(1., 1., 8., 1.),
         Vec4(0., 1., 0., 2.),
     );
-    let c = Mat4x4(
+    let c = Mat4(
         Vec4(-10., 5., 10., -8.),
         Vec4(1., -5., -8., -4.),
         Vec4(-10., -5., -6., 3.),
         Vec4(3., 6., 8., -2.),
     );
-    let d = Mat4x4(
+    let d = Mat4(
         Vec4(1., 2., 3., 4.),
         Vec4(5., 6., 7., 8.),
         Vec4(9., 10., 11., 12.),

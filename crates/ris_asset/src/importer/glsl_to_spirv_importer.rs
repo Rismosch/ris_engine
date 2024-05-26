@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -10,18 +11,22 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub const IN_EXT: &str = "glsl";
-pub const OUT_EXT: &[&str] = &["vert.spirv", "frag.spirv"];
+pub const OUT_EXT: &[&str] = &["vert.spv", "frag.spv"];
+
+// enable this to log the GLSL, that the preprocessor generates
+pub const TRACE_PREPROCESSED_GLSL: bool = true;
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     // read file
     let file = source.to_str().unroll()?;
 
-    let mut input = File::open(file)?;
+    let mut source = File::open(file)?;
+    let f = &mut source;
 
-    let file_size = ris_file::seek!(input, SeekFrom::End(0))?;
-    ris_file::seek!(input, SeekFrom::Start(0))?;
+    let file_size = ris_file::io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
-    ris_file::read!(input, file_content)?;
+    ris_file::io::seek(f, SeekFrom::Start(0))?;
+    ris_file::io::read_checked(f, &mut file_content)?;
     let source_text = String::from_utf8(file_content)?;
 
     // pre processor
@@ -151,7 +156,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
-            ris_file::write!(&mut output, bytes)?;
+            ris_file::io::write_checked(&mut output, bytes)?;
         }
     }
 
@@ -233,11 +238,13 @@ impl Shader {
 
         let file = format!("{}.{}", file_stem, extension);
 
-        let mut source_trace = String::new();
-        for (i, source_line) in source.lines().enumerate() {
-            source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
+        if TRACE_PREPROCESSED_GLSL {
+            let mut source_trace = String::new();
+            for (i, source_line) in source.lines().enumerate() {
+                source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
+            }
+            ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
         }
-        //ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
 
         let artifact = compiler.compile_into_spirv(
             &source,

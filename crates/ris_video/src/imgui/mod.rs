@@ -1,10 +1,9 @@
-pub mod backend;
-pub mod gpu_objects;
-pub mod pipeline;
-pub mod render_pass;
-pub mod renderer;
+pub mod imgui_backend;
+pub mod imgui_frames;
+pub mod imgui_mesh;
+pub mod imgui_renderer;
 
 pub struct RisImgui {
-    pub backend: backend::ImguiBackend,
-    pub renderer: renderer::ImguiRenderer,
+    pub backend: imgui_backend::ImguiBackend,
+    pub renderer: imgui_renderer::ImguiRenderer,
 }

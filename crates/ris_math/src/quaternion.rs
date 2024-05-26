@@ -1,5 +1,3 @@
-use vulkano::buffer::BufferContents;
-
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
@@ -7,7 +5,7 @@ use crate::vector::Vec4;
 // definition
 //
 
-#[derive(Debug, Copy, Clone, BufferContents)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Quat(pub f32, pub f32, pub f32, pub f32);
 
@@ -48,8 +46,8 @@ impl From<AngleAxis> for Quat {
 
         let n = axis.normalize();
         let t = angle * 0.5;
-        let re = super::cos(t);
-        let im = super::sin(t);
+        let re = crate::f32::cos(t);
+        let im = crate::f32::sin(t);
 
         Self(n.0 * im, n.1 * im, n.2 * im, re)
     }
@@ -60,12 +58,12 @@ impl From<Quat> for AngleAxis {
         let mut q = value;
 
         // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
-        if super::abs(q.3) > 1. {
+        if crate::f32::abs(q.3) > 1. {
             q = q.normalize();
         }
 
-        let t = 2. * super::acos(q.3);
-        let s = super::sqrt(1. - q.3 * q.3);
+        let t = 2. * crate::f32::acos(q.3);
+        let s = crate::f32::sqrt(1. - q.3 * q.3);
 
         let n = if s < 0.001 {
             Vec3(1., 0., 0.)

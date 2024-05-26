@@ -27,11 +27,8 @@ impl UiHelperModule for SettingsModule {
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
-        if let Some(future) = data.logic_future.take() {
-            future.wait(None)?
-        }
         let ui = data.ui;
-        let mut settings = data.state.front.settings.borrow_mut();
+        let settings = &mut data.state.settings;
 
         if ui.collapsing_header("jobs", imgui::TreeNodeFlags::empty()) {
             let mut workers = settings.job().get_workers();
