@@ -82,17 +82,15 @@ impl ICommand for Archive {
             crate::cmd::run("git reset .", None)?;
             crate::cmd::run("git restore .", None)?;
 
-            crate::cmd::run("pwd", None)?;
-
-            //match clean {
-            //    Clean::Everything => {
-            //        crate::cmd::run("git clean -dxf -e \"target\\\"", None)?;
-            //    },
-            //    Clean::ExceptVendor => {
-            //        crate::cmd::run("git clean -dxf -e \"target\\\" -e \"vendor\\\" -e \".cargo\\\"", None)?;
-            //    },
-            //    Clean::Nothing => (),
-            //}
+            match clean {
+                Clean::Everything => {
+                    crate::cmd::run("git clean -dxf -e \"target/\"", None)?;
+                },
+                Clean::ExceptVendor => {
+                    crate::cmd::run("git clean -dxf -e \"target/\" -e \"vendor/\" -e \".cargo/\"", None)?;
+                },
+                Clean::Nothing => (),
+            }
         }
 
         if vendor {
