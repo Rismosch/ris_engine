@@ -142,9 +142,3 @@ All tests are found under `./tests/` and can be run with:
 ```bash
 cargo test
 ```
-
-If you have [miri](https://github.com/rust-lang/miri) installed, tests can be run with:
-
-```bash
-cargo miri test
-```
