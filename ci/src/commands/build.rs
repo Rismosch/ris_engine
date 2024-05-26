@@ -162,10 +162,7 @@ impl ICommand for Build {
         {
             eprintln!("moving sdl2...");
             let mut src_sdl2_path = String::new();
-            crate::cmd::run(
-                &format!("where {}", SDL2_NAME),
-                Some(&mut src_sdl2_path),
-            )?;
+            crate::cmd::run(&format!("where {}", SDL2_NAME), Some(&mut src_sdl2_path))?;
 
             let src_sdl2_path = src_sdl2_path.trim();
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
