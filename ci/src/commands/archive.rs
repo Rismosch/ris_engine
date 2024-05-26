@@ -77,10 +77,20 @@ impl ICommand for Archive {
 
         let root_dir = crate::util::get_root_dir()?;
 
-        match clean {
-            Clean::Everything => (),
-            Clean::ExceptVendor => (),
-            Clean::Nothing => (),
+        if clean != Clean::Nothing {
+            eprintln!("cleaning workspace...");
+            crate::cmd::run("git reset .", None)?;
+            crate::cmd::run("git restore .", None)?;
+
+            match clean {
+                Clean::Everything => {
+                    crate::cmd::run("git clean -dxf", None)?;
+                },
+                Clean::ExceptVendor => {
+                    crate::cmd::run("git clean -dxf -e \"vendor\\\" -e \".cargo\\\"", None)?;
+                },
+                Clean::Nothing => (),
+            }
         }
 
         if vendor {
