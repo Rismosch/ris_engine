@@ -38,7 +38,7 @@ impl ICommand for Archive {
     }
 
     fn explanation() -> String {
-        format!("Cleans, vendors and compresses the entire workspace.")
+        format!("Cleans, vendors and compresses the entire workspace. This command uses `7z` and `tar` for compression.")
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
