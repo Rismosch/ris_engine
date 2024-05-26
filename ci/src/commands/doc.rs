@@ -7,8 +7,12 @@ use crate::ICommand;
 pub struct Doc;
 
 impl ICommand for Doc {
-    fn usage() -> String {
-        format!("doc         Generates docs and moves them to another folder")
+    fn args() -> String {
+        String::new()
+    }
+
+    fn explanation() -> String {
+        format!("Generates docs and moves them to another folder.")
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {

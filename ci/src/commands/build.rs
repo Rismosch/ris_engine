@@ -31,8 +31,12 @@ struct AutoGenerateParseData<'a> {
 
 pub struct Build;
 impl ICommand for Build {
-    fn usage() -> String {
-        format!("build       Generates build info and compiles the workspace as a release ready package")
+    fn args() -> String {
+        String::new()
+    }
+
+    fn explanation() -> String {
+        format!("Generates build info and compiles the workspace as a release ready package.")
     }
 
     fn run(_args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
