@@ -71,10 +71,10 @@ fn cargo_nightly(args: &str) -> CiResult<String> {
 
     for line in stdout.lines() {
         if line.contains(".cargo") {
-            return Ok(format!("{} +nightly {}", line, args))
+            return Ok(format!("{} +nightly {}", line, args));
         }
     }
-    
+
     return crate::new_error_result!("failed to find nightly cargo");
 }
 

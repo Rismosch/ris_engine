@@ -125,7 +125,7 @@ macro_rules! get_backtrace {
         } else {
             String::from("00:00:00")
         };
-        
+
 
         let backtrace = Arc::new(Backtrace::force_capture());
         eprintln!(

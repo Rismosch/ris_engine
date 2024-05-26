@@ -29,11 +29,7 @@ impl ICommand for Archive {
     fn args() -> String {
         format!(
             "[{}/{}] [{}] [{}] {}",
-            CLEAN,
-            CLEAN_EVERYTHING,
-            VENDOR,
-            COMPRESS,
-            FORCE,
+            CLEAN, CLEAN_EVERYTHING, VENDOR, COMPRESS, FORCE,
         )
     }
 
@@ -42,14 +38,9 @@ impl ICommand for Archive {
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
-
         if args.len() <= 2 {
             eprintln!("no args provided");
-            crate::util::print_help_for_command(
-                "archive",
-                Self::args(),
-                Self::explanation(),
-            );
+            crate::util::print_help_for_command("archive", Self::args(), Self::explanation());
             return Ok(());
         }
 
@@ -67,7 +58,7 @@ impl ICommand for Archive {
                 VENDOR => vendor = true,
                 COMPRESS => compress = true,
                 FORCE => force = true,
-                arg => return crate::new_error_result!("unkown arg: {}", arg)
+                arg => return crate::new_error_result!("unkown arg: {}", arg),
             }
         }
 
@@ -85,10 +76,10 @@ impl ICommand for Archive {
             match clean {
                 Clean::Everything => {
                     crate::cmd::run("git clean -dxf -e target", None)?;
-                },
+                }
                 Clean::ExceptVendor => {
                     crate::cmd::run("git clean -dxf -e target -e vendor -e .cargo", None)?;
-                },
+                }
                 Clean::Nothing => (),
             }
         }
@@ -122,24 +113,29 @@ impl ICommand for Archive {
         } else {
             let archive_date = chrono::Local::now().format("%Y_%m_%d").to_string();
 
-            let src_dir = root_dir
-                .to_str()
-                .to_ci_result()?
-                .replace('\\', "/");
-            let dst_file_path = target_dir
-                .join(format!("{}_{}", RIS_ENGINE, archive_date));
-            let dst_file_path = dst_file_path
-                .to_str()
-                .to_ci_result()?
-                .replace('\\', "/");
+            let src_dir = root_dir.to_str().to_ci_result()?.replace('\\', "/");
+            let dst_file_path = target_dir.join(format!("{}_{}", RIS_ENGINE, archive_date));
+            let dst_file_path = dst_file_path.to_str().to_ci_result()?.replace('\\', "/");
 
             crate::util::clean_or_create_dir(&target_dir)?;
 
             eprintln!("compressing...");
             crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!ci_out", dst_file_path, src_dir), None)?;
-            crate::cmd::run(&format!("7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!ci_out", dst_file_path, src_dir), None)?;
+            crate::cmd::run(
+                &format!(
+                    "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!ci_out",
+                    dst_file_path, src_dir
+                ),
+                None,
+            )?;
 
-            crate::cmd::run(&format!("tar --exclude=.git --exclude=target --exclude=ci_out -czf {}.tgz -C {} .",dst_file_path, src_dir), None)?;
+            crate::cmd::run(
+                &format!(
+                    "tar --exclude=.git --exclude=target --exclude=ci_out -czf {}.tgz -C {} .",
+                    dst_file_path, src_dir
+                ),
+                None,
+            )?;
 
             eprintln!("done! archive can be found in {:?}", target_dir);
             Ok(())

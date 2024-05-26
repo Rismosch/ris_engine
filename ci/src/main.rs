@@ -34,14 +34,18 @@ fn main() -> Result<(), String> {
             let trimmed_arg = arg2.trim().to_lowercase();
             let command = commands.iter().find(|x| x.name == trimmed_arg);
             match command {
-                Some(Command { name, args, explanation, .. }) => 
-                {
+                Some(Command {
+                    name,
+                    args,
+                    explanation,
+                    ..
+                }) => {
                     crate::util::print_help_for_command(name, args(), explanation());
-                },
+                }
                 None => {
                     eprintln!("unkown command: {}", arg2);
                     print_help(commands);
-                },
+                }
             }
         } else {
             print_help(commands);
@@ -53,8 +57,12 @@ fn main() -> Result<(), String> {
     let command = commands.iter().find(|x| x.name == trimmed_arg);
 
     match command {
-        Some(Command { name, run, args, explanation }) => {
-            
+        Some(Command {
+            name,
+            run,
+            args,
+            explanation,
+        }) => {
             // check if `help` is the second command
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
@@ -92,7 +100,13 @@ fn print_help(to_print: Vec<Command>) {
     let mut max_args_len = 0;
     let mut max_explanation_len = 0;
 
-    for Command { name, args, explanation, .. } in to_print.iter() {
+    for Command {
+        name,
+        args,
+        explanation,
+        ..
+    } in to_print.iter()
+    {
         max_name_len = usize::max(max_name_len, name.len());
         max_args_len = usize::max(max_args_len, args().len());
         max_explanation_len = usize::max(max_explanation_len, explanation().len());
@@ -101,12 +115,15 @@ fn print_help(to_print: Vec<Command>) {
     let name = env!("CARGO_PKG_NAME");
     eprintln!("usage: {} [help] <command>", name);
     eprintln!("commands:");
-    for Command { name, explanation, .. } in to_print {
+    for Command {
+        name, explanation, ..
+    } in to_print
+    {
         let mut name = name;
         while name.len() < max_name_len {
             name.push(' ');
         }
-        
+
         let mut explanation = explanation();
         while explanation.len() < max_explanation_len {
             explanation.push(' ');
@@ -123,7 +140,7 @@ fn print_help(to_print: Vec<Command>) {
                 }
             }
 
-            line.push_str(&format!(" {}",word));
+            line.push_str(&format!(" {}", word));
         }
 
         if !line.trim().is_empty() {
