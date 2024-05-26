@@ -8,7 +8,14 @@ use crate::ICommand;
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
 
+#[cfg(target_os = "windows")]
+const EXE_NAME: &str = "ris_engine.exe";
+#[cfg(target_os = "windows")]
+const SDL2_NAME: &str = "SDL2.dll";
+
+#[cfg(target_os = "linux")]
 const EXE_NAME: &str = "ris_engine";
+
 const ASSETS_NAME: &str = "ris_assets";
 
 struct AutoGenerateParseData<'a> {
@@ -137,15 +144,30 @@ impl ICommand for Build {
 
         crate::util::clean_or_create_dir(&target_dir)?;
 
-        eprintln!("moving files...");
+        eprintln!("moving executable...");
         let src_exe_path = root_dir.join("target").join("release").join(EXE_NAME);
         let dst_exe_path = target_dir.join(EXE_NAME);
+        std::fs::copy(src_exe_path, dst_exe_path)?;
 
+        eprintln!("moving assets...");
         let src_asset_path = root_dir.join(ASSETS_NAME);
         let dst_asset_path = target_dir.join(ASSETS_NAME);
-
-        std::fs::copy(src_exe_path, dst_exe_path)?;
         std::fs::copy(src_asset_path, dst_asset_path)?;
+
+        #[cfg(target_os = "windows")]
+        {
+            eprintln!("moving sdl2...");
+            let mut src_sdl2_path = String::new();
+            crate::cmd::run(
+                &format!("where {}", SDL2_NAME),
+                Some(&mut src_sdl2_path),
+            )?;
+
+            let src_sdl2_path = src_sdl2_path.trim();
+            let dst_sdl2_path = target_dir.join(SDL2_NAME);
+            eprintln!("attempting to copy {} from: {}", SDL2_NAME, src_sdl2_path);
+            std::fs::copy(src_sdl2_path, dst_sdl2_path)?;
+        }
 
         eprintln!("done! final build can be found under {:?}", target_dir);
 
