@@ -84,7 +84,7 @@ impl ICommand for Archive {
 
             match clean {
                 Clean::Everything => {
-                    crate::cmd::run("git clean -dxf -e \"target\"", None)?;
+                    crate::cmd::run("git clean -dxf -e target", None)?;
                 },
                 Clean::ExceptVendor => {
                     crate::cmd::run("git clean -dxf -e \"target/\" -e \"vendor/\" -e \".cargo/\"", None)?;
