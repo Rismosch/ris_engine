@@ -183,32 +183,32 @@ fn parse_multi_line(line: &str, data: &mut AutoGenerateParseData) {
             ')' => data.total_close_paranthesis += 1,
             _ => continue,
         }
+    }
 
-        let end_found = (data.total_quotation_marks > 0)
-            && (data.total_quotation_marks % 2 == 0)
-            && (data.total_open_paranthesis > 0)
-            && (data.total_close_paranthesis > 0)
-            && (data.total_open_paranthesis == data.total_close_paranthesis);
+    let end_found = (data.total_quotation_marks > 0)
+        && (data.total_quotation_marks % 2 == 0)
+        && (data.total_open_paranthesis > 0)
+        && (data.total_close_paranthesis > 0)
+        && (data.total_open_paranthesis == data.total_close_paranthesis);
 
-        if end_found {
-            // end found! we can parse!
-            data.multi_line += &format!("{}\n", line);
+    if end_found {
+        // end found! we can parse!
+        data.multi_line += &format!("{}\n", line);
 
-            let splits = data.multi_line.split('\"').collect::<Vec<_>>();
-            let string1 = splits[0];
-            let string2 = splits[splits.len() - 1];
+        let splits = data.multi_line.split('\"').collect::<Vec<_>>();
+        let string1 = splits[0];
+        let string2 = splits[splits.len() - 1];
 
-            data.result += &format!("{}\"{}\"{}", string1, data.to_replace, string2,);
+        data.result += &format!("{}\"{}\"{}", string1, data.to_replace, string2,);
 
-            data.multi_line = String::new();
-            data.total_quotation_marks = 0;
-            data.total_open_paranthesis = 0;
-            data.total_close_paranthesis = 0;
-            data.is_multi_line = false;
-        } else {
-            // end not found
-            data.multi_line += &format!("{}\n", line);
-            data.is_multi_line = true;
-        }
+        data.multi_line = String::new();
+        data.total_quotation_marks = 0;
+        data.total_open_paranthesis = 0;
+        data.total_close_paranthesis = 0;
+        data.is_multi_line = false;
+    } else {
+        // end not found
+        data.multi_line += &format!("{}\n", line);
+        data.is_multi_line = true;
     }
 }

@@ -1,12 +1,13 @@
-All files in `./external/` are not mine and are licensed under their respective licenses. Listed below are all the sources, where I got these files from.
+All files in `./external/` are not mine and are licensed under their respective licenses. See below for info.
 
-## SDL2-2.0.12
+Project: SDL2
+URL: https://www.libsdl.org/
+License: zlib
+Upstream version: 2.28.5
+Local modifications: None
 
-download: https://vulkan.lunarg.com/
-license: zlib License
-
-## Shaderc
-
-repository: https://github.com/google/shaderc  
-direct download: https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2017_release.html  
-license: Apache License 2.0
+Project: Shaderc
+URL: https://github.com/google/shaderc
+License: Apache-2.0
+Upstream version:
+Local modifications: None

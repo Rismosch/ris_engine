@@ -62,6 +62,33 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 ---
 
+### Windows
+
+In this repo you will find the   `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
+
+#### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
+
+These DLLs need to be available in your environment. So either assign it to your environment variables or move them to the root of the directory.
+
+#### 2. Set the environment variable `SHADERC_LIB_DIR`
+
+[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`.
+
+For more info, check this link: https://docs.rs/shaderc/0.8.3/shaderc/index.html
+
+So, if `shaderc_shared.dll` sits inside directory `/path/to/shaderc/`, then set `SHADERC_LIB_DIR` to `/path/to/shaderc/`. If you don't want to move the DLL, you can simply set `SHADERC_LIB_DIR` to `<path of this repo>/external/bin/`.
+
+
+#### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
+
+```powershell
+C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
+```
+
+Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against the required LIBs.
+
+---
+
 ### Linux
 
 Examples use the `pacman` package manager from Arch.
@@ -83,30 +110,6 @@ sudo pacman -S shaderc
 Depending on your graphics card, you need to install a different package. Follow the instructions in the link below:
 
 https://wiki.archlinux.org/title/Vulkan#Installation
-
----
-
-### Windows
-
-In this repo you will find the   `./external/` directory. It contains all required libraries.  For information where I got these from, read [./external/README.md](3rd_party/README.md). If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
-
-#### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
-
-These DLLs need to be available in your environment. So either assign it to your environment variables or move them to the root of the directory.
-
-#### 2. Set the environment variable `SHADERC_LIB_DIR` to `./external/bin/`
-
-[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`.
-
-For more info, check this link: <TODO>
-
-#### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
-
-```powershell
-C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
-```
-
-Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against the required LIBs.
 
 ---
 
