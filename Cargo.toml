@@ -37,16 +37,7 @@ members = [
 ]
 
 [dependencies]
-criterion = { version = "0.3", features = ["html_reports"] } # not a dev dependency, as to generate docs
-
-ash = "0.37.3"
-chrono = "0.4"
-imgui = "0.11.0"
-png = "0.17.10"
-sdl2 = "0.34.5"
-sdl2-sys = "0.34.5"
-shaderc = "0.8"
-
+# internal
 ris_asset = { path = "crates/ris_asset" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
@@ -59,6 +50,18 @@ ris_math = { path = "crates/ris_math" }
 ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video = { path = "crates/ris_video" }
+
+# external
+ash = "0.37.3"
+chrono = "0.4"
+imgui = "0.11.0"
+png = "0.17.10"
+sdl2 = "0.34.5"
+sdl2-sys = "0.34.5"
+shaderc = "0.8"
+
+# development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies`)
+criterion = { version = "0.3", features = ["html_reports"] }
 
 [profile.dev]
 opt-level = 0
