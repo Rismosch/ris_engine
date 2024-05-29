@@ -6,8 +6,6 @@ Barebones game engine. Home made passion project.
 
 ![thumbnail](assets/__raw/images/screenshot.png)
 
----
-
 ## Features:
 
 - [x] Startup, shutdown, mainloop and error handling
@@ -27,9 +25,9 @@ Barebones game engine. Home made passion project.
 - [x] Debug GUI via Dear ImGui
 - [ ] Debug gizmos
   - [ ] Point
-  - [ ] Line/ray
+  - [ ] Line
+  - [ ] Box
   - [ ] Sphere
-  - [ ] Bounding box
   - [ ] Text
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
@@ -38,11 +36,8 @@ Barebones game engine. Home made passion project.
 - [x] Codecs
   - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
-- [x] Safe global accessible mutable state
-  - [x] Settings/Configuration
-  - [ ] Gameobjects
-
----
+- [x] Settings/Configuration
+- [ ] Gameobjects
 
 ## Requirements
 
@@ -52,15 +47,11 @@ Barebones game engine. Home made passion project.
 | Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
 | Graphics | Vulkan capable Hardware  |                                                          |
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive).  Note that I make these archives sporadically, meaning they may not be up to date.
-
----
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive).Note that I make these archives sporadically, meaning they may not be up to date.
 
 ## Installation
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Depending on your platform, follow the instructions below.
-
----
 
 ### Windows
 
@@ -78,7 +69,6 @@ For more info, check this link: https://docs.rs/shaderc/0.8.3/shaderc/index.html
 
 So, if `shaderc_shared.dll` sits inside directory `/path/to/shaderc/`, then set `SHADERC_LIB_DIR` to `/path/to/shaderc/`. If you don't want to move the DLL, you can simply set `SHADERC_LIB_DIR` to `<path of this repo>/external/bin/`.
 
-
 #### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
 
 ```powershell
@@ -86,8 +76,6 @@ C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<cur
 ```
 
 Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against the required LIBs.
-
----
 
 ### Linux
 
@@ -111,8 +99,6 @@ Depending on your graphics card, you need to install a different package. Follow
 
 https://wiki.archlinux.org/title/Vulkan#Installation
 
----
-
 ## Building
 
 Assuming everything is installed correctly, you can now compile and run the engine with:
@@ -132,8 +118,6 @@ cargo run -p ci build
 ```bash
 cargo run -p ci
 ```
-
----
 
 ## Testing
 
