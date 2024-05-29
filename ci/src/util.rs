@@ -6,7 +6,8 @@ use crate::CiResultExtensions;
 
 pub fn print_help_for_command(name: &str, args: String, explanation: String) {
     eprintln!("usage: ci {} {}", name, args);
-    eprintln!("    {}", explanation);
+    eprintln!();
+    eprintln!("{}", explanation);
 }
 
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {

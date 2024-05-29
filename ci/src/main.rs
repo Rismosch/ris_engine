@@ -40,7 +40,7 @@ fn main() -> Result<(), String> {
                     explanation,
                     ..
                 }) => {
-                    crate::util::print_help_for_command(name, args(), explanation());
+                    crate::util::print_help_for_command(name, args(), explanation(false));
                 }
                 None => {
                     eprintln!("unkown command: {}", arg2);
@@ -67,7 +67,7 @@ fn main() -> Result<(), String> {
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
-                    crate::util::print_help_for_command(name, args(), explanation());
+                    crate::util::print_help_for_command(name, args(), explanation(false));
                     return Ok(());
                 }
             }
@@ -109,7 +109,7 @@ fn print_help(to_print: Vec<Command>) {
     {
         max_name_len = usize::max(max_name_len, name.len());
         max_args_len = usize::max(max_args_len, args().len());
-        max_explanation_len = usize::max(max_explanation_len, explanation().len());
+        max_explanation_len = usize::max(max_explanation_len, explanation(true).len());
     }
 
     let name = env!("CARGO_PKG_NAME");
@@ -124,7 +124,7 @@ fn print_help(to_print: Vec<Command>) {
             name.push(' ');
         }
 
-        let mut explanation = explanation();
+        let mut explanation = explanation(true);
         while explanation.len() < max_explanation_len {
             explanation.push(' ');
         }

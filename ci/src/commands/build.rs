@@ -35,7 +35,7 @@ impl ICommand for Build {
         String::new()
     }
 
-    fn explanation() -> String {
+    fn explanation(_short: bool) -> String {
         format!("Generates build info and compiles the workspace as a release ready package.")
     }
 

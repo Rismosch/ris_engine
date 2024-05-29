@@ -10,7 +10,7 @@ impl ICommand for Pipeline {
         String::new()
     }
 
-    fn explanation() -> String {
+    fn explanation(_short: bool) -> String {
         format!("Runs various tests, to determine if the repo is in an acceptable state.")
     }
 
@@ -41,8 +41,10 @@ impl ICommand for Pipeline {
         }
 
         if results.iter().all(|x| x.1) {
+            println!("pipeline succeeded");
             Ok(())
         } else {
+            println!("pipeline failed");
             crate::new_error_result!("pipeline failed")
         }
     }

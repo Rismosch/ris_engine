@@ -11,8 +11,12 @@ impl ICommand for Doc {
         String::new()
     }
 
-    fn explanation() -> String {
-        format!("Generates docs and moves them to another folder.")
+    fn explanation(short: bool) -> String {
+        if short {
+            format!("Generates docs and moves them to another folder.")
+        } else {
+            format!("Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable.")
+        }
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {

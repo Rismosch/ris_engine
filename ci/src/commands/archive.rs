@@ -33,15 +33,43 @@ impl ICommand for Archive {
         )
     }
 
-    fn explanation() -> String {
-        format!("Cleans, vendors and compresses the entire workspace. This command uses `7z` and `tar` for compression.")
+    fn explanation(short: bool) -> String {
+        if short {
+            format!("Cleans, vendors and compresses the entire workspace.")
+        } else {
+            let mut explanation = String::new();
+            explanation.push_str(&format!("Cleans, vendors and compresses the entire workspace. This command modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("args:\n"));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("[{}]\n", CLEAN));
+            explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n"));
+            explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("[{}]\n", CLEAN_EVERYTHING));
+            explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n"));
+            explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("[{}]\n", VENDOR));
+            explanation.push_str(&format!("Vendors crates."));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("[{}]\n", COMPRESS));
+            explanation.push_str(&format!(
+                "Compresses the entire workspace using `7z` and `tar`.\n"
+            ));
+            explanation.push_str(&format!("\n"));
+            explanation.push_str(&format!("{}\n", FORCE));
+            explanation.push_str(&format!("This command modifies the workspace, which cannot be undone. Pass this arg to proceed anyway.\n"));
+            explanation
+        }
     }
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
         if args.len() <= 2 {
             eprintln!("no args provided");
-            crate::util::print_help_for_command("archive", Self::args(), Self::explanation());
-            return Ok(());
+            crate::util::print_help_for_command("archive", Self::args(), Self::explanation(false));
+            return crate::new_error_result!("no args provided");
         }
 
         eprintln!("parsing args...");
@@ -58,12 +86,20 @@ impl ICommand for Archive {
                 VENDOR => vendor = true,
                 COMPRESS => compress = true,
                 FORCE => force = true,
-                arg => return crate::new_error_result!("unkown arg: {}", arg),
+                arg => {
+                    eprintln!("unkown arg: {}", arg);
+                    crate::util::print_help_for_command(
+                        "archive",
+                        Self::args(),
+                        Self::explanation(false),
+                    );
+                    return crate::new_error_result!("unkown arg: {}", arg);
+                }
             }
         }
 
         if !force {
-            return crate::new_error_result!("this command deletes and changes files in the workspace. it cannot be undone. pass `{}` to proceed anyway", FORCE);
+            return crate::new_error_result!("this command deletes and changes files in the workspace, which cannot be undone. pass `{}` to proceed anyway", FORCE);
         }
 
         let root_dir = crate::util::get_root_dir()?;
