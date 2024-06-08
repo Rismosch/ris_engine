@@ -2057,7 +2057,7 @@ impl VkBvec4 {
     }
 
     pub fn all(self) -> vk::Bool32 {
-        self.0 & self.1 | self.2 | self.3
+        self.0 & self.1 & self.2 & self.3
     }
 }
 

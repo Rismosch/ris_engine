@@ -60,7 +60,7 @@ sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 shaderc = "0.8"
 
-# development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies`)
+# development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies)
 criterion = { version = "0.3", features = ["html_reports"] }
 
 [profile.dev]
