@@ -30,7 +30,7 @@ impl std::fmt::Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let millis = self.average_duration().as_millis();
         let fps = self.average_fps();
-        write!(f, "{} ms ({} fps)", millis, fps)
+        write!(f, "{} fps ({} ms)", fps, millis)
     }
 }
 

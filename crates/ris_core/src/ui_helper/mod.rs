@@ -57,10 +57,6 @@ fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
 pub trait UiHelperModule {
     fn name(&self) -> &'static str;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
-    fn always(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
-
-    fn serialize(&self) -> RisResult<RisYaml>;
-    fn deserialize(&mut self, yaml: RisYaml) -> RisResult<()>;
 }
 
 pub struct UiHelperDrawData<'a> {
@@ -133,30 +129,6 @@ impl UiHelper {
         let pinned_string = pinned_strings.join(", ");
 
         yaml.add_key_value(PINNED, &pinned_string);
-
-        // serialize modules
-        for module in self.modules.iter() {
-            let name = module.name();
-            let serialized = module.serialize()?;
-
-            for entry in serialized.entries {
-                let (key, value) = match entry.key_value {
-                    Some(key_value) => key_value,
-                    None => continue,
-                };
-
-                if key.contains('.') {
-                    return ris_error::new_result!(
-                        "failed to serialize module {}. key may not contain `.`: \"{}\"",
-                        name,
-                        key
-                    );
-                }
-
-                let module_key = format!("{}.{}", name, key);
-                yaml.add_key_value(&module_key, &value);
-            }
-        }
 
         // write file
         let mut file = std::fs::File::create(&self.config_filepath)?;
@@ -245,8 +217,6 @@ impl UiHelper {
                     module_yaml.add_key_value(module_key, value);
                 }
             }
-
-            module.deserialize(module_yaml)?;
         }
 
         Ok(Self {
@@ -258,11 +228,7 @@ impl UiHelper {
         })
     }
 
-    pub fn draw(&mut self, mut data: UiHelperDrawData) -> RisResult<()> {
-        for module in self.modules.iter_mut() {
-            module.always(&mut data)?;
-        }
-
+    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
         let result = data
             .ui
             .window("UiHelper")
