@@ -7,19 +7,24 @@ pub struct Sid {
 
 impl PartialEq for Sid {
     fn eq(&self, other: &Self) -> bool {
-        let result = self.hash == other.hash;
-
         #[cfg(debug_assertions)]
         {
+            let result = self.hash == other.hash;
+
             let left = &self.value;
             let right = &other.value;
             let hash = self.hash;
             if result && left != right {
                 ris_error::throw!("sid collision detected! left: \"{}\" right: \"{}\" hash: \"{}\". this should never happen. change one of the strings to something else", left, right, hash );
             }
+
+            result
         }
 
-        result
+        #[cfg(not(debug_assertions))]
+        {
+            self.hash == other.hash
+        }
     }
 }
 

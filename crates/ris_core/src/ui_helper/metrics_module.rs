@@ -108,10 +108,6 @@ impl UiHelperModule for MetricsModule {
 
         plot_lines.build();
 
-        if ui.button("clear history") {
-            *self = Default::default();
-        }
-
         Ok(())
     }
 }
