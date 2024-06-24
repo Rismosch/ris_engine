@@ -80,6 +80,6 @@ fn cargo_nightly(args: &str) -> RisResult<String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn cargo_nightly(args: &str) -> CiResult<String> {
+fn cargo_nightly(args: &str) -> RisResult<String> {
     Ok(format!("cargo +nightly {}", args))
 }
