@@ -1,8 +1,10 @@
 use std::io::Write;
 use std::path::PathBuf;
 
-use crate::CiResult;
-use crate::CiResultExtensions;
+use ris_error::Extensions;
+use ris_error::RisResult;
+
+use crate::ExplanationLevel;
 use crate::ICommand;
 
 const RIS_ENGINE: &str = "ris_engine";
@@ -33,46 +35,49 @@ impl ICommand for Archive {
         )
     }
 
-    fn explanation(short: bool) -> String {
-        if short {
-            format!("Cleans, vendors and compresses the entire workspace.")
-        } else {
-            let mut explanation = String::new();
-            explanation.push_str(&format!("Cleans, vendors and compresses the entire workspace. This command modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("args:\n"));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("[{}]\n", CLEAN));
-            explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n"));
-            explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("[{}]\n", CLEAN_EVERYTHING));
-            explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n"));
-            explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("[{}]\n", VENDOR));
-            explanation.push_str(&format!("Vendors crates."));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("[{}]\n", COMPRESS));
-            explanation.push_str(&format!(
-                "Compresses the entire workspace using `7z` and `tar`.\n"
-            ));
-            explanation.push_str(&format!("\n"));
-            explanation.push_str(&format!("{}\n", FORCE));
-            explanation.push_str(&format!("This command modifies the workspace, which cannot be undone. Pass this arg to proceed anyway.\n"));
-            explanation
+    fn explanation(level: ExplanationLevel) -> String {
+        match level {
+            ExplanationLevel::Short => {
+                format!("Cleans, vendors and compresses the entire workspace.")
+            }
+            ExplanationLevel::Detailed => {
+                let mut explanation = String::new();
+                explanation.push_str(&format!("Cleans, vendors and compresses the entire workspace. This command modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("args:\n"));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("{}\n", CLEAN));
+                explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n"));
+                explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("{}\n", CLEAN_EVERYTHING));
+                explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n"));
+                explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("{}\n", VENDOR));
+                explanation.push_str(&format!("Vendors crates. I.e. downloads dependencies and stores them in this repo for offline use.\n"));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("{}\n", COMPRESS));
+                explanation.push_str(&format!(
+                    "Compresses the entire workspace using `7z` and `tar`.\n"
+                ));
+                explanation.push_str(&format!("\n"));
+                explanation.push_str(&format!("{}\n", FORCE));
+                explanation.push_str(&format!("This command (cli archive) modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
+                explanation
+            }
         }
     }
 
-    fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
+    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         if args.len() <= 2 {
-            eprintln!("no args provided");
-            crate::util::print_help_for_command("archive", Self::args(), Self::explanation(false));
-            return crate::new_error_result!("no args provided");
+            return crate::util::command_error(
+                "no args provided",
+                "archive",
+                Self::args(),
+                Self::explanation(ExplanationLevel::Detailed),
+            );
         }
-
-        eprintln!("parsing args...");
 
         let mut clean = Clean::Nothing;
         let mut vendor = false;
@@ -87,19 +92,18 @@ impl ICommand for Archive {
                 COMPRESS => compress = true,
                 FORCE => force = true,
                 arg => {
-                    eprintln!("unkown arg: {}", arg);
-                    crate::util::print_help_for_command(
+                    return crate::util::command_error(
+                        &format!("unkown arg: {}", arg),
                         "archive",
                         Self::args(),
-                        Self::explanation(false),
+                        Self::explanation(ExplanationLevel::Detailed),
                     );
-                    return crate::new_error_result!("unkown arg: {}", arg);
                 }
             }
         }
 
         if !force {
-            return crate::new_error_result!("this command deletes and changes files in the workspace, which cannot be undone. pass `{}` to proceed anyway", FORCE);
+            return ris_error::new_result!("this command deletes and changes files in the workspace, which cannot be undone. pass `{}` to proceed anyway", FORCE);
         }
 
         let root_dir = crate::util::get_root_dir()?;
@@ -130,7 +134,7 @@ impl ICommand for Archive {
             let mut vendor_output = String::new();
             let exit_status = crate::cmd::run(cargo_vendor, Some(&mut vendor_output))?;
             if !crate::cmd::has_exit_code(&exit_status, 0) {
-                return crate::new_error_result!("failed to run `{}`", cargo_vendor);
+                return ris_error::new_result!("failed to run `{}`", cargo_vendor);
             }
 
             let cargo_dir = crate::util::get_root_dir()?.join(CARGO_DIR_NAME);
@@ -149,9 +153,9 @@ impl ICommand for Archive {
         } else {
             let archive_date = chrono::Local::now().format("%Y_%m_%d").to_string();
 
-            let src_dir = root_dir.to_str().to_ci_result()?.replace('\\', "/");
+            let src_dir = root_dir.to_str().unroll()?.replace('\\', "/");
             let dst_file_path = target_dir.join(format!("{}_{}", RIS_ENGINE, archive_date));
-            let dst_file_path = dst_file_path.to_str().to_ci_result()?.replace('\\', "/");
+            let dst_file_path = dst_file_path.to_str().unroll()?.replace('\\', "/");
 
             crate::util::clean_or_create_dir(&target_dir)?;
 

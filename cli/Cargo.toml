@@ -1,9 +1,15 @@
 [package]
-name = "ci"
+name = "cli"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# internal
+ris_asset = { path = "../crates/ris_asset" }
+ris_error = { path = "../crates/ris_error" }
+ris_log = { path = "../crates/ris_log" }
+
+# external
 chrono = "0.4"

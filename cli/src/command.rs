@@ -1,18 +1,23 @@
 use std::path::PathBuf;
 
-use crate::CiResult;
+use ris_error::RisResult;
+
+pub enum ExplanationLevel {
+    Short,
+    Detailed,
+}
 
 pub trait ICommand {
     fn args() -> String;
-    fn explanation(short: bool) -> String;
-    fn run(args: Vec<String>, target_dir: PathBuf) -> CiResult<()>;
+    fn explanation(level: ExplanationLevel) -> String;
+    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()>;
 }
 
 pub struct Command {
     pub name: String,
-    pub run: Box<dyn Fn(Vec<String>, PathBuf) -> CiResult<()>>,
+    pub run: Box<dyn Fn(Vec<String>, PathBuf) -> RisResult<()>>,
     pub args: Box<dyn Fn() -> String>,
-    pub explanation: Box<dyn Fn(bool) -> String>,
+    pub explanation: Box<dyn Fn(ExplanationLevel) -> String>,
 }
 
 #[macro_export]

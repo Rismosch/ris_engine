@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use crate::CiResult;
+use ris_error::RisResult;
+
+use crate::ExplanationLevel;
 use crate::ICommand;
 
 pub struct Pipeline;
@@ -10,11 +12,11 @@ impl ICommand for Pipeline {
         String::new()
     }
 
-    fn explanation(_short: bool) -> String {
+    fn explanation(_level: ExplanationLevel) -> String {
         format!("Runs various tests, to determine if the repo is in an acceptable state.")
     }
 
-    fn run(_args: Vec<String>, _target_dir: PathBuf) -> CiResult<()> {
+    fn run(_args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         let mut results = Vec::new();
 
         results.push(test("cargo check"));
@@ -44,7 +46,7 @@ impl ICommand for Pipeline {
             Ok(())
         } else {
             println!("pipeline failed");
-            crate::new_error_result!("pipeline failed")
+            ris_error::new_result!("pipeline failed")
         }
     }
 }
@@ -63,7 +65,7 @@ fn test<'a>(cmd: &'a str) -> (String, bool) {
 }
 
 #[cfg(target_os = "windows")]
-fn cargo_nightly(args: &str) -> CiResult<String> {
+fn cargo_nightly(args: &str) -> RisResult<String> {
     let where_cargo = crate::cmd::run_where("cargo")?;
 
     for cargo in where_cargo {
@@ -72,7 +74,7 @@ fn cargo_nightly(args: &str) -> CiResult<String> {
         }
     }
 
-    return crate::new_error_result!("failed to find nightly cargo");
+    return ris_error::new_result!("failed to find nightly cargo");
 }
 
 #[cfg(not(target_os = "windows"))]

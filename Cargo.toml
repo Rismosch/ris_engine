@@ -20,7 +20,7 @@ default-run = "ris_engine"
 
 [workspace]
 members = [ 
-    "ci",
+    "cli",
     "crates/ris_asset",
     "crates/ris_asset_compiler",
     "crates/ris_core",

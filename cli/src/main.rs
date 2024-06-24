@@ -1,4 +1,3 @@
-pub mod ci_error;
 pub mod cmd;
 pub mod command;
 pub mod commands;
@@ -6,11 +5,14 @@ pub mod util;
 
 use std::path::PathBuf;
 
-pub use ci_error::CiResult;
-pub use ci_error::CiResultExtensions;
+use ris_error::Extensions;
+use ris_error::RisResult;
+
 pub use command::Command;
+pub use command::ExplanationLevel;
 pub use command::ICommand;
 pub use commands::archive::Archive;
+pub use commands::asset::Asset;
 pub use commands::build::Build;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
@@ -18,7 +20,13 @@ pub use commands::pipeline::Pipeline;
 fn main() -> Result<(), String> {
     let start = std::time::SystemTime::now();
     let raw_args = std::env::args().collect::<Vec<_>>();
-    let commands = command_vec!(Archive, Build, Doc, Pipeline,);
+    let commands = command_vec!(
+        Archive,
+        Asset,
+        Build,
+        Doc,
+        Pipeline,
+    );
 
     // check if no arguments provided
     if raw_args.len() < 2 {
@@ -40,7 +48,11 @@ fn main() -> Result<(), String> {
                     explanation,
                     ..
                 }) => {
-                    crate::util::print_help_for_command(name, args(), explanation(false));
+                    crate::util::print_help_for_command(
+                        name,
+                        args(),
+                        explanation(ExplanationLevel::Detailed),
+                    );
                 }
                 None => {
                     eprintln!("unkown command: {}", arg2);
@@ -67,7 +79,11 @@ fn main() -> Result<(), String> {
             if raw_args.len() > 2 {
                 let arg2 = &raw_args[2];
                 if is_help_arg(arg2) {
-                    crate::util::print_help_for_command(name, args(), explanation(false));
+                    crate::util::print_help_for_command(
+                        name,
+                        args(),
+                        explanation(ExplanationLevel::Detailed),
+                    );
                     return Ok(());
                 }
             }
@@ -85,7 +101,7 @@ fn main() -> Result<(), String> {
                 eprintln!("failed to determine duration");
             }
 
-            result.map_err(|e| e.to_string())
+            result.map_err(|e| e.message.unwrap_or("error contained no message".to_string()))
         }
         None => {
             eprintln!("unkown command: {}", arg1);
@@ -109,11 +125,14 @@ fn print_help(to_print: Vec<Command>) {
     {
         max_name_len = usize::max(max_name_len, name.len());
         max_args_len = usize::max(max_args_len, args().len());
-        max_explanation_len = usize::max(max_explanation_len, explanation(true).len());
+        max_explanation_len = usize::max(
+            max_explanation_len,
+            explanation(ExplanationLevel::Short).len(),
+        );
     }
 
-    let name = env!("CARGO_PKG_NAME");
-    eprintln!("usage: {} [help] <command>", name);
+    let cargo_pkg_name = env!("CARGO_PKG_NAME");
+    eprintln!("usage: {} [help] <command>", cargo_pkg_name);
     eprintln!("commands:");
     for Command {
         name, explanation, ..
@@ -124,7 +143,7 @@ fn print_help(to_print: Vec<Command>) {
             name.push(' ');
         }
 
-        let mut explanation = explanation(true);
+        let mut explanation = explanation(ExplanationLevel::Short);
         while explanation.len() < max_explanation_len {
             explanation.push(' ');
         }
@@ -166,16 +185,18 @@ fn is_help_arg(arg: &str) -> bool {
         || arg == "--manual"
 }
 
-fn get_target_dir(program: &str, command: &str) -> CiResult<PathBuf> {
+fn get_target_dir(program: &str, command: &str) -> RisResult<PathBuf> {
     let parent = match crate::util::get_root_dir() {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
-            .to_ci_result()?
+            .unroll()?
             .to_path_buf(),
     };
 
-    let target_dir = parent.join("ci_out").join(command);
+    let cargo_pkg_name = env!("CARGO_PKG_NAME");
+    let target_dir_name = format!("{}_out", cargo_pkg_name);
+    let target_dir = parent.join(target_dir_name).join(command);
 
     Ok(target_dir)
 }

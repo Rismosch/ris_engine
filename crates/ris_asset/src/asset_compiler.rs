@@ -264,7 +264,6 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
             asset_lookup[i + 1].0
         };
 
-        ris_log::debug!(" hoi {} {}", asset_begin, asset_end);
         let p_asset = FatPtr::begin_end(asset_begin, asset_end)?;
         let file_content = ris_file::io::read_unsized(source, p_asset)?;
 

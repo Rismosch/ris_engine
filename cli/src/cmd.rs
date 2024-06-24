@@ -1,14 +1,14 @@
 use std::io::Read;
 
-use crate::CiResult;
-use crate::CiResultExtensions;
+use ris_error::Extensions;
+use ris_error::RisResult;
 
-pub fn run(cmd: &str, stdout: Option<&mut String>) -> CiResult<std::process::ExitStatus> {
+pub fn run(cmd: &str, stdout: Option<&mut String>) -> RisResult<std::process::ExitStatus> {
     eprintln!("running `{}`...", cmd);
 
     let splits = cmd.split(' ').map(|x| x.trim()).collect::<Vec<_>>();
     if splits.is_empty() {
-        return crate::new_error_result!("cannot run empty cmd");
+        return ris_error::new_result!("cannot run empty cmd");
     }
 
     let mut command = std::process::Command::new(splits[0]);
@@ -22,7 +22,7 @@ pub fn run(cmd: &str, stdout: Option<&mut String>) -> CiResult<std::process::Exi
 
     let mut process = command.spawn()?;
     if let Some(stdout_string) = stdout {
-        let process_stdout = process.stdout.as_mut().to_ci_result()?;
+        let process_stdout = process.stdout.as_mut().unroll()?;
         process_stdout.read_to_string(stdout_string)?;
     }
     let exit_status = process.wait()?;
@@ -45,7 +45,7 @@ pub fn has_exit_code(exit_status: &std::process::ExitStatus, exit_code: i32) -> 
     false
 }
 
-pub fn run_where(cmd: &str) -> CiResult<Vec<String>> {
+pub fn run_where(cmd: &str) -> RisResult<Vec<String>> {
     let cmd = format!("where {}", cmd);
     let mut stdout = String::new();
 

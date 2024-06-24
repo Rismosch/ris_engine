@@ -2,8 +2,10 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use crate::CiResult;
-use crate::CiResultExtensions;
+use ris_error::Extensions;
+use ris_error::RisResult;
+
+use crate::ExplanationLevel;
 use crate::ICommand;
 
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
@@ -36,11 +38,11 @@ impl ICommand for Build {
         String::new()
     }
 
-    fn explanation(_short: bool) -> String {
+    fn explanation(_level: ExplanationLevel) -> String {
         format!("Generates build info and compiles the workspace as a release ready package.")
     }
 
-    fn run(_args: Vec<String>, target_dir: PathBuf) -> CiResult<()> {
+    fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         eprintln!("generating build info...");
 
         let root_dir = crate::util::get_root_dir()?;
@@ -163,7 +165,7 @@ impl ICommand for Build {
         {
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
-            let src_sdl2_path = where_sdl2.get(0).to_ci_result()?;
+            let src_sdl2_path = where_sdl2.get(0).unroll()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!("attempting to copy {} from: {:?}", SDL2_NAME, src_sdl2_path);
             std::fs::copy(src_sdl2_path, dst_sdl2_path)?;
