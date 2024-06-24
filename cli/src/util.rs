@@ -1,12 +1,25 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::CiResult;
-use crate::CiResultExtensions;
+use ris_error::Extensions;
+use ris_error::RisResult;
 
 pub fn print_help_for_command(name: &str, args: String, explanation: String) {
-    eprintln!("usage: ci {} {}", name, args);
-    eprintln!("    {}", explanation);
+    let cargo_pkg_name = env!("CARGO_PKG_NAME");
+    eprintln!("usage: {} {} {}", cargo_pkg_name, name, args);
+    eprintln!();
+    eprintln!("{}", explanation);
+}
+
+pub fn command_error(
+    message: &str,
+    name: &str,
+    args: String,
+    explanation: String,
+) -> RisResult<()> {
+    eprintln!("{}", message);
+    crate::util::print_help_for_command(name, args, explanation);
+    ris_error::new_result!("{}", message)
 }
 
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
@@ -61,7 +74,7 @@ pub fn sanitize_path(value: &str) -> String {
     value
 }
 
-pub fn get_root_dir() -> CiResult<PathBuf> {
+pub fn get_root_dir() -> RisResult<PathBuf> {
     let output = std::process::Command::new(env!("CARGO"))
         .arg("locate-project")
         .arg("--workspace")
@@ -70,7 +83,7 @@ pub fn get_root_dir() -> CiResult<PathBuf> {
         .stdout;
     let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
 
-    let root_dir = cargo_path.parent().to_ci_result()?.to_path_buf();
+    let root_dir = cargo_path.parent().unroll()?.to_path_buf();
 
     Ok(root_dir)
 }

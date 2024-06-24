@@ -1,5 +1,4 @@
 use ris_data::info::app_info::AppInfo;
-use ris_data::settings::ris_yaml::RisYaml;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
 use ris_error::RisResult;
@@ -73,18 +72,6 @@ impl UiHelperModule for SettingsModule {
             }
         }
 
-        Ok(())
-    }
-
-    fn always(&mut self, _data: &mut UiHelperDrawData) -> RisResult<()> {
-        Ok(())
-    }
-
-    fn serialize(&self) -> RisResult<RisYaml> {
-        Ok(RisYaml::default())
-    }
-
-    fn deserialize(&mut self, _yaml: RisYaml) -> RisResult<()> {
         Ok(())
     }
 }

@@ -11,8 +11,8 @@ Cargo.lock
 /.idea
 /.vscode
 
-# ci output
-/ci_out
+# cli output
+/cli_out
 
 # assets
 assets/__imported_raw/
