@@ -44,3 +44,18 @@ pub fn has_exit_code(exit_status: &std::process::ExitStatus, exit_code: i32) -> 
 
     false
 }
+
+pub fn run_where(cmd: &str) -> CiResult<Vec<String>> {
+    let cmd = format!("where {}", cmd);
+    let mut stdout = String::new();
+
+    run(&cmd, Some(&mut stdout))?;
+
+    let result = stdout
+        .split("\n")
+        .map(|x| x.trim().to_string())
+        .filter(|x| !x.is_empty())
+        .collect::<Vec<_>>();
+
+    Ok(result)
+}

@@ -27,8 +27,7 @@ impl ICommand for Pipeline {
         results.push(test("cargo clippy -r -- -Dwarnings"));
         results.push(test("cargo clippy --tests -- -Dwarnings"));
         results.push(test("cargo clippy -r --tests -- -Dwarnings"));
-        let cargo_nightly_miri_test = cargo_nightly("miri test")?;
-        results.push(test(&cargo_nightly_miri_test));
+        results.push(test(&cargo_nightly("miri test")?));
 
         println!("results:");
         for (cmd, success) in results.iter() {
@@ -50,7 +49,7 @@ impl ICommand for Pipeline {
     }
 }
 
-fn test<'a>(cmd: &'a str) -> (&'a str, bool) {
+fn test<'a>(cmd: &'a str) -> (String, bool) {
     let exit_status = crate::cmd::run(cmd, None);
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
@@ -60,20 +59,16 @@ fn test<'a>(cmd: &'a str) -> (&'a str, bool) {
         Err(_) => false,
     };
 
-    (cmd, success)
+    (cmd.to_string(), success)
 }
 
 #[cfg(target_os = "windows")]
 fn cargo_nightly(args: &str) -> CiResult<String> {
-    let mut stdout = String::new();
-    let exit_code = crate::cmd::run("where cargo", Some(&mut stdout))?;
-    if !crate::cmd::has_exit_code(&exit_code, 0) {
-        return crate::new_error_result!("failed to find cargo");
-    }
+    let where_cargo = crate::cmd::run_where("cargo")?;
 
-    for line in stdout.lines() {
-        if line.contains(".cargo") {
-            return Ok(format!("{} +nightly {}", line, args));
+    for cargo in where_cargo {
+        if cargo.contains(".cargo") {
+            return Ok(format!("{} +nightly {}", cargo, args));
         }
     }
 
