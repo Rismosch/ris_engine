@@ -9,6 +9,7 @@ edition = "2021"
 # internal
 ris_asset = { path = "../crates/ris_asset" }
 ris_error = { path = "../crates/ris_error" }
+ris_file = { path = "../crates/ris_file" }
 ris_log = { path = "../crates/ris_log" }
 
 # external

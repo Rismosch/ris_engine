@@ -33,13 +33,7 @@ fn main() -> Result<(), String> {
         false
     };
 
-    let commands = command_vec!(
-        Archive,
-        Asset,
-        Build,
-        Doc,
-        Pipeline,
-    );
+    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline,);
 
     // check if no arguments provided
     if raw_args.len() < 2 {
@@ -102,7 +96,7 @@ fn main() -> Result<(), String> {
             }
 
             // run command
-            let result = match get_target_dir(&raw_args[0], &name) {
+            let result = match get_target_dir(&raw_args[0], name) {
                 Ok(target_dir) => run(raw_args, target_dir),
                 Err(e) => Err(e),
             };
@@ -226,10 +220,7 @@ fn is_verbose_arg(arg: &str) -> bool {
 fn get_target_dir(program: &str, command: &str) -> RisResult<PathBuf> {
     let parent = match crate::util::get_root_dir() {
         Ok(root_dir) => root_dir,
-        Err(_) => PathBuf::from(program)
-            .parent()
-            .unroll()?
-            .to_path_buf(),
+        Err(_) => PathBuf::from(program).parent().unroll()?.to_path_buf(),
     };
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");

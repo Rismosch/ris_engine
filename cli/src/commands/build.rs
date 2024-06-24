@@ -39,7 +39,7 @@ impl ICommand for Build {
     }
 
     fn explanation(_level: ExplanationLevel) -> String {
-        format!("Generates build info and compiles the workspace as a release ready package.")
+        String::from("Generates build info and compiles the workspace as a release ready package.")
     }
 
     fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
@@ -165,7 +165,7 @@ impl ICommand for Build {
         {
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
-            let src_sdl2_path = where_sdl2.get(0).unroll()?;
+            let src_sdl2_path = where_sdl2.first().unroll()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!("attempting to copy {} from: {:?}", SDL2_NAME, src_sdl2_path);
             std::fs::copy(src_sdl2_path, dst_sdl2_path)?;

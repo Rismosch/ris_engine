@@ -52,7 +52,7 @@ pub fn run_where(cmd: &str) -> RisResult<Vec<String>> {
     run(&cmd, Some(&mut stdout))?;
 
     let result = stdout
-        .split("\n")
+        .split('\n')
         .map(|x| x.trim().to_string())
         .filter(|x| !x.is_empty())
         .collect::<Vec<_>>();

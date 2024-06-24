@@ -15,8 +15,8 @@ impl ICommand for Doc {
 
     fn explanation(level: ExplanationLevel) -> String {
         match level {
-            ExplanationLevel::Short => format!("Generates docs and moves them to another folder."),
-            ExplanationLevel::Detailed => format!("Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable."),
+            ExplanationLevel::Short => String::from("Generates docs and moves them to another folder."),
+            ExplanationLevel::Detailed => String::from("Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable."),
         }
     }
 

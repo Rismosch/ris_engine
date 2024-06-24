@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::PathBuf;
 
 use ris_error::Extensions;
@@ -38,32 +37,30 @@ impl ICommand for Archive {
     fn explanation(level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => {
-                format!("Cleans, vendors and compresses the entire workspace.")
+                String::from("Cleans, vendors and compresses the entire workspace.")
             }
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
-                explanation.push_str(&format!("Cleans, vendors and compresses the entire workspace. This command modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
-                explanation.push_str(&format!("\n"));
-                explanation.push_str(&format!("args:\n"));
-                explanation.push_str(&format!("\n"));
+                explanation.push_str("Cleans, vendors and compresses the entire workspace. This command modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n");
+                explanation.push('\n');
+                explanation.push_str("args:\n");
+                explanation.push('\n');
                 explanation.push_str(&format!("{}\n", CLEAN));
-                explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n"));
-                explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
-                explanation.push_str(&format!("\n"));
+                explanation.push_str("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n");
+                explanation.push_str("WARNING: Uncommited changes will be lost!\n");
+                explanation.push('\n');
                 explanation.push_str(&format!("{}\n", CLEAN_EVERYTHING));
-                explanation.push_str(&format!("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n"));
-                explanation.push_str(&format!("WARNING: Uncommited changes will be lost!\n"));
-                explanation.push_str(&format!("\n"));
+                explanation.push_str("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n");
+                explanation.push_str("WARNING: Uncommited changes will be lost!\n");
+                explanation.push('\n');
                 explanation.push_str(&format!("{}\n", VENDOR));
-                explanation.push_str(&format!("Vendors crates. I.e. downloads dependencies and stores them in this repo for offline use.\n"));
-                explanation.push_str(&format!("\n"));
+                explanation.push_str("Vendors crates. I.e. downloads dependencies and stores them in this repo for offline use.\n");
+                explanation.push('\n');
                 explanation.push_str(&format!("{}\n", COMPRESS));
-                explanation.push_str(&format!(
-                    "Compresses the entire workspace using `7z` and `tar`.\n"
-                ));
-                explanation.push_str(&format!("\n"));
+                explanation.push_str("Compresses the entire workspace using `7z` and `tar`.\n");
+                explanation.push('\n');
                 explanation.push_str(&format!("{}\n", FORCE));
-                explanation.push_str(&format!("This command (cli archive) modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n"));
+                explanation.push_str("This command (cli archive) modifies the workspace, which cannot be undone. Pass -f to proceed anyway.\n");
                 explanation
             }
         }
@@ -144,7 +141,7 @@ impl ICommand for Archive {
             eprintln!("writing {:?}...", config_toml_path);
             let bytes = vendor_output.as_bytes();
             let mut file = std::fs::File::create(config_toml_path)?;
-            file.write(bytes)?;
+            ris_file::io::write_checked(&mut file, bytes)?;
         }
 
         if !compress {

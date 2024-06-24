@@ -13,24 +13,26 @@ impl ICommand for Pipeline {
     }
 
     fn explanation(_level: ExplanationLevel) -> String {
-        format!("Runs various tests, to determine if the repo is in an acceptable state.")
+        String::from("Runs various tests, to determine if the repo is in an acceptable state.")
     }
 
     fn run(_args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
-        let mut results = Vec::new();
+        let results = vec![
+            test("cargo check"),
+            test("cargo check -r"),
+            test("cargo build"),
+            test("cargo build -r"),
+            test("cargo test"),
+            test("cargo test -r"),
+            test("cargo clippy -- -Dwarnings"),
+            test("cargo clippy -r -- -Dwarnings"),
+            test("cargo clippy --tests -- -Dwarnings"),
+            test("cargo clippy -r --tests -- -Dwarnings"),
+            test(&cargo_nightly("miri test")?),
+            test("cargo clippy -p cli -- -Dwarnings"),
+        ];
 
-        results.push(test("cargo check"));
-        results.push(test("cargo check -r"));
-        results.push(test("cargo build"));
-        results.push(test("cargo build -r"));
-        results.push(test("cargo test"));
-        results.push(test("cargo test -r"));
-        results.push(test("cargo clippy -- -Dwarnings"));
-        results.push(test("cargo clippy -r -- -Dwarnings"));
-        results.push(test("cargo clippy --tests -- -Dwarnings"));
-        results.push(test("cargo clippy -r --tests -- -Dwarnings"));
-        results.push(test(&cargo_nightly("miri test")?));
-
+        println!("done! finished running all tests");
         println!("results:");
         for (cmd, success) in results.iter() {
             let success_str = match success {
@@ -51,7 +53,7 @@ impl ICommand for Pipeline {
     }
 }
 
-fn test<'a>(cmd: &'a str) -> (String, bool) {
+fn test(cmd: &str) -> (String, bool) {
     let exit_status = crate::cmd::run(cmd, None);
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
@@ -74,7 +76,7 @@ fn cargo_nightly(args: &str) -> RisResult<String> {
         }
     }
 
-    return ris_error::new_result!("failed to find nightly cargo");
+    ris_error::new_result!("failed to find nightly cargo")
 }
 
 #[cfg(not(target_os = "windows"))]

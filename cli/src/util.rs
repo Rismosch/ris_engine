@@ -15,14 +15,10 @@ pub fn command_error(
     message: &str,
     name: &str,
     args: String,
-    explanation: String
+    explanation: String,
 ) -> RisResult<()> {
     eprintln!("{}", message);
-    crate::util::print_help_for_command(
-        name,
-        args,
-        explanation,
-    );
+    crate::util::print_help_for_command(name, args, explanation);
     ris_error::new_result!("{}", message)
 }
 
