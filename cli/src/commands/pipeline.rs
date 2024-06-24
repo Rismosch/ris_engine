@@ -32,7 +32,7 @@ impl ICommand for Pipeline {
             test("cargo clippy -p cli -- -Dwarnings"),
         ];
 
-        println!("done! finished running all tests");
+        println!("done! finished running pipeline!");
         println!("results:");
         for (cmd, success) in results.iter() {
             let success_str = match success {
