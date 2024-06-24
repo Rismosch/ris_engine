@@ -22,7 +22,6 @@ default-run = "ris_engine"
 members = [ 
     "cli",
     "crates/ris_asset",
-    "crates/ris_asset_compiler",
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_error",

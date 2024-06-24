@@ -19,7 +19,20 @@ pub use commands::pipeline::Pipeline;
 
 fn main() -> Result<(), String> {
     let start = std::time::SystemTime::now();
-    let raw_args = std::env::args().collect::<Vec<_>>();
+
+    unsafe {
+        ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
+    }
+
+    let mut raw_args = std::env::args().collect::<Vec<_>>();
+    let verbose_position = raw_args.iter().position(|x| is_verbose_arg(x));
+    let verbose = if let Some(verbose_position) = verbose_position {
+        raw_args.remove(verbose_position);
+        true
+    } else {
+        false
+    };
+
     let commands = command_vec!(
         Archive,
         Asset,
@@ -101,7 +114,21 @@ fn main() -> Result<(), String> {
                 eprintln!("failed to determine duration");
             }
 
-            result.map_err(|e| e.message.unwrap_or("error contained no message".to_string()))
+            result.map_err(|e| {
+                if verbose {
+                    eprintln!("    {:?}", e);
+                } else {
+                    eprintln!("command failed. pass -v for more info");
+                }
+
+                if let Some(message) = e.message {
+                    message
+                } else if let Some(source) = e.source {
+                    source.to_string()
+                } else {
+                    String::from("error contained no information on what caused it")
+                }
+            })
         }
         None => {
             eprintln!("unkown command: {}", arg1);
@@ -183,6 +210,17 @@ fn is_help_arg(arg: &str) -> bool {
         || arg == "manual"
         || arg == "-manual"
         || arg == "--manual"
+}
+
+fn is_verbose_arg(arg: &str) -> bool {
+    let arg = arg.trim().to_lowercase();
+
+    arg == "v"
+        || arg == "-v"
+        || arg == "--v"
+        || arg == "verbose"
+        || arg == "-verbose"
+        || arg == "--verbose"
 }
 
 fn get_target_dir(program: &str, command: &str) -> RisResult<PathBuf> {

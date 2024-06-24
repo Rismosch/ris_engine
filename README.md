@@ -110,13 +110,13 @@ cargo run
 Alternatively, you can build a release-ready package, by running the command below. Note that this builds with all optimizations enabled, which takes significantly longer than just using `cargo run`.
 
 ```bash
-cargo run -p ci build
+cargo run -p cli build
 ```
 
-`ci` is a command line tool to enable continuous integration. For all available commands and their usages, run:
+`cli` is a command line tool to enable continuous integration. For all available commands and their usages, run:
 
 ```bash
-cargo run -p ci
+cargo run -p cli
 ```
 
 ## Testing
