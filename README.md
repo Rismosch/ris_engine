@@ -113,7 +113,7 @@ Alternatively, you can build a release-ready package, by running the command bel
 cargo run -p cli build
 ```
 
-`cli` is a command line tool to enable continuous integration. For all available commands and their usages, run:
+`cli` is a command line utility tool. It enables CI/CD and runs features of the engine as a oneshot cli program. For all available commands and their usages, run:
 
 ```bash
 cargo run -p cli

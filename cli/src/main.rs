@@ -13,6 +13,7 @@ pub use command::ExplanationLevel;
 pub use command::ICommand;
 pub use commands::archive::Archive;
 pub use commands::asset::Asset;
+pub use commands::asset::AssetCommand;
 pub use commands::build::Build;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
