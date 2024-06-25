@@ -2,6 +2,7 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::Asset;
