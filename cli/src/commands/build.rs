@@ -2,7 +2,6 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::Asset;
@@ -165,6 +164,8 @@ impl ICommand for Build {
 
         #[cfg(target_os = "windows")]
         {
+            use ris_error::Extensions;
+
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
             let src_sdl2_path = where_sdl2.first().unroll()?;
