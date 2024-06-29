@@ -12,6 +12,8 @@ pub enum WantsTo {
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
+    let test = ris_debug::record!("hello");
+
     loop {
         let frame = frame_calculator.bump_and_create_frame();
 
