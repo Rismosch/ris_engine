@@ -11,6 +11,7 @@ const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 5;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
+    show_plot: bool,
     plot_frames: Vec<(Instant, Frame)>,
     average_frames: Vec<Frame>,
     instant_since_last_average_calculation: Instant,
@@ -20,6 +21,7 @@ pub struct MetricsModule {
 impl Default for MetricsModule {
     fn default() -> Self {
         Self {
+            show_plot: false,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
             instant_since_last_average_calculation: Instant::now(),
@@ -74,10 +76,8 @@ impl UiHelperModule for MetricsModule {
             ),
         );
 
-        // plot frames
+        // plot frames  
         let mut plot_values = Vec::new();
-        let mut min = *frame;
-        let mut max = min;
 
         let mut i = 0;
         while i < self.plot_frames.len() {
@@ -89,24 +89,19 @@ impl UiHelperModule for MetricsModule {
             }
             i += 1;
 
-            let duration = frame.average_duration();
-            plot_values.push(duration.as_secs_f32() * 1000.);
-
-            if min.average_duration() > duration {
-                min = frame;
-            }
-            if max.average_duration() < duration {
-                max = frame;
-            }
+            plot_values.push(frame.average_fps() as f32);
         }
 
-        let mut plot_lines = ui.plot_lines("##history", plot_values.as_slice());
+        ui.checkbox("show plot", &mut self.show_plot);
+        if self.show_plot {
+            let mut plot_lines = ui.plot_lines("##history", plot_values.as_slice());
 
-        let graph_width = ui.content_region_avail()[0];
-        let graph_height = ui.item_rect_size()[1] * 3.;
-        plot_lines = plot_lines.graph_size([graph_width, graph_height]);
+            let graph_width = ui.content_region_avail()[0];
+            let graph_height = ui.item_rect_size()[1] * 3.;
+            plot_lines = plot_lines.graph_size([graph_width, graph_height]);
 
-        plot_lines.build();
+            plot_lines.build();
+        }
 
         Ok(())
     }

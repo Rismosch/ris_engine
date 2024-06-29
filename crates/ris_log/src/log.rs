@@ -42,7 +42,7 @@ impl Drop for LogGuard {
         match LOG.lock() {
             Err(e) => eprintln!("error while dropping log: {}", e),
             Ok(mut log) => {
-              *log = None;
+                *log = None;
             }
         }
     }

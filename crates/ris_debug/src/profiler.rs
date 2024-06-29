@@ -3,36 +3,43 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 
+use ris_error::Extensions;
+use ris_error::RisResult;
+
 use crate::sid::Sid;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ProfilerState {
+    Stopped,
+    WaitingForNewFrame,
+    Recording,
+}
 
 pub static PROFILER: Mutex<Option<Profiler>> = Mutex::new(None);
 
-pub struct ProfilerGuard;
-
-impl Drop for ProfilerGuard {
-    fn drop(&mut self) {
-    }
-}
-
 pub struct Profiler {
+    state: ProfilerState,
     frames_to_record: usize,
     previous_instant: Instant,
     durations: HashMap<Sid, Vec<Duration>>,
     evaluation: Option<Vec<ProfilerDuration>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ProfilerDuration {
     pub sid: Sid,
     pub min: Duration,
     pub max: Duration,
     pub average: Duration,
     pub median: Duration,
+    pub sum: Duration,
     pub percentage: f32,
 }
 
 impl Profiler {
     pub fn start_recording(&mut self, frame_count: usize) {
-        self.frames_to_record = frame_count + 1;
+        self.state = ProfilerState::WaitingForNewFrame;
+        self.frames_to_record = frame_count;
         self.evaluation = None;
 
         for (_sid, durations) in self.durations.iter_mut() {
@@ -40,20 +47,34 @@ impl Profiler {
         }
     }
 
-    pub fn is_recording(&self) -> bool {
-        self.frames_to_record > 0
+    pub fn stop_recording(&mut self) {
+        self.state = ProfilerState::Stopped;
     }
-    
+
+    pub fn is_recording(&self) -> bool {
+        self.state != ProfilerState::Stopped
+    }
+
     pub fn new_frame(&mut self) {
-        if self.frames_to_record == 0 {
-            return;
+        match self.state {
+            ProfilerState::Stopped => (),
+            ProfilerState::WaitingForNewFrame => self.state = ProfilerState::Recording,
+            ProfilerState::Recording => {
+                self.frames_to_record = self.frames_to_record.saturating_sub(1);
+                if self.frames_to_record == 0 {
+                    self.state = ProfilerState::Stopped;
+                }
+            }
         }
 
-        self.frames_to_record -= 1;
         self.previous_instant = Instant::now();
     }
 
     pub fn add_timestamp(&mut self, sid: Sid, instant: Instant) {
+        if self.state != ProfilerState::Recording {
+            return;
+        }
+
         let duration = instant - self.previous_instant;
         self.previous_instant = instant;
 
@@ -62,13 +83,13 @@ impl Profiler {
             None => {
                 let new_vec = vec![duration];
                 self.durations.insert(sid, new_vec);
-            },
+            }
         }
     }
 
-    pub fn evaluate(&mut self) -> Option<&Vec<ProfilerDuration>> {
+    pub fn evaluate(&mut self) -> Option<Vec<ProfilerDuration>> {
         if self.evaluation.is_some() {
-            return self.evaluation.as_ref();
+            return self.evaluation.clone();
         }
 
         if self.is_recording() {
@@ -93,6 +114,7 @@ impl Profiler {
                     max: Duration::ZERO,
                     average: Duration::ZERO,
                     median: Duration::ZERO,
+                    sum: Duration::ZERO,
                     percentage: 0.0,
                 }
             } else {
@@ -111,7 +133,7 @@ impl Profiler {
                 durations.sort();
                 let median = durations[durations.len() / 2];
 
-                let percentage = average.as_secs_f32() / total_duration.as_secs_f32();
+                let percentage = sum.as_secs_f32() / total_duration.as_secs_f32();
 
                 ProfilerDuration {
                     sid: sid.clone(),
@@ -119,6 +141,7 @@ impl Profiler {
                     max,
                     average,
                     median,
+                    sum,
                     percentage,
                 }
             };
@@ -127,8 +150,46 @@ impl Profiler {
         }
 
         self.evaluation = Some(evaluation);
-        self.evaluation.as_ref()
+        self.evaluation.clone()
     }
+}
+
+pub fn start_recording(frame_count: usize) -> RisResult<()> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    profiler.start_recording(frame_count);
+    Ok(())
+}
+
+pub fn stop_recording() -> RisResult<()> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    profiler.stop_recording();
+    Ok(())
+}
+
+pub fn is_recording() -> RisResult<bool> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    Ok(profiler.is_recording())
+}
+
+pub fn add_timestamp(sid: Sid, instant: Instant) -> RisResult<()> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    profiler.add_timestamp(sid, instant);
+    Ok(())
+}
+
+pub fn evaluate() -> RisResult<Option<Vec<ProfilerDuration>>> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    Ok(profiler.evaluate())
 }
 
 #[macro_export]
@@ -137,7 +198,8 @@ macro_rules! record {
         use std::time::Instant;
 
         let sid = $crate::sid!($name);
+        let timestamp = Instant::now();
 
-        Instant::now()
+        $crate::profiler::add_timestamp(sid, timestamp)
     }};
 }
