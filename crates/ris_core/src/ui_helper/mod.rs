@@ -14,6 +14,7 @@ use ris_error::RisResult;
 
 pub mod metrics_module;
 pub mod settings_module;
+pub mod util;
 
 use crate::ui_helper::metrics_module::MetricsModule;
 use crate::ui_helper::settings_module::SettingsModule;

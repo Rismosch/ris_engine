@@ -15,14 +15,49 @@ pub enum ProfilerState {
     Recording,
 }
 
+impl std::fmt::Display for ProfilerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProfilerState::Stopped => write!(f, "stopped"),
+            ProfilerState::WaitingForNewFrame => write!(f, "waiting for new frame"),
+            ProfilerState::Recording => write!(f, "recording"),
+        }
+    }
+}
+
 pub static PROFILER: Mutex<Option<Profiler>> = Mutex::new(None);
 
-pub struct Profiler {
-    state: ProfilerState,
-    frames_to_record: usize,
-    previous_instant: Instant,
-    durations: HashMap<Sid, Vec<Duration>>,
-    evaluation: Option<Vec<ProfilerDuration>>,
+pub struct ProfilerGuard;
+
+impl Drop for ProfilerGuard {
+    fn drop(&mut self) {
+        match PROFILER.lock() {
+            Err(e) => ris_log::error!("error while dropping profiler: {}", e),
+            Ok(mut profiler) => {
+                *profiler = None;
+            }
+        }
+    }
+}
+
+/// # Safety
+///
+/// The profiler is a singleton. Initialize only once.
+pub unsafe fn init() -> RisResult<ProfilerGuard> {
+    //let profiler = Profiler {
+
+    //};
+
+    let mut profiler = PROFILER.lock()?;
+    *profiler = Some(Profiler{
+        state: ProfilerState::Stopped,
+        frames_to_record: 0,
+        previous_instant: Instant::now(),
+        durations: HashMap::new(),
+        evaluation: None,
+    });
+
+    Ok(ProfilerGuard)
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +69,14 @@ pub struct ProfilerDuration {
     pub median: Duration,
     pub sum: Duration,
     pub percentage: f32,
+}
+
+pub struct Profiler {
+    state: ProfilerState,
+    frames_to_record: usize,
+    previous_instant: Instant,
+    durations: HashMap<Sid, Vec<Duration>>,
+    evaluation: Option<Vec<ProfilerDuration>>,
 }
 
 impl Profiler {
@@ -49,10 +92,6 @@ impl Profiler {
 
     pub fn stop_recording(&mut self) {
         self.state = ProfilerState::Stopped;
-    }
-
-    pub fn is_recording(&self) -> bool {
-        self.state != ProfilerState::Stopped
     }
 
     pub fn new_frame(&mut self) {
@@ -92,7 +131,7 @@ impl Profiler {
             return self.evaluation.clone();
         }
 
-        if self.is_recording() {
+        if self.state != ProfilerState::Stopped {
             return None;
         }
 
@@ -154,6 +193,20 @@ impl Profiler {
     }
 }
 
+pub fn state() -> RisResult<ProfilerState> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    Ok(profiler.state)
+}
+
+pub fn frames_to_record() -> RisResult<usize> {
+    let mut guard = PROFILER.lock()?;
+    let profiler = guard.as_mut().unroll()?;
+
+    Ok(profiler.frames_to_record)
+}
+
 pub fn start_recording(frame_count: usize) -> RisResult<()> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
@@ -170,11 +223,13 @@ pub fn stop_recording() -> RisResult<()> {
     Ok(())
 }
 
-pub fn is_recording() -> RisResult<bool> {
+pub fn new_frame() -> RisResult<()> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
-    Ok(profiler.is_recording())
+    profiler.new_frame();
+    Ok(())
+
 }
 
 pub fn add_timestamp(sid: Sid, instant: Instant) -> RisResult<()> {

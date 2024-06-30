@@ -2,6 +2,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use ris_data::gameloop::frame::Frame;
+use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
 use crate::ui_helper::UiHelperDrawData;
@@ -16,16 +17,18 @@ pub struct MetricsModule {
     average_frames: Vec<Frame>,
     instant_since_last_average_calculation: Instant,
     last_average: Duration,
+    frames_to_record: usize,
 }
 
 impl Default for MetricsModule {
     fn default() -> Self {
         Self {
-            show_plot: false,
+            show_plot: true,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
             instant_since_last_average_calculation: Instant::now(),
             last_average: Duration::ZERO,
+            frames_to_record: 60,
         }
     }
 }
@@ -93,6 +96,9 @@ impl UiHelperModule for MetricsModule {
         }
 
         ui.checkbox("show plot", &mut self.show_plot);
+        ui.same_line();
+        super::util::help_marker(ui, "plotting is not performant. you may gain fps by disabling it.");
+
         if self.show_plot {
             let mut plot_lines = ui.plot_lines("##history", plot_values.as_slice());
 
@@ -101,6 +107,58 @@ impl UiHelperModule for MetricsModule {
             plot_lines = plot_lines.graph_size([graph_width, graph_height]);
 
             plot_lines.build();
+        }
+
+        let mut header_flags = imgui::TreeNodeFlags::empty();
+        header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
+        if ui.collapsing_header("profiler", header_flags){
+            let profiler_state = ris_debug::profiler::state()?;
+            ui.label_text("state", profiler_state.to_string());
+
+            match profiler_state {
+                ProfilerState::Stopped => {
+                    ui.input_scalar(
+                            "frames to record",
+                            &mut self.frames_to_record,
+                        )
+                        .build();
+                }
+                _ => {
+                    let disabled_token = ui.begin_disabled(true);
+
+                    let mut progress = ris_debug::profiler::frames_to_record()?;
+                    ui.slider(
+                        "frames to record",
+                        0,
+                        self.frames_to_record,
+                        &mut progress,
+                    );
+
+                    disabled_token.end();
+                }
+            }
+
+            if ui.button("start") {
+                ris_debug::profiler::start_recording(self.frames_to_record)?;
+            }
+
+            ui.same_line();
+            if ui.button("stop") {
+                ris_debug::profiler::stop_recording()?;
+            }
+
+            if ui.button("evaluate") {
+                let evaluation = ris_debug::profiler::evaluate()?;
+
+                match evaluation {
+                    None => {
+                        ris_log::warning!("evaluation is not ready yet")
+                    }
+                    Some(evaluation) => {
+                        ris_log::debug!("evaluation:\n{:#?}", evaluation);
+                    },
+                }
+            }
         }
 
         Ok(())
