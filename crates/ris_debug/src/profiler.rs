@@ -25,7 +25,7 @@ impl std::fmt::Display for ProfilerState {
     }
 }
 
-pub static PROFILER: Mutex<Option<Profiler>> = Mutex::new(None);
+static PROFILER: Mutex<Option<Profiler>> = Mutex::new(None);
 
 pub struct ProfilerGuard;
 
@@ -52,7 +52,6 @@ pub unsafe fn init() -> RisResult<ProfilerGuard> {
     *profiler = Some(Profiler{
         state: ProfilerState::Stopped,
         frames_to_record: 0,
-        previous_instant: Instant::now(),
         durations: HashMap::new(),
         evaluation: None,
     });
@@ -61,7 +60,13 @@ pub unsafe fn init() -> RisResult<ProfilerGuard> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ProfilerDuration {
+pub struct Record {
+    pub sid: Sid,
+    pub start: Instant,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecordEvaluation {
     pub sid: Sid,
     pub min: Duration,
     pub max: Duration,
@@ -74,9 +79,8 @@ pub struct ProfilerDuration {
 pub struct Profiler {
     state: ProfilerState,
     frames_to_record: usize,
-    previous_instant: Instant,
     durations: HashMap<Sid, Vec<Duration>>,
-    evaluation: Option<Vec<ProfilerDuration>>,
+    evaluation: Option<Vec<RecordEvaluation>>,
 }
 
 impl Profiler {
@@ -105,17 +109,12 @@ impl Profiler {
                 }
             }
         }
-
-        self.previous_instant = Instant::now();
     }
 
-    pub fn add_timestamp(&mut self, sid: Sid, instant: Instant) {
+    pub fn add_duration(&mut self, sid: Sid, duration: Duration) {
         if self.state != ProfilerState::Recording {
             return;
         }
-
-        let duration = instant - self.previous_instant;
-        self.previous_instant = instant;
 
         match self.durations.get_mut(&sid) {
             Some(durations) => durations.push(duration),
@@ -126,7 +125,7 @@ impl Profiler {
         }
     }
 
-    pub fn evaluate(&mut self) -> Option<Vec<ProfilerDuration>> {
+    pub fn evaluate(&mut self) -> Option<Vec<RecordEvaluation>> {
         if self.evaluation.is_some() {
             return self.evaluation.clone();
         }
@@ -147,7 +146,7 @@ impl Profiler {
 
         for (sid, durations) in self.durations.iter_mut() {
             let profiler_duration = if durations.is_empty() {
-                ProfilerDuration {
+                RecordEvaluation {
                     sid: sid.clone(),
                     min: Duration::ZERO,
                     max: Duration::ZERO,
@@ -174,7 +173,7 @@ impl Profiler {
 
                 let percentage = sum.as_secs_f32() / total_duration.as_secs_f32();
 
-                ProfilerDuration {
+                RecordEvaluation {
                     sid: sid.clone(),
                     min,
                     max,
@@ -232,15 +231,15 @@ pub fn new_frame() -> RisResult<()> {
 
 }
 
-pub fn add_timestamp(sid: Sid, instant: Instant) -> RisResult<()> {
+pub fn add_duration(sid: Sid, duration: Duration) -> RisResult<()> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
-    profiler.add_timestamp(sid, instant);
+    profiler.add_duration(sid, duration);
     Ok(())
 }
 
-pub fn evaluate() -> RisResult<Option<Vec<ProfilerDuration>>> {
+pub fn evaluate() -> RisResult<Option<Vec<RecordEvaluation>>> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
@@ -248,13 +247,45 @@ pub fn evaluate() -> RisResult<Option<Vec<ProfilerDuration>>> {
 }
 
 #[macro_export]
-macro_rules! record {
+macro_rules! new_record {
     ($name:expr) => {{
         use std::time::Instant;
 
         let sid = $crate::sid!($name);
-        let timestamp = Instant::now();
+        let start = Instant::now();
 
-        $crate::profiler::add_timestamp(sid, timestamp)
+        $crate::profiler::Record {
+            sid,
+            start,
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! add_record {
+    ($record:expr, $name:expr) => {{
+        match $crate::end_record!($record.clone()) {
+            Err(e) => Err(e),
+            Ok (()) => {
+                $record = $crate::new_record!($name);
+                Ok(())
+            }
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! end_record {
+    ($record:expr) => {{
+        use std::time::Instant;
+
+        let sid = $record.sid.clone();
+        let duration = Instant::now() - $record.start;
+
+        let result = $crate::profiler::add_duration(sid, duration);
+
+        drop($record);
+
+        result
     }};
 }
