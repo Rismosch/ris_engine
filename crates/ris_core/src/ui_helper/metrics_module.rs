@@ -119,7 +119,7 @@ impl UiHelperModule for MetricsModule {
             ui.label_text("state", profiler_state.to_string());
 
             match profiler_state {
-                ProfilerState::Stopped => {
+                ProfilerState::Stopped | ProfilerState::Done => {
                     ui.input_scalar("frames to record", &mut self.frames_to_record)
                         .build();
                 }

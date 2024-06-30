@@ -13,6 +13,7 @@ pub enum ProfilerState {
     Stopped,
     WaitingForNewFrame,
     Recording,
+    Done,
 }
 
 impl std::fmt::Display for ProfilerState {
@@ -21,6 +22,7 @@ impl std::fmt::Display for ProfilerState {
             ProfilerState::Stopped => write!(f, "stopped"),
             ProfilerState::WaitingForNewFrame => write!(f, "waiting for new frame"),
             ProfilerState::Recording => write!(f, "recording"),
+            ProfilerState::Done => write!(f, "done"),
         }
     }
 }
@@ -44,25 +46,33 @@ impl Drop for ProfilerGuard {
 ///
 /// The profiler is a singleton. Initialize only once.
 pub unsafe fn init() -> RisResult<ProfilerGuard> {
-    //let profiler = Profiler {
-
-    //};
-
     let mut profiler = PROFILER.lock()?;
     *profiler = Some(Profiler {
         state: ProfilerState::Stopped,
         frames_to_record: 0,
         durations: HashMap::new(),
-        evaluation: None,
+        evaluations: None,
     });
 
     Ok(ProfilerGuard)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordId {
     pub value: Sid,
     pub parent: Sid,
+    pub generation: usize,
+    pub file: String,
+    pub line: u32,
+}
+
+impl std::hash::Hash for RecordId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u32(self.value.hash);
+        state.write_u32(self.parent.hash);
+        state.write(self.file.as_bytes());
+        state.write_u32(self.line);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -76,9 +86,9 @@ pub struct RecordEvaluation {
     pub id: RecordId,
     pub min: Duration,
     pub max: Duration,
+    pub sum: Duration,
     pub average: Duration,
     pub median: Duration,
-    pub sum: Duration,
     pub percentage: f32,
 }
 
@@ -86,14 +96,14 @@ pub struct Profiler {
     state: ProfilerState,
     frames_to_record: usize,
     durations: HashMap<RecordId, Vec<Duration>>,
-    evaluation: Option<Vec<RecordEvaluation>>,
+    evaluations: Option<HashMap<Sid, Vec<RecordEvaluation>>>,
 }
 
 impl Profiler {
     pub fn start_recording(&mut self, frame_count: usize) {
         self.state = ProfilerState::WaitingForNewFrame;
         self.frames_to_record = frame_count;
-        self.evaluation = None;
+        self.evaluations = None;
 
         for (_sid, durations) in self.durations.iter_mut() {
             durations.clear();
@@ -106,14 +116,14 @@ impl Profiler {
 
     pub fn new_frame(&mut self) {
         match self.state {
-            ProfilerState::Stopped => (),
             ProfilerState::WaitingForNewFrame => self.state = ProfilerState::Recording,
             ProfilerState::Recording => {
                 self.frames_to_record = self.frames_to_record.saturating_sub(1);
                 if self.frames_to_record == 0 {
-                    self.state = ProfilerState::Stopped;
+                    self.state = ProfilerState::Done;
                 }
             }
+            _ => (),
         }
     }
 
@@ -131,12 +141,13 @@ impl Profiler {
         }
     }
 
-    pub fn evaluate(&mut self) -> RisResult<Option<Vec<RecordEvaluation>>> {
-        if self.evaluation.is_some() {
-            return Ok(self.evaluation.clone());
+    pub fn evaluate(&mut self) -> RisResult<Option<HashMap<Sid, Vec<RecordEvaluation>>>> {
+        if self.evaluations.is_some() {
+            return Ok(self.evaluations.clone());
         }
 
-        if self.state != ProfilerState::Stopped {
+        if self.state == ProfilerState::WaitingForNewFrame
+            || self.state == ProfilerState::Recording {
             return Ok(None);
         }
 
@@ -152,18 +163,17 @@ impl Profiler {
             }
         }
 
-        let len = self.durations.keys().len();
-        let mut evaluation = Vec::with_capacity(len);
+        let mut evaluations = HashMap::new();
 
         for (id, durations) in self.durations.iter_mut() {
-            let profiler_duration = if durations.is_empty() {
+            let record_evaluation = if durations.is_empty() {
                 RecordEvaluation {
                     id: id.clone(),
                     min: Duration::ZERO,
                     max: Duration::ZERO,
+                    sum: Duration::ZERO,
                     average: Duration::ZERO,
                     median: Duration::ZERO,
-                    sum: Duration::ZERO,
                     percentage: 0.0,
                 }
             } else {
@@ -189,18 +199,27 @@ impl Profiler {
                     id: id.clone(),
                     min,
                     max,
+                    sum,
                     average,
                     median,
-                    sum,
                     percentage,
                 }
             };
 
-            evaluation.push(profiler_duration);
+            match evaluations.get_mut(&id.parent) {
+                None => {
+                    evaluations.insert(id.parent.clone(), vec![record_evaluation]);
+                },
+                Some(evaluations) => evaluations.push(record_evaluation),
+            }
         }
 
-        self.evaluation = Some(evaluation);
-        Ok(self.evaluation.clone())
+        for (_sid, record_evaluations) in evaluations.iter_mut() {
+            record_evaluations.sort_by(|left, right| left.id.generation.cmp(&right.id.generation));
+        }
+
+        self.evaluations = Some(evaluations);
+        Ok(self.evaluations.clone())
     }
 }
 
@@ -250,7 +269,7 @@ pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
     Ok(())
 }
 
-pub fn evaluate() -> RisResult<Option<Vec<RecordEvaluation>>> {
+pub fn evaluate() -> RisResult<Option<HashMap<Sid, Vec<RecordEvaluation>>>> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
@@ -267,6 +286,9 @@ macro_rules! new_record {
             id: $crate::profiler::RecordId {
                 value: sid.clone(),
                 parent: sid,
+                generation: 0,
+                file: String::from(file!()),
+                line: line!(),
             },
             start,
         }
@@ -285,6 +307,9 @@ macro_rules! add_record {
                     id: $crate::profiler::RecordId {
                         value: $crate::sid!($name),
                         parent: $record.id.parent.clone(),
+                        generation: $record.id.generation + 1,
+                        file: String::from(file!()),
+                        line: line!(),
                     },
                     start: std::time::Instant::now(),
                 };
