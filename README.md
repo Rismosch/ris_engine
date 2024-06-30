@@ -4,7 +4,7 @@ Barebones game engine. Home made passion project.
 
 🏗️ **VERY WIP** 👷
 
-![thumbnail](assets/__raw/images/screenshot.png)
+![thumbnail](screenshot.png)
 
 ## Features:
 
