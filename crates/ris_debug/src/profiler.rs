@@ -146,8 +146,8 @@ impl Profiler {
             return Ok(self.evaluations.clone());
         }
 
-        if self.state == ProfilerState::WaitingForNewFrame
-            || self.state == ProfilerState::Recording {
+        if self.state == ProfilerState::WaitingForNewFrame || self.state == ProfilerState::Recording
+        {
             return Ok(None);
         }
 
@@ -209,7 +209,7 @@ impl Profiler {
             match evaluations.get_mut(&id.parent) {
                 None => {
                     evaluations.insert(id.parent.clone(), vec![record_evaluation]);
-                },
+                }
                 Some(evaluations) => evaluations.push(record_evaluation),
             }
         }
