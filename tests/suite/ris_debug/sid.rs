@@ -1,8 +1,8 @@
 #[test]
 fn should_eq() {
-    let sid1 = ris_data::sid!("hoi");
-    let sid2 = ris_data::sid!("poi");
-    let sid3 = ris_data::sid!("hoi");
+    let sid1 = ris_debug::sid!("hoi");
+    let sid2 = ris_debug::sid!("poi");
+    let sid3 = ris_debug::sid!("hoi");
 
     assert!(sid1 != sid2);
     assert!(sid1 == sid3);
@@ -18,8 +18,8 @@ fn should_detect_collision() {
         ris_error::error::GET_TIMESTAMP_ON_BACKTRACE = false;
     }
 
-    let sid1 = ris_data::sid!("wCVg");
-    let sid2 = ris_data::sid!("S0jh");
+    let sid1 = ris_debug::sid!("wCVg");
+    let sid2 = ris_debug::sid!("S0jh");
 
     let _ = sid1 == sid2;
 }
@@ -27,8 +27,8 @@ fn should_detect_collision() {
 #[test]
 #[cfg(not(debug_assertions))]
 fn should_detect_collision() {
-    let sid1 = ris_data::sid!("wCVg");
-    let sid2 = ris_data::sid!("S0jh");
+    let sid1 = ris_debug::sid!("wCVg");
+    let sid2 = ris_debug::sid!("S0jh");
 
     // this wont panic. in release original strings are not stored. this means collision detection
     // cannot work and thus is turned off.

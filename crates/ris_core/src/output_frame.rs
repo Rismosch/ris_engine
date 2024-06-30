@@ -73,6 +73,8 @@ impl OutputFrame {
             return Ok(());
         }
 
+        let mut r = ris_debug::new_record!("run output frame");
+
         let Renderer {
             device,
             graphics_queue,
@@ -102,11 +104,15 @@ impl OutputFrame {
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
 
         // wait for the previous frame to finish
+        ris_debug::add_record!(r, "wait for previous frame to finish")?;
+
         let fence = [*in_flight];
         unsafe { device.wait_for_fences(&fence, true, u64::MAX) }?;
         unsafe { device.reset_fences(&fence) }?;
 
         // acquire an image from the swap chain
+        ris_debug::add_record!(r, "acquire an image from the swapchain")?;
+
         let acquire_image_result = unsafe {
             swapchain_loader.acquire_next_image(
                 *swapchain,
@@ -138,6 +144,8 @@ impl OutputFrame {
         } = &swapchain_entries[image_index as usize];
 
         // update uniform buffer
+        ris_debug::add_record!(r, "update uniform buffer")?;
+
         let window_drawable_size = self.window.vulkan_drawable_size();
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
         state.camera.aspect_ratio = w / h;
@@ -153,6 +161,8 @@ impl OutputFrame {
         unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         // submit command buffer
+        ris_debug::add_record!(r, "submit command buffer")?;
+
         let wait_semaphores = [*image_available];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = [*command_buffer];
@@ -173,6 +183,8 @@ impl OutputFrame {
         unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
 
         // ui helper
+        ris_debug::add_record!(r, "ui helper")?;
+
         let window_size = self.window.size();
         let window_drawable_size = self.window.vulkan_drawable_size();
         let imgui_ui = self.imgui.backend.prepare_frame(
@@ -194,6 +206,7 @@ impl OutputFrame {
             .draw(&self.renderer, *image_view, draw_data)?;
 
         // present the swap chain image
+        ris_debug::add_record!(r, "present the swap chain image")?;
         let swapchains = [*swapchain];
 
         let present_info = vk::PresentInfoKHR {
@@ -238,6 +251,8 @@ impl OutputFrame {
         }
 
         self.current_frame = next_frame;
+
+        ris_debug::end_record!(r)?;
 
         Ok(())
     }

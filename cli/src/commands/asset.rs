@@ -14,9 +14,15 @@ use crate::ICommand;
 
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
-const COMPILE: &str = "compile";
-const DECOMPILE: &str = "decompile";
-const IMPORTALL: &str = "import";
+pub const COMPILE: &str = "compile";
+pub const DECOMPILE: &str = "decompile";
+pub const IMPORT: &str = "import";
+
+pub enum AssetCommand {
+    Compile,
+    Decompile,
+    Import,
+}
 
 pub struct Asset;
 
@@ -59,7 +65,7 @@ impl ICommand for Asset {
                     asset_compiler::DEFAULT_DECOMPILED_DIRECTORY
                 ));
                 explanation.push('\n');
-                explanation.push_str(&format!("{}\n", IMPORTALL));
+                explanation.push_str(&format!("{}\n", IMPORT));
                 explanation.push_str("Recursively imports ALL files in directory <source> into the directory <target>.\n");
                 explanation.push_str(&format!(
                     "default source: {}\n",
@@ -80,22 +86,43 @@ impl ICommand for Asset {
             2 => Err(String::from("no args provided")),
             3 => Ok((&args[2], None)),
             4 => Err(String::from("no target provided")),
-            5 => Ok((&args[2], Some((&args[3], &args[4])))),
+            5 => Ok((&args[2], Some((args[3].as_str(), args[4].as_str())))),
             _ => Err(String::from("too many args")),
         };
 
-        let (command, source_target) = match parse_result {
-            Ok(ok) => ok,
-            Err(e) => {
-                return crate::util::command_error(
-                    &e,
-                    "asset",
-                    Self::args(),
-                    Self::explanation(ExplanationLevel::Detailed),
-                )
-            }
-        };
+        match parse_result {
+            Ok((command, source_target)) => {
+                let asset_command = match command.to_lowercase().as_str() {
+                    COMPILE => AssetCommand::Compile,
+                    DECOMPILE => AssetCommand::Decompile,
+                    IMPORT => AssetCommand::Import,
+                    command => {
+                        return crate::util::command_error(
+                            &format!("unkown command: {}", command),
+                            "asset",
+                            Self::args(),
+                            Self::explanation(ExplanationLevel::Detailed),
+                        )
+                    }
+                };
 
+                Self::execute_command(asset_command, source_target)
+            }
+            Err(e) => crate::util::command_error(
+                &e,
+                "asset",
+                Self::args(),
+                Self::explanation(ExplanationLevel::Detailed),
+            ),
+        }
+    }
+}
+
+impl Asset {
+    pub fn execute_command(
+        command: AssetCommand,
+        source_target: Option<(&str, &str)>,
+    ) -> RisResult<()> {
         let console_appender = Some(ConsoleAppender);
         let file_appender = None;
         let appenders = Appenders {
@@ -105,8 +132,8 @@ impl ICommand for Asset {
 
         let _log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
 
-        match command.as_str() {
-            COMPILE => {
+        match command {
+            AssetCommand::Compile => {
                 let compile_options = CompileOptions {
                     include_original_paths: false,
                 };
@@ -122,26 +149,20 @@ impl ICommand for Asset {
                     ),
                 }
             }
-            DECOMPILE => match source_target {
+            AssetCommand::Decompile => match source_target {
                 Some((source, target)) => asset_compiler::decompile(source, target),
                 None => asset_compiler::decompile(
                     asset_compiler::DEFAULT_COMPILED_FILE,
                     asset_compiler::DEFAULT_DECOMPILED_DIRECTORY,
                 ),
             },
-            IMPORTALL => match source_target {
+            AssetCommand::Import => match source_target {
                 Some((source, target)) => asset_importer::import_all(source, target),
                 None => asset_importer::import_all(
                     asset_importer::DEFAULT_SOURCE_DIRECTORY,
                     asset_importer::DEFAULT_TARGET_DIRECTORY,
                 ),
             },
-            command => crate::util::command_error(
-                &format!("unkown command: {}", command),
-                "asset",
-                Self::args(),
-                Self::explanation(ExplanationLevel::Detailed),
-            ),
         }
     }
 }

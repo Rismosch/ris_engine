@@ -2,9 +2,10 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::Asset;
+use crate::AssetCommand;
 use crate::ExplanationLevel;
 use crate::ICommand;
 
@@ -142,9 +143,9 @@ impl ICommand for Build {
         }
 
         eprintln!("importing assets...");
-        crate::cmd::run("cargo run -p ris_asset_compiler importall", None)?;
+        Asset::execute_command(AssetCommand::Import, None)?;
         eprintln!("compiling assets...");
-        crate::cmd::run("cargo run -p ris_asset_compiler compile", None)?;
+        Asset::execute_command(AssetCommand::Compile, None)?;
 
         eprintln!("compiling workspace...");
         crate::cmd::run("cargo build --release", None)?;
@@ -163,6 +164,8 @@ impl ICommand for Build {
 
         #[cfg(target_os = "windows")]
         {
+            use ris_error::Extensions;
+
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
             let src_sdl2_path = where_sdl2.first().unroll()?;
