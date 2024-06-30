@@ -79,7 +79,7 @@ impl UiHelperModule for MetricsModule {
             ),
         );
 
-        // plot frames  
+        // plot frames
         let mut plot_values = Vec::new();
 
         let mut i = 0;
@@ -97,7 +97,10 @@ impl UiHelperModule for MetricsModule {
 
         ui.checkbox("show plot", &mut self.show_plot);
         ui.same_line();
-        super::util::help_marker(ui, "plotting is not performant. you may gain fps by disabling it.");
+        super::util::help_marker(
+            ui,
+            "plotting is not performant. you may gain fps by disabling it.",
+        );
 
         if self.show_plot {
             let mut plot_lines = ui.plot_lines("##history", plot_values.as_slice());
@@ -111,28 +114,20 @@ impl UiHelperModule for MetricsModule {
 
         let mut header_flags = imgui::TreeNodeFlags::empty();
         header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
-        if ui.collapsing_header("profiler", header_flags){
+        if ui.collapsing_header("profiler", header_flags) {
             let profiler_state = ris_debug::profiler::state()?;
             ui.label_text("state", profiler_state.to_string());
 
             match profiler_state {
                 ProfilerState::Stopped => {
-                    ui.input_scalar(
-                            "frames to record",
-                            &mut self.frames_to_record,
-                        )
+                    ui.input_scalar("frames to record", &mut self.frames_to_record)
                         .build();
                 }
                 _ => {
                     let disabled_token = ui.begin_disabled(true);
 
                     let mut progress = ris_debug::profiler::frames_to_record()?;
-                    ui.slider(
-                        "frames to record",
-                        0,
-                        self.frames_to_record,
-                        &mut progress,
-                    );
+                    ui.slider("frames to record", 0, self.frames_to_record, &mut progress);
 
                     disabled_token.end();
                 }
@@ -156,7 +151,7 @@ impl UiHelperModule for MetricsModule {
                     }
                     Some(evaluation) => {
                         ris_log::debug!("evaluation:\n{:#?}", evaluation);
-                    },
+                    }
                 }
             }
         }

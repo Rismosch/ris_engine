@@ -55,7 +55,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "update buffers")?;
         god_object.settings_serializer = new_settings_serializer;
 
-        // restart job system 
+        // restart job system
         ris_debug::add_record!(r, "restart job system")?;
 
         let settings = &god_object.state.settings;
@@ -79,7 +79,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
             ris_log::debug!("job system restarted!");
         }
-
 
         // handle errors
         ris_debug::add_record!(r, "handle errors")?;

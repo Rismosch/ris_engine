@@ -49,7 +49,7 @@ pub unsafe fn init() -> RisResult<ProfilerGuard> {
     //};
 
     let mut profiler = PROFILER.lock()?;
-    *profiler = Some(Profiler{
+    *profiler = Some(Profiler {
         state: ProfilerState::Stopped,
         frames_to_record: 0,
         durations: HashMap::new(),
@@ -117,11 +117,7 @@ impl Profiler {
         }
     }
 
-    pub fn add_duration(
-        &mut self,
-        id: RecordId,
-        duration: Duration,
-    ) {
+    pub fn add_duration(&mut self, id: RecordId, duration: Duration) {
         if self.state != ProfilerState::Recording {
             return;
         }
@@ -150,9 +146,8 @@ impl Profiler {
                 match total_durations.get_mut(&id.parent) {
                     Some(total) => *total += *duration,
                     None => {
-                        total_durations.insert(id.parent.clone(), duration.clone());
-                    },
-
+                        total_durations.insert(id.parent.clone(), *duration);
+                    }
                 }
             }
         }
@@ -245,7 +240,6 @@ pub fn new_frame() -> RisResult<()> {
 
     profiler.new_frame();
     Ok(())
-
 }
 
 pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
@@ -286,7 +280,7 @@ macro_rules! add_record {
 
         match $crate::end_record!($record.clone()) {
             Err(e) => Err(e),
-            Ok (()) => {
+            Ok(()) => {
                 $record = $crate::profiler::Record {
                     id: $crate::profiler::RecordId {
                         value: $crate::sid!($name),
@@ -309,6 +303,8 @@ macro_rules! end_record {
 
         let result = $crate::profiler::add_duration(id, duration);
 
+        #[allow(clippy::drop_non_drop)]
+        // justification: $record should not be used anymore after alling end_record!()
         drop($record);
 
         result

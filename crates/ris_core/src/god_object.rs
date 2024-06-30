@@ -57,10 +57,8 @@ pub struct GodObject {
 impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
         // profiler
-        let profiler_guard = unsafe {
-            ris_debug::profiler::init()
-        }?;
-        
+        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
+
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {

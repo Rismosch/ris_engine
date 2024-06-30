@@ -105,7 +105,7 @@ impl OutputFrame {
 
         // wait for the previous frame to finish
         ris_debug::add_record!(r, "wait for previous frame to finish")?;
-        
+
         let fence = [*in_flight];
         unsafe { device.wait_for_fences(&fence, true, u64::MAX) }?;
         unsafe { device.reset_fences(&fence) }?;

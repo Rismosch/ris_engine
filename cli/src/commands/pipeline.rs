@@ -35,6 +35,8 @@ impl ICommand for Pipeline {
             test(results, "cargo clippy -p cli -- -Dwarnings");
         }
 
+        print_empty(5);
+
         println!("done! finished running pipeline!");
         println!("results:");
         for (cmd, success) in results.iter() {
@@ -48,9 +50,11 @@ impl ICommand for Pipeline {
 
         if results.iter().all(|x| x.1) {
             println!("pipeline succeeded");
+            print_empty(2);
             Ok(())
         } else {
             println!("pipeline failed");
+            print_empty(2);
             ris_error::new_result!("pipeline failed")
         }
     }
@@ -86,4 +90,10 @@ fn cargo_nightly(args: &str) -> RisResult<String> {
 #[cfg(not(target_os = "windows"))]
 fn cargo_nightly(args: &str) -> RisResult<String> {
     Ok(format!("cargo +nightly {}", args))
+}
+
+fn print_empty(lines: usize) {
+    for _ in 0..lines {
+        eprintln!()
+    }
 }
