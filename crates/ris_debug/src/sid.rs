@@ -14,7 +14,7 @@ impl std::fmt::Display for Sid {
 
         #[cfg(not(debug_assertions))]
         {
-            write!(f, "{}", self.hash)
+            write!(f, "sid_{}", self.hash)
         }
     }
 }

@@ -59,15 +59,21 @@ pub unsafe fn init() -> RisResult<ProfilerGuard> {
     Ok(ProfilerGuard)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RecordId {
+    pub value: Sid,
+    pub parent: Sid,
+}
+
 #[derive(Debug, Clone)]
 pub struct Record {
-    pub sid: Sid,
+    pub id: RecordId,
     pub start: Instant,
 }
 
 #[derive(Debug, Clone)]
 pub struct RecordEvaluation {
-    pub sid: Sid,
+    pub id: RecordId,
     pub min: Duration,
     pub max: Duration,
     pub average: Duration,
@@ -79,7 +85,7 @@ pub struct RecordEvaluation {
 pub struct Profiler {
     state: ProfilerState,
     frames_to_record: usize,
-    durations: HashMap<Sid, Vec<Duration>>,
+    durations: HashMap<RecordId, Vec<Duration>>,
     evaluation: Option<Vec<RecordEvaluation>>,
 }
 
@@ -111,43 +117,53 @@ impl Profiler {
         }
     }
 
-    pub fn add_duration(&mut self, sid: Sid, duration: Duration) {
+    pub fn add_duration(
+        &mut self,
+        id: RecordId,
+        duration: Duration,
+    ) {
         if self.state != ProfilerState::Recording {
             return;
         }
 
-        match self.durations.get_mut(&sid) {
+        match self.durations.get_mut(&id) {
             Some(durations) => durations.push(duration),
             None => {
                 let new_vec = vec![duration];
-                self.durations.insert(sid, new_vec);
+                self.durations.insert(id, new_vec);
             }
         }
     }
 
-    pub fn evaluate(&mut self) -> Option<Vec<RecordEvaluation>> {
+    pub fn evaluate(&mut self) -> RisResult<Option<Vec<RecordEvaluation>>> {
         if self.evaluation.is_some() {
-            return self.evaluation.clone();
+            return Ok(self.evaluation.clone());
         }
 
         if self.state != ProfilerState::Stopped {
-            return None;
+            return Ok(None);
         }
 
-        let mut total_duration = Duration::ZERO;
-        for (_sid, durations) in self.durations.iter() {
+        let mut total_durations = HashMap::new();
+        for (id, durations) in self.durations.iter() {
             for duration in durations {
-                total_duration += *duration;
+                match total_durations.get_mut(&id.parent) {
+                    Some(total) => *total += *duration,
+                    None => {
+                        total_durations.insert(id.parent.clone(), duration.clone());
+                    },
+
+                }
             }
         }
 
         let len = self.durations.keys().len();
         let mut evaluation = Vec::with_capacity(len);
 
-        for (sid, durations) in self.durations.iter_mut() {
+        for (id, durations) in self.durations.iter_mut() {
             let profiler_duration = if durations.is_empty() {
                 RecordEvaluation {
-                    sid: sid.clone(),
+                    id: id.clone(),
                     min: Duration::ZERO,
                     max: Duration::ZERO,
                     average: Duration::ZERO,
@@ -171,10 +187,11 @@ impl Profiler {
                 durations.sort();
                 let median = durations[durations.len() / 2];
 
-                let percentage = sum.as_secs_f32() / total_duration.as_secs_f32();
+                let total = total_durations.get(&id.parent).unroll()?;
+                let percentage = sum.as_secs_f32() / total.as_secs_f32();
 
                 RecordEvaluation {
-                    sid: sid.clone(),
+                    id: id.clone(),
                     min,
                     max,
                     average,
@@ -188,7 +205,7 @@ impl Profiler {
         }
 
         self.evaluation = Some(evaluation);
-        self.evaluation.clone()
+        Ok(self.evaluation.clone())
     }
 }
 
@@ -231,11 +248,11 @@ pub fn new_frame() -> RisResult<()> {
 
 }
 
-pub fn add_duration(sid: Sid, duration: Duration) -> RisResult<()> {
+pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
-    profiler.add_duration(sid, duration);
+    profiler.add_duration(id, duration);
     Ok(())
 }
 
@@ -243,19 +260,20 @@ pub fn evaluate() -> RisResult<Option<Vec<RecordEvaluation>>> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
-    Ok(profiler.evaluate())
+    profiler.evaluate()
 }
 
 #[macro_export]
 macro_rules! new_record {
     ($name:expr) => {{
-        use std::time::Instant;
-
         let sid = $crate::sid!($name);
-        let start = Instant::now();
+        let start = std::time::Instant::now();
 
         $crate::profiler::Record {
-            sid,
+            id: $crate::profiler::RecordId {
+                value: sid.clone(),
+                parent: sid,
+            },
             start,
         }
     }};
@@ -264,10 +282,19 @@ macro_rules! new_record {
 #[macro_export]
 macro_rules! add_record {
     ($record:expr, $name:expr) => {{
+        let parent = $record.id.parent.clone();
+
         match $crate::end_record!($record.clone()) {
             Err(e) => Err(e),
             Ok (()) => {
-                $record = $crate::new_record!($name);
+                $record = $crate::profiler::Record {
+                    id: $crate::profiler::RecordId {
+                        value: $crate::sid!($name),
+                        parent: $record.id.parent.clone(),
+                    },
+                    start: std::time::Instant::now(),
+                };
+
                 Ok(())
             }
         }
@@ -277,12 +304,10 @@ macro_rules! add_record {
 #[macro_export]
 macro_rules! end_record {
     ($record:expr) => {{
-        use std::time::Instant;
+        let id = $record.id.clone();
+        let duration = std::time::Instant::now() - $record.start;
 
-        let sid = $record.sid.clone();
-        let duration = Instant::now() - $record.start;
-
-        let result = $crate::profiler::add_duration(sid, duration);
+        let result = $crate::profiler::add_duration(id, duration);
 
         drop($record);
 
