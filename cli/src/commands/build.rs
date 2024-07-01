@@ -150,7 +150,7 @@ impl ICommand for Build {
         eprintln!("compiling workspace...");
         crate::cmd::run("cargo build --release", None)?;
 
-        crate::util::clean_or_create_dir(&target_dir)?;
+        ris_file::util::clean_or_create_dir(&target_dir)?;
 
         eprintln!("moving executable...");
         let src_exe_path = root_dir.join("target").join("release").join(EXE_NAME);

@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
 
+use ris_data::info::app_info::AppInfo;
 use ris_data::gameloop::frame::Frame;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
@@ -12,6 +14,7 @@ const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 5;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
+    app_info: AppInfo,
     show_plot: bool,
     plot_frames: Vec<(Instant, Frame)>,
     average_frames: Vec<Frame>,
@@ -20,22 +23,17 @@ pub struct MetricsModule {
     frames_to_record: usize,
 }
 
-impl Default for MetricsModule {
-    fn default() -> Self {
-        Self {
+impl MetricsModule {
+    pub fn new(app_info: &AppInfo) -> Box<Self> {
+        Box::new(Self {
+            app_info: app_info.clone(),
             show_plot: true,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
             instant_since_last_average_calculation: Instant::now(),
             last_average: Duration::ZERO,
             frames_to_record: 60,
-        }
-    }
-}
-
-impl MetricsModule {
-    pub fn new() -> Box<Self> {
-        Box::default()
+        })
     }
 }
 
@@ -133,6 +131,8 @@ impl UiHelperModule for MetricsModule {
                 }
             }
 
+            let mut profiler_evaluations = None;
+
             if ui.button("start") {
                 ris_debug::profiler::start_recording(self.frames_to_record)?;
             }
@@ -140,19 +140,39 @@ impl UiHelperModule for MetricsModule {
             ui.same_line();
             if ui.button("stop") {
                 ris_debug::profiler::stop_recording()?;
+                profiler_evaluations = ris_debug::profiler::evaluate()?;
+            } else if profiler_state == ProfilerState::Done {
+                ris_debug::profiler::stop_recording()?;
+                profiler_evaluations = ris_debug::profiler::evaluate()?;
             }
 
-            if ui.button("evaluate") {
-                let evaluation = ris_debug::profiler::evaluate()?;
+            let dir = PathBuf::from(&self.app_info.file.pref_path).join("profiler");
 
-                match evaluation {
-                    None => {
-                        ris_log::warning!("evaluation is not ready yet")
-                    }
-                    Some(evaluation) => {
-                        ris_log::debug!("evaluation:\n{:#?}", evaluation);
+            if let Some(evaluations) = profiler_evaluations { 
+                let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
+
+                let filename = ris_file::path::sanitize(&chrono::Local::now().to_rfc3339(), true);
+                let filename = format!("{}.csv", filename);
+                let filepath = PathBuf::from(&dir).join(filename);
+
+                std::fs::create_dir_all(&dir)?;
+                let mut file = std::fs::File::create(&filepath)?;
+
+                ris_file::io::write_checked(&mut file, csv.as_bytes())?;
+                ris_log::info!("successfully written profiler result to {:?}", filepath);
+            }
+
+            {
+                let disabled_token = ui.begin_disabled(!dir.exists());
+
+                if ui.button("clear profiler results") {
+                    let clean_result = ris_file::util::clean_or_create_dir(&dir);
+                    if let Err(e) = clean_result {
+                        ris_log::error!("failed to clear profiler results: {}", e);
                     }
                 }
+
+                disabled_token.end();
             }
         }
 

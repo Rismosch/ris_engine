@@ -22,13 +22,10 @@ Barebones game engine. Home made passion project.
     - [x] RGB
     - [x] OkLab
 - [x] Basic 3d renderer via Vulkan
-- [x] Debug GUI via Dear ImGui
-- [ ] Debug gizmos
-  - [ ] Point
-  - [ ] Line
-  - [ ] Box
-  - [ ] Sphere
-  - [ ] Text
+- [x] Debugging
+  - [x] GUI via Dear ImGui
+  - [x] Profiling
+  - [ ] Gizmos
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)

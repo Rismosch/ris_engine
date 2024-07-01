@@ -24,7 +24,7 @@ const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
     let modules: Vec<Box<dyn UiHelperModule>> = vec![
-        MetricsModule::new(),
+        MetricsModule::new(app_info),
         SettingsModule::new(app_info),
         // add new modules here...
     ];

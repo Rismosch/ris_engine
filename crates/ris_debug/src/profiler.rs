@@ -92,11 +92,13 @@ pub struct RecordEvaluation {
     pub percentage: f32,
 }
 
+pub type ProfilerEvaluations = HashMap<Sid, Vec<RecordEvaluation>>;
+
 pub struct Profiler {
     state: ProfilerState,
     frames_to_record: usize,
     durations: HashMap<RecordId, Vec<Duration>>,
-    evaluations: Option<HashMap<Sid, Vec<RecordEvaluation>>>,
+    evaluations: Option<ProfilerEvaluations>,
 }
 
 impl Profiler {
@@ -141,7 +143,7 @@ impl Profiler {
         }
     }
 
-    pub fn evaluate(&mut self) -> RisResult<Option<HashMap<Sid, Vec<RecordEvaluation>>>> {
+    pub fn evaluate(&mut self) -> RisResult<Option<ProfilerEvaluations>> {
         if self.evaluations.is_some() {
             return Ok(self.evaluations.clone());
         }
@@ -269,11 +271,82 @@ pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
     Ok(())
 }
 
-pub fn evaluate() -> RisResult<Option<HashMap<Sid, Vec<RecordEvaluation>>>> {
+pub fn evaluate() -> RisResult<Option<ProfilerEvaluations>> {
     let mut guard = PROFILER.lock()?;
     let profiler = guard.as_mut().unroll()?;
 
     profiler.evaluate()
+}
+
+pub fn generate_csv(evaluations: &ProfilerEvaluations, seperator: char) -> String {
+    let mut result = String::new();
+
+    result.push_str("parent");
+    result.push(seperator);
+    result.push_str("id");
+    result.push(seperator);
+    result.push_str("generation");
+    result.push(seperator);
+    result.push_str("file");
+    result.push(seperator);
+    result.push_str("line");
+    result.push(seperator);
+    result.push_str("min");
+    result.push(seperator);
+    result.push_str("max");
+    result.push(seperator);
+    result.push_str("sum");
+    result.push(seperator);
+    result.push_str("average");
+    result.push(seperator);
+    result.push_str("median");
+    result.push(seperator);
+    result.push_str("percentage");
+
+    for (_, evaluations) in evaluations.iter() {
+        for evaluation in evaluations.iter() {
+            let RecordEvaluation {
+                id: RecordId {
+                    value: id,
+                    parent,
+                    generation,
+                    file,
+                    line,
+                },
+                min,
+                max,
+                sum,
+                average,
+                median,
+                percentage,
+            } = evaluation;
+
+            result.push('\n');
+            result.push_str(&parent.to_string());
+            result.push(seperator);
+            result.push_str(&id.to_string());
+            result.push(seperator);
+            result.push_str(&generation.to_string());
+            result.push(seperator);
+            result.push_str(&file.to_string());
+            result.push(seperator);
+            result.push_str(&line.to_string());
+            result.push(seperator);
+            result.push_str(&min.as_secs_f64().to_string());
+            result.push(seperator);
+            result.push_str(&max.as_secs_f64().to_string());
+            result.push(seperator);
+            result.push_str(&sum.as_secs_f64().to_string());
+            result.push(seperator);
+            result.push_str(&average.as_secs_f64().to_string());
+            result.push(seperator);
+            result.push_str(&median.as_secs_f64().to_string());
+            result.push(seperator);
+            result.push_str(&percentage.to_string());
+        }
+    }
+
+    result
 }
 
 #[macro_export]
