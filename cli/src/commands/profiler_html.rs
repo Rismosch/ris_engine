@@ -156,7 +156,8 @@ impl ICommand for ProfilerHtml {
 </script>
 <body>
 
-<select id=\"csv_file\" onchange=\"csv_file_changed()\">", chart_js));
+<select id=\"csv_file\" onchange=\"csv_file_changed()\">
+", chart_js));
 
         for (file_name, _) in parsed_csv_files.iter() {
             html.push_str(&format!("
@@ -165,6 +166,19 @@ impl ICommand for ProfilerHtml {
 
         html.push_str(&format!("
 </select>
+
+<select id=\"parent\" onchange=\"render_chart()\"></select>
+
+<br>
+
+<input id=\"min\" type=\"checkbox\" onchange=\"render_chart()\" checked><label>min</label>
+<input id=\"max\" type=\"checkbox\" onchange=\"render_chart()\" checked><label>max</label>
+<input id=\"sum\" type=\"checkbox\" onchange=\"render_chart()\"><label>sum</label>
+<input id=\"average\" type=\"checkbox\" onchange=\"render_chart()\" checked><label>average</label>
+<input id=\"median\" type=\"checkbox\" onchange=\"render_chart()\" checked><label>median</label>
+<input id=\"percentage\" type=\"checkbox\" onchange=\"render_chart()\"><label>percentage</label>
+
+<br>
 
 <canvas id=\"myChart\" style=\"width:100%;max-width:600px\"></canvas>
 
@@ -196,42 +210,115 @@ var csv_data = {{"));
         html.push_str(&format!("
 }};
 
-console.log(csv_data);
-
-var csv_file_select = document.getElementById(\"csv_file\");
-csv_file_changed();
-function csv_file_changed() {{
-    var value = csv_file_select.value;
-    console.log(value);
+function to_key(value) {{
+    let result = value;
+    result = result.replaceAll(\"+\", \"_\");
+    result = result.replaceAll(\"-\", \"_\");
+    result = result.replaceAll(\".\", \"_\");
+    result = result.replaceAll(\" \", \"_\");
+    result = result.replaceAll(\"(\", \"_\");
+    result = result.replaceAll(\")\", \"_\");
+    return \"_\" + result;
 }}
 
-const xValues = [\"Italy\", \"France\", \"Spain\", \"USA\", \"Argentina\"];
-const yValues = [55, 49, 44, 24, 15];
-const barColors = [\"red\", \"green\",\"blue\",\"orange\",\"brown\"];
+var csv_file_select = document.getElementById(\"csv_file\");
+var parent_select = document.getElementById(\"parent\");
+var min_checkbox = document.getElementById(\"min\");
+var max_checkbox = document.getElementById(\"max\");
+var sum_checkbox = document.getElementById(\"sum\");
+var average_checkbox = document.getElementById(\"average\");
+var median_checkbox = document.getElementById(\"median\");
+var percentage_checkbox = document.getElementById(\"percentage\");
 
-new Chart(\"myChart\", {{
-    type: \"bar\",
-    data: {{
-        labels: xValues,
-        datasets: [
-            {{
-                backgroundColor: barColors,
-                data: yValues
-            }},
-            {{
-                backgroundColor: barColors,
-                data: yValues
-            }},
-        ]
-    }},
-    options: {{
-        legend: {{display: false}},
-        title: {{
-            display: true,
-            text: \"World Wine Production 2018\"
+csv_file_changed();
+function csv_file_changed() {{
+    let value = csv_file_select.value;
+    let key = to_key(value);
+    let csv = csv_data[key];
+
+    let parentInnerHTML = \"\";
+
+    for (var parent_key in csv) {{
+        let csv_lines = csv[parent_key];
+
+        let parent
+        if (csv_lines.length > 0) {{
+            parent = csv_lines[0][\"parent\"];
+        }} else {{
+            parent = parent_key;
         }}
+
+        parentInnerHTML += \"<option>\" + parent + \"</option>\";
     }}
-}});
+
+    parent_select.innerHTML = parentInnerHTML;
+    render_chart();
+}}
+
+function render_chart() {{
+    let csv_value = csv_file_select.value;
+    let parent_value = parent_select.value;
+    let csv_key = to_key(csv_value);
+    let parent_key = to_key(parent_value);
+    let csv_lines = csv_data[csv_key][parent_key];
+
+    let labels = [];
+    for (var i = 0; i < csv_lines.length; ++i) {{
+        let line = csv_lines[i];
+        labels.push(line[\"id\"]);
+    }}
+
+    let datasets = [];
+
+    function push_data_set(checkbox, key, color) {{
+        if (!checkbox.checked) {{
+            return;
+        }}
+
+        let colors = [];
+        let values = [];
+        for (var i = 0; i < csv_lines.length; ++i) {{
+            let line = csv_lines[i];
+            let value = line[key];
+
+            colors.push(color);
+            values.push(value);
+        }}
+
+        let dataset = {{
+            label: key,
+            backgroundColor: colors,
+            data: values,
+        }};
+        datasets.push(dataset);
+    }}
+
+    push_data_set(min_checkbox, \"min\", \"red\");
+    push_data_set(max_checkbox, \"max\", \"yellow\");
+    push_data_set(sum_checkbox, \"sum\", \"green\");
+    push_data_set(average_checkbox, \"average\", \"cyan\");
+    push_data_set(median_checkbox, \"median\", \"blue\");
+    push_data_set(percentage_checkbox, \"percentage\", \"magenta\");
+
+    new Chart(\"myChart\", {{
+        type: \"bar\",
+        data: {{
+            labels: labels,
+            datasets: datasets,
+        }},
+        options: {{
+            legend: {{
+                display: true,
+                //labels: legendLabels
+            }},
+            title: {{
+                display: true,
+                text: \"Profiler Evaluation\"
+            }}
+        }}
+    }});
+}}
+
 </script>
 
 </body>
