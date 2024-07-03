@@ -8,7 +8,6 @@ use ris_file::io::FatPtr;
 use crate::ExplanationLevel;
 use crate::ICommand;
 
-
 const ORG_NAME: &str = "Rismosch";
 const APP_NAME: &str = "ris_engine";
 const PROFILER: &str = "profiler";
@@ -54,7 +53,6 @@ impl ICommand for ProfilerHtml {
         eprintln!("reading... {:?}", chart_js_path);
         let chart_js = read_text_file(chart_js_path)?;
 
-
         let pref_path = sdl2::filesystem::pref_path(ORG_NAME, APP_NAME)?;
         let profiler_dir = PathBuf::from(pref_path).join(PROFILER);
         eprintln!("reading... {:?}", profiler_dir);
@@ -92,9 +90,7 @@ impl ICommand for ProfilerHtml {
                 continue;
             };
 
-            let headers = first_line
-                .split(SEPARATOR)
-                .collect::<Vec<_>>();
+            let headers = first_line.split(SEPARATOR).collect::<Vec<_>>();
             if let Err(e) = ris_error::assert!(headers.len() == KEYS.len()) {
                 eprintln!("failed to parse header: {}", e);
                 continue;
@@ -113,7 +109,7 @@ impl ICommand for ProfilerHtml {
 
             // header is as expected
             let mut failed_to_parse = false;
-            
+
             let mut parsed_csv_lines = Vec::new();
             for (i, line) in lines.skip(1).enumerate() {
                 let parsed = match parse_csv_line(line) {
@@ -122,7 +118,7 @@ impl ICommand for ProfilerHtml {
                         eprintln!("failed to parse line {}: {}", i + 1, e);
                         failed_to_parse = true;
                         break;
-                    },
+                    }
                 };
 
                 let position = parsed_csv_lines
@@ -148,7 +144,8 @@ impl ICommand for ProfilerHtml {
         eprintln!("generating html...");
 
         let mut html = String::new();
-        html.push_str(&format!("
+        html.push_str(&format!(
+            "
 <!DOCTYPE html>
 <html>
 <script>
@@ -157,14 +154,20 @@ impl ICommand for ProfilerHtml {
 <body>
 
 <select id=\"csv_file\" onchange=\"csv_file_changed()\">
-", chart_js));
+",
+            chart_js
+        ));
 
         for (file_name, _) in parsed_csv_files.iter() {
-            html.push_str(&format!("
-<option>{}</option>", file_name));
+            html.push_str(&format!(
+                "
+<option>{}</option>",
+                file_name
+            ));
         }
 
-        html.push_str(&format!("
+        html.push_str(&format!(
+            "
 </select>
 
 <select id=\"parent\" onchange=\"render_chart()\"></select>
@@ -184,30 +187,45 @@ impl ICommand for ProfilerHtml {
 
 <script>
 
-var csv_data = {{"));
-        
+var csv_data = {{"
+        ));
+
         for (file_name, parsed_csv_lines) in parsed_csv_files.iter() {
-            html.push_str(&format!("
-    {}: {{", sanitize_key(file_name)));
+            html.push_str(&format!(
+                "
+    {}: {{",
+                sanitize_key(file_name)
+            ));
 
             for (parent, lines) in parsed_csv_lines.iter() {
-                html.push_str(&format!("
-        {}: [", sanitize_key(parent)));
+                html.push_str(&format!(
+                    "
+        {}: [",
+                    sanitize_key(parent)
+                ));
 
-                 for line in lines.iter() {
-                     html.push_str(&format!("
-             {},", line.json));
-                 }
+                for line in lines.iter() {
+                    html.push_str(&format!(
+                        "
+             {},",
+                        line.json
+                    ));
+                }
 
-                html.push_str(&format!("
-        ],"));
+                html.push_str(&format!(
+                    "
+        ],"
+                ));
             }
 
-            html.push_str(&format!("
-    }},"));
+            html.push_str(&format!(
+                "
+    }},"
+            ));
         }
 
-        html.push_str(&format!("
+        html.push_str(&format!(
+            "
 }};
 
 function to_key(value) {{
@@ -255,6 +273,8 @@ function csv_file_changed() {{
     render_chart();
 }}
 
+var chart;
+
 function render_chart() {{
     let csv_value = csv_file_select.value;
     let parent_value = parent_select.value;
@@ -300,29 +320,36 @@ function render_chart() {{
     push_data_set(median_checkbox, \"median\", \"blue\");
     push_data_set(percentage_checkbox, \"percentage\", \"magenta\");
 
-    new Chart(\"myChart\", {{
-        type: \"bar\",
-        data: {{
-            labels: labels,
-            datasets: datasets,
-        }},
-        options: {{
-            legend: {{
-                display: true,
-                //labels: legendLabels
-            }},
-            title: {{
-                display: true,
-                text: \"Profiler Evaluation\"
+    let data = {{
+        labels: labels,
+        datasets: datasets,
+    }};
+
+    if (chart) {{
+        chart.data = data;
+        chart.update();
+    }} else {{
+        chart = new Chart(\"myChart\", {{
+            type: \"bar\",
+            data: data,
+            options: {{
+                legend: {{
+                    display: true,
+                }},
+                title: {{
+                    display: true,
+                    text: \"Profiler Evaluation\"
+                }}
             }}
-        }}
-    }});
+        }});
+    }}
 }}
 
 </script>
 
 </body>
-</html>"));
+</html>"
+        ));
 
         eprintln!("writing html...");
         ris_file::util::clean_or_create_dir(&target_dir)?;
@@ -348,9 +375,7 @@ fn read_text_file(path: impl AsRef<Path>) -> RisResult<String> {
 }
 
 fn parse_csv_line(line: &str) -> RisResult<ParsedCsvLine> {
-    let cells = line
-        .split(SEPARATOR)
-        .collect::<Vec<_>>();
+    let cells = line.split(SEPARATOR).collect::<Vec<_>>();
     ris_error::assert!(cells.len() == KEYS.len())?;
 
     let mut json = String::from("{ ");
@@ -377,7 +402,7 @@ fn parse_csv_line(line: &str) -> RisResult<ParsedCsvLine> {
     json.push_str(&format!("{}: {}", KEYS[10], cells[10]));
     json.push_str(" }");
 
-    Ok(ParsedCsvLine{
+    Ok(ParsedCsvLine {
         parent: cells[0].to_string(),
         json,
     })
@@ -386,8 +411,7 @@ fn parse_csv_line(line: &str) -> RisResult<ParsedCsvLine> {
 fn sanitize_key(key: &str) -> String {
     format!(
         "_{}",
-        key
-            .replace('+', "_")
+        key.replace('+', "_")
             .replace('-', "_")
             .replace('.', "_")
             .replace(' ', "_")

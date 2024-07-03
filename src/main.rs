@@ -7,7 +7,6 @@ use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
 use ris_data::info::cpu_info::CpuInfo;
 use ris_data::info::file_info::FileInfo;
-use ris_data::info::package_info::PackageInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
 use ris_error::RisResult;

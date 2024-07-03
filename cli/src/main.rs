@@ -36,14 +36,7 @@ fn main() -> Result<(), String> {
         false
     };
 
-    let commands = command_vec!(
-        Archive,
-        Asset,
-        Build,
-        Doc,
-        Pipeline,
-        ProfilerHtml,
-    );
+    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline, ProfilerHtml,);
 
     // check if no arguments provided
     if raw_args.len() < 2 {

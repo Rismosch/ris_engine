@@ -306,13 +306,14 @@ pub fn generate_csv(evaluations: &ProfilerEvaluations, seperator: char) -> Strin
     for (_, evaluations) in evaluations.iter() {
         for evaluation in evaluations.iter() {
             let RecordEvaluation {
-                id: RecordId {
-                    value: id,
-                    parent,
-                    generation,
-                    file,
-                    line,
-                },
+                id:
+                    RecordId {
+                        value: id,
+                        parent,
+                        generation,
+                        file,
+                        line,
+                    },
                 min,
                 max,
                 sum,

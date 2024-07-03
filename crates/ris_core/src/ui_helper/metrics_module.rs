@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
 
-use ris_data::info::app_info::AppInfo;
 use ris_data::gameloop::frame::Frame;
+use ris_data::info::app_info::AppInfo;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
@@ -138,17 +138,14 @@ impl UiHelperModule for MetricsModule {
             }
 
             ui.same_line();
-            if ui.button("stop") {
-                ris_debug::profiler::stop_recording()?;
-                profiler_evaluations = ris_debug::profiler::evaluate()?;
-            } else if profiler_state == ProfilerState::Done {
+            if ui.button("stop") || profiler_state == ProfilerState::Done {
                 ris_debug::profiler::stop_recording()?;
                 profiler_evaluations = ris_debug::profiler::evaluate()?;
             }
 
             let dir = PathBuf::from(&self.app_info.file.pref_path).join("profiler");
 
-            if let Some(evaluations) = profiler_evaluations { 
+            if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
 
                 let filename = ris_file::path::sanitize(&chrono::Local::now().to_rfc3339(), true);
