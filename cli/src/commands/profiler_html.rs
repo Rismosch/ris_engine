@@ -187,7 +187,7 @@ impl ICommand for ProfilerHtml {
 
 <script>
 
-var csv_data = {{",
+var csv_data = {",
         );
 
         for (file_name, parsed_csv_lines) in parsed_csv_files.iter() {
@@ -220,15 +220,15 @@ var csv_data = {{",
 
             html.push_str(
                 "
-    }},",
+    },",
             );
         }
 
         html.push_str(
             "
-}};
+};
 
-function to_key(value) {{
+function to_key(value) {
     let result = value;
     result = result.replaceAll(\"+\", \"_\");
     result = result.replaceAll(\"-\", \"_\");
@@ -237,7 +237,7 @@ function to_key(value) {{
     result = result.replaceAll(\"(\", \"_\");
     result = result.replaceAll(\")\", \"_\");
     return \"_\" + result;
-}}
+}
 
 var csv_file_select = document.getElementById(\"csv_file\");
 var parent_select = document.getElementById(\"parent\");
@@ -249,33 +249,33 @@ var median_checkbox = document.getElementById(\"median\");
 var percentage_checkbox = document.getElementById(\"percentage\");
 
 csv_file_changed();
-function csv_file_changed() {{
+function csv_file_changed() {
     let value = csv_file_select.value;
     let key = to_key(value);
     let csv = csv_data[key];
 
     let parentInnerHTML = \"\";
 
-    for (var parent_key in csv) {{
+    for (var parent_key in csv) {
         let csv_lines = csv[parent_key];
 
         let parent
-        if (csv_lines.length > 0) {{
+        if (csv_lines.length > 0) {
             parent = csv_lines[0][\"parent\"];
-        }} else {{
+        } else {
             parent = parent_key;
-        }}
+        }
 
         parentInnerHTML += \"<option>\" + parent + \"</option>\";
-    }}
+    }
 
     parent_select.innerHTML = parentInnerHTML;
     render_chart();
-}}
+}
 
 var chart;
 
-function render_chart() {{
+function render_chart() {
     let csv_value = csv_file_select.value;
     let parent_value = parent_select.value;
     let csv_key = to_key(csv_value);
@@ -283,35 +283,35 @@ function render_chart() {{
     let csv_lines = csv_data[csv_key][parent_key];
 
     let labels = [];
-    for (var i = 0; i < csv_lines.length; ++i) {{
+    for (var i = 0; i < csv_lines.length; ++i) {
         let line = csv_lines[i];
         labels.push(line[\"id\"]);
-    }}
+    }
 
     let datasets = [];
 
-    function push_data_set(checkbox, key, color) {{
-        if (!checkbox.checked) {{
+    function push_data_set(checkbox, key, color) {
+        if (!checkbox.checked) {
             return;
-        }}
+        }
 
         let colors = [];
         let values = [];
-        for (var i = 0; i < csv_lines.length; ++i) {{
+        for (var i = 0; i < csv_lines.length; ++i) {
             let line = csv_lines[i];
             let value = line[key];
 
             colors.push(color);
             values.push(value);
-        }}
+        }
 
-        let dataset = {{
+        let dataset = {
             label: key,
             backgroundColor: colors,
             data: values,
-        }};
+        };
         datasets.push(dataset);
-    }}
+    }
 
     push_data_set(min_checkbox, \"min\", \"red\");
     push_data_set(max_checkbox, \"max\", \"yellow\");
@@ -320,30 +320,30 @@ function render_chart() {{
     push_data_set(median_checkbox, \"median\", \"blue\");
     push_data_set(percentage_checkbox, \"percentage\", \"magenta\");
 
-    let data = {{
+    let data = {
         labels: labels,
         datasets: datasets,
-    }};
+    };
 
-    if (chart) {{
+    if (chart) {
         chart.data = data;
         chart.update();
-    }} else {{
-        chart = new Chart(\"myChart\", {{
+    } else {
+        chart = new Chart(\"myChart\", {
             type: \"bar\",
             data: data,
-            options: {{
-                legend: {{
+            options: {
+                legend: {
                     display: true,
-                }},
-                title: {{
+                },
+                title: {
                     display: true,
                     text: \"Profiler Evaluation\"
-                }}
-            }}
-        }});
-    }}
-}}
+                }
+            }
+        });
+    }
+}
 
 </script>
 
