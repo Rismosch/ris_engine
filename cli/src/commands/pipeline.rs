@@ -25,6 +25,8 @@ impl ICommand for Pipeline {
             test(results, "cargo check -r");
             test(results, "cargo build");
             test(results, "cargo build -r");
+            test(results, "cargo build -p cli");
+            test(results, "cargo build -r -p cli");
             test(results, "cargo test");
             test(results, "cargo test -r");
             test(results, &cargo_nightly("miri test")?);
@@ -33,6 +35,7 @@ impl ICommand for Pipeline {
             test(results, "cargo clippy --tests -- -Dwarnings");
             test(results, "cargo clippy -r --tests -- -Dwarnings");
             test(results, "cargo clippy -p cli -- -Dwarnings");
+            test(results, "cargo clippy -r -p cli -- -Dwarnings");
         }
 
         print_empty(5);

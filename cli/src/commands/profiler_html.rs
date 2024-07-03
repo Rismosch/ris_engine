@@ -166,7 +166,7 @@ impl ICommand for ProfilerHtml {
             ));
         }
 
-        html.push_str(&format!(
+        html.push_str(
             "
 </select>
 
@@ -187,8 +187,8 @@ impl ICommand for ProfilerHtml {
 
 <script>
 
-var csv_data = {{"
-        ));
+var csv_data = {{",
+        );
 
         for (file_name, parsed_csv_lines) in parsed_csv_files.iter() {
             html.push_str(&format!(
@@ -212,19 +212,19 @@ var csv_data = {{"
                     ));
                 }
 
-                html.push_str(&format!(
+                html.push_str(
                     "
-        ],"
-                ));
+        ],",
+                );
             }
 
-            html.push_str(&format!(
+            html.push_str(
                 "
-    }},"
-            ));
+    }},",
+            );
         }
 
-        html.push_str(&format!(
+        html.push_str(
             "
 }};
 
@@ -348,8 +348,8 @@ function render_chart() {{
 </script>
 
 </body>
-</html>"
-        ));
+</html>",
+        );
 
         eprintln!("writing html...");
         ris_file::util::clean_or_create_dir(&target_dir)?;
@@ -409,13 +409,5 @@ fn parse_csv_line(line: &str) -> RisResult<ParsedCsvLine> {
 }
 
 fn sanitize_key(key: &str) -> String {
-    format!(
-        "_{}",
-        key.replace('+', "_")
-            .replace('-', "_")
-            .replace('.', "_")
-            .replace(' ', "_")
-            .replace('(', "_")
-            .replace(')', "_")
-    )
+    format!("_{}", key.replace(['+', '-', '.', ' ', '(', ')'], "_"))
 }
