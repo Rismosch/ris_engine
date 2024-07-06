@@ -17,20 +17,28 @@ impl ICommand for Pipeline {
     }
 
     fn run(_args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
-        let results = vec![
-            test("cargo check"),
-            test("cargo check -r"),
-            test("cargo build"),
-            test("cargo build -r"),
-            test("cargo test"),
-            test("cargo test -r"),
-            test("cargo clippy -- -Dwarnings"),
-            test("cargo clippy -r -- -Dwarnings"),
-            test("cargo clippy --tests -- -Dwarnings"),
-            test("cargo clippy -r --tests -- -Dwarnings"),
-            test(&cargo_nightly("miri test")?),
-            test("cargo clippy -p cli -- -Dwarnings"),
-        ];
+        let mut results = Vec::new();
+
+        {
+            let results = &mut results;
+            test(results, "cargo check");
+            test(results, "cargo check -r");
+            test(results, "cargo build");
+            test(results, "cargo build -r");
+            test(results, "cargo build -p cli");
+            test(results, "cargo build -r -p cli");
+            test(results, "cargo test");
+            test(results, "cargo test -r");
+            test(results, &cargo_nightly("miri test")?);
+            test(results, "cargo clippy -- -Dwarnings");
+            test(results, "cargo clippy -r -- -Dwarnings");
+            test(results, "cargo clippy --tests -- -Dwarnings");
+            test(results, "cargo clippy -r --tests -- -Dwarnings");
+            test(results, "cargo clippy -p cli -- -Dwarnings");
+            test(results, "cargo clippy -r -p cli -- -Dwarnings");
+        }
+
+        print_empty(5);
 
         println!("done! finished running pipeline!");
         println!("results:");
@@ -45,15 +53,17 @@ impl ICommand for Pipeline {
 
         if results.iter().all(|x| x.1) {
             println!("pipeline succeeded");
+            print_empty(2);
             Ok(())
         } else {
             println!("pipeline failed");
+            print_empty(2);
             ris_error::new_result!("pipeline failed")
         }
     }
 }
 
-fn test(cmd: &str) -> (String, bool) {
+fn test(results: &mut Vec<(String, bool)>, cmd: &str) {
     let exit_status = crate::cmd::run(cmd, None);
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
@@ -63,7 +73,8 @@ fn test(cmd: &str) -> (String, bool) {
         Err(_) => false,
     };
 
-    (cmd.to_string(), success)
+    let result = (cmd.to_string(), success);
+    results.push(result);
 }
 
 #[cfg(target_os = "windows")]
@@ -80,6 +91,12 @@ fn cargo_nightly(args: &str) -> RisResult<String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn cargo_nightly(args: &str) -> CiResult<String> {
+fn cargo_nightly(args: &str) -> RisResult<String> {
     Ok(format!("cargo +nightly {}", args))
+}
+
+fn print_empty(lines: usize) {
+    for _ in 0..lines {
+        eprintln!()
+    }
 }

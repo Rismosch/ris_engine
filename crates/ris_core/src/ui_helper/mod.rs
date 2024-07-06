@@ -14,6 +14,7 @@ use ris_error::RisResult;
 
 pub mod metrics_module;
 pub mod settings_module;
+pub mod util;
 
 use crate::ui_helper::metrics_module::MetricsModule;
 use crate::ui_helper::settings_module::SettingsModule;
@@ -23,7 +24,7 @@ const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
     let modules: Vec<Box<dyn UiHelperModule>> = vec![
-        MetricsModule::new(),
+        MetricsModule::new(app_info),
         SettingsModule::new(app_info),
         // add new modules here...
     ];

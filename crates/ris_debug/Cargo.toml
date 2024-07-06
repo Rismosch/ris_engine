@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "ris_debug"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,5 @@ edition = "2021"
 [dependencies]
 sdl2 = "0.34.5"
 chrono = "0.4"
-ris_asset = { path = "../crates/ris_asset" }
-ris_error = { path = "../crates/ris_error" }
-ris_file = { path = "../crates/ris_file" }
-ris_log = { path = "../crates/ris_log" }
+ris_error = { path = "../ris_error" }
+ris_log = { path = "../ris_log" }

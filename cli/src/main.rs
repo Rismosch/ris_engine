@@ -13,15 +13,19 @@ pub use command::ExplanationLevel;
 pub use command::ICommand;
 pub use commands::archive::Archive;
 pub use commands::asset::Asset;
+pub use commands::asset::AssetCommand;
 pub use commands::build::Build;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
+pub use commands::profiler_html::ProfilerHtml;
+pub use commands::repeat::Repeat;
 
 fn main() -> Result<(), String> {
     let start = std::time::SystemTime::now();
 
     unsafe {
         ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
+        ris_file::util::TRACE = true;
     }
 
     let mut raw_args = std::env::args().collect::<Vec<_>>();
@@ -33,7 +37,7 @@ fn main() -> Result<(), String> {
         false
     };
 
-    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline,);
+    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline, ProfilerHtml, Repeat,);
 
     // check if no arguments provided
     if raw_args.len() < 2 {

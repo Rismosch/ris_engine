@@ -5,6 +5,20 @@ pub struct Sid {
     pub value: String,
 }
 
+impl std::fmt::Display for Sid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[cfg(debug_assertions)]
+        {
+            write!(f, "{} ({})", self.value, self.hash)
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            write!(f, "sid_{}", self.hash)
+        }
+    }
+}
+
 impl PartialEq for Sid {
     fn eq(&self, other: &Self) -> bool {
         #[cfg(debug_assertions)]
@@ -29,6 +43,12 @@ impl PartialEq for Sid {
 }
 
 impl Eq for Sid {}
+
+impl std::hash::Hash for Sid {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u32(self.hash);
+    }
+}
 
 #[macro_export]
 macro_rules! sid {

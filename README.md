@@ -4,7 +4,7 @@ Barebones game engine. Home made passion project.
 
 🏗️ **VERY WIP** 👷
 
-![thumbnail](assets/__raw/images/screenshot.png)
+![thumbnail](screenshot.png)
 
 ## Features:
 
@@ -22,13 +22,10 @@ Barebones game engine. Home made passion project.
     - [x] RGB
     - [x] OkLab
 - [x] Basic 3d renderer via Vulkan
-- [x] Debug GUI via Dear ImGui
-- [ ] Debug gizmos
-  - [ ] Point
-  - [ ] Line
-  - [ ] Box
-  - [ ] Sphere
-  - [ ] Text
+- [x] Debugging
+  - [x] GUI via Dear ImGui
+  - [x] Profiling
+  - [ ] Gizmos
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
@@ -55,7 +52,7 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 ### Windows
 
-In this repo you will find the   `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
+In this repo you will find the `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
 
 #### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
 
@@ -113,7 +110,7 @@ Alternatively, you can build a release-ready package, by running the command bel
 cargo run -p cli build
 ```
 
-`cli` is a command line tool to enable continuous integration. For all available commands and their usages, run:
+`cli` is a command line utility tool. It enables CI/CD and runs features of the engine as a oneshot cli program. For all available commands and their usages, run:
 
 ```bash
 cargo run -p cli

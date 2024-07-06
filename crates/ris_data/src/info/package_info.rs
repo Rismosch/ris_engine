@@ -11,7 +11,7 @@ pub struct PackageInfo {
 #[macro_export]
 macro_rules! package_info {
     () => {
-        PackageInfo {
+        $crate::info::package_info::PackageInfo {
             name: String::from(env!("CARGO_PKG_NAME")),
             version: String::from(env!("CARGO_PKG_VERSION")),
             author: String::from(env!("CARGO_PKG_AUTHORS")),

@@ -2,6 +2,7 @@ use ris_error::RisResult;
 
 use crate::pcg::Pcg32;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Seed(pub [u8; 16]);
 
 impl Seed {
