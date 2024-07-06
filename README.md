@@ -52,7 +52,7 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 ### Windows
 
-In this repo you will find the   `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
+In this repo you will find the `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
 
 #### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
 
