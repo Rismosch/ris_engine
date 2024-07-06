@@ -15,7 +15,7 @@ impl ICommand for Repeat {
     fn explanation(level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => {
-                String::from("Repeatedly runs a command. Usefull for stresstesting fuzzed tests.")
+                String::from("Repeatedly runs a command.")
             }
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
