@@ -12,7 +12,9 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_convert_rgb_to_lab() {
-    let rng = Rc::new(RefCell::new(Rng::new(Seed::new().unwrap())));
+    let seed = Seed::new().unwrap();
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
@@ -36,7 +38,10 @@ fn should_convert_rgb_to_lab() {
 
 #[test]
 fn should_convert_lab_to_lch() {
-    let rng = Rc::new(RefCell::new(Rng::new(Seed::new().unwrap())));
+    let seed = Seed::new().unwrap();
+    //let seed = Seed([2, 81, 100, 135, 144, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
@@ -54,22 +59,15 @@ fn should_convert_lab_to_lch() {
         assert_feq!(lab.b(), lab_.b(), color::MIN_NORM);
         assert_feq!(lch.l(), lch_.l(), color::MIN_NORM);
         assert_feq!(lch.c(), lch_.c(), color::MIN_NORM);
-        assert_feq!(
-            lch.h(),
-            lch_.h(),
-            color::MIN_NORM,
-            "{:?} {:?} {:?} {:?}",
-            lab,
-            lch,
-            lab_,
-            lch_,
-        );
+        assert_chroma_eq(lch, lch_);
     });
 }
 
 #[test]
 fn should_convert_rgb_to_lch() {
-    let rng = Rc::new(RefCell::new(Rng::new(Seed::new().unwrap())));
+    let seed = Seed::new().unwrap();
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
@@ -93,29 +91,16 @@ fn should_convert_rgb_to_lch() {
         // only when the color is not white
         let t = 1.0 - color::MIN_NORM;
         if rgb.r() < t || rgb.g() < t || rgb.b() < t {
-            let diff = ris_math::f32::diff(lch.h(), lch_.h());
-            if diff < color::MIN_NORM {
-                // success, hue is identical
-            } else {
-                // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
-                assert_feq!(
-                    diff,
-                    2.0 * ris_math::f32::PI,
-                    color::MIN_NORM,
-                    "{:?} {:?} {:?} {:?}",
-                    rgb,
-                    lch,
-                    rgb_,
-                    lch_,
-                );
-            }
+            assert_chroma_eq(lch, lch_);
         }
     });
 }
 
 #[test]
 fn should_convert_rgb_to_bytes() {
-    let rng = Rc::new(RefCell::new(Rng::new(Seed::new().unwrap())));
+    let seed = Seed::new().unwrap();
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
@@ -139,4 +124,24 @@ fn should_convert_rgb_to_bytes() {
 fn should_clamp_when_converting_bytes_to_rgb() {
     let bytes = color::Rgb(-1.0, 2.0, 0.5).to_bytes();
     assert_bytes_eq!(bytes, [0, 255, 127]);
+}
+
+fn assert_chroma_eq(left: color::OkLch, right: color::OkLch) {
+    let c_left = left.c();
+    let c_right = right.c();
+
+    let diff = ris_math::f32::diff(c_left, c_right);
+    if diff < color::MIN_NORM {
+        // success, hue is identical
+    } else {
+        // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
+        assert_feq!(
+            diff,
+            2.0 * ris_math::f32::PI,
+            color::MIN_NORM,
+            "{:?} {:?}",
+            left,
+            right,
+        );
+    }
 }

@@ -18,6 +18,7 @@ pub use commands::build::Build;
 pub use commands::doc::Doc;
 pub use commands::pipeline::Pipeline;
 pub use commands::profiler_html::ProfilerHtml;
+pub use commands::repeat::Repeat;
 
 fn main() -> Result<(), String> {
     let start = std::time::SystemTime::now();
@@ -36,7 +37,7 @@ fn main() -> Result<(), String> {
         false
     };
 
-    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline, ProfilerHtml,);
+    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline, ProfilerHtml, Repeat,);
 
     // check if no arguments provided
     if raw_args.len() < 2 {
