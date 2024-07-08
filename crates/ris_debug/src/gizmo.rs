@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::camera::Camera;
 use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -27,28 +28,52 @@ impl Drop for GizmoGuard {
 pub unsafe fn init() -> RisResult<GizmoGuard> {
     let mut gizmo = GIZMOS.lock()?;
     *gizmo = Some(Gizmos {
-        to_draw: Vec::new(),
+        shapes: Vec::new(),
+        text: Vec::new(),
     });
 
     Ok(GizmoGuard)
 }
 
+enum GizmoShape {
+    Segment{start: Vec3, end: Vec3, color: Rgb},
+    Point{position: Vec3, color: Option<Rgb>},
+    ViewPoint{position: Vec3, rotation: Quat, color: Option<Rgb>},
+    Aabb{min: Vec3, max: Vec3, color: Option<Rgb>},
+    Obb{center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>},
+}
+
+struct GizmoText {
+    position: Vec3,
+    text: String,
+}
+
 struct Gizmos {
-    to_draw: Vec<GizmoVertex>,
+    shapes: Vec<GizmoShape>,
+    text: Vec<GizmoText>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct GizmoVertex {
+pub struct GizmoShapeVertex {
     pub pos: Vec3,
     pub color: Rgb,
 }
 
-pub fn new_frame() -> RisResult<()> {
-    if let Some(ref mut gizmos) = *GIZMOS.lock()? {
-        gizmos.to_draw.clear();
-    }
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(C)]
+pub struct GizmoTextVertex {
+    pub pos: Vec3,
+    pub text_addr: u32,
+    pub text_len: u32,
+}
 
+pub fn new_frame() -> RisResult<()> {
+    let Some(ref mut gizmos) = *GIZMOS.lock()? else {
+        return Ok(());
+    };
+
+    gizmos.shapes.clear();
     Ok(())
 }
 
@@ -57,8 +82,8 @@ pub fn segment(start: Vec3, end: Vec3, color: Rgb) -> RisResult<()> {
         return Ok(());
     };
 
-    gizmos.add_segment(start, end, color);
-
+    let shape = GizmoShape::Segment{start, end, color};
+    gizmos.shapes.push(shape);
     Ok(())
 }
 
@@ -67,7 +92,9 @@ pub fn point(position: Vec3, color: Option<Rgb>) -> RisResult<()> {
         return Ok(());
     };
 
-    panic!("not implemented")
+    let shape = GizmoShape::Point{position, color};
+    gizmos.shapes.push(shape);
+    Ok(())
 }
 
 pub fn view_point(position: Vec3, rotation: Quat, color: Option<Rgb>) -> RisResult<()> {
@@ -75,7 +102,9 @@ pub fn view_point(position: Vec3, rotation: Quat, color: Option<Rgb>) -> RisResu
         return Ok(());
     };
 
-    panic!("not implemented")
+    let shape = GizmoShape::ViewPoint{position, rotation, color};
+    gizmos.shapes.push(shape);
+    Ok(())
 }
 
 pub fn aabb(min: Vec3, max: Vec3, color: Option<Rgb>) -> RisResult<()> {
@@ -83,35 +112,19 @@ pub fn aabb(min: Vec3, max: Vec3, color: Option<Rgb>) -> RisResult<()> {
         return Ok(());
     };
 
-    let red = color.unwrap_or(ris_math::color::RGB_RED);
-    let green = color.unwrap_or(ris_math::color::RGB_GREEN);
-    let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
-    let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
-    let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
-    let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+    let min = Vec3(
+        ris_math::f32::min(min.0, max.0),
+        ris_math::f32::min(min.1, max.1),
+        ris_math::f32::min(min.2, max.2),
+    );
+    let max = Vec3(
+        ris_math::f32::max(min.0, max.0),
+        ris_math::f32::max(min.1, max.1),
+        ris_math::f32::max(min.2, max.2),
+    );
 
-    let v0 = Vec3(min.x(), min.y(), min.z());
-    let v1 = Vec3(max.x(), min.y(), min.z());
-    let v2 = Vec3(min.x(), max.y(), min.z());
-    let v3 = Vec3(max.x(), max.y(), min.z());
-    let v4 = Vec3(min.x(), min.y(), max.z());
-    let v5 = Vec3(max.x(), min.y(), max.z());
-    let v6 = Vec3(min.x(), max.y(), max.z());
-    let v7 = Vec3(max.x(), max.y(), max.z());
-
-    gizmos.add_segment(v1, v5, red);
-    gizmos.add_segment(v3, v7, red);
-    gizmos.add_segment(v2, v3, green);
-    gizmos.add_segment(v6, v7, green);
-    gizmos.add_segment(v4, v6, blue);
-    gizmos.add_segment(v5, v7, blue);
-    gizmos.add_segment(v0, v4, cyan);
-    gizmos.add_segment(v2, v6, cyan);
-    gizmos.add_segment(v0, v1, magenta);
-    gizmos.add_segment(v4, v5, magenta);
-    gizmos.add_segment(v0, v2, yellow);
-    gizmos.add_segment(v1, v3, yellow);
-
+    let shape = GizmoShape::Aabb{min, max, color};
+    gizmos.shapes.push(shape);
     Ok(())
 }
 
@@ -120,6 +133,14 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
         return Ok(());
     };
 
+    let half_scale = Vec3(
+        ris_math::f32::abs(half_scale.0),
+        ris_math::f32::abs(half_scale.1),
+        ris_math::f32::abs(half_scale.2),
+    );
+
+    let shape = GizmoShape::Obb{center, half_scale, rotation, color};
+    gizmos.shapes.push(shape);
     Ok(())
 }
 
@@ -128,30 +149,164 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
         return Ok(());
     };
 
+    let gizmo_text = GizmoText{position, text: text.to_string()};
+    gizmos.text.push(gizmo_text);
     Ok(())
 }
 
-pub fn draw() -> RisResult<Vec<GizmoVertex>> {
-    let vertices = match *GIZMOS.lock()? {
-        Some(ref mut gizmos) => gizmos.to_draw.clone(),
-        None => Vec::new(),
+pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
+    let Some(ref mut gizmos) = *GIZMOS.lock()? else {
+        return Ok(Vec::new());
     };
+
+    let mut vertices = Vec::new();
+
+    for shape in gizmos.shapes.iter() {
+        match *shape {
+            GizmoShape::Segment { start, end, color } => {
+                add_segment(&mut vertices, start, end, color);
+            },
+            GizmoShape::Point { position, color } => {
+                const MAGIC_SCALE: f32 = 0.5;
+
+                let camera_distance = camera.position.distance(position);
+                let scale = MAGIC_SCALE * camera_distance;
+
+                let red = color.unwrap_or(ris_math::color::RGB_RED);
+                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
+                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
+                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
+                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
+                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+
+                let v0 = position;
+                let v1 = position + scale * ris_math::vector::VEC3_RIGHT;
+                let v2 = position + scale * ris_math::vector::VEC3_LEFT;
+                let v3 = position + scale * ris_math::vector::VEC3_FORWARD;
+                let v4 = position + scale * ris_math::vector::VEC3_BACKWARD;
+                let v5 = position + scale * ris_math::vector::VEC3_UP;
+                let v6 = position + scale * ris_math::vector::VEC3_DOWN;
+
+                add_segment(&mut vertices, v0, v1, red);
+                add_segment(&mut vertices, v0, v2, cyan);
+                add_segment(&mut vertices, v0, v3, green);
+                add_segment(&mut vertices, v0, v4, magenta);
+                add_segment(&mut vertices, v0, v5, blue);
+                add_segment(&mut vertices, v0, v6, yellow);
+            },
+            GizmoShape::ViewPoint { position, rotation, color } => {
+                let red = color.unwrap_or(ris_math::color::RGB_RED);
+                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
+                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
+
+                let v0 = position;
+                let v1 = position + rotation.rotate(ris_math::vector::VEC3_RIGHT);
+                let v2 = position + rotation.rotate(ris_math::vector::VEC3_FORWARD);
+                let v3 = position + rotation.rotate(ris_math::vector::VEC3_UP);
+
+                add_segment(&mut vertices, v0, v1, red);
+                add_segment(&mut vertices, v0, v2, green);
+                add_segment(&mut vertices, v0, v3, blue);
+            },
+            GizmoShape::Aabb { min, max, color } => {
+                let red = color.unwrap_or(ris_math::color::RGB_RED);
+                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
+                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
+                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
+                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
+                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+
+                let v0 = Vec3(min.x(), min.y(), min.z());
+                let v1 = Vec3(max.x(), min.y(), min.z());
+                let v2 = Vec3(min.x(), max.y(), min.z());
+                let v3 = Vec3(max.x(), max.y(), min.z());
+                let v4 = Vec3(min.x(), min.y(), max.z());
+                let v5 = Vec3(max.x(), min.y(), max.z());
+                let v6 = Vec3(min.x(), max.y(), max.z());
+                let v7 = Vec3(max.x(), max.y(), max.z());
+
+                add_segment(&mut vertices, v1, v5, red);
+                add_segment(&mut vertices, v3, v7, red);
+                add_segment(&mut vertices, v2, v3, green);
+                add_segment(&mut vertices, v6, v7, green);
+                add_segment(&mut vertices, v4, v6, blue);
+                add_segment(&mut vertices, v5, v7, blue);
+                add_segment(&mut vertices, v0, v4, cyan);
+                add_segment(&mut vertices, v2, v6, cyan);
+                add_segment(&mut vertices, v0, v1, magenta);
+                add_segment(&mut vertices, v4, v5, magenta);
+                add_segment(&mut vertices, v0, v2, yellow);
+                add_segment(&mut vertices, v1, v3, yellow);
+            },
+            GizmoShape::Obb { center, half_scale, rotation, color } => {
+                let red = color.unwrap_or(ris_math::color::RGB_RED);
+                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
+                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
+                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
+                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
+                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+
+                let x = half_scale.x() * rotation.rotate(ris_math::vector::VEC3_RIGHT);
+                let y = half_scale.y() * rotation.rotate(ris_math::vector::VEC3_FORWARD);
+                let z = half_scale.z() * rotation.rotate(ris_math::vector::VEC3_UP);
+
+                let v0 = center - x - y - z;
+                let v1 = center + x - y - z;
+                let v2 = center - x + y - z;
+                let v3 = center + x + y - z;
+                let v4 = center - x - y + z;
+                let v5 = center + x - y + z;
+                let v6 = center - x + y + z;
+                let v7 = center + x + y + z;
+
+                add_segment(&mut vertices, v1, v5, red);
+                add_segment(&mut vertices, v3, v7, red);
+                add_segment(&mut vertices, v2, v3, green);
+                add_segment(&mut vertices, v6, v7, green);
+                add_segment(&mut vertices, v4, v6, blue);
+                add_segment(&mut vertices, v5, v7, blue);
+                add_segment(&mut vertices, v0, v4, cyan);
+                add_segment(&mut vertices, v2, v6, cyan);
+                add_segment(&mut vertices, v0, v1, magenta);
+                add_segment(&mut vertices, v4, v5, magenta);
+                add_segment(&mut vertices, v0, v2, yellow);
+                add_segment(&mut vertices, v1, v3, yellow);
+            },
+        }
+    }
 
     Ok(vertices)
 }
 
-impl Gizmos {
-    fn add_segment(&mut self, start: Vec3, end: Vec3, color: Rgb) {
-        let v0 = GizmoVertex {
-            pos: start,
-            color,
-        };
-        let v1 = GizmoVertex {
-            pos: end,
-            color,
+pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
+    let Some(ref mut gizmos) = *GIZMOS.lock()? else {
+        return Ok((Vec::new(), Vec::new()));
+    };
+
+    let mut vertices = Vec::new();
+    let mut texture = Vec::new();
+
+    let mut text_addr = 0;
+    for GizmoText{position, text} in gizmos.text.iter() {
+        let bytes = &mut text.as_bytes().to_owned();
+        let bytes_len: u32 = bytes.len().try_into()?;
+
+        let vertex = GizmoTextVertex {
+            pos: *position,
+            text_addr,
+            text_len: bytes_len,
         };
 
-        self.to_draw.push(v0);
-        self.to_draw.push(v1);
+        vertices.push(vertex);
+        texture.append(bytes);
+
+        text_addr += bytes_len;
     }
+
+    Ok((vertices, texture))
+}
+
+fn add_segment(vertices: &mut Vec<GizmoShapeVertex>, start: Vec3, end: Vec3, color: Rgb) {
+    vertices.push(GizmoShapeVertex{pos: start, color});
+    vertices.push(GizmoShapeVertex{pos: end, color});
 }

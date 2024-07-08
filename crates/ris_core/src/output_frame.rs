@@ -182,8 +182,18 @@ impl OutputFrame {
 
         unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
 
+        // gizmos
+        ris_debug::gizmo::segment(
+            ris_math::vector::VEC3_ZERO,
+            ris_math::vector::VEC3_ONE,
+            ris_math::color::RGB_CYAN,
+        )?;
+
+        let gizmo_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+        ris_log::debug!("what {:?}", gizmo_vertices);
+
         // ui helper
-        ris_debug::add_record!(r, "ui helper")?;
+        ris_debug::add_record!(r, "prepare ui helper")?;
 
         let window_size = self.window.size();
         let window_drawable_size = self.window.vulkan_drawable_size();
@@ -194,13 +204,17 @@ impl OutputFrame {
             (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
         );
 
+        ris_debug::add_record!(r, "draw ui helper")?;
+
         self.ui_helper.draw(UiHelperDrawData {
             ui: imgui_ui,
             frame,
             state,
         })?;
 
+        ris_debug::add_record!(r, "imgui backend")?;
         let draw_data = self.imgui.backend.context().render();
+        ris_debug::add_record!(r, "imgui frontend")?;
         self.imgui
             .renderer
             .draw(&self.renderer, *image_view, draw_data)?;

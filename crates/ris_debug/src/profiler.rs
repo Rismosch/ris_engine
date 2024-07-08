@@ -226,54 +226,61 @@ impl Profiler {
 }
 
 pub fn state() -> RisResult<ProfilerState> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(ProfilerState::Stopped);
+    };
 
     Ok(profiler.state)
 }
 
 pub fn frames_to_record() -> RisResult<usize> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(0);
+    };
 
     Ok(profiler.frames_to_record)
 }
 
 pub fn start_recording(frame_count: usize) -> RisResult<()> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(());
+    };
 
     profiler.start_recording(frame_count);
     Ok(())
 }
 
 pub fn stop_recording() -> RisResult<()> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(());
+    };
 
     profiler.stop_recording();
     Ok(())
 }
 
 pub fn new_frame() -> RisResult<()> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(());
+    };
 
     profiler.new_frame();
     Ok(())
 }
 
 pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(());
+    };
 
     profiler.add_duration(id, duration);
     Ok(())
 }
 
 pub fn evaluate() -> RisResult<Option<ProfilerEvaluations>> {
-    let mut guard = PROFILER.lock()?;
-    let profiler = guard.as_mut().unroll()?;
+    let Some(ref mut profiler) = *PROFILER.lock()? else {
+        return Ok(None);
+    };
 
     profiler.evaluate()
 }
@@ -403,7 +410,7 @@ macro_rules! end_record {
         let result = $crate::profiler::add_duration(id, duration);
 
         #[allow(clippy::drop_non_drop)]
-        // justification: $record should not be used anymore after alling end_record!()
+        // justification: $record should not be used anymore after calling end_record!()
         drop($record);
 
         result

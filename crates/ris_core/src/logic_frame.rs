@@ -164,7 +164,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             self.camera_horizontal_angle = 0.0;
             self.camera_vertical_angle = 0.0;
-            state.camera.position = Vec3::backward();
+            state.camera.position = ris_math::vector::VEC3_BACKWARD;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -195,27 +195,27 @@ impl LogicFrame {
             0.5 * ris_math::f32::PI,
         );
 
-        let rotation1 = Quat::from((self.camera_vertical_angle, Vec3::right()));
-        let rotation2 = Quat::from((self.camera_horizontal_angle, Vec3::up()));
+        let rotation1 = Quat::from((self.camera_vertical_angle, ris_math::vector::VEC3_RIGHT));
+        let rotation2 = Quat::from((self.camera_horizontal_angle, ris_math::vector::VEC3_UP));
         state.camera.rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = state.camera.rotation.rotate(Vec3::forward());
+            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
             state.camera.position += movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = state.camera.rotation.rotate(Vec3::forward());
+            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
             state.camera.position -= movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = state.camera.rotation.rotate(Vec3::right());
+            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
             state.camera.position -= movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = state.camera.rotation.rotate(Vec3::right());
+            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
             state.camera.position += movement_speed * right;
         }
 

@@ -8,6 +8,7 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_jobs::job_system;
@@ -49,6 +50,7 @@ pub struct GodObject {
 
     // guards, must be dropped last.
     // they are dropped in the order they are listed.
+    pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
     pub job_system_guard: JobSystemGuard,
@@ -56,9 +58,6 @@ pub struct GodObject {
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
-        // profiler
-        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
-
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {
@@ -85,6 +84,10 @@ impl GodObject {
         // assets
         import_assets()?;
         let asset_loader_guard = unsafe { asset_loader::init(&app_info)? };
+
+        // debug
+        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
+        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
 
         // sdl
         let sdl_context =
@@ -162,6 +165,7 @@ impl GodObject {
             state,
 
             // guards
+            gizmo_guard,
             profiler_guard,
             asset_loader_guard,
             job_system_guard,

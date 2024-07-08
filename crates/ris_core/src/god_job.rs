@@ -14,6 +14,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
     loop {
         ris_debug::profiler::new_frame()?;
+        ris_debug::gizmo::new_frame()?;
         let frame = frame_calculator.bump_and_create_frame();
 
         // reset events

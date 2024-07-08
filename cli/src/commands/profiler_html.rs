@@ -151,7 +151,7 @@ impl ICommand for ProfilerHtml {
 <script>
 {}
 </script>
-<body>
+<body style=\"background: lightgray;\">
 
 <select id=\"csv_file\" onchange=\"csv_file_changed()\">
 ",

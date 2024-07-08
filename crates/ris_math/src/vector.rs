@@ -3,6 +3,19 @@ use ash::vk;
 use crate::matrix::Mat2;
 
 //
+// constants
+//
+
+pub const VEC3_ZERO: Vec3 = Vec3(0., 0., 0.);
+pub const VEC3_ONE: Vec3 = Vec3(1., 1., 1.);
+pub const VEC3_RIGHT: Vec3 = Vec3(1., 0., 0.);
+pub const VEC3_LEFT: Vec3 = Vec3(-1., 0., 0.);
+pub const VEC3_FORWARD: Vec3 = Vec3(0., 1., 0.);
+pub const VEC3_BACKWARD: Vec3 = Vec3(0., -1., 0.);
+pub const VEC3_UP: Vec3 = Vec3(0., 0., 1.);
+pub const VEC3_DOWN: Vec3 = Vec3(0., 0., -1.);
+
+//
 // definition
 //
 
@@ -73,30 +86,6 @@ impl From<Vec3> for Vec2 {
 impl Vec3 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value)
-    }
-
-    pub fn right() -> Self {
-        Self(1., 0., 0.)
-    }
-
-    pub fn left() -> Self {
-        Self(-1., 0., 0.)
-    }
-
-    pub fn forward() -> Self {
-        Self(0., 1., 0.)
-    }
-
-    pub fn backward() -> Self {
-        Self(0., -1., 0.)
-    }
-
-    pub fn up() -> Self {
-        Self(0., 0., 1.)
-    }
-
-    pub fn down() -> Self {
-        Self(0., 0., -1.)
     }
 }
 
