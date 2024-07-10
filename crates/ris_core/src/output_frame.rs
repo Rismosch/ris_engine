@@ -190,7 +190,7 @@ impl OutputFrame {
         )?;
 
         let gizmo_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
-        ris_log::debug!("what {:?}", gizmo_vertices);
+        //ris_log::debug!("what {:?}", gizmo_vertices);
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;

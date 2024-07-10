@@ -24,10 +24,15 @@ use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
+    use ris_asset::asset_importer;
+    
     ris_log::debug!("importing assets...");
 
-    use ris_asset::asset_importer::*;
-    import_all(DEFAULT_SOURCE_DIRECTORY, DEFAULT_TARGET_DIRECTORY)?;
+    asset_importer::import_all(
+        asset_importer::DEFAULT_SOURCE_DIRECTORY,
+        asset_importer::DEFAULT_TARGET_DIRECTORY,
+        Some("temp"),
+    )?;
 
     ris_log::debug!("assets imported!");
     Ok(())

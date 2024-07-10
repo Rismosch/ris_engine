@@ -13,10 +13,14 @@ use ris_error::RisResult;
 pub const IN_EXT: &str = "glsl";
 pub const OUT_EXT: &[&str] = &["vert.spv", "frag.spv"];
 
-// enable this to log the GLSL, that the preprocessor generates
-pub const TRACE_PREPROCESSED_GLSL: bool = true;
+const PATH_PREFIX: &str = "assets/__raw/shaders";
+const NAME: &str = "glsl_to_spirv_importer";
 
-pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
+pub fn import(
+    source: PathBuf,
+    targets: Vec<PathBuf>,
+    temp_dir: Option<&Path>,
+) -> RisResult<()> {
     // read file
     let file = source.to_str().unroll()?;
 
@@ -140,10 +144,10 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
 
     let mut artifacts = Vec::new();
 
-    let vert_artifact = vert_glsl.compile(file, &compiler, &options)?;
+    let vert_artifact = vert_glsl.compile(file, temp_dir, &compiler, &options)?;
     artifacts.push(vert_artifact);
 
-    let frag_artifact = frag_glsl.compile(file, &compiler, &options)?;
+    let frag_artifact = frag_glsl.compile(file, temp_dir, &compiler, &options)?;
     artifacts.push(frag_artifact);
 
     // save to file
@@ -219,6 +223,7 @@ impl Shader {
     pub fn compile(
         self,
         file: &str,
+        temp_dir: Option<&Path>,
         compiler: &shaderc::Compiler,
         options: &shaderc::CompileOptions,
     ) -> RisResult<Option<CompilationArtifact>> {
@@ -230,20 +235,34 @@ impl Shader {
         let file_path = PathBuf::from(file);
         let file_stem = file_path.file_stem().unroll()?;
         let file_stem = file_stem.to_str().unroll()?;
+        let file_extension = file_path.extension().unroll()?;
+        let file_extension = file_extension.to_str().unroll()?;
 
-        let extension = match self.kind {
-            ShaderKind::Vertex => OUT_EXT[0],
-            ShaderKind::Fragment => OUT_EXT[1],
+        let shader_extension = match self.kind {
+            ShaderKind::Vertex => "vert",
+            ShaderKind::Fragment => "frag",
         };
 
-        let file = format!("{}.{}", file_stem, extension);
+        let file = format!("{}.{}.{}", file_stem, shader_extension, file_extension);
 
-        if TRACE_PREPROCESSED_GLSL {
-            let mut source_trace = String::new();
-            for (i, source_line) in source.lines().enumerate() {
-                source_trace.push_str(&format!("{}\t{}\n", i + 1, source_line));
-            }
-            ris_log::trace!("shader \"{}\": \n{}", file, source_trace);
+        if let Some(temp_dir) = temp_dir {
+            let parent = file_path.parent().unroll()?;
+            let parent = parent.to_str().unroll()?;
+            let parent = parent.replace('\\', "/");
+            let parent = match parent.strip_prefix(PATH_PREFIX) {
+                Some(parent) => parent.to_string(),
+                None => parent,
+            };
+            let parent = PathBuf::from(parent);
+
+            let dir = temp_dir.join(parent).join(NAME);
+            let temp_file_path = dir.join(file.clone());
+
+            std::fs::create_dir_all(dir)?;
+            let mut temp_file = std::fs::File::create(&temp_file_path)?;
+            ris_file::io::write_checked(&mut temp_file, source.as_bytes())?;
+
+            ris_log::trace!("saved transpiled shader to: {:?}", temp_file_path);
         }
 
         let artifact = compiler.compile_into_spirv(

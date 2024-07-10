@@ -31,6 +31,7 @@ fn reload_shaders() -> JobFuture<()> {
         let result = asset_importer::import_all(
             asset_importer::DEFAULT_SOURCE_DIRECTORY,
             asset_importer::DEFAULT_TARGET_DIRECTORY,
+            Some("temp"),
         );
 
         if let Err(error) = result {
