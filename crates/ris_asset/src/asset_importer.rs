@@ -10,6 +10,8 @@ use crate::importer::*;
 pub const DEFAULT_SOURCE_DIRECTORY: &str = "assets/__raw";
 pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/__imported_raw";
 
+pub const EXTENSIONS_TO_SKIP: &[&str] = &["aseprite"];
+
 pub enum ImporterKind {
     GLSL,
     PNG,
@@ -133,11 +135,16 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 }
                 png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
                 // insert new inporter here...
-                _ => {
-                    return ris_error::new_result!(
-                        "failed to deduce importer. unkown extension: {}",
-                        source_extension
-                    )
+                extension => {
+                    if EXTENSIONS_TO_SKIP.contains(&extension) {
+                        ris_log::debug!("skipped import {:?}", source_path);
+                        return Ok(());
+                    } else {
+                        return ris_error::new_result!(
+                            "failed to deduce importer. unkown extension: {}",
+                            source_extension
+                        )
+                    }
                 }
             };
 
