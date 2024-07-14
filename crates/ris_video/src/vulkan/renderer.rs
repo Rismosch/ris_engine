@@ -189,6 +189,7 @@ impl Renderer {
         }
 
         let physical_device_features = vk::PhysicalDeviceFeatures {
+            geometry_shader: vk::TRUE,
             sampler_anisotropy: vk::TRUE,
             ..Default::default()
         };

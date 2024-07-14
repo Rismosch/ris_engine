@@ -133,7 +133,7 @@ impl GodObject {
 
         // gizmo
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_renderer = GizmoRenderer::init()?;
+        let gizmo_renderer = GizmoRenderer::init(&renderer)?;
 
 
         // gameloop

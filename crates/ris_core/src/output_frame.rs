@@ -11,6 +11,7 @@ use ris_data::god_state::WindowEvent;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
+use ris_math::vector::Vec3;
 use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
@@ -24,7 +25,6 @@ use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
 
 pub struct OutputFrame {
-    //recreate_swapchain: bool,
     current_frame: usize,
     imgui: RisImgui,
     gizmo_renderer: GizmoRenderer,
@@ -188,14 +188,19 @@ impl OutputFrame {
         unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
 
         // gizmos
+        ris_debug::add_record!(r, "gizmos")?;
         ris_debug::gizmo::segment(
-            ris_math::vector::VEC3_ZERO,
-            ris_math::vector::VEC3_ONE,
+            Vec3(0.5, 0.0, 0.0),
+            Vec3(-0.5, 0.0, 0.0),
             ris_math::color::RGB_CYAN,
         )?;
 
-        let gizmo_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
-        //ris_log::debug!("what {:?}", gizmo_vertices);
+        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+        self.gizmo_renderer.draw_shapes(
+            &self.renderer,
+            *image_view,
+            &gizmo_shape_vertices,
+        )?;
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;
