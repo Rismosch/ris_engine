@@ -161,6 +161,7 @@ impl Asset {
                 None => asset_importer::import_all(
                     asset_importer::DEFAULT_SOURCE_DIRECTORY,
                     asset_importer::DEFAULT_TARGET_DIRECTORY,
+                    //Some("temp"),
                     None,
                 ),
             },

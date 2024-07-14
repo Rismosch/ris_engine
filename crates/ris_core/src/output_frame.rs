@@ -11,6 +11,7 @@ use ris_data::god_state::WindowEvent;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
+use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::renderer::Renderer;
@@ -26,6 +27,7 @@ pub struct OutputFrame {
     //recreate_swapchain: bool,
     current_frame: usize,
     imgui: RisImgui,
+    gizmo_renderer: GizmoRenderer,
     ui_helper: UiHelper,
 
     // mut be dropped last
@@ -40,6 +42,7 @@ impl Drop for OutputFrame {
         }
 
         self.imgui.renderer.free(&self.renderer.device);
+        self.gizmo_renderer.free(&self.renderer.device);
         // renderer is dropped here implicitly
     }
 }
@@ -49,12 +52,14 @@ impl OutputFrame {
         window: Window,
         renderer: Renderer,
         imgui: RisImgui,
+        gizmo_renderer: GizmoRenderer,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
             //recreate_swapchain: false,
             current_frame: 0,
             imgui,
+            gizmo_renderer,
             ui_helper,
             renderer,
             window,

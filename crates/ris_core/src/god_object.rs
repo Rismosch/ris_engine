@@ -13,6 +13,7 @@ use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
+use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
 use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
@@ -31,7 +32,7 @@ fn import_assets() -> RisResult<()> {
     asset_importer::import_all(
         asset_importer::DEFAULT_SOURCE_DIRECTORY,
         asset_importer::DEFAULT_TARGET_DIRECTORY,
-        Some("temp"),
+        None,
     )?;
 
     ris_log::debug!("assets imported!");
@@ -90,9 +91,8 @@ impl GodObject {
         import_assets()?;
         let asset_loader_guard = unsafe { asset_loader::init(&app_info)? };
 
-        // debug
+        // profiling
         let profiler_guard = unsafe { ris_debug::profiler::init() }?;
-        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
 
         // sdl
         let sdl_context =
@@ -131,10 +131,21 @@ impl GodObject {
             renderer: imgui_renderer,
         };
 
+        // gizmo
+        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
+        let gizmo_renderer = GizmoRenderer::init()?;
+
+
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
+        let output_frame = OutputFrame::new(
+            window,
+            renderer,
+            imgui,
+            gizmo_renderer,
+            ui_helper,
+        )?;
 
         let frame_calculator = FrameCalculator::default();
 
