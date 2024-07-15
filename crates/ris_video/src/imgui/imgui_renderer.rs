@@ -526,7 +526,7 @@ impl ImguiRenderer {
 
         if self.frames.is_none() {
             let frames = unsafe {
-                Frames::alloc(entries.len(), || {
+                Frames::alloc(entries.len(), |_| {
                     Mesh::alloc(device, physical_device_memory_properties, draw_data)
                 })
             }?;

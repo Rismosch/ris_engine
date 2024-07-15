@@ -157,12 +157,13 @@ impl OutputFrame {
         let view = state.camera.view_matrix();
         let proj = state.camera.projection_matrix();
 
-        let ubo = [UniformBufferObject {
+        let uniform_buffer_object = UniformBufferObject {
             model: Mat4::init(1.0),
             view,
             proj,
-        }];
+        };
 
+        let ubo = [uniform_buffer_object];
         unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         // submit command buffer
@@ -203,14 +204,13 @@ impl OutputFrame {
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 
         let window_drawable_size = self.window.vulkan_drawable_size();
-        if state.input.keyboard.keys.is_hold(sdl2::keyboard::Scancode::Space) {
-            self.gizmo_renderer.draw_shapes(
-                &self.renderer,
-                *image_view,
-                &gizmo_shape_vertices,
-                window_drawable_size,
-            )?;
-        }
+        self.gizmo_renderer.draw_shapes(
+            &self.renderer,
+            *image_view,
+            &gizmo_shape_vertices,
+            window_drawable_size,
+            uniform_buffer_object,
+        )?;
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;

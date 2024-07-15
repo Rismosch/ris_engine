@@ -338,7 +338,7 @@ impl Swapchain {
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
-            let write_descriptor_set = [
+            let write_descriptor_sets = [
                 vk::WriteDescriptorSet {
                     s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
                     p_next: ptr::null(),
@@ -365,7 +365,7 @@ impl Swapchain {
                 },
             ];
 
-            unsafe { device.update_descriptor_sets(&write_descriptor_set, &[]) };
+            unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
             // frame buffer
             let attachments = [image_view, depth_image_view];

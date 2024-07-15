@@ -16,10 +16,10 @@ impl<TFrame: IFrame> Frames<TFrame> {
     /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         count: usize,
-        mut alloc_callback: impl FnMut() -> RisResult<TFrame>,
+        mut alloc_callback: impl FnMut(usize) -> RisResult<TFrame>,
     ) -> RisResult<Self> {
         let frames = (0..count)
-            .map(|_| alloc_callback())
+            .map(|i| alloc_callback(i))
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {

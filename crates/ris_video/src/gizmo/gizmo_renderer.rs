@@ -8,17 +8,35 @@ use ris_debug::gizmo::GizmoShapeVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::frames::IFrame;
 use crate::frames::Frames;
 use crate::gizmo::gizmo_mesh::ShapeMesh;
+use crate::vulkan::buffer::Buffer;
 use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::transient_command::TransientCommand;
+use crate::vulkan::uniform_buffer_object::UniformBufferObject;
+
+pub struct Descriptor {
+    pub buffer: Buffer,
+    pub mapped: *mut UniformBufferObject,
+    pub set: vk::DescriptorSet,
+}
+
+impl IFrame for Descriptor {
+    unsafe fn free(&self, device: &ash::Device) {
+        self.buffer.free(device);
+    }
+}
 
 pub struct GizmoRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     render_pass: vk::RenderPass,
+    descriptor_set_layout: vk::DescriptorSetLayout,
+    descriptor_pool: vk::DescriptorPool,
+    descriptors: Frames<Descriptor>,
     frames: Option<Frames<ShapeMesh>>,
 }
 
@@ -29,6 +47,11 @@ impl GizmoRenderer {
                 frames.free(device);
             }
 
+            self.descriptors.free(device);
+
+            device.destroy_descriptor_pool(self.descriptor_pool, None);
+            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
             device.destroy_render_pass(self.render_pass, None);
@@ -37,6 +60,8 @@ impl GizmoRenderer {
 
     pub fn init(renderer: &Renderer) -> RisResult<Self> {
         let Renderer {
+            instance,
+            suitable_device,
             device,
             swapchain:
                 Swapchain {
@@ -45,10 +70,63 @@ impl GizmoRenderer {
                             format: swapchain_format,
                             ..
                         },
+                    entries,
                     ..
                 },
             ..
         } = renderer;
+
+        // descriptor sets
+        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding{
+            binding: 0,
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            p_immutable_samplers: ptr::null(),
+        }];
+
+        let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo{
+            s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorSetLayoutCreateFlags::empty(),
+            binding_count: descriptor_set_layout_bindings.len() as u32,
+            p_bindings: descriptor_set_layout_bindings.as_ptr(),
+        };
+
+        let descriptor_set_layout = unsafe {
+            device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
+        }?;
+        
+        let descriptor_pool_sizes = [vk::DescriptorPoolSize {
+            ty: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: entries.len() as u32,
+        }];
+
+        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::DescriptorPoolCreateFlags::empty(),
+            max_sets: entries.len() as u32,
+            pool_size_count: descriptor_pool_sizes.len() as u32,
+            p_pool_sizes: descriptor_pool_sizes.as_ptr(),
+        };
+
+        let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+
+        let mut descriptor_set_layouts = Vec::with_capacity(entries.len());
+        for _ in 0..entries.len() {
+            descriptor_set_layouts.push(descriptor_set_layout);
+        }
+
+        let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
+            s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            descriptor_pool,
+            descriptor_set_count: descriptor_set_layouts.len() as u32,
+            p_set_layouts: descriptor_set_layouts.as_ptr(),
+        };
+
+        let descriptor_sets = unsafe {device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
 
         // shaders
         let vs_asset_id = AssetId::Directory(String::from(
@@ -236,8 +314,8 @@ impl GizmoRenderer {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
-            set_layout_count: 0,
-            p_set_layouts: ptr::null(),
+            set_layout_count: descriptor_set_layouts.len() as u32,
+            p_set_layouts: descriptor_set_layouts.as_ptr(),
             push_constant_range_count: 0,
             p_push_constant_ranges: ptr::null(),
         };
@@ -250,11 +328,11 @@ impl GizmoRenderer {
             flags: vk::AttachmentDescriptionFlags::empty(),
             format: swapchain_format.format,
             samples: vk::SampleCountFlags::TYPE_1,
-            load_op: vk::AttachmentLoadOp::CLEAR,
+            load_op: vk::AttachmentLoadOp::LOAD,
             store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-            initial_layout: vk::ImageLayout::UNDEFINED,
+            initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
@@ -342,10 +420,46 @@ impl GizmoRenderer {
         unsafe { device.destroy_shader_module(gs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
 
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let descriptors = unsafe {
+            Frames::alloc(entries.len(), |i| {
+                let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+                let buffer = Buffer::alloc(
+                    device,
+                    buffer_size,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                    physical_device_memory_properties
+                )?;
+
+                let mapped = device.map_memory(
+                    buffer.memory,
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )? as *mut UniformBufferObject;
+
+                let set = descriptor_sets[i];
+
+                Ok(Descriptor {
+                    buffer,
+                    mapped,
+                    set,
+                })
+            })
+        }?;
+
+
         Ok(GizmoRenderer {
             pipeline,
             pipeline_layout,
             render_pass,
+            descriptor_set_layout,
+            descriptor_pool,
+            descriptors,
             frames: None,
         })
     }
@@ -356,6 +470,7 @@ impl GizmoRenderer {
         target: vk::ImageView,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
+        ubo: UniformBufferObject,
     ) -> RisResult<()> {
         if vertices.is_empty() {
             return Ok(());
@@ -386,7 +501,7 @@ impl GizmoRenderer {
 
         if self.frames.is_none() {
             let frames = unsafe {
-                Frames::alloc(entries.len(), || ShapeMesh::alloc(device, physical_device_memory_properties, vertices))
+                Frames::alloc(entries.len(), |_| ShapeMesh::alloc(device, physical_device_memory_properties, vertices))
             }?;
             self.frames.replace(frames);
         }
@@ -487,6 +602,45 @@ impl GizmoRenderer {
                 0,
                 &[mesh.vertices.buffer],
                 &[0],
+            )
+        };
+
+        let descriptor = self.descriptors.acquire_next();
+
+        let ubo = [ubo];
+        unsafe { descriptor.mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+
+        let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+            buffer: descriptor.buffer.buffer,
+            offset: 0,
+            range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+        }];
+        
+        let write_descriptor_sets = [vk::WriteDescriptorSet {
+            s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+            p_next: ptr::null(),
+            dst_set: descriptor.set,
+            dst_binding: 0,
+            dst_array_element: 0,
+            descriptor_count: 1,
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            p_image_info: ptr::null(),
+            p_buffer_info: descriptor_buffer_info.as_ptr(),
+            p_texel_buffer_view: ptr::null(),
+        }];
+
+        unsafe {
+            device.update_descriptor_sets(&write_descriptor_sets, &[])
+        };
+
+        unsafe {
+            device.cmd_bind_descriptor_sets(
+                transient_command.buffer(),
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline_layout,
+                0,
+                &[descriptor.set],
+                &[],
             )
         };
 
