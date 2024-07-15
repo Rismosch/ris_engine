@@ -200,6 +200,12 @@ impl OutputFrame {
             Vec3(-0.5, 0.5, 0.0),
             ris_math::color::RGB_CYAN,
         )?;
+        
+        //ris_debug::gizmo::aabb(
+        //    Vec3(-1.0, -1.0, -1.0),
+        //    Vec3(1.0, 1.0, 1.0),
+        //    None,
+        //)?;
 
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 

@@ -158,14 +158,16 @@ impl ShaderStage {
                     log_source.push_str(&format!("{:>8} {}\n", i + 1, line));
                 }
 
+                let base_message = format!("failed to compile shader \"{}\"", file);
+
                 ris_log::error!(
-                    "failed to compile shader \"{}\"\n\nsource:\n{}\nerror:\n{}",
-                    file,
+                    "{}\n\nsource:\n{}\nerror:\n{}",
+                    base_message,
                     log_source,
                     e,
                 );
 
-                e
+                ris_error::new!("{}. check log for more infos.", base_message)
             })?;
 
         Ok(Some(artifact))
@@ -499,6 +501,7 @@ fn add_content(
     match &current_region {
         Region::None => {
             shader.vert.push(content, define_map);
+            shader.geom.push(content, define_map);
             shader.frag.push(content, define_map);
         }
         Region::Shader(ShaderKind::Vertex) => shader.vert.push(content, define_map),
