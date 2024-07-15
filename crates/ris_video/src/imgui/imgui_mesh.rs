@@ -5,6 +5,7 @@ use imgui::DrawVert;
 
 use ris_error::RisResult;
 
+use crate::frames::IFrame;
 use crate::vulkan::buffer::Buffer;
 
 pub struct Mesh {
@@ -12,6 +13,13 @@ pub struct Mesh {
     pub vertex_count: usize,
     pub indices: Buffer,
     pub index_count: usize,
+}
+
+impl IFrame for Mesh {
+    unsafe fn free(&self, device: &ash::Device) {
+        self.vertices.free(device);
+        self.indices.free(device);
+    }
 }
 
 impl Mesh {
@@ -62,14 +70,6 @@ impl Mesh {
         })
     }
 
-    /// # Safety
-    ///
-    /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        self.vertices.free(device);
-        self.indices.free(device);
-    }
-
     pub fn create_vertices(draw_data: &DrawData) -> Vec<DrawVert> {
         let vertex_count = draw_data.total_vtx_count as usize;
         let mut vertices = Vec::with_capacity(vertex_count);
@@ -99,8 +99,6 @@ impl Mesh {
         let new_vertex_count = draw_data.total_vtx_count as usize;
 
         if old_vertex_count < new_vertex_count {
-            //ris_log::trace!("resizing vertex buffer from {} to {}...", old_vertex_count, new_vertex_count);
-
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
             let new_vertex_buffer = unsafe {
                 Buffer::alloc(

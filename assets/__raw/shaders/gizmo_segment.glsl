@@ -1,5 +1,7 @@
 #ris_glsl 450 vertex geometry fragment
 
+#include util/util.glsl
+
 #vertex
 //layout(set = 0, binding = 0) uniform UniformBufferObject {
 //    mat4 model;
@@ -18,7 +20,8 @@ layout(lines) in;
 layout (triangle_strip, max_vertices = 4) out;
 
 #io geometry fragment
-layout(location = 0) IN_OUT vec3 IN_OUT_color;
+layout(location = 0) IN_OUT vec4 IN_OUT_vertex;
+layout(location = 1) IN_OUT vec3 IN_OUT_color;
 
 #fragment
 layout(location = 0) out vec4 out_color;
@@ -38,20 +41,24 @@ void main() {
     vec3 c1 = in_color[1];
     vec4 offset = vec4(0, 0.1, 0, 0);
 
-    gl_Position = v0 + offset;
+    out_vertex = v0 + offset;
     out_color = c0;
+    gl_Position = out_vertex;
     EmitVertex();
 
-    gl_Position = v0 - offset;
+    out_vertex = v0 - offset;
     out_color = c0;
+    gl_Position = out_vertex;
     EmitVertex();
 
-    gl_Position = v1 + offset;
+    out_vertex = v1 + offset;
     out_color = c1;
+    gl_Position = out_vertex;
     EmitVertex();
 
-    gl_Position = v1 - offset;
+    out_vertex = v1 - offset;
     out_color = c1;
+    gl_Position = out_vertex;
     EmitVertex();
 
     EndPrimitive();
@@ -59,5 +66,7 @@ void main() {
 
 #fragment
 void main() {
-    out_color = vec4(in_color, 1.0);
+    vec2 screen_pos = screen_pos(in_vertex);
+
+    out_color = vec4(screen_pos, 0.0, 1.0);
 }

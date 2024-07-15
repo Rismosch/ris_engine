@@ -36,11 +36,31 @@ pub unsafe fn init() -> RisResult<GizmoGuard> {
 }
 
 enum GizmoShape {
-    Segment{start: Vec3, end: Vec3, color: Rgb},
-    Point{position: Vec3, color: Option<Rgb>},
-    ViewPoint{position: Vec3, rotation: Quat, color: Option<Rgb>},
-    Aabb{min: Vec3, max: Vec3, color: Option<Rgb>},
-    Obb{center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>},
+    Segment {
+        start: Vec3,
+        end: Vec3,
+        color: Rgb,
+    },
+    Point {
+        position: Vec3,
+        color: Option<Rgb>,
+    },
+    ViewPoint {
+        position: Vec3,
+        rotation: Quat,
+        color: Option<Rgb>,
+    },
+    Aabb {
+        min: Vec3,
+        max: Vec3,
+        color: Option<Rgb>,
+    },
+    Obb {
+        center: Vec3,
+        half_scale: Vec3,
+        rotation: Quat,
+        color: Option<Rgb>,
+    },
 }
 
 struct GizmoText {
@@ -82,7 +102,7 @@ pub fn segment(start: Vec3, end: Vec3, color: Rgb) -> RisResult<()> {
         return Ok(());
     };
 
-    let shape = GizmoShape::Segment{start, end, color};
+    let shape = GizmoShape::Segment { start, end, color };
     gizmos.shapes.push(shape);
     Ok(())
 }
@@ -92,7 +112,7 @@ pub fn point(position: Vec3, color: Option<Rgb>) -> RisResult<()> {
         return Ok(());
     };
 
-    let shape = GizmoShape::Point{position, color};
+    let shape = GizmoShape::Point { position, color };
     gizmos.shapes.push(shape);
     Ok(())
 }
@@ -102,7 +122,11 @@ pub fn view_point(position: Vec3, rotation: Quat, color: Option<Rgb>) -> RisResu
         return Ok(());
     };
 
-    let shape = GizmoShape::ViewPoint{position, rotation, color};
+    let shape = GizmoShape::ViewPoint {
+        position,
+        rotation,
+        color,
+    };
     gizmos.shapes.push(shape);
     Ok(())
 }
@@ -123,7 +147,7 @@ pub fn aabb(min: Vec3, max: Vec3, color: Option<Rgb>) -> RisResult<()> {
         ris_math::f32::max(min.2, max.2),
     );
 
-    let shape = GizmoShape::Aabb{min, max, color};
+    let shape = GizmoShape::Aabb { min, max, color };
     gizmos.shapes.push(shape);
     Ok(())
 }
@@ -139,7 +163,12 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
         ris_math::f32::abs(half_scale.2),
     );
 
-    let shape = GizmoShape::Obb{center, half_scale, rotation, color};
+    let shape = GizmoShape::Obb {
+        center,
+        half_scale,
+        rotation,
+        color,
+    };
     gizmos.shapes.push(shape);
     Ok(())
 }
@@ -149,7 +178,10 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
         return Ok(());
     };
 
-    let gizmo_text = GizmoText{position, text: text.to_string()};
+    let gizmo_text = GizmoText {
+        position,
+        text: text.to_string(),
+    };
     gizmos.text.push(gizmo_text);
     Ok(())
 }
@@ -165,7 +197,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
         match *shape {
             GizmoShape::Segment { start, end, color } => {
                 add_segment(&mut vertices, start, end, color);
-            },
+            }
             GizmoShape::Point { position, color } => {
                 const MAGIC_SCALE: f32 = 0.5;
 
@@ -193,8 +225,12 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 add_segment(&mut vertices, v0, v4, magenta);
                 add_segment(&mut vertices, v0, v5, blue);
                 add_segment(&mut vertices, v0, v6, yellow);
-            },
-            GizmoShape::ViewPoint { position, rotation, color } => {
+            }
+            GizmoShape::ViewPoint {
+                position,
+                rotation,
+                color,
+            } => {
                 let red = color.unwrap_or(ris_math::color::RGB_RED);
                 let green = color.unwrap_or(ris_math::color::RGB_GREEN);
                 let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
@@ -207,7 +243,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 add_segment(&mut vertices, v0, v1, red);
                 add_segment(&mut vertices, v0, v2, green);
                 add_segment(&mut vertices, v0, v3, blue);
-            },
+            }
             GizmoShape::Aabb { min, max, color } => {
                 let red = color.unwrap_or(ris_math::color::RGB_RED);
                 let green = color.unwrap_or(ris_math::color::RGB_GREEN);
@@ -237,8 +273,13 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 add_segment(&mut vertices, v4, v5, magenta);
                 add_segment(&mut vertices, v0, v2, yellow);
                 add_segment(&mut vertices, v1, v3, yellow);
-            },
-            GizmoShape::Obb { center, half_scale, rotation, color } => {
+            }
+            GizmoShape::Obb {
+                center,
+                half_scale,
+                rotation,
+                color,
+            } => {
                 let red = color.unwrap_or(ris_math::color::RGB_RED);
                 let green = color.unwrap_or(ris_math::color::RGB_GREEN);
                 let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
@@ -271,7 +312,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 add_segment(&mut vertices, v4, v5, magenta);
                 add_segment(&mut vertices, v0, v2, yellow);
                 add_segment(&mut vertices, v1, v3, yellow);
-            },
+            }
         }
     }
 
@@ -287,7 +328,7 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
     let mut texture = Vec::new();
 
     let mut text_addr = 0;
-    for GizmoText{position, text} in gizmos.text.iter() {
+    for GizmoText { position, text } in gizmos.text.iter() {
         let bytes = &mut text.as_bytes().to_owned();
         let bytes_len: u32 = bytes.len().try_into()?;
 
@@ -307,6 +348,6 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
 }
 
 fn add_segment(vertices: &mut Vec<GizmoShapeVertex>, start: Vec3, end: Vec3, color: Rgb) {
-    vertices.push(GizmoShapeVertex{pos: start, color});
-    vertices.push(GizmoShapeVertex{pos: end, color});
+    vertices.push(GizmoShapeVertex { pos: start, color });
+    vertices.push(GizmoShapeVertex { pos: end, color });
 }

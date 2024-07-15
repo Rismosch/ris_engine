@@ -8,28 +8,34 @@ use ris_debug::gizmo::GizmoShapeVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::frames::Frames;
+use crate::gizmo::gizmo_mesh::ShapeMesh;
 use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
+use crate::vulkan::transient_command::TransientCommand;
 
 pub struct GizmoRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     render_pass: vk::RenderPass,
+    frames: Option<Frames<ShapeMesh>>,
 }
 
 impl GizmoRenderer {
     pub fn free(&mut self, device: &ash::Device) {
         unsafe {
+            if let Some(frames) = self.frames.take() {
+                frames.free(device);
+            }
+
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
             device.destroy_render_pass(self.render_pass, None);
         }
     }
-    
-    pub fn init(
-        renderer: &Renderer,
-    ) -> RisResult<Self> {
+
+    pub fn init(renderer: &Renderer) -> RisResult<Self> {
         let Renderer {
             device,
             swapchain:
@@ -44,10 +50,16 @@ impl GizmoRenderer {
             ..
         } = renderer;
 
-        // shaders 
-        let vs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/gizmo_segment.vert.spv"));
-        let gs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/gizmo_segment.geom.spv"));
-        let fs_asset_id = AssetId::Directory(String::from("__imported_raw/shaders/gizmo_segment.frag.spv"));
+        // shaders
+        let vs_asset_id = AssetId::Directory(String::from(
+            "__imported_raw/shaders/gizmo_segment.vert.spv",
+        ));
+        let gs_asset_id = AssetId::Directory(String::from(
+            "__imported_raw/shaders/gizmo_segment.geom.spv",
+        ));
+        let fs_asset_id = AssetId::Directory(String::from(
+            "__imported_raw/shaders/gizmo_segment.frag.spv",
+        ));
 
         let vs_future = ris_asset::load_async(vs_asset_id);
         let gs_future = ris_asset::load_async(gs_asset_id);
@@ -94,7 +106,7 @@ impl GizmoRenderer {
         ];
 
         // pipeline
-        let vertex_binding_descriptions = [vk::VertexInputBindingDescription{
+        let vertex_binding_descriptions = [vk::VertexInputBindingDescription {
             binding: 0,
             stride: 24,
             input_rate: vk::VertexInputRate::VERTEX,
@@ -229,8 +241,9 @@ impl GizmoRenderer {
             push_constant_range_count: 0,
             p_push_constant_ranges: ptr::null(),
         };
-        
-        let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None)}?;
+
+        let pipeline_layout =
+            unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
 
         // render pass
         let color_attachment = vk::AttachmentDescription {
@@ -290,7 +303,7 @@ impl GizmoRenderer {
             p_dependencies: supbass_dependencies.as_ptr(),
         };
 
-        let render_pass = unsafe {device.create_render_pass(&render_pass_create_info, None)}?;
+        let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;
 
         // pipeline creation
         let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo {
@@ -325,14 +338,15 @@ impl GizmoRenderer {
         .map_err(|e| e.1)?;
         let pipeline = graphics_pipelines.into_iter().next().unroll()?;
 
-        unsafe {device.destroy_shader_module(vs_module, None)};
-        unsafe {device.destroy_shader_module(gs_module, None)};
-        unsafe {device.destroy_shader_module(fs_module, None)};
+        unsafe { device.destroy_shader_module(vs_module, None) };
+        unsafe { device.destroy_shader_module(gs_module, None) };
+        unsafe { device.destroy_shader_module(fs_module, None) };
 
-        Ok(GizmoRenderer{
+        Ok(GizmoRenderer {
             pipeline,
             pipeline_layout,
             render_pass,
+            frames: None,
         })
     }
 
@@ -341,6 +355,7 @@ impl GizmoRenderer {
         renderer: &Renderer,
         target: vk::ImageView,
         vertices: &[GizmoShapeVertex],
+        window_drawable_size: (u32, u32),
     ) -> RisResult<()> {
         if vertices.is_empty() {
             return Ok(());
@@ -365,9 +380,130 @@ impl GizmoRenderer {
             ..
         } = renderer;
 
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        if self.frames.is_none() {
+            let frames = unsafe {
+                Frames::alloc(entries.len(), || ShapeMesh::alloc(device, physical_device_memory_properties, vertices))
+            }?;
+            self.frames.replace(frames);
+        }
+
+        let mesh = self.frames.as_mut().unroll()?.acquire_next();
+        mesh.update(device, physical_device_memory_properties, vertices)?;
+
+        let transient_command = TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
+
+        let attachments = [target];
+
+        let frame_buffer_create_info = vk::FramebufferCreateInfo{
+            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FramebufferCreateFlags::empty(),
+            render_pass: self.render_pass,
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            width: swapchain_extent.width,
+            height: swapchain_extent.height,
+            layers: 1,
+        };
+
+        let framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+
+        let clear_values = [vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.0, 0.0, 0.0, 0.0],
+            },
+        }];
+
+        let render_pass_begin_info = vk::RenderPassBeginInfo {
+            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+            p_next: ptr::null(),
+            render_pass: self.render_pass,
+            framebuffer,
+            render_area: vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: *swapchain_extent,
+            },
+            clear_value_count: clear_values.len() as u32,
+            p_clear_values: clear_values.as_ptr(),
+        };
+
+        unsafe {
+            device.cmd_begin_render_pass(
+                transient_command.buffer(),
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            )
+        };
+        
+        unsafe {
+            device.cmd_bind_pipeline(
+                transient_command.buffer(),
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            )
+        };
+
+        let viewports = [vk::Viewport {
+            width: window_drawable_size.0 as f32,
+            height: window_drawable_size.1 as f32,
+            max_depth: 1.0,
+            ..Default::default()
+        }];
+
+        unsafe {
+            device.cmd_set_viewport(
+                transient_command.buffer(),
+                0,
+                &viewports,
+            )
+        };
+
+        let scissors = [vk::Rect2D{
+            offset: vk::Offset2D {
+                x: 0,
+                y: 0,
+            },
+            extent: vk::Extent2D {
+                width: window_drawable_size.0,
+                height: window_drawable_size.1,
+            }
+        }];
+
+        unsafe {
+            device.cmd_set_scissor(
+                transient_command.buffer(),
+                0,
+                &scissors,
+            );
+        };
+
+        unsafe {
+            device.cmd_bind_vertex_buffers(
+                transient_command.buffer(),
+                0,
+                &[mesh.vertices.buffer],
+                &[0],
+            )
+        };
+
+        unsafe {
+            device.cmd_draw(
+                transient_command.buffer(),
+                vertices.len() as u32,
+                1,
+                0,
+                0,
+            )
+        };
+
+        unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
+        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        unsafe {device.destroy_framebuffer(framebuffer, None)};
 
         Ok(())
     }
 }
-
-

@@ -1,0 +1,80 @@
+use ash::vk;
+
+use ris_debug::gizmo::GizmoShapeVertex;
+use ris_error::RisResult;
+
+use crate::frames::IFrame;
+use crate::vulkan::buffer::Buffer;
+
+pub struct ShapeMesh {
+    pub vertices: Buffer,
+    pub vertex_count: usize,
+}
+
+impl IFrame for ShapeMesh {
+    unsafe fn free(&self, device: &ash::Device) {
+        self.vertices.free(device);
+    }
+}
+
+impl ShapeMesh {
+    pub unsafe fn alloc(
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        vertices: &[GizmoShapeVertex],
+    ) -> RisResult<Self> {
+        let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+        let vertex_buffer = Buffer::alloc(
+            device,
+            vertex_buffer_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+
+        vertex_buffer.write(device, &vertices)?;
+
+        Ok(Self{
+            vertices: vertex_buffer,
+            vertex_count: vertices.len(),
+
+        })
+    }
+
+    pub fn update(
+        &mut self,
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        vertices: &[GizmoShapeVertex],
+    ) -> RisResult<()> {
+        let old_vertex_count = self.vertex_count;
+        let new_vertex_count = vertices.len();
+
+        if old_vertex_count < new_vertex_count {
+            let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+            let new_vertex_buffer = unsafe {
+                Buffer::alloc(
+                    device,
+                    vertex_buffer_size,
+                    vk::BufferUsageFlags::VERTEX_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE
+                        | vk::MemoryPropertyFlags::HOST_COHERENT
+                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    physical_device_memory_properties,
+                )
+            }?;
+
+            self.vertex_count = vertices.len();
+
+            let old_buffer = self.vertices;
+            self.vertices = new_vertex_buffer;
+
+            unsafe {old_buffer.free(device)};
+        }
+        unsafe {self.vertices.write(device, &vertices)}?;
+
+        Ok(())
+    }
+}

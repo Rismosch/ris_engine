@@ -144,38 +144,35 @@ impl ShaderStage {
             ris_log::trace!("saved transpiled shader to: {:?}", temp_file_path);
         }
 
-        let artifact = compiler.compile_into_spirv(
-            &source,
-            shaderc::ShaderKind::InferFromSource,
-            &file,
-            "main",
-            Some(options),
-        ).map_err(|e| {
+        let artifact = compiler
+            .compile_into_spirv(
+                &source,
+                shaderc::ShaderKind::InferFromSource,
+                &file,
+                "main",
+                Some(options),
+            )
+            .map_err(|e| {
+                let mut log_source = String::new();
+                for (i, line) in source.lines().enumerate() {
+                    log_source.push_str(&format!("{:>8} {}\n", i + 1, line));
+                }
 
-            let mut log_source = String::new();
-            for (i, line) in source.lines().enumerate() {
-                log_source.push_str(&format!("{:>8} {}\n", i + 1, line));
-            }
+                ris_log::error!(
+                    "failed to compile shader \"{}\"\n\nsource:\n{}\nerror:\n{}",
+                    file,
+                    log_source,
+                    e,
+                );
 
-            ris_log::error!(
-                "failed to compile shader \"{}\"\n\nsource:\n{}\nerror:\n{}",
-                file,
-                log_source,
-                e,
-            );
-
-            e
-        })?;
+                e
+            })?;
 
         Ok(Some(artifact))
     }
 }
 
-pub fn import(
-    source: PathBuf,
-    targets: Vec<PathBuf>,
-    temp_dir: Option<&Path>,
-) -> RisResult<()> {
+pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -> RisResult<()> {
     // read file
     let file = source.to_str().unroll()?;
 
@@ -513,21 +510,21 @@ fn add_content(
 
             shader.vert.push(&vert_line, define_map);
             shader.frag.push(&frag_line, define_map);
-        },
+        }
         Region::IO(ShaderKind::Vertex, ShaderKind::Geometry) => {
             let vert_line = resolve_in_out(content, OUT, false);
             let geom_line = resolve_in_out(content, IN, true);
 
             shader.vert.push(&vert_line, define_map);
             shader.geom.push(&geom_line, define_map);
-        },
+        }
         Region::IO(ShaderKind::Geometry, ShaderKind::Fragment) => {
             let geom_line = resolve_in_out(content, OUT, false);
             let frag_line = resolve_in_out(content, IN, false);
 
             shader.geom.push(&geom_line, define_map);
             shader.frag.push(&frag_line, define_map);
-        },
+        }
         region => preproc_fail(&format!("invalid region: {:?}", region), file, line)?,
     };
 

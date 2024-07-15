@@ -15,7 +15,7 @@ pub fn create_module(device: &ash::Device, bytes: &[u8]) -> RisResult<vk::Shader
         p_code: bytes.as_ptr() as *const u32,
     };
 
-    let shader_module = unsafe {device.create_shader_module(&shader_module_create_info, None)}?;
+    let shader_module = unsafe { device.create_shader_module(&shader_module_create_info, None) }?;
 
     Ok(shader_module)
 }

@@ -15,7 +15,8 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
-use crate::imgui::imgui_frames::Frames;
+use crate::frames::Frames;
+use crate::imgui::imgui_mesh::Mesh;
 use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
@@ -32,7 +33,7 @@ pub struct ImguiRenderer {
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
     textures: Textures<vk::DescriptorSet>,
-    frames: Option<Frames>,
+    frames: Option<Frames<Mesh>>,
 }
 
 impl ImguiRenderer {
@@ -525,17 +526,14 @@ impl ImguiRenderer {
 
         if self.frames.is_none() {
             let frames = unsafe {
-                Frames::alloc(
-                    device,
-                    physical_device_memory_properties,
-                    draw_data,
-                    entries.len(),
-                )
+                Frames::alloc(entries.len(), || {
+                    Mesh::alloc(device, physical_device_memory_properties, draw_data)
+                })
             }?;
             self.frames.replace(frames);
         }
 
-        let mesh = self.frames.as_mut().unroll()?.acquire_next_mesh();
+        let mesh = self.frames.as_mut().unroll()?.acquire_next();
         mesh.update(device, physical_device_memory_properties, draw_data)?;
 
         let transient_command =

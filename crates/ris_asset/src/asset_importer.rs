@@ -143,7 +143,7 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                         return ris_error::new_result!(
                             "failed to deduce importer. unkown extension: {}",
                             source_extension
-                        )
+                        );
                     }
                 }
             };
@@ -167,7 +167,9 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
     };
 
     match importer {
-        ImporterKind::GLSL => glsl_to_spirv_importer::import(source_path, target_paths, temp_directory),
+        ImporterKind::GLSL => {
+            glsl_to_spirv_importer::import(source_path, target_paths, temp_directory)
+        }
         ImporterKind::PNG => png_to_qoi_importer::import(source_path, target_paths),
         // insert more importers here...
     }

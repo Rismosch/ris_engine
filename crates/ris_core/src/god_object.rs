@@ -26,7 +26,7 @@ use crate::ui_helper::UiHelper;
 #[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
     use ris_asset::asset_importer;
-    
+
     ris_log::debug!("importing assets...");
 
     asset_importer::import_all(
@@ -135,17 +135,10 @@ impl GodObject {
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
         let gizmo_renderer = GizmoRenderer::init(&renderer)?;
 
-
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(
-            window,
-            renderer,
-            imgui,
-            gizmo_renderer,
-            ui_helper,
-        )?;
+        let output_frame = OutputFrame::new(window, renderer, imgui, gizmo_renderer, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 
