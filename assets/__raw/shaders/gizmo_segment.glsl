@@ -2,7 +2,7 @@
 
 #include util/util.glsl
 #define QUAD_THICKNESS 0.02
-#define LINE_THICKNESS 0.003
+#define LINE_THICKNESS 0.002
 
 #vertex
 layout(set = 0, binding = 0) uniform UniformBufferObject {
