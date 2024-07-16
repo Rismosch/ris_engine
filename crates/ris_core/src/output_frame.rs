@@ -201,11 +201,11 @@ impl OutputFrame {
             ris_math::color::RGB_CYAN,
         )?;
         
-        //ris_debug::gizmo::aabb(
-        //    Vec3(-1.0, -1.0, -1.0),
-        //    Vec3(1.0, 1.0, 1.0),
-        //    None,
-        //)?;
+        ris_debug::gizmo::aabb(
+            Vec3(-1.0, -1.0, -1.0),
+            Vec3(1.0, 1.0, 1.0),
+            None,
+        )?;
 
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 
@@ -215,7 +215,7 @@ impl OutputFrame {
             *image_view,
             &gizmo_shape_vertices,
             window_drawable_size,
-            uniform_buffer_object,
+            &state.camera,
         )?;
 
         // ui helper

@@ -7,6 +7,9 @@ use ris_asset::AssetId;
 use ris_debug::gizmo::GizmoShapeVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::camera::Camera;
+use ris_math::matrix::Mat4;
+use ris_math::vector::Vec3;
 
 use crate::frames::IFrame;
 use crate::frames::Frames;
@@ -16,7 +19,13 @@ use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::transient_command::TransientCommand;
-use crate::vulkan::uniform_buffer_object::UniformBufferObject;
+
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct UniformBufferObject {
+    pub view: Mat4,
+    pub proj: Mat4,
+}
 
 pub struct Descriptor {
     pub buffer: Buffer,
@@ -470,7 +479,7 @@ impl GizmoRenderer {
         target: vk::ImageView,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
-        ubo: UniformBufferObject,
+        camera: &Camera,
     ) -> RisResult<()> {
         if vertices.is_empty() {
             return Ok(());
@@ -606,6 +615,11 @@ impl GizmoRenderer {
         };
 
         let descriptor = self.descriptors.acquire_next();
+
+        let ubo = UniformBufferObject {
+            view: camera.view_matrix(),
+            proj: camera.projection_matrix(),
+        };
 
         let ubo = [ubo];
         unsafe { descriptor.mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
