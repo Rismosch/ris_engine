@@ -190,25 +190,17 @@ impl OutputFrame {
 
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
-        ris_debug::gizmo::segment(
-            Vec3(0.5, -0.5, 0.0),
-            Vec3(-0.5, -0.5, 0.0),
-            ris_math::color::RGB_YELLOW,
-        )?;
-        ris_debug::gizmo::segment(
-            Vec3(0.5, 0.5, 0.0),
-            Vec3(-0.5, 0.5, 0.0),
-            ris_math::color::RGB_CYAN,
-        )?;
-        
-        ris_debug::gizmo::aabb(
-            Vec3(-1.0, -1.0, -1.0),
-            Vec3(1.0, 1.0, 1.0),
+
+        ris_debug::gizmo::aabb( 
+            -1.0 * ris_math::vector::VEC3_ONE,
+            ris_math::vector::VEC3_ONE,
             None,
         )?;
 
+        ris_debug::add_record!(r, "draw shapes")?;
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 
+        ris_debug::add_record!(r, "render shapes")?;
         let window_drawable_size = self.window.vulkan_drawable_size();
         self.gizmo_renderer.draw_shapes(
             &self.renderer,

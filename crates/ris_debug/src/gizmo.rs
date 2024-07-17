@@ -199,7 +199,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 add_segment(&camera, &mut segments, start, end, color);
             }
             GizmoShape::Point { position, color } => {
-                const MAGIC_SCALE: f32 = 0.5;
+                const MAGIC_SCALE: f32 = 0.03;
 
                 let camera_distance = camera.position.distance(position);
                 let scale = MAGIC_SCALE * camera_distance;
