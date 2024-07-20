@@ -24,7 +24,7 @@ impl Default for Camera {
             fovy: 60f32.to_radians(),
             aspect_ratio: 16. / 9.,
             near: 0.1,
-            far: 10.0,
+            far: 20.0,
         }
     }
 }

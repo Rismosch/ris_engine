@@ -191,12 +191,6 @@ impl OutputFrame {
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
 
-        ris_debug::gizmo::aabb( 
-            -1.0 * ris_math::vector::VEC3_ONE,
-            ris_math::vector::VEC3_ONE,
-            None,
-        )?;
-
         ris_debug::add_record!(r, "draw shapes")?;
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 

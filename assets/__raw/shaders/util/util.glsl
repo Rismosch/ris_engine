@@ -6,3 +6,8 @@ vec2 screen_pos(vec4 clip_pos) {
     vec2 result = ndc.xy * 0.5f + 0.5f;
     return result;
 }
+
+/// returns x if a = true, and y is a = false. useful for branchless programming
+float choose(bool a, float x, float y) {
+    return mix(y, x, a);
+}
