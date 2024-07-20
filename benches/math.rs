@@ -271,9 +271,13 @@ fn sign(c: &mut Criterion) {
         b.iter(|| {
             for value in &values {
                 let result = ris_math::fast::choose(
-                    0.,
-                    ris_math::fast::choose(1., -1., *value > 0.),
                     *value == 0.,
+                    0.,
+                    ris_math::fast::choose(
+                        *value > 0.,
+                        1., 
+                        -1., 
+                    ),
                 );
                 black_box(result);
             }
@@ -311,7 +315,7 @@ fn min(c: &mut Criterion) {
             for chunk in values.chunks_exact(2) {
                 let x = chunk[0];
                 let y = chunk[1];
-                let result = ris_math::fast::choose(y, x, y < x);
+                let result = ris_math::fast::choose(y < x, y, x);
                 black_box(result);
             }
         });
@@ -348,7 +352,7 @@ fn max(c: &mut Criterion) {
             for chunk in values.chunks_exact(2) {
                 let x = chunk[0];
                 let y = chunk[1];
-                let result = ris_math::fast::choose(y, x, x < y);
+                let result = ris_math::fast::choose(x < y, y, x);
                 black_box(result);
             }
         });

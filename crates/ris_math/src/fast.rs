@@ -6,7 +6,7 @@ pub fn bool_to_f32(x: bool) -> f32 {
 }
 
 /// returns x if a = true, and y is a = false. useful for branchless programming
-pub fn choose(x: f32, y: f32, a: bool) -> f32 {
+pub fn choose(a: bool, x: f32, y: f32) -> f32 {
     crate::common::mix(y, x, bool_to_f32(a))
 }
 
@@ -27,9 +27,9 @@ pub fn sincos(angle: f32) -> (f32, f32) {
     let sin_part2 = -bhaskara(angle - 1.5 * PI);
 
     let flipsign = angle > 0.5 * PI && angle < 1.5 * PI;
-    let sign = choose(-1., 1., flipsign);
+    let sign = choose(flipsign, -1., 1.);
 
-    let sin = choose(sin_part1, sin_part2, angle < PI);
+    let sin = choose(angle < PI, sin_part1, sin_part2);
     let cos = sign * f32::sqrt(1. - sin * sin);
 
     (sin, cos)

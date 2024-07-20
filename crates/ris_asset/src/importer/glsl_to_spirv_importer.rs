@@ -423,7 +423,8 @@ fn resolve_include(
     )?;
 
     // parse content
-    let mut result = String::new();
+    let include_path_comment = include_path.to_str().unroll()?.replace('\\', "/");
+    let mut result = format!("//////// INCLUDE {}", include_path_comment);
 
     let mut line = 0;
     for input_line in file_content.lines().skip(1) {
@@ -451,16 +452,13 @@ fn resolve_include(
                 result.push_str(&include_content);
             }
             _ => {
-                if input_line.is_empty() {
-                    continue;
-                }
-
                 result.push('\n');
                 result.push_str(input_line);
             }
         }
     }
 
+    result.push_str(&format!("\n//////// END {}", include_path_comment));
     Ok(result)
 }
 
@@ -494,10 +492,6 @@ fn add_content(
     file: &str,
     line: usize,
 ) -> RisResult<()> {
-    if content.is_empty() {
-        return Ok(());
-    }
-
     match &current_region {
         Region::None => {
             shader.vert.push(content, define_map);
