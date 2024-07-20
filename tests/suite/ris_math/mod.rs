@@ -1,4 +1,4 @@
 pub mod color;
-pub mod f32;
+pub mod fast;
 pub mod matrix;
 pub mod quaternion;

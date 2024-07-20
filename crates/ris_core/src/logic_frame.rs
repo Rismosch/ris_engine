@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use std::time::Instant;
 
 use sdl2::event::Event;
@@ -185,15 +186,15 @@ impl LogicFrame {
         }
 
         while self.camera_horizontal_angle < 0. {
-            self.camera_horizontal_angle += 2. * ris_math::f32::PI;
+            self.camera_horizontal_angle += 2. * PI;
         }
-        while self.camera_horizontal_angle > 2. * ris_math::f32::PI {
-            self.camera_horizontal_angle -= 2. * ris_math::f32::PI;
+        while self.camera_horizontal_angle > 2. * PI {
+            self.camera_horizontal_angle -= 2. * PI;
         }
-        self.camera_vertical_angle = ris_math::f32::clamp(
+        self.camera_vertical_angle = f32::clamp(
             self.camera_vertical_angle,
-            -0.5 * ris_math::f32::PI,
-            0.5 * ris_math::f32::PI,
+            -0.5 * PI,
+            0.5 * PI,
         );
 
         let rotation1 = Quat::from((self.camera_vertical_angle, ris_math::vector::VEC3_RIGHT));

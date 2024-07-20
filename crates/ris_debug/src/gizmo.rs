@@ -1,6 +1,5 @@
 use std::sync::Mutex;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::color::Rgb;
@@ -137,14 +136,14 @@ pub fn aabb(min: Vec3, max: Vec3, color: Option<Rgb>) -> RisResult<()> {
     };
 
     let min = Vec3(
-        ris_math::f32::min(min.0, max.0),
-        ris_math::f32::min(min.1, max.1),
-        ris_math::f32::min(min.2, max.2),
+        f32::min(min.0, max.0),
+        f32::min(min.1, max.1),
+        f32::min(min.2, max.2),
     );
     let max = Vec3(
-        ris_math::f32::max(min.0, max.0),
-        ris_math::f32::max(min.1, max.1),
-        ris_math::f32::max(min.2, max.2),
+        f32::max(min.0, max.0),
+        f32::max(min.1, max.1),
+        f32::max(min.2, max.2),
     );
 
     let shape = GizmoShape::Aabb { min, max, color };
@@ -158,9 +157,9 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
     };
 
     let half_scale = Vec3(
-        ris_math::f32::abs(half_scale.0),
-        ris_math::f32::abs(half_scale.1),
-        ris_math::f32::abs(half_scale.2),
+        ris_math::fast::abs(half_scale.0),
+        ris_math::fast::abs(half_scale.1),
+        ris_math::fast::abs(half_scale.2),
     );
 
     let shape = GizmoShape::Obb {

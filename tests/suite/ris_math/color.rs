@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::f32::consts::PI;
 use std::rc::Rc;
 
 use ris_math::color;
@@ -130,14 +131,14 @@ fn assert_chroma_eq(left: color::OkLch, right: color::OkLch) {
     let c_left = left.c();
     let c_right = right.c();
 
-    let diff = ris_math::f32::diff(c_left, c_right);
+    let diff = f32::abs(c_left - c_right);
     if diff < color::MIN_NORM {
         // success, hue is identical
     } else {
         // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
         assert_feq!(
             diff,
-            2.0 * ris_math::f32::PI,
+            2.0 * PI,
             color::MIN_NORM,
             "{:?} {:?}",
             left,
