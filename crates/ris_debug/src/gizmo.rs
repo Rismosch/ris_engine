@@ -93,6 +93,7 @@ pub fn new_frame() -> RisResult<()> {
     };
 
     gizmos.shapes.clear();
+    gizmos.text.clear();
     Ok(())
 }
 

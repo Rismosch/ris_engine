@@ -204,6 +204,22 @@ impl OutputFrame {
             &state.camera,
         )?;
 
+        ris_debug::add_record!(r, "draw text")?;
+        let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
+
+        ris_debug::add_record!(r, "render text")?;
+        self.gizmo_renderer.draw_text(
+            &self.renderer,
+            *image_view,
+            &gizmo_text_vertices,
+            &gizmo_text_texture,
+            window_drawable_size,
+            &state.camera,
+        )?;
+
+        ris_debug::add_record!(r, "gizmo new frame")?;
+        ris_debug::gizmo::new_frame()?;
+
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;
 

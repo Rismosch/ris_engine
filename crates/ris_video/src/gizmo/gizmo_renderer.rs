@@ -5,11 +5,11 @@ use ash::vk;
 
 use ris_asset::AssetId;
 use ris_debug::gizmo::GizmoShapeVertex;
+use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
-use ris_math::vector::Vec3;
 
 use crate::frames::IFrame;
 use crate::frames::Frames;
@@ -40,6 +40,11 @@ impl IFrame for Descriptor {
 }
 
 pub struct GizmoRenderer {
+    shape_renderer: ShapeRenderer,
+    text_renderer: TextRenderer,
+}
+
+struct ShapeRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     render_pass: vk::RenderPass,
@@ -49,8 +54,62 @@ pub struct GizmoRenderer {
     frames: Option<Frames<ShapeMesh>>,
 }
 
+struct TextRenderer {
+
+}
+
 impl GizmoRenderer {
     pub fn free(&mut self, device: &ash::Device) {
+        self.shape_renderer.free(device);
+        self.text_renderer.free(device);
+    }
+
+    pub fn init(renderer: &Renderer) -> RisResult<Self> {
+        Ok(Self{
+            shape_renderer: ShapeRenderer::init(renderer)?,
+            text_renderer: TextRenderer::init(renderer)?,
+        })
+    }
+
+    pub fn draw_shapes(
+        &mut self,
+        renderer: &Renderer,
+        target: vk::ImageView,
+        vertices: &[GizmoShapeVertex],
+        window_drawable_size: (u32, u32),
+        camera: &Camera,
+    ) -> RisResult<()> {
+        self.shape_renderer.draw(
+            renderer,
+            target,
+            vertices,
+            window_drawable_size,
+            camera,
+        )
+    }
+
+    pub fn draw_text(
+        &mut self,
+        renderer: &Renderer,
+        target: vk::ImageView,
+        vertices: &[GizmoTextVertex],
+        texture: &[u8],
+        window_drawable_size: (u32, u32),
+        camera: &Camera,
+    ) -> RisResult<()> {
+        self.text_renderer.draw(
+            renderer,
+            target,
+            vertices,
+            texture,
+            window_drawable_size,
+            camera,
+        )
+    }
+}
+
+impl ShapeRenderer {
+    fn free(&mut self, device: &ash::Device) {
         unsafe {
             if let Some(frames) = self.frames.take() {
                 frames.free(device);
@@ -67,7 +126,7 @@ impl GizmoRenderer {
         }
     }
 
-    pub fn init(renderer: &Renderer) -> RisResult<Self> {
+    fn init(renderer: &Renderer) -> RisResult<Self> {
         let Renderer {
             instance,
             suitable_device,
@@ -462,7 +521,7 @@ impl GizmoRenderer {
         }?;
 
 
-        Ok(GizmoRenderer {
+        Ok(Self {
             pipeline,
             pipeline_layout,
             render_pass,
@@ -473,7 +532,7 @@ impl GizmoRenderer {
         })
     }
 
-    pub fn draw_shapes(
+    fn draw(
         &mut self,
         renderer: &Renderer,
         target: vk::ImageView,
@@ -672,6 +731,30 @@ impl GizmoRenderer {
         transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
         unsafe {device.destroy_framebuffer(framebuffer, None)};
 
+        Ok(())
+    }
+}
+
+impl TextRenderer {
+    fn free(&mut self, device: &ash::Device) {
+
+    }
+
+    fn init(renderer: &Renderer) -> RisResult<Self> {
+        Ok(Self{
+            
+        })
+    }
+
+    fn draw(
+        &mut self,
+        renderer: &Renderer,
+        target: vk::ImageView,
+        vertices: &[GizmoTextVertex],
+        texture: &[u8],
+        window_drawable_size: (u32, u32),
+        camera: &Camera,
+    ) -> RisResult<()> {
         Ok(())
     }
 }

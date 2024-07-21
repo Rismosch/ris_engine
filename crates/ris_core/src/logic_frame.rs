@@ -229,24 +229,6 @@ impl LogicFrame {
             );
         }
 
-        ris_debug::gizmo::aabb( 
-            -1.0 * ris_math::vector::VEC3_ONE,
-            ris_math::vector::VEC3_ONE,
-            None,
-        )?;
-
-        for i in 0..10 {
-            for j in 0..10 {
-                for k in 0..10 {
-                    ris_debug::gizmo::view_point(
-                        Vec3(i as f32, j as f32, k as f32),
-                        Quat::from((0.25 * PI, ris_math::vector::VEC3_ONE)),
-                        None,
-                    )?;
-                }
-            }
-        }
-
         if let Some(future) = import_shader_future {
             future.wait(None)?;
         }
