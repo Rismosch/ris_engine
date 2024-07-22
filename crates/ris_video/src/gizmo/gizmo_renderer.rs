@@ -19,6 +19,7 @@ use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::transient_command::TransientCommand;
+use crate::vulkan::transient_command::TransientCommandSync;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -78,6 +79,7 @@ impl GizmoRenderer {
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
         self.shape_renderer.draw(
             renderer,
@@ -85,6 +87,7 @@ impl GizmoRenderer {
             vertices,
             window_drawable_size,
             camera,
+            sync,
         )
     }
 
@@ -96,6 +99,7 @@ impl GizmoRenderer {
         texture: &[u8],
         window_drawable_size: (u32, u32),
         camera: &Camera,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
         self.text_renderer.draw(
             renderer,
@@ -104,6 +108,7 @@ impl GizmoRenderer {
             texture,
             window_drawable_size,
             camera,
+            sync,
         )
     }
 }
@@ -539,11 +544,8 @@ impl ShapeRenderer {
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
-        if vertices.is_empty() {
-            return Ok(());
-        }
-
         let Renderer {
             instance,
             suitable_device,
@@ -562,6 +564,11 @@ impl ShapeRenderer {
                 },
             ..
         } = renderer;
+
+        if vertices.is_empty() {
+            sync.sync_now(device, *graphics_queue)?;
+            return Ok(());
+        }
 
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -728,7 +735,7 @@ impl ShapeRenderer {
         };
 
         unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        transient_command.end_and_submit(sync)?;
         unsafe {device.destroy_framebuffer(framebuffer, None)};
 
         Ok(())
@@ -754,7 +761,16 @@ impl TextRenderer {
         texture: &[u8],
         window_drawable_size: (u32, u32),
         camera: &Camera,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
+        let Renderer {
+            device,
+            graphics_queue,
+            ..
+        } = renderer;
+
+        sync.sync_now(device, *graphics_queue)?;
+
         Ok(())
     }
 }

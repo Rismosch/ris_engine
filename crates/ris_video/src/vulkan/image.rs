@@ -6,6 +6,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::transient_command::TransientCommand;
+use super::transient_command::TransientCommandSync;
 use super::util;
 
 pub struct Image {
@@ -139,6 +140,7 @@ impl Image {
         format: vk::Format,
         old_layout: vk::ImageLayout,
         new_layout: vk::ImageLayout,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
@@ -220,7 +222,7 @@ impl Image {
             )
         };
 
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        transient_command.end_and_submit(sync)?;
         Ok(())
     }
 }

@@ -15,6 +15,7 @@ use super::renderer::Renderer;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::texture::Texture;
+use super::transient_command::TransientCommandSync;
 use super::uniform_buffer_object::UniformBufferObject;
 use super::util;
 
@@ -257,6 +258,7 @@ impl Swapchain {
             depth_format,
             vk::ImageLayout::UNDEFINED,
             vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            TransientCommandSync::default(),
         )?;
 
         // swapchain entries

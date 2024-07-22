@@ -5,6 +5,20 @@ use ash::vk;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+#[derive(Default, Debug)]
+pub struct TransientCommandSync {
+    pub wait: Vec<vk::Semaphore>,
+    pub dst: Vec<vk::PipelineStageFlags>,
+    pub signal: Vec<vk::Semaphore>,
+    pub fence: vk::Fence,
+}
+
+impl TransientCommandSync {
+    pub fn sync_now(self, device: &ash::Device, queue: vk::Queue) -> RisResult<()> {
+        queue_submit(device, queue, &[], self)
+    }
+}
+
 pub struct TransientCommand<'a> {
     device: &'a ash::Device,
     queue: vk::Queue,
@@ -69,12 +83,9 @@ impl<'a> TransientCommand<'a> {
         *unsafe { self.command_buffers.get_unchecked(0) }
     }
 
-    pub fn end_and_submit(
-        self,
-        wait_semaphores: &[vk::Semaphore],
-        signal_semaphores: &[vk::Semaphore],
-        fence: vk::Fence,
-    ) -> RisResult<()> {
+    pub fn end_and_submit(self, sync: TransientCommandSync) -> RisResult<()> {
+        ris_error::debug_assert!(sync.wait.len() == sync.dst.len())?;
+
         let Self {
             device,
             queue,
@@ -84,20 +95,31 @@ impl<'a> TransientCommand<'a> {
 
         unsafe { device.end_command_buffer(self.buffer()) }?;
 
-        let submit_info = [vk::SubmitInfo {
-            s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
-            wait_semaphore_count: wait_semaphores.len() as u32,
-            p_wait_semaphores: wait_semaphores.as_ptr(),
-            p_wait_dst_stage_mask: ptr::null(),
-            command_buffer_count: command_buffers.len() as u32,
-            p_command_buffers: command_buffers.as_ptr(),
-            signal_semaphore_count: signal_semaphores.len() as u32,
-            p_signal_semaphores: signal_semaphores.as_ptr(),
-        }];
-
-        unsafe { device.queue_submit(*queue, &submit_info, fence) }?;
-
-        Ok(())
+        queue_submit(device, *queue, command_buffers, sync)
     }
+}
+
+fn queue_submit(
+    device: &ash::Device,
+    queue: vk::Queue,
+    command_buffers: &[vk::CommandBuffer],
+    sync: TransientCommandSync,
+) -> RisResult<()> {
+    let submit_info = [vk::SubmitInfo {
+        s_type: vk::StructureType::SUBMIT_INFO,
+        p_next: ptr::null(),
+        wait_semaphore_count: sync.wait.len() as u32,
+        p_wait_semaphores: sync.wait.as_ptr(),
+        p_wait_dst_stage_mask: sync.dst.as_ptr(),
+        command_buffer_count: command_buffers.len() as u32,
+        p_command_buffers: command_buffers.as_ptr(),
+        signal_semaphore_count: sync.signal.len() as u32,
+        p_signal_semaphores: sync.signal.as_ptr(),
+    }];
+
+    //ris_log::trace!("queue submit {:?}", sync);
+
+    unsafe { device.queue_submit(queue, &submit_info, sync.fence) }?;
+
+    Ok(())
 }

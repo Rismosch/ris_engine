@@ -6,6 +6,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::transient_command::TransientCommand;
+use super::transient_command::TransientCommandSync;
 
 #[derive(Clone, Copy)]
 pub struct Buffer {
@@ -96,6 +97,7 @@ impl Buffer {
         transient_command_pool: vk::CommandPool,
         dst: &Self,
         size: vk::DeviceSize,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
@@ -114,7 +116,7 @@ impl Buffer {
             )
         };
 
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        transient_command.end_and_submit(sync)?;
         Ok(())
     }
 
@@ -129,6 +131,7 @@ impl Buffer {
         image: vk::Image,
         width: u32,
         height: u32,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
@@ -160,7 +163,7 @@ impl Buffer {
             )
         };
 
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        transient_command.end_and_submit(sync)?;
         Ok(())
     }
 }

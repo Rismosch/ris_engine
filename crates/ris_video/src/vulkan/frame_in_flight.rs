@@ -6,7 +6,10 @@ use ris_error::RisResult;
 
 pub struct FrameInFlight {
     pub image_available: vk::Semaphore,
-    pub render_finished: vk::Semaphore,
+    pub main_render: vk::Semaphore,
+    pub gizmo_shape_render: vk::Semaphore,
+    pub gizmo_text_render: vk::Semaphore,
+    pub ui_helper_render: vk::Semaphore,
     pub in_flight: vk::Fence,
 }
 
@@ -28,12 +31,18 @@ impl FrameInFlight {
         };
 
         let image_available = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
-        let render_finished = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let main_render = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let gizmo_shape_render = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let gizmo_text_render = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
+        let ui_helper_render = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
         let in_flight = unsafe { device.create_fence(&fence_create_info, None) }?;
 
         Ok(Self {
             image_available,
-            render_finished,
+            main_render,
+            gizmo_shape_render,
+            gizmo_text_render,
+            ui_helper_render,
             in_flight,
         })
     }
@@ -44,7 +53,10 @@ impl FrameInFlight {
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_fence(self.in_flight, None);
-            device.destroy_semaphore(self.render_finished, None);
+            device.destroy_semaphore(self.main_render, None);
+            device.destroy_semaphore(self.gizmo_shape_render, None);
+            device.destroy_semaphore(self.gizmo_text_render, None);
+            device.destroy_semaphore(self.ui_helper_render, None);
             device.destroy_semaphore(self.image_available, None);
         }
     }

@@ -18,6 +18,7 @@ use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
 use super::texture::Texture;
 use super::texture::TextureCreateInfo;
+use super::transient_command::TransientCommandSync;
 
 pub struct Renderer {
     pub entry: ash::Entry,
@@ -347,6 +348,7 @@ impl Renderer {
                 transient_command_pool,
                 &vertex_buffer,
                 vertex_buffer_size,
+                TransientCommandSync::default(),
             )
         }?;
 
@@ -384,6 +386,7 @@ impl Renderer {
                 transient_command_pool,
                 &index_buffer,
                 index_buffer_size,
+                TransientCommandSync::default(),
             )
         }?;
 

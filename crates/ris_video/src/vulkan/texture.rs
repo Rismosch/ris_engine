@@ -7,6 +7,7 @@ use ris_error::RisResult;
 use super::buffer::Buffer;
 use super::image::Image;
 use super::image::ImageCreateInfo;
+use super::transient_command::TransientCommandSync;
 
 pub struct Texture {
     pub image: Image,
@@ -74,6 +75,7 @@ impl Texture {
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageLayout::UNDEFINED,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            TransientCommandSync::default(),
         )?;
 
         staging_buffer.copy_to_image(
@@ -83,6 +85,7 @@ impl Texture {
             image.image,
             width,
             height,
+            TransientCommandSync::default(),
         )?;
 
         image.transition_layout(
@@ -92,6 +95,7 @@ impl Texture {
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            TransientCommandSync::default(),
         )?;
 
         staging_buffer.free(device);

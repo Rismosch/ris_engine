@@ -19,6 +19,7 @@ use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain::BaseSwapchain;
 use ris_video::vulkan::swapchain::Swapchain;
 use ris_video::vulkan::swapchain::SwapchainEntry;
+use ris_video::vulkan::transient_command::TransientCommandSync;
 use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;
@@ -103,17 +104,25 @@ impl OutputFrame {
 
         let FrameInFlight {
             image_available,
-            render_finished,
+            main_render,
+            gizmo_shape_render,
+            gizmo_text_render,
+            ui_helper_render,
             in_flight,
         } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
 
+        let image_available_sem = [*image_available];
+        let main_render_sem = [*main_render];
+        let gizmo_shape_render_sem = [*gizmo_shape_render];
+        let gizmo_text_render_sem = [*gizmo_text_render];
+        let ui_helper_sem = [*ui_helper_render];
+
         // wait for the previous frame to finish
         ris_debug::add_record!(r, "wait for previous frame to finish")?;
 
-        let fence = [*in_flight];
-        unsafe { device.wait_for_fences(&fence, true, u64::MAX) }?;
-        unsafe { device.reset_fences(&fence) }?;
+        unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
+        unsafe { device.reset_fences(&[*in_flight]) }?;
 
         // acquire an image from the swap chain
         ris_debug::add_record!(r, "acquire an image from the swapchain")?;
@@ -169,56 +178,22 @@ impl OutputFrame {
         // submit command buffer
         ris_debug::add_record!(r, "submit command buffer")?;
 
-        let wait_semaphores = [*image_available];
         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = [*command_buffer];
-        let signal_semaphores = [*render_finished];
 
         let submit_infos = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
             p_next: ptr::null(),
-            wait_semaphore_count: wait_semaphores.len() as u32,
-            p_wait_semaphores: wait_semaphores.as_ptr(),
+            wait_semaphore_count: image_available_sem.len() as u32,
+            p_wait_semaphores: image_available_sem.as_ptr(),
             p_wait_dst_stage_mask: wait_stages.as_ptr(),
             command_buffer_count: command_buffers.len() as u32,
             p_command_buffers: command_buffers.as_ptr(),
-            signal_semaphore_count: signal_semaphores.len() as u32,
-            p_signal_semaphores: signal_semaphores.as_ptr(),
+            signal_semaphore_count: main_render_sem.len() as u32,
+            p_signal_semaphores: main_render_sem.as_ptr(),
         }];
 
-        unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
-
-        // gizmos
-        ris_debug::add_record!(r, "gizmos")?;
-
-        ris_debug::add_record!(r, "draw shapes")?;
-        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
-
-        ris_debug::add_record!(r, "render shapes")?;
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        self.gizmo_renderer.draw_shapes(
-            &self.renderer,
-            *image_view,
-            &gizmo_shape_vertices,
-            window_drawable_size,
-            &state.camera,
-        )?;
-
-        ris_debug::add_record!(r, "draw text")?;
-        let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
-
-        ris_debug::add_record!(r, "render text")?;
-        self.gizmo_renderer.draw_text(
-            &self.renderer,
-            *image_view,
-            &gizmo_text_vertices,
-            &gizmo_text_texture,
-            window_drawable_size,
-            &state.camera,
-        )?;
-
-        ris_debug::add_record!(r, "gizmo new frame")?;
-        ris_debug::gizmo::new_frame()?;
+        unsafe { device.queue_submit(*graphics_queue, &submit_infos, vk::Fence::null()) }?;
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;
@@ -243,9 +218,61 @@ impl OutputFrame {
         ris_debug::add_record!(r, "imgui backend")?;
         let draw_data = self.imgui.backend.context().render();
         ris_debug::add_record!(r, "imgui frontend")?;
-        self.imgui
-            .renderer
-            .draw(&self.renderer, *image_view, draw_data)?;
+        self.imgui.renderer.draw(
+            &self.renderer,
+            *image_view,
+            draw_data,
+            TransientCommandSync{
+                wait: gizmo_text_render_sem.to_vec(),
+                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
+                signal: ui_helper_sem.to_vec(),
+                fence: *in_flight,
+            },
+        )?;
+
+        // gizmos
+        ris_debug::add_record!(r, "gizmos")?;
+
+        ris_debug::add_record!(r, "draw shapes")?;
+        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+
+        ris_debug::add_record!(r, "render shapes")?;
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        self.gizmo_renderer.draw_shapes(
+            &self.renderer,
+            *image_view,
+            &gizmo_shape_vertices,
+            window_drawable_size,
+            &state.camera,
+            TransientCommandSync {
+                wait: main_render_sem.to_vec(),
+                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
+                signal: gizmo_shape_render_sem.to_vec(),
+                fence: vk::Fence::null(),
+            },
+        )?;
+
+        ris_debug::add_record!(r, "draw text")?;
+        let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
+
+        ris_debug::add_record!(r, "render text")?;
+        self.gizmo_renderer.draw_text(
+            &self.renderer,
+            *image_view,
+            &gizmo_text_vertices,
+            &gizmo_text_texture,
+            window_drawable_size,
+            &state.camera,
+            TransientCommandSync {
+                wait: gizmo_shape_render_sem.to_vec(),
+                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
+                signal: gizmo_text_render_sem.to_vec(),
+                fence: vk::Fence::null(),
+            },
+        )?;
+
+        ris_debug::add_record!(r, "gizmo new frame")?;
+        ris_debug::gizmo::new_frame()?;
 
         // present the swap chain image
         ris_debug::add_record!(r, "present the swap chain image")?;
@@ -254,8 +281,8 @@ impl OutputFrame {
         let present_info = vk::PresentInfoKHR {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
             p_next: ptr::null(),
-            wait_semaphore_count: signal_semaphores.len() as u32,
-            p_wait_semaphores: signal_semaphores.as_ptr(),
+            wait_semaphore_count: ui_helper_sem.len() as u32,
+            p_wait_semaphores: ui_helper_sem.as_ptr(),
             swapchain_count: swapchains.len() as u32,
             p_swapchains: swapchains.as_ptr(),
             p_image_indices: &image_index,
@@ -297,5 +324,6 @@ impl OutputFrame {
         ris_debug::end_record!(r)?;
 
         Ok(())
+        //ris_error::new_result!("hello")
     }
 }

@@ -23,6 +23,7 @@ use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
 use crate::vulkan::transient_command::TransientCommand;
+use crate::vulkan::transient_command::TransientCommandSync;
 
 pub struct ImguiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
@@ -496,11 +497,8 @@ impl ImguiRenderer {
         renderer: &Renderer,
         target: vk::ImageView,
         draw_data: &DrawData,
+        sync: TransientCommandSync,
     ) -> RisResult<()> {
-        if draw_data.total_vtx_count == 0 {
-            return Ok(());
-        }
-
         let Renderer {
             instance,
             suitable_device,
@@ -519,6 +517,11 @@ impl ImguiRenderer {
                 },
             ..
         } = renderer;
+
+        if draw_data.total_vtx_count == 0 {
+            sync.sync_now(&device, *graphics_queue)?;
+            return Ok(());
+        }
 
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -721,7 +724,7 @@ impl ImguiRenderer {
         }
 
         unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
+        transient_command.end_and_submit(sync)?;
         unsafe { device.destroy_framebuffer(framebuffer, None) };
 
         Ok(())
