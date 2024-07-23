@@ -18,6 +18,7 @@ use crate::vulkan::base::VulkanBase;
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
+use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::transient_command::TransientCommand;
 use crate::vulkan::transient_command::TransientCommandSync;
 
@@ -28,17 +29,40 @@ pub struct UniformBufferObject {
     pub proj: Mat4,
 }
 
-pub struct Descriptor {
-    pub buffer: Buffer,
-    pub mapped: *mut UniformBufferObject,
-    pub set: vk::DescriptorSet,
+struct GizmoShapeFrame {
+    mesh: Option<ShapeMesh>,
+    framebuffer: Option<vk::Framebuffer>,
+    descriptor_buffer: Buffer,
+    descriptor_mapped: *mut UniformBufferObject,
+    descriptor_set: vk::DescriptorSet,
 }
 
-impl IFrame for Descriptor {
+impl IFrame for GizmoShapeFrame {
     unsafe fn free(&mut self, device: &ash::Device) {
-        self.buffer.free(device);
+        if let Some(mut mesh) = self.mesh.take() {
+            mesh.free(device);
+        }
+
+        if let Some(mut framebuffer) = self.framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
+        }
+
+        self.descriptor_buffer.free(device);
     }
 }
+
+
+//pub struct Descriptor {
+//    pub buffer: Buffer,
+//    pub mapped: *mut UniformBufferObject,
+//    pub set: vk::DescriptorSet,
+//}
+
+//impl IFrame for Descriptor {
+//    unsafe fn free(&mut self, device: &ash::Device) {
+//        self.buffer.free(device);
+//    }
+//}
 
 pub struct GizmoRenderer {
     shape_renderer: ShapeRenderer,
@@ -51,8 +75,9 @@ struct ShapeRenderer {
     render_pass: vk::RenderPass,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
-    descriptors: Frames<Descriptor>,
-    frames: Option<Frames<ShapeMesh>>,
+    //descriptors: Frames<Descriptor>,
+    //frames: Option<Frames<ShapeMesh>>,
+    frames: Vec<GizmoShapeFrame>,
 }
 
 struct TextRenderer {
@@ -75,19 +100,17 @@ impl GizmoRenderer {
     pub fn draw_shapes(
         &mut self,
         base: &VulkanBase,
-        target: vk::ImageView,
+        entry: &SwapchainEntry,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
-        sync: TransientCommandSync,
     ) -> RisResult<()> {
         self.shape_renderer.draw(
             base,
-            target,
+            entry,
             vertices,
             window_drawable_size,
             camera,
-            sync,
         )
     }
 
@@ -116,11 +139,9 @@ impl GizmoRenderer {
 impl ShapeRenderer {
     fn free(&mut self, device: &ash::Device) {
         unsafe {
-            if let Some(mut frames) = self.frames.take() {
-                frames.free(device);
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
             }
-
-            self.descriptors.free(device);
 
             device.destroy_descriptor_pool(self.descriptor_pool, None);
             device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
@@ -497,10 +518,11 @@ impl ShapeRenderer {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let descriptors = unsafe {
-            Frames::alloc(entries.len(), |i| {
+        let mut frames = Vec::with_capacity(entries.len());
+        for i in 0..entries.len() {
+            unsafe {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-                let buffer = Buffer::alloc(
+                let descriptor_buffer = Buffer::alloc(
                     device,
                     buffer_size,
                     vk::BufferUsageFlags::UNIFORM_BUFFER,
@@ -508,23 +530,25 @@ impl ShapeRenderer {
                     physical_device_memory_properties
                 )?;
 
-                let mapped = device.map_memory(
-                    buffer.memory,
+                let descriptor_mapped = device.map_memory(
+                    descriptor_buffer.memory,
                     0,
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let set = descriptor_sets[i];
+                let descriptor_set = descriptor_sets[i];
 
-                Ok(Descriptor {
-                    buffer,
-                    mapped,
-                    set,
-                })
-            })
-        }?;
-
+                let frame = GizmoShapeFrame{
+                    mesh: None,
+                    framebuffer: None,
+                    descriptor_buffer,
+                    descriptor_mapped,
+                    descriptor_set,
+                };
+                frames.push(frame);
+            }
+        }
 
         Ok(Self {
             pipeline,
@@ -532,19 +556,17 @@ impl ShapeRenderer {
             render_pass,
             descriptor_set_layout,
             descriptor_pool,
-            descriptors,
-            frames: None,
+            frames,
         })
     }
 
     fn draw(
         &mut self,
         base: &VulkanBase,
-        target: vk::ImageView,
+        entry: &SwapchainEntry,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
-        sync: TransientCommandSync,
     ) -> RisResult<()> {
         let VulkanBase {
             instance,
@@ -565,28 +587,48 @@ impl ShapeRenderer {
             ..
         } = base;
 
+        let SwapchainEntry {
+            index,
+            image,
+            image_view,
+            command_buffer,
+        } = entry;
+
         if vertices.is_empty() {
-            sync.sync_now(device, *graphics_queue)?;
             return Ok(());
         }
 
+        let GizmoShapeFrame {
+            mesh,
+            framebuffer,
+            descriptor_buffer,
+            descriptor_mapped,
+            descriptor_set,
+        } = &mut self.frames[*index];
+
+        // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        if self.frames.is_none() {
-            let frames = unsafe {
-                Frames::alloc(entries.len(), |_| ShapeMesh::alloc(device, physical_device_memory_properties, vertices))
-            }?;
-            self.frames.replace(frames);
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(device, physical_device_memory_properties, vertices)?;
+                mesh
+            },
+            None => {
+                let new_mesh = unsafe {ShapeMesh::alloc(device, physical_device_memory_properties, vertices)}?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().unroll()?
+            },
+        };
+
+        // framebuffer
+        if let Some(framebuffer) = framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
-        let mesh = self.frames.as_mut().unroll()?.acquire_next();
-        mesh.update(device, physical_device_memory_properties, vertices)?;
-
-        let transient_command = TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
-
-        let attachments = [target];
+        let attachments = [*image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo{
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
@@ -600,8 +642,13 @@ impl ShapeRenderer {
             layers: 1,
         };
 
-        let framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+        let new_framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+        *framebuffer = Some(new_framebuffer);
+        let framebuffer = new_framebuffer;
 
+        //let transient_command = TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
+
+        // render pass
         let clear_values = [vk::ClearValue {
             color: vk::ClearColorValue {
                 float32: [0.0, 0.0, 0.0, 0.0],
@@ -623,7 +670,7 @@ impl ShapeRenderer {
 
         unsafe {
             device.cmd_begin_render_pass(
-                transient_command.buffer(),
+                *command_buffer,
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
             )
@@ -631,7 +678,7 @@ impl ShapeRenderer {
         
         unsafe {
             device.cmd_bind_pipeline(
-                transient_command.buffer(),
+                *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline,
             )
@@ -646,7 +693,7 @@ impl ShapeRenderer {
 
         unsafe {
             device.cmd_set_viewport(
-                transient_command.buffer(),
+                *command_buffer,
                 0,
                 &viewports,
             )
@@ -665,7 +712,7 @@ impl ShapeRenderer {
 
         unsafe {
             device.cmd_set_scissor(
-                transient_command.buffer(),
+                *command_buffer,
                 0,
                 &scissors,
             );
@@ -673,14 +720,12 @@ impl ShapeRenderer {
 
         unsafe {
             device.cmd_bind_vertex_buffers(
-                transient_command.buffer(),
+                *command_buffer,
                 0,
                 &[mesh.vertices.buffer],
                 &[0],
             )
         };
-
-        let descriptor = self.descriptors.acquire_next();
 
         let ubo = UniformBufferObject {
             view: camera.view_matrix(),
@@ -688,10 +733,10 @@ impl ShapeRenderer {
         };
 
         let ubo = [ubo];
-        unsafe { descriptor.mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+        unsafe { descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-            buffer: descriptor.buffer.buffer,
+            buffer: descriptor_buffer.buffer,
             offset: 0,
             range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
         }];
@@ -699,7 +744,7 @@ impl ShapeRenderer {
         let write_descriptor_sets = [vk::WriteDescriptorSet {
             s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
             p_next: ptr::null(),
-            dst_set: descriptor.set,
+            dst_set: *descriptor_set,
             dst_binding: 0,
             dst_array_element: 0,
             descriptor_count: 1,
@@ -715,18 +760,18 @@ impl ShapeRenderer {
 
         unsafe {
             device.cmd_bind_descriptor_sets(
-                transient_command.buffer(),
+                *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline_layout,
                 0,
-                &[descriptor.set],
+                &[*descriptor_set],
                 &[],
             )
         };
 
         unsafe {
             device.cmd_draw(
-                transient_command.buffer(),
+                *command_buffer,
                 vertices.len() as u32,
                 1,
                 0,
@@ -734,10 +779,7 @@ impl ShapeRenderer {
             )
         };
 
-        unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
-        transient_command.end_and_submit(sync)?;
-        unsafe {device.destroy_framebuffer(framebuffer, None)};
-
+        unsafe { device.cmd_end_render_pass(*command_buffer) };
         Ok(())
     }
 }

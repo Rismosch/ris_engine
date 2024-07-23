@@ -199,22 +199,21 @@ impl OutputFrame {
 
         //unsafe { device.queue_submit(*graphics_queue, &submit_infos, vk::Fence::null()) }?;
 
-        //// gizmos
-        //ris_debug::add_record!(r, "gizmos")?;
+        // gizmos
+        ris_debug::add_record!(r, "gizmos")?;
 
-        //ris_debug::add_record!(r, "draw shapes")?;
-        //let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+        ris_debug::add_record!(r, "draw shapes")?;
+        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 
-        //ris_debug::add_record!(r, "render shapes")?;
-        //let window_drawable_size = self.window.vulkan_drawable_size();
-        //self.gizmo_renderer.draw_shapes(
-        //    &self.base,
-        //    *image_view,
-        //    &gizmo_shape_vertices,
-        //    window_drawable_size,
-        //    &state.camera,
-        //    TransientCommandSync::default(),
-        //)?;
+        ris_debug::add_record!(r, "render shapes")?;
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        self.gizmo_renderer.draw_shapes(
+            &self.base,
+            swapchain_entry,
+            &gizmo_shape_vertices,
+            window_drawable_size,
+            &state.camera,
+        )?;
 
         //ris_debug::add_record!(r, "draw text")?;
         //let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
@@ -230,8 +229,8 @@ impl OutputFrame {
         //    TransientCommandSync::default(),
         //)?;
 
-        //ris_debug::add_record!(r, "gizmo new frame")?;
-        //ris_debug::gizmo::new_frame()?;
+        ris_debug::add_record!(r, "gizmo new frame")?;
+        ris_debug::gizmo::new_frame()?;
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;

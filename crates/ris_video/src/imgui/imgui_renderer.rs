@@ -527,7 +527,6 @@ impl ImguiRenderer {
         &mut self,
         base: &VulkanBase,
         entry: &SwapchainEntry,
-        //target: vk::ImageView,
         draw_data: &DrawData,
     ) -> RisResult<()> {
         let VulkanBase {
@@ -549,9 +548,9 @@ impl ImguiRenderer {
         } = base;
 
         let SwapchainEntry {
-            image,
             image_view,
             command_buffer,
+            ..
         } = entry;
 
         if draw_data.total_vtx_count == 0 {

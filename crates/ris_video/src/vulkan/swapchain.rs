@@ -36,6 +36,7 @@ pub struct Swapchain {
 }
 
 pub struct SwapchainEntry {
+    pub index: usize,
     pub image: vk::Image,
     pub image_view: vk::ImageView,
     //pub uniform_buffer: Buffer,
@@ -472,6 +473,7 @@ impl Swapchain {
 
             // entry
             let swapchain_entry = SwapchainEntry {
+                index: i,
                 image,
                 image_view,
                 //uniform_buffer,
