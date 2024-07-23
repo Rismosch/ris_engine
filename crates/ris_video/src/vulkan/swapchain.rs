@@ -5,18 +5,17 @@ use ash::vk;
 use ris_asset::AssetId;
 use ris_error::RisResult;
 
+use super::base::VulkanBase;
 use super::buffer::Buffer;
 use super::frame_in_flight::FrameInFlight;
 use super::graphics_pipeline::GraphicsPipeline;
 use super::graphics_pipeline::GraphicsPipelineCreateInfo;
 use super::image::Image;
 use super::image::ImageCreateInfo;
-use super::renderer::Renderer;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::texture::Texture;
 use super::transient_command::TransientCommandSync;
-use super::uniform_buffer_object::UniformBufferObject;
 use super::util;
 
 pub struct BaseSwapchain {
@@ -39,10 +38,10 @@ pub struct Swapchain {
 pub struct SwapchainEntry {
     pub image: vk::Image,
     pub image_view: vk::ImageView,
-    pub uniform_buffer: Buffer,
-    pub uniform_buffer_mapped: *mut UniformBufferObject,
-    pub descriptor_set: vk::DescriptorSet,
-    pub framebuffer: vk::Framebuffer,
+    //pub uniform_buffer: Buffer,
+    //pub uniform_buffer_mapped: *mut UniformBufferObject,
+    //pub descriptor_set: vk::DescriptorSet,
+    //pub framebuffer: vk::Framebuffer,
     pub command_buffer: vk::CommandBuffer,
 }
 
@@ -307,178 +306,178 @@ impl Swapchain {
                 vk::ImageAspectFlags::COLOR,
             )?;
 
-            // uniform buffer
-            let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-            let uniform_buffer = Buffer::alloc(
-                device,
-                uniform_buffer_size,
-                vk::BufferUsageFlags::UNIFORM_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                physical_device_memory_properties,
-            )?;
-            let uniform_buffer_mapped = unsafe {
-                device.map_memory(
-                    uniform_buffer.memory,
-                    0,
-                    uniform_buffer_size,
-                    vk::MemoryMapFlags::empty(),
-                )
-            }? as *mut UniformBufferObject;
+            //// uniform buffer
+            //let uniform_buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+            //let uniform_buffer = Buffer::alloc(
+            //    device,
+            //    uniform_buffer_size,
+            //    vk::BufferUsageFlags::UNIFORM_BUFFER,
+            //    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            //    physical_device_memory_properties,
+            //)?;
+            //let uniform_buffer_mapped = unsafe {
+            //    device.map_memory(
+            //        uniform_buffer.memory,
+            //        0,
+            //        uniform_buffer_size,
+            //        vk::MemoryMapFlags::empty(),
+            //    )
+            //}? as *mut UniformBufferObject;
 
-            // descriptor set
-            let descriptor_set = descriptor_sets[i];
+            //// descriptor set
+            //let descriptor_set = descriptor_sets[i];
 
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                buffer: uniform_buffer.buffer,
-                offset: 0,
-                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
-            }];
+            //let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+            //    buffer: uniform_buffer.buffer,
+            //    offset: 0,
+            //    range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            //}];
 
-            let descriptor_image_info = [vk::DescriptorImageInfo {
-                sampler: texture.sampler,
-                image_view: texture.view,
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            }];
+            //let descriptor_image_info = [vk::DescriptorImageInfo {
+            //    sampler: texture.sampler,
+            //    image_view: texture.view,
+            //    image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            //}];
 
-            let write_descriptor_sets = [
-                vk::WriteDescriptorSet {
-                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
-                    dst_set: descriptor_set,
-                    dst_binding: 0,
-                    dst_array_element: 0,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_image_info: ptr::null(),
-                    p_buffer_info: descriptor_buffer_info.as_ptr(),
-                    p_texel_buffer_view: ptr::null(),
-                },
-                vk::WriteDescriptorSet {
-                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
-                    dst_set: descriptor_set,
-                    dst_binding: 1,
-                    dst_array_element: 0,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: descriptor_image_info.as_ptr(),
-                    p_buffer_info: ptr::null(),
-                    p_texel_buffer_view: ptr::null(),
-                },
-            ];
+            //let write_descriptor_sets = [
+            //    vk::WriteDescriptorSet {
+            //        s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+            //        p_next: ptr::null(),
+            //        dst_set: descriptor_set,
+            //        dst_binding: 0,
+            //        dst_array_element: 0,
+            //        descriptor_count: 1,
+            //        descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            //        p_image_info: ptr::null(),
+            //        p_buffer_info: descriptor_buffer_info.as_ptr(),
+            //        p_texel_buffer_view: ptr::null(),
+            //    },
+            //    vk::WriteDescriptorSet {
+            //        s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+            //        p_next: ptr::null(),
+            //        dst_set: descriptor_set,
+            //        dst_binding: 1,
+            //        dst_array_element: 0,
+            //        descriptor_count: 1,
+            //        descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            //        p_image_info: descriptor_image_info.as_ptr(),
+            //        p_buffer_info: ptr::null(),
+            //        p_texel_buffer_view: ptr::null(),
+            //    },
+            //];
 
-            unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
+            //unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
             // frame buffer
-            let attachments = [image_view, depth_image_view];
+            //let attachments = [image_view, depth_image_view];
 
-            let framebuffer_create_info = vk::FramebufferCreateInfo {
-                s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::FramebufferCreateFlags::empty(),
-                render_pass: graphics_pipeline.render_pass,
-                attachment_count: attachments.len() as u32,
-                p_attachments: attachments.as_ptr(),
-                width: base.extent.width,
-                height: base.extent.height,
-                layers: 1,
-            };
+            //let framebuffer_create_info = vk::FramebufferCreateInfo {
+            //    s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            //    p_next: ptr::null(),
+            //    flags: vk::FramebufferCreateFlags::empty(),
+            //    render_pass: graphics_pipeline.render_pass,
+            //    attachment_count: attachments.len() as u32,
+            //    p_attachments: attachments.as_ptr(),
+            //    width: base.extent.width,
+            //    height: base.extent.height,
+            //    layers: 1,
+            //};
 
-            let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+            //let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
 
             // command buffer
             let command_buffer = command_buffers[i];
 
-            let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
-            unsafe { device.reset_command_buffer(command_buffer, command_buffer_reset_flags) }?;
+            //let command_buffer_reset_flags = vk::CommandBufferResetFlags::empty();
+            //unsafe { device.reset_command_buffer(command_buffer, command_buffer_reset_flags) }?;
 
-            let command_buffer_begin_info = vk::CommandBufferBeginInfo {
-                s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-                p_next: ptr::null(),
-                flags: vk::CommandBufferUsageFlags::empty(),
-                p_inheritance_info: ptr::null(),
-            };
+            //let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            //    s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            //    p_next: ptr::null(),
+            //    flags: vk::CommandBufferUsageFlags::empty(),
+            //    p_inheritance_info: ptr::null(),
+            //};
 
-            unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }?;
+            //unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }?;
 
-            let clear_values = [
-                vk::ClearValue {
-                    color: vk::ClearColorValue {
-                        float32: [0.0, 0.0, 0.0, 0.0],
-                    },
-                },
-                vk::ClearValue {
-                    depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
-                        stencil: 0,
-                    },
-                },
-            ];
+            //let clear_values = [
+            //    vk::ClearValue {
+            //        color: vk::ClearColorValue {
+            //            float32: [0.0, 0.0, 0.0, 0.0],
+            //        },
+            //    },
+            //    vk::ClearValue {
+            //        depth_stencil: vk::ClearDepthStencilValue {
+            //            depth: 1.0,
+            //            stencil: 0,
+            //        },
+            //    },
+            //];
 
-            let render_pass_begin_info = vk::RenderPassBeginInfo {
-                s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-                p_next: ptr::null(),
-                render_pass: graphics_pipeline.render_pass,
-                framebuffer,
-                render_area: vk::Rect2D {
-                    offset: vk::Offset2D { x: 0, y: 0 },
-                    extent: base.extent,
-                },
-                clear_value_count: clear_values.len() as u32,
-                p_clear_values: clear_values.as_ptr(),
-            };
+            //let render_pass_begin_info = vk::RenderPassBeginInfo {
+            //    s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+            //    p_next: ptr::null(),
+            //    render_pass: graphics_pipeline.render_pass,
+            //    framebuffer,
+            //    render_area: vk::Rect2D {
+            //        offset: vk::Offset2D { x: 0, y: 0 },
+            //        extent: base.extent,
+            //    },
+            //    clear_value_count: clear_values.len() as u32,
+            //    p_clear_values: clear_values.as_ptr(),
+            //};
 
-            unsafe {
-                device.cmd_begin_render_pass(
-                    command_buffer,
-                    &render_pass_begin_info,
-                    vk::SubpassContents::INLINE,
-                )
-            };
-            unsafe {
-                device.cmd_bind_pipeline(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    graphics_pipeline.pipeline,
-                )
-            };
+            //unsafe {
+            //    device.cmd_begin_render_pass(
+            //        command_buffer,
+            //        &render_pass_begin_info,
+            //        vk::SubpassContents::INLINE,
+            //    )
+            //};
+            //unsafe {
+            //    device.cmd_bind_pipeline(
+            //        command_buffer,
+            //        vk::PipelineBindPoint::GRAPHICS,
+            //        graphics_pipeline.pipeline,
+            //    )
+            //};
 
-            let vertex_buffers = [vertex_buffer.buffer];
-            let offsets = [0_u64];
-            unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
-            unsafe {
-                device.cmd_bind_index_buffer(
-                    command_buffer,
-                    index_buffer.buffer,
-                    0,
-                    vk::IndexType::UINT32,
-                )
-            };
-            let descriptor_sets = [descriptor_set];
-            unsafe {
-                device.cmd_bind_descriptor_sets(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    graphics_pipeline.layout,
-                    0,
-                    &descriptor_sets,
-                    &[],
-                )
-            };
+            //let vertex_buffers = [vertex_buffer.buffer];
+            //let offsets = [0_u64];
+            //unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
+            //unsafe {
+            //    device.cmd_bind_index_buffer(
+            //        command_buffer,
+            //        index_buffer.buffer,
+            //        0,
+            //        vk::IndexType::UINT32,
+            //    )
+            //};
+            //let descriptor_sets = [descriptor_set];
+            //unsafe {
+            //    device.cmd_bind_descriptor_sets(
+            //        command_buffer,
+            //        vk::PipelineBindPoint::GRAPHICS,
+            //        graphics_pipeline.layout,
+            //        0,
+            //        &descriptor_sets,
+            //        &[],
+            //    )
+            //};
 
-            let index_count = super::INDICES.len() as u32;
-            unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
-            unsafe { device.cmd_end_render_pass(command_buffer) };
-            unsafe { device.end_command_buffer(command_buffer) }?;
+            //let index_count = super::INDICES.len() as u32;
+            //unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
+            //unsafe { device.cmd_end_render_pass(command_buffer) };
+            //unsafe { device.end_command_buffer(command_buffer) }?;
 
             // entry
             let swapchain_entry = SwapchainEntry {
                 image,
                 image_view,
-                uniform_buffer,
-                uniform_buffer_mapped,
-                descriptor_set,
-                framebuffer,
+                //uniform_buffer,
+                //uniform_buffer_mapped,
+                //descriptor_set,
+                //framebuffer,
                 command_buffer,
             };
 
@@ -528,8 +527,8 @@ impl Swapchain {
             }
 
             for entry in self.entries.iter() {
-                device.destroy_framebuffer(entry.framebuffer, None);
-                entry.uniform_buffer.free(device);
+                //device.destroy_framebuffer(entry.framebuffer, None);
+                //entry.uniform_buffer.free(device);
                 device.destroy_image_view(entry.image_view, None);
             }
 
@@ -540,54 +539,55 @@ impl Swapchain {
     }
 
     pub fn recreate(
-        renderer: &mut Renderer,
+        base: &mut VulkanBase,
         window_size: (u32, u32),
         vs_asset_id: AssetId,
         fs_asset_id: AssetId,
     ) -> RisResult<Self> {
         // gather data which should not be cleaned up
-        let mut descriptor_sets = Vec::with_capacity(renderer.swapchain.entries.len());
-        for entry in renderer.swapchain.entries.iter() {
-            let descriptor_set = entry.descriptor_set;
-            descriptor_sets.push(descriptor_set);
-        }
+        //let mut descriptor_sets = Vec::with_capacity(base.swapchain.entries.len());
+        //for entry in base.swapchain.entries.iter() {
+        //    let descriptor_set = entry.descriptor_set;
+        //    descriptor_sets.push(descriptor_set);
+        //}
 
-        let descriptor_sets = Some(descriptor_sets);
-        let frames_in_flight = renderer.swapchain.frames_in_flight.take();
+        //let descriptor_sets = Some(descriptor_sets);
+        let descriptor_sets = None;
+        let frames_in_flight = base.swapchain.frames_in_flight.take();
 
         // free old swapchain
         unsafe {
-            renderer
+            base
                 .swapchain
-                .free(&renderer.device, renderer.command_pool)
+                .free(&base.device, base.command_pool)
         };
 
         // create new swapchain
-        let (base, images) = unsafe {
+        let (base_swapchain, images) = unsafe {
             BaseSwapchain::alloc(
-                &renderer.instance,
-                &renderer.surface_loader,
-                &renderer.surface,
-                &renderer.suitable_device,
-                &renderer.device,
+                &base.instance,
+                &base.surface_loader,
+                &base.surface,
+                &base.suitable_device,
+                &base.device,
                 window_size,
             )
         }?;
 
         unsafe {
             Self::alloc(SwapchainCreateInfo {
-                instance: &renderer.instance,
-                suitable_device: &renderer.suitable_device,
-                device: &renderer.device,
-                graphics_queue: renderer.graphics_queue,
-                command_pool: renderer.command_pool,
-                transient_command_pool: renderer.transient_command_pool,
-                descriptor_set_layout: renderer.descriptor_set_layout,
-                descriptor_pool: renderer.descriptor_pool,
-                texture: &renderer.texture,
-                vertex_buffer: &renderer.vertex_buffer,
-                index_buffer: &renderer.index_buffer,
-                base,
+                instance: &base.instance,
+                suitable_device: &base.suitable_device,
+                device: &base.device,
+                graphics_queue: base.graphics_queue,
+                command_pool: base.command_pool,
+                transient_command_pool: base.transient_command_pool,
+                descriptor_set_layout: base.descriptor_set_layout,
+                descriptor_pool: base.descriptor_pool,
+                texture: &base.texture,
+                vertex_buffer: &base.vertex_buffer,
+                index_buffer: &base.index_buffer,
+                base: base_swapchain,
                 images,
                 descriptor_sets,
                 frames_in_flight,

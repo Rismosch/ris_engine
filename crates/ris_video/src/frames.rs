@@ -1,7 +1,7 @@
 use ris_error::RisResult;
 
 pub trait IFrame {
-    unsafe fn free(&self, device: &ash::Device);
+    unsafe fn free(&mut self, device: &ash::Device);
 }
 
 pub struct Frames<TFrame: IFrame> {
@@ -32,8 +32,8 @@ impl<TFrame: IFrame> Frames<TFrame> {
     /// # Safety
     ///
     /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        for frame in self.frames.iter() {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        for frame in self.frames.iter_mut() {
             frame.free(device);
         }
     }

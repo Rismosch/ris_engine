@@ -16,14 +16,33 @@ use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
 use crate::frames::Frames;
+use crate::frames::IFrame;
 use crate::imgui::imgui_mesh::Mesh;
-use crate::vulkan::renderer::Renderer;
+use crate::vulkan::base::VulkanBase;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
+use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
 use crate::vulkan::transient_command::TransientCommand;
 use crate::vulkan::transient_command::TransientCommandSync;
+
+pub struct ImguiFrame {
+    mesh: Option<Mesh>,
+    framebuffer: Option<vk::Framebuffer>,
+}
+
+impl IFrame for ImguiFrame {
+    unsafe fn free(&mut self, device: &ash::Device) {
+        if let Some(mut mesh) = self.mesh.take() {
+            mesh.free(device);
+        }
+
+        if let Some(mut framebuffer) = self.framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
+        }
+    }
+}
 
 pub struct ImguiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
@@ -34,15 +53,13 @@ pub struct ImguiRenderer {
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
     textures: Textures<vk::DescriptorSet>,
-    frames: Option<Frames<Mesh>>,
+    frames: Frames<ImguiFrame>,
 }
 
 impl ImguiRenderer {
     pub fn free(&mut self, device: &ash::Device) {
         unsafe {
-            if let Some(frames) = self.frames.take() {
-                frames.free(device);
-            }
+            self.frames.free(device);
 
             self.font_texture.free(device);
 
@@ -55,11 +72,11 @@ impl ImguiRenderer {
     }
 
     pub fn init(
-        renderer: &Renderer,
+        base: &VulkanBase,
         god_asset: &RisGodAsset,
         context: &mut Context,
     ) -> RisResult<Self> {
-        let Renderer {
+        let VulkanBase {
             instance,
             suitable_device,
             device,
@@ -72,10 +89,11 @@ impl ImguiRenderer {
                             format: swapchain_format,
                             ..
                         },
+                    entries,
                     ..
                 },
             ..
-        } = renderer;
+        } = base;
 
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
@@ -311,11 +329,13 @@ impl ImguiRenderer {
             flags: vk::AttachmentDescriptionFlags::empty(),
             format: swapchain_format.format,
             samples: vk::SampleCountFlags::TYPE_1,
-            load_op: vk::AttachmentLoadOp::LOAD,
+            //load_op: vk::AttachmentLoadOp::LOAD,
+            load_op: vk::AttachmentLoadOp::DONT_CARE,
             store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-            initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+            //initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+            initial_layout: vk::ImageLayout::UNDEFINED,
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
@@ -476,6 +496,17 @@ impl ImguiRenderer {
 
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
+        // frames
+        let frames = unsafe {
+            Frames::alloc(
+                entries.len(),
+                |_| Ok(ImguiFrame{
+                    mesh: None,
+                    framebuffer: None,
+                }),
+            )
+        }?;
+
         // init
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
@@ -488,23 +519,22 @@ impl ImguiRenderer {
             descriptor_pool,
             descriptor_set,
             textures: Textures::new(),
-            frames: None,
+            frames,
         })
     }
 
     pub fn draw(
         &mut self,
-        renderer: &Renderer,
-        target: vk::ImageView,
+        base: &VulkanBase,
+        entry: &SwapchainEntry,
+        //target: vk::ImageView,
         draw_data: &DrawData,
-        sync: TransientCommandSync,
     ) -> RisResult<()> {
-        let Renderer {
+        let VulkanBase {
             instance,
             suitable_device,
             device,
             graphics_queue,
-            transient_command_pool,
             swapchain:
                 Swapchain {
                     base:
@@ -516,33 +546,43 @@ impl ImguiRenderer {
                     ..
                 },
             ..
-        } = renderer;
+        } = base;
+
+        let SwapchainEntry {
+            image,
+            image_view,
+            command_buffer,
+        } = entry;
 
         if draw_data.total_vtx_count == 0 {
-            sync.sync_now(&device, *graphics_queue)?;
             return Ok(());
         }
 
+        let ImguiFrame { mesh, framebuffer } = self.frames.acquire_next();
+
+        // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        if self.frames.is_none() {
-            let frames = unsafe {
-                Frames::alloc(entries.len(), |_| {
-                    Mesh::alloc(device, physical_device_memory_properties, draw_data)
-                })
-            }?;
-            self.frames.replace(frames);
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(device, physical_device_memory_properties, draw_data);
+                mesh
+            },
+            None => {
+                let new_mesh = unsafe {Mesh::alloc(device, physical_device_memory_properties, draw_data)}?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().unroll()?
+            },
+        };
+
+        // framebuffer
+        if let Some(framebuffer) = framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
-        let mesh = self.frames.as_mut().unroll()?.acquire_next();
-        mesh.update(device, physical_device_memory_properties, draw_data)?;
-
-        let transient_command =
-            TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
-
-        let attachments = [target];
+        let attachments = [*image_view];
 
         let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
@@ -556,8 +596,11 @@ impl ImguiRenderer {
             layers: 1,
         };
 
-        let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+        let new_framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+        *framebuffer = Some(new_framebuffer);
+        let framebuffer = new_framebuffer;
 
+        // render pass
         let clear_values = [vk::ClearValue {
             color: vk::ClearColorValue {
                 float32: [0.0, 0.0, 0.0, 0.0],
@@ -579,7 +622,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_begin_render_pass(
-                transient_command.buffer(),
+                *command_buffer,
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
             )
@@ -587,7 +630,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_bind_pipeline(
-                transient_command.buffer(),
+                *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline,
             )
@@ -602,7 +645,7 @@ impl ImguiRenderer {
             ..Default::default()
         }];
 
-        unsafe { device.cmd_set_viewport(transient_command.buffer(), 0, &viewports) };
+        unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
 
         let mut projection = Mat4::init(1.0);
         let rml = draw_data.display_size[0];
@@ -623,7 +666,7 @@ impl ImguiRenderer {
             let push = std::slice::from_raw_parts(push_ptr, std::mem::size_of::<Mat4>());
 
             device.cmd_push_constants(
-                transient_command.buffer(),
+                *command_buffer,
                 self.pipeline_layout,
                 vk::ShaderStageFlags::VERTEX,
                 0,
@@ -633,7 +676,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_bind_index_buffer(
-                transient_command.buffer(),
+                *command_buffer,
                 mesh.indices.buffer,
                 0,
                 vk::IndexType::UINT16,
@@ -642,7 +685,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_bind_vertex_buffers(
-                transient_command.buffer(),
+                *command_buffer,
                 0,
                 &[mesh.vertices.buffer],
                 &[0],
@@ -683,13 +726,13 @@ impl ImguiRenderer {
                             },
                         }];
 
-                        unsafe { device.cmd_set_scissor(transient_command.buffer(), 0, &scissors) };
+                        unsafe { device.cmd_set_scissor(*command_buffer, 0, &scissors) };
 
                         if Some(texture_id) != current_texture_id {
                             let descriptor_set = self.lookup_descriptor_set(texture_id)?;
                             unsafe {
                                 device.cmd_bind_descriptor_sets(
-                                    transient_command.buffer(),
+                                    *command_buffer,
                                     vk::PipelineBindPoint::GRAPHICS,
                                     self.pipeline_layout,
                                     0,
@@ -701,7 +744,7 @@ impl ImguiRenderer {
 
                         unsafe {
                             device.cmd_draw_indexed(
-                                transient_command.buffer(),
+                                *command_buffer,
                                 count as u32,
                                 1,
                                 index_offset + idx_offset as u32,
@@ -723,9 +766,7 @@ impl ImguiRenderer {
             vertex_offset += draw_list.vtx_buffer().len() as i32;
         }
 
-        unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
-        transient_command.end_and_submit(sync)?;
-        unsafe { device.destroy_framebuffer(framebuffer, None) };
+        unsafe { device.cmd_end_render_pass(*command_buffer) };
 
         Ok(())
     }

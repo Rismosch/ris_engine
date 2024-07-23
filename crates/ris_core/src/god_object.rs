@@ -17,7 +17,7 @@ use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
 use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
-use ris_video::vulkan::renderer::Renderer;
+use ris_video::vulkan::base::VulkanBase;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
@@ -115,17 +115,17 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
-            .resizable()
+            //.resizable()
             .position_centered()
             .vulkan()
             .build()?;
 
-        let renderer = Renderer::initialize(&app_info, &window, &god_asset)?;
+        let vulkan_base = VulkanBase::initialize(&app_info, &window, &god_asset)?;
 
         // imgui
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(&renderer, &god_asset, context)?;
+        let imgui_renderer = ImguiRenderer::init(&vulkan_base, &god_asset, context)?;
         let imgui = RisImgui {
             backend: imgui_backend,
             renderer: imgui_renderer,
@@ -133,12 +133,12 @@ impl GodObject {
 
         // gizmo
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_renderer = GizmoRenderer::init(&renderer)?;
+        let gizmo_renderer = GizmoRenderer::init(&vulkan_base)?;
 
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, imgui, gizmo_renderer, ui_helper)?;
+        let output_frame = OutputFrame::new(window, vulkan_base, imgui, gizmo_renderer, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 

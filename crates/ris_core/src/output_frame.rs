@@ -14,13 +14,12 @@ use ris_math::matrix::Mat4;
 use ris_math::vector::Vec3;
 use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
 use ris_video::imgui::RisImgui;
+use ris_video::vulkan::base::VulkanBase;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::renderer::Renderer;
 use ris_video::vulkan::swapchain::BaseSwapchain;
 use ris_video::vulkan::swapchain::Swapchain;
 use ris_video::vulkan::swapchain::SwapchainEntry;
 use ris_video::vulkan::transient_command::TransientCommandSync;
-use ris_video::vulkan::uniform_buffer_object::UniformBufferObject;
 
 use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
@@ -32,18 +31,18 @@ pub struct OutputFrame {
     ui_helper: UiHelper,
 
     // mut be dropped last
-    renderer: Renderer,
+    base: VulkanBase,
     window: Window,
 }
 
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-            ris_error::unwrap!(self.renderer.device.device_wait_idle(), "",);
+            ris_error::unwrap!(self.base.device.device_wait_idle(), "",);
         }
 
-        self.imgui.renderer.free(&self.renderer.device);
-        self.gizmo_renderer.free(&self.renderer.device);
+        self.imgui.renderer.free(&self.base.device);
+        self.gizmo_renderer.free(&self.base.device);
         // renderer is dropped here implicitly
     }
 }
@@ -51,7 +50,7 @@ impl Drop for OutputFrame {
 impl OutputFrame {
     pub fn new(
         window: Window,
-        renderer: Renderer,
+        base: VulkanBase,
         imgui: RisImgui,
         gizmo_renderer: GizmoRenderer,
         ui_helper: UiHelper,
@@ -62,7 +61,7 @@ impl OutputFrame {
             imgui,
             gizmo_renderer,
             ui_helper,
-            renderer,
+            base,
             window,
         })
     }
@@ -81,7 +80,7 @@ impl OutputFrame {
 
         let mut r = ris_debug::new_record!("run output frame");
 
-        let Renderer {
+        let VulkanBase {
             device,
             graphics_queue,
             present_queue,
@@ -98,25 +97,19 @@ impl OutputFrame {
                     ..
                 },
             ..
-        } = &self.renderer;
+        } = &self.base;
 
         let frames_in_flight = frames_in_flight.as_ref().unroll()?;
 
         let FrameInFlight {
             image_available,
-            main_render,
-            gizmo_shape_render,
-            gizmo_text_render,
-            ui_helper_render,
+            render_finished,
             in_flight,
         } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
 
         let image_available_sem = [*image_available];
-        let main_render_sem = [*main_render];
-        let gizmo_shape_render_sem = [*gizmo_shape_render];
-        let gizmo_text_render_sem = [*gizmo_text_render];
-        let ui_helper_sem = [*ui_helper_render];
+        let render_finished_sem = [*render_finished];
 
         // wait for the previous frame to finish
         ris_debug::add_record!(r, "wait for previous frame to finish")?;
@@ -141,7 +134,7 @@ impl OutputFrame {
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
                     return self
-                        .renderer
+                        .base
                         .recreate_swapchain(self.window.vulkan_drawable_size(), god_asset)
                 }
                 vk_result => {
@@ -150,50 +143,95 @@ impl OutputFrame {
             },
         };
 
+        // prepare command buffer
+        let swapchain_entry = &swapchain_entries[image_index as usize];
         let SwapchainEntry {
             image_view,
-            uniform_buffer_mapped,
             command_buffer,
             ..
-        } = &swapchain_entries[image_index as usize];
+        } = swapchain_entry;
+
+        unsafe { device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty()) }?;
+
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandBufferUsageFlags::empty(),
+            p_inheritance_info: ptr::null(),
+        };
+        unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
 
         // update uniform buffer
-        ris_debug::add_record!(r, "update uniform buffer")?;
+        //ris_debug::add_record!(r, "update uniform buffer")?;
 
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        state.camera.aspect_ratio = w / h;
-        let view = state.camera.view_matrix();
-        let proj = state.camera.projection_matrix();
+        //let window_drawable_size = self.window.vulkan_drawable_size();
+        //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        //state.camera.aspect_ratio = w / h;
+        //let view = state.camera.view_matrix();
+        //let proj = state.camera.projection_matrix();
 
-        let uniform_buffer_object = UniformBufferObject {
-            model: Mat4::init(1.0),
-            view,
-            proj,
-        };
+        //let uniform_buffer_object = UniformBufferObject {
+        //    model: Mat4::init(1.0),
+        //    view,
+        //    proj,
+        //};
 
-        let ubo = [uniform_buffer_object];
-        unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+        //let ubo = [uniform_buffer_object];
+        //unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         // submit command buffer
-        ris_debug::add_record!(r, "submit command buffer")?;
+        //ris_debug::add_record!(r, "submit command buffer")?;
 
-        let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-        let command_buffers = [*command_buffer];
+        //let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+        //let command_buffers = [*command_buffer];
 
-        let submit_infos = [vk::SubmitInfo {
-            s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
-            wait_semaphore_count: image_available_sem.len() as u32,
-            p_wait_semaphores: image_available_sem.as_ptr(),
-            p_wait_dst_stage_mask: wait_stages.as_ptr(),
-            command_buffer_count: command_buffers.len() as u32,
-            p_command_buffers: command_buffers.as_ptr(),
-            signal_semaphore_count: main_render_sem.len() as u32,
-            p_signal_semaphores: main_render_sem.as_ptr(),
-        }];
+        //let submit_infos = [vk::SubmitInfo {
+        //    s_type: vk::StructureType::SUBMIT_INFO,
+        //    p_next: ptr::null(),
+        //    wait_semaphore_count: image_available_sem.len() as u32,
+        //    p_wait_semaphores: image_available_sem.as_ptr(),
+        //    p_wait_dst_stage_mask: wait_stages.as_ptr(),
+        //    command_buffer_count: command_buffers.len() as u32,
+        //    p_command_buffers: command_buffers.as_ptr(),
+        //    signal_semaphore_count: main_render_sem.len() as u32,
+        //    p_signal_semaphores: main_render_sem.as_ptr(),
+        //}];
 
-        unsafe { device.queue_submit(*graphics_queue, &submit_infos, vk::Fence::null()) }?;
+        //unsafe { device.queue_submit(*graphics_queue, &submit_infos, vk::Fence::null()) }?;
+
+        //// gizmos
+        //ris_debug::add_record!(r, "gizmos")?;
+
+        //ris_debug::add_record!(r, "draw shapes")?;
+        //let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+
+        //ris_debug::add_record!(r, "render shapes")?;
+        //let window_drawable_size = self.window.vulkan_drawable_size();
+        //self.gizmo_renderer.draw_shapes(
+        //    &self.base,
+        //    *image_view,
+        //    &gizmo_shape_vertices,
+        //    window_drawable_size,
+        //    &state.camera,
+        //    TransientCommandSync::default(),
+        //)?;
+
+        //ris_debug::add_record!(r, "draw text")?;
+        //let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
+
+        //ris_debug::add_record!(r, "render text")?;
+        //self.gizmo_renderer.draw_text(
+        //    &self.base,
+        //    *image_view,
+        //    &gizmo_text_vertices,
+        //    &gizmo_text_texture,
+        //    window_drawable_size,
+        //    &state.camera,
+        //    TransientCommandSync::default(),
+        //)?;
+
+        //ris_debug::add_record!(r, "gizmo new frame")?;
+        //ris_debug::gizmo::new_frame()?;
 
         // ui helper
         ris_debug::add_record!(r, "prepare ui helper")?;
@@ -219,70 +257,39 @@ impl OutputFrame {
         let draw_data = self.imgui.backend.context().render();
         ris_debug::add_record!(r, "imgui frontend")?;
         self.imgui.renderer.draw(
-            &self.renderer,
-            *image_view,
+            &self.base,
+            swapchain_entry,
             draw_data,
-            TransientCommandSync{
-                wait: gizmo_text_render_sem.to_vec(),
-                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
-                signal: ui_helper_sem.to_vec(),
-                fence: *in_flight,
-            },
         )?;
 
-        // gizmos
-        ris_debug::add_record!(r, "gizmos")?;
+        // end command buffer and submit
+        ris_debug::add_record!(r, "submit command buffer")?;
+        unsafe { device.end_command_buffer(*command_buffer) }?;
+        let command_buffers = [*command_buffer];
+        let wait_dst_stage_mask = [vk::PipelineStageFlags::TOP_OF_PIPE];
+        let submit_infos = [vk::SubmitInfo {
+            s_type: vk::StructureType::SUBMIT_INFO,
+            p_next: ptr::null(),
+            wait_semaphore_count: image_available_sem.len() as u32,
+            p_wait_semaphores: image_available_sem.as_ptr(),
+            p_wait_dst_stage_mask: wait_dst_stage_mask.as_ptr(),
+            command_buffer_count: command_buffers.len() as u32,
+            p_command_buffers: command_buffers.as_ptr(),
+            signal_semaphore_count: render_finished_sem.len() as u32,
+            p_signal_semaphores: render_finished_sem.as_ptr(),
+        }];
 
-        ris_debug::add_record!(r, "draw shapes")?;
-        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
-
-        ris_debug::add_record!(r, "render shapes")?;
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        self.gizmo_renderer.draw_shapes(
-            &self.renderer,
-            *image_view,
-            &gizmo_shape_vertices,
-            window_drawable_size,
-            &state.camera,
-            TransientCommandSync {
-                wait: main_render_sem.to_vec(),
-                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
-                signal: gizmo_shape_render_sem.to_vec(),
-                fence: vk::Fence::null(),
-            },
-        )?;
-
-        ris_debug::add_record!(r, "draw text")?;
-        let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
-
-        ris_debug::add_record!(r, "render text")?;
-        self.gizmo_renderer.draw_text(
-            &self.renderer,
-            *image_view,
-            &gizmo_text_vertices,
-            &gizmo_text_texture,
-            window_drawable_size,
-            &state.camera,
-            TransientCommandSync {
-                wait: gizmo_shape_render_sem.to_vec(),
-                dst: vec![vk::PipelineStageFlags::TOP_OF_PIPE],
-                signal: gizmo_text_render_sem.to_vec(),
-                fence: vk::Fence::null(),
-            },
-        )?;
-
-        ris_debug::add_record!(r, "gizmo new frame")?;
-        ris_debug::gizmo::new_frame()?;
-
-        // present the swap chain image
+        unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
+ 
+        // present swap chain image
         ris_debug::add_record!(r, "present the swap chain image")?;
         let swapchains = [*swapchain];
 
         let present_info = vk::PresentInfoKHR {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
             p_next: ptr::null(),
-            wait_semaphore_count: ui_helper_sem.len() as u32,
-            p_wait_semaphores: ui_helper_sem.as_ptr(),
+            wait_semaphore_count: render_finished_sem.len() as u32,
+            p_wait_semaphores: render_finished_sem.as_ptr(),
             swapchain_count: swapchains.len() as u32,
             p_swapchains: swapchains.as_ptr(),
             p_image_indices: &image_index,
@@ -291,6 +298,8 @@ impl OutputFrame {
 
         let queue_present_result =
             unsafe { swapchain_loader.queue_present(*present_queue, &present_info) };
+
+        // recreate swapchain
         let window_event = match queue_present_result {
             Ok(_) => match state.window_event {
                 WindowEvent::SizeChanged(..) => state.window_event,
@@ -315,8 +324,7 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            self.renderer
-                .recreate_swapchain((width, height), god_asset)?;
+            self.base.recreate_swapchain((width, height), god_asset)?;
         }
 
         self.current_frame = next_frame;
@@ -324,6 +332,5 @@ impl OutputFrame {
         ris_debug::end_record!(r)?;
 
         Ok(())
-        //ris_error::new_result!("hello")
     }
 }

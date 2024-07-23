@@ -20,7 +20,7 @@ use super::texture::Texture;
 use super::texture::TextureCreateInfo;
 use super::transient_command::TransientCommandSync;
 
-pub struct Renderer {
+pub struct VulkanBase {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
     pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
@@ -40,7 +40,7 @@ pub struct Renderer {
     pub swapchain: Swapchain,
 }
 
-impl Drop for Renderer {
+impl Drop for VulkanBase {
     fn drop(&mut self) {
         ris_log::debug!("dropping renderer...");
 
@@ -74,7 +74,7 @@ impl Drop for Renderer {
     }
 }
 
-impl Renderer {
+impl VulkanBase {
     pub fn initialize(
         app_info: &AppInfo,
         window: &Window,

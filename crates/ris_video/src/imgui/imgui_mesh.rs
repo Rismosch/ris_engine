@@ -16,7 +16,7 @@ pub struct Mesh {
 }
 
 impl IFrame for Mesh {
-    unsafe fn free(&self, device: &ash::Device) {
+    unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);
     }

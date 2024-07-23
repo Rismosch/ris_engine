@@ -14,8 +14,8 @@ use ris_math::matrix::Mat4;
 use crate::frames::IFrame;
 use crate::frames::Frames;
 use crate::gizmo::gizmo_mesh::ShapeMesh;
+use crate::vulkan::base::VulkanBase;
 use crate::vulkan::buffer::Buffer;
-use crate::vulkan::renderer::Renderer;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::transient_command::TransientCommand;
@@ -35,7 +35,7 @@ pub struct Descriptor {
 }
 
 impl IFrame for Descriptor {
-    unsafe fn free(&self, device: &ash::Device) {
+    unsafe fn free(&mut self, device: &ash::Device) {
         self.buffer.free(device);
     }
 }
@@ -65,16 +65,16 @@ impl GizmoRenderer {
         self.text_renderer.free(device);
     }
 
-    pub fn init(renderer: &Renderer) -> RisResult<Self> {
+    pub fn init(base: &VulkanBase) -> RisResult<Self> {
         Ok(Self{
-            shape_renderer: ShapeRenderer::init(renderer)?,
-            text_renderer: TextRenderer::init(renderer)?,
+            shape_renderer: ShapeRenderer::init(base)?,
+            text_renderer: TextRenderer::init(base)?,
         })
     }
 
     pub fn draw_shapes(
         &mut self,
-        renderer: &Renderer,
+        base: &VulkanBase,
         target: vk::ImageView,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
@@ -82,7 +82,7 @@ impl GizmoRenderer {
         sync: TransientCommandSync,
     ) -> RisResult<()> {
         self.shape_renderer.draw(
-            renderer,
+            base,
             target,
             vertices,
             window_drawable_size,
@@ -93,7 +93,7 @@ impl GizmoRenderer {
 
     pub fn draw_text(
         &mut self,
-        renderer: &Renderer,
+        base: &VulkanBase,
         target: vk::ImageView,
         vertices: &[GizmoTextVertex],
         texture: &[u8],
@@ -102,7 +102,7 @@ impl GizmoRenderer {
         sync: TransientCommandSync,
     ) -> RisResult<()> {
         self.text_renderer.draw(
-            renderer,
+            base,
             target,
             vertices,
             texture,
@@ -116,7 +116,7 @@ impl GizmoRenderer {
 impl ShapeRenderer {
     fn free(&mut self, device: &ash::Device) {
         unsafe {
-            if let Some(frames) = self.frames.take() {
+            if let Some(mut frames) = self.frames.take() {
                 frames.free(device);
             }
 
@@ -131,8 +131,8 @@ impl ShapeRenderer {
         }
     }
 
-    fn init(renderer: &Renderer) -> RisResult<Self> {
-        let Renderer {
+    fn init(base: &VulkanBase) -> RisResult<Self> {
+        let VulkanBase {
             instance,
             suitable_device,
             device,
@@ -147,7 +147,7 @@ impl ShapeRenderer {
                     ..
                 },
             ..
-        } = renderer;
+        } = base;
 
         // descriptor sets
         let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding{
@@ -539,14 +539,14 @@ impl ShapeRenderer {
 
     fn draw(
         &mut self,
-        renderer: &Renderer,
+        base: &VulkanBase,
         target: vk::ImageView,
         vertices: &[GizmoShapeVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
         sync: TransientCommandSync,
     ) -> RisResult<()> {
-        let Renderer {
+        let VulkanBase {
             instance,
             suitable_device,
             device,
@@ -563,7 +563,7 @@ impl ShapeRenderer {
                     ..
                 },
             ..
-        } = renderer;
+        } = base;
 
         if vertices.is_empty() {
             sync.sync_now(device, *graphics_queue)?;
@@ -747,7 +747,7 @@ impl TextRenderer {
 
     }
 
-    fn init(renderer: &Renderer) -> RisResult<Self> {
+    fn init(base: &VulkanBase) -> RisResult<Self> {
         Ok(Self{
             
         })
@@ -755,7 +755,7 @@ impl TextRenderer {
 
     fn draw(
         &mut self,
-        renderer: &Renderer,
+        base: &VulkanBase,
         target: vk::ImageView,
         vertices: &[GizmoTextVertex],
         texture: &[u8],
@@ -763,11 +763,11 @@ impl TextRenderer {
         camera: &Camera,
         sync: TransientCommandSync,
     ) -> RisResult<()> {
-        let Renderer {
+        let VulkanBase {
             device,
             graphics_queue,
             ..
-        } = renderer;
+        } = base;
 
         sync.sync_now(device, *graphics_queue)?;
 

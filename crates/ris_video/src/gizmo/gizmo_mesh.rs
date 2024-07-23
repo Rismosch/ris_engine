@@ -12,7 +12,7 @@ pub struct ShapeMesh {
 }
 
 impl IFrame for ShapeMesh {
-    unsafe fn free(&self, device: &ash::Device) {
+    unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
     }
 }

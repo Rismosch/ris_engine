@@ -1,15 +1,14 @@
+pub mod base;
 pub mod buffer;
 pub mod frame_in_flight;
 pub mod graphics_pipeline;
 pub mod image;
 pub mod layers;
-pub mod renderer;
 pub mod suitable_device;
 pub mod surface_details;
 pub mod swapchain;
 pub mod texture;
 pub mod transient_command;
-pub mod uniform_buffer_object;
 pub mod util;
 pub mod vertex;
 
