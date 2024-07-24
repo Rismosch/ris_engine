@@ -3,7 +3,6 @@ use ash::vk;
 use ris_debug::gizmo::GizmoShapeVertex;
 use ris_error::RisResult;
 
-use crate::frames::IFrame;
 use crate::vulkan::buffer::Buffer;
 
 pub struct ShapeMesh {
@@ -11,13 +10,11 @@ pub struct ShapeMesh {
     pub vertex_count: usize,
 }
 
-impl IFrame for ShapeMesh {
-    unsafe fn free(&mut self, device: &ash::Device) {
+impl ShapeMesh {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
     }
-}
 
-impl ShapeMesh {
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,

@@ -12,9 +12,9 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_math::vector::Vec3;
-use ris_video::gizmo::gizmo_renderer::GizmoRenderer;
+use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
 use ris_video::imgui::RisImgui;
-use ris_video::vulkan::base::VulkanBase;
+use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::swapchain::BaseSwapchain;
 use ris_video::vulkan::swapchain::Swapchain;
@@ -26,42 +26,42 @@ use crate::ui_helper::UiHelperDrawData;
 
 pub struct OutputFrame {
     current_frame: usize,
+    gizmo_shape_renderer: GizmoShapeRenderer,
     imgui: RisImgui,
-    gizmo_renderer: GizmoRenderer,
     ui_helper: UiHelper,
 
     // mut be dropped last
-    base: VulkanBase,
+    core: VulkanCore,
     window: Window,
 }
 
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-            ris_error::unwrap!(self.base.device.device_wait_idle(), "",);
+            ris_error::unwrap!(self.core.device.device_wait_idle(), "",);
         }
 
-        self.imgui.renderer.free(&self.base.device);
-        self.gizmo_renderer.free(&self.base.device);
-        // renderer is dropped here implicitly
+        self.gizmo_shape_renderer.free(&self.core.device);
+        self.imgui.renderer.free(&self.core.device);
+        // core is dropped here implicitly
     }
 }
 
 impl OutputFrame {
     pub fn new(
         window: Window,
-        base: VulkanBase,
+        core: VulkanCore,
+        gizmo_shape_renderer: GizmoShapeRenderer,
         imgui: RisImgui,
-        gizmo_renderer: GizmoRenderer,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
             //recreate_swapchain: false,
             current_frame: 0,
+            gizmo_shape_renderer,
             imgui,
-            gizmo_renderer,
             ui_helper,
-            base,
+            core,
             window,
         })
     }
@@ -80,7 +80,7 @@ impl OutputFrame {
 
         let mut r = ris_debug::new_record!("run output frame");
 
-        let VulkanBase {
+        let VulkanCore {
             device,
             graphics_queue,
             present_queue,
@@ -97,7 +97,7 @@ impl OutputFrame {
                     ..
                 },
             ..
-        } = &self.base;
+        } = &self.core;
 
         let frames_in_flight = frames_in_flight.as_ref().unroll()?;
 
@@ -134,7 +134,7 @@ impl OutputFrame {
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
                     return self
-                        .base
+                        .core
                         .recreate_swapchain(self.window.vulkan_drawable_size(), god_asset)
                 }
                 vk_result => {
@@ -160,6 +160,9 @@ impl OutputFrame {
             p_inheritance_info: ptr::null(),
         };
         unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
+
+        // scene
+
 
         // update uniform buffer
         //ris_debug::add_record!(r, "update uniform buffer")?;
@@ -207,27 +210,13 @@ impl OutputFrame {
 
         ris_debug::add_record!(r, "render shapes")?;
         let window_drawable_size = self.window.vulkan_drawable_size();
-        self.gizmo_renderer.draw_shapes(
-            &self.base,
+        self.gizmo_shape_renderer.draw(
+            &self.core,
             swapchain_entry,
             &gizmo_shape_vertices,
             window_drawable_size,
             &state.camera,
         )?;
-
-        //ris_debug::add_record!(r, "draw text")?;
-        //let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
-
-        //ris_debug::add_record!(r, "render text")?;
-        //self.gizmo_renderer.draw_text(
-        //    &self.base,
-        //    *image_view,
-        //    &gizmo_text_vertices,
-        //    &gizmo_text_texture,
-        //    window_drawable_size,
-        //    &state.camera,
-        //    TransientCommandSync::default(),
-        //)?;
 
         ris_debug::add_record!(r, "gizmo new frame")?;
         ris_debug::gizmo::new_frame()?;
@@ -256,7 +245,7 @@ impl OutputFrame {
         let draw_data = self.imgui.backend.context().render();
         ris_debug::add_record!(r, "imgui frontend")?;
         self.imgui.renderer.draw(
-            &self.base,
+            &self.core,
             swapchain_entry,
             draw_data,
         )?;
@@ -323,7 +312,7 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            self.base.recreate_swapchain((width, height), god_asset)?;
+            self.core.recreate_swapchain((width, height), god_asset)?;
         }
 
         self.current_frame = next_frame;

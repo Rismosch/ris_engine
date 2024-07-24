@@ -5,8 +5,8 @@ use ash::vk;
 use ris_asset::AssetId;
 use ris_error::RisResult;
 
-use super::base::VulkanBase;
 use super::buffer::Buffer;
+use super::core::VulkanCore;
 use super::frame_in_flight::FrameInFlight;
 use super::graphics_pipeline::GraphicsPipeline;
 use super::graphics_pipeline::GraphicsPipelineCreateInfo;
@@ -27,9 +27,9 @@ pub struct BaseSwapchain {
 
 pub struct Swapchain {
     pub base: BaseSwapchain,
-    pub graphics_pipeline: GraphicsPipeline,
-    pub depth_image: Image,
-    pub depth_image_view: vk::ImageView,
+    //pub graphics_pipeline: GraphicsPipeline,
+    //pub depth_image: Image,
+    //pub depth_image_view: vk::ImageView,
     pub entries: Vec<SwapchainEntry>,
     pub frames_in_flight: Option<Vec<FrameInFlight>>,
     command_buffers: Vec<vk::CommandBuffer>,
@@ -53,17 +53,17 @@ pub struct SwapchainCreateInfo<'a> {
     pub graphics_queue: vk::Queue,
     pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
-    pub descriptor_set_layout: vk::DescriptorSetLayout,
-    pub descriptor_pool: vk::DescriptorPool,
-    pub texture: &'a Texture,
-    pub vertex_buffer: &'a Buffer,
-    pub index_buffer: &'a Buffer,
+    //pub descriptor_set_layout: vk::DescriptorSetLayout,
+    //pub descriptor_pool: vk::DescriptorPool,
+    //pub texture: &'a Texture,
+    //pub vertex_buffer: &'a Buffer,
+    //pub index_buffer: &'a Buffer,
     pub base: BaseSwapchain,
     pub images: Vec<vk::Image>,
-    pub descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+    //pub descriptor_sets: Option<Vec<vk::DescriptorSet>>,
     pub frames_in_flight: Option<Vec<FrameInFlight>>,
-    pub vs_asset_id: AssetId,
-    pub fs_asset_id: AssetId,
+    //pub vs_asset_id: AssetId,
+    //pub fs_asset_id: AssetId,
 }
 
 impl BaseSwapchain {
@@ -201,30 +201,30 @@ impl Swapchain {
             graphics_queue,
             command_pool,
             transient_command_pool,
-            descriptor_set_layout,
-            descriptor_pool,
-            texture,
-            vertex_buffer,
-            index_buffer,
+            //descriptor_set_layout,
+            //descriptor_pool,
+            //texture,
+            //vertex_buffer,
+            //index_buffer,
             base,
             images,
-            descriptor_sets,
+            //descriptor_sets,
             frames_in_flight,
-            vs_asset_id,
-            fs_asset_id,
+            //vs_asset_id,
+            //fs_asset_id,
         } = info;
 
-        // graphics pipeline
-        let graphics_pipeline = GraphicsPipeline::alloc(GraphicsPipelineCreateInfo {
-            instance,
-            physical_device: suitable_device.physical_device,
-            device,
-            color_format: base.format.format,
-            swapchain_extent: base.extent,
-            descriptor_set_layout,
-            vs_asset_id,
-            fs_asset_id,
-        })?;
+        //// graphics pipeline
+        //let graphics_pipeline = GraphicsPipeline::alloc(GraphicsPipelineCreateInfo {
+        //    instance,
+        //    physical_device: suitable_device.physical_device,
+        //    device,
+        //    color_format: base.format.format,
+        //    swapchain_extent: base.extent,
+        //    descriptor_set_layout,
+        //    vs_asset_id,
+        //    fs_asset_id,
+        //})?;
 
         // depth buffer
         let depth_format = util::find_depth_format(instance, suitable_device.physical_device)?;
@@ -233,57 +233,57 @@ impl Swapchain {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let depth_image = Image::alloc(ImageCreateInfo {
-            device,
-            width: base.extent.width,
-            height: base.extent.height,
-            format: depth_format,
-            tiling: vk::ImageTiling::OPTIMAL,
-            usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-            memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        })?;
+        //let depth_image = Image::alloc(ImageCreateInfo {
+        //    device,
+        //    width: base.extent.width,
+        //    height: base.extent.height,
+        //    format: depth_format,
+        //    tiling: vk::ImageTiling::OPTIMAL,
+        //    usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+        //    memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        //    physical_device_memory_properties,
+        //})?;
 
-        let depth_image_view = Image::alloc_view(
-            device,
-            depth_image.image,
-            depth_format,
-            vk::ImageAspectFlags::DEPTH,
-        )?;
+        //let depth_image_view = Image::alloc_view(
+        //    device,
+        //    depth_image.image,
+        //    depth_format,
+        //    vk::ImageAspectFlags::DEPTH,
+        //)?;
 
-        depth_image.transition_layout(
-            device,
-            graphics_queue,
-            transient_command_pool,
-            depth_format,
-            vk::ImageLayout::UNDEFINED,
-            vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            TransientCommandSync::default(),
-        )?;
+        //depth_image.transition_layout(
+        //    device,
+        //    graphics_queue,
+        //    transient_command_pool,
+        //    depth_format,
+        //    vk::ImageLayout::UNDEFINED,
+        //    vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        //    TransientCommandSync::default(),
+        //)?;
 
         // swapchain entries
         let swapchain_entry_count = images.len();
 
         // descriptor sets
-        let descriptor_sets = match descriptor_sets {
-            Some(x) => x,
-            None => {
-                let mut descriptor_set_layouts = Vec::with_capacity(swapchain_entry_count);
-                for _ in 0..swapchain_entry_count {
-                    descriptor_set_layouts.push(descriptor_set_layout);
-                }
+        //let descriptor_sets = match descriptor_sets {
+        //    Some(x) => x,
+        //    None => {
+        //        let mut descriptor_set_layouts = Vec::with_capacity(swapchain_entry_count);
+        //        for _ in 0..swapchain_entry_count {
+        //            descriptor_set_layouts.push(descriptor_set_layout);
+        //        }
 
-                let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
-                    s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
-                    p_next: ptr::null(),
-                    descriptor_pool,
-                    descriptor_set_count: descriptor_set_layouts.len() as u32,
-                    p_set_layouts: descriptor_set_layouts.as_ptr(),
-                };
+        //        let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
+        //            s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
+        //            p_next: ptr::null(),
+        //            descriptor_pool,
+        //            descriptor_set_count: descriptor_set_layouts.len() as u32,
+        //            p_set_layouts: descriptor_set_layouts.as_ptr(),
+        //        };
 
-                unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?
-            }
-        };
+        //        unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?
+        //    }
+        //};
 
         // command buffers
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
@@ -503,9 +503,9 @@ impl Swapchain {
 
         Ok(Self {
             base,
-            graphics_pipeline,
-            depth_image,
-            depth_image_view,
+            //graphics_pipeline,
+            //depth_image,
+            //depth_image_view,
             entries,
             frames_in_flight,
             command_buffers,
@@ -517,8 +517,8 @@ impl Swapchain {
     /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
         unsafe {
-            self.depth_image.free(device);
-            device.destroy_image_view(self.depth_image_view, None);
+            //self.depth_image.free(device);
+            //device.destroy_image_view(self.depth_image_view, None);
 
             device.free_command_buffers(command_pool, &self.command_buffers);
 
@@ -534,14 +534,14 @@ impl Swapchain {
                 device.destroy_image_view(entry.image_view, None);
             }
 
-            self.graphics_pipeline.free(device);
+            //self.graphics_pipeline.free(device);
 
             self.base.free();
         }
     }
 
     pub fn recreate(
-        base: &mut VulkanBase,
+        core: &mut VulkanCore,
         window_size: (u32, u32),
         vs_asset_id: AssetId,
         fs_asset_id: AssetId,
@@ -554,47 +554,47 @@ impl Swapchain {
         //}
 
         //let descriptor_sets = Some(descriptor_sets);
-        let descriptor_sets = None;
-        let frames_in_flight = base.swapchain.frames_in_flight.take();
+        //let descriptor_sets = None;
+        let frames_in_flight = core.swapchain.frames_in_flight.take();
 
         // free old swapchain
         unsafe {
-            base
+            core
                 .swapchain
-                .free(&base.device, base.command_pool)
+                .free(&core.device, core.command_pool)
         };
 
         // create new swapchain
         let (base_swapchain, images) = unsafe {
             BaseSwapchain::alloc(
-                &base.instance,
-                &base.surface_loader,
-                &base.surface,
-                &base.suitable_device,
-                &base.device,
+                &core.instance,
+                &core.surface_loader,
+                &core.surface,
+                &core.suitable_device,
+                &core.device,
                 window_size,
             )
         }?;
 
         unsafe {
             Self::alloc(SwapchainCreateInfo {
-                instance: &base.instance,
-                suitable_device: &base.suitable_device,
-                device: &base.device,
-                graphics_queue: base.graphics_queue,
-                command_pool: base.command_pool,
-                transient_command_pool: base.transient_command_pool,
-                descriptor_set_layout: base.descriptor_set_layout,
-                descriptor_pool: base.descriptor_pool,
-                texture: &base.texture,
-                vertex_buffer: &base.vertex_buffer,
-                index_buffer: &base.index_buffer,
+                instance: &core.instance,
+                suitable_device: &core.suitable_device,
+                device: &core.device,
+                graphics_queue: core.graphics_queue,
+                command_pool: core.command_pool,
+                transient_command_pool: core.transient_command_pool,
+                //descriptor_set_layout: base.descriptor_set_layout,
+                //descriptor_pool: base.descriptor_pool,
+                //texture: &base.texture,
+                //vertex_buffer: &base.vertex_buffer,
+                //index_buffer: &base.index_buffer,
                 base: base_swapchain,
                 images,
-                descriptor_sets,
+                //descriptor_sets,
                 frames_in_flight,
-                vs_asset_id,
-                fs_asset_id,
+                //vs_asset_id,
+                //fs_asset_id,
             })
         }
     }

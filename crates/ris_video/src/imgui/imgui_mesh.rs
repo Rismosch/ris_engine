@@ -5,7 +5,6 @@ use imgui::DrawVert;
 
 use ris_error::RisResult;
 
-use crate::frames::IFrame;
 use crate::vulkan::buffer::Buffer;
 
 pub struct Mesh {
@@ -15,14 +14,12 @@ pub struct Mesh {
     pub index_count: usize,
 }
 
-impl IFrame for Mesh {
-    unsafe fn free(&mut self, device: &ash::Device) {
+impl Mesh {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);
     }
-}
 
-impl Mesh {
     /// # Safety
     ///
     /// `free()` must be called, or you are leaking memory.

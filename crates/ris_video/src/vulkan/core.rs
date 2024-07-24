@@ -20,7 +20,7 @@ use super::texture::Texture;
 use super::texture::TextureCreateInfo;
 use super::transient_command::TransientCommandSync;
 
-pub struct VulkanBase {
+pub struct VulkanCore {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
     pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
@@ -40,9 +40,9 @@ pub struct VulkanBase {
     pub swapchain: Swapchain,
 }
 
-impl Drop for VulkanBase {
+impl Drop for VulkanCore {
     fn drop(&mut self) {
-        ris_log::debug!("dropping renderer...");
+        ris_log::debug!("dropping vulkan core...");
 
         unsafe {
             self.swapchain.free(&self.device, self.command_pool);
@@ -70,11 +70,11 @@ impl Drop for VulkanBase {
             self.instance.destroy_instance(None);
         }
 
-        ris_log::info!("renderer dropped!");
+        ris_log::info!("vulkan core dropped!");
     }
 }
 
-impl VulkanBase {
+impl VulkanCore {
     pub fn initialize(
         app_info: &AppInfo,
         window: &Window,
@@ -439,17 +439,17 @@ impl VulkanBase {
                 graphics_queue,
                 command_pool,
                 transient_command_pool,
-                descriptor_set_layout,
-                descriptor_pool,
-                texture: &texture,
-                vertex_buffer: &vertex_buffer,
-                index_buffer: &index_buffer,
+                //descriptor_set_layout,
+                //descriptor_pool,
+                //texture: &texture,
+                //vertex_buffer: &vertex_buffer,
+                //index_buffer: &index_buffer,
                 base: base_swapchain,
                 images: swapchain_images,
-                descriptor_sets: None,
+                //descriptor_sets: None,
                 frames_in_flight: None,
-                vs_asset_id: god_asset.default_vert_spv.clone(),
-                fs_asset_id: god_asset.default_frag_spv.clone(),
+                //vs_asset_id: god_asset.default_vert_spv.clone(),
+                //fs_asset_id: god_asset.default_frag_spv.clone(),
             })
         }?;
 

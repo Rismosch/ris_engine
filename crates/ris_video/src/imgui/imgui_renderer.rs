@@ -15,10 +15,8 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
-use crate::frames::Frames;
-use crate::frames::IFrame;
 use crate::imgui::imgui_mesh::Mesh;
-use crate::vulkan::base::VulkanBase;
+use crate::vulkan::core::VulkanCore;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
@@ -32,8 +30,8 @@ pub struct ImguiFrame {
     framebuffer: Option<vk::Framebuffer>,
 }
 
-impl IFrame for ImguiFrame {
-    unsafe fn free(&mut self, device: &ash::Device) {
+impl ImguiFrame {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
         }
@@ -53,13 +51,15 @@ pub struct ImguiRenderer {
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
     textures: Textures<vk::DescriptorSet>,
-    frames: Frames<ImguiFrame>,
+    frames: Vec<ImguiFrame>,
 }
 
 impl ImguiRenderer {
     pub fn free(&mut self, device: &ash::Device) {
         unsafe {
-            self.frames.free(device);
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
+            }
 
             self.font_texture.free(device);
 
@@ -72,11 +72,11 @@ impl ImguiRenderer {
     }
 
     pub fn init(
-        base: &VulkanBase,
+        core: &VulkanCore,
         god_asset: &RisGodAsset,
         context: &mut Context,
     ) -> RisResult<Self> {
-        let VulkanBase {
+        let VulkanCore {
             instance,
             suitable_device,
             device,
@@ -93,7 +93,7 @@ impl ImguiRenderer {
                     ..
                 },
             ..
-        } = base;
+        } = core;
 
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
@@ -497,15 +497,15 @@ impl ImguiRenderer {
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // frames
-        let frames = unsafe {
-            Frames::alloc(
-                entries.len(),
-                |_| Ok(ImguiFrame{
-                    mesh: None,
-                    framebuffer: None,
-                }),
-            )
-        }?;
+        let mut frames = Vec::with_capacity(entries.len());
+        for i in 0..entries.len() {
+            let frame = ImguiFrame{
+                mesh: None,
+                framebuffer: None,
+            };
+
+            frames.push(frame);
+        }
 
         // init
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
@@ -525,11 +525,11 @@ impl ImguiRenderer {
 
     pub fn draw(
         &mut self,
-        base: &VulkanBase,
+        core: &VulkanCore,
         entry: &SwapchainEntry,
         draw_data: &DrawData,
     ) -> RisResult<()> {
-        let VulkanBase {
+        let VulkanCore {
             instance,
             suitable_device,
             device,
@@ -545,9 +545,10 @@ impl ImguiRenderer {
                     ..
                 },
             ..
-        } = base;
+        } = core;
 
         let SwapchainEntry {
+            index,
             image_view,
             command_buffer,
             ..
@@ -557,7 +558,7 @@ impl ImguiRenderer {
             return Ok(());
         }
 
-        let ImguiFrame { mesh, framebuffer } = self.frames.acquire_next();
+        let ImguiFrame { mesh, framebuffer } = &mut self.frames[*index];
 
         // mesh
         let physical_device_memory_properties = unsafe {
