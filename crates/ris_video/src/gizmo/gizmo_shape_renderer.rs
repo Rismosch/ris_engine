@@ -4,6 +4,7 @@ use std::ptr;
 use ash::vk;
 
 use ris_asset::AssetId;
+use ris_asset::RisGodAsset;
 use ris_debug::gizmo::GizmoShapeVertex;
 use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::Extensions;
@@ -89,7 +90,7 @@ impl GizmoShapeRenderer {
         }
     }
 
-    pub fn init(core: &VulkanCore) -> RisResult<Self> {
+    pub fn init(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -160,19 +161,9 @@ impl GizmoShapeRenderer {
         let descriptor_sets = unsafe {device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
 
         // shaders
-        let vs_asset_id = AssetId::Directory(String::from(
-            "__imported_raw/shaders/gizmo_segment.vert.spv",
-        ));
-        let gs_asset_id = AssetId::Directory(String::from(
-            "__imported_raw/shaders/gizmo_segment.geom.spv",
-        ));
-        let fs_asset_id = AssetId::Directory(String::from(
-            "__imported_raw/shaders/gizmo_segment.frag.spv",
-        ));
-
-        let vs_future = ris_asset::load_async(vs_asset_id);
-        let gs_future = ris_asset::load_async(gs_asset_id);
-        let fs_future = ris_asset::load_async(fs_asset_id);
+        let vs_future = ris_asset::load_async(god_asset.gizmo_segment_vert_spv.clone());
+        let gs_future = ris_asset::load_async(god_asset.gizmo_segment_geom_spv.clone());
+        let fs_future = ris_asset::load_async(god_asset.gizmo_segment_frag_spv.clone());
 
         let vs_bytes = vs_future.wait(None)??;
         let gs_bytes = gs_future.wait(None)??;

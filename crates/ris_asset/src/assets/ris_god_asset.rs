@@ -10,6 +10,9 @@ pub struct RisGodAsset {
     pub default_frag_spv: AssetId,
     pub imgui_vert_spv: AssetId,
     pub imgui_frag_spv: AssetId,
+    pub gizmo_segment_vert_spv: AssetId,
+    pub gizmo_segment_geom_spv: AssetId,
+    pub gizmo_segment_frag_spv: AssetId,
     pub texture: AssetId,
 }
 
@@ -21,7 +24,10 @@ impl RisGodAsset {
         let default_frag_spv = header.references[1].clone();
         let imgui_vert_spv = header.references[2].clone();
         let imgui_frag_spv = header.references[3].clone();
-        let texture = header.references[4].clone();
+        let gizmo_segment_vert_spv = header.references[4].clone();
+        let gizmo_segment_geom_spv = header.references[5].clone();
+        let gizmo_segment_frag_spv = header.references[6].clone();
+        let texture = header.references[7].clone();
 
         let mut cursor = std::io::Cursor::new(bytes);
         let data = ris_file::io::read_unsized(&mut cursor, header.p_content)?;
@@ -33,6 +39,9 @@ impl RisGodAsset {
             default_frag_spv,
             imgui_vert_spv,
             imgui_frag_spv,
+            gizmo_segment_vert_spv,
+            gizmo_segment_geom_spv,
+            gizmo_segment_frag_spv,
             texture,
         };
 

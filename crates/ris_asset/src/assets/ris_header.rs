@@ -59,6 +59,8 @@ impl RisHeader {
         } else {
             let p_content = ris_file::io::read_fat_ptr(input)?;
 
+            ris_log::fatal!("p_content: {:?}", p_content);
+
             let references_begin = ris_file::io::seek(input, SeekFrom::Current(0))?;
             let p_references = FatPtr::begin_end(references_begin, p_content.addr)?;
 
@@ -66,6 +68,9 @@ impl RisHeader {
                 .into_iter()
                 .map(AssetId::Directory)
                 .collect();
+
+            ris_log::fatal!("references: {:#?}", references);
+
 
             (references, p_content)
         };

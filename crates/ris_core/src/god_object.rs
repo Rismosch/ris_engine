@@ -128,7 +128,7 @@ impl GodObject {
 
         // gizmo renderer
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_shape_renderer = GizmoShapeRenderer::init(&vulkan_core)?;
+        let gizmo_shape_renderer = GizmoShapeRenderer::init(&vulkan_core, &god_asset)?;
 
         // imgui renderer
         let mut imgui_backend = ImguiBackend::init(&app_info)?;

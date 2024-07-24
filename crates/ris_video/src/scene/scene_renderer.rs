@@ -231,6 +231,8 @@ impl SceneRenderer {
             ..
         } = core;
 
+        // descriptor sets
+
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
         let fs_asset_future = ris_asset::load_async(god_asset.default_frag_spv.clone());
