@@ -1,3 +1,5 @@
+//
+/*
 use std::ffi::CString;
 use std::ptr;
 
@@ -8,7 +10,6 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::util;
-use super::vertex::Vertex;
 
 pub struct GraphicsPipeline {
     pub render_pass: vk::RenderPass,
@@ -375,3 +376,4 @@ impl GraphicsPipeline {
         }
     }
 }
+*/

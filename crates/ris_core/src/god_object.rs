@@ -17,6 +17,7 @@ use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
 use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
+use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 
 use crate::logic_frame::LogicFrame;
@@ -122,7 +123,14 @@ impl GodObject {
 
         let vulkan_core = VulkanCore::initialize(&app_info, &window, &god_asset)?;
 
-        // imgui
+        // scene renderer
+        let scene_renderer = {SceneRenderer::init(&vulkan_core, &god_asset)}?;
+
+        // gizmo renderer
+        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
+        let gizmo_shape_renderer = GizmoShapeRenderer::init(&vulkan_core)?;
+
+        // imgui renderer
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
         let imgui_renderer = ImguiRenderer::init(&vulkan_core, &god_asset, context)?;
@@ -131,14 +139,17 @@ impl GodObject {
             renderer: imgui_renderer,
         };
 
-        // gizmo
-        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_shape_renderer = GizmoShapeRenderer::init(&vulkan_core)?;
-
         // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, vulkan_core, gizmo_shape_renderer, imgui, ui_helper)?;
+        let output_frame = OutputFrame::new(
+            window,
+            vulkan_core,
+            scene_renderer,
+            gizmo_shape_renderer,
+            imgui,
+            ui_helper,
+        )?;
 
         let frame_calculator = FrameCalculator::default();
 

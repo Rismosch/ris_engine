@@ -182,15 +182,13 @@ impl GizmoShapeRenderer {
         let gs_module = crate::shader::create_module(device, &gs_bytes)?;
         let fs_module = crate::shader::create_module(device, &fs_bytes)?;
 
-        let main_function_name = CString::new("main").unwrap();
-
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_module,
-                p_name: main_function_name.as_ptr(),
+                p_name: crate::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
@@ -199,7 +197,7 @@ impl GizmoShapeRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: gs_module,
-                p_name: main_function_name.as_ptr(),
+                p_name: crate::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::GEOMETRY,
             },
@@ -208,7 +206,7 @@ impl GizmoShapeRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_module,
-                p_name: main_function_name.as_ptr(),
+                p_name: crate::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
@@ -451,6 +449,7 @@ impl GizmoShapeRenderer {
         unsafe { device.destroy_shader_module(gs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
 
+        // frames
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
@@ -526,9 +525,9 @@ impl GizmoShapeRenderer {
 
         let SwapchainEntry {
             index,
-            image,
             image_view,
             command_buffer,
+            ..
         } = entry;
 
         if vertices.is_empty() {

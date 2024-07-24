@@ -1,8 +1,11 @@
+use std::ffi::CStr;
 use std::ptr;
 
 use ash::vk;
 
 use ris_error::RisResult;
+
+pub const ENTRY: &CStr = c"main";
 
 pub fn create_module(device: &ash::Device, bytes: &[u8]) -> RisResult<vk::ShaderModule> {
     ris_error::assert!(bytes.len() % 4 == 0)?;

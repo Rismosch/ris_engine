@@ -567,7 +567,7 @@ impl ImguiRenderer {
 
         let mesh = match mesh {
             Some(mesh) => {
-                mesh.update(device, physical_device_memory_properties, draw_data);
+                mesh.update(device, physical_device_memory_properties, draw_data)?;
                 mesh
             },
             None => {

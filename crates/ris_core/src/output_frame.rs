@@ -14,6 +14,7 @@ use ris_math::matrix::Mat4;
 use ris_math::vector::Vec3;
 use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
 use ris_video::imgui::RisImgui;
+use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::swapchain::BaseSwapchain;
@@ -26,6 +27,7 @@ use crate::ui_helper::UiHelperDrawData;
 
 pub struct OutputFrame {
     current_frame: usize,
+    scene_renderer: SceneRenderer,
     gizmo_shape_renderer: GizmoShapeRenderer,
     imgui: RisImgui,
     ui_helper: UiHelper,
@@ -51,6 +53,7 @@ impl OutputFrame {
     pub fn new(
         window: Window,
         core: VulkanCore,
+        scene_renderer: SceneRenderer,
         gizmo_shape_renderer: GizmoShapeRenderer,
         imgui: RisImgui,
         ui_helper: UiHelper,
@@ -58,6 +61,7 @@ impl OutputFrame {
         Ok(Self {
             //recreate_swapchain: false,
             current_frame: 0,
+            scene_renderer,
             gizmo_shape_renderer,
             imgui,
             ui_helper,
@@ -107,6 +111,7 @@ impl OutputFrame {
             in_flight,
         } = &frames_in_flight[self.current_frame];
         let next_frame = (self.current_frame + 1) % frames_in_flight.len();
+        self.current_frame = next_frame;
 
         let image_available_sem = [*image_available];
         let render_finished_sem = [*render_finished];
@@ -315,10 +320,7 @@ impl OutputFrame {
             self.core.recreate_swapchain((width, height), god_asset)?;
         }
 
-        self.current_frame = next_frame;
-
         ris_debug::end_record!(r)?;
-
         Ok(())
     }
 }
