@@ -1349,7 +1349,7 @@ impl std::ops::BitAnd<Self> for VkBvec4 {
 
 impl Vec2 {
     pub fn abs(self) -> Self {
-        Self(crate::fast::abs(self.0), crate::fast::abs(self.1))
+        Self(self.0.abs(), self.1.abs())
     }
 
     pub fn sign(self) -> Self {
@@ -1429,9 +1429,9 @@ impl Vec2 {
 impl Vec3 {
     pub fn abs(self) -> Self {
         Self(
-            crate::fast::abs(self.0),
-            crate::fast::abs(self.1),
-            crate::fast::abs(self.2),
+            self.0.abs(),
+            self.1.abs(),
+            self.2.abs(),
         )
     }
 
@@ -1535,10 +1535,10 @@ impl Vec3 {
 impl Vec4 {
     pub fn abs(self) -> Self {
         Self(
-            crate::fast::abs(self.0),
-            crate::fast::abs(self.1),
-            crate::fast::abs(self.2),
-            crate::fast::abs(self.3),
+            self.0.abs(),
+            self.1.abs(),
+            self.2.abs(),
+            self.3.abs(),
         )
     }
 

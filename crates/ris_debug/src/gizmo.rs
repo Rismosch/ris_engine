@@ -158,10 +158,10 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
     };
 
     let half_scale = Vec3(
-        ris_math::fast::abs(half_scale.0),
-        ris_math::fast::abs(half_scale.1),
-        ris_math::fast::abs(half_scale.2),
-    );
+        half_scale.0,
+        half_scale.1,
+        half_scale.2,
+    ).abs();
 
     let shape = GizmoShape::Obb {
         center,

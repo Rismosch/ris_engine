@@ -121,7 +121,7 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = VulkanCore::initialize(&app_info, &window, &god_asset)?;
+        let vulkan_core = VulkanCore::initialize(&app_info, &window)?;
 
         // scene renderer
         let scene_renderer = { SceneRenderer::init(&vulkan_core, &god_asset) }?;

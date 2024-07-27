@@ -5,19 +5,13 @@ use std::ptr;
 use ash::vk;
 use sdl2::video::Window;
 
-use ris_asset::codecs::qoi;
-use ris_asset::RisGodAsset;
 use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::buffer::Buffer;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
-use super::texture::Texture;
-use super::texture::TextureCreateInfo;
-use super::transient_command::TransientCommandSync;
 
 pub struct VulkanCore {
     pub entry: ash::Entry,
@@ -29,13 +23,8 @@ pub struct VulkanCore {
     pub device: ash::Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
-    //pub descriptor_set_layout: vk::DescriptorSetLayout,
-    //pub descriptor_pool: vk::DescriptorPool,
     pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
-    //pub texture: Texture,
-    //pub vertex_buffer: Buffer,
-    //pub index_buffer: Buffer,
     pub swapchain: Swapchain,
 }
 
@@ -49,15 +38,6 @@ impl Drop for VulkanCore {
             self.device
                 .destroy_command_pool(self.transient_command_pool, None);
             self.device.destroy_command_pool(self.command_pool, None);
-
-            //self.device
-            //    .destroy_descriptor_pool(self.descriptor_pool, None);
-            //self.device
-            //    .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-
-            //self.index_buffer.free(&self.device);
-            //self.vertex_buffer.free(&self.device);
-            //self.texture.free(&self.device);
 
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
@@ -77,7 +57,6 @@ impl VulkanCore {
     pub fn initialize(
         app_info: &AppInfo,
         window: &Window,
-        god_asset: &RisGodAsset,
     ) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
@@ -162,12 +141,6 @@ impl VulkanCore {
 
         ris_log::info!("chosen Vulkan Physical Device: {}", suitable_device.name);
 
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
-        let physical_device_properties =
-            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
-
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(suitable_device.graphics_queue_family);
         unique_queue_families.insert(suitable_device.present_queue_family);
@@ -200,6 +173,7 @@ impl VulkanCore {
             flags: vk::DeviceCreateFlags::empty(),
             queue_create_info_count: queue_create_infos.len() as u32,
             p_queue_create_infos: queue_create_infos.as_ptr(),
+            //commented out, because otherwise we get a deprecated warning
             //pp_enabled_layer_names: available_layers.1,
             //enabled_layer_count: available_layers.0,
             pp_enabled_extension_names: super::REQUIRED_DEVICE_EXTENSIONS.as_ptr(),
@@ -215,36 +189,6 @@ impl VulkanCore {
             unsafe { device.get_device_queue(suitable_device.graphics_queue_family, 0) };
         let present_queue =
             unsafe { device.get_device_queue(suitable_device.present_queue_family, 0) };
-
-        //// descriptor set layout
-        //let ubo_layout_bindings = [
-        //    vk::DescriptorSetLayoutBinding {
-        //        binding: 0,
-        //        descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-        //        descriptor_count: 1,
-        //        stage_flags: vk::ShaderStageFlags::VERTEX,
-        //        p_immutable_samplers: ptr::null(),
-        //    },
-        //    vk::DescriptorSetLayoutBinding {
-        //        binding: 1,
-        //        descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-        //        descriptor_count: 1,
-        //        stage_flags: vk::ShaderStageFlags::FRAGMENT,
-        //        p_immutable_samplers: ptr::null(),
-        //    },
-        //];
-
-        //let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
-        //    s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        //    p_next: ptr::null(),
-        //    flags: vk::DescriptorSetLayoutCreateFlags::empty(),
-        //    binding_count: ubo_layout_bindings.len() as u32,
-        //    p_bindings: ubo_layout_bindings.as_ptr(),
-        //};
-
-        //let descriptor_set_layout = unsafe {
-        //    device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
-        //}?;
 
         // command pool
         let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -263,81 +207,6 @@ impl VulkanCore {
         };
         let transient_command_pool =
             unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
-
-        //// texture
-        //let texture_asset_id = god_asset.texture.clone();
-        //let content = ris_asset::load_async(texture_asset_id.clone()).wait(None)??;
-        //let (pixels, desc) = qoi::decode(&content, None)?;
-
-        //let pixels_rgba = match desc.channels {
-        //    qoi::Channels::RGB => {
-        //        ris_log::trace!(
-        //            "adding alpha channel to texture asset... {:?}",
-        //            texture_asset_id
-        //        );
-
-        //        ris_error::assert!(pixels.len() % 3 == 0)?;
-        //        let pixels_rgba_len = (pixels.len() * 4) / 3;
-        //        let mut pixels_rgba = Vec::with_capacity(pixels_rgba_len);
-
-        //        for chunk in pixels.chunks_exact(3) {
-        //            let r = chunk[0];
-        //            let g = chunk[1];
-        //            let b = chunk[2];
-        //            let a = u8::MAX;
-
-        //            pixels_rgba.push(r);
-        //            pixels_rgba.push(g);
-        //            pixels_rgba.push(b);
-        //            pixels_rgba.push(a);
-        //        }
-
-        //        ris_log::trace!(
-        //            "added alpha channel to texture asset! {:?}",
-        //            texture_asset_id
-        //        );
-
-        //        pixels_rgba
-        //    }
-        //    qoi::Channels::RGBA => pixels,
-        //};
-
-        //let texture = unsafe {
-        //    Texture::alloc(TextureCreateInfo {
-        //        device: &device,
-        //        queue: graphics_queue,
-        //        transient_command_pool,
-        //        physical_device_memory_properties,
-        //        physical_device_properties,
-        //        width: desc.width,
-        //        height: desc.height,
-        //        pixels_rgba: &pixels_rgba,
-        //    })
-        //}?;
-
-        //// descriptor pool
-        //let descriptor_pool_sizes = [
-        //    vk::DescriptorPoolSize {
-        //        ty: vk::DescriptorType::UNIFORM_BUFFER,
-        //        descriptor_count: swapchain_entry_count as u32,
-        //    },
-        //    vk::DescriptorPoolSize {
-        //        ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-        //        descriptor_count: swapchain_entry_count as u32,
-        //    },
-        //];
-
-        //let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
-        //    s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
-        //    p_next: ptr::null(),
-        //    flags: vk::DescriptorPoolCreateFlags::empty(),
-        //    max_sets: swapchain_entry_count as u32,
-        //    pool_size_count: descriptor_pool_sizes.len() as u32,
-        //    p_pool_sizes: descriptor_pool_sizes.as_ptr(),
-        //};
-
-        //let descriptor_pool =
-        //    unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         // swapchain
         let swapchain = unsafe {

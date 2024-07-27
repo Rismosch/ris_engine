@@ -4,10 +4,8 @@ use ash::extensions::khr::Surface as SurfaceLoader;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use ash::vk;
 
-use ris_asset::AssetId;
 use ris_error::RisResult;
 
-use super::core::VulkanCore;
 use super::frame_in_flight::FrameInFlight;
 use super::image::Image;
 use super::image::ImageCreateInfo;
@@ -277,67 +275,5 @@ impl Swapchain {
             command_buffers,
         })
     }
-
-    //pub fn recreate(
-    //    core: &mut VulkanCore,
-    //    window_drawable_size: (u32, u32),
-    //) -> RisResult<()> {
-    //    let VulkanCore {
-    //        instance,
-    //        surface_loader,
-    //        surface,
-    //        suitable_device,
-    //        device,
-    //        graphics_queue,
-    //        swapchain,
-    //        command_pool,
-    //        transient_command_pool,
-    //        ..
-    //    } = core;
-
-    //    unsafe {swapchain.loader.destroy_swapchain(swapchain.swapchain, None)};
-
-    //    let info = SwapchainCreateInfo {
-    //        instance,
-    //        suitable_device,
-    //        device,
-    //        graphics_queue: *graphics_queue,
-    //        command_pool: *command_pool,
-    //        transient_command_pool: *transient_command_pool,
-    //        surface_loader,
-    //        surface,
-    //        window_drawable_size,
-    //    };
-
-    //    let new = unsafe {create_inner(info, swapchain.loader.clone())}?;
-    //    swapchain.format = new.format;
-    //    swapchain.extent = new.extent;
-    //    swapchain.swapchain = new.swapchain;
-
-    //    for entry in swapchain.entries.iter_mut() {
-    //        unsafe {entry.free(device)};
-    //    }
-
-    //    swapchain.entries = Vec::with_capacity(new.images.len())
-    //    for (i, image) in new.images.into_iter().enumerate() {
-    //        let entry = &mut swapchain.entries[i];
-
-    //    }
-
-    //    Ok(())
-    //}
 }
-
-//unsafe fn create_inner(
-//    info: SwapchainCreateInfo,
-//    swapchain_loader: SwapchainLoader,
-//) -> RisResult<InnerSwapchain> {
-//
-//    Ok(InnerSwapchain{
-//        format,
-//        extent,
-//        swapchain,
-//        images,
-//    })
-//}
 

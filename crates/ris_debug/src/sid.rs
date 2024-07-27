@@ -57,7 +57,7 @@ macro_rules! sid {
             let bytes = $value.as_bytes();
             let mut hash = 2166136261u32;
 
-            // for loops are not supported yet, thus a crude while must do the job
+            // const for-loops are not supported yet, thus a crude while must do the job
             // https://github.com/rust-lang/rust/issues/87575
             let mut i = 0;
             while i < bytes.len() {

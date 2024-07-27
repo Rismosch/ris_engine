@@ -117,8 +117,6 @@ fn queue_submit(
         p_signal_semaphores: sync.signal.as_ptr(),
     }];
 
-    //ris_log::trace!("queue submit {:?}", sync);
-
     unsafe { device.queue_submit(queue, &submit_info, sync.fence) }?;
 
     Ok(())

@@ -2,7 +2,6 @@ use ash::vk;
 
 use ris_error::RisResult;
 use ris_math::color::Rgb;
-use ris_math::matrix::Mat4;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec2;
 
@@ -50,14 +49,14 @@ impl Mesh {
         let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
         let index_buffer = Buffer::alloc(
             device,
-            vertex_buffer_size,
+            index_buffer_size,
             vk::BufferUsageFlags::INDEX_BUFFER,
             vk::MemoryPropertyFlags::HOST_VISIBLE
                 | vk::MemoryPropertyFlags::HOST_COHERENT
                 | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
-        index_buffer.write(device, indices);
+        index_buffer.write(device, indices)?;
 
         Ok(Self{
             vertices: vertex_buffer,

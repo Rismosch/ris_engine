@@ -886,7 +886,7 @@ impl Mat3 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::fast::abs(det) < MIN_NORM {
+        if det.abs() < MIN_NORM {
             return None; // matrix is not invertible
         }
 
@@ -1243,7 +1243,7 @@ impl Mat4 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::fast::abs(det) < MIN_NORM {
+        if det.abs() < MIN_NORM {
             return None; // matrix is not invertible
         }
 

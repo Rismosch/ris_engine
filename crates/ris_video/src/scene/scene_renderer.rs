@@ -7,14 +7,10 @@ use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
-use ris_math::color::Rgb;
 use ris_math::matrix::Mat4;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec2;
 
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
@@ -43,7 +39,7 @@ impl SceneFrame {
             mesh.free(device);
         }
 
-        if let Some(mut framebuffer) = self.framebuffer.take() {
+        if let Some(framebuffer) = self.framebuffer.take() {
             device.destroy_framebuffer(framebuffer, None);
         }
 
@@ -586,8 +582,6 @@ impl SceneRenderer {
             instance,
             suitable_device,
             device,
-            graphics_queue,
-            transient_command_pool,
             swapchain,
             ..
         } = core;

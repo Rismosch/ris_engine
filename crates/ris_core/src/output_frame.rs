@@ -4,21 +4,16 @@ use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
-use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_math::matrix::Mat4;
-use ris_math::vector::Vec3;
 use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::swapchain::Swapchain;
 use ris_video::vulkan::swapchain::SwapchainEntry;
-use ris_video::vulkan::transient_command::TransientCommandSync;
 
 use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
@@ -58,7 +53,6 @@ impl OutputFrame {
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
-            //recreate_swapchain: false,
             current_frame: 0,
             scene_renderer,
             gizmo_shape_renderer,
@@ -73,7 +67,6 @@ impl OutputFrame {
         &mut self,
         frame: Frame,
         state: &mut GodState,
-        god_asset: &RisGodAsset,
     ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;

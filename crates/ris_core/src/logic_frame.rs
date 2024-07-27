@@ -10,7 +10,6 @@ use sdl2::GameControllerSubsystem;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::god_state;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
 use ris_error::RisResult;
@@ -20,9 +19,8 @@ use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
 
-const CRASH_TIMEOUT_IN_SECS: u64 = 5;
+const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
 #[cfg(debug_assertions)]
 fn reload_shaders() -> JobFuture<()> {

@@ -123,8 +123,6 @@ impl Mesh {
         let new_index_count = draw_data.total_idx_count as usize;
 
         if old_index_count < new_index_count {
-            //ris_log::trace!("resizing index buffer from {} to {}...", old_index_count, new_index_count);
-
             let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
             let new_index_buffer = unsafe {
                 Buffer::alloc(

@@ -17,12 +17,9 @@ use ris_math::matrix::Mat4;
 
 use crate::imgui::imgui_mesh::Mesh;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
-use crate::vulkan::transient_command::TransientCommand;
-use crate::vulkan::transient_command::TransientCommandSync;
 
 pub struct ImguiFrame {
     mesh: Option<Mesh>,
@@ -35,7 +32,7 @@ impl ImguiFrame {
             mesh.free(device);
         }
 
-        if let Some(mut framebuffer) = self.framebuffer.take() {
+        if let Some(framebuffer) = self.framebuffer.take() {
             unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
     }
@@ -319,13 +316,11 @@ impl ImguiRenderer {
             flags: vk::AttachmentDescriptionFlags::empty(),
             format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
-            //load_op: vk::AttachmentLoadOp::LOAD,
-            load_op: vk::AttachmentLoadOp::DONT_CARE,
+            load_op: vk::AttachmentLoadOp::LOAD,
             store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-            //initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
-            initial_layout: vk::ImageLayout::UNDEFINED,
+            initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
@@ -488,7 +483,7 @@ impl ImguiRenderer {
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for i in 0..swapchain.entries.len() {
+        for _ in 0..swapchain.entries.len() {
             let frame = ImguiFrame{
                 mesh: None,
                 framebuffer: None,
@@ -523,7 +518,6 @@ impl ImguiRenderer {
             instance,
             suitable_device,
             device,
-            graphics_queue,
             swapchain,
             ..
         } = core;

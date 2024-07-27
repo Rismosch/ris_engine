@@ -1,12 +1,9 @@
-use std::ffi::CString;
 use std::ptr;
 
 use ash::vk;
 
-use ris_asset::AssetId;
 use ris_asset::RisGodAsset;
 use ris_debug::gizmo::GizmoShapeVertex;
-use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
@@ -15,10 +12,7 @@ use ris_math::matrix::Mat4;
 use crate::gizmo::gizmo_mesh::ShapeMesh;
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
-use crate::vulkan::transient_command::TransientCommand;
-use crate::vulkan::transient_command::TransientCommandSync;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -41,7 +35,7 @@ impl GizmoShapeFrame {
             mesh.free(device);
         }
 
-        if let Some(mut framebuffer) = self.framebuffer.take() {
+        if let Some(framebuffer) = self.framebuffer.take() {
             unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
@@ -491,14 +485,7 @@ impl GizmoShapeRenderer {
             instance,
             suitable_device,
             device,
-            graphics_queue,
-            transient_command_pool,
-            swapchain:
-                Swapchain {
-                    extent: swapchain_extent,
-                    entries: swapchain_entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -552,8 +539,8 @@ impl GizmoShapeRenderer {
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
-            width: swapchain_extent.width,
-            height: swapchain_extent.height,
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
             layers: 1,
         };
 
@@ -577,7 +564,7 @@ impl GizmoShapeRenderer {
             framebuffer,
             render_area: vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
-                extent: *swapchain_extent,
+                extent: swapchain.extent,
             },
             clear_value_count: clear_values.len() as u32,
             p_clear_values: clear_values.as_ptr(),

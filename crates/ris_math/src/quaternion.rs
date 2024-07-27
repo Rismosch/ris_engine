@@ -58,7 +58,7 @@ impl From<Quat> for AngleAxis {
         let mut q = value;
 
         // if w>1 acos and sqrt will produce errors, this cant happen if quaternion is normalized
-        if crate::fast::abs(q.3) > 1. {
+        if q.3.abs() > 1. {
             q = q.normalize();
         }
 
