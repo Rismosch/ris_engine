@@ -96,7 +96,7 @@ impl LogicFrame {
                 ..
             } = event
             {
-                state.window_event = god_state::WindowEvent::SizeChanged(w as u32, h as u32);
+                state.event_window_resized = Some((w as u32, h as u32));
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
@@ -148,7 +148,7 @@ impl LogicFrame {
         // reload shaders
         let mut import_shader_future = None;
         if input.keyboard.keys.is_down(Scancode::F6) {
-            state.reload_shaders = true;
+            state.event_rebuild_renderers = true;
             let future = reload_shaders();
             import_shader_future = Some(future);
         }

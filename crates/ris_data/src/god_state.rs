@@ -3,23 +3,11 @@ use ris_math::camera::Camera;
 use crate::input::Input;
 use crate::settings::Settings;
 
-#[derive(Clone, Copy)]
-pub enum WindowEvent {
-    None,
-    SizeChanged(u32, u32),
-}
-
-impl Default for WindowEvent {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 #[derive(Clone)]
 pub struct GodState {
     // events
-    pub reload_shaders: bool,
-    pub window_event: WindowEvent,
+    pub event_rebuild_renderers: bool,
+    pub event_window_resized: Option<(u32, u32)>,
 
     // input
     pub input: Input,
@@ -35,8 +23,8 @@ impl GodState {
     pub fn new(settings: Settings) -> Self {
         Self {
             // events
-            reload_shaders: Default::default(),
-            window_event: Default::default(),
+            event_rebuild_renderers: false,
+            event_window_resized: None,
 
             // input
             input: Default::default(),
@@ -50,8 +38,8 @@ impl GodState {
     }
 
     pub fn reset_events(&mut self) {
-        self.reload_shaders = false;
-        self.window_event = WindowEvent::None;
+        self.event_rebuild_renderers = false;
+        self.event_window_resized = None;
 
         self.settings.reset();
     }

@@ -10,8 +10,10 @@ use ris_error::RisResult;
 use super::core::VulkanCore;
 use super::frame_in_flight::FrameInFlight;
 use super::image::Image;
+use super::image::ImageCreateInfo;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
+use super::transient_command::TransientCommandSync;
 
 pub struct Swapchain {
     pub format: vk::SurfaceFormatKHR,
@@ -19,14 +21,16 @@ pub struct Swapchain {
     pub loader: SwapchainLoader,
     pub swapchain: vk::SwapchainKHR,
     pub entries: Vec<SwapchainEntry>,
-    pub frames_in_flight: Vec<FrameInFlight>,
+    pub frames_in_flight: Option<Vec<FrameInFlight>>,
     command_buffers: Vec<vk::CommandBuffer>,
 }
 
 pub struct SwapchainEntry {
     pub index: usize,
-    pub image: vk::Image,
-    pub image_view: vk::ImageView,
+    pub viewport_image: vk::Image,
+    pub viewport_image_view: vk::ImageView,
+    pub depth_image: Image,
+    pub depth_image_view: vk::ImageView,
     pub command_buffer: vk::CommandBuffer,
 }
 
@@ -40,6 +44,7 @@ pub struct SwapchainCreateInfo<'a> {
     pub surface_loader: &'a SurfaceLoader,
     pub surface: &'a vk::SurfaceKHR,
     pub window_drawable_size: (u32, u32),
+    pub frames_in_flight: Option<Vec<FrameInFlight>>,
 }
 
 impl Swapchain {
@@ -50,12 +55,16 @@ impl Swapchain {
         unsafe {
             device.free_command_buffers(command_pool, &self.command_buffers);
 
-            for frame_in_flight in self.frames_in_flight.iter() {
-                frame_in_flight.free(device);
+            if let Some(frames_in_flight) = self.frames_in_flight.take() {
+                for frame_in_flight in frames_in_flight.iter() {
+                    frame_in_flight.free(device);
+                }
             }
 
             for entry in self.entries.iter_mut() {
-                device.destroy_image_view(entry.image_view, None);
+                device.destroy_image_view(entry.viewport_image_view, None);
+                entry.depth_image.free(device);
+                device.destroy_image_view(entry.depth_image_view, None);
             }
 
             self.loader.destroy_swapchain(self.swapchain, None);
@@ -68,13 +77,6 @@ impl Swapchain {
     pub unsafe fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
         let SwapchainCreateInfo {
             instance,
-            device,
-            command_pool,
-            ..
-        } = info;
-
-        let SwapchainCreateInfo {
-            instance,
             suitable_device,
             device,
             graphics_queue,
@@ -83,6 +85,7 @@ impl Swapchain {
             surface_loader,
             surface,
             window_drawable_size,
+            frames_in_flight,
         } = info;
 
         let SurfaceDetails {
@@ -184,14 +187,53 @@ impl Swapchain {
         let command_buffers =
             unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
 
+        // swapchain entries
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let depth_format = super::util::find_depth_format(
+            instance,
+            suitable_device.physical_device,
+        )?;
+        
         let mut entries = Vec::with_capacity(images.len());
-        for (i, image) in images.into_iter().enumerate() {
-            // swapchain image view
-            let image_view = Image::alloc_view(
+        for (i, viewport_image) in images.into_iter().enumerate() {
+            // viewport view
+            let viewport_image_view = Image::alloc_view(
                 device,
-                image,
+                viewport_image,
                 format.format,
                 vk::ImageAspectFlags::COLOR,
+            )?;
+
+            // depth
+            let depth_image = Image::alloc(ImageCreateInfo{
+                device,
+                width: extent.width,
+                height: extent.height,
+                format: depth_format,
+                tiling: vk::ImageTiling::OPTIMAL,
+                usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            })?;
+
+            let depth_image_view = Image::alloc_view(
+                device,
+                depth_image.image,
+                depth_format,
+                vk::ImageAspectFlags::DEPTH,
+            )?;
+
+            depth_image.transition_layout(
+                device,
+                graphics_queue,
+                transient_command_pool,
+                depth_format,
+                vk::ImageLayout::UNDEFINED,
+                vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                TransientCommandSync::default(),
             )?;
 
             // command buffer
@@ -200,8 +242,10 @@ impl Swapchain {
             // entry
             let swapchain_entry = SwapchainEntry {
                 index: i,
-                image,
-                image_view,
+                viewport_image,
+                viewport_image_view,
+                depth_image,
+                depth_image_view,
                 command_buffer,
             };
 
@@ -209,12 +253,19 @@ impl Swapchain {
         } // end swapchain entries
 
         // frames in flight
-        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
-        for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
-            let frame_in_flight = FrameInFlight::alloc(device)?;
+        let frames_in_flight = match frames_in_flight {
+            Some(x) => Some(x),
+            None => {
+                let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
+                for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
+                    let frame_in_flight = FrameInFlight::alloc(device)?;
 
-            frames_in_flight.push(frame_in_flight);
-        }
+                    frames_in_flight.push(frame_in_flight);
+                }
+
+                Some(frames_in_flight)
+            }
+        };
 
         Ok(Self {
             format,

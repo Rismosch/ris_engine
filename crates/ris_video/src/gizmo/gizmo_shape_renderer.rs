@@ -504,7 +504,7 @@ impl GizmoShapeRenderer {
 
         let SwapchainEntry {
             index,
-            image_view,
+            viewport_image_view,
             command_buffer,
             ..
         } = entry;
@@ -543,7 +543,7 @@ impl GizmoShapeRenderer {
             unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
-        let attachments = [*image_view];
+        let attachments = [*viewport_image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo{
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,

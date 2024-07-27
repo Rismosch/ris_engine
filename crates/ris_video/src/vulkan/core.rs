@@ -351,6 +351,7 @@ impl VulkanCore {
                 surface_loader: &surface_loader,
                 surface: &surface,
                 window_drawable_size: window.vulkan_drawable_size(),
+                frames_in_flight: None,
             })
         }?;
 
@@ -384,15 +385,18 @@ impl VulkanCore {
             graphics_queue,
             command_pool,
             transient_command_pool,
+            swapchain,
             ..
         } = self;
 
         ris_log::trace!("recreating swapchain...");
 
+        let frames_in_flight = swapchain.frames_in_flight.take();
+
         unsafe {
             device.device_wait_idle()?;
-            self.swapchain.free(device, *command_pool);
-            self.swapchain = Swapchain::alloc(SwapchainCreateInfo {
+            swapchain.free(device, *command_pool);
+            *swapchain = Swapchain::alloc(SwapchainCreateInfo {
                 instance,
                 suitable_device,
                 device,
@@ -402,6 +406,7 @@ impl VulkanCore {
                 surface_loader,
                 surface,
                 window_drawable_size,
+                frames_in_flight,
             })?;
         }
 

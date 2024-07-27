@@ -7,7 +7,6 @@ use sdl2_sys::SDL_WindowFlags;
 use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
-use ris_data::god_state::WindowEvent;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
@@ -89,27 +88,16 @@ impl OutputFrame {
             graphics_queue,
             present_queue,
             swapchain,
-            //swapchain:
-            //    Swapchain {
-            //        base:
-            //            BaseSwapchain {
-            //                loader: swapchain_loader,
-            //                swapchain,
-            //                ..
-            //            },
-            //        entries: swapchain_entries,
-            //        frames_in_flight,
-            //        ..
-            //    },
             ..
         } = &self.core;
 
+        let frames_in_flight = swapchain.frames_in_flight.as_ref().unroll()?;
         let FrameInFlight {
             image_available,
             render_finished,
             in_flight,
-        } = &swapchain.frames_in_flight[self.current_frame];
-        let next_frame = (self.current_frame + 1) % swapchain.frames_in_flight.len();
+        } = &frames_in_flight[self.current_frame];
+        let next_frame = (self.current_frame + 1) % frames_in_flight.len();
         self.current_frame = next_frame;
 
         let image_available_sem = [*image_available];
@@ -151,7 +139,6 @@ impl OutputFrame {
         ris_debug::add_record!(r, "prepare command buffer")?;
         let swapchain_entry = &swapchain.entries[image_index as usize];
         let SwapchainEntry {
-            image_view,
             command_buffer,
             ..
         } = swapchain_entry;
@@ -177,24 +164,6 @@ impl OutputFrame {
         ris_debug::add_record!(r, "scene")?;
         let vertices = ris_video::scene::scene_mesh::VERTICES;
         let indices = ris_video::scene::scene_mesh::INDICES;
-        //let vertices = [
-        //    ris_video::scene::scene_mesh::Vertex {
-        //        pos: Vec3(-0.5, 0.5, 0.0),
-        //        color: ris_math::color::Rgb(1.0, 0.0, 0.0),
-        //        uv: ris_math::vector::Vec2(0.0, 0.0),
-        //    },
-        //    ris_video::scene::scene_mesh::Vertex {
-        //        pos: Vec3(0.5, 0.5, 0.0),
-        //        color: ris_math::color::Rgb(0.0, 1.0, 0.0),
-        //        uv: ris_math::vector::Vec2(0.0, 0.0),
-        //    },
-        //    ris_video::scene::scene_mesh::Vertex {
-        //        pos: Vec3(0.0, -0.5, 0.0),
-        //        color: ris_math::color::Rgb(0.0, 0.0, 1.0),
-        //        uv: ris_math::vector::Vec2(0.0, 0.0),
-        //    },
-        //];
-        //let indices = [0, 1, 2];
         self.scene_renderer.draw(
             &self.core,
             &swapchain_entry,
@@ -203,44 +172,6 @@ impl OutputFrame {
             window_drawable_size,
             &state.camera,
         )?;
-
-        // update uniform buffer
-        //ris_debug::add_record!(r, "update uniform buffer")?;
-
-        //let window_drawable_size = self.window.vulkan_drawable_size();
-        //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        //state.camera.aspect_ratio = w / h;
-        //let view = state.camera.view_matrix();
-        //let proj = state.camera.projection_matrix();
-
-        //let uniform_buffer_object = UniformBufferObject {
-        //    model: Mat4::init(1.0),
-        //    view,
-        //    proj,
-        //};
-
-        //let ubo = [uniform_buffer_object];
-        //unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
-
-        // submit command buffer
-        //ris_debug::add_record!(r, "submit command buffer")?;
-
-        //let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-        //let command_buffers = [*command_buffer];
-
-        //let submit_infos = [vk::SubmitInfo {
-        //    s_type: vk::StructureType::SUBMIT_INFO,
-        //    p_next: ptr::null(),
-        //    wait_semaphore_count: image_available_sem.len() as u32,
-        //    p_wait_semaphores: image_available_sem.as_ptr(),
-        //    p_wait_dst_stage_mask: wait_stages.as_ptr(),
-        //    command_buffer_count: command_buffers.len() as u32,
-        //    p_command_buffers: command_buffers.as_ptr(),
-        //    signal_semaphore_count: main_render_sem.len() as u32,
-        //    p_signal_semaphores: main_render_sem.as_ptr(),
-        //}];
-
-        //unsafe { device.queue_submit(*graphics_queue, &submit_infos, vk::Fence::null()) }?;
 
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
@@ -328,22 +259,11 @@ impl OutputFrame {
         };
 
         // recreate swapchain
-        let window_event = match queue_present_result {
-            Ok(_) => match state.window_event {
-                WindowEvent::SizeChanged(..) => state.window_event,
-                WindowEvent::None => {
-                    if state.reload_shaders {
-                        let (width, height) = self.window.vulkan_drawable_size();
-                        WindowEvent::SizeChanged(width, height)
-                    } else {
-                        WindowEvent::None
-                    }
-                }
-            },
+        let event_window_resized = match queue_present_result {
+            Ok(_) => state.event_window_resized,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
-                    let (width, height) = self.window.vulkan_drawable_size();
-                    WindowEvent::SizeChanged(width, height)
+                    Some(self.window.vulkan_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to present queue: {}", vk_result)
@@ -351,7 +271,7 @@ impl OutputFrame {
             },
         };
 
-        if let WindowEvent::SizeChanged(width, height) = window_event {
+        if let Some((width, height)) = event_window_resized {
             self.core.recreate_swapchain((width, height))?;
         }
 

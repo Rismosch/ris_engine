@@ -367,27 +367,27 @@ impl SceneRenderer {
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
-        //let depth_attachment = vk::AttachmentDescription {
-        //    flags: vk::AttachmentDescriptionFlags::empty(),
-        //    format: crate::vulkan::util::find_depth_format(instance, suitable_device.physical_device)?,
-        //    samples: vk::SampleCountFlags::TYPE_1,
-        //    load_op: vk::AttachmentLoadOp::CLEAR,
-        //    store_op: vk::AttachmentStoreOp::DONT_CARE,
-        //    stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
-        //    stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-        //    initial_layout: vk::ImageLayout::UNDEFINED,
-        //    final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        //};
+        let depth_attachment = vk::AttachmentDescription {
+            flags: vk::AttachmentDescriptionFlags::empty(),
+            format: crate::vulkan::util::find_depth_format(instance, suitable_device.physical_device)?,
+            samples: vk::SampleCountFlags::TYPE_1,
+            load_op: vk::AttachmentLoadOp::CLEAR,
+            store_op: vk::AttachmentStoreOp::DONT_CARE,
+            stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+            stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+            initial_layout: vk::ImageLayout::UNDEFINED,
+            final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
 
         let color_attachment_references = [vk::AttachmentReference {
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
         }];
 
-        //let depth_attachment_reference = [vk::AttachmentReference {
-        //    attachment: 1,
-        //    layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        //}];
+        let depth_attachment_reference = [vk::AttachmentReference {
+            attachment: 1,
+            layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        }];
 
         let subpass_descriptions = [vk::SubpassDescription {
             flags: vk::SubpassDescriptionFlags::empty(),
@@ -397,8 +397,7 @@ impl SceneRenderer {
             color_attachment_count: color_attachment_references.len() as u32,
             p_color_attachments: color_attachment_references.as_ptr(),
             p_resolve_attachments: ptr::null(),
-            //p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
-            p_depth_stencil_attachment: ptr::null(),
+            p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
             preserve_attachment_count: 0,
             p_preserve_attachments: ptr::null(),
         }];
@@ -416,8 +415,7 @@ impl SceneRenderer {
             dependency_flags: vk::DependencyFlags::empty(),
         }];
 
-        //let attachments = [color_attachment, depth_attachment];
-        let attachments = [color_attachment];
+        let attachments = [color_attachment, depth_attachment];
 
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
@@ -537,7 +535,8 @@ impl SceneRenderer {
 
         let SwapchainEntry {
             index,
-            image_view,
+            viewport_image_view,
+            depth_image_view,
             command_buffer,
             ..
         } = entry;
@@ -582,7 +581,7 @@ impl SceneRenderer {
             unsafe {device.destroy_framebuffer(framebuffer, None)};
         }
 
-        let attachments = [*image_view];
+        let attachments = [*viewport_image_view, *depth_image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo{
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
@@ -601,23 +600,16 @@ impl SceneRenderer {
         let framebuffer = new_framebuffer;
 
         // render pass
-        //let clear_values = [
-        //    vk::ClearValue {
-        //        color: vk::ClearColorValue {
-        //            float32: [0.0, 0.0, 0.0, 0.0],
-        //        },
-        //    },
-        //    vk::ClearValue {
-        //        depth_stencil: vk::ClearDepthStencilValue {
-        //            depth: 1.0,
-        //            stencil: 0,
-        //        },
-        //    },
-        //];
         let clear_values = [
             vk::ClearValue {
                 color: vk::ClearColorValue {
                     float32: [0.0, 0.0, 0.0, 0.0],
+                },
+            },
+            vk::ClearValue {
+                depth_stencil: vk::ClearDepthStencilValue {
+                    depth: 1.0,
+                    stencil: 0,
                 },
             },
         ];
@@ -735,65 +727,6 @@ impl SceneRenderer {
             device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0);
             device.cmd_end_render_pass(*command_buffer);
         }
-
-        // update uniform buffer
-        //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        //camera.aspect_ratio = w / h;
-        //let view = camera.view_matrix();
-        //let proj = camera.projection_matrix();
-
-        //let uniform_buffer_object = UniformBufferObject {
-        //    model: Mat4::init(1.0),
-        //    view,
-        //    proj,
-        //};
-
-        //let ubo = [uniform_buffer_object];
-        //unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
-
-        //// render pass
-
-        //unsafe {
-        //    device.cmd_begin_render_pass(
-        //        command_buffer,
-        //        &render_pass_begin_info,
-        //        vk::SubpassContents::INLINE,
-        //    )
-        //};
-        //unsafe {
-        //    device.cmd_bind_pipeline(
-        //        command_buffer,
-        //        vk::PipelineBindPoint::GRAPHICS,
-        //        graphics_pipeline.pipeline,
-        //    )
-        //};
-
-        //let vertex_buffers = [vertex_buffer.buffer];
-        //let offsets = [0_u64];
-        //unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
-        //unsafe {
-        //    device.cmd_bind_index_buffer(
-        //        command_buffer,
-        //        index_buffer.buffer,
-        //        0,
-        //        vk::IndexType::UINT32,
-        //    )
-        //};
-        //let descriptor_sets = [descriptor_set];
-        //unsafe {
-        //    device.cmd_bind_descriptor_sets(
-        //        command_buffer,
-        //        vk::PipelineBindPoint::GRAPHICS,
-        //        graphics_pipeline.layout,
-        //        0,
-        //        &descriptor_sets,
-        //        &[],
-        //    )
-        //};
-
-        //let index_count = crate::vulkan::INDICES.len() as u32;
-        //unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
-        //unsafe { device.cmd_end_render_pass(command_buffer) };
 
         Ok(())
     }
