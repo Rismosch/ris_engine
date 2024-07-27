@@ -43,6 +43,7 @@ impl Drop for OutputFrame {
             ris_error::unwrap!(self.core.device.device_wait_idle(), "",);
         }
 
+        self.scene_renderer.free(&self.core.device);
         self.gizmo_shape_renderer.free(&self.core.device);
         self.imgui.renderer.free(&self.core.device);
         // core is dropped here implicitly

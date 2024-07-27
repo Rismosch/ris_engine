@@ -145,17 +145,17 @@ impl GizmoShapeRenderer {
 
         let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
 
-        let mut descriptor_set_layouts = Vec::with_capacity(entries.len());
+        let mut descriptor_set_layout_vec = Vec::with_capacity(entries.len());
         for _ in 0..entries.len() {
-            descriptor_set_layouts.push(descriptor_set_layout);
+            descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
             p_next: ptr::null(),
             descriptor_pool,
-            descriptor_set_count: descriptor_set_layouts.len() as u32,
-            p_set_layouts: descriptor_set_layouts.as_ptr(),
+            descriptor_set_count: descriptor_set_layout_vec.len() as u32,
+            p_set_layouts: descriptor_set_layout_vec.as_ptr(),
         };
 
         let descriptor_sets = unsafe {device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
@@ -249,9 +249,9 @@ impl GizmoShapeRenderer {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
-            viewport_count: 1,
+            viewport_count: viewports.len() as u32,
             p_viewports: viewports.as_ptr(),
-            scissor_count: 1,
+            scissor_count: scissors.len() as u32,
             p_scissors: scissors.as_ptr(),
         }];
 
@@ -330,6 +330,8 @@ impl GizmoShapeRenderer {
         }];
 
         // pipeline layout
+        let descriptor_set_layouts = [descriptor_set_layout];
+        
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
