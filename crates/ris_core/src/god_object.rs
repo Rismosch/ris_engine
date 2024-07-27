@@ -116,7 +116,7 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
         let window = video_subsystem
             .window("ris_engine", 640, 480)
-            //.resizable()
+            .resizable()
             .position_centered()
             .vulkan()
             .build()?;
@@ -124,7 +124,7 @@ impl GodObject {
         let vulkan_core = VulkanCore::initialize(&app_info, &window, &god_asset)?;
 
         // scene renderer
-        let scene_renderer = {SceneRenderer::init(&vulkan_core, &god_asset)}?;
+        let scene_renderer = { SceneRenderer::init(&vulkan_core, &god_asset) }?;
 
         // gizmo renderer
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;

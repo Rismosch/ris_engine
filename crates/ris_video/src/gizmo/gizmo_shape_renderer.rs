@@ -15,7 +15,6 @@ use ris_math::matrix::Mat4;
 use crate::gizmo::gizmo_mesh::ShapeMesh;
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::transient_command::TransientCommand;
@@ -95,16 +94,7 @@ impl GizmoShapeRenderer {
             instance,
             suitable_device,
             device,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            format: swapchain_format,
-                            ..
-                        },
-                    entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -131,22 +121,22 @@ impl GizmoShapeRenderer {
         
         let descriptor_pool_sizes = [vk::DescriptorPoolSize {
             ty: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: entries.len() as u32,
+            descriptor_count: swapchain.entries.len() as u32,
         }];
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: entries.len() as u32,
+            max_sets: swapchain.entries.len() as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
         let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
 
-        let mut descriptor_set_layout_vec = Vec::with_capacity(entries.len());
-        for _ in 0..entries.len() {
+        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
+        for _ in 0..swapchain.entries.len() {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
@@ -348,7 +338,7 @@ impl GizmoShapeRenderer {
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: swapchain_format.format,
+            format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::LOAD,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -447,8 +437,8 @@ impl GizmoShapeRenderer {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let mut frames = Vec::with_capacity(entries.len());
-        for i in 0..entries.len() {
+        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        for i in 0..swapchain.entries.len() {
             unsafe {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
                 let descriptor_buffer = Buffer::alloc(
@@ -505,12 +495,8 @@ impl GizmoShapeRenderer {
             transient_command_pool,
             swapchain:
                 Swapchain {
-                    base:
-                        BaseSwapchain {
-                            extent: swapchain_extent,
-                            ..
-                        },
-                    entries,
+                    extent: swapchain_extent,
+                    entries: swapchain_entries,
                     ..
                 },
             ..

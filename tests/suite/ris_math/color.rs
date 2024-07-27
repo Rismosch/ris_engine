@@ -136,13 +136,6 @@ fn assert_chroma_eq(left: color::OkLch, right: color::OkLch) {
         // success, hue is identical
     } else {
         // if diff is 2 * pi, then it is the same hue, because hue is mod 2 * pi
-        assert_feq!(
-            diff,
-            2.0 * PI,
-            color::MIN_NORM,
-            "{:?} {:?}",
-            left,
-            right,
-        );
+        assert_feq!(diff, 2.0 * PI, color::MIN_NORM, "{:?} {:?}", left, right,);
     }
 }

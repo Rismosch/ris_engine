@@ -191,11 +191,7 @@ impl LogicFrame {
         while self.camera_horizontal_angle > 2. * PI {
             self.camera_horizontal_angle -= 2. * PI;
         }
-        self.camera_vertical_angle = f32::clamp(
-            self.camera_vertical_angle,
-            -0.5 * PI,
-            0.5 * PI,
-        );
+        self.camera_vertical_angle = f32::clamp(self.camera_vertical_angle, -0.5 * PI, 0.5 * PI);
 
         let rotation1 = Quat::from((self.camera_vertical_angle, ris_math::vector::VEC3_RIGHT));
         let rotation2 = Quat::from((self.camera_horizontal_angle, ris_math::vector::VEC3_UP));

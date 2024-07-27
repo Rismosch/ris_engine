@@ -318,10 +318,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
 
     segments.sort_by(|left, right| right.0.total_cmp(&left.0));
 
-    let vertices = segments
-        .into_iter()
-        .flat_map(|x| [x.1, x.2])
-        .collect();
+    let vertices = segments.into_iter().flat_map(|x| [x.1, x.2]).collect();
 
     Ok(vertices)
 }

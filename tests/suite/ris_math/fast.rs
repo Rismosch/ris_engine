@@ -90,7 +90,6 @@ fn should_compute_fastpow() {
     let count = miri_choose(16, 4);
     for i in 1..count {
         for j in 1..count {
-
             let f1 = (i as f32) / (count as f32);
             let f2 = (j as f32) / (count as f32);
 

@@ -160,12 +160,7 @@ impl ShaderStage {
 
                 let base_message = format!("failed to compile shader \"{}\"", file);
 
-                ris_log::error!(
-                    "{}\n\nsource:\n{}\nerror:\n{}",
-                    base_message,
-                    log_source,
-                    e,
-                );
+                ris_log::error!("{}\n\nsource:\n{}\nerror:\n{}", base_message, log_source, e,);
 
                 ris_error::new!("{}. check log for more infos.", base_message)
             })?;

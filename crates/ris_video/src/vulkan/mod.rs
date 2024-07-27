@@ -13,10 +13,6 @@ pub mod util;
 
 use ash::vk;
 
-use ris_math::color::Rgb;
-use ris_math::vector::Vec2;
-use ris_math::vector::Vec3;
-
 const REQUIRED_INSTANCE_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 const REQUIRED_DEVICE_EXTENSIONS: &[*const i8] =
     &[ash::extensions::khr::Swapchain::name().as_ptr()];

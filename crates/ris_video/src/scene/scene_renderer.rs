@@ -13,7 +13,6 @@ use ris_math::vector::Vec2;
 
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
 use super::scene_mesh::Mesh;
@@ -84,17 +83,7 @@ impl SceneRenderer {
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            format: swapchain_format,
-                            extent: swapchain_extent,
-                            ..
-                        },
-                    entries: swapchain_entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -131,11 +120,11 @@ impl SceneRenderer {
         let descriptor_pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: swapchain_entries.len() as u32,
+                descriptor_count: swapchain.entries.len() as u32,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: swapchain_entries.len() as u32,
+                descriptor_count: swapchain.entries.len() as u32,
             },
         ];
 
@@ -143,15 +132,15 @@ impl SceneRenderer {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: swapchain_entries.len() as u32,
+            max_sets: swapchain.entries.len() as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
         let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
 
-        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain_entries.len());
-        for _ in 0..swapchain_entries.len() {
+        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
+        for _ in 0..swapchain.entries.len() {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
@@ -368,7 +357,7 @@ impl SceneRenderer {
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: swapchain_format.format,
+            format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -485,8 +474,8 @@ impl SceneRenderer {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let mut frames = Vec::with_capacity(swapchain_entries.len());
-        for i in 0..swapchain_entries.len() {
+        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        for i in 0..swapchain.entries.len() {
             unsafe {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
                 let descriptor_buffer = Buffer::alloc(
@@ -542,16 +531,7 @@ impl SceneRenderer {
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            extent: swapchain_extent,
-                            ..
-                        },
-                    entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -611,8 +591,8 @@ impl SceneRenderer {
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
-            width: swapchain_extent.width,
-            height: swapchain_extent.height,
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
             layers: 1,
         };
 
@@ -649,7 +629,7 @@ impl SceneRenderer {
             framebuffer,
             render_area: vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
-                extent: *swapchain_extent,
+                extent: swapchain.extent,
             },
             clear_value_count: clear_values.len() as u32,
             p_clear_values: clear_values.as_ptr(),

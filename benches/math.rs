@@ -64,8 +64,9 @@ fn negate(c: &mut Criterion) {
     group.bench_function("bit_magic", |b| {
         b.iter(|| {
             for value in &values {
-                let result =
-                    ris_math::fast::as_float(ris_math::fast::as_int(*value) ^ 0x8000_0000u32 as i32);
+                let result = ris_math::fast::as_float(
+                    ris_math::fast::as_int(*value) ^ 0x8000_0000u32 as i32,
+                );
                 black_box(result);
             }
         });
@@ -273,11 +274,7 @@ fn sign(c: &mut Criterion) {
                 let result = ris_math::fast::choose(
                     *value == 0.,
                     0.,
-                    ris_math::fast::choose(
-                        *value > 0.,
-                        1., 
-                        -1., 
-                    ),
+                    ris_math::fast::choose(*value > 0., 1., -1.),
                 );
                 black_box(result);
             }

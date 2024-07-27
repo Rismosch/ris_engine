@@ -113,7 +113,6 @@ pub fn exp2(x: f32) -> f32 {
     as_float(((x * SCALE_UP) as i32).wrapping_add(ONE_AS_INT))
 }
 
-
 /// returns x raised to the y power, i.e., x^y
 ///
 /// max error, if x < 1 and y < 1: ~ 0.04304
@@ -123,8 +122,10 @@ pub fn exp2(x: f32) -> f32 {
 pub fn pow(x: f32, y: f32) -> f32 {
     as_float(((y * (as_int(x).wrapping_sub(ONE_AS_INT)) as f32) as i32).wrapping_add(ONE_AS_INT))
 }
- 
-#[deprecated(note = "benchmarking proofed that newton step makes this substentially slower than std. removing the newton step substentially decreased accuracy")]
+
+#[deprecated(
+    note = "benchmarking proofed that newton step makes this substentially slower than std. removing the newton step substentially decreased accuracy"
+)]
 /// returns sqrt(x)
 ///
 /// max error: ~ 0.03925;

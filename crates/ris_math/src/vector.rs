@@ -1377,10 +1377,7 @@ impl Vec2 {
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
-        Self(
-            self.0 % rhs.0,
-            self.1 % rhs.1,
-        )
+        Self(self.0 % rhs.0, self.1 % rhs.1)
     }
 
     pub fn min(x: Self, y: Self) -> Self {
@@ -1399,10 +1396,7 @@ impl Vec2 {
     }
 
     pub fn mix(x: Self, y: Self, a: Self) -> Self {
-        Self(
-            crate::mix(x.0, y.0, a.0),
-            crate::mix(x.1, y.1, a.1),
-        )
+        Self(crate::mix(x.0, y.0, a.0), crate::mix(x.1, y.1, a.1))
     }
 
     pub fn step(edge: Self, x: Self) -> Self {
@@ -1450,67 +1444,35 @@ impl Vec3 {
     }
 
     pub fn floor(self) -> Self {
-        Self(
-            f32::floor(self.0),
-            f32::floor(self.1),
-            f32::floor(self.2),
-        )
+        Self(f32::floor(self.0), f32::floor(self.1), f32::floor(self.2))
     }
 
     pub fn ceil(self) -> Self {
-        Self(
-            f32::ceil(self.0),
-            f32::ceil(self.1),
-            f32::ceil(self.2),
-        )
+        Self(f32::ceil(self.0), f32::ceil(self.1), f32::ceil(self.2))
     }
 
     pub fn trunc(self) -> Self {
-        Self(
-            f32::trunc(self.0),
-            f32::trunc(self.1),
-            f32::trunc(self.2),
-        )
+        Self(f32::trunc(self.0), f32::trunc(self.1), f32::trunc(self.2))
     }
 
     pub fn round(self) -> Self {
-        Self(
-            f32::round(self.0),
-            f32::round(self.1),
-            f32::round(self.2),
-        )
+        Self(f32::round(self.0), f32::round(self.1), f32::round(self.2))
     }
 
     pub fn fract(self) -> Self {
-        Self(
-            f32::fract(self.0),
-            f32::fract(self.1),
-            f32::fract(self.2),
-        )
+        Self(f32::fract(self.0), f32::fract(self.1), f32::fract(self.2))
     }
 
     pub fn modulo(self, rhs: Self) -> Self {
-        Self(
-            self.0 % rhs.0,
-            self.1 % rhs.1,
-            self.2 % rhs.2,
-        )
+        Self(self.0 % rhs.0, self.1 % rhs.1, self.2 % rhs.2)
     }
 
     pub fn min(x: Self, y: Self) -> Self {
-        Self(
-            f32::min(x.0, y.0),
-            f32::min(x.1, y.1),
-            f32::min(x.2, y.2),
-        )
+        Self(f32::min(x.0, y.0), f32::min(x.1, y.1), f32::min(x.2, y.2))
     }
 
     pub fn max(x: Self, y: Self) -> Self {
-        Self(
-            f32::max(x.0, y.0),
-            f32::max(x.1, y.1),
-            f32::max(x.2, y.2),
-        )
+        Self(f32::max(x.0, y.0), f32::max(x.1, y.1), f32::max(x.2, y.2))
     }
 
     pub fn clamp(self, min_val: Self, max_val: Self) -> Self {

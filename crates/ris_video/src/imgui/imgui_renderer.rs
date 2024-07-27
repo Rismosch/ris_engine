@@ -17,7 +17,6 @@ use ris_math::matrix::Mat4;
 
 use crate::imgui::imgui_mesh::Mesh;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
@@ -82,16 +81,7 @@ impl ImguiRenderer {
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            format: swapchain_format,
-                            ..
-                        },
-                    entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -327,7 +317,7 @@ impl ImguiRenderer {
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: swapchain_format.format,
+            format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
             //load_op: vk::AttachmentLoadOp::LOAD,
             load_op: vk::AttachmentLoadOp::DONT_CARE,
@@ -497,8 +487,8 @@ impl ImguiRenderer {
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // frames
-        let mut frames = Vec::with_capacity(entries.len());
-        for i in 0..entries.len() {
+        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        for i in 0..swapchain.entries.len() {
             let frame = ImguiFrame{
                 mesh: None,
                 framebuffer: None,
@@ -534,16 +524,7 @@ impl ImguiRenderer {
             suitable_device,
             device,
             graphics_queue,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            extent: swapchain_extent,
-                            ..
-                        },
-                    entries,
-                    ..
-                },
+            swapchain,
             ..
         } = core;
 
@@ -591,8 +572,8 @@ impl ImguiRenderer {
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
-            width: swapchain_extent.width,
-            height: swapchain_extent.height,
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
             layers: 1,
         };
 
@@ -614,7 +595,7 @@ impl ImguiRenderer {
             framebuffer,
             render_area: vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
-                extent: *swapchain_extent,
+                extent: swapchain.extent,
             },
             clear_value_count: clear_values.len() as u32,
             p_clear_values: clear_values.as_ptr(),

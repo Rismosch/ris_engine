@@ -13,7 +13,6 @@ use ris_error::RisResult;
 
 use super::buffer::Buffer;
 use super::suitable_device::SuitableDevice;
-use super::swapchain::BaseSwapchain;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
 use super::texture::Texture;
@@ -316,96 +315,6 @@ impl VulkanCore {
         //    })
         //}?;
 
-        //// vertex buffer
-        //let vertex_buffer_size = std::mem::size_of_val(&super::VERTICES) as vk::DeviceSize;
-
-        //let staging_buffer = unsafe {
-        //    Buffer::alloc(
-        //        &device,
-        //        vertex_buffer_size,
-        //        vk::BufferUsageFlags::TRANSFER_SRC,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        //        physical_device_memory_properties,
-        //    )
-        //}?;
-
-        //unsafe { staging_buffer.write(&device, &super::VERTICES) }?;
-
-        //let vertex_buffer = unsafe {
-        //    Buffer::alloc(
-        //        &device,
-        //        vertex_buffer_size,
-        //        vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
-        //        vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    )
-        //}?;
-
-        //unsafe {
-        //    staging_buffer.copy_to_buffer(
-        //        &device,
-        //        graphics_queue,
-        //        transient_command_pool,
-        //        &vertex_buffer,
-        //        vertex_buffer_size,
-        //        TransientCommandSync::default(),
-        //    )
-        //}?;
-
-        //unsafe { staging_buffer.free(&device) };
-
-        //// index buffer
-        //let index_buffer_size = std::mem::size_of_val(&super::INDICES) as vk::DeviceSize;
-
-        //let staging_buffer = unsafe {
-        //    Buffer::alloc(
-        //        &device,
-        //        index_buffer_size,
-        //        vk::BufferUsageFlags::TRANSFER_SRC,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        //        physical_device_memory_properties,
-        //    )
-        //}?;
-
-        //unsafe { staging_buffer.write(&device, &super::INDICES) }?;
-
-        //let index_buffer = unsafe {
-        //    Buffer::alloc(
-        //        &device,
-        //        index_buffer_size,
-        //        vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
-        //        vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    )
-        //}?;
-
-        //unsafe {
-        //    staging_buffer.copy_to_buffer(
-        //        &device,
-        //        graphics_queue,
-        //        transient_command_pool,
-        //        &index_buffer,
-        //        index_buffer_size,
-        //        TransientCommandSync::default(),
-        //    )
-        //}?;
-
-        //unsafe { staging_buffer.free(&device) };
-
-        // base swap chain
-        let (base_swapchain, swapchain_images) = unsafe {
-            BaseSwapchain::alloc(
-                &instance,
-                &surface_loader,
-                &surface,
-                &suitable_device,
-                &device,
-                window.vulkan_drawable_size(),
-            )
-        }?;
-
-        let swapchain_entry_count = swapchain_images.len();
-
         //// descriptor pool
         //let descriptor_pool_sizes = [
         //    vk::DescriptorPoolSize {
@@ -439,17 +348,9 @@ impl VulkanCore {
                 graphics_queue,
                 command_pool,
                 transient_command_pool,
-                //descriptor_set_layout,
-                //descriptor_pool,
-                //texture: &texture,
-                //vertex_buffer: &vertex_buffer,
-                //index_buffer: &index_buffer,
-                base: base_swapchain,
-                images: swapchain_images,
-                //descriptor_sets: None,
-                frames_in_flight: None,
-                //vs_asset_id: god_asset.default_vert_spv.clone(),
-                //fs_asset_id: god_asset.default_frag_spv.clone(),
+                surface_loader: &surface_loader,
+                surface: &surface,
+                window_drawable_size: window.vulkan_drawable_size(),
             })
         }?;
 
@@ -464,32 +365,45 @@ impl VulkanCore {
             device,
             graphics_queue,
             present_queue,
-            //descriptor_set_layout,
-            //descriptor_pool,
             command_pool,
             transient_command_pool,
-            //texture,
-            //vertex_buffer,
-            //index_buffer,
             swapchain,
         })
     }
 
     pub fn recreate_swapchain(
         &mut self,
-        window_size: (u32, u32),
-        god_asset: &RisGodAsset,
+        window_drawable_size: (u32, u32),
     ) -> RisResult<()> {
+        let Self {
+            instance,
+            surface_loader,
+            surface,
+            suitable_device,
+            device,
+            graphics_queue,
+            command_pool,
+            transient_command_pool,
+            ..
+        } = self;
+
         ris_log::trace!("recreating swapchain...");
 
-        unsafe { self.device.device_wait_idle() }?;
-
-        self.swapchain = Swapchain::recreate(
-            self,
-            window_size,
-            god_asset.default_vert_spv.clone(),
-            god_asset.default_frag_spv.clone(),
-        )?;
+        unsafe {
+            device.device_wait_idle()?;
+            self.swapchain.free(device, *command_pool);
+            self.swapchain = Swapchain::alloc(SwapchainCreateInfo {
+                instance,
+                suitable_device,
+                device,
+                graphics_queue: *graphics_queue,
+                command_pool: *command_pool,
+                transient_command_pool: *transient_command_pool,
+                surface_loader,
+                surface,
+                window_drawable_size,
+            })?;
+        }
 
         ris_log::trace!("swapchain recreated!");
 

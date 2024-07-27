@@ -17,7 +17,6 @@ use ris_video::imgui::RisImgui;
 use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::swapchain::BaseSwapchain;
 use ris_video::vulkan::swapchain::Swapchain;
 use ris_video::vulkan::swapchain::SwapchainEntry;
 use ris_video::vulkan::transient_command::TransientCommandSync;
@@ -89,29 +88,28 @@ impl OutputFrame {
             device,
             graphics_queue,
             present_queue,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            loader: swapchain_loader,
-                            swapchain,
-                            ..
-                        },
-                    entries: swapchain_entries,
-                    frames_in_flight,
-                    ..
-                },
+            swapchain,
+            //swapchain:
+            //    Swapchain {
+            //        base:
+            //            BaseSwapchain {
+            //                loader: swapchain_loader,
+            //                swapchain,
+            //                ..
+            //            },
+            //        entries: swapchain_entries,
+            //        frames_in_flight,
+            //        ..
+            //    },
             ..
         } = &self.core;
-
-        let frames_in_flight = frames_in_flight.as_ref().unroll()?;
 
         let FrameInFlight {
             image_available,
             render_finished,
             in_flight,
-        } = &frames_in_flight[self.current_frame];
-        let next_frame = (self.current_frame + 1) % frames_in_flight.len();
+        } = &swapchain.frames_in_flight[self.current_frame];
+        let next_frame = (self.current_frame + 1) % swapchain.frames_in_flight.len();
         self.current_frame = next_frame;
 
         let image_available_sem = [*image_available];
@@ -127,8 +125,8 @@ impl OutputFrame {
         ris_debug::add_record!(r, "acquire an image from the swapchain")?;
 
         let acquire_image_result = unsafe {
-            swapchain_loader.acquire_next_image(
-                *swapchain,
+            swapchain.loader.acquire_next_image(
+                swapchain.swapchain,
                 u64::MAX,
                 *image_available,
                 vk::Fence::null(),
@@ -141,7 +139,7 @@ impl OutputFrame {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
                     return self
                         .core
-                        .recreate_swapchain(self.window.vulkan_drawable_size(), god_asset)
+                        .recreate_swapchain(self.window.vulkan_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
@@ -151,14 +149,16 @@ impl OutputFrame {
 
         // prepare command buffer
         ris_debug::add_record!(r, "prepare command buffer")?;
-        let swapchain_entry = &swapchain_entries[image_index as usize];
+        let swapchain_entry = &swapchain.entries[image_index as usize];
         let SwapchainEntry {
             image_view,
             command_buffer,
             ..
         } = swapchain_entry;
 
-        unsafe { device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty()) }?;
+        unsafe {
+            device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty())
+        }?;
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
@@ -283,11 +283,9 @@ impl OutputFrame {
         ris_debug::add_record!(r, "imgui backend")?;
         let draw_data = self.imgui.backend.context().render();
         ris_debug::add_record!(r, "imgui frontend")?;
-        self.imgui.renderer.draw(
-            &self.core,
-            swapchain_entry,
-            draw_data,
-        )?;
+        self.imgui
+            .renderer
+            .draw(&self.core, swapchain_entry, draw_data)?;
 
         // end command buffer and submit
         ris_debug::add_record!(r, "submit command buffer")?;
@@ -307,10 +305,10 @@ impl OutputFrame {
         }];
 
         unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
- 
+
         // present swap chain image
         ris_debug::add_record!(r, "present the swap chain image")?;
-        let swapchains = [*swapchain];
+        let swapchains = [swapchain.swapchain];
 
         let present_info = vk::PresentInfoKHR {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
@@ -323,8 +321,11 @@ impl OutputFrame {
             p_results: ptr::null_mut(),
         };
 
-        let queue_present_result =
-            unsafe { swapchain_loader.queue_present(*present_queue, &present_info) };
+        let queue_present_result = unsafe {
+            swapchain
+                .loader
+                .queue_present(*present_queue, &present_info)
+        };
 
         // recreate swapchain
         let window_event = match queue_present_result {
@@ -351,7 +352,7 @@ impl OutputFrame {
         };
 
         if let WindowEvent::SizeChanged(width, height) = window_event {
-            self.core.recreate_swapchain((width, height), god_asset)?;
+            self.core.recreate_swapchain((width, height))?;
         }
 
         ris_debug::end_record!(r)?;

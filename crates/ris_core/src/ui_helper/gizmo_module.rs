@@ -1,8 +1,8 @@
 use std::f32::consts::PI;
 
 use ris_math::color::Rgb;
-use ris_math::vector::Vec3;
 use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::UiHelperModule;
@@ -63,10 +63,7 @@ impl UiHelperModule for GizmoModule {
             for i in 0..10 {
                 for j in 0..10 {
                     for k in 0..10 {
-                        ris_debug::gizmo::point(
-                            Vec3(i as f32, j as f32, k as f32),
-                            None,
-                        )?;
+                        ris_debug::gizmo::point(Vec3(i as f32, j as f32, k as f32), None)?;
                     }
                 }
             }

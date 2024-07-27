@@ -86,8 +86,7 @@ pub fn sincos_bhaskara_branchless(angle: f32) -> (f32, f32) {
     let sin_part2 = -bhaskara(angle - 1.5 * PI);
     let sin_choose = (angle > PI) as usize as f32;
 
-    let flipsign =
-        (angle > 0.5 * PI && angle < 1.5 * PI) as usize as f32;
+    let flipsign = (angle > 0.5 * PI && angle < 1.5 * PI) as usize as f32;
     let sign = ris_math::mix(1., -1., flipsign);
 
     let sin = ris_math::mix(sin_part1, sin_part2, sin_choose);
@@ -102,11 +101,7 @@ pub fn sincos_bhaskara_without_sqrt(angle: f32) -> (f32, f32) {
     let sin_choose = (angle > PI) as usize as f32;
 
     let cos_angle_choose = (angle > 1.5 * PI) as usize as f32;
-    let cos_angle = ris_math::mix(
-        angle + 0.5 * PI,
-        angle - 1.5 * PI,
-        cos_angle_choose,
-    );
+    let cos_angle = ris_math::mix(angle + 0.5 * PI, angle - 1.5 * PI, cos_angle_choose);
 
     let cos_part1 = bhaskara(cos_angle - 0.5 * PI);
     let cos_part2 = -bhaskara(cos_angle - 1.5 * PI);
