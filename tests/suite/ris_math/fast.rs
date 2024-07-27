@@ -19,6 +19,7 @@ fn should_compute_fastsincos() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn should_compute_abs() {
     let count = 1 << miri_choose(16, 4);
     for i in 0..count {
@@ -32,6 +33,7 @@ fn should_compute_abs() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn should_compute_negative() {
     let count = 1 << miri_choose(16, 4);
     for i in 0..count {
@@ -102,6 +104,7 @@ fn should_compute_fastpow() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn should_compute_fastsqrt() {
     let max_error = 0.03925;
 
