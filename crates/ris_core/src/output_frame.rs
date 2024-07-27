@@ -4,11 +4,13 @@ use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
+use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
+use ris_video::imgui::imgui_renderer::ImguiRenderer;
 use ris_video::imgui::RisImgui;
 use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
@@ -67,7 +69,7 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<()> {
+    pub fn run(&mut self, frame: Frame, state: &mut GodState, god_asset: &RisGodAsset) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -101,6 +103,25 @@ impl OutputFrame {
 
         unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
         unsafe { device.reset_fences(&[*in_flight]) }?;
+
+        // rebuild renderers
+        ris_debug::add_record!(r, "rebuild renderers")?;
+        if state.event_rebuild_renderers {
+            unsafe {
+                ris_log::trace!("rebuilding renderers...");
+                self.core.device.device_wait_idle()?;
+
+                self.scene_renderer.free(device);
+                self.gizmo_shape_renderer.free(device);
+                self.imgui.renderer.free(device);
+
+                self.scene_renderer = SceneRenderer::alloc(&self.core, god_asset)?;
+                self.gizmo_shape_renderer = GizmoShapeRenderer::alloc(&self.core, god_asset)?;
+                self.imgui.renderer = ImguiRenderer::alloc(&self.core, god_asset, self.imgui.backend.context())?;
+
+                ris_log::debug!("rebuilt renderers!");
+            }
+        }
 
         // acquire an image from the swap chain
         ris_debug::add_record!(r, "acquire an image from the swapchain")?;

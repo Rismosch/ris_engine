@@ -1,7 +1,7 @@
 #ris_glsl 450 vertex geometry fragment
 
 #include util/util.glsl
-#define QUAD_THICKNESS 0.02
+#define QUAD_THICKNESS 0.002
 #define LINE_THICKNESS 0.0015
 
 #vertex
