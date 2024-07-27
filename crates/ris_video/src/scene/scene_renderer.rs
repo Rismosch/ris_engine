@@ -2,6 +2,7 @@ use std::ptr;
 
 use ash::vk;
 
+use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -15,6 +16,8 @@ use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
+use crate::vulkan::texture::Texture;
+use crate::vulkan::texture::TextureCreateInfo;
 use super::scene_mesh::Mesh;
 use super::scene_mesh::Vertex;
 
@@ -49,11 +52,12 @@ impl SceneFrame {
 }
 
 pub struct SceneRenderer {
-    pipeline: vk::Pipeline,
-    pipeline_layout: vk::PipelineLayout,
-    render_pass: vk::RenderPass,
+    texture: Texture,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
+    render_pass: vk::RenderPass,
+    pipeline: vk::Pipeline,
+    pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
 }
 
@@ -70,6 +74,8 @@ impl SceneRenderer {
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
             device.destroy_render_pass(self.render_pass, None);
+
+            self.texture.free(device);
         }
     }
 
@@ -86,6 +92,62 @@ impl SceneRenderer {
             swapchain,
             ..
         } = core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+        let physical_device_properties = unsafe {
+            instance.get_physical_device_properties(suitable_device.physical_device)
+        };
+
+        // texture
+        let texture_asset_id = god_asset.texture.clone();
+        let content = ris_asset::load_async(texture_asset_id.clone()).wait(None)??;
+        let (pixels, desc) = qoi::decode(&content, None)?;
+
+        let pixels_rgba = match desc.channels {
+            qoi::Channels::RGB => {
+                ris_log::trace!(
+                    "adding alpha channel to texture asset... {:?}",
+                    texture_asset_id
+                );
+
+                ris_error::assert!(pixels.len() % 3 == 0)?;
+                let pixels_rgba_len = (pixels.len() * 4) / 3;
+                let mut pixels_rgba = Vec::with_capacity(pixels_rgba_len);
+
+                for chunk in pixels.chunks_exact(3) {
+                    let r = chunk[0];
+                    let g = chunk[1];
+                    let b = chunk[2];
+                    let a = u8::MAX;
+
+                    pixels_rgba.push(r);
+                    pixels_rgba.push(g);
+                    pixels_rgba.push(b);
+                    pixels_rgba.push(a);
+                }
+
+                ris_log::trace!(
+                    "added alpha channel to texture asset! {:?}",
+                    texture_asset_id
+                );
+
+                pixels_rgba
+            }
+            qoi::Channels::RGBA => pixels,
+        };
+
+        let texture = unsafe{Texture::alloc(TextureCreateInfo{
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: desc.width,
+            height: desc.height,
+            pixels_rgba: &pixels_rgba,
+        })}?;
 
         // descriptor sets
         let descriptor_set_layout_bindings = [
@@ -468,10 +530,6 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
-
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for i in 0..swapchain.entries.len() {
             unsafe {
@@ -505,11 +563,12 @@ impl SceneRenderer {
         }
 
         Ok(Self{
-            pipeline,
-            pipeline_layout,
-            render_pass,
+            texture,
             descriptor_set_layout,
             descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
             frames,
         })
     }
@@ -699,18 +758,38 @@ impl SceneRenderer {
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];
 
-            let write_descriptor_sets = [vk::WriteDescriptorSet{
-                s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                p_next: ptr::null(),
-                dst_set: *descriptor_set,
-                dst_binding: 0,
-                dst_array_element: 0,
-                descriptor_count: 1,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                p_image_info: ptr::null(),
-                p_buffer_info: descriptor_buffer_info.as_ptr(),
-                p_texel_buffer_view: ptr::null(),
+            let descriptor_image_info = [vk::DescriptorImageInfo{
+                sampler: self.texture.sampler,
+                image_view: self.texture.view,
+                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
+
+            let write_descriptor_sets = [
+                vk::WriteDescriptorSet{
+                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                    p_next: ptr::null(),
+                    dst_set: *descriptor_set,
+                    dst_binding: 0,
+                    dst_array_element: 0,
+                    descriptor_count: descriptor_buffer_info.len() as u32,
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    p_image_info: ptr::null(),
+                    p_buffer_info: descriptor_buffer_info.as_ptr(),
+                    p_texel_buffer_view: ptr::null(),
+                },
+                vk::WriteDescriptorSet {
+                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                    p_next: ptr::null(),
+                    dst_set: *descriptor_set,
+                    dst_binding: 1,
+                    dst_array_element: 0,
+                    descriptor_count: descriptor_image_info.len() as u32,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    p_image_info: descriptor_image_info.as_ptr(),
+                    p_buffer_info: ptr::null(),
+                    p_texel_buffer_view: ptr::null(),
+                },
+            ];
 
             device.update_descriptor_sets(&write_descriptor_sets, &[]);
 
