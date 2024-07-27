@@ -27,6 +27,9 @@ pub struct ImguiFrame {
 }
 
 impl ImguiFrame {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -51,7 +54,10 @@ pub struct ImguiRenderer {
 }
 
 impl ImguiRenderer {
-    pub fn free(&mut self, device: &ash::Device) {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
                 frame.free(device);
@@ -67,7 +73,10 @@ impl ImguiRenderer {
         }
     }
 
-    pub fn init(
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(
         core: &VulkanCore,
         god_asset: &RisGodAsset,
         context: &mut Context,
@@ -484,7 +493,7 @@ impl ImguiRenderer {
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
-            let frame = ImguiFrame{
+            let frame = ImguiFrame {
                 mesh: None,
                 framebuffer: None,
             };
@@ -544,12 +553,13 @@ impl ImguiRenderer {
             Some(mesh) => {
                 mesh.update(device, physical_device_memory_properties, draw_data)?;
                 mesh
-            },
+            }
             None => {
-                let new_mesh = unsafe {Mesh::alloc(device, physical_device_memory_properties, draw_data)}?;
+                let new_mesh =
+                    unsafe { Mesh::alloc(device, physical_device_memory_properties, draw_data) }?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
-            },
+            }
         };
 
         // framebuffer
@@ -659,12 +669,7 @@ impl ImguiRenderer {
         };
 
         unsafe {
-            device.cmd_bind_vertex_buffers(
-                *command_buffer,
-                0,
-                &[mesh.vertices.buffer],
-                &[0],
-            )
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0])
         };
 
         let mut index_offset = 0;

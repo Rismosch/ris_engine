@@ -43,7 +43,6 @@ impl GizmoShapeFrame {
     }
 }
 
-
 //pub struct Descriptor {
 //    pub buffer: Buffer,
 //    pub mapped: *mut UniformBufferObject,
@@ -68,7 +67,10 @@ pub struct GizmoShapeRenderer {
 }
 
 impl GizmoShapeRenderer {
-    pub fn free(&mut self, device: &ash::Device) {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
                 frame.free(device);
@@ -83,7 +85,10 @@ impl GizmoShapeRenderer {
         }
     }
 
-    pub fn init(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -93,7 +98,7 @@ impl GizmoShapeRenderer {
         } = core;
 
         // descriptor sets
-        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding{
+        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding {
             binding: 0,
             descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
             descriptor_count: 1,
@@ -101,7 +106,7 @@ impl GizmoShapeRenderer {
             p_immutable_samplers: ptr::null(),
         }];
 
-        let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo{
+        let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::DescriptorSetLayoutCreateFlags::empty(),
@@ -112,7 +117,7 @@ impl GizmoShapeRenderer {
         let descriptor_set_layout = unsafe {
             device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
         }?;
-        
+
         let descriptor_pool_sizes = [vk::DescriptorPoolSize {
             ty: vk::DescriptorType::UNIFORM_BUFFER,
             descriptor_count: swapchain.entries.len() as u32,
@@ -127,7 +132,8 @@ impl GizmoShapeRenderer {
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
-        let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+        let descriptor_pool =
+            unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
@@ -142,7 +148,8 @@ impl GizmoShapeRenderer {
             p_set_layouts: descriptor_set_layout_vec.as_ptr(),
         };
 
-        let descriptor_sets = unsafe {device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
+        let descriptor_sets =
+            unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
         let vs_future = ris_asset::load_async(god_asset.gizmo_segment_vert_spv.clone());
@@ -315,7 +322,7 @@ impl GizmoShapeRenderer {
 
         // pipeline layout
         let descriptor_set_layouts = [descriptor_set_layout];
-        
+
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
@@ -432,7 +439,7 @@ impl GizmoShapeRenderer {
         };
 
         let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for i in 0..swapchain.entries.len() {
+        for descriptor_set in descriptor_sets {
             unsafe {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
                 let descriptor_buffer = Buffer::alloc(
@@ -450,9 +457,7 @@ impl GizmoShapeRenderer {
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let descriptor_set = descriptor_sets[i];
-
-                let frame = GizmoShapeFrame{
+                let frame = GizmoShapeFrame {
                     mesh: None,
                     framebuffer: None,
                     descriptor_buffer,
@@ -517,12 +522,14 @@ impl GizmoShapeRenderer {
             Some(mesh) => {
                 mesh.update(device, physical_device_memory_properties, vertices)?;
                 mesh
-            },
+            }
             None => {
-                let new_mesh = unsafe {ShapeMesh::alloc(device, physical_device_memory_properties, vertices)}?;
+                let new_mesh = unsafe {
+                    ShapeMesh::alloc(device, physical_device_memory_properties, vertices)
+                }?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
-            },
+            }
         };
 
         // framebuffer
@@ -532,7 +539,7 @@ impl GizmoShapeRenderer {
 
         let attachments = [*viewport_image_view];
 
-        let frame_buffer_create_info = vk::FramebufferCreateInfo{
+        let frame_buffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
@@ -544,7 +551,8 @@ impl GizmoShapeRenderer {
             layers: 1,
         };
 
-        let new_framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+        let new_framebuffer =
+            unsafe { device.create_framebuffer(&frame_buffer_create_info, None) }?;
         *framebuffer = Some(new_framebuffer);
         let framebuffer = new_framebuffer;
 
@@ -577,7 +585,7 @@ impl GizmoShapeRenderer {
                 vk::SubpassContents::INLINE,
             )
         };
-        
+
         unsafe {
             device.cmd_bind_pipeline(
                 *command_buffer,
@@ -593,40 +601,22 @@ impl GizmoShapeRenderer {
             ..Default::default()
         }];
 
-        unsafe {
-            device.cmd_set_viewport(
-                *command_buffer,
-                0,
-                &viewports,
-            )
-        };
+        unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
 
-        let scissors = [vk::Rect2D{
-            offset: vk::Offset2D {
-                x: 0,
-                y: 0,
-            },
+        let scissors = [vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
             extent: vk::Extent2D {
                 width: window_drawable_size.0,
                 height: window_drawable_size.1,
-            }
+            },
         }];
 
         unsafe {
-            device.cmd_set_scissor(
-                *command_buffer,
-                0,
-                &scissors,
-            );
+            device.cmd_set_scissor(*command_buffer, 0, &scissors);
         };
 
         unsafe {
-            device.cmd_bind_vertex_buffers(
-                *command_buffer,
-                0,
-                &[mesh.vertices.buffer],
-                &[0],
-            )
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0])
         };
 
         let ubo = [UniformBufferObject {
@@ -640,7 +630,7 @@ impl GizmoShapeRenderer {
             offset: 0,
             range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
         }];
-        
+
         let write_descriptor_sets = [vk::WriteDescriptorSet {
             s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
             p_next: ptr::null(),
@@ -654,9 +644,7 @@ impl GizmoShapeRenderer {
             p_texel_buffer_view: ptr::null(),
         }];
 
-        unsafe {
-            device.update_descriptor_sets(&write_descriptor_sets, &[])
-        };
+        unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         unsafe {
             device.cmd_bind_descriptor_sets(
@@ -669,18 +657,9 @@ impl GizmoShapeRenderer {
             )
         };
 
-        unsafe {
-            device.cmd_draw(
-                *command_buffer,
-                vertices.len() as u32,
-                1,
-                0,
-                0,
-            )
-        };
+        unsafe { device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0) };
 
         unsafe { device.cmd_end_render_pass(*command_buffer) };
         Ok(())
     }
 }
-

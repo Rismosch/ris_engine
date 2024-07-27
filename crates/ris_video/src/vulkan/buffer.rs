@@ -14,6 +14,25 @@ pub struct Buffer {
     pub memory: vk::DeviceMemory,
 }
 
+pub struct CopyToBufferInfo<'a> {
+    pub device: &'a ash::Device,
+    pub queue: vk::Queue,
+    pub transient_command_pool: vk::CommandPool,
+    pub dst: &'a Buffer,
+    pub size: vk::DeviceSize,
+    pub sync: TransientCommandSync,
+}
+
+pub struct CopyToImageInfo<'a> {
+    pub device: &'a ash::Device,
+    pub queue: vk::Queue,
+    pub transient_command_pool: vk::CommandPool,
+    pub image: vk::Image,
+    pub width: u32,
+    pub height: u32,
+    pub sync: TransientCommandSync,
+}
+
 impl Buffer {
     /// # Safety
     ///
@@ -90,15 +109,16 @@ impl Buffer {
     /// # Safety
     ///
     /// Must make sure that `dst` is big enough to hold `self`.
-    pub unsafe fn copy_to_buffer(
-        &self,
-        device: &ash::Device,
-        queue: vk::Queue,
-        transient_command_pool: vk::CommandPool,
-        dst: &Self,
-        size: vk::DeviceSize,
-        sync: TransientCommandSync,
-    ) -> RisResult<()> {
+    pub unsafe fn copy_to_buffer(&self, info: CopyToBufferInfo) -> RisResult<()> {
+        let CopyToBufferInfo {
+            device,
+            queue,
+            transient_command_pool,
+            dst,
+            size,
+            sync,
+        } = info;
+
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
         let copy_regions = [vk::BufferCopy {
@@ -123,16 +143,17 @@ impl Buffer {
     /// # Safety
     ///
     /// Must make sure that the image is big enough to hold the data of this buffer.
-    pub unsafe fn copy_to_image(
-        &self,
-        device: &ash::Device,
-        queue: vk::Queue,
-        transient_command_pool: vk::CommandPool,
-        image: vk::Image,
-        width: u32,
-        height: u32,
-        sync: TransientCommandSync,
-    ) -> RisResult<()> {
+    pub unsafe fn copy_to_image(&self, info: CopyToImageInfo) -> RisResult<()> {
+        let CopyToImageInfo {
+            device,
+            queue,
+            transient_command_pool,
+            image,
+            width,
+            height,
+            sync,
+        } = info;
+
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
         let regions = [vk::BufferImageCopy {

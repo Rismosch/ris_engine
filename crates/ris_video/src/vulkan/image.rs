@@ -25,6 +25,16 @@ pub struct ImageCreateInfo<'a> {
     pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
 }
 
+pub struct TransitionLayoutInfo<'a> {
+    pub device: &'a ash::Device,
+    pub queue: vk::Queue,
+    pub transient_command_pool: vk::CommandPool,
+    pub format: vk::Format,
+    pub old_layout: vk::ImageLayout,
+    pub new_layout: vk::ImageLayout,
+    pub sync: TransientCommandSync,
+}
+
 impl Image {
     /// # Safety
     ///
@@ -132,16 +142,17 @@ impl Image {
         Ok(view)
     }
 
-    pub fn transition_layout(
-        &self,
-        device: &ash::Device,
-        queue: vk::Queue,
-        transient_command_pool: vk::CommandPool,
-        format: vk::Format,
-        old_layout: vk::ImageLayout,
-        new_layout: vk::ImageLayout,
-        sync: TransientCommandSync,
-    ) -> RisResult<()> {
+    pub fn transition_layout(&self, info: TransitionLayoutInfo) -> RisResult<()> {
+        let TransitionLayoutInfo {
+            device,
+            queue,
+            transient_command_pool,
+            format,
+            old_layout,
+            new_layout,
+            sync,
+        } = info;
+
         let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
 
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {

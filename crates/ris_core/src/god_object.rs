@@ -121,19 +121,19 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = VulkanCore::initialize(&app_info, &window)?;
+        let vulkan_core = unsafe { VulkanCore::alloc(&app_info, &window) }?;
 
         // scene renderer
-        let scene_renderer = { SceneRenderer::init(&vulkan_core, &god_asset) }?;
+        let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // gizmo renderer
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_shape_renderer = GizmoShapeRenderer::init(&vulkan_core, &god_asset)?;
+        let gizmo_shape_renderer = unsafe { GizmoShapeRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // imgui renderer
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(&vulkan_core, &god_asset, context)?;
+        let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
         let imgui = RisImgui {
             backend: imgui_backend,
             renderer: imgui_renderer,

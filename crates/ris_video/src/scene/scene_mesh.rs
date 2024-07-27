@@ -2,8 +2,8 @@ use ash::vk;
 
 use ris_error::RisResult;
 use ris_math::color::Rgb;
-use ris_math::vector::Vec3;
 use ris_math::vector::Vec2;
+use ris_math::vector::Vec3;
 
 use crate::vulkan::buffer::Buffer;
 
@@ -22,18 +22,23 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);
     }
 
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[Vertex],
         indices: &[u32],
     ) -> RisResult<Self> {
-
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
         let vertex_buffer = Buffer::alloc(
             device,
@@ -58,7 +63,7 @@ impl Mesh {
         )?;
         index_buffer.write(device, indices)?;
 
-        Ok(Self{
+        Ok(Self {
             vertices: vertex_buffer,
             vertex_count: vertices.len(),
             indices: index_buffer,
@@ -94,9 +99,9 @@ impl Mesh {
             let old_buffer = self.vertices;
             self.vertices = new_vertex_buffer;
 
-            unsafe {old_buffer.free(device)};
+            unsafe { old_buffer.free(device) };
         }
-        unsafe {self.vertices.write(device, &vertices)}?;
+        unsafe { self.vertices.write(device, vertices) }?;
 
         let old_index_count = self.index_count;
         let new_index_count = indices.len();
@@ -121,7 +126,7 @@ impl Mesh {
 
             unsafe { old_buffer.free(device) };
         }
-        unsafe { self.indices.write(device, &indices) }?;
+        unsafe { self.indices.write(device, indices) }?;
 
         Ok(())
     }

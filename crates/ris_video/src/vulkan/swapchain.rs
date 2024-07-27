@@ -9,6 +9,7 @@ use ris_error::RisResult;
 use super::frame_in_flight::FrameInFlight;
 use super::image::Image;
 use super::image::ImageCreateInfo;
+use super::image::TransitionLayoutInfo;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::transient_command::TransientCommandSync;
@@ -121,7 +122,7 @@ impl Swapchain {
                 capabilities.max_image_extent.height,
             );
 
-            vk::Extent2D {width, height}
+            vk::Extent2D { width, height }
         };
 
         let preferred_swapchain_image_count = capabilities.min_image_count + 1;
@@ -135,17 +136,18 @@ impl Swapchain {
             )
         };
 
-        let (image_sharing_mode, queue_family_indices) = if suitable_device.graphics_queue_family == suitable_device.present_queue_family {
-            (vk::SharingMode::EXCLUSIVE, vec![])
-        } else {
-            (
-                vk::SharingMode::CONCURRENT,
-                vec![
-                    suitable_device.graphics_queue_family,
-                    suitable_device.present_queue_family,
-                ]
-            )
-        };
+        let (image_sharing_mode, queue_family_indices) =
+            if suitable_device.graphics_queue_family == suitable_device.present_queue_family {
+                (vk::SharingMode::EXCLUSIVE, vec![])
+            } else {
+                (
+                    vk::SharingMode::CONCURRENT,
+                    vec![
+                        suitable_device.graphics_queue_family,
+                        suitable_device.present_queue_family,
+                    ],
+                )
+            };
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR {
             s_type: vk::StructureType::SWAPCHAIN_CREATE_INFO_KHR,
@@ -171,7 +173,7 @@ impl Swapchain {
         // create swapchain
         let loader = ash::extensions::khr::Swapchain::new(instance, device);
         let swapchain = unsafe { loader.create_swapchain(&swapchain_create_info, None) }?;
-        let images = unsafe {loader.get_swapchain_images(swapchain)}?;
+        let images = unsafe { loader.get_swapchain_images(swapchain) }?;
 
         // command buffers
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
@@ -190,11 +192,9 @@ impl Swapchain {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let depth_format = super::util::find_depth_format(
-            instance,
-            suitable_device.physical_device,
-        )?;
-        
+        let depth_format =
+            super::util::find_depth_format(instance, suitable_device.physical_device)?;
+
         let mut entries = Vec::with_capacity(images.len());
         for (i, viewport_image) in images.into_iter().enumerate() {
             // viewport view
@@ -206,7 +206,7 @@ impl Swapchain {
             )?;
 
             // depth
-            let depth_image = Image::alloc(ImageCreateInfo{
+            let depth_image = Image::alloc(ImageCreateInfo {
                 device,
                 width: extent.width,
                 height: extent.height,
@@ -224,15 +224,15 @@ impl Swapchain {
                 vk::ImageAspectFlags::DEPTH,
             )?;
 
-            depth_image.transition_layout(
+            depth_image.transition_layout(TransitionLayoutInfo {
                 device,
-                graphics_queue,
+                queue: graphics_queue,
                 transient_command_pool,
-                depth_format,
-                vk::ImageLayout::UNDEFINED,
-                vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                TransientCommandSync::default(),
-            )?;
+                format: depth_format,
+                old_layout: vk::ImageLayout::UNDEFINED,
+                new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                sync: TransientCommandSync::default(),
+            })?;
 
             // command buffer
             let command_buffer = command_buffers[i];
@@ -276,4 +276,3 @@ impl Swapchain {
         })
     }
 }
-

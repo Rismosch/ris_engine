@@ -28,8 +28,11 @@ pub struct VulkanCore {
     pub swapchain: Swapchain,
 }
 
-impl Drop for VulkanCore {
-    fn drop(&mut self) {
+impl VulkanCore {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self) {
         ris_log::debug!("dropping vulkan core...");
 
         unsafe {
@@ -51,13 +54,11 @@ impl Drop for VulkanCore {
 
         ris_log::info!("vulkan core dropped!");
     }
-}
 
-impl VulkanCore {
-    pub fn initialize(
-        app_info: &AppInfo,
-        window: &Window,
-    ) -> RisResult<Self> {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(app_info: &AppInfo, window: &Window) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -241,10 +242,7 @@ impl VulkanCore {
         })
     }
 
-    pub fn recreate_swapchain(
-        &mut self,
-        window_drawable_size: (u32, u32),
-    ) -> RisResult<()> {
+    pub fn recreate_swapchain(&mut self, window_drawable_size: (u32, u32)) -> RisResult<()> {
         let Self {
             instance,
             surface_loader,

@@ -5,8 +5,10 @@ use ash::vk;
 use ris_error::RisResult;
 
 use super::buffer::Buffer;
+use super::buffer::CopyToImageInfo;
 use super::image::Image;
 use super::image::ImageCreateInfo;
+use super::image::TransitionLayoutInfo;
 use super::transient_command::TransientCommandSync;
 
 pub struct Texture {
@@ -68,35 +70,35 @@ impl Texture {
             physical_device_memory_properties,
         })?;
 
-        image.transition_layout(
+        image.transition_layout(TransitionLayoutInfo {
             device,
             queue,
             transient_command_pool,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageLayout::UNDEFINED,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            TransientCommandSync::default(),
-        )?;
+            format: vk::Format::R8G8B8A8_SRGB,
+            old_layout: vk::ImageLayout::UNDEFINED,
+            new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            sync: TransientCommandSync::default(),
+        })?;
 
-        staging_buffer.copy_to_image(
+        staging_buffer.copy_to_image(CopyToImageInfo {
             device,
             queue,
             transient_command_pool,
-            image.image,
+            image: image.image,
             width,
             height,
-            TransientCommandSync::default(),
-        )?;
+            sync: TransientCommandSync::default(),
+        })?;
 
-        image.transition_layout(
+        image.transition_layout(TransitionLayoutInfo {
             device,
             queue,
             transient_command_pool,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            TransientCommandSync::default(),
-        )?;
+            format: vk::Format::R8G8B8A8_SRGB,
+            old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            sync: TransientCommandSync::default(),
+        })?;
 
         staging_buffer.free(device);
 

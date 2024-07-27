@@ -9,13 +9,13 @@ use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 
+use super::scene_mesh::Mesh;
+use super::scene_mesh::Vertex;
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
-use super::scene_mesh::Mesh;
-use super::scene_mesh::Vertex;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -34,6 +34,9 @@ pub struct SceneFrame {
 }
 
 impl SceneFrame {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -58,7 +61,10 @@ pub struct SceneRenderer {
 }
 
 impl SceneRenderer {
-    pub fn free(&mut self, device: &ash::Device) {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
                 frame.free(device);
@@ -75,10 +81,10 @@ impl SceneRenderer {
         }
     }
 
-    pub fn init(
-        core: &VulkanCore,
-        god_asset: &RisGodAsset,
-    ) -> RisResult<Self> {
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -92,9 +98,8 @@ impl SceneRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties = unsafe {
-            instance.get_physical_device_properties(suitable_device.physical_device)
-        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         // texture
         let texture_asset_id = god_asset.texture.clone();
@@ -134,16 +139,18 @@ impl SceneRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let texture = unsafe{Texture::alloc(TextureCreateInfo{
-            device,
-            queue: *graphics_queue,
-            transient_command_pool: *transient_command_pool,
-            physical_device_memory_properties,
-            physical_device_properties,
-            width: desc.width,
-            height: desc.height,
-            pixels_rgba: &pixels_rgba,
-        })}?;
+        let texture = unsafe {
+            Texture::alloc(TextureCreateInfo {
+                device,
+                queue: *graphics_queue,
+                transient_command_pool: *transient_command_pool,
+                physical_device_memory_properties,
+                physical_device_properties,
+                width: desc.width,
+                height: desc.height,
+                pixels_rgba: &pixels_rgba,
+            })
+        }?;
 
         // descriptor sets
         let descriptor_set_layout_bindings = [
@@ -195,7 +202,8 @@ impl SceneRenderer {
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
-        let descriptor_pool = unsafe {device.create_descriptor_pool(&descriptor_pool_create_info, None)}?;
+        let descriptor_pool =
+            unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
@@ -210,7 +218,8 @@ impl SceneRenderer {
             p_set_layouts: descriptor_set_layout_vec.as_ptr(),
         };
 
-        let descriptor_sets = unsafe {device.allocate_descriptor_sets(&descriptor_set_allocate_info)}?;
+        let descriptor_sets =
+            unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
@@ -271,7 +280,7 @@ impl SceneRenderer {
             },
         ];
 
-        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo{
+        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
@@ -281,7 +290,7 @@ impl SceneRenderer {
             p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         }];
 
-        let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo{
+        let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
@@ -292,7 +301,7 @@ impl SceneRenderer {
         let viewports = [vk::Viewport::default()];
         let scissors = [vk::Rect2D::default()];
 
-        let viewport_state = [vk::PipelineViewportStateCreateInfo{
+        let viewport_state = [vk::PipelineViewportStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
@@ -410,8 +419,9 @@ impl SceneRenderer {
             p_push_constant_ranges: ptr::null(),
         };
 
-        let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
-        
+        let pipeline_layout =
+            unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
+
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
@@ -427,7 +437,10 @@ impl SceneRenderer {
 
         let depth_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: crate::vulkan::util::find_depth_format(instance, suitable_device.physical_device)?,
+            format: crate::vulkan::util::find_depth_format(
+                instance,
+                suitable_device.physical_device,
+            )?,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::DONT_CARE,
@@ -527,7 +540,7 @@ impl SceneRenderer {
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for i in 0..swapchain.entries.len() {
+        for descriptor_set in descriptor_sets {
             unsafe {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
                 let descriptor_buffer = Buffer::alloc(
@@ -545,9 +558,7 @@ impl SceneRenderer {
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let descriptor_set = descriptor_sets[i];
-
-                let frame = SceneFrame{
+                let frame = SceneFrame {
                     mesh: None,
                     framebuffer: None,
                     descriptor_buffer,
@@ -558,7 +569,7 @@ impl SceneRenderer {
             }
         }
 
-        Ok(Self{
+        Ok(Self {
             texture,
             descriptor_set_layout,
             descriptor_pool,
@@ -609,34 +620,26 @@ impl SceneRenderer {
 
         let mesh = match mesh {
             Some(mesh) => {
-                mesh.update(
-                    device,
-                    physical_device_memory_properties,
-                    vertices,
-                    indices,
-                )?;
+                mesh.update(device, physical_device_memory_properties, vertices, indices)?;
                 mesh
-            },
+            }
             None => {
-                let new_mesh = unsafe {Mesh::alloc(
-                    device,
-                    physical_device_memory_properties,
-                    vertices,
-                    indices,
-                )}?;
+                let new_mesh = unsafe {
+                    Mesh::alloc(device, physical_device_memory_properties, vertices, indices)
+                }?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
-            },
+            }
         };
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
-            unsafe {device.destroy_framebuffer(framebuffer, None)};
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
         let attachments = [*viewport_image_view, *depth_image_view];
 
-        let frame_buffer_create_info = vk::FramebufferCreateInfo{
+        let frame_buffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
@@ -648,7 +651,8 @@ impl SceneRenderer {
             layers: 1,
         };
 
-        let new_framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+        let new_framebuffer =
+            unsafe { device.create_framebuffer(&frame_buffer_create_info, None) }?;
         *framebuffer = Some(new_framebuffer);
         let framebuffer = new_framebuffer;
 
@@ -693,7 +697,7 @@ impl SceneRenderer {
                 self.pipeline,
             );
 
-            let viewports = [vk::Viewport{
+            let viewports = [vk::Viewport {
                 x: 0.0,
                 y: 0.0,
                 width: window_drawable_size.0 as f32,
@@ -702,35 +706,19 @@ impl SceneRenderer {
                 max_depth: 1.0,
             }];
 
-            let scissors = [vk::Rect2D{
-                offset: vk::Offset2D {
-                    x: 0,
-                    y: 0,
-                },
+            let scissors = [vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
                 extent: vk::Extent2D {
                     width: window_drawable_size.0,
                     height: window_drawable_size.1,
-                }
+                },
             }];
 
-            device.cmd_set_viewport(
-                *command_buffer,
-                0,
-                &viewports,
-            );
+            device.cmd_set_viewport(*command_buffer, 0, &viewports);
 
-            device.cmd_set_scissor(
-                *command_buffer,
-                0,
-                &scissors,
-            );
+            device.cmd_set_scissor(*command_buffer, 0, &scissors);
 
-            device.cmd_bind_vertex_buffers(
-                *command_buffer,
-                0,
-                &[mesh.vertices.buffer],
-                &[0],
-            );
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             device.cmd_bind_index_buffer(
                 *command_buffer,
@@ -746,20 +734,20 @@ impl SceneRenderer {
             }];
             descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo{
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
                 buffer: descriptor_buffer.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];
 
-            let descriptor_image_info = [vk::DescriptorImageInfo{
+            let descriptor_image_info = [vk::DescriptorImageInfo {
                 sampler: self.texture.sampler,
                 image_view: self.texture.view,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
             let write_descriptor_sets = [
-                vk::WriteDescriptorSet{
+                vk::WriteDescriptorSet {
                     s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
                     p_next: ptr::null(),
                     dst_set: *descriptor_set,

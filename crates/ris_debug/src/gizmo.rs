@@ -157,11 +157,7 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
         return Ok(());
     };
 
-    let half_scale = Vec3(
-        half_scale.0,
-        half_scale.1,
-        half_scale.2,
-    ).abs();
+    let half_scale = Vec3(half_scale.0, half_scale.1, half_scale.2).abs();
 
     let shape = GizmoShape::Obb {
         center,
@@ -196,7 +192,7 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
     for shape in gizmos.shapes.iter() {
         match *shape {
             GizmoShape::Segment { start, end, color } => {
-                add_segment(&camera, &mut segments, start, end, color);
+                add_segment(camera, &mut segments, start, end, color);
             }
             GizmoShape::Point { position, color } => {
                 const MAGIC_SCALE: f32 = 0.03;
@@ -219,12 +215,12 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 let v5 = position + scale * ris_math::vector::VEC3_UP;
                 let v6 = position + scale * ris_math::vector::VEC3_DOWN;
 
-                add_segment(&camera, &mut segments, v0, v1, red);
-                add_segment(&camera, &mut segments, v0, v2, cyan);
-                add_segment(&camera, &mut segments, v0, v3, green);
-                add_segment(&camera, &mut segments, v0, v4, magenta);
-                add_segment(&camera, &mut segments, v0, v5, blue);
-                add_segment(&camera, &mut segments, v0, v6, yellow);
+                add_segment(camera, &mut segments, v0, v1, red);
+                add_segment(camera, &mut segments, v0, v2, cyan);
+                add_segment(camera, &mut segments, v0, v3, green);
+                add_segment(camera, &mut segments, v0, v4, magenta);
+                add_segment(camera, &mut segments, v0, v5, blue);
+                add_segment(camera, &mut segments, v0, v6, yellow);
             }
             GizmoShape::ViewPoint {
                 position,
@@ -240,9 +236,9 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 let v2 = position + rotation.rotate(ris_math::vector::VEC3_FORWARD);
                 let v3 = position + rotation.rotate(ris_math::vector::VEC3_UP);
 
-                add_segment(&camera, &mut segments, v0, v1, red);
-                add_segment(&camera, &mut segments, v0, v2, green);
-                add_segment(&camera, &mut segments, v0, v3, blue);
+                add_segment(camera, &mut segments, v0, v1, red);
+                add_segment(camera, &mut segments, v0, v2, green);
+                add_segment(camera, &mut segments, v0, v3, blue);
             }
             GizmoShape::Aabb { min, max, color } => {
                 let red = color.unwrap_or(ris_math::color::RGB_RED);
@@ -261,18 +257,18 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 let v6 = Vec3(min.x(), max.y(), max.z());
                 let v7 = Vec3(max.x(), max.y(), max.z());
 
-                add_segment(&camera, &mut segments, v1, v3, red);
-                add_segment(&camera, &mut segments, v5, v7, red);
-                add_segment(&camera, &mut segments, v2, v6, green);
-                add_segment(&camera, &mut segments, v3, v7, green);
-                add_segment(&camera, &mut segments, v4, v5, blue);
-                add_segment(&camera, &mut segments, v6, v7, blue);
-                add_segment(&camera, &mut segments, v0, v2, cyan);
-                add_segment(&camera, &mut segments, v4, v6, cyan);
-                add_segment(&camera, &mut segments, v0, v4, magenta);
-                add_segment(&camera, &mut segments, v1, v5, magenta);
-                add_segment(&camera, &mut segments, v0, v1, yellow);
-                add_segment(&camera, &mut segments, v2, v3, yellow);
+                add_segment(camera, &mut segments, v1, v3, red);
+                add_segment(camera, &mut segments, v5, v7, red);
+                add_segment(camera, &mut segments, v2, v6, green);
+                add_segment(camera, &mut segments, v3, v7, green);
+                add_segment(camera, &mut segments, v4, v5, blue);
+                add_segment(camera, &mut segments, v6, v7, blue);
+                add_segment(camera, &mut segments, v0, v2, cyan);
+                add_segment(camera, &mut segments, v4, v6, cyan);
+                add_segment(camera, &mut segments, v0, v4, magenta);
+                add_segment(camera, &mut segments, v1, v5, magenta);
+                add_segment(camera, &mut segments, v0, v1, yellow);
+                add_segment(camera, &mut segments, v2, v3, yellow);
             }
             GizmoShape::Obb {
                 center,
@@ -300,18 +296,18 @@ pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
                 let v6 = center - x + y + z;
                 let v7 = center + x + y + z;
 
-                add_segment(&camera, &mut segments, v1, v3, red);
-                add_segment(&camera, &mut segments, v5, v7, red);
-                add_segment(&camera, &mut segments, v2, v6, green);
-                add_segment(&camera, &mut segments, v3, v7, green);
-                add_segment(&camera, &mut segments, v4, v5, blue);
-                add_segment(&camera, &mut segments, v6, v7, blue);
-                add_segment(&camera, &mut segments, v0, v2, cyan);
-                add_segment(&camera, &mut segments, v4, v6, cyan);
-                add_segment(&camera, &mut segments, v0, v4, magenta);
-                add_segment(&camera, &mut segments, v1, v5, magenta);
-                add_segment(&camera, &mut segments, v0, v1, yellow);
-                add_segment(&camera, &mut segments, v2, v3, yellow);
+                add_segment(camera, &mut segments, v1, v3, red);
+                add_segment(camera, &mut segments, v5, v7, red);
+                add_segment(camera, &mut segments, v2, v6, green);
+                add_segment(camera, &mut segments, v3, v7, green);
+                add_segment(camera, &mut segments, v4, v5, blue);
+                add_segment(camera, &mut segments, v6, v7, blue);
+                add_segment(camera, &mut segments, v0, v2, cyan);
+                add_segment(camera, &mut segments, v4, v6, cyan);
+                add_segment(camera, &mut segments, v0, v4, magenta);
+                add_segment(camera, &mut segments, v1, v5, magenta);
+                add_segment(camera, &mut segments, v0, v1, yellow);
+                add_segment(camera, &mut segments, v2, v3, yellow);
             }
         }
     }

@@ -11,10 +11,16 @@ pub struct ShapeMesh {
 }
 
 impl ShapeMesh {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
     }
 
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
@@ -31,12 +37,11 @@ impl ShapeMesh {
             physical_device_memory_properties,
         )?;
 
-        vertex_buffer.write(device, &vertices)?;
+        vertex_buffer.write(device, vertices)?;
 
-        Ok(Self{
+        Ok(Self {
             vertices: vertex_buffer,
             vertex_count: vertices.len(),
-
         })
     }
 
@@ -68,9 +73,9 @@ impl ShapeMesh {
             let old_buffer = self.vertices;
             self.vertices = new_vertex_buffer;
 
-            unsafe {old_buffer.free(device)};
+            unsafe { old_buffer.free(device) };
         }
-        unsafe {self.vertices.write(device, &vertices)}?;
+        unsafe { self.vertices.write(device, vertices) }?;
 
         Ok(())
     }

@@ -36,10 +36,14 @@ impl Drop for OutputFrame {
             ris_error::unwrap!(self.core.device.device_wait_idle(), "",);
         }
 
-        self.scene_renderer.free(&self.core.device);
-        self.gizmo_shape_renderer.free(&self.core.device);
-        self.imgui.renderer.free(&self.core.device);
-        // core is dropped here implicitly
+        unsafe {
+            let device = &self.core.device;
+
+            self.scene_renderer.free(device);
+            self.gizmo_shape_renderer.free(device);
+            self.imgui.renderer.free(device);
+            self.core.free();
+        }
     }
 }
 
@@ -63,11 +67,7 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(
-        &mut self,
-        frame: Frame,
-        state: &mut GodState,
-    ) -> RisResult<()> {
+    pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -131,10 +131,7 @@ impl OutputFrame {
         // prepare command buffer
         ris_debug::add_record!(r, "prepare command buffer")?;
         let swapchain_entry = &swapchain.entries[image_index as usize];
-        let SwapchainEntry {
-            command_buffer,
-            ..
-        } = swapchain_entry;
+        let SwapchainEntry { command_buffer, .. } = swapchain_entry;
 
         unsafe {
             device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty())
@@ -159,7 +156,7 @@ impl OutputFrame {
         let indices = ris_video::scene::scene_mesh::INDICES;
         self.scene_renderer.draw(
             &self.core,
-            &swapchain_entry,
+            swapchain_entry,
             &vertices,
             &indices,
             window_drawable_size,

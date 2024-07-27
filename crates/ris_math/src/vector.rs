@@ -1428,11 +1428,7 @@ impl Vec2 {
 
 impl Vec3 {
     pub fn abs(self) -> Self {
-        Self(
-            self.0.abs(),
-            self.1.abs(),
-            self.2.abs(),
-        )
+        Self(self.0.abs(), self.1.abs(), self.2.abs())
     }
 
     pub fn sign(self) -> Self {
@@ -1534,12 +1530,7 @@ impl Vec3 {
 
 impl Vec4 {
     pub fn abs(self) -> Self {
-        Self(
-            self.0.abs(),
-            self.1.abs(),
-            self.2.abs(),
-            self.3.abs(),
-        )
+        Self(self.0.abs(), self.1.abs(), self.2.abs(), self.3.abs())
     }
 
     pub fn sign(self) -> Self {

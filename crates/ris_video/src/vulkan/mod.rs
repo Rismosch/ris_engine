@@ -25,4 +25,3 @@ const PREFERRED_COLOR_SPACE: vk::ColorSpaceKHR = vk::ColorSpaceKHR::SRGB_NONLINE
 const PREFERRED_PRESENT_MODE: vk::PresentModeKHR = vk::PresentModeKHR::IMMEDIATE;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
-

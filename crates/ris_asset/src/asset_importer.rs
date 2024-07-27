@@ -47,7 +47,7 @@ pub fn import_all(
         std::fs::remove_dir_all(target_directory_path)?;
     }
 
-    let temp_directory = temp_directory.map(|x| PathBuf::from(x));
+    let temp_directory = temp_directory.map(PathBuf::from);
 
     while let Some(current) = directories.pop_front() {
         let entries = std::fs::read_dir(&current)?;
@@ -85,7 +85,7 @@ pub fn import_all(
                     target_directory: target_path,
                 };
                 let importer_info = ImporterInfo::DeduceFromFileName(info);
-                let temp_directory = temp_directory.as_ref().map(|x| x.as_path());
+                let temp_directory = temp_directory.as_deref();
                 import(importer_info, temp_directory)?;
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
