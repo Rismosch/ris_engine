@@ -14,9 +14,9 @@ layout(location = 1) in vec3 in_color;
 layout(location = 2) in vec2 in_uv;
 
 #io vertex fragment
-layout(location = 0) IN_OUT vec4 frag_position;
-layout(location = 1) IN_OUT vec3 frag_color;
-layout(location = 2) IN_OUT vec2 frag_uv;
+layout(location = 0) IN_OUT vec4 IN_OUT_position;
+layout(location = 1) IN_OUT vec3 IN_OUT_color;
+layout(location = 2) IN_OUT vec2 IN_OUT_uv;
 
 #fragment
 layout(binding = 1) uniform sampler2D tex_sampler;
@@ -25,14 +25,15 @@ layout(location = 0) out vec4 out_color;
 
 #vertex
 void main() {
-    frag_position = ubo.proj * ubo.view * ubo.model * vec4(in_position, 1.0);
-    frag_color = in_color;
-    frag_uv = in_uv;
+    out_position = ubo.proj * ubo.view * ubo.model * vec4(in_position, 1.0);
+    out_color = in_color;
+    out_uv = in_uv;
 
-    gl_Position = frag_position;
+    gl_Position = out_position;
 }
 
 #fragment
 void main() {
-    out_color = texture(tex_sampler, frag_uv);
+    //out_color = texture(tex_sampler, in_uv);
+    out_color = vec4(in_color, 1.0);
 }

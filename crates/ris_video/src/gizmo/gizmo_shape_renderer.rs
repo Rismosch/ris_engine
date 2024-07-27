@@ -456,7 +456,7 @@ impl GizmoShapeRenderer {
                     buffer_size,
                     vk::BufferUsageFlags::UNIFORM_BUFFER,
                     vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                    physical_device_memory_properties
+                    physical_device_memory_properties,
                 )?;
 
                 let descriptor_mapped = device.map_memory(
@@ -656,12 +656,10 @@ impl GizmoShapeRenderer {
             )
         };
 
-        let ubo = UniformBufferObject {
+        let ubo = [UniformBufferObject {
             view: camera.view_matrix(),
             proj: camera.projection_matrix(),
-        };
-
-        let ubo = [ubo];
+        }];
         unsafe { descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
 
         let descriptor_buffer_info = [vk::DescriptorBufferInfo {

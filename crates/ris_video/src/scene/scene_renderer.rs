@@ -3,18 +3,21 @@ use std::ptr;
 use ash::vk;
 
 use ris_asset::RisGodAsset;
-use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::camera::Camera;
 use ris_math::color::Rgb;
 use ris_math::matrix::Mat4;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec2;
 
+use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
 use crate::vulkan::swapchain::BaseSwapchain;
 use crate::vulkan::swapchain::Swapchain;
 use crate::vulkan::swapchain::SwapchainEntry;
+use super::scene_mesh::Mesh;
+use super::scene_mesh::Vertex;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -24,146 +27,27 @@ pub struct UniformBufferObject {
     pub proj: Mat4,
 }
 
-#[repr(C)]
-pub struct Vertex {
-    pub pos: Vec3,
-    pub color: Rgb,
-    pub uv: Vec2,
+pub struct SceneFrame {
+    mesh: Option<Mesh>,
+    framebuffer: Option<vk::Framebuffer>,
+    descriptor_buffer: Buffer,
+    descriptor_mapped: *mut UniformBufferObject,
+    descriptor_set: vk::DescriptorSet,
 }
 
-const VERTICES: [Vertex; 4 * 6] = [
-    // pos x
-    Vertex {
-        pos: Vec3(0.5, -0.5, 0.5),
-        color: Rgb(1.0, 0.0, 0.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, 0.5, 0.5),
-        color: Rgb(1.0, 0.0, 0.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, 0.5, -0.5),
-        color: Rgb(1.0, 0.0, 0.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, -0.5, -0.5),
-        color: Rgb(1.0, 0.0, 0.0),
-        uv: Vec2(0.0, 1.0),
-    },
-    // pos y
-    Vertex {
-        pos: Vec3(0.5, 0.5, 0.5),
-        color: Rgb(0.0, 1.0, 0.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, 0.5, 0.5),
-        color: Rgb(0.0, 1.0, 0.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, 0.5, -0.5),
-        color: Rgb(0.0, 1.0, 0.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, 0.5, -0.5),
-        color: Rgb(0.0, 1.0, 0.0),
-        uv: Vec2(0.0, 1.0),
-    },
-    // pos z
-    Vertex {
-        pos: Vec3(-0.5, 0.5, 0.5),
-        color: Rgb(0.0, 0.0, 1.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, 0.5, 0.5),
-        color: Rgb(0.0, 0.0, 1.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, -0.5, 0.5),
-        color: Rgb(0.0, 0.0, 1.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, -0.5, 0.5),
-        color: Rgb(0.0, 0.0, 1.0),
-        uv: Vec2(0.0, 1.0),
-    },
-    // neg x
-    Vertex {
-        pos: Vec3(-0.5, 0.5, 0.5),
-        color: Rgb(0.0, 1.0, 1.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, -0.5, 0.5),
-        color: Rgb(0.0, 1.0, 1.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, -0.5, -0.5),
-        color: Rgb(0.0, 1.0, 1.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, 0.5, -0.5),
-        color: Rgb(0.0, 1.0, 1.0),
-        uv: Vec2(0.0, 1.0),
-    },
-    // neg y
-    Vertex {
-        pos: Vec3(-0.5, -0.5, 0.5),
-        color: Rgb(1.0, 0.0, 1.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, -0.5, 0.5),
-        color: Rgb(1.0, 0.0, 1.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, -0.5, -0.5),
-        color: Rgb(1.0, 0.0, 1.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, -0.5, -0.5),
-        color: Rgb(1.0, 0.0, 1.0),
-        uv: Vec2(0.0, 1.0),
-    },
-    // neg z
-    Vertex {
-        pos: Vec3(-0.5, -0.5, -0.5),
-        color: Rgb(1.0, 1.0, 0.0),
-        uv: Vec2(0.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, -0.5, -0.5),
-        color: Rgb(1.0, 1.0, 0.0),
-        uv: Vec2(1.0, 0.0),
-    },
-    Vertex {
-        pos: Vec3(0.5, 0.5, -0.5),
-        color: Rgb(1.0, 1.0, 0.0),
-        uv: Vec2(1.0, 1.0),
-    },
-    Vertex {
-        pos: Vec3(-0.5, 0.5, -0.5),
-        color: Rgb(1.0, 1.0, 0.0),
-        uv: Vec2(0.0, 1.0),
-    },
-];
+impl SceneFrame {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        if let Some(mut mesh) = self.mesh.take() {
+            mesh.free(device);
+        }
 
-const INDICES: [u32; 6 * 6] = [
-    0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18,
-    18, 19, 16, 20, 21, 22, 22, 23, 20,
-];
+        if let Some(mut framebuffer) = self.framebuffer.take() {
+            device.destroy_framebuffer(framebuffer, None);
+        }
+
+        self.descriptor_buffer.free(device);
+    }
+}
 
 pub struct SceneRenderer {
     pipeline: vk::Pipeline,
@@ -171,11 +55,16 @@ pub struct SceneRenderer {
     render_pass: vk::RenderPass,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
+    frames: Vec<SceneFrame>,
 }
 
 impl SceneRenderer {
     pub fn free(&mut self, device: &ash::Device) {
         unsafe {
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
+            }
+
             device.destroy_descriptor_pool(self.descriptor_pool, None);
             device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
@@ -310,7 +199,7 @@ impl SceneRenderer {
         // pipeline
         let vertex_binding_descriptions = [vk::VertexInputBindingDescription {
             binding: 0,
-            stride: std::mem::size_of::<Self>() as u32,
+            stride: std::mem::size_of::<Vertex>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
         }];
 
@@ -373,7 +262,7 @@ impl SceneRenderer {
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
             polygon_mode: vk::PolygonMode::FILL,
-            cull_mode: vk::CullModeFlags::BACK,
+            cull_mode: vk::CullModeFlags::NONE,
             front_face: vk::FrontFace::CLOCKWISE,
             depth_bias_enable: vk::FALSE,
             depth_bias_constant_factor: 0.0,
@@ -489,27 +378,27 @@ impl SceneRenderer {
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
-        let depth_attachment = vk::AttachmentDescription {
-            flags: vk::AttachmentDescriptionFlags::empty(),
-            format: crate::vulkan::util::find_depth_format(instance, suitable_device.physical_device)?,
-            samples: vk::SampleCountFlags::TYPE_1,
-            load_op: vk::AttachmentLoadOp::CLEAR,
-            store_op: vk::AttachmentStoreOp::DONT_CARE,
-            stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
-            stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-            initial_layout: vk::ImageLayout::UNDEFINED,
-            final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
+        //let depth_attachment = vk::AttachmentDescription {
+        //    flags: vk::AttachmentDescriptionFlags::empty(),
+        //    format: crate::vulkan::util::find_depth_format(instance, suitable_device.physical_device)?,
+        //    samples: vk::SampleCountFlags::TYPE_1,
+        //    load_op: vk::AttachmentLoadOp::CLEAR,
+        //    store_op: vk::AttachmentStoreOp::DONT_CARE,
+        //    stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+        //    stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+        //    initial_layout: vk::ImageLayout::UNDEFINED,
+        //    final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        //};
 
         let color_attachment_references = [vk::AttachmentReference {
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
         }];
 
-        let depth_attachment_reference = [vk::AttachmentReference {
-            attachment: 1,
-            layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        }];
+        //let depth_attachment_reference = [vk::AttachmentReference {
+        //    attachment: 1,
+        //    layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        //}];
 
         let subpass_descriptions = [vk::SubpassDescription {
             flags: vk::SubpassDescriptionFlags::empty(),
@@ -519,7 +408,8 @@ impl SceneRenderer {
             color_attachment_count: color_attachment_references.len() as u32,
             p_color_attachments: color_attachment_references.as_ptr(),
             p_resolve_attachments: ptr::null(),
-            p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
+            //p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
+            p_depth_stencil_attachment: ptr::null(),
             preserve_attachment_count: 0,
             p_preserve_attachments: ptr::null(),
         }];
@@ -537,7 +427,8 @@ impl SceneRenderer {
             dependency_flags: vk::DependencyFlags::empty(),
         }];
 
-        let attachments = [color_attachment, depth_attachment];
+        //let attachments = [color_attachment, depth_attachment];
+        let attachments = [color_attachment];
 
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
@@ -590,6 +481,41 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let mut frames = Vec::with_capacity(swapchain_entries.len());
+        for i in 0..swapchain_entries.len() {
+            unsafe {
+                let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+                let descriptor_buffer = Buffer::alloc(
+                    device,
+                    buffer_size,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                    physical_device_memory_properties,
+                )?;
+
+                let descriptor_mapped = device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )? as *mut UniformBufferObject;
+
+                let descriptor_set = descriptor_sets[i];
+
+                let frame = SceneFrame{
+                    mesh: None,
+                    framebuffer: None,
+                    descriptor_buffer,
+                    descriptor_mapped,
+                    descriptor_set,
+                };
+                frames.push(frame);
+            }
+        }
 
         Ok(Self{
             pipeline,
@@ -597,126 +523,298 @@ impl SceneRenderer {
             render_pass,
             descriptor_set_layout,
             descriptor_pool,
+            frames,
         })
     }
 
-    //pub fn draw(
-    //    &mut self,
-    //    state: &GodState,
-    //    base: &VulkanBase,
-    //    image_index: usize,
-    //    window_drawable_size: (u32, u32),
-    //) -> RisResult<()> {
-    //    let VulkanBase {
-    //        instance,
-    //        suitable_device,
-    //        device,
-    //        graphics_queue,
-    //        transient_command_pool,
-    //        swapchain:
-    //            Swapchain {
-    //                base:
-    //                    BaseSwapchain {
-    //                        extent: swapchain_extent,
-    //                        ..
-    //                    },
-    //                entries,
-    //                ..
-    //            },
-    //        ..
-    //    } = base;
+    pub fn draw(
+        &mut self,
+        core: &VulkanCore,
+        entry: &SwapchainEntry,
+        vertices: &[Vertex],
+        indices: &[u32],
+        window_drawable_size: (u32, u32),
+        camera: &Camera,
+    ) -> RisResult<()> {
+        let VulkanCore {
+            instance,
+            suitable_device,
+            device,
+            graphics_queue,
+            transient_command_pool,
+            swapchain:
+                Swapchain {
+                    base:
+                        BaseSwapchain {
+                            extent: swapchain_extent,
+                            ..
+                        },
+                    entries,
+                    ..
+                },
+            ..
+        } = core;
 
-    //    let SwapchainEntry {
-    //        command_buffer,
-    //        //framebuffer,
-    //        ..
-    //    } = entries[image_index];
+        let SwapchainEntry {
+            index,
+            image_view,
+            command_buffer,
+            ..
+        } = entry;
 
-    //    // update uniform buffer
-    //    //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-    //    //state.camera.aspect_ratio = w / h;
-    //    //let view = state.camera.view_matrix();
-    //    //let proj = state.camera.projection_matrix();
+        let SceneFrame {
+            mesh,
+            framebuffer,
+            descriptor_buffer,
+            descriptor_mapped,
+            descriptor_set,
+        } = &mut self.frames[*index];
 
-    //    //let uniform_buffer_object = UniformBufferObject {
-    //    //    model: Mat4::init(1.0),
-    //    //    view,
-    //    //    proj,
-    //    //};
+        // mesh
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
 
-    //    //let ubo = [uniform_buffer_object];
-    //    //unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(
+                    device,
+                    physical_device_memory_properties,
+                    vertices,
+                    indices,
+                )?;
+                mesh
+            },
+            None => {
+                let new_mesh = unsafe {Mesh::alloc(
+                    device,
+                    physical_device_memory_properties,
+                    vertices,
+                    indices,
+                )}?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().unroll()?
+            },
+        };
 
-    //    //// render pass
-    //    //let clear_values = [
-    //    //    vk::ClearValue {
-    //    //        color: vk::ClearColorValue {
-    //    //            float32: [0.0, 0.0, 0.0, 0.0],
-    //    //        },
-    //    //    },
-    //    //    vk::ClearValue {
-    //    //        depth_stencil: vk::ClearDepthStencilValue {
-    //    //            depth: 1.0,
-    //    //            stencil: 0,
-    //    //        },
-    //    //    },
-    //    //];
+        // framebuffer
+        if let Some(framebuffer) = framebuffer.take() {
+            unsafe {device.destroy_framebuffer(framebuffer, None)};
+        }
 
-    //    //let render_pass_begin_info = vk::RenderPassBeginInfo {
-    //    //    s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-    //    //    p_next: ptr::null(),
-    //    //    render_pass: graphics_pipeline.render_pass,
-    //    //    framebuffer,
-    //    //    render_area: vk::Rect2D {
-    //    //        offset: vk::Offset2D { x: 0, y: 0 },
-    //    //        extent: *swapchain_extent,
-    //    //    },
-    //    //    clear_value_count: clear_values.len() as u32,
-    //    //    p_clear_values: clear_values.as_ptr(),
-    //    //};
+        let attachments = [*image_view];
 
-    //    //unsafe {
-    //    //    device.cmd_begin_render_pass(
-    //    //        command_buffer,
-    //    //        &render_pass_begin_info,
-    //    //        vk::SubpassContents::INLINE,
-    //    //    )
-    //    //};
-    //    //unsafe {
-    //    //    device.cmd_bind_pipeline(
-    //    //        command_buffer,
-    //    //        vk::PipelineBindPoint::GRAPHICS,
-    //    //        graphics_pipeline.pipeline,
-    //    //    )
-    //    //};
+        let frame_buffer_create_info = vk::FramebufferCreateInfo{
+            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FramebufferCreateFlags::empty(),
+            render_pass: self.render_pass,
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            width: swapchain_extent.width,
+            height: swapchain_extent.height,
+            layers: 1,
+        };
 
-    //    //let vertex_buffers = [vertex_buffer.buffer];
-    //    //let offsets = [0_u64];
-    //    //unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
-    //    //unsafe {
-    //    //    device.cmd_bind_index_buffer(
-    //    //        command_buffer,
-    //    //        index_buffer.buffer,
-    //    //        0,
-    //    //        vk::IndexType::UINT32,
-    //    //    )
-    //    //};
-    //    //let descriptor_sets = [descriptor_set];
-    //    //unsafe {
-    //    //    device.cmd_bind_descriptor_sets(
-    //    //        command_buffer,
-    //    //        vk::PipelineBindPoint::GRAPHICS,
-    //    //        graphics_pipeline.layout,
-    //    //        0,
-    //    //        &descriptor_sets,
-    //    //        &[],
-    //    //    )
-    //    //};
+        let new_framebuffer = unsafe {device.create_framebuffer(&frame_buffer_create_info, None)}?;
+        *framebuffer = Some(new_framebuffer);
+        let framebuffer = new_framebuffer;
 
-    //    let index_count = crate::vulkan::INDICES.len() as u32;
-    //    unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
-    //    unsafe { device.cmd_end_render_pass(command_buffer) };
+        // render pass
+        //let clear_values = [
+        //    vk::ClearValue {
+        //        color: vk::ClearColorValue {
+        //            float32: [0.0, 0.0, 0.0, 0.0],
+        //        },
+        //    },
+        //    vk::ClearValue {
+        //        depth_stencil: vk::ClearDepthStencilValue {
+        //            depth: 1.0,
+        //            stencil: 0,
+        //        },
+        //    },
+        //];
+        let clear_values = [
+            vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 0.0],
+                },
+            },
+        ];
 
-    //    Ok(())
-    //}
+        let render_pass_begin_info = vk::RenderPassBeginInfo {
+            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+            p_next: ptr::null(),
+            render_pass: self.render_pass,
+            framebuffer,
+            render_area: vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: *swapchain_extent,
+            },
+            clear_value_count: clear_values.len() as u32,
+            p_clear_values: clear_values.as_ptr(),
+        };
+
+        unsafe {
+            device.cmd_begin_render_pass(
+                *command_buffer,
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            );
+
+            device.cmd_bind_pipeline(
+                *command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            );
+
+            let viewports = [vk::Viewport{
+                x: 0.0,
+                y: 0.0,
+                width: window_drawable_size.0 as f32,
+                height: window_drawable_size.1 as f32,
+                min_depth: 0.0,
+                max_depth: 1.0,
+            }];
+
+            let scissors = [vk::Rect2D{
+                offset: vk::Offset2D {
+                    x: 0,
+                    y: 0,
+                },
+                extent: vk::Extent2D {
+                    width: window_drawable_size.0,
+                    height: window_drawable_size.1,
+                }
+            }];
+
+            device.cmd_set_viewport(
+                *command_buffer,
+                0,
+                &viewports,
+            );
+
+            device.cmd_set_scissor(
+                *command_buffer,
+                0,
+                &scissors,
+            );
+
+            device.cmd_bind_vertex_buffers(
+                *command_buffer,
+                0,
+                &[mesh.vertices.buffer],
+                &[0],
+            );
+
+            device.cmd_bind_index_buffer(
+                *command_buffer,
+                mesh.indices.buffer,
+                0,
+                vk::IndexType::UINT32,
+            );
+
+            let ubo = [UniformBufferObject {
+                model: Mat4::init(1.0),
+                view: camera.view_matrix(),
+                proj: camera.projection_matrix(),
+            }];
+            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo{
+                buffer: descriptor_buffer.buffer,
+                offset: 0,
+                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            }];
+
+            let write_descriptor_sets = [vk::WriteDescriptorSet{
+                s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                p_next: ptr::null(),
+                dst_set: *descriptor_set,
+                dst_binding: 0,
+                dst_array_element: 0,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                p_image_info: ptr::null(),
+                p_buffer_info: descriptor_buffer_info.as_ptr(),
+                p_texel_buffer_view: ptr::null(),
+            }];
+
+            device.update_descriptor_sets(&write_descriptor_sets, &[]);
+
+            device.cmd_bind_descriptor_sets(
+                *command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline_layout,
+                0,
+                &[*descriptor_set],
+                &[],
+            );
+
+            let index_count = indices.len() as u32;
+            device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0);
+            device.cmd_end_render_pass(*command_buffer);
+        }
+
+        // update uniform buffer
+        //let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        //camera.aspect_ratio = w / h;
+        //let view = camera.view_matrix();
+        //let proj = camera.projection_matrix();
+
+        //let uniform_buffer_object = UniformBufferObject {
+        //    model: Mat4::init(1.0),
+        //    view,
+        //    proj,
+        //};
+
+        //let ubo = [uniform_buffer_object];
+        //unsafe { uniform_buffer_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+
+        //// render pass
+
+        //unsafe {
+        //    device.cmd_begin_render_pass(
+        //        command_buffer,
+        //        &render_pass_begin_info,
+        //        vk::SubpassContents::INLINE,
+        //    )
+        //};
+        //unsafe {
+        //    device.cmd_bind_pipeline(
+        //        command_buffer,
+        //        vk::PipelineBindPoint::GRAPHICS,
+        //        graphics_pipeline.pipeline,
+        //    )
+        //};
+
+        //let vertex_buffers = [vertex_buffer.buffer];
+        //let offsets = [0_u64];
+        //unsafe { device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets) };
+        //unsafe {
+        //    device.cmd_bind_index_buffer(
+        //        command_buffer,
+        //        index_buffer.buffer,
+        //        0,
+        //        vk::IndexType::UINT32,
+        //    )
+        //};
+        //let descriptor_sets = [descriptor_set];
+        //unsafe {
+        //    device.cmd_bind_descriptor_sets(
+        //        command_buffer,
+        //        vk::PipelineBindPoint::GRAPHICS,
+        //        graphics_pipeline.layout,
+        //        0,
+        //        &descriptor_sets,
+        //        &[],
+        //    )
+        //};
+
+        //let index_count = crate::vulkan::INDICES.len() as u32;
+        //unsafe { device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0) };
+        //unsafe { device.cmd_end_render_pass(command_buffer) };
+
+        Ok(())
+    }
 }

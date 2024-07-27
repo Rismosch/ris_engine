@@ -150,6 +150,7 @@ impl OutputFrame {
         };
 
         // prepare command buffer
+        ris_debug::add_record!(r, "prepare command buffer")?;
         let swapchain_entry = &swapchain_entries[image_index as usize];
         let SwapchainEntry {
             image_view,
@@ -167,8 +168,41 @@ impl OutputFrame {
         };
         unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
 
-        // scene
+        // prepare camera
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
+        state.camera.aspect_ratio = w / h;
 
+        // scene
+        ris_debug::add_record!(r, "scene")?;
+        let vertices = ris_video::scene::scene_mesh::VERTICES;
+        let indices = ris_video::scene::scene_mesh::INDICES;
+        //let vertices = [
+        //    ris_video::scene::scene_mesh::Vertex {
+        //        pos: Vec3(-0.5, 0.5, 0.0),
+        //        color: ris_math::color::Rgb(1.0, 0.0, 0.0),
+        //        uv: ris_math::vector::Vec2(0.0, 0.0),
+        //    },
+        //    ris_video::scene::scene_mesh::Vertex {
+        //        pos: Vec3(0.5, 0.5, 0.0),
+        //        color: ris_math::color::Rgb(0.0, 1.0, 0.0),
+        //        uv: ris_math::vector::Vec2(0.0, 0.0),
+        //    },
+        //    ris_video::scene::scene_mesh::Vertex {
+        //        pos: Vec3(0.0, -0.5, 0.0),
+        //        color: ris_math::color::Rgb(0.0, 0.0, 1.0),
+        //        uv: ris_math::vector::Vec2(0.0, 0.0),
+        //    },
+        //];
+        //let indices = [0, 1, 2];
+        self.scene_renderer.draw(
+            &self.core,
+            &swapchain_entry,
+            &vertices,
+            &indices,
+            window_drawable_size,
+            &state.camera,
+        )?;
 
         // update uniform buffer
         //ris_debug::add_record!(r, "update uniform buffer")?;
@@ -215,7 +249,6 @@ impl OutputFrame {
         let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
 
         ris_debug::add_record!(r, "render shapes")?;
-        let window_drawable_size = self.window.vulkan_drawable_size();
         self.gizmo_shape_renderer.draw(
             &self.core,
             swapchain_entry,
