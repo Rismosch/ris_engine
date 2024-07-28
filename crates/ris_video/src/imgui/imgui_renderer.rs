@@ -523,6 +523,10 @@ impl ImguiRenderer {
         entry: &SwapchainEntry,
         draw_data: &DrawData,
     ) -> RisResult<()> {
+        if draw_data.total_vtx_count == 0 {
+            return Ok(());
+        }
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -537,10 +541,6 @@ impl ImguiRenderer {
             command_buffer,
             ..
         } = entry;
-
-        if draw_data.total_vtx_count == 0 {
-            return Ok(());
-        }
 
         let ImguiFrame { mesh, framebuffer } = &mut self.frames[*index];
 

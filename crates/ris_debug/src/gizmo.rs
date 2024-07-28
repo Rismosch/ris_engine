@@ -6,6 +6,10 @@ use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+// geometry shader outputs max 128 vertices. with 4 vertices per glyph, this puts a hard limit on
+// how long a text can be
+const MAX_TEXT_LEN: usize = 32;
+
 static GIZMOS: Mutex<Option<Gizmos>> = Mutex::new(None);
 
 pub struct GizmoGuard;
@@ -64,7 +68,7 @@ enum GizmoShape {
 
 struct GizmoText {
     position: Vec3,
-    text: String,
+    bytes: Vec<u8>,
 }
 
 struct Gizmos {
@@ -74,7 +78,7 @@ struct Gizmos {
 
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
-pub struct GizmoShapeVertex {
+pub struct GizmoSegmentVertex {
     pub pos: Vec3,
     pub color: Rgb,
 }
@@ -174,15 +178,19 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
         return Ok(());
     };
 
+    let bytes = text.as_bytes();
+    ris_error::assert!(bytes.len() <= MAX_TEXT_LEN)?;
+
     let gizmo_text = GizmoText {
         position,
-        text: text.to_string(),
+        bytes: bytes.to_vec(),
     };
+
     gizmos.text.push(gizmo_text);
     Ok(())
 }
 
-pub fn draw_shapes(camera: &Camera) -> RisResult<Vec<GizmoShapeVertex>> {
+pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
     let Some(ref mut gizmos) = *GIZMOS.lock()? else {
         return Ok(Vec::new());
     };
@@ -328,10 +336,8 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
     let mut texture = Vec::new();
 
     let mut text_addr = 0;
-    for GizmoText { position, text } in gizmos.text.iter() {
-        let bytes = &mut text.as_bytes().to_owned();
+    for GizmoText { position, bytes } in gizmos.text.iter_mut() {
         let bytes_len: u32 = bytes.len().try_into()?;
-
         let vertex = GizmoTextVertex {
             pos: *position,
             text_addr,
@@ -349,15 +355,15 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
 
 fn add_segment(
     camera: &Camera,
-    segments: &mut Vec<(f32, GizmoShapeVertex, GizmoShapeVertex)>,
+    segments: &mut Vec<(f32, GizmoSegmentVertex, GizmoSegmentVertex)>,
     start: Vec3,
     end: Vec3,
     color: Rgb,
 ) {
     let middle = (start + end) / 2.0;
     let distance = middle.distance_squared(camera.position);
-    let v0 = GizmoShapeVertex { pos: start, color };
-    let v1 = GizmoShapeVertex { pos: end, color };
+    let v0 = GizmoSegmentVertex { pos: start, color };
+    let v1 = GizmoSegmentVertex { pos: end, color };
 
     segments.push((distance, v0, v1));
 }

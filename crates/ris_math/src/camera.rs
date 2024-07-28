@@ -55,14 +55,16 @@ impl Camera {
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
-        let tan_half_fovy = f32::tan(self.fovy / 2.0);
+        let n = self.near;
+        let f = self.far;
+        let e = 1.0 / f32::tan(self.fovy * 0.5);
 
         let mut mat = Mat4::init(0.0);
-        mat.0 .0 = 1.0 / (self.aspect_ratio * tan_half_fovy);
-        mat.1 .1 = 1.0 / tan_half_fovy;
-        mat.2 .2 = self.far / (self.far - self.near);
+        mat.0 .0 = e / self.aspect_ratio;
+        mat.1 .1 = e;
+        mat.2 .2 = f / (f - n);
         mat.2 .3 = 1.0;
-        mat.3 .2 = -(self.far * self.near) / (self.far - self.near);
+        mat.3 .2 = -(f * n) / (f - n);
 
         mat
     }

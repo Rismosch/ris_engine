@@ -9,9 +9,10 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
+use ris_video::gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
+use ris_video::gizmo::gizmo_text_renderer::GizmoTextRenderer;
+use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
-use ris_video::imgui::RisImgui;
 use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
@@ -20,11 +21,17 @@ use ris_video::vulkan::swapchain::SwapchainEntry;
 use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
 
+pub struct Renderer{
+    pub scene: SceneRenderer,
+    pub gizmo_segment: GizmoSegmentRenderer,
+    pub gizmo_text: GizmoTextRenderer,
+    pub imgui: ImguiRenderer,
+}
+
 pub struct OutputFrame {
     current_frame: usize,
-    scene_renderer: SceneRenderer,
-    gizmo_shape_renderer: GizmoShapeRenderer,
-    imgui: RisImgui,
+    renderer: Renderer,
+    imgui_backend: ImguiBackend,
     ui_helper: UiHelper,
 
     // mut be dropped last
@@ -35,15 +42,19 @@ pub struct OutputFrame {
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-            ris_error::unwrap!(self.core.device.device_wait_idle(), "",);
+        if let Err(e) = self.core.device.device_wait_idle() {
+            ris_log::fatal!("cannot clean up output frame. device_wait_idle failed: {}", e);
+
+            return;
         }
 
-        unsafe {
             let device = &self.core.device;
 
-            self.scene_renderer.free(device);
-            self.gizmo_shape_renderer.free(device);
-            self.imgui.renderer.free(device);
+            self.renderer.scene.free(device);
+            self.renderer.gizmo_segment.free(device);
+            self.renderer.gizmo_text.free(device);
+            self.renderer.imgui.free(device);
+
             self.core.free();
         }
     }
@@ -53,16 +64,14 @@ impl OutputFrame {
     pub fn new(
         window: Window,
         core: VulkanCore,
-        scene_renderer: SceneRenderer,
-        gizmo_shape_renderer: GizmoShapeRenderer,
-        imgui: RisImgui,
+        renderer: Renderer,
+        imgui_backend: ImguiBackend,
         ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
             current_frame: 0,
-            scene_renderer,
-            gizmo_shape_renderer,
-            imgui,
+            renderer,
+            imgui_backend,
             ui_helper,
             core,
             window,
@@ -111,13 +120,15 @@ impl OutputFrame {
                 ris_log::trace!("rebuilding renderers...");
                 self.core.device.device_wait_idle()?;
 
-                self.scene_renderer.free(device);
-                self.gizmo_shape_renderer.free(device);
-                self.imgui.renderer.free(device);
+                self.renderer.scene.free(device);
+                self.renderer.gizmo_segment.free(device);
+                self.renderer.gizmo_text.free(device);
+                self.renderer.imgui.free(device);
 
-                self.scene_renderer = SceneRenderer::alloc(&self.core, god_asset)?;
-                self.gizmo_shape_renderer = GizmoShapeRenderer::alloc(&self.core, god_asset)?;
-                self.imgui.renderer = ImguiRenderer::alloc(&self.core, god_asset, self.imgui.backend.context())?;
+                self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset)?;
+                self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
+                self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
+                self.renderer.imgui = ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
 
                 ris_log::debug!("rebuilt renderers!");
             }
@@ -167,6 +178,7 @@ impl OutputFrame {
         unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
 
         // prepare camera
+        ris_debug::add_record!(r, "prepare camera")?;
         let window_drawable_size = self.window.vulkan_drawable_size();
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
         state.camera.aspect_ratio = w / h;
@@ -175,7 +187,7 @@ impl OutputFrame {
         ris_debug::add_record!(r, "scene")?;
         let vertices = ris_video::scene::scene_mesh::VERTICES;
         let indices = ris_video::scene::scene_mesh::INDICES;
-        self.scene_renderer.draw(
+        self.renderer.scene.draw(
             &self.core,
             swapchain_entry,
             &vertices,
@@ -187,14 +199,27 @@ impl OutputFrame {
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
 
-        ris_debug::add_record!(r, "draw shapes")?;
-        let gizmo_shape_vertices = ris_debug::gizmo::draw_shapes(&state.camera)?;
+        ris_debug::add_record!(r, "get segment vertices")?;
+        let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(&state.camera)?;
 
-        ris_debug::add_record!(r, "render shapes")?;
-        self.gizmo_shape_renderer.draw(
+        ris_debug::add_record!(r, "draw segments")?;
+        self.renderer.gizmo_segment.draw(
             &self.core,
             swapchain_entry,
-            &gizmo_shape_vertices,
+            &gizmo_segment_vertices,
+            window_drawable_size,
+            &state.camera,
+        )?;
+
+        ris_debug::add_record!(r, "get text vertices")?;
+        let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
+
+        ris_debug::add_record!(r, "draw text")?;
+        self.renderer.gizmo_text.draw(
+            &self.core,
+            swapchain_entry,
+            &gizmo_text_vertices,
+            &gizmo_text_texture,
             window_drawable_size,
             &state.camera,
         )?;
@@ -207,7 +232,7 @@ impl OutputFrame {
 
         let window_size = self.window.size();
         let window_drawable_size = self.window.vulkan_drawable_size();
-        let imgui_ui = self.imgui.backend.prepare_frame(
+        let imgui_ui = self.imgui_backend.prepare_frame(
             frame,
             state,
             (window_size.0 as f32, window_size.1 as f32),
@@ -215,7 +240,6 @@ impl OutputFrame {
         );
 
         ris_debug::add_record!(r, "draw ui helper")?;
-
         self.ui_helper.draw(UiHelperDrawData {
             ui: imgui_ui,
             frame,
@@ -223,10 +247,10 @@ impl OutputFrame {
         })?;
 
         ris_debug::add_record!(r, "imgui backend")?;
-        let draw_data = self.imgui.backend.context().render();
+        let draw_data = self.imgui_backend.context().render();
         ris_debug::add_record!(r, "imgui frontend")?;
-        self.imgui
-            .renderer
+        self.renderer
+            .imgui
             .draw(&self.core, swapchain_entry, draw_data)?;
 
         // end command buffer and submit

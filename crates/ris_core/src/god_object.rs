@@ -13,15 +13,16 @@ use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::gizmo::gizmo_shape_renderer::GizmoShapeRenderer;
+use ris_video::gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
+use ris_video::gizmo::gizmo_text_renderer::GizmoTextRenderer;
 use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
-use ris_video::imgui::RisImgui;
 use ris_video::scene::scene_renderer::SceneRenderer;
 use ris_video::vulkan::core::VulkanCore;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
+use crate::output_frame::Renderer;
 use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
@@ -128,26 +129,32 @@ impl GodObject {
 
         // gizmo renderer
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_shape_renderer = unsafe { GizmoShapeRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_segment_renderer = unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // imgui renderer
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
         let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
-        let imgui = RisImgui {
-            backend: imgui_backend,
-            renderer: imgui_renderer,
+
+        // logic frame
+        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+        
+        // output frame
+        let renderer = Renderer {
+            scene: scene_renderer,
+            gizmo_segment: gizmo_segment_renderer,
+            gizmo_text: gizmo_text_renderer,
+            imgui: imgui_renderer,
         };
 
-        // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
-        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+
         let output_frame = OutputFrame::new(
             window,
             vulkan_core,
-            scene_renderer,
-            gizmo_shape_renderer,
-            imgui,
+            renderer,
+            imgui_backend,
             ui_helper,
         )?;
 

@@ -3,13 +3,13 @@ use std::ptr;
 use ash::vk;
 
 use ris_asset::RisGodAsset;
-use ris_debug::gizmo::GizmoShapeVertex;
+use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 
-use crate::gizmo::gizmo_mesh::ShapeMesh;
+use crate::gizmo::gizmo_segment_mesh::GizmoSegmentMesh;
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::core::VulkanCore;
 use crate::vulkan::swapchain::SwapchainEntry;
@@ -21,15 +21,15 @@ pub struct UniformBufferObject {
     pub proj: Mat4,
 }
 
-struct GizmoShapeFrame {
-    mesh: Option<ShapeMesh>,
+struct GizmoSegmentFrame {
+    mesh: Option<GizmoSegmentMesh>,
     framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
 }
 
-impl GizmoShapeFrame {
+impl GizmoSegmentFrame {
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -43,46 +43,30 @@ impl GizmoShapeFrame {
     }
 }
 
-//pub struct Descriptor {
-//    pub buffer: Buffer,
-//    pub mapped: *mut UniformBufferObject,
-//    pub set: vk::DescriptorSet,
-//}
-
-//impl IFrame for Descriptor {
-//    unsafe fn free(&mut self, device: &ash::Device) {
-//        self.buffer.free(device);
-//    }
-//}
-
-pub struct GizmoShapeRenderer {
+pub struct GizmoSegmentRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     render_pass: vk::RenderPass,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
-    //descriptors: Frames<Descriptor>,
-    //frames: Option<Frames<ShapeMesh>>,
-    frames: Vec<GizmoShapeFrame>,
+    frames: Vec<GizmoSegmentFrame>,
 }
 
-impl GizmoShapeRenderer {
+impl GizmoSegmentRenderer {
     /// # Safety
     ///
     /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        unsafe {
-            for frame in self.frames.iter_mut() {
-                frame.free(device);
-            }
-
-            device.destroy_descriptor_pool(self.descriptor_pool, None);
-            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-
-            device.destroy_pipeline(self.pipeline, None);
-            device.destroy_pipeline_layout(self.pipeline_layout, None);
-            device.destroy_render_pass(self.render_pass, None);
+        for frame in self.frames.iter_mut() {
+            frame.free(device);
         }
+
+        device.destroy_descriptor_pool(self.descriptor_pool, None);
+        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+
+        device.destroy_pipeline(self.pipeline, None);
+        device.destroy_pipeline_layout(self.pipeline_layout, None);
+        device.destroy_render_pass(self.render_pass, None);
     }
 
     /// # Safety
@@ -233,8 +217,8 @@ impl GizmoShapeRenderer {
             primitive_restart_enable: vk::FALSE,
         }];
 
-        let viewports = [Default::default()];
-        let scissors = [Default::default()];
+        let viewports = [vk::Viewport::default()];
+        let scissors = [vk::Rect2D::default()];
 
         let viewport_state = [vk::PipelineViewportStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -283,8 +267,8 @@ impl GizmoShapeRenderer {
             depth_compare_op: vk::CompareOp::ALWAYS,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
-            front: Default::default(),
-            back: Default::default(),
+            front: vk::StencilOpState::default(),
+            back: vk::StencilOpState::default(),
             min_depth_bounds: 0.0,
             max_depth_bounds: 0.0,
         }];
@@ -457,7 +441,7 @@ impl GizmoShapeRenderer {
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let frame = GizmoShapeFrame {
+                let frame = GizmoSegmentFrame {
                     mesh: None,
                     framebuffer: None,
                     descriptor_buffer,
@@ -482,10 +466,14 @@ impl GizmoShapeRenderer {
         &mut self,
         core: &VulkanCore,
         entry: &SwapchainEntry,
-        vertices: &[GizmoShapeVertex],
+        vertices: &[GizmoSegmentVertex],
         window_drawable_size: (u32, u32),
         camera: &Camera,
     ) -> RisResult<()> {
+        if vertices.is_empty() {
+            return Ok(());
+        }
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -501,11 +489,7 @@ impl GizmoShapeRenderer {
             ..
         } = entry;
 
-        if vertices.is_empty() {
-            return Ok(());
-        }
-
-        let GizmoShapeFrame {
+        let GizmoSegmentFrame {
             mesh,
             framebuffer,
             descriptor_buffer,
@@ -525,7 +509,7 @@ impl GizmoShapeRenderer {
             }
             None => {
                 let new_mesh = unsafe {
-                    ShapeMesh::alloc(device, physical_device_memory_properties, vertices)
+                    GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)
                 }?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
@@ -556,97 +540,87 @@ impl GizmoShapeRenderer {
         *framebuffer = Some(new_framebuffer);
         let framebuffer = new_framebuffer;
 
-        //let transient_command = TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
 
         // render pass
-        let clear_values = [vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: [0.0, 0.0, 0.0, 0.0],
-            },
-        }];
-
-        let render_pass_begin_info = vk::RenderPassBeginInfo {
-            s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-            p_next: ptr::null(),
-            render_pass: self.render_pass,
-            framebuffer,
-            render_area: vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: swapchain.extent,
-            },
-            clear_value_count: clear_values.len() as u32,
-            p_clear_values: clear_values.as_ptr(),
-        };
-
         unsafe {
+            let clear_values = [vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 0.0],
+                },
+            }];
+
+            let render_pass_begin_info = vk::RenderPassBeginInfo {
+                s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+                p_next: ptr::null(),
+                render_pass: self.render_pass,
+                framebuffer,
+                render_area: vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
+                    extent: swapchain.extent,
+                },
+                clear_value_count: clear_values.len() as u32,
+                p_clear_values: clear_values.as_ptr(),
+            };
+
             device.cmd_begin_render_pass(
                 *command_buffer,
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
-            )
-        };
+            );
 
-        unsafe {
             device.cmd_bind_pipeline(
                 *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline,
-            )
-        };
+            );
 
-        let viewports = [vk::Viewport {
-            width: window_drawable_size.0 as f32,
-            height: window_drawable_size.1 as f32,
-            max_depth: 1.0,
-            ..Default::default()
-        }];
+            let viewports = [vk::Viewport {
+                width: window_drawable_size.0 as f32,
+                height: window_drawable_size.1 as f32,
+                max_depth: 1.0,
+                ..Default::default()
+            }];
 
-        unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
+            let scissors = [vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: vk::Extent2D {
+                    width: window_drawable_size.0,
+                    height: window_drawable_size.1,
+                },
+            }];
 
-        let scissors = [vk::Rect2D {
-            offset: vk::Offset2D { x: 0, y: 0 },
-            extent: vk::Extent2D {
-                width: window_drawable_size.0,
-                height: window_drawable_size.1,
-            },
-        }];
-
-        unsafe {
+            device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
-        };
 
-        unsafe {
-            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0])
-        };
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
-        let ubo = [UniformBufferObject {
-            view: camera.view_matrix(),
-            proj: camera.projection_matrix(),
-        }];
-        unsafe { descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len()) };
+            let ubo = [UniformBufferObject {
+                view: camera.view_matrix(),
+                proj: camera.projection_matrix(),
+            }];
+            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
-        let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-            buffer: descriptor_buffer.buffer,
-            offset: 0,
-            range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
-        }];
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+                buffer: descriptor_buffer.buffer,
+                offset: 0,
+                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            }];
 
-        let write_descriptor_sets = [vk::WriteDescriptorSet {
-            s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-            p_next: ptr::null(),
-            dst_set: *descriptor_set,
-            dst_binding: 0,
-            dst_array_element: 0,
-            descriptor_count: 1,
-            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            p_image_info: ptr::null(),
-            p_buffer_info: descriptor_buffer_info.as_ptr(),
-            p_texel_buffer_view: ptr::null(),
-        }];
+            let write_descriptor_sets = [vk::WriteDescriptorSet {
+                s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                p_next: ptr::null(),
+                dst_set: *descriptor_set,
+                dst_binding: 0,
+                dst_array_element: 0,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                p_image_info: ptr::null(),
+                p_buffer_info: descriptor_buffer_info.as_ptr(),
+                p_texel_buffer_view: ptr::null(),
+            }];
 
-        unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
+            device.update_descriptor_sets(&write_descriptor_sets, &[]);
 
-        unsafe {
             device.cmd_bind_descriptor_sets(
                 *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
@@ -654,12 +628,12 @@ impl GizmoShapeRenderer {
                 0,
                 &[*descriptor_set],
                 &[],
-            )
+            );
+
+            device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0);
+            device.cmd_end_render_pass(*command_buffer);
         };
 
-        unsafe { device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0) };
-
-        unsafe { device.cmd_end_render_pass(*command_buffer) };
         Ok(())
     }
 }

@@ -1,16 +1,16 @@
 use ash::vk;
 
-use ris_debug::gizmo::GizmoShapeVertex;
 use ris_error::RisResult;
+use ris_debug::gizmo::GizmoSegmentVertex;
 
 use crate::vulkan::buffer::Buffer;
 
-pub struct ShapeMesh {
+pub struct GizmoSegmentMesh {
     pub vertices: Buffer,
     pub vertex_count: usize,
 }
 
-impl ShapeMesh {
+impl GizmoSegmentMesh {
     /// # Safety
     ///
     /// Must only be called once. Memory must not be freed twice.
@@ -24,7 +24,7 @@ impl ShapeMesh {
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        vertices: &[GizmoShapeVertex],
+        vertices: &[GizmoSegmentVertex],
     ) -> RisResult<Self> {
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
         let vertex_buffer = Buffer::alloc(
@@ -49,7 +49,7 @@ impl ShapeMesh {
         &mut self,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        vertices: &[GizmoShapeVertex],
+        vertices: &[GizmoSegmentVertex],
     ) -> RisResult<()> {
         let old_vertex_count = self.vertex_count;
         let new_vertex_count = vertices.len();
