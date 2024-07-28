@@ -51,13 +51,13 @@ impl SceneFrame {
 }
 
 pub struct SceneRenderer {
-    texture: Texture,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
     render_pass: vk::RenderPass,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
+    texture: Texture,
 }
 
 impl SceneRenderer {
@@ -107,35 +107,7 @@ impl SceneRenderer {
         let (pixels, desc) = qoi::decode(&content, None)?;
 
         let pixels_rgba = match desc.channels {
-            qoi::Channels::RGB => {
-                ris_log::trace!(
-                    "adding alpha channel to texture asset... {:?}",
-                    texture_asset_id
-                );
-
-                ris_error::assert!(pixels.len() % 3 == 0)?;
-                let pixels_rgba_len = (pixels.len() * 4) / 3;
-                let mut pixels_rgba = Vec::with_capacity(pixels_rgba_len);
-
-                for chunk in pixels.chunks_exact(3) {
-                    let r = chunk[0];
-                    let g = chunk[1];
-                    let b = chunk[2];
-                    let a = u8::MAX;
-
-                    pixels_rgba.push(r);
-                    pixels_rgba.push(g);
-                    pixels_rgba.push(b);
-                    pixels_rgba.push(a);
-                }
-
-                ris_log::trace!(
-                    "added alpha channel to texture asset! {:?}",
-                    texture_asset_id
-                );
-
-                pixels_rgba
-            }
+            qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
             qoi::Channels::RGBA => pixels,
         };
 
@@ -149,6 +121,7 @@ impl SceneRenderer {
                 width: desc.width,
                 height: desc.height,
                 pixels_rgba: &pixels_rgba,
+                sampler_create_info: None,
             })
         }?;
 
@@ -570,13 +543,13 @@ impl SceneRenderer {
         }
 
         Ok(Self {
-            texture,
             descriptor_set_layout,
             descriptor_pool,
             render_pass,
             pipeline,
             pipeline_layout,
             frames,
+            texture,
         })
     }
 

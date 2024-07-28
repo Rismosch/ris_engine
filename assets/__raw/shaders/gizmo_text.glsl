@@ -27,9 +27,11 @@ layout(points) in;
 layout (triangle_strip, max_vertices = 128) out;
 
 #io geometry fragment
-layout(location = 0) IN_OUT vec2 uv;
+layout(location = 0) IN_OUT vec2 IN_OUT_uv;
 
 #fragment
+layout(binding = 1) uniform sampler2D tex_sampler;
+
 layout(location = 0) out vec4 out_color;
 
 #vertex
@@ -60,9 +62,11 @@ void main() {
     vec4 origin = vec4(
         ndc.x - glyph_offset_x * text_len * 0.5,
         ndc.y - glyph_offset_y * 0.5,
-        0,
+        ndc.z,
         1
     );
+
+    int test[12] = int[12](72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33);
 
     for (uint i = 0; i < text_len; ++i) {
         vec4 v0 = vec4(i * glyph_offset_x, 0, 0, 0);
@@ -70,19 +74,28 @@ void main() {
         vec4 v2 = vec4((i + 1) * glyph_offset_x, 0, 0, 0);
         vec4 v3 = vec4((i + 1) * glyph_offset_x, glyph_offset_y, 0, 0);
 
-        uv = vec2(-1, -1);
+        int char = test[i];
+        float char_x = float(char % 16) / 16.0;
+        float char_y = float(char / 16) / 16.0;
+        float char_size = 1.0 / 16.0;
+        vec2 c0 = vec2(char_x, char_y);
+        vec2 c1 = vec2(char_x, char_y + char_size);
+        vec2 c2 = vec2(char_x + char_size, char_y);
+        vec2 c3 = vec2(char_x + char_size, char_y + char_size);
+
+        out_uv = c0;
         gl_Position = origin + v0;
         EmitVertex();
 
-        uv = vec2(-1, 1);
+        out_uv = c1;
         gl_Position = origin + v1;
         EmitVertex();
 
-        uv = vec2(1, -1);
+        out_uv = c2;
         gl_Position = origin + v2;
         EmitVertex();
 
-        uv = vec2(1, 1);
+        out_uv = c3;
         gl_Position = origin + v3;
         EmitVertex();
 
@@ -92,5 +105,5 @@ void main() {
 
 #fragment
 void main() {
-    out_color = vec4(uv, 0, 1);
+    out_color = texture(tex_sampler, in_uv);
 }

@@ -16,6 +16,7 @@ pub struct RisGodAsset {
     pub gizmo_text_vert_spv: AssetId,
     pub gizmo_text_geom_spv: AssetId,
     pub gizmo_text_frag_spv: AssetId,
+    pub debug_font_texture: AssetId,
     pub texture: AssetId,
 }
 
@@ -33,7 +34,8 @@ impl RisGodAsset {
         let gizmo_text_vert_spv = header.references[7].clone();
         let gizmo_text_geom_spv = header.references[8].clone();
         let gizmo_text_frag_spv = header.references[9].clone();
-        let texture = header.references[10].clone();
+        let debug_font_texture = header.references[10].clone();
+        let texture = header.references[11].clone();
 
         let mut cursor = std::io::Cursor::new(bytes);
         let data = ris_file::io::read_unsized(&mut cursor, header.p_content)?;
@@ -51,6 +53,7 @@ impl RisGodAsset {
             gizmo_text_vert_spv,
             gizmo_text_geom_spv,
             gizmo_text_frag_spv,
+            debug_font_texture,
             texture,
         };
 

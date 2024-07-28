@@ -433,6 +433,7 @@ impl ImguiRenderer {
                 width: font_atlas_texture.width,
                 height: font_atlas_texture.height,
                 pixels_rgba: font_atlas_texture.data,
+                sampler_create_info: None,
             })
         }?;
 

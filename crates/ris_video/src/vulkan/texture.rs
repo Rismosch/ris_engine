@@ -26,6 +26,7 @@ pub struct TextureCreateInfo<'a> {
     pub width: u32,
     pub height: u32,
     pub pixels_rgba: &'a [u8],
+    pub sampler_create_info: Option<vk::SamplerCreateInfo>,
 }
 
 impl Texture {
@@ -42,6 +43,7 @@ impl Texture {
             width,
             height,
             pixels_rgba,
+            sampler_create_info,
         } = info;
 
         let actual_len = pixels_rgba.len();
@@ -111,7 +113,7 @@ impl Texture {
         )?;
 
         // create sampler
-        let sampler_create_info = vk::SamplerCreateInfo {
+        let sampler_create_info = sampler_create_info.unwrap_or(vk::SamplerCreateInfo {
             s_type: vk::StructureType::SAMPLER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::SamplerCreateFlags::empty(),
@@ -130,7 +132,7 @@ impl Texture {
             max_lod: 0.0,
             border_color: vk::BorderColor::INT_OPAQUE_BLACK,
             unnormalized_coordinates: vk::FALSE,
-        };
+        });
 
         let sampler = unsafe { device.create_sampler(&sampler_create_info, None) }?;
 

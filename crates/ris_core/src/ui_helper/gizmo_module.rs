@@ -101,7 +101,16 @@ impl UiHelperModule for GizmoModule {
         }
 
         if !self.text.is_empty() {
-            ris_debug::gizmo::text(Vec3(2.0, 0.0, 0.0), &self.text)?;
+            for i in 0..10 {
+                for j in 0..10 {
+                    for k in 0..10 {
+                        ris_debug::gizmo::text(
+                            Vec3(i as f32, j as f32, k as f32),
+                            &self.text,
+                        )?;
+                    }
+                }
+            }
         }
 
         Ok(())
