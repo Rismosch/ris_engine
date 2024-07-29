@@ -30,7 +30,7 @@ layout (triangle_strip, max_vertices = 128) out;
 layout(location = 0) IN_OUT vec2 IN_OUT_uv;
 
 #fragment
-layout(binding = 1) uniform sampler2D tex_sampler;
+layout(binding = 1) uniform sampler2D font_texture;
 
 layout(location = 0) out vec4 out_color;
 
@@ -105,5 +105,5 @@ void main() {
 
 #fragment
 void main() {
-    out_color = texture(tex_sampler, in_uv);
+    out_color = texture(font_texture, in_uv);
 }
