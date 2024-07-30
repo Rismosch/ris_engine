@@ -1,7 +1,7 @@
 use ash::vk;
 
-use ris_error::RisResult;
 use ris_debug::gizmo::GizmoTextVertex;
+use ris_error::RisResult;
 
 use crate::vulkan::buffer::Buffer;
 use crate::vulkan::buffer::CopyToImageInfo;
@@ -41,7 +41,6 @@ impl GizmoTextMesh {
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain,
             ..
         } = core;
 
@@ -50,9 +49,8 @@ impl GizmoTextMesh {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties = unsafe {
-            instance.get_physical_device_properties(suitable_device.physical_device)
-        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
         let vertex_buffer = Buffer::alloc(
@@ -67,7 +65,7 @@ impl GizmoTextMesh {
 
         vertex_buffer.write(device, vertices)?;
 
-        let text_texture = Texture::alloc(TextureCreateInfo{
+        let text_texture = Texture::alloc(TextureCreateInfo {
             device,
             queue: *graphics_queue,
             transient_command_pool: *transient_command_pool,
@@ -97,12 +95,9 @@ impl GizmoTextMesh {
         text: &[u8],
     ) -> RisResult<()> {
         let VulkanCore {
-            instance,
-            suitable_device,
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain,
             ..
         } = core;
 
@@ -138,25 +133,27 @@ impl GizmoTextMesh {
         let new_text_len = text.len();
 
         if old_text_len < new_text_len {
-            let new_text_texture = unsafe {Texture::alloc(TextureCreateInfo{
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: (text.len() / 4) as u32,
-                height: 1,
-                format: vk::Format::R8G8B8A8_UINT,
-                filter: vk::Filter::NEAREST,
-                pixels_rgba: text,
-            })}?;
+            let new_text_texture = unsafe {
+                Texture::alloc(TextureCreateInfo {
+                    device,
+                    queue: *graphics_queue,
+                    transient_command_pool: *transient_command_pool,
+                    physical_device_memory_properties,
+                    physical_device_properties,
+                    width: (text.len() / 4) as u32,
+                    height: 1,
+                    format: vk::Format::R8G8B8A8_UINT,
+                    filter: vk::Filter::NEAREST,
+                    pixels_rgba: text,
+                })
+            }?;
 
             self.text_len = text.len();
 
             let old_texture = self.text_texture;
             self.text_texture = new_text_texture;
 
-            unsafe {old_texture.free(device)};
+            unsafe { old_texture.free(device) };
         } else {
             unsafe {
                 let image = self.text_texture.image;

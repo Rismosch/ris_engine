@@ -129,7 +129,8 @@ impl GodObject {
 
         // gizmo renderer
         let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
-        let gizmo_segment_renderer = unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_segment_renderer =
+            unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
         let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // imgui renderer
@@ -139,7 +140,7 @@ impl GodObject {
 
         // logic frame
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        
+
         // output frame
         let renderer = Renderer {
             scene: scene_renderer,
@@ -150,13 +151,8 @@ impl GodObject {
 
         let ui_helper = UiHelper::new(&app_info)?;
 
-        let output_frame = OutputFrame::new(
-            window,
-            vulkan_core,
-            renderer,
-            imgui_backend,
-            ui_helper,
-        )?;
+        let output_frame =
+            OutputFrame::new(window, vulkan_core, renderer, imgui_backend, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 

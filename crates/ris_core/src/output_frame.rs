@@ -21,7 +21,7 @@ use ris_video::vulkan::swapchain::SwapchainEntry;
 use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
 
-pub struct Renderer{
+pub struct Renderer {
     pub scene: SceneRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
     pub gizmo_text: GizmoTextRenderer,
@@ -42,11 +42,14 @@ pub struct OutputFrame {
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-        if let Err(e) = self.core.device.device_wait_idle() {
-            ris_log::fatal!("cannot clean up output frame. device_wait_idle failed: {}", e);
+            if let Err(e) = self.core.device.device_wait_idle() {
+                ris_log::fatal!(
+                    "cannot clean up output frame. device_wait_idle failed: {}",
+                    e
+                );
 
-            return;
-        }
+                return;
+            }
 
             let device = &self.core.device;
 
@@ -78,7 +81,12 @@ impl OutputFrame {
         })
     }
 
-    pub fn run(&mut self, frame: Frame, state: &mut GodState, god_asset: &RisGodAsset) -> RisResult<()> {
+    pub fn run(
+        &mut self,
+        frame: Frame,
+        state: &mut GodState,
+        god_asset: &RisGodAsset,
+    ) -> RisResult<()> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
@@ -128,7 +136,8 @@ impl OutputFrame {
                 self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
-                self.renderer.imgui = ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
+                self.renderer.imgui =
+                    ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
 
                 ris_log::debug!("rebuilt renderers!");
             }

@@ -540,7 +540,6 @@ impl GizmoSegmentRenderer {
         *framebuffer = Some(new_framebuffer);
         let framebuffer = new_framebuffer;
 
-
         // render pass
         unsafe {
             let clear_values = [vk::ClearValue {

@@ -24,7 +24,7 @@ layout(location = 3) IN_OUT uint IN_OUT_screen_height;
 
 #geometry
 layout(points) in;
-layout (triangle_strip, max_vertices = 128) out;
+layout(triangle_strip, max_vertices = 128) out;
 
 layout(binding = 1) uniform usampler2D text_texture;
 

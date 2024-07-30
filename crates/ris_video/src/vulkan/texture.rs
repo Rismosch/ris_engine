@@ -111,12 +111,7 @@ impl Texture {
         staging_buffer.free(device);
 
         // create image view
-        let view = Image::alloc_view(
-            device,
-            image.image,
-            format,
-            vk::ImageAspectFlags::COLOR,
-        )?;
+        let view = Image::alloc_view(device, image.image, format, vk::ImageAspectFlags::COLOR)?;
 
         // create sampler
         let sampler_create_info = vk::SamplerCreateInfo {

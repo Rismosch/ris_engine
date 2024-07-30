@@ -104,10 +104,7 @@ impl UiHelperModule for GizmoModule {
             for i in 0..10 {
                 for j in 0..10 {
                     for k in 0..10 {
-                        ris_debug::gizmo::text(
-                            Vec3(i as f32, j as f32, k as f32),
-                            &self.text,
-                        )?;
+                        ris_debug::gizmo::text(Vec3(i as f32, j as f32, k as f32), &self.text)?;
                     }
                 }
             }

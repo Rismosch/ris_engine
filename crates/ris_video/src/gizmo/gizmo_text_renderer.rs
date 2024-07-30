@@ -94,9 +94,8 @@ impl GizmoTextRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties = unsafe {
-            instance.get_physical_device_properties(suitable_device.physical_device)
-        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         // descriptor sets
         let descriptor_set_layout_bindings = [
@@ -177,7 +176,7 @@ impl GizmoTextRenderer {
 
         let descriptor_sets =
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
-        
+
         // shaders
         let vs_future = ris_asset::load_async(god_asset.gizmo_text_vert_spv.clone());
         let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
@@ -231,7 +230,7 @@ impl GizmoTextRenderer {
         ];
 
         // pipeline
-        let vertex_binding_descriptions = [vk::VertexInputBindingDescription{
+        let vertex_binding_descriptions = [vk::VertexInputBindingDescription {
             binding: 0,
             stride: std::mem::size_of::<GizmoTextVertex>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
@@ -257,7 +256,7 @@ impl GizmoTextRenderer {
             },
         ];
 
-        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo{
+        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
@@ -486,7 +485,7 @@ impl GizmoTextRenderer {
         };
 
         let font_texture = unsafe {
-            Texture::alloc(TextureCreateInfo{
+            Texture::alloc(TextureCreateInfo {
                 device,
                 queue: *graphics_queue,
                 transient_command_pool: *transient_command_pool,
@@ -531,7 +530,7 @@ impl GizmoTextRenderer {
             }
         }
 
-        Ok(Self{
+        Ok(Self {
             pipeline,
             pipeline_layout,
             render_pass,
@@ -559,8 +558,6 @@ impl GizmoTextRenderer {
             instance,
             suitable_device,
             device,
-            graphics_queue,
-            transient_command_pool,
             swapchain,
             ..
         } = core;
@@ -584,9 +581,8 @@ impl GizmoTextRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties = unsafe {
-            instance.get_physical_device_properties(suitable_device.physical_device)
-        };
+        let physical_device_properties =
+            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         let mesh = match mesh {
             Some(mesh) => {
@@ -598,21 +594,17 @@ impl GizmoTextRenderer {
                     text,
                 )?;
                 mesh
-            },
+            }
             None => {
-                let new_mesh = unsafe {GizmoTextMesh::alloc(
-                    core,
-                    vertices,
-                    text,
-                )}?;
+                let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
-            },
+            }
         };
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
-            unsafe {device.destroy_framebuffer(framebuffer, None)};
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
         let attachments = [*viewport_image_view];
@@ -687,7 +679,7 @@ impl GizmoTextRenderer {
 
             device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
-            let ubo = [UniformBufferObject{
+            let ubo = [UniformBufferObject {
                 view: camera.view_matrix(),
                 proj: camera.projection_matrix(),
                 screen_width: window_drawable_size.0,
@@ -770,4 +762,3 @@ impl GizmoTextRenderer {
         Ok(())
     }
 }
-
