@@ -120,8 +120,9 @@ impl SceneRenderer {
                 physical_device_properties,
                 width: desc.width,
                 height: desc.height,
+                format: vk::Format::R8G8B8A8_SRGB,
+                filter: vk::Filter::LINEAR,
                 pixels_rgba: &pixels_rgba,
-                sampler_create_info: None,
             })
         }?;
 

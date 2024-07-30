@@ -432,8 +432,9 @@ impl ImguiRenderer {
                 physical_device_properties,
                 width: font_atlas_texture.width,
                 height: font_atlas_texture.height,
+                format: vk::Format::R8G8B8A8_SRGB,
+                filter: vk::Filter::LINEAR,
                 pixels_rgba: font_atlas_texture.data,
-                sampler_create_info: None,
             })
         }?;
 

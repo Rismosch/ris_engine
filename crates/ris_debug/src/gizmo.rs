@@ -350,6 +350,14 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
         text_addr += bytes_len;
     }
 
+    let modulo = texture.len() % 4;
+    if modulo != 0 {
+        let padding = 4 - modulo;
+        for _ in 0..padding {
+            texture.push(0);
+        }
+    }
+
     Ok((vertices, texture))
 }
 

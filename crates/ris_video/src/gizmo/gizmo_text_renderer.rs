@@ -12,10 +12,15 @@ use ris_math::matrix::Mat4;
 
 use crate::gizmo::gizmo_text_mesh::GizmoTextMesh;
 use crate::vulkan::buffer::Buffer;
+use crate::vulkan::buffer::CopyToImageInfo;
 use crate::vulkan::core::VulkanCore;
+use crate::vulkan::image::Image;
+use crate::vulkan::image::ImageCreateInfo;
+use crate::vulkan::image::TransitionLayoutInfo;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
+use crate::vulkan::transient_command::TransientCommandSync;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -114,6 +119,13 @@ impl GizmoTextRenderer {
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
                 p_immutable_samplers: ptr::null(),
             },
+            vk::DescriptorSetLayoutBinding {
+                binding: 2,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::GEOMETRY,
+                p_immutable_samplers: ptr::null(),
+            },
         ];
 
         let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
@@ -131,6 +143,10 @@ impl GizmoTextRenderer {
         let descriptor_pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: swapchain.entries.len() as u32,
+            },
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: swapchain.entries.len() as u32,
             },
             vk::DescriptorPoolSize {
@@ -465,27 +481,6 @@ impl GizmoTextRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let sampler_create_info = Some(vk::SamplerCreateInfo {
-            s_type: vk::StructureType::SAMPLER_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::SamplerCreateFlags::empty(),
-            mag_filter: vk::Filter::NEAREST,
-            min_filter: vk::Filter::NEAREST,
-            mipmap_mode: vk::SamplerMipmapMode::LINEAR,
-            address_mode_u: vk::SamplerAddressMode::REPEAT,
-            address_mode_v: vk::SamplerAddressMode::REPEAT,
-            address_mode_w: vk::SamplerAddressMode::REPEAT,
-            mip_lod_bias: 0.0,
-            anisotropy_enable: vk::TRUE,
-            max_anisotropy: physical_device_properties.limits.max_sampler_anisotropy,
-            compare_enable: vk::FALSE,
-            compare_op: vk::CompareOp::ALWAYS,
-            min_lod: 0.0,
-            max_lod: 0.0,
-            border_color: vk::BorderColor::INT_OPAQUE_BLACK,
-            unnormalized_coordinates: vk::FALSE,
-        });
-
         let font_texture = unsafe {
             Texture::alloc(TextureCreateInfo{
                 device,
@@ -495,12 +490,11 @@ impl GizmoTextRenderer {
                 physical_device_properties,
                 width: desc.width,
                 height: desc.height,
+                format: vk::Format::R8G8B8A8_SRGB,
+                filter: vk::Filter::NEAREST,
                 pixels_rgba: &pixels_rgba,
-                sampler_create_info,
             })
         }?;
-
-
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
@@ -549,7 +543,7 @@ impl GizmoTextRenderer {
         core: &VulkanCore,
         entry: &SwapchainEntry,
         vertices: &[GizmoTextVertex],
-        texture: &[u8],
+        text: &[u8],
         window_drawable_size: (u32, u32),
         camera: &Camera,
     ) -> RisResult<()> {
@@ -561,6 +555,8 @@ impl GizmoTextRenderer {
             instance,
             suitable_device,
             device,
+            graphics_queue,
+            transient_command_pool,
             swapchain,
             ..
         } = core;
@@ -584,16 +580,25 @@ impl GizmoTextRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
+        let physical_device_properties = unsafe {
+            instance.get_physical_device_properties(suitable_device.physical_device)
+        };
 
         let mesh = match mesh {
             Some(mesh) => {
-                mesh.update(device, physical_device_memory_properties, vertices)?;
+                mesh.update(
+                    core,
+                    vertices,
+                    text,
+                )?;
                 mesh
             },
             None => {
-                let new_mesh = unsafe {
-                    GizmoTextMesh::alloc(device, physical_device_memory_properties, vertices)
-                }?;
+                let new_mesh = unsafe {GizmoTextMesh::alloc(
+                    core,
+                    vertices,
+                    text,
+                )}?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().unroll()?
             },
@@ -684,15 +689,21 @@ impl GizmoTextRenderer {
             }];
             descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+            let infos0 = [vk::DescriptorBufferInfo {
                 buffer: descriptor_buffer.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];
 
-            let descriptor_image_info = [vk::DescriptorImageInfo {
+            let infos1 = [vk::DescriptorImageInfo {
                 sampler: self.font_texture.sampler,
                 image_view: self.font_texture.view,
+                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            }];
+
+            let infos2 = [vk::DescriptorImageInfo {
+                sampler: mesh.text_texture.sampler,
+                image_view: mesh.text_texture.view,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
@@ -703,10 +714,10 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 0,
                     dst_array_element: 0,
-                    descriptor_count: descriptor_buffer_info.len() as u32,
+                    descriptor_count: infos0.len() as u32,
                     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                     p_image_info: ptr::null(),
-                    p_buffer_info: descriptor_buffer_info.as_ptr(),
+                    p_buffer_info: infos0.as_ptr(),
                     p_texel_buffer_view: ptr::null(),
                 },
                 vk::WriteDescriptorSet {
@@ -715,9 +726,21 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 1,
                     dst_array_element: 0,
-                    descriptor_count: descriptor_image_info.len() as u32,
+                    descriptor_count: infos1.len() as u32,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: descriptor_image_info.as_ptr(),
+                    p_image_info: infos1.as_ptr(),
+                    p_buffer_info: ptr::null(),
+                    p_texel_buffer_view: ptr::null(),
+                },
+                vk::WriteDescriptorSet {
+                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                    p_next: ptr::null(),
+                    dst_set: *descriptor_set,
+                    dst_binding: 2,
+                    dst_array_element: 0,
+                    descriptor_count: infos2.len() as u32,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    p_image_info: infos2.as_ptr(),
                     p_buffer_info: ptr::null(),
                     p_texel_buffer_view: ptr::null(),
                 },

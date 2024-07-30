@@ -26,6 +26,8 @@ layout(location = 3) IN_OUT uint IN_OUT_screen_height;
 layout(points) in;
 layout (triangle_strip, max_vertices = 128) out;
 
+layout(binding = 2) uniform usampler2D text_texture;
+
 #io geometry fragment
 layout(location = 0) IN_OUT vec2 IN_OUT_uv;
 
@@ -66,15 +68,21 @@ void main() {
         1
     );
 
-    int test[12] = int[12](72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33);
 
-    for (uint i = 0; i < text_len; ++i) {
+    for (int i = 0; i < text_len; ++i) {
+        // find glyph vertices
         vec4 v0 = vec4(i * glyph_offset_x, 0, 0, 0);
         vec4 v1 = vec4(i * glyph_offset_x, glyph_offset_y, 0, 0);
         vec4 v2 = vec4((i + 1) * glyph_offset_x, 0, 0, 0);
         vec4 v3 = vec4((i + 1) * glyph_offset_x, glyph_offset_y, 0, 0);
 
-        int char = test[i];
+        // find char
+        int char_index_1 = i / 4;
+        int char_index_2 = i % 4;
+        uvec4 texel = texelFetch(text_texture, ivec2(char_index_1, 0), 0);
+        uint char = texel[char_index_2];
+
+        // find char uvs
         float char_x = float(char % 16) / 16.0;
         float char_y = float(char / 16) / 16.0;
         float char_size = 1.0 / 16.0;

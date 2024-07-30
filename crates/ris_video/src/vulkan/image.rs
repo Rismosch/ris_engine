@@ -9,6 +9,7 @@ use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandSync;
 use super::util;
 
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Image {
     pub image: vk::Image,
     pub memory: vk::DeviceMemory,
