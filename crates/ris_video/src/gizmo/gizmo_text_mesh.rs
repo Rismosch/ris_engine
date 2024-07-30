@@ -1,14 +1,15 @@
-use std::ptr;
-
 use ash::vk;
 
 use ris_error::RisResult;
 use ris_debug::gizmo::GizmoTextVertex;
 
 use crate::vulkan::buffer::Buffer;
+use crate::vulkan::buffer::CopyToImageInfo;
 use crate::vulkan::core::VulkanCore;
+use crate::vulkan::image::TransitionLayoutInfo;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
+use crate::vulkan::transient_command::TransientCommandSync;
 
 pub struct GizmoTextMesh {
     pub vertices: Buffer,
@@ -90,6 +91,8 @@ impl GizmoTextMesh {
     pub fn update(
         &mut self,
         core: &VulkanCore,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        physical_device_properties: vk::PhysicalDeviceProperties,
         vertices: &[GizmoTextVertex],
         text: &[u8],
     ) -> RisResult<()> {
@@ -102,15 +105,6 @@ impl GizmoTextMesh {
             swapchain,
             ..
         } = core;
-
-        ris_error::debug_assert!(text.len() % 4 == 0)?;
-
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
-        let physical_device_properties = unsafe {
-            instance.get_physical_device_properties(suitable_device.physical_device)
-        };
 
         ris_error::debug_assert!(text.len() % 4 == 0)?;
 
@@ -164,7 +158,51 @@ impl GizmoTextMesh {
 
             unsafe {old_texture.free(device)};
         } else {
+            unsafe {
+                let image = self.text_texture.image;
 
+                let staging_buffer = Buffer::alloc(
+                    device,
+                    text.len() as vk::DeviceSize,
+                    vk::BufferUsageFlags::TRANSFER_SRC,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                    physical_device_memory_properties,
+                )?;
+
+                staging_buffer.write(device, text)?;
+
+                image.transition_layout(TransitionLayoutInfo {
+                    device,
+                    queue: *graphics_queue,
+                    transient_command_pool: *transient_command_pool,
+                    format: vk::Format::R8G8B8A8_UINT,
+                    old_layout: vk::ImageLayout::UNDEFINED,
+                    new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    sync: TransientCommandSync::default(),
+                })?;
+
+                staging_buffer.copy_to_image(CopyToImageInfo {
+                    device,
+                    queue: *graphics_queue,
+                    transient_command_pool: *transient_command_pool,
+                    image: image.image,
+                    width: (text.len() / 4) as u32,
+                    height: 1,
+                    sync: TransientCommandSync::default(),
+                })?;
+
+                image.transition_layout(TransitionLayoutInfo {
+                    device,
+                    queue: *graphics_queue,
+                    transient_command_pool: *transient_command_pool,
+                    format: vk::Format::R8G8B8A8_UINT,
+                    old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+                    sync: TransientCommandSync::default(),
+                })?;
+
+                staging_buffer.free(device);
+            }
         }
 
         Ok(())

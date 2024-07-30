@@ -12,15 +12,10 @@ use ris_math::matrix::Mat4;
 
 use crate::gizmo::gizmo_text_mesh::GizmoTextMesh;
 use crate::vulkan::buffer::Buffer;
-use crate::vulkan::buffer::CopyToImageInfo;
 use crate::vulkan::core::VulkanCore;
-use crate::vulkan::image::Image;
-use crate::vulkan::image::ImageCreateInfo;
-use crate::vulkan::image::TransitionLayoutInfo;
 use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
-use crate::vulkan::transient_command::TransientCommandSync;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -588,6 +583,8 @@ impl GizmoTextRenderer {
             Some(mesh) => {
                 mesh.update(
                     core,
+                    physical_device_memory_properties,
+                    physical_device_properties,
                     vertices,
                     text,
                 )?;
