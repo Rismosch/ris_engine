@@ -111,14 +111,14 @@ impl GizmoTextRenderer {
                 binding: 1,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                stage_flags: vk::ShaderStageFlags::GEOMETRY,
                 p_immutable_samplers: ptr::null(),
             },
             vk::DescriptorSetLayoutBinding {
                 binding: 2,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::GEOMETRY,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
                 p_immutable_samplers: ptr::null(),
             },
         ];
@@ -183,6 +183,13 @@ impl GizmoTextRenderer {
         let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
         let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
 
+        ris_log::fatal!(
+            "{:?} {:?} {:?}",
+            god_asset.gizmo_text_vert_spv,
+            god_asset.gizmo_text_geom_spv,
+            god_asset.gizmo_text_frag_spv,
+        );
+
         let vs_bytes = vs_future.wait(None)??;
         let gs_bytes = gs_future.wait(None)??;
         let fs_bytes = fs_future.wait(None)??;
@@ -190,6 +197,8 @@ impl GizmoTextRenderer {
         let vs_module = crate::shader::create_module(device, &vs_bytes)?;
         let gs_module = crate::shader::create_module(device, &gs_bytes)?;
         let fs_module = crate::shader::create_module(device, &fs_bytes)?;
+
+        ris_log::fatal!("{:?} {:?} {:?}", vs_module, gs_module, fs_module);
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
@@ -693,14 +702,14 @@ impl GizmoTextRenderer {
             }];
 
             let infos1 = [vk::DescriptorImageInfo {
-                sampler: self.font_texture.sampler,
-                image_view: self.font_texture.view,
+                sampler: mesh.text_texture.sampler,
+                image_view: mesh.text_texture.view,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
             let infos2 = [vk::DescriptorImageInfo {
-                sampler: mesh.text_texture.sampler,
-                image_view: mesh.text_texture.view,
+                sampler: self.font_texture.sampler,
+                image_view: self.font_texture.view,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
@@ -723,7 +732,7 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 1,
                     dst_array_element: 0,
-                    descriptor_count: infos1.len() as u32,
+                    descriptor_count: infos2.len() as u32,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                     p_image_info: infos1.as_ptr(),
                     p_buffer_info: ptr::null(),
@@ -735,7 +744,7 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 2,
                     dst_array_element: 0,
-                    descriptor_count: infos2.len() as u32,
+                    descriptor_count: infos1.len() as u32,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                     p_image_info: infos2.as_ptr(),
                     p_buffer_info: ptr::null(),

@@ -26,13 +26,13 @@ layout(location = 3) IN_OUT uint IN_OUT_screen_height;
 layout(points) in;
 layout (triangle_strip, max_vertices = 128) out;
 
-layout(binding = 2) uniform usampler2D text_texture;
+layout(binding = 1) uniform usampler2D text_texture;
 
 #io geometry fragment
 layout(location = 0) IN_OUT vec2 IN_OUT_uv;
 
 #fragment
-layout(binding = 1) uniform sampler2D font_texture;
+layout(binding = 2) uniform sampler2D font_texture;
 
 layout(location = 0) out vec4 out_color;
 
