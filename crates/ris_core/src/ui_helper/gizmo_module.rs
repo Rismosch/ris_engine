@@ -14,7 +14,7 @@ pub struct GizmoModule {
     draw_view_point: bool,
     draw_aabb: bool,
     draw_oob: bool,
-    text: String,
+    draw_text: bool,
 }
 
 impl GizmoModule {
@@ -26,7 +26,7 @@ impl GizmoModule {
             draw_view_point: false,
             draw_aabb: false,
             draw_oob: false,
-            text: String::new(),
+            draw_text: false,
         })
     }
 }
@@ -46,7 +46,7 @@ impl UiHelperModule for GizmoModule {
         ui.checkbox("draw view point", &mut self.draw_view_point);
         ui.checkbox("draw aabb", &mut self.draw_aabb);
         ui.checkbox("draw oob", &mut self.draw_oob);
-        ui.input_text("text", &mut self.text).build();
+        ui.checkbox("draw text", &mut self.draw_text);
 
         if self.draw_line {
             let color_rotation = Quat::from((self.angle, ris_math::vector::VEC3_ONE));
@@ -100,14 +100,14 @@ impl UiHelperModule for GizmoModule {
             )?;
         }
 
-        if !self.text.is_empty() {
-            for i in 0..10 {
-                for j in 0..10 {
-                    for k in 0..10 {
-                        ris_debug::gizmo::text(Vec3(i as f32, j as f32, k as f32), &self.text)?;
-                    }
-                }
-            }
+
+        if self.draw_text {
+            ris_debug::gizmo::text(ris_math::vector::VEC3_RIGHT, "right")?;
+            ris_debug::gizmo::text(ris_math::vector::VEC3_LEFT, "left")?;
+            ris_debug::gizmo::text(ris_math::vector::VEC3_FORWARD, "forward")?;
+            ris_debug::gizmo::text(ris_math::vector::VEC3_BACKWARD, "backward")?;
+            ris_debug::gizmo::text(ris_math::vector::VEC3_UP, "up")?;
+            ris_debug::gizmo::text(ris_math::vector::VEC3_DOWN, "down")?;
         }
 
         Ok(())

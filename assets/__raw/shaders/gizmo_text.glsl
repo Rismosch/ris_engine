@@ -68,7 +68,6 @@ void main() {
         1
     );
 
-
     for (int i = 0; i < text_len; ++i) {
         // find glyph vertices
         vec4 v0 = vec4(i * glyph_offset_x, 0, 0, 0);
@@ -77,8 +76,8 @@ void main() {
         vec4 v3 = vec4((i + 1) * glyph_offset_x, glyph_offset_y, 0, 0);
 
         // find char
-        int char_index_1 = i / 4;
-        int char_index_2 = i % 4;
+        int char_index_1 = (i + int(text_addr)) / 4;
+        int char_index_2 = (i + int(text_addr)) % 4;
         uvec4 texel = texelFetch(text_texture, ivec2(char_index_1, 0), 0);
         uint char = texel[char_index_2];
 
