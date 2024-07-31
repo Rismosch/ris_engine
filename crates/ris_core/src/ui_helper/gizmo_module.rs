@@ -100,7 +100,6 @@ impl UiHelperModule for GizmoModule {
             )?;
         }
 
-
         if self.draw_text {
             ris_debug::gizmo::text(ris_math::vector::VEC3_RIGHT, "right")?;
             ris_debug::gizmo::text(ris_math::vector::VEC3_LEFT, "left")?;

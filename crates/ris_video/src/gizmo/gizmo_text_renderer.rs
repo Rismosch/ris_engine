@@ -182,13 +182,6 @@ impl GizmoTextRenderer {
         let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
         let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
 
-        ris_log::fatal!(
-            "{:?} {:?} {:?}",
-            god_asset.gizmo_text_vert_spv,
-            god_asset.gizmo_text_geom_spv,
-            god_asset.gizmo_text_frag_spv,
-        );
-
         let vs_bytes = vs_future.wait(None)??;
         let gs_bytes = gs_future.wait(None)??;
         let fs_bytes = fs_future.wait(None)??;
@@ -196,8 +189,6 @@ impl GizmoTextRenderer {
         let vs_module = crate::shader::create_module(device, &vs_bytes)?;
         let gs_module = crate::shader::create_module(device, &gs_bytes)?;
         let fs_module = crate::shader::create_module(device, &fs_bytes)?;
-
-        ris_log::fatal!("{:?} {:?} {:?}", vs_module, gs_module, fs_module);
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
