@@ -101,14 +101,6 @@ impl UiHelperModule for GizmoModule {
         }
 
         if self.draw_text {
-            for i in 0..10 {
-                for j in 0..10 {
-                    for k in 0..10 {
-                        ris_debug::gizmo::text(Vec3(i as f32, j as f32, k as f32), "hello")?;
-                    }
-                }
-            }
-
             ris_debug::gizmo::text(ris_math::vector::VEC3_RIGHT, "right")?;
             ris_debug::gizmo::text(ris_math::vector::VEC3_LEFT, "left")?;
             ris_debug::gizmo::text(ris_math::vector::VEC3_FORWARD, "forward")?;

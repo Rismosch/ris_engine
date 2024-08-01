@@ -399,7 +399,7 @@ impl GizmoTextRenderer {
             )?,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
-            store_op: vk::AttachmentStoreOp::DONT_CARE,
+            store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
             initial_layout: vk::ImageLayout::UNDEFINED,
@@ -571,10 +571,6 @@ impl GizmoTextRenderer {
         window_drawable_size: (u32, u32),
         camera: &Camera,
     ) -> RisResult<()> {
-        if vertices.is_empty() {
-            return Ok(());
-        }
-
         let VulkanCore {
             instance,
             suitable_device,
@@ -599,6 +595,10 @@ impl GizmoTextRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
+        //if vertices.is_empty() {
+        //    return Ok(());
+        //}
+
         // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -606,22 +606,28 @@ impl GizmoTextRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-        let mesh = match mesh {
-            Some(mesh) => {
-                mesh.update(
-                    core,
-                    physical_device_memory_properties,
-                    physical_device_properties,
-                    vertices,
-                    text,
-                )?;
-                mesh
-            }
-            None => {
-                let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
-                *mesh = Some(new_mesh);
-                mesh.as_mut().unroll()?
-            }
+        let mesh = if vertices.is_empty() {
+            None
+        } else {
+            let mesh = match mesh {
+                Some(mesh) => {
+                    mesh.update(
+                        core,
+                        physical_device_memory_properties,
+                        physical_device_properties,
+                        vertices,
+                        text,
+                    )?;
+                    mesh
+                }
+                None => {
+                    let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
+                    *mesh = Some(new_mesh);
+                    mesh.as_mut().unroll()?
+                }
+            };
+
+            Some(mesh)
         };
 
         // framebuffer
@@ -660,7 +666,7 @@ impl GizmoTextRenderer {
                     depth_stencil: vk::ClearDepthStencilValue {
                         depth: 1.0,
                         stencil: 0,
-                    }
+                    },
                 },
             ];
 
@@ -682,6 +688,11 @@ impl GizmoTextRenderer {
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
             );
+
+            let Some(mesh) = mesh else {
+                device.cmd_end_render_pass(*command_buffer);
+                return Ok(());
+            };
 
             device.cmd_bind_pipeline(
                 *command_buffer,
@@ -786,6 +797,7 @@ impl GizmoTextRenderer {
             );
 
             device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0);
+
             device.cmd_end_render_pass(*command_buffer);
         }
 

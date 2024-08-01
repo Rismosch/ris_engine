@@ -258,17 +258,27 @@ impl GizmoSegmentRenderer {
             alpha_to_one_enable: vk::FALSE,
         }];
 
+        let stencil_op_state = vk::StencilOpState {
+            fail_op: vk::StencilOp::KEEP,
+            pass_op: vk::StencilOp::KEEP,
+            depth_fail_op: vk::StencilOp::KEEP,
+            compare_op: vk::CompareOp::ALWAYS,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        };
+
         let depth_stencil_state = [vk::PipelineDepthStencilStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
-            depth_test_enable: vk::FALSE,
+            depth_test_enable: vk::TRUE,
             depth_write_enable: vk::FALSE,
-            depth_compare_op: vk::CompareOp::ALWAYS,
+            depth_compare_op: vk::CompareOp::LESS,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
-            front: vk::StencilOpState::default(),
-            back: vk::StencilOpState::default(),
+            front: stencil_op_state,
+            back: stencil_op_state,
             min_depth_bounds: 0.0,
             max_depth_bounds: 0.0,
         }];
@@ -333,9 +343,29 @@ impl GizmoSegmentRenderer {
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
+        let depth_attachment = vk::AttachmentDescription {
+            flags: vk::AttachmentDescriptionFlags::empty(),
+            format: crate::vulkan::util::find_depth_format(
+                instance,
+                suitable_device.physical_device,
+            )?,
+            samples: vk::SampleCountFlags::TYPE_1,
+            load_op: vk::AttachmentLoadOp::LOAD,
+            store_op: vk::AttachmentStoreOp::DONT_CARE,
+            stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+            stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
+
         let color_attachment_references = [vk::AttachmentReference {
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+        }];
+
+        let depth_attachment_reference = [vk::AttachmentReference {
+            attachment: 1,
+            layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         }];
 
         let subpass_descriptions = [vk::SubpassDescription {
@@ -346,7 +376,7 @@ impl GizmoSegmentRenderer {
             color_attachment_count: color_attachment_references.len() as u32,
             p_color_attachments: color_attachment_references.as_ptr(),
             p_resolve_attachments: ptr::null(),
-            p_depth_stencil_attachment: ptr::null(),
+            p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
             preserve_attachment_count: 0,
             p_preserve_attachments: ptr::null(),
         }];
@@ -364,7 +394,7 @@ impl GizmoSegmentRenderer {
             dependency_flags: vk::DependencyFlags::empty(),
         }];
 
-        let attachments = [color_attachment];
+        let attachments = [color_attachment, depth_attachment];
 
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
@@ -485,6 +515,7 @@ impl GizmoSegmentRenderer {
         let SwapchainEntry {
             index,
             viewport_image_view,
+            depth_image_view,
             command_buffer,
             ..
         } = entry;
@@ -521,7 +552,7 @@ impl GizmoSegmentRenderer {
             unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
-        let attachments = [*viewport_image_view];
+        let attachments = [*viewport_image_view, *depth_image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
@@ -542,11 +573,19 @@ impl GizmoSegmentRenderer {
 
         // render pass
         unsafe {
-            let clear_values = [vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 0.0],
+            let clear_values = [
+                vk::ClearValue {
+                    color: vk::ClearColorValue {
+                        float32: [0.0, 0.0, 0.0, 0.0],
+                    },
                 },
-            }];
+                vk::ClearValue {
+                    depth_stencil: vk::ClearDepthStencilValue {
+                        depth: 1.0,
+                        stencil: 0,
+                    },
+                },
+            ];
 
             let render_pass_begin_info = vk::RenderPassBeginInfo {
                 s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,

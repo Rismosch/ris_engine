@@ -163,4 +163,5 @@ void main() {
     float line = 1 - distance_to_line / LINE_THICKNESS;
 
     out_color = vec4(in_color, line);
+    //out_color = vec4(in_vertex.zzz, 1);
 }
