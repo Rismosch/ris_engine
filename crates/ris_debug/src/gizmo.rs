@@ -178,8 +178,10 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
         return Ok(());
     };
 
-    let bytes = text.as_bytes();
-    ris_error::assert!(bytes.len() <= MAX_TEXT_LEN)?;
+    let mut bytes = text.as_bytes();
+    if bytes.len() > MAX_TEXT_LEN {
+        bytes = &bytes[0..MAX_TEXT_LEN]
+    }
 
     let gizmo_text = GizmoText {
         position,
