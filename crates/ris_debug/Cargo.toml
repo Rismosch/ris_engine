@@ -10,3 +10,4 @@ sdl2 = "0.34.5"
 chrono = "0.4"
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
+ris_math = { path = "../ris_math" }

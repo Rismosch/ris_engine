@@ -8,25 +8,34 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
+use ris_video::gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
+use ris_video::gizmo::gizmo_text_renderer::GizmoTextRenderer;
 use ris_video::imgui::imgui_backend::ImguiBackend;
 use ris_video::imgui::imgui_renderer::ImguiRenderer;
-use ris_video::imgui::RisImgui;
-use ris_video::vulkan::renderer::Renderer;
+use ris_video::scene::scene_renderer::SceneRenderer;
+use ris_video::vulkan::core::VulkanCore;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
+use crate::output_frame::Renderer;
 use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
+    use ris_asset::asset_importer;
+
     ris_log::debug!("importing assets...");
 
-    use ris_asset::asset_importer::*;
-    import_all(DEFAULT_SOURCE_DIRECTORY, DEFAULT_TARGET_DIRECTORY)?;
+    asset_importer::import_all(
+        asset_importer::DEFAULT_SOURCE_DIRECTORY,
+        asset_importer::DEFAULT_TARGET_DIRECTORY,
+        Some("temp"),
+    )?;
 
     ris_log::debug!("assets imported!");
     Ok(())
@@ -49,6 +58,7 @@ pub struct GodObject {
 
     // guards, must be dropped last.
     // they are dropped in the order they are listed.
+    pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
     pub job_system_guard: JobSystemGuard,
@@ -56,9 +66,6 @@ pub struct GodObject {
 
 impl GodObject {
     pub fn new(app_info: AppInfo) -> RisResult<Self> {
-        // profiler
-        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
-
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {
@@ -86,6 +93,9 @@ impl GodObject {
         import_assets()?;
         let asset_loader_guard = unsafe { asset_loader::init(&app_info)? };
 
+        // profiling
+        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
+
         // sdl
         let sdl_context =
             sdl2::init().map_err(|e| ris_error::new!("failed to init sdl2: {}", e))?;
@@ -112,21 +122,37 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let renderer = Renderer::initialize(&app_info, &window, &god_asset)?;
+        let vulkan_core = unsafe { VulkanCore::alloc(&app_info, &window) }?;
 
-        // imgui
+        // scene renderer
+        let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;
+
+        // gizmo renderer
+        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
+        let gizmo_segment_renderer =
+            unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
+
+        // imgui renderer
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
         let context = imgui_backend.context();
-        let imgui_renderer = ImguiRenderer::init(&renderer, &god_asset, context)?;
-        let imgui = RisImgui {
-            backend: imgui_backend,
-            renderer: imgui_renderer,
+        let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+
+        // logic frame
+        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+
+        // output frame
+        let renderer = Renderer {
+            scene: scene_renderer,
+            gizmo_segment: gizmo_segment_renderer,
+            gizmo_text: gizmo_text_renderer,
+            imgui: imgui_renderer,
         };
 
-        // gameloop
         let ui_helper = UiHelper::new(&app_info)?;
-        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
-        let output_frame = OutputFrame::new(window, renderer, imgui, ui_helper)?;
+
+        let output_frame =
+            OutputFrame::new(window, vulkan_core, renderer, imgui_backend, ui_helper)?;
 
         let frame_calculator = FrameCalculator::default();
 
@@ -162,6 +188,7 @@ impl GodObject {
             state,
 
             // guards
+            gizmo_guard,
             profiler_guard,
             asset_loader_guard,
             job_system_guard,

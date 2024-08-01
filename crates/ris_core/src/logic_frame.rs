@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use std::time::Instant;
 
 use sdl2::event::Event;
@@ -9,7 +10,6 @@ use sdl2::GameControllerSubsystem;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_data::god_state;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
 use ris_error::RisResult;
@@ -19,9 +19,8 @@ use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
 
-const CRASH_TIMEOUT_IN_SECS: u64 = 5;
+const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
 #[cfg(debug_assertions)]
 fn reload_shaders() -> JobFuture<()> {
@@ -31,6 +30,7 @@ fn reload_shaders() -> JobFuture<()> {
         let result = asset_importer::import_all(
             asset_importer::DEFAULT_SOURCE_DIRECTORY,
             asset_importer::DEFAULT_TARGET_DIRECTORY,
+            Some("temp"),
         );
 
         if let Err(error) = result {
@@ -94,7 +94,7 @@ impl LogicFrame {
                 ..
             } = event
             {
-                state.window_event = god_state::WindowEvent::SizeChanged(w as u32, h as u32);
+                state.event_window_resized = Some((w as u32, h as u32));
                 ris_log::trace!("window changed size to {}x{}", w, h);
             }
 
@@ -146,7 +146,7 @@ impl LogicFrame {
         // reload shaders
         let mut import_shader_future = None;
         if input.keyboard.keys.is_down(Scancode::F6) {
-            state.reload_shaders = true;
+            state.event_rebuild_renderers = true;
             let future = reload_shaders();
             import_shader_future = Some(future);
         }
@@ -164,7 +164,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             self.camera_horizontal_angle = 0.0;
             self.camera_vertical_angle = 0.0;
-            state.camera.position = Vec3::backward();
+            state.camera.position = ris_math::vector::VEC3_BACKWARD;
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -184,38 +184,34 @@ impl LogicFrame {
         }
 
         while self.camera_horizontal_angle < 0. {
-            self.camera_horizontal_angle += 2. * ris_math::f32::PI;
+            self.camera_horizontal_angle += 2. * PI;
         }
-        while self.camera_horizontal_angle > 2. * ris_math::f32::PI {
-            self.camera_horizontal_angle -= 2. * ris_math::f32::PI;
+        while self.camera_horizontal_angle > 2. * PI {
+            self.camera_horizontal_angle -= 2. * PI;
         }
-        self.camera_vertical_angle = ris_math::f32::clamp(
-            self.camera_vertical_angle,
-            -0.5 * ris_math::f32::PI,
-            0.5 * ris_math::f32::PI,
-        );
+        self.camera_vertical_angle = f32::clamp(self.camera_vertical_angle, -0.5 * PI, 0.5 * PI);
 
-        let rotation1 = Quat::from((self.camera_vertical_angle, Vec3::right()));
-        let rotation2 = Quat::from((self.camera_horizontal_angle, Vec3::up()));
+        let rotation1 = Quat::from((self.camera_vertical_angle, ris_math::vector::VEC3_RIGHT));
+        let rotation2 = Quat::from((self.camera_horizontal_angle, ris_math::vector::VEC3_UP));
         state.camera.rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = state.camera.rotation.rotate(Vec3::forward());
+            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
             state.camera.position += movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = state.camera.rotation.rotate(Vec3::forward());
+            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
             state.camera.position -= movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = state.camera.rotation.rotate(Vec3::right());
+            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
             state.camera.position -= movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = state.camera.rotation.rotate(Vec3::right());
+            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
             state.camera.position += movement_speed * right;
         }
 

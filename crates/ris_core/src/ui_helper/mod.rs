@@ -12,10 +12,12 @@ use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
 
+pub mod gizmo_module;
 pub mod metrics_module;
 pub mod settings_module;
 pub mod util;
 
+use crate::ui_helper::gizmo_module::GizmoModule;
 use crate::ui_helper::metrics_module::MetricsModule;
 use crate::ui_helper::settings_module::SettingsModule;
 
@@ -24,6 +26,7 @@ const UNASSIGNED: &str = "unassigned";
 
 fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
     let modules: Vec<Box<dyn UiHelperModule>> = vec![
+        GizmoModule::new(),
         MetricsModule::new(app_info),
         SettingsModule::new(app_info),
         // add new modules here...
@@ -271,7 +274,7 @@ impl UiHelper {
             // imgui puts new tabs at the end. this is undesired, because renamed tabs are
             // considere new tabs. renaming a tab puts it at the end, messing up the
             // (de)serialization order of tabs. by assigning new ids to every tab, imgui thinks
-            // everything is new, thus keeping th original order
+            // everything is new, thus keeping the original order
             if self.module_selected_event.is_some() {
                 for pinned_module in self.pinned.iter_mut() {
                     pinned_module.id = self.next_pinned_id;

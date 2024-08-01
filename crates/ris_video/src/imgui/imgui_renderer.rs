@@ -15,13 +15,31 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 
-use crate::imgui::imgui_frames::Frames;
-use crate::vulkan::renderer::Renderer;
-use crate::vulkan::swapchain::BaseSwapchain;
-use crate::vulkan::swapchain::Swapchain;
+use crate::imgui::imgui_mesh::Mesh;
+use crate::vulkan::core::VulkanCore;
+use crate::vulkan::swapchain::SwapchainEntry;
 use crate::vulkan::texture::Texture;
 use crate::vulkan::texture::TextureCreateInfo;
-use crate::vulkan::transient_command::TransientCommand;
+
+pub struct ImguiFrame {
+    mesh: Option<Mesh>,
+    framebuffer: Option<vk::Framebuffer>,
+}
+
+impl ImguiFrame {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        if let Some(mut mesh) = self.mesh.take() {
+            mesh.free(device);
+        }
+
+        if let Some(framebuffer) = self.framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
+        }
+    }
+}
 
 pub struct ImguiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
@@ -32,14 +50,17 @@ pub struct ImguiRenderer {
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
     textures: Textures<vk::DescriptorSet>,
-    frames: Option<Frames>,
+    frames: Vec<ImguiFrame>,
 }
 
 impl ImguiRenderer {
-    pub fn free(&mut self, device: &ash::Device) {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
-            if let Some(frames) = self.frames.take() {
-                frames.free(device);
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
             }
 
             self.font_texture.free(device);
@@ -52,28 +73,23 @@ impl ImguiRenderer {
         }
     }
 
-    pub fn init(
-        renderer: &Renderer,
+    /// # Safety
+    ///
+    /// `free()` must be called, or you are leaking memory.
+    pub unsafe fn alloc(
+        core: &VulkanCore,
         god_asset: &RisGodAsset,
         context: &mut Context,
     ) -> RisResult<Self> {
-        let Renderer {
+        let VulkanCore {
             instance,
             suitable_device,
             device,
             graphics_queue,
             transient_command_pool,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            format: swapchain_format,
-                            ..
-                        },
-                    ..
-                },
+            swapchain,
             ..
-        } = renderer;
+        } = core;
 
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
@@ -307,7 +323,7 @@ impl ImguiRenderer {
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: swapchain_format.format,
+            format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::LOAD,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -416,6 +432,8 @@ impl ImguiRenderer {
                 physical_device_properties,
                 width: font_atlas_texture.width,
                 height: font_atlas_texture.height,
+                format: vk::Format::R8G8B8A8_SRGB,
+                filter: vk::Filter::LINEAR,
                 pixels_rgba: font_atlas_texture.data,
             })
         }?;
@@ -474,6 +492,17 @@ impl ImguiRenderer {
 
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
+        // frames
+        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        for _ in 0..swapchain.entries.len() {
+            let frame = ImguiFrame {
+                mesh: None,
+                framebuffer: None,
+            };
+
+            frames.push(frame);
+        }
+
         // init
         context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
 
@@ -486,62 +515,61 @@ impl ImguiRenderer {
             descriptor_pool,
             descriptor_set,
             textures: Textures::new(),
-            frames: None,
+            frames,
         })
     }
 
     pub fn draw(
         &mut self,
-        renderer: &Renderer,
-        target: vk::ImageView,
+        core: &VulkanCore,
+        entry: &SwapchainEntry,
         draw_data: &DrawData,
     ) -> RisResult<()> {
         if draw_data.total_vtx_count == 0 {
             return Ok(());
         }
 
-        let Renderer {
+        let VulkanCore {
             instance,
             suitable_device,
             device,
-            graphics_queue,
-            transient_command_pool,
-            swapchain:
-                Swapchain {
-                    base:
-                        BaseSwapchain {
-                            extent: swapchain_extent,
-                            ..
-                        },
-                    entries,
-                    ..
-                },
+            swapchain,
             ..
-        } = renderer;
+        } = core;
 
+        let SwapchainEntry {
+            index,
+            viewport_image_view,
+            command_buffer,
+            ..
+        } = entry;
+
+        let ImguiFrame { mesh, framebuffer } = &mut self.frames[*index];
+
+        // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        if self.frames.is_none() {
-            let frames = unsafe {
-                Frames::alloc(
-                    device,
-                    physical_device_memory_properties,
-                    draw_data,
-                    entries.len(),
-                )
-            }?;
-            self.frames.replace(frames);
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(device, physical_device_memory_properties, draw_data)?;
+                mesh
+            }
+            None => {
+                let new_mesh =
+                    unsafe { Mesh::alloc(device, physical_device_memory_properties, draw_data) }?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().unroll()?
+            }
+        };
+
+        // framebuffer
+        if let Some(framebuffer) = framebuffer.take() {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
         }
 
-        let mesh = self.frames.as_mut().unroll()?.acquire_next_mesh();
-        mesh.update(device, physical_device_memory_properties, draw_data)?;
-
-        let transient_command =
-            TransientCommand::begin(device, *graphics_queue, *transient_command_pool)?;
-
-        let attachments = [target];
+        let attachments = [*viewport_image_view];
 
         let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
@@ -550,13 +578,16 @@ impl ImguiRenderer {
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
-            width: swapchain_extent.width,
-            height: swapchain_extent.height,
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
             layers: 1,
         };
 
-        let framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+        let new_framebuffer = unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
+        *framebuffer = Some(new_framebuffer);
+        let framebuffer = new_framebuffer;
 
+        // render pass
         let clear_values = [vk::ClearValue {
             color: vk::ClearColorValue {
                 float32: [0.0, 0.0, 0.0, 0.0],
@@ -570,7 +601,7 @@ impl ImguiRenderer {
             framebuffer,
             render_area: vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
-                extent: *swapchain_extent,
+                extent: swapchain.extent,
             },
             clear_value_count: clear_values.len() as u32,
             p_clear_values: clear_values.as_ptr(),
@@ -578,7 +609,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_begin_render_pass(
-                transient_command.buffer(),
+                *command_buffer,
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
             )
@@ -586,7 +617,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_bind_pipeline(
-                transient_command.buffer(),
+                *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline,
             )
@@ -601,7 +632,7 @@ impl ImguiRenderer {
             ..Default::default()
         }];
 
-        unsafe { device.cmd_set_viewport(transient_command.buffer(), 0, &viewports) };
+        unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
 
         let mut projection = Mat4::init(1.0);
         let rml = draw_data.display_size[0];
@@ -622,7 +653,7 @@ impl ImguiRenderer {
             let push = std::slice::from_raw_parts(push_ptr, std::mem::size_of::<Mat4>());
 
             device.cmd_push_constants(
-                transient_command.buffer(),
+                *command_buffer,
                 self.pipeline_layout,
                 vk::ShaderStageFlags::VERTEX,
                 0,
@@ -632,7 +663,7 @@ impl ImguiRenderer {
 
         unsafe {
             device.cmd_bind_index_buffer(
-                transient_command.buffer(),
+                *command_buffer,
                 mesh.indices.buffer,
                 0,
                 vk::IndexType::UINT16,
@@ -640,12 +671,7 @@ impl ImguiRenderer {
         };
 
         unsafe {
-            device.cmd_bind_vertex_buffers(
-                transient_command.buffer(),
-                0,
-                &[mesh.vertices.buffer],
-                &[0],
-            )
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0])
         };
 
         let mut index_offset = 0;
@@ -682,13 +708,13 @@ impl ImguiRenderer {
                             },
                         }];
 
-                        unsafe { device.cmd_set_scissor(transient_command.buffer(), 0, &scissors) };
+                        unsafe { device.cmd_set_scissor(*command_buffer, 0, &scissors) };
 
                         if Some(texture_id) != current_texture_id {
                             let descriptor_set = self.lookup_descriptor_set(texture_id)?;
                             unsafe {
                                 device.cmd_bind_descriptor_sets(
-                                    transient_command.buffer(),
+                                    *command_buffer,
                                     vk::PipelineBindPoint::GRAPHICS,
                                     self.pipeline_layout,
                                     0,
@@ -700,7 +726,7 @@ impl ImguiRenderer {
 
                         unsafe {
                             device.cmd_draw_indexed(
-                                transient_command.buffer(),
+                                *command_buffer,
                                 count as u32,
                                 1,
                                 index_offset + idx_offset as u32,
@@ -722,9 +748,7 @@ impl ImguiRenderer {
             vertex_offset += draw_list.vtx_buffer().len() as i32;
         }
 
-        unsafe { device.cmd_end_render_pass(transient_command.buffer()) };
-        transient_command.end_and_submit(&[], &[], vk::Fence::null())?;
-        unsafe { device.destroy_framebuffer(framebuffer, None) };
+        unsafe { device.cmd_end_render_pass(*command_buffer) };
 
         Ok(())
     }

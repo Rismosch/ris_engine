@@ -5,9 +5,13 @@ use ash::vk;
 use ris_error::RisResult;
 
 use super::buffer::Buffer;
+use super::buffer::CopyToImageInfo;
 use super::image::Image;
 use super::image::ImageCreateInfo;
+use super::image::TransitionLayoutInfo;
+use super::transient_command::TransientCommandSync;
 
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Texture {
     pub image: Image,
     pub view: vk::ImageView,
@@ -22,6 +26,8 @@ pub struct TextureCreateInfo<'a> {
     pub physical_device_properties: vk::PhysicalDeviceProperties,
     pub width: u32,
     pub height: u32,
+    pub format: vk::Format,
+    pub filter: vk::Filter,
     pub pixels_rgba: &'a [u8],
 }
 
@@ -38,8 +44,13 @@ impl Texture {
             physical_device_properties,
             width,
             height,
+            format,
+            filter,
             pixels_rgba,
         } = info;
+
+        ris_error::debug_assert!(width != 0)?;
+        ris_error::debug_assert!(height != 0)?;
 
         let actual_len = pixels_rgba.len();
         let expected_len = (width * height * 4) as usize;
@@ -60,58 +71,56 @@ impl Texture {
             device,
             width,
             height,
-            format: vk::Format::R8G8B8A8_SRGB,
+            format,
             tiling: vk::ImageTiling::OPTIMAL,
             usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
             memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         })?;
 
-        image.transition_layout(
+        image.transition_layout(TransitionLayoutInfo {
             device,
             queue,
             transient_command_pool,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageLayout::UNDEFINED,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-        )?;
+            format,
+            old_layout: vk::ImageLayout::UNDEFINED,
+            new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            sync: TransientCommandSync::default(),
+        })?;
 
-        staging_buffer.copy_to_image(
+        staging_buffer.copy_to_image(CopyToImageInfo {
             device,
             queue,
             transient_command_pool,
-            image.image,
+            image: image.image,
             width,
             height,
-        )?;
+            sync: TransientCommandSync::default(),
+        })?;
 
-        image.transition_layout(
+        image.transition_layout(TransitionLayoutInfo {
             device,
             queue,
             transient_command_pool,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-        )?;
+            format,
+            old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            sync: TransientCommandSync::default(),
+        })?;
 
         staging_buffer.free(device);
 
         // create image view
-        let view = Image::alloc_view(
-            device,
-            image.image,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageAspectFlags::COLOR,
-        )?;
+        let view = Image::alloc_view(device, image.image, format, vk::ImageAspectFlags::COLOR)?;
 
         // create sampler
         let sampler_create_info = vk::SamplerCreateInfo {
             s_type: vk::StructureType::SAMPLER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::SamplerCreateFlags::empty(),
-            mag_filter: vk::Filter::LINEAR,
-            min_filter: vk::Filter::LINEAR,
-            mipmap_mode: vk::SamplerMipmapMode::LINEAR,
+            mag_filter: filter,
+            min_filter: filter,
+            mipmap_mode: vk::SamplerMipmapMode::NEAREST,
             address_mode_u: vk::SamplerAddressMode::REPEAT,
             address_mode_v: vk::SamplerAddressMode::REPEAT,
             address_mode_w: vk::SamplerAddressMode::REPEAT,

@@ -20,13 +20,14 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: 
 #[macro_export]
 macro_rules! assert_feq {
     ($left:expr, $right:expr) => {{
-        $crate::assert_feq!($left, $right, ris_math::f32::MIN_NORM, "");
+        const MIN_NORM: f32 = 0.000_001f32;
+        $crate::assert_feq!($left, $right, MIN_NORM, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         $crate::assert_feq!($left, $right, $tolerance, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr, $($arg:tt)*) => {{
-        let diff = ris_math::f32::diff($left, $right);
+        let diff = f32::abs($left - $right);
         let message = format!($($arg)*);
         assert!(
             diff < $tolerance,

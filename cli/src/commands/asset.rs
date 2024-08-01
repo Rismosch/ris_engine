@@ -157,10 +157,12 @@ impl Asset {
                 ),
             },
             AssetCommand::Import => match source_target {
-                Some((source, target)) => asset_importer::import_all(source, target),
+                Some((source, target)) => asset_importer::import_all(source, target, None),
                 None => asset_importer::import_all(
                     asset_importer::DEFAULT_SOURCE_DIRECTORY,
                     asset_importer::DEFAULT_TARGET_DIRECTORY,
+                    //Some("temp"),
+                    None,
                 ),
             },
         }

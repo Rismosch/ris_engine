@@ -157,10 +157,10 @@ impl ICommand for Archive {
             ris_file::util::clean_or_create_dir(&target_dir)?;
 
             eprintln!("compressing...");
-            crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!ci_out", dst_file_path, src_dir), None)?;
+            crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!cli_out", dst_file_path, src_dir), None)?;
             crate::cmd::run(
                 &format!(
-                    "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!ci_out",
+                    "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!cli_out",
                     dst_file_path, src_dir
                 ),
                 None,
@@ -168,7 +168,7 @@ impl ICommand for Archive {
 
             crate::cmd::run(
                 &format!(
-                    "tar --exclude=.git --exclude=target --exclude=ci_out -czf {}.tgz -C {} .",
+                    "tar --exclude=.git --exclude=target --exclude=cli_out -czf {}.tgz -C {} .",
                     dst_file_path, src_dir
                 ),
                 None,

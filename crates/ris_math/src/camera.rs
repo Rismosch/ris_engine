@@ -1,7 +1,9 @@
-use super::affine;
-use super::matrix::Mat4;
-use super::quaternion::Quat;
-use super::vector::Vec3;
+use std::f32::consts::PI;
+
+use crate::affine;
+use crate::matrix::Mat4;
+use crate::quaternion::Quat;
+use crate::vector::Vec3;
 
 #[derive(Debug, Clone)]
 pub struct Camera {
@@ -19,10 +21,10 @@ impl Default for Camera {
         Self {
             position: Default::default(),
             rotation: Default::default(),
-            fovy: crate::f32::radians(60.),
+            fovy: 60f32.to_radians(),
             aspect_ratio: 16. / 9.,
             near: 0.1,
-            far: 10.0,
+            far: 20.0,
         }
     }
 }
@@ -41,7 +43,7 @@ impl Camera {
         //
         //  a single rotation is sufficiant to translate one to the other
 
-        let default_rotation = Quat::from((0.5 * crate::f32::PI, Vec3::right()));
+        let default_rotation = Quat::from((0.5 * PI, crate::vector::VEC3_RIGHT));
         let camera_rotation = self.rotation.conjugate();
         let rotation = default_rotation * camera_rotation;
         let translation = -1.0 * self.position;
@@ -53,14 +55,16 @@ impl Camera {
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
-        let tan_half_fovy = crate::f32::tan(self.fovy / 2.0);
+        let n = self.near;
+        let f = self.far;
+        let e = 1.0 / f32::tan(self.fovy * 0.5);
 
         let mut mat = Mat4::init(0.0);
-        mat.0 .0 = 1.0 / (self.aspect_ratio * tan_half_fovy);
-        mat.1 .1 = 1.0 / tan_half_fovy;
-        mat.2 .2 = self.far / (self.far - self.near);
+        mat.0 .0 = e / self.aspect_ratio;
+        mat.1 .1 = e;
+        mat.2 .2 = f / (f - n);
         mat.2 .3 = 1.0;
-        mat.3 .2 = -(self.far * self.near) / (self.far - self.near);
+        mat.3 .2 = -(f * n) / (f - n);
 
         mat
     }

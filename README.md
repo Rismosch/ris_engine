@@ -25,7 +25,7 @@ Barebones game engine. Home made passion project.
 - [x] Debugging
   - [x] GUI via Dear ImGui
   - [x] Profiling
-  - [ ] Gizmos
+  - [x] Gizmos
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
@@ -44,7 +44,7 @@ Barebones game engine. Home made passion project.
 | Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
 | Graphics | Vulkan capable Hardware  |                                                          |
 
-You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive).Note that I make these archives sporadically, meaning they may not be up to date.
+You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive). Note that I make these archives sporadically, meaning they may not be up to date.
 
 ## Installation
 
@@ -110,11 +110,7 @@ Alternatively, you can build a release-ready package, by running the command bel
 cargo run -p cli build
 ```
 
-`cli` is a command line utility tool. It enables CI/CD and runs features of the engine as a oneshot cli program. For all available commands and their usages, run:
-
-```bash
-cargo run -p cli
-```
+For more info about `cli`, see `./cli/README.md`.
 
 ## Testing
 

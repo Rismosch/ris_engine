@@ -14,9 +14,7 @@ impl ICommand for Repeat {
 
     fn explanation(level: ExplanationLevel) -> String {
         match level {
-            ExplanationLevel::Short => {
-                String::from("Repeatedly runs a command.")
-            }
+            ExplanationLevel::Short => String::from("Repeatedly runs a command."),
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
                 explanation.push_str("Repeatedly runs a command until it fails. If the command does not fail, this command will run forever. This means it may never end, and such should be cancelled with Ctrl+C.\n");

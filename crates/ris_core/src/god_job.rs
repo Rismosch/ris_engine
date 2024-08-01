@@ -17,7 +17,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let frame = frame_calculator.bump_and_create_frame();
 
         // reset events
-        let mut r = ris_debug::new_record!("reset events");
+        let mut r = ris_debug::new_record!("main loop");
 
         let previous_state = god_object.state.clone();
         god_object.state.reset_events();

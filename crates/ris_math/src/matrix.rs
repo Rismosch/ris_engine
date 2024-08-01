@@ -2,6 +2,8 @@ use crate::vector::Vec2;
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
+const MIN_NORM: f32 = 0.000_001f32;
+
 //
 // definition
 //
@@ -614,7 +616,7 @@ impl Mat2 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if det < crate::f32::MIN_NORM {
+        if det < MIN_NORM {
             return None; // matrix is not invertible
         }
 
@@ -884,7 +886,7 @@ impl Mat3 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::f32::abs(det) < crate::f32::MIN_NORM {
+        if det.abs() < MIN_NORM {
             return None; // matrix is not invertible
         }
 
@@ -1241,7 +1243,7 @@ impl Mat4 {
     /// returns a matrix that is the inverse of self
     pub fn inverse(self) -> Option<Self> {
         let det = self.determinant();
-        if crate::f32::abs(det) < crate::f32::MIN_NORM {
+        if det.abs() < MIN_NORM {
             return None; // matrix is not invertible
         }
 
