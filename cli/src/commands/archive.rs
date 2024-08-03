@@ -81,14 +81,14 @@ impl ICommand for Archive {
         let mut compress = false;
         let mut force = false;
 
-        for raw_arg in &args[2..] {
-            match raw_arg.trim().to_lowercase().as_str() {
+        for arg in &args[2..] {
+            match arg.trim().to_lowercase().as_str() {
                 CLEAN => clean = Clean::ExceptVendor,
                 CLEAN_EVERYTHING => clean = Clean::Everything,
                 VENDOR => vendor = true,
                 COMPRESS => compress = true,
                 FORCE => force = true,
-                arg => {
+                _ => {
                     return crate::util::command_error(
                         &format!("unkown arg: {}", arg),
                         "archive",

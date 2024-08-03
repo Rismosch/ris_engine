@@ -5,7 +5,6 @@ use std::sync::Arc;
 use chrono::DateTime;
 use chrono::Local;
 
-pub static mut GET_TIMESTAMP_ON_BACKTRACE: bool = true;
 pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
 
 pub type SourceError = Option<Arc<dyn Error + 'static>>;
@@ -121,23 +120,10 @@ macro_rules! get_backtrace {
         use std::backtrace::Backtrace;
         use std::sync::Arc;
 
-        let timestamp = if unsafe {$crate::error::GET_TIMESTAMP_ON_BACKTRACE} {
-            $crate::error::get_timestamp().format("%T").to_string()
-        } else {
-            String::from("00:00:00")
-        };
-
-
         let backtrace = Arc::new(Backtrace::force_capture());
 
         if unsafe {$crate::error::PRINT_WARNING_ON_BACKTRACE} {
-            eprintln!(
-                "\n\u{001B}[37m[{}]\u{001B}[0m \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}",
-                timestamp,
-                env!("CARGO_PKG_NAME"),
-                file!(),
-                line!(),
-            );
+            ris_log::warning!("created backtrace. this operation is expensive. excessive use may cost performance");
         }
 
         backtrace

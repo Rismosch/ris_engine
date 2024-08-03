@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use ris_core::god_job;
 use ris_core::god_object::GodObject;
+use ris_core::log_appenders::console_appender::ConsoleAppender;
+use ris_core::log_appenders::file_appender::FileAppender;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -10,10 +12,8 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
 use ris_error::RisResult;
-use ris_log::appenders::console_appender::ConsoleAppender;
-use ris_log::appenders::file_appender::FileAppender;
 use ris_log::log;
-use ris_log::log::Appenders;
+use ris_log::log::IAppender;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
@@ -70,12 +70,9 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
     logs_dir.push(&app_info.file.pref_path);
     logs_dir.push("logs");
 
-    let console_appender = Some(ConsoleAppender);
-    let file_appender = Some(FileAppender::new(&logs_dir)?);
-    let appenders = Appenders {
-        console_appender,
-        file_appender,
-    };
+    let console_appender = Box::new(ConsoleAppender);
+    let file_appender = Box::new(FileAppender::new(&logs_dir)?);
+    let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender, file_appender];
 
     let log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
 

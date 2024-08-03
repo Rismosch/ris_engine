@@ -7,30 +7,11 @@ use std::thread::JoinHandle;
 use chrono::DateTime;
 use chrono::Local;
 
-use crate::appenders::console_appender::ConsoleAppender;
-use crate::appenders::file_appender::FileAppender;
 use crate::log_level::LogLevel;
 use crate::log_message::LogMessage;
 
-pub struct Appenders {
-    pub console_appender: Option<ConsoleAppender>,
-    pub file_appender: Option<FileAppender>,
-}
-
-impl Appenders {
-    pub fn has_appenders(&self) -> bool {
-        self.console_appender.is_some() || self.file_appender.is_some()
-    }
-
-    pub fn print(&mut self, message: LogMessage) {
-        if let Some(appender) = self.console_appender.as_mut() {
-            appender.print(&message.fmt(true))
-        }
-
-        if let Some(appender) = self.file_appender.as_mut() {
-            appender.print(&message.fmt(false))
-        }
-    }
+pub trait IAppender {
+    fn print(&mut self, message: &LogMessage);
 }
 
 pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
@@ -69,14 +50,16 @@ impl Drop for Logger {
 /// # Safety
 ///
 /// The logger is a singleton. Initialize it only once.
-pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
-    if matches!(log_level, LogLevel::None) || !appenders.has_appenders() {
+pub unsafe fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
+    if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return LogGuard;
     }
 
     let (sender, receiver) = channel();
     let sender = Some(sender);
-    let thread_handle = Some(std::thread::spawn(|| log_thread(receiver, appenders)));
+    let thread_handle = Some(std::thread::spawn(|| {
+        log_thread(receiver, appenders);
+    }));
 
     let logger = Logger {
         log_level,
@@ -96,12 +79,18 @@ pub unsafe fn init(log_level: LogLevel, appenders: Appenders) -> LogGuard {
     LogGuard
 }
 
-fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Appenders) {
+fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {
     for log_message in receiver.iter() {
-        appenders.print(log_message);
+        for appender in appenders.iter_mut() {
+            appender.print(&log_message);
+        }
     }
 
-    appenders.print(LogMessage::Plain(String::from("log thread ended")));
+    let final_log_message = LogMessage::Plain(String::from("log thread ended"));
+
+    for appender in appenders.iter_mut() {
+        appender.print(&final_log_message);
+    }
 }
 
 pub fn log_level() -> LogLevel {
