@@ -6,5 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cfg-if = "1"
 sdl2 = "0.34.5"
 chrono = "0.4"
+
+[features]
+testing = []

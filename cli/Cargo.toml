@@ -9,6 +9,10 @@ edition = "2021"
 sdl2 = "0.34.5"
 chrono = "0.4"
 ris_asset = { path = "../crates/ris_asset" }
+ris_core = { path = "../crates/ris_core" }
 ris_error = { path = "../crates/ris_error" }
 ris_file = { path = "../crates/ris_file" }
 ris_log = { path = "../crates/ris_log" }
+
+[features]
+default = ["ris_log/testing"]

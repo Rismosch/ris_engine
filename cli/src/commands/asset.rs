@@ -3,10 +3,10 @@ use std::path::PathBuf;
 use ris_asset::asset_compiler;
 use ris_asset::asset_compiler::CompileOptions;
 use ris_asset::asset_importer;
+use ris_core::log_appenders::console_appender::ConsoleAppender;
 use ris_error::RisResult;
-use ris_log::appenders::console_appender::ConsoleAppender;
 use ris_log::log;
-use ris_log::log::Appenders;
+use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
 
 use crate::ExplanationLevel;
@@ -123,12 +123,8 @@ impl Asset {
         command: AssetCommand,
         source_target: Option<(&str, &str)>,
     ) -> RisResult<()> {
-        let console_appender = Some(ConsoleAppender);
-        let file_appender = None;
-        let appenders = Appenders {
-            console_appender,
-            file_appender,
-        };
+        let console_appender = Box::new(ConsoleAppender);
+        let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];
 
         let _log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
 
