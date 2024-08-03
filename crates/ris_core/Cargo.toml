@@ -24,3 +24,5 @@ ris_rng = { path = "../ris_rng" }
 ris_util = { path = "../ris_util" }
 ris_video = { path = "../ris_video" }
 
+[features]
+testing = []

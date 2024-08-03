@@ -9,6 +9,8 @@ use crate::AssetCommand;
 use crate::ExplanationLevel;
 use crate::ICommand;
 
+const NO_TESTING: &str = "no-testing";
+
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
 
@@ -36,14 +38,47 @@ struct AutoGenerateParseData<'a> {
 pub struct Build;
 impl ICommand for Build {
     fn args() -> String {
-        String::new()
+        format!("[{}]", NO_TESTING)
     }
 
-    fn explanation(_level: ExplanationLevel) -> String {
-        String::from("Generates build info and compiles the workspace as a release ready package.")
+    fn explanation(level: ExplanationLevel) -> String {
+        match level {
+            ExplanationLevel::Short => {
+                String::from("Generates build info and compiles the workspace as a release ready package.")
+            },
+            ExplanationLevel::Detailed => {
+                let mut explanation = String::new();
+
+                explanation.push_str("Generates build info and compiles the workspace as a release ready package.\n");
+                explanation.push('\n');
+                explanation.push_str("args:\n");
+                explanation.push('\n');
+                explanation.push_str(&format!("{}\n", NO_TESTING));
+                explanation.push_str("Disables all testing features. This includes logging, profiling and debug UI.\n");
+
+                explanation
+            },
+        }
     }
 
-    fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+        eprintln!("parsing args...");
+        let mut no_testing = false;
+
+        for arg in &args[2..] {
+            match arg.trim().to_lowercase().as_str() {
+                NO_TESTING => no_testing = true,
+                _ => {
+                    return crate::util::command_error(
+                        &format!("unkown arg: {}", arg),
+                        "build",
+                        Self::args(),
+                        Self::explanation(ExplanationLevel::Detailed),
+                    );
+                }
+            }
+        }
+
         eprintln!("generating build info...");
 
         let root_dir = crate::util::get_root_dir()?;
@@ -148,7 +183,11 @@ impl ICommand for Build {
         Asset::execute_command(AssetCommand::Compile, None)?;
 
         eprintln!("compiling workspace...");
-        crate::cmd::run("cargo build --release", None)?;
+        if no_testing {
+            crate::cmd::run("cargo build --release --no-default-features", None)?;
+        } else {
+            crate::cmd::run("cargo build --release", None)?;
+        }
 
         ris_file::util::clean_or_create_dir(&target_dir)?;
 

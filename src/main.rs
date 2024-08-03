@@ -12,8 +12,7 @@ use ris_data::info::file_info::FileInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
 use ris_error::RisResult;
-use ris_log::log;
-use ris_log::log::IAppender;
+use ris_log::appender::IAppender;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
@@ -74,7 +73,7 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
     let file_appender = Box::new(FileAppender::new(&logs_dir)?);
     let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender, file_appender];
 
-    let log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
+    let log_guard = unsafe { ris_log::log::init(LOG_LEVEL, appenders) };
 
     Ok(log_guard)
 }

@@ -136,8 +136,6 @@ impl ICommand for Pipeline {
             test(results, run_build, "cargo build -r");
             test(results, run_build, "cargo build --no-default-features");
             test(results, run_build, "cargo build -r --no-default-features");
-            test(results, run_build, "cargo build -p cli");
-            test(results, run_build, "cargo build -r -p cli");
             test(results, run_test, "cargo test");
             test(results, run_test, "cargo test -r");
             test(results, run_test, "cargo test --no-default-features");

@@ -7,12 +7,9 @@ use std::thread::JoinHandle;
 use chrono::DateTime;
 use chrono::Local;
 
+use crate::appender::IAppender;
 use crate::log_level::LogLevel;
 use crate::log_message::LogMessage;
-
-pub trait IAppender {
-    fn print(&mut self, message: &LogMessage);
-}
 
 pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
 
@@ -51,10 +48,6 @@ impl Drop for Logger {
 ///
 /// The logger is a singleton. Initialize it only once.
 pub unsafe fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
-    #[cfg(feature = "testing")] {
-        eprintln!("testing is enabled");
-    }
-
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return LogGuard;
     }
@@ -190,7 +183,7 @@ macro_rules! log {
             let priority = $priority;
             let message = format!($($arg)*);
 
-            let constructed_log = ris_log::constructed_log_message::ConstructedLogMessage {
+            let constructed_log = $crate::log_message::ConstructedLogMessage {
                 package,
                 file,
                 line,
