@@ -82,7 +82,7 @@ impl ICommand for Pipeline {
     fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         if args.len() <= 2 {
             return crate::util::command_error(
-                &format!("no args provided"),
+                "no args provided",
                 "pipeline",
                 Self::args(),
                 Self::explanation(ExplanationLevel::Detailed),
