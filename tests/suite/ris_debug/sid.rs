@@ -15,7 +15,6 @@ fn should_eq() {
 fn should_detect_collision() {
     unsafe {
         ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
-        ris_error::error::GET_TIMESTAMP_ON_BACKTRACE = false;
     }
 
     let sid1 = ris_debug::sid!("wCVg");
