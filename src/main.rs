@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use ris_core::log_appenders::console_appender::ConsoleAppender;
-use ris_core::log_appenders::file_appender::FileAppender;
 use ris_core::god_job;
 use ris_core::god_object::GodObject;
+use ris_core::log_appenders::console_appender::ConsoleAppender;
+use ris_core::log_appenders::file_appender::FileAppender;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;

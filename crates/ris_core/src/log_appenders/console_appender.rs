@@ -8,4 +8,3 @@ impl IAppender for ConsoleAppender {
         eprintln!("\n{}", message.fmt(true));
     }
 }
-
