@@ -131,7 +131,7 @@ macro_rules! get_backtrace {
         let backtrace = Arc::new(Backtrace::force_capture());
 
         if unsafe {$crate::error::PRINT_WARNING_ON_BACKTRACE} {
-            eprintln!(
+            ris_log::warning!(
                 "\n\u{001B}[37m[{}]\u{001B}[0m \u{001B}[93mWARNING\u{001B}[0m: \u{001B}[97mcreated backtrace. this operation is expensive. excessive use may cost performance.\u{001B}[0m\n    in {} at {}:{}",
                 timestamp,
                 env!("CARGO_PKG_NAME"),

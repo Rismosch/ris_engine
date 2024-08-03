@@ -40,7 +40,6 @@ fn should_convert_rgb_to_lab() {
 #[test]
 fn should_convert_lab_to_lch() {
     let seed = Seed::new().unwrap();
-    //let seed = Seed([2, 81, 100, 135, 144, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {

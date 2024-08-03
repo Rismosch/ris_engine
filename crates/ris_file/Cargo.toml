@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 chrono = "0.4"
 ris_error = { path = "../ris_error" }
+ris_log = { path = "../ris_log" }

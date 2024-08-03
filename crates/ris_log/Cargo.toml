@@ -8,5 +8,3 @@ edition = "2021"
 [dependencies]
 sdl2 = "0.34.5"
 chrono = "0.4"
-ris_error = { path = "../ris_error" }
-ris_file = { path = "../ris_file" }

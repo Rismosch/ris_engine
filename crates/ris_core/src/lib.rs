@@ -2,6 +2,8 @@ pub mod god_job;
 pub mod god_object;
 pub mod logic_frame;
 pub mod output_frame;
+
+pub mod log_appenders;
 pub mod ui_helper;
 
 use ris_data::info::app_info::AppInfo;
