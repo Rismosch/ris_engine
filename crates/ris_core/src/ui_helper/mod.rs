@@ -1,16 +1,19 @@
-use std::ffi::OsStr;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Instant;
 
 use imgui::Ui;
+use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame::Frame;
+use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
+use ris_jobs::job_future::JobFuture;
 
 pub mod gizmo_module;
 pub mod metrics_module;
@@ -21,22 +24,58 @@ use crate::ui_helper::gizmo_module::GizmoModule;
 use crate::ui_helper::metrics_module::MetricsModule;
 use crate::ui_helper::settings_module::SettingsModule;
 
-const PINNED: &str = "pinned";
-const UNASSIGNED: &str = "unassigned";
+const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
-fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
-    let modules: Vec<Box<dyn UiHelperModule>> = vec![
-        GizmoModule::new(),
-        MetricsModule::new(app_info),
-        SettingsModule::new(app_info),
-        // add new modules here...
+const WINDOW_OFFSET: f32 = 19.0;
+const WINDOW_SIZE: [f32; 2] = [200.0, 300.0];
+
+const WINDOW_KEY: &str = "window_";
+const WINDOW_SEPARATOR: char = ',';
+
+pub trait IUiHelperModule {
+    fn name() -> &'static str
+    where
+        Self: Sized;
+    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule>
+    where
+        Self: Sized;
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
+}
+
+#[allow(clippy::type_complexity)]
+pub struct UiHelperModuleBuilder {
+    pub name: String,
+    pub build: Box<dyn Fn(&AppInfo) -> Box<dyn IUiHelperModule>>,
+}
+
+macro_rules! module {
+    ($ui_module:ident) => {{
+        UiHelperModuleBuilder {
+            name: $ui_module::name().to_string(),
+            build: Box::new($ui_module::build),
+        }
+    }};
+}
+
+macro_rules! module_vec {
+    ($($ui_module:ident),+ $(,)*) => {{
+        vec![$(module!($ui_module)),+]
+    }};
+}
+
+fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
+    let modules = module_vec![
+        GizmoModule,
+        MetricsModule,
+        SettingsModule,
+        // add new modules here
     ];
 
     // assert valid names
     let mut existing_names = std::collections::hash_set::HashSet::new();
 
     for module in modules.iter() {
-        let name = module.name();
+        let name = &module.name;
         if existing_names.contains(name) {
             return ris_error::new_result!(
                 "module names must be unique! offending name: \"{}\"",
@@ -58,32 +97,43 @@ fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
     Ok(modules)
 }
 
-pub trait UiHelperModule {
-    fn name(&self) -> &'static str;
-    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
-}
-
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
-}
-
-struct PinnedUiHelperModule {
-    pub module_index: Option<usize>,
-    pub id: usize,
-}
-
-struct ModuleSelectedEvent {
-    active_tab: usize,
+    pub window_drawable_size: (u32, u32),
 }
 
 pub struct UiHelper {
-    modules: Vec<Box<dyn UiHelperModule>>,
-    pinned: Vec<PinnedUiHelperModule>,
-    next_pinned_id: usize,
-    module_selected_event: Option<ModuleSelectedEvent>,
+    app_info: AppInfo,
+    builders: Vec<UiHelperModuleBuilder>,
+
+    windows: Vec<UiHelperWindow>,
+    window_id: usize,
+
     config_filepath: PathBuf,
+
+    crash_timestamp: Instant,
+    restart_timestamp: Instant,
+    close_window_timestamp: Instant,
+}
+
+pub struct UiHelperWindow {
+    id: usize,
+    name: String,
+    module: Option<Box<dyn IUiHelperModule>>,
+}
+
+impl Drop for UiHelper {
+    fn drop(&mut self) {
+        ris_log::debug!("dropping UiHelper...");
+
+        if let Err(e) = self.serialize() {
+            ris_log::error!("failed to serialize UiHelper: {}", e);
+        }
+
+        ris_log::info!("dropped UiHelper!");
+    }
 }
 
 impl UiHelper {
@@ -106,12 +156,20 @@ impl UiHelper {
                     e
                 );
 
+                let now = Instant::now();
+
                 Ok(Self {
-                    modules: modules(app_info)?,
-                    pinned: Vec::new(),
-                    next_pinned_id: 0,
-                    module_selected_event: None,
+                    app_info: app_info.clone(),
+                    builders: builders()?,
+
+                    windows: Vec::new(),
+                    window_id: 0,
+
                     config_filepath,
+
+                    crash_timestamp: now,
+                    restart_timestamp: now,
+                    close_window_timestamp: now,
                 })
             }
         }
@@ -120,19 +178,15 @@ impl UiHelper {
     fn serialize(&self) -> RisResult<()> {
         let mut yaml = RisYaml::default();
 
-        // serialize pinned
-        let pinned_strings = self
-            .pinned
-            .iter()
-            .map(|x| match x.module_index {
-                Some(index) => index.to_string(),
-                None => String::from(UNASSIGNED),
-            })
-            .collect::<Vec<_>>();
+        for (i, window) in self.windows.iter().enumerate() {
+            if window.module.is_none() {
+                continue;
+            };
 
-        let pinned_string = pinned_strings.join(", ");
-
-        yaml.add_key_value(PINNED, &pinned_string);
+            let key = format!("window_{}", i);
+            let value = format!("{}{} {}", window.id, WINDOW_SEPARATOR, window.name);
+            yaml.add_key_value(&key, &value);
+        }
 
         // write file
         let mut file = std::fs::File::create(&self.config_filepath)?;
@@ -154,201 +208,306 @@ impl UiHelper {
         let yaml = RisYaml::try_from(file_content.as_str())?;
 
         // parse yaml
-        let mut modules = modules(app_info)?;
-        let mut pinned = Vec::new();
+        let builders = builders()?;
 
-        let mut next_pinned_id = 0usize;
+        let mut windows = Vec::new();
+        let mut max_window_id = 0;
 
-        // parse ui helper
         for entry in yaml.entries.iter() {
-            let (key, value) = match &entry.key_value {
-                Some(key_value) => key_value,
-                None => continue,
+            let Some((ref key, ref value)) = entry.key_value else {
+                continue;
             };
 
-            match key.as_str() {
-                PINNED => {
-                    let splits = value.split(',');
-                    for split in splits {
-                        let trimmed = split.trim();
-                        if trimmed.is_empty() {
-                            continue;
-                        }
-
-                        let module_index = if trimmed == UNASSIGNED {
-                            None
-                        } else {
-                            let index = trimmed.parse::<usize>()?;
-                            if index < modules.len() {
-                                Some(index)
-                            } else {
-                                None
-                            }
-                        };
-
-                        pinned.push(PinnedUiHelperModule {
-                            module_index,
-                            id: next_pinned_id,
-                        });
-
-                        next_pinned_id = next_pinned_id.wrapping_add(1);
-                    }
-                }
-                _key => continue,
+            if !key.starts_with(WINDOW_KEY) {
+                continue;
             }
+
+            let splits = value.split(WINDOW_SEPARATOR).collect::<Vec<_>>();
+            if splits.len() < 2 {
+                continue;
+            }
+
+            let id_str = splits[0].trim();
+            let name_str = splits[1].trim();
+
+            let Ok(mut id) = id_str.parse::<usize>() else {
+                continue;
+            };
+
+            let Some(builder_index) = builders.iter().position(|x| x.name == name_str) else {
+                continue;
+            };
+
+            // value is correctly formatted. build module
+            while windows.iter().any(|x: &UiHelperWindow| x.id == id) {
+                id += 1;
+            }
+
+            max_window_id = usize::max(max_window_id, id);
+
+            let builder = &builders[builder_index];
+            let module = (builder.build)(app_info);
+
+            let window = UiHelperWindow {
+                id,
+                name: builder.name.clone(),
+                module: Some(module),
+            };
+
+            windows.push(window);
         }
 
-        // parse modules
-        for module in modules.iter_mut() {
-            let mut module_yaml = RisYaml::default();
-
-            for entry in yaml.entries.iter() {
-                let (key, value) = match &entry.key_value {
-                    Some(key_value) => key_value,
-                    None => continue,
-                };
-
-                let splits = key.split('.').collect::<Vec<_>>();
-
-                if splits.len() != 2 {
-                    continue;
-                }
-
-                let module_name = splits[0];
-                let module_key = splits[1];
-
-                if module_name == module.name() {
-                    module_yaml.add_key_value(module_key, value);
-                }
-            }
-        }
+        // create ui helper
+        let now = Instant::now();
 
         Ok(Self {
-            modules,
-            pinned,
-            next_pinned_id,
-            module_selected_event: None,
+            builders,
+            app_info: app_info.clone(),
+
+            windows,
+            window_id: max_window_id + 1,
+
             config_filepath: config_filepath.to_path_buf(),
+
+            crash_timestamp: now,
+            restart_timestamp: now,
+            close_window_timestamp: now,
         })
     }
 
-    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<()> {
+    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
         let result = data
             .ui
-            .window("UiHelper")
+            .window("UiHelperMenuBar")
             .movable(false)
-            .position([0., 0.], imgui::Condition::Once)
-            .size([200., 200.], imgui::Condition::FirstUseEver)
-            .collapsed(true, imgui::Condition::FirstUseEver)
-            .build(|| self.window_callback(data));
+            .position([-1.0, 0.0], imgui::Condition::Always)
+            .menu_bar(true)
+            .title_bar(false)
+            .resizable(false)
+            .draw_background(false)
+            .build(|| self.menu_callback(data));
 
         match result {
             Some(result) => result,
-            None => Ok(()),
+            None => Ok(GameloopState::WantsToContinue),
         }
     }
 
-    fn window_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<()> {
-        let ui = data.ui;
+    fn menu_callback(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
+        let UiHelperDrawData {
+            ui,
+            frame,
+            state,
+            window_drawable_size,
+        } = data;
 
-        let mut flags = imgui::TabBarFlags::empty();
-        flags.set(imgui::TabBarFlags::AUTO_SELECT_NEW_TABS, true);
-        flags.set(imgui::TabBarFlags::TAB_LIST_POPUP_BUTTON, true);
-        flags.set(imgui::TabBarFlags::FITTING_POLICY_RESIZE_DOWN, true);
-        if let Some(tab_bar) = ui.tab_bar_with_flags("##modules", flags) {
-            // new tab button
-            let mut flags = 0;
-            flags |= imgui::sys::ImGuiTabItemFlags_Trailing;
-            flags |= imgui::sys::ImGuiTabItemFlags_NoTooltip;
+        let mut reimport_asset_future = None;
 
-            let label = OsStr::new("+\0").as_encoded_bytes().as_ptr() as *const i8;
-            if unsafe { imgui::sys::igTabItemButton(label, flags as i32) } {
-                self.pinned.push(PinnedUiHelperModule {
-                    module_index: None,
-                    id: self.next_pinned_id,
-                });
+        if let Some(_menu_bar) = ui.begin_menu_bar() {
+            if let Some(_menu) = ui.begin_menu("start") {
+                if ui.menu_item("restart (F1)") {
+                    ris_log::fatal!("manual restart requestd");
+                    return Ok(GameloopState::WantsToRestart);
+                }
 
-                self.next_pinned_id = self.next_pinned_id.wrapping_add(1);
-            }
+                if ui.menu_item("crash (F4)") {
+                    ris_log::fatal!("manual crash requested");
+                    return ris_error::new_result!("manual crash");
+                }
 
-            // imgui puts new tabs at the end. this is undesired, because renamed tabs are
-            // considere new tabs. renaming a tab puts it at the end, messing up the
-            // (de)serialization order of tabs. by assigning new ids to every tab, imgui thinks
-            // everything is new, thus keeping the original order
-            if self.module_selected_event.is_some() {
-                for pinned_module in self.pinned.iter_mut() {
-                    pinned_module.id = self.next_pinned_id;
-                    self.next_pinned_id = self.next_pinned_id.wrapping_add(1);
+                if ui.menu_item("quit") {
+                    return Ok(GameloopState::WantsToQuit);
                 }
             }
 
-            let mut n = 0;
-            while n < self.pinned.len() {
-                let pinned_module = &mut self.pinned[n];
-
-                let name = match pinned_module.module_index {
-                    Some(index) => self.modules[index].name(),
-                    None => UNASSIGNED,
-                };
-
-                let name_with_id = format!("{}##pinned_module_{}", name, pinned_module.id);
-                let mut open = true;
-                let mut flags = imgui::TabItemFlags::empty();
-
-                if let Some(ModuleSelectedEvent { active_tab }) = &self.module_selected_event {
-                    flags.set(imgui::TabItemFlags::SET_SELECTED, *active_tab == n);
+            if let Some(_menu) = ui.begin_menu("debug") {
+                if ui.menu_item("reimport assets (F5)") {
+                    reimport_assets(&mut reimport_asset_future)?;
                 }
 
-                if let Some(tab_item) = ui.tab_item_with_flags(name_with_id, Some(&mut open), flags)
-                {
-                    match pinned_module.module_index {
-                        Some(index) => self.modules[index].draw(&mut data)?,
-                        None => {
-                            let mut choices = Vec::with_capacity(self.modules.len() + 1);
-                            choices.push("select module...");
+                if ui.menu_item("rebuild renderers (F6)") {
+                    reimport_assets(&mut reimport_asset_future)?;
+                    state.event_rebuild_renderers = true;
+                }
 
-                            for module in self.modules.iter() {
-                                choices.push(module.name());
-                            }
+                ui.separator();
 
-                            let mut index = 0;
-                            ui.combo_simple_string("##select_module", &mut index, &choices);
+                if let Some(_spawn_window) = ui.begin_menu("spawn window (F7)") {
+                    for builder in self.builders.iter() {
+                        if ui.menu_item(&builder.name) {
+                            let module = (builder.build)(&self.app_info);
 
-                            if index > 0 {
-                                pinned_module.module_index = Some(index - 1);
-                                self.module_selected_event =
-                                    Some(ModuleSelectedEvent { active_tab: n });
-                            }
+                            let window = UiHelperWindow {
+                                id: self.window_id,
+                                name: builder.name.clone(),
+                                module: Some(module),
+                            };
+
+                            self.windows.push(window);
+                            self.window_id = self.window_id.wrapping_add(1);
                         }
                     }
-
-                    tab_item.end();
                 }
 
-                if open {
-                    n += 1;
-                } else {
-                    self.pinned.remove(n);
+                if ui.menu_item("close all windows (F8)") {
+                    self.windows.clear();
                 }
             }
+        }
 
-            self.module_selected_event = None;
+        if state.input.keyboard.keys.is_hold(Scancode::F1) {
+            let duration = Instant::now() - self.restart_timestamp;
+            let seconds = duration.as_secs();
 
-            tab_bar.end();
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual restart requestd");
+                return Ok(GameloopState::WantsToRestart);
+            }
+        } else {
+            self.restart_timestamp = Instant::now();
+        }
+
+        if state.input.keyboard.keys.is_hold(Scancode::F4) {
+            let duration = Instant::now() - self.crash_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual crash requested");
+                return ris_error::new_result!("manual crash");
+            }
+        } else {
+            self.crash_timestamp = Instant::now();
+        }
+
+        if state.input.keyboard.keys.is_down(Scancode::F5) {
+            reimport_assets(&mut reimport_asset_future)?;
+        }
+
+        if state.input.keyboard.keys.is_down(Scancode::F6) {
+            reimport_assets(&mut reimport_asset_future)?;
+            state.event_rebuild_renderers = true;
+        }
+
+        if state.input.keyboard.keys.is_down(Scancode::F7) {
+            let window = UiHelperWindow {
+                id: self.window_id,
+                name: "pick a module".to_string(),
+                module: None,
+            };
+
+            self.windows.push(window);
+            self.window_id = self.window_id.wrapping_add(1);
+        }
+
+        if state.input.keyboard.keys.is_hold(Scancode::F8) {
+            let duration = Instant::now() - self.close_window_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                self.windows.clear();
+            }
+        } else {
+            self.close_window_timestamp = Instant::now();
+        }
+
+        // take ownership of data again. otherwise the loop below does not compile
+        let mut data = UiHelperDrawData {
+            ui,
+            frame,
+            state,
+            window_drawable_size,
+        };
+
+        let mut i = 0;
+
+        while i < self.windows.len() {
+            let window = &self.windows[i];
+
+            let window_pos = (window.id + 1) as f32;
+            let max_width = window_drawable_size.0 as f32 - WINDOW_SIZE[0];
+            let max_height = window_drawable_size.1 as f32 - WINDOW_SIZE[1];
+            let position_x = (WINDOW_OFFSET * window_pos) % max_width;
+            let position_y = (WINDOW_OFFSET * window_pos) % max_height;
+
+            let mut opened = true;
+
+            ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
+                .movable(true)
+                .position([position_x, position_y], imgui::Condition::FirstUseEver)
+                .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
+                .opened(&mut opened)
+                .build(|| self.window_callback(i, &mut data));
+
+            if opened {
+                i += 1;
+            } else {
+                self.windows.remove(i);
+            }
+        }
+
+        if let Some(future) = reimport_asset_future.take() {
+            future.wait(None)?;
+        }
+
+        Ok(GameloopState::WantsToContinue)
+    }
+
+    fn window_callback(
+        &mut self,
+        window_index: usize,
+        data: &mut UiHelperDrawData,
+    ) -> RisResult<()> {
+        let UiHelperDrawData { ui, .. } = data;
+
+        let window = &mut self.windows[window_index];
+
+        if window.module.is_none() {
+            let mut choices = Vec::with_capacity(self.builders.len() + 1);
+            choices.push("pick a module...");
+
+            for builder in self.builders.iter() {
+                choices.push(&builder.name);
+            }
+
+            let mut index = 0;
+            ui.combo_simple_string("##selected_module", &mut index, &choices);
+
+            if index > 0 {
+                let builder = &self.builders[index - 1];
+                let module = (builder.build)(&self.app_info);
+                window.module = Some(module);
+                window.name = builder.name.clone();
+            }
+        }
+
+        if let Some(module) = &mut window.module {
+            module.draw(data)?;
         }
 
         Ok(())
     }
 }
 
-impl Drop for UiHelper {
-    fn drop(&mut self) {
-        ris_log::debug!("dropping UiHelper...");
+fn reimport_assets(import_asset_future: &mut Option<JobFuture<()>>) -> RisResult<()> {
+    use ris_asset::asset_importer;
 
-        if let Err(e) = self.serialize() {
-            ris_log::error!("failed to serialize UiHelper: {}", e);
-        }
-
-        ris_log::info!("dropped UiHelper!");
+    if let Some(future) = import_asset_future.take() {
+        future.wait(None)?;
     }
+
+    let future = ris_jobs::job_system::submit(|| {
+        let result = asset_importer::import_all(
+            asset_importer::DEFAULT_SOURCE_DIRECTORY,
+            asset_importer::DEFAULT_TARGET_DIRECTORY,
+            Some("temp"),
+        );
+
+        if let Err(error) = result {
+            ris_log::error!("failed to reimport assets: {}", error);
+        }
+    });
+
+    *import_asset_future = Some(future);
+
+    Ok(())
 }

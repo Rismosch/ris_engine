@@ -3,6 +3,7 @@ use ris_error::RisResult;
 use ris_jobs::job_system;
 
 use crate::god_object::GodObject;
+use crate::ui_helper::UiHelperDrawData;
 
 pub enum WantsTo {
     Quit,
@@ -41,6 +42,20 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::add_record!(r, "logic frame")?;
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
+
+        ris_debug::add_record!(r, "ui helper")?;
+        let window_drawable_size = god_object.output_frame.window_drawable_size();
+        let imgui_ui = god_object
+            .output_frame
+            .prepare_imgui_frame(frame, &mut god_object.state);
+
+        let ui_helper_result = god_object.ui_helper.draw(UiHelperDrawData {
+            ui: imgui_ui,
+            frame,
+            state: &mut god_object.state,
+            window_drawable_size,
+        });
+
         ris_debug::add_record!(r, "output frame")?;
         let output_result =
             god_object
@@ -85,14 +100,23 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         output_result?;
         save_settings_result?;
-        let gameloop_state = logic_result?;
+        let logic_state = logic_result?;
+        let ui_helper_state = ui_helper_result?;
 
         ris_debug::end_record!(r)?;
 
-        match gameloop_state {
-            GameloopState::WantsToContinue => continue,
-            GameloopState::WantsToQuit => return Ok(WantsTo::Quit),
-            GameloopState::WantsToRestart => return Ok(WantsTo::Restart),
+        if logic_state == GameloopState::WantsToQuit
+            || ui_helper_state == GameloopState::WantsToQuit
+        {
+            return Ok(WantsTo::Quit);
         }
+
+        if logic_state == GameloopState::WantsToRestart
+            || ui_helper_state == GameloopState::WantsToRestart
+        {
+            return Ok(WantsTo::Restart);
+        }
+
+        // continue
     }
 }

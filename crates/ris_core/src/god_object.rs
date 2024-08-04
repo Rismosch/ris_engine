@@ -51,6 +51,7 @@ pub struct GodObject {
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
     pub logic_frame: LogicFrame,
+    pub ui_helper: UiHelper,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
 
@@ -141,6 +142,9 @@ impl GodObject {
         // logic frame
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
 
+        // ui helper
+        let ui_helper = UiHelper::new(&app_info)?;
+
         // output frame
         let renderer = Renderer {
             scene: scene_renderer,
@@ -149,10 +153,7 @@ impl GodObject {
             imgui: imgui_renderer,
         };
 
-        let ui_helper = UiHelper::new(&app_info)?;
-
-        let output_frame =
-            OutputFrame::new(window, vulkan_core, renderer, imgui_backend, ui_helper)?;
+        let output_frame = OutputFrame::new(window, vulkan_core, renderer, imgui_backend)?;
 
         let frame_calculator = FrameCalculator::default();
 
@@ -182,6 +183,7 @@ impl GodObject {
             settings_serializer,
             frame_calculator,
             logic_frame,
+            ui_helper,
             output_frame,
             god_asset,
 
