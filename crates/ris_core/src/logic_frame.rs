@@ -17,33 +17,7 @@ use ris_input::gamepad_logic::GamepadLogic;
 use ris_input::general_logic::update_general;
 use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
-use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
-
-const CRASH_TIMEOUT_IN_SECS: u64 = 3;
-
-#[cfg(debug_assertions)]
-fn reload_shaders() -> JobFuture<()> {
-    use ris_asset::asset_importer;
-
-    ris_jobs::job_system::submit(|| {
-        let result = asset_importer::import_all(
-            asset_importer::DEFAULT_SOURCE_DIRECTORY,
-            asset_importer::DEFAULT_TARGET_DIRECTORY,
-            Some("temp"),
-        );
-
-        if let Err(error) = result {
-            ris_log::error!("failed to import shaders: {}", error);
-        }
-    })
-}
-
-#[cfg(not(debug_assertions))]
-fn reload_shaders() -> JobFuture<()> {
-    ris_log::warning!("shaders can only be reloaded in a debug build!");
-    JobFuture::done()
-}
 
 pub struct LogicFrame {
     // input
@@ -54,10 +28,6 @@ pub struct LogicFrame {
     // camera
     camera_horizontal_angle: f32,
     camera_vertical_angle: f32,
-
-    // general
-    restart_timestamp: Instant,
-    crash_timestamp: Instant,
 }
 
 impl LogicFrame {
@@ -73,9 +43,6 @@ impl LogicFrame {
 
             camera_horizontal_angle: 0.,
             camera_vertical_angle: 0.,
-
-            crash_timestamp: Instant::now(),
-            restart_timestamp: Instant::now(),
         }
     }
 
@@ -116,40 +83,6 @@ impl LogicFrame {
         update_general(state);
 
         let input = &state.input;
-
-        // manual restart
-        if input.keyboard.keys.is_hold(Scancode::F1) {
-            let duration = Instant::now() - self.restart_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual restart reqeusted");
-                return Ok(GameloopState::WantsToRestart);
-            }
-        } else {
-            self.restart_timestamp = Instant::now();
-        }
-
-        // manual crash
-        if input.keyboard.keys.is_hold(Scancode::F4) {
-            let duration = Instant::now() - self.crash_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual crash requested");
-                return ris_error::new_result!("manual crash");
-            }
-        } else {
-            self.crash_timestamp = Instant::now();
-        }
-
-        // reload shaders
-        let mut import_shader_future = None;
-        if input.keyboard.keys.is_down(Scancode::F6) {
-            state.event_rebuild_renderers = true;
-            let future = reload_shaders();
-            import_shader_future = Some(future);
-        }
 
         // game logic
         let rotation_speed = 2. * frame.average_seconds();
@@ -221,10 +154,6 @@ impl LogicFrame {
                 frame.average_duration(),
                 frame.average_fps()
             );
-        }
-
-        if let Some(future) = import_shader_future {
-            future.wait(None)?;
         }
 
         Ok(GameloopState::WantsToContinue)

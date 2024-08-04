@@ -32,7 +32,6 @@ pub struct OutputFrame {
     current_frame: usize,
     renderer: Renderer,
     imgui_backend: ImguiBackend,
-    ui_helper: UiHelper,
 
     // mut be dropped last
     core: VulkanCore,
@@ -69,16 +68,31 @@ impl OutputFrame {
         core: VulkanCore,
         renderer: Renderer,
         imgui_backend: ImguiBackend,
-        ui_helper: UiHelper,
     ) -> RisResult<Self> {
         Ok(Self {
             current_frame: 0,
             renderer,
             imgui_backend,
-            ui_helper,
             core,
             window,
         })
+    }
+
+    pub fn prepare_imgui_frame(
+        &mut self,
+        frame: Frame,
+        state: &mut GodState,
+    ) -> &mut imgui::Ui {
+        let window_size = self.window.size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let imgui_ui = self.imgui_backend.prepare_frame(
+            frame,
+            state,
+            (window_size.0 as f32, window_size.1 as f32),
+            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        );
+
+        imgui_ui
     }
 
     pub fn run(
@@ -236,27 +250,10 @@ impl OutputFrame {
         ris_debug::add_record!(r, "gizmo new frame")?;
         ris_debug::gizmo::new_frame()?;
 
-        // ui helper
-        ris_debug::add_record!(r, "prepare ui helper")?;
-
-        let window_size = self.window.size();
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        let imgui_ui = self.imgui_backend.prepare_frame(
-            frame,
-            state,
-            (window_size.0 as f32, window_size.1 as f32),
-            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-        );
-
-        ris_debug::add_record!(r, "draw ui helper")?;
-        self.ui_helper.draw(UiHelperDrawData {
-            ui: imgui_ui,
-            frame,
-            state,
-        })?;
-
+        // imgui
         ris_debug::add_record!(r, "imgui backend")?;
         let draw_data = self.imgui_backend.context().render();
+
         ris_debug::add_record!(r, "imgui frontend")?;
         self.renderer
             .imgui
