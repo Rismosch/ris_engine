@@ -44,6 +44,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
 
         ris_debug::add_record!(r, "ui helper")?;
+        let window_drawable_size = god_object.output_frame.window_drawable_size();
         let imgui_ui = god_object.output_frame.prepare_imgui_frame(
             frame,
             &mut god_object.state,
@@ -53,6 +54,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             ui: imgui_ui,
             frame,
             state: &mut god_object.state,
+            window_drawable_size,
         });
 
         ris_debug::add_record!(r, "output frame")?;

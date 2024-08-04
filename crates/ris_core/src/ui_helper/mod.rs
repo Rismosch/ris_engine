@@ -28,6 +28,12 @@ use crate::ui_helper::settings_module::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
+const WINDOW_OFFSET: f32 = ris_math::common::PHI * 12.0;
+const WINDOW_SIZE: [f32; 2] = [200.0, 300.0];
+
+const WINDOW_KEY: &str = "window_";
+const WINDOW_SEPARATOR: char = ',';
+
 pub trait IUiHelperModule {
     fn name() -> &'static str where Self: Sized;
     fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> where Self: Sized;
@@ -92,13 +98,18 @@ pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
+    pub window_drawable_size: (u32, u32),
 }
 
 pub struct UiHelper {
     app_info: AppInfo,
     builders: Vec<UiHelperModuleBuilder>,
+
     windows: Vec<UiHelperWindow>,
     window_id: usize,
+
+    config_filepath: PathBuf,
+
     crash_timestamp: Instant,
     restart_timestamp: Instant,
     close_window_timestamp: Instant,
@@ -147,8 +158,12 @@ impl UiHelper {
                 Ok(Self {
                     app_info: app_info.clone(),
                     builders: builders()?,
+
                     windows: Vec::new(),
                     window_id: 0,
+
+                    config_filepath,
+
                     crash_timestamp: now,
                     restart_timestamp: now,
                     close_window_timestamp: now,
@@ -158,17 +173,99 @@ impl UiHelper {
     }
 
     fn serialize(&self) -> RisResult<()> {
+        let mut yaml = RisYaml::default();
+
+        for (i, window) in self.windows.iter().enumerate() {
+            if window.module.is_none() {
+                continue;
+            };
+
+            let key = format!("window_{}", i);
+            let value = format!("{}{} {}", window.id, WINDOW_SEPARATOR, window.name);
+            yaml.add_key_value(&key, &value);
+        }
+
+        // write file
+        let mut file = std::fs::File::create(&self.config_filepath)?;
+        let file_content = yaml.to_string()?;
+        let bytes = file_content.as_bytes();
+        file.write_all(bytes)?;
+
         Ok(())
     }
 
     fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
+        // read file
+        let mut file = std::fs::File::open(config_filepath)?;
+        let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
+        ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
+        let mut bytes = vec![0; file_size as usize];
+        ris_file::io::read_checked(&mut file, &mut bytes)?;
+        let file_content = String::from_utf8(bytes)?;
+        let yaml = RisYaml::try_from(file_content.as_str())?;
+
+        // parse yaml
+        let builders = builders()?;
+
+        let mut windows = Vec::new();
+        let mut max_window_id = 0;
+
+        for entry in yaml.entries.iter() {
+            let Some((ref key, ref value)) = entry.key_value else {
+                continue;
+            };
+
+            if !key.starts_with(WINDOW_KEY) {
+                continue;
+            }
+
+            let splits = value.split(WINDOW_SEPARATOR).collect::<Vec<_>>();
+            if splits.len() < 2 {
+                continue;
+            }
+
+            let id_str = splits[0].trim();
+            let name_str = splits[1].trim();
+
+            let Ok(mut id) = id_str.parse::<usize>() else {
+                continue;
+            };
+
+            let Some(builder_index) = builders.iter().position(|x| x.name == name_str) else {
+                continue;
+            };
+
+            // value is correctly formatted. build module
+            while windows.iter().any(|x: &UiHelperWindow| x.id == id) {
+                id += 1;
+            }
+
+            max_window_id = usize::max(max_window_id, id);
+
+            let builder = &builders[builder_index];
+            let module = (builder.build)(app_info);
+
+            let window = UiHelperWindow {
+                id,
+                name: builder.name.clone(),
+                module: Some(module)
+            };
+
+            windows.push(window);
+        }
+
+        // create ui helper
         let now = Instant::now();
 
         Ok(Self {
-            builders: builders()?,
+            builders,
             app_info: app_info.clone(),
-            windows: Vec::new(),
-            window_id: 0,
+
+            windows,
+            window_id: max_window_id + 1,
+
+            config_filepath: config_filepath.to_path_buf(),
+
             crash_timestamp: now,
             restart_timestamp: now,
             close_window_timestamp: now,
@@ -198,6 +295,7 @@ impl UiHelper {
             ui,
             frame,
             state,
+            window_drawable_size,
         } = data;
 
         let mut reimport_asset_future = None;
@@ -229,8 +327,23 @@ impl UiHelper {
                     state.event_rebuild_renderers = true;
                 }
 
-                if ui.menu_item("spawn window (F7)") {
-                    ris_log::debug!("spawn window");
+                ui.separator();
+
+                if let Some(_) = ui.begin_menu("spawn window (F7)") {
+                    for builder in self.builders.iter() {
+                        if ui.menu_item(&builder.name) {
+                            let module = (builder.build)(&self.app_info);
+
+                            let window = UiHelperWindow {
+                                id: self.window_id,
+                                name: builder.name.clone(),
+                                module: Some(module),
+                            };
+
+                            self.windows.push(window);
+                            self.window_id = self.window_id.wrapping_add(1);
+                        }
+                    }
                 }
 
                 if ui.menu_item("close all windows (F8)") {
@@ -280,7 +393,6 @@ impl UiHelper {
             };
 
             self.windows.push(window);
-
             self.window_id = self.window_id.wrapping_add(1);
         }
 
@@ -300,16 +412,35 @@ impl UiHelper {
             ui,
             frame,
             state,
+            window_drawable_size,
         };
 
-        for i in 0..self.windows.len() {
+        let mut i = 0;
+
+        while i < self.windows.len() {
             let window = &self.windows[i];
+
+            let window_pos = (window.id + 1) as f32;
+            let max_width = window_drawable_size.0 as f32 - WINDOW_SIZE[0];
+            let max_height = window_drawable_size.1 as f32 - WINDOW_SIZE[1];
+            let position_x = (WINDOW_OFFSET * window_pos) % max_width;
+            let position_y = (WINDOW_OFFSET * window_pos) % max_height;
+
+            let mut opened = true;
 
             ui
                 .window(format!("{}##ui_helper_window_{}", window.name, window.id))
                 .movable(true)
-                .position([13.0, 42.0], imgui::Condition::Once)
+                .position([position_x, position_y], imgui::Condition::FirstUseEver)
+                .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
+                .opened(&mut opened)
                 .build(|| self.window_callback(i, &mut data));
+
+            if opened {
+                i += 1;
+            } else {
+                self.windows.remove(i);
+            }
         }
 
         if let Some(future) = reimport_asset_future.take() {
@@ -324,6 +455,7 @@ impl UiHelper {
             ui,
             frame,
             state,
+            window_drawable_size,
         } = data;
 
         let window = &mut self.windows[window_index];

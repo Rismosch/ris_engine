@@ -84,7 +84,7 @@ impl OutputFrame {
         state: &mut GodState,
     ) -> &mut imgui::Ui {
         let window_size = self.window.size();
-        let window_drawable_size = self.window.vulkan_drawable_size();
+        let window_drawable_size = self.window_drawable_size();
         let imgui_ui = self.imgui_backend.prepare_frame(
             frame,
             state,
@@ -93,6 +93,10 @@ impl OutputFrame {
         );
 
         imgui_ui
+    }
+
+    pub fn window_drawable_size(&self) -> (u32, u32) {
+        self.window.vulkan_drawable_size()
     }
 
     pub fn run(
@@ -175,7 +179,7 @@ impl OutputFrame {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
                     return self
                         .core
-                        .recreate_swapchain(self.window.vulkan_drawable_size())
+                        .recreate_swapchain(self.window_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
@@ -202,7 +206,7 @@ impl OutputFrame {
 
         // prepare camera
         ris_debug::add_record!(r, "prepare camera")?;
-        let window_drawable_size = self.window.vulkan_drawable_size();
+        let window_drawable_size = self.window_drawable_size();
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
         state.camera.aspect_ratio = w / h;
 
@@ -304,7 +308,7 @@ impl OutputFrame {
             Ok(_) => state.event_window_resized,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
-                    Some(self.window.vulkan_drawable_size())
+                    Some(self.window_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to present queue: {}", vk_result)
