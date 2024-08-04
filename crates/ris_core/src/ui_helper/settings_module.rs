@@ -4,7 +4,7 @@ use ris_data::settings::Settings;
 use ris_error::RisResult;
 
 use crate::ui_helper::UiHelperDrawData;
-use crate::ui_helper::UiHelperModule;
+use crate::ui_helper::IUiHelperModule;
 
 pub struct SettingsModule {
     app_info: AppInfo,
@@ -12,17 +12,18 @@ pub struct SettingsModule {
 }
 
 impl SettingsModule {
-    pub fn new(app_info: &AppInfo) -> Box<Self> {
+}
+
+impl IUiHelperModule for SettingsModule {
+    fn name() -> &'static str {
+        "settings"
+    }
+
+    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             app_info: app_info.clone(),
             saved: true,
         })
-    }
-}
-
-impl UiHelperModule for SettingsModule {
-    fn name(&self) -> &'static str {
-        "settings"
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {

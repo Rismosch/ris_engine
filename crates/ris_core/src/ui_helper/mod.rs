@@ -13,6 +13,7 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
@@ -27,22 +28,45 @@ use crate::ui_helper::settings_module::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
-const PINNED: &str = "pinned";
-const UNASSIGNED: &str = "unassigned";
+pub trait IUiHelperModule {
+    fn name() -> &'static str where Self: Sized;
+    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> where Self: Sized;
+    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
+}
 
-fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
-    let modules: Vec<Box<dyn UiHelperModule>> = vec![
-        GizmoModule::new(),
-        MetricsModule::new(app_info),
-        SettingsModule::new(app_info),
-        // add new modules here...
+pub struct UiHelperModuleBuilder {
+    pub name: String,
+    pub build: Box<dyn Fn(&AppInfo) -> Box<dyn IUiHelperModule>>,
+}
+
+macro_rules! module {
+    ($ui_module:ident) => {{
+        UiHelperModuleBuilder {
+            name: $ui_module::name().to_string(),
+            build: Box::new($ui_module::new),
+        }
+    }};
+}
+
+macro_rules! module_vec {
+    ($($ui_module:ident),+ $(,)*) => {{
+        vec![$(module!($ui_module)),+]
+    }};
+}
+
+fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
+    let modules = module_vec![
+        GizmoModule,
+        MetricsModule,
+        SettingsModule,
+        // add new modules here
     ];
 
     // assert valid names
     let mut existing_names = std::collections::hash_set::HashSet::new();
 
     for module in modules.iter() {
-        let name = module.name();
+        let name = &module.name;
         if existing_names.contains(name) {
             return ris_error::new_result!(
                 "module names must be unique! offending name: \"{}\"",
@@ -64,32 +88,26 @@ fn modules(app_info: &AppInfo) -> RisResult<Vec<Box<dyn UiHelperModule>>> {
     Ok(modules)
 }
 
-pub trait UiHelperModule {
-    fn name(&self) -> &'static str;
-    fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
-}
-
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
 }
 
-struct PinnedUiHelperModule {
-    pub module_index: Option<usize>,
-    pub id: usize,
-}
-
-struct ModuleSelectedEvent {
-    active_tab: usize,
-}
-
 pub struct UiHelper {
-    modules: Vec<Box<dyn UiHelperModule>>,
-    module_selected_event: Option<ModuleSelectedEvent>,
-    config_filepath: PathBuf,
+    app_info: AppInfo,
+    builders: Vec<UiHelperModuleBuilder>,
+    windows: Vec<UiHelperWindow>,
+    window_id: usize,
     crash_timestamp: Instant,
     restart_timestamp: Instant,
+    close_window_timestamp: Instant,
+}
+
+pub struct UiHelperWindow {
+    id: usize,
+    name: String,
+    module: Option<Box<dyn IUiHelperModule>>,
 }
 
 impl Drop for UiHelper {
@@ -124,12 +142,16 @@ impl UiHelper {
                     e
                 );
 
+                let now = Instant::now();
+
                 Ok(Self {
-                    modules: modules(app_info)?,
-                    module_selected_event: None,
-                    config_filepath,
-                    crash_timestamp: Instant::now(),
-                    restart_timestamp: Instant::now(),
+                    app_info: app_info.clone(),
+                    builders: builders()?,
+                    windows: Vec::new(),
+                    window_id: 0,
+                    crash_timestamp: now,
+                    restart_timestamp: now,
+                    close_window_timestamp: now,
                 })
             }
         }
@@ -140,28 +162,30 @@ impl UiHelper {
     }
 
     fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
-        let mut modules = modules(app_info)?;
+        let now = Instant::now();
 
         Ok(Self {
-            modules,
-            module_selected_event: None,
-            config_filepath: config_filepath.to_path_buf(),
-            crash_timestamp: Instant::now(),
-            restart_timestamp: Instant::now(),
+            builders: builders()?,
+            app_info: app_info.clone(),
+            windows: Vec::new(),
+            window_id: 0,
+            crash_timestamp: now,
+            restart_timestamp: now,
+            close_window_timestamp: now,
         })
     }
 
     pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
         let result = data
             .ui
-            .window("UiHelper")
+            .window("UiHelperMenuBar")
             .movable(false)
-            .position([0.0, 0.0], imgui::Condition::Once)
+            .position([-1.0, 0.0], imgui::Condition::Always)
             .menu_bar(true)
             .title_bar(false)
             .resizable(false)
             .draw_background(false)
-            .build(|| self.window_callback(data));
+            .build(|| self.menu_callback(data));
 
         match result {
             Some(result) => result,
@@ -169,14 +193,12 @@ impl UiHelper {
         }
     }
 
-    fn window_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<GameloopState> {
+    fn menu_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<GameloopState> {
         let UiHelperDrawData {
             ui,
             frame,
             state,
         } = data;
-
-        ui.show_demo_window(&mut false);
 
         let mut reimport_asset_future = None;
 
@@ -191,11 +213,15 @@ impl UiHelper {
                     ris_log::fatal!("manual crash requested");
                     return ris_error::new_result!("manual crash");
                 }
+
+                if ui.menu_item("quit") {
+                    return Ok(GameloopState::WantsToQuit);
+                }
             }
 
             if let Some(_) = ui.begin_menu("debug") {
-                if ui.menu_item("spawn window (F5)") {
-                    ris_log::debug!("spawn window");
+                if ui.menu_item("reimport assets (F5)") {
+                    reimport_assets(&mut reimport_asset_future)?;
                 }
 
                 if ui.menu_item("rebuild renderers (F6)") {
@@ -203,8 +229,12 @@ impl UiHelper {
                     state.event_rebuild_renderers = true;
                 }
 
-                if ui.menu_item("reimport assets (F7)") {
-                    reimport_assets(&mut reimport_asset_future)?;
+                if ui.menu_item("spawn window (F7)") {
+                    ris_log::debug!("spawn window");
+                }
+
+                if ui.menu_item("close all windows (F8)") {
+                    self.windows.clear();
                 }
             }
         }
@@ -233,13 +263,53 @@ impl UiHelper {
             self.crash_timestamp = Instant::now();
         }
 
+        if state.input.keyboard.keys.is_down(Scancode::F5) {
+            reimport_assets(&mut reimport_asset_future)?;
+        }
+
         if state.input.keyboard.keys.is_down(Scancode::F6) {
             reimport_assets(&mut reimport_asset_future)?;
             state.event_rebuild_renderers = true;
         }
 
         if state.input.keyboard.keys.is_down(Scancode::F7) {
-            reimport_assets(&mut reimport_asset_future)?;
+            let window = UiHelperWindow {
+                id: self.window_id,
+                name: "pick a module".to_string(),
+                module: None,
+            };
+
+            self.windows.push(window);
+
+            self.window_id = self.window_id.wrapping_add(1);
+        }
+
+        if state.input.keyboard.keys.is_hold(Scancode::F8) {
+            let duration = Instant::now() - self.close_window_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                self.windows.clear();
+            }
+        } else {
+            self.close_window_timestamp = Instant::now();
+        }
+
+        // take ownership of data again. otherwise the loop below does not compile
+        let mut data = UiHelperDrawData{
+            ui,
+            frame,
+            state,
+        };
+
+        for i in 0..self.windows.len() {
+            let window = &self.windows[i];
+
+            ui
+                .window(format!("{}##ui_helper_window_{}", window.name, window.id))
+                .movable(true)
+                .position([13.0, 42.0], imgui::Condition::Once)
+                .build(|| self.window_callback(i, &mut data));
         }
 
         if let Some(future) = reimport_asset_future.take() {
@@ -247,6 +317,41 @@ impl UiHelper {
         }
 
         Ok(GameloopState::WantsToContinue)
+    }
+
+    fn window_callback(&mut self, window_index: usize, data: &mut UiHelperDrawData) -> RisResult<()> {
+        let UiHelperDrawData {
+            ui,
+            frame,
+            state,
+        } = data;
+
+        let window = &mut self.windows[window_index];
+
+        if window.module.is_none() {
+            let mut choices = Vec::with_capacity(self.builders.len() + 1);
+            choices.push("pick a module...");
+
+            for builder in self.builders.iter() {
+                choices.push(&builder.name);
+            }
+
+            let mut index = 0;
+            ui.combo_simple_string("##selected_module", &mut index, &choices);
+
+            if index > 0 {
+                let builder = &self.builders[index - 1];
+                let module = (builder.build)(&self.app_info);
+                window.module = Some(module);
+                window.name = builder.name.clone();
+            }
+        }
+
+        if let Some(module) = &mut window.module {
+            module.draw(data)?;
+        }
+
+        Ok(())
     }
 }
 

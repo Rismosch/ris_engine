@@ -8,9 +8,11 @@ use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
 use crate::ui_helper::UiHelperDrawData;
-use crate::ui_helper::UiHelperModule;
+use crate::ui_helper::IUiHelperModule;
 
-const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 5;
+const PLOT_MIN_FPS: f32 = 0.0;
+const PLOT_MAX_FPS: f32 = 5_000.0;
+const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
@@ -23,8 +25,12 @@ pub struct MetricsModule {
     frames_to_record: usize,
 }
 
-impl MetricsModule {
-    pub fn new(app_info: &AppInfo) -> Box<Self> {
+impl IUiHelperModule for MetricsModule {
+    fn name() -> &'static str {
+        "metrics"
+    }
+
+    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             app_info: app_info.clone(),
             show_plot: true,
@@ -34,12 +40,6 @@ impl MetricsModule {
             last_average: Duration::ZERO,
             frames_to_record: 60,
         })
-    }
-}
-
-impl UiHelperModule for MetricsModule {
-    fn name(&self) -> &'static str {
-        "metrics"
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
@@ -101,13 +101,15 @@ impl UiHelperModule for MetricsModule {
         );
 
         if self.show_plot {
-            let mut plot_lines = ui.plot_lines("##history", plot_values.as_slice());
-
             let graph_width = ui.content_region_avail()[0];
             let graph_height = ui.item_rect_size()[1] * 3.;
-            plot_lines = plot_lines.graph_size([graph_width, graph_height]);
 
-            plot_lines.build();
+            ui
+                .plot_lines("##history", plot_values.as_slice())
+                .graph_size([graph_width, graph_height])
+                .scale_min(PLOT_MIN_FPS)
+                .scale_max(PLOT_MAX_FPS)
+                .build();
         }
 
         let mut header_flags = imgui::TreeNodeFlags::empty();
