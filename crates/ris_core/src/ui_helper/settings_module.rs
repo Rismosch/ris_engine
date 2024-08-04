@@ -3,23 +3,22 @@ use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
 use ris_error::RisResult;
 
-use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::UiHelperDrawData;
 
 pub struct SettingsModule {
     app_info: AppInfo,
     saved: bool,
 }
 
-impl SettingsModule {
-}
+impl SettingsModule {}
 
 impl IUiHelperModule for SettingsModule {
     fn name() -> &'static str {
         "settings"
     }
 
-    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             app_info: app_info.clone(),
             saved: true,

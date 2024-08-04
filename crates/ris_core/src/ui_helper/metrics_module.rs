@@ -7,8 +7,8 @@ use ris_data::info::app_info::AppInfo;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
-use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::UiHelperDrawData;
 
 const PLOT_MIN_FPS: f32 = 0.0;
 const PLOT_MAX_FPS: f32 = 5_000.0;
@@ -30,7 +30,7 @@ impl IUiHelperModule for MetricsModule {
         "metrics"
     }
 
-    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             app_info: app_info.clone(),
             show_plot: true,
@@ -104,8 +104,7 @@ impl IUiHelperModule for MetricsModule {
             let graph_width = ui.content_region_avail()[0];
             let graph_height = ui.item_rect_size()[1] * 3.;
 
-            ui
-                .plot_lines("##history", plot_values.as_slice())
+            ui.plot_lines("##history", plot_values.as_slice())
                 .graph_size([graph_width, graph_height])
                 .scale_min(PLOT_MIN_FPS)
                 .scale_max(PLOT_MAX_FPS)

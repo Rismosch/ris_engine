@@ -18,9 +18,6 @@ use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::swapchain::SwapchainEntry;
 
-use crate::ui_helper::UiHelper;
-use crate::ui_helper::UiHelperDrawData;
-
 pub struct Renderer {
     pub scene: SceneRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
@@ -78,11 +75,7 @@ impl OutputFrame {
         })
     }
 
-    pub fn prepare_imgui_frame(
-        &mut self,
-        frame: Frame,
-        state: &mut GodState,
-    ) -> &mut imgui::Ui {
+    pub fn prepare_imgui_frame(&mut self, frame: Frame, state: &mut GodState) -> &mut imgui::Ui {
         let window_size = self.window.size();
         let window_drawable_size = self.window_drawable_size();
         let imgui_ui = self.imgui_backend.prepare_frame(
@@ -101,7 +94,7 @@ impl OutputFrame {
 
     pub fn run(
         &mut self,
-        frame: Frame,
+        _frame: Frame,
         state: &mut GodState,
         god_asset: &RisGodAsset,
     ) -> RisResult<()> {
@@ -177,9 +170,7 @@ impl OutputFrame {
             Ok((image_index, _is_sub_optimal)) => image_index,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
-                    return self
-                        .core
-                        .recreate_swapchain(self.window_drawable_size())
+                    return self.core.recreate_swapchain(self.window_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)

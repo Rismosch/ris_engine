@@ -1,6 +1,3 @@
-/// golden ratio phi = (1.0 + f32::sqrt(5.0)) / 2.0
-pub const PHI: f32 = 1.6180339887498948482045868343656381177203091798057628621354486227;
-
 /// returns the linear blend of x and y, i.e., x * (1 - a) + y * a
 pub fn mix(x: f32, y: f32, a: f32) -> f32 {
     x * (1. - a) + y * a

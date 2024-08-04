@@ -45,10 +45,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::add_record!(r, "ui helper")?;
         let window_drawable_size = god_object.output_frame.window_drawable_size();
-        let imgui_ui = god_object.output_frame.prepare_imgui_frame(
-            frame,
-            &mut god_object.state,
-        );
+        let imgui_ui = god_object
+            .output_frame
+            .prepare_imgui_frame(frame, &mut god_object.state);
 
         let ui_helper_result = god_object.ui_helper.draw(UiHelperDrawData {
             ui: imgui_ui,
@@ -106,11 +105,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::end_record!(r)?;
 
-        if logic_state == GameloopState::WantsToQuit || ui_helper_state == GameloopState::WantsToQuit {
+        if logic_state == GameloopState::WantsToQuit
+            || ui_helper_state == GameloopState::WantsToQuit
+        {
             return Ok(WantsTo::Quit);
         }
 
-        if logic_state == GameloopState::WantsToRestart || ui_helper_state == GameloopState::WantsToRestart {
+        if logic_state == GameloopState::WantsToRestart
+            || ui_helper_state == GameloopState::WantsToRestart
+        {
             return Ok(WantsTo::Restart);
         }
 

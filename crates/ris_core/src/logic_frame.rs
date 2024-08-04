@@ -1,5 +1,4 @@
 use std::f32::consts::PI;
-use std::time::Instant;
 
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;

@@ -5,8 +5,8 @@ use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
-use crate::ui_helper::UiHelperDrawData;
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::UiHelperDrawData;
 
 pub struct GizmoModule {
     angle: f32,
@@ -14,7 +14,7 @@ pub struct GizmoModule {
     draw_point: bool,
     draw_view_point: bool,
     draw_aabb: bool,
-    draw_oob: bool,
+    draw_obb: bool,
     draw_text: bool,
 }
 
@@ -23,14 +23,14 @@ impl IUiHelperModule for GizmoModule {
         "gizmo"
     }
 
-    fn new(_app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(_app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             angle: 0.0,
             draw_line: false,
             draw_point: false,
             draw_view_point: false,
             draw_aabb: false,
-            draw_oob: false,
+            draw_obb: false,
             draw_text: false,
         })
     }
@@ -44,7 +44,7 @@ impl IUiHelperModule for GizmoModule {
         ui.checkbox("draw point", &mut self.draw_point);
         ui.checkbox("draw view point", &mut self.draw_view_point);
         ui.checkbox("draw aabb", &mut self.draw_aabb);
-        ui.checkbox("draw oob", &mut self.draw_oob);
+        ui.checkbox("draw obb", &mut self.draw_obb);
         ui.checkbox("draw text", &mut self.draw_text);
 
         if self.draw_line {
@@ -90,7 +90,7 @@ impl IUiHelperModule for GizmoModule {
             )?;
         }
 
-        if self.draw_oob {
+        if self.draw_obb {
             ris_debug::gizmo::obb(
                 ris_math::vector::VEC3_ZERO,
                 ris_math::vector::VEC3_ONE,

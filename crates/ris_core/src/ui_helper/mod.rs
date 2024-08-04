@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
@@ -13,7 +12,6 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
-use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
@@ -28,18 +26,23 @@ use crate::ui_helper::settings_module::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
-const WINDOW_OFFSET: f32 = ris_math::common::PHI * 12.0;
+const WINDOW_OFFSET: f32 = 19.0;
 const WINDOW_SIZE: [f32; 2] = [200.0, 300.0];
 
 const WINDOW_KEY: &str = "window_";
 const WINDOW_SEPARATOR: char = ',';
 
 pub trait IUiHelperModule {
-    fn name() -> &'static str where Self: Sized;
-    fn new(app_info: &AppInfo) -> Box<dyn IUiHelperModule> where Self: Sized;
+    fn name() -> &'static str
+    where
+        Self: Sized;
+    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule>
+    where
+        Self: Sized;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
 }
 
+#[allow(clippy::type_complexity)]
 pub struct UiHelperModuleBuilder {
     pub name: String,
     pub build: Box<dyn Fn(&AppInfo) -> Box<dyn IUiHelperModule>>,
@@ -49,7 +52,7 @@ macro_rules! module {
     ($ui_module:ident) => {{
         UiHelperModuleBuilder {
             name: $ui_module::name().to_string(),
-            build: Box::new($ui_module::new),
+            build: Box::new($ui_module::build),
         }
     }};
 }
@@ -248,7 +251,7 @@ impl UiHelper {
             let window = UiHelperWindow {
                 id,
                 name: builder.name.clone(),
-                module: Some(module)
+                module: Some(module),
             };
 
             windows.push(window);
@@ -290,7 +293,7 @@ impl UiHelper {
         }
     }
 
-    fn menu_callback(&mut self, mut data: UiHelperDrawData) -> RisResult<GameloopState> {
+    fn menu_callback(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
         let UiHelperDrawData {
             ui,
             frame,
@@ -300,8 +303,8 @@ impl UiHelper {
 
         let mut reimport_asset_future = None;
 
-        if let Some(_) = ui.begin_menu_bar() {
-            if let Some(_) = ui.begin_menu("start") {
+        if let Some(_menu_bar) = ui.begin_menu_bar() {
+            if let Some(_menu) = ui.begin_menu("start") {
                 if ui.menu_item("restart (F1)") {
                     ris_log::fatal!("manual restart requestd");
                     return Ok(GameloopState::WantsToRestart);
@@ -317,7 +320,7 @@ impl UiHelper {
                 }
             }
 
-            if let Some(_) = ui.begin_menu("debug") {
+            if let Some(_menu) = ui.begin_menu("debug") {
                 if ui.menu_item("reimport assets (F5)") {
                     reimport_assets(&mut reimport_asset_future)?;
                 }
@@ -329,7 +332,7 @@ impl UiHelper {
 
                 ui.separator();
 
-                if let Some(_) = ui.begin_menu("spawn window (F7)") {
+                if let Some(_spawn_window) = ui.begin_menu("spawn window (F7)") {
                     for builder in self.builders.iter() {
                         if ui.menu_item(&builder.name) {
                             let module = (builder.build)(&self.app_info);
@@ -408,7 +411,7 @@ impl UiHelper {
         }
 
         // take ownership of data again. otherwise the loop below does not compile
-        let mut data = UiHelperDrawData{
+        let mut data = UiHelperDrawData {
             ui,
             frame,
             state,
@@ -428,8 +431,7 @@ impl UiHelper {
 
             let mut opened = true;
 
-            ui
-                .window(format!("{}##ui_helper_window_{}", window.name, window.id))
+            ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
                 .movable(true)
                 .position([position_x, position_y], imgui::Condition::FirstUseEver)
                 .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
@@ -450,13 +452,12 @@ impl UiHelper {
         Ok(GameloopState::WantsToContinue)
     }
 
-    fn window_callback(&mut self, window_index: usize, data: &mut UiHelperDrawData) -> RisResult<()> {
-        let UiHelperDrawData {
-            ui,
-            frame,
-            state,
-            window_drawable_size,
-        } = data;
+    fn window_callback(
+        &mut self,
+        window_index: usize,
+        data: &mut UiHelperDrawData,
+    ) -> RisResult<()> {
+        let UiHelperDrawData { ui, .. } = data;
 
         let window = &mut self.windows[window_index];
 
@@ -510,4 +511,3 @@ fn reimport_assets(import_asset_future: &mut Option<JobFuture<()>>) -> RisResult
 
     Ok(())
 }
-

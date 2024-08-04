@@ -153,7 +153,6 @@ impl GodObject {
             imgui: imgui_renderer,
         };
 
-
         let output_frame = OutputFrame::new(window, vulkan_core, renderer, imgui_backend)?;
 
         let frame_calculator = FrameCalculator::default();
