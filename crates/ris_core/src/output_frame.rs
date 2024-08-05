@@ -6,6 +6,7 @@ use sdl2_sys::SDL_WindowFlags;
 
 use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
+use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -18,6 +19,9 @@ use ris_video::vulkan::core::VulkanCore;
 use ris_video::vulkan::frame_in_flight::FrameInFlight;
 use ris_video::vulkan::swapchain::SwapchainEntry;
 
+use crate::ui_helper::UiHelper;
+use crate::ui_helper::UiHelperDrawData;
+
 pub struct Renderer {
     pub scene: SceneRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
@@ -26,13 +30,14 @@ pub struct Renderer {
 }
 
 pub struct OutputFrame {
-    current_frame: usize,
-    renderer: Renderer,
-    imgui_backend: ImguiBackend,
+    pub current_frame: usize,
+    pub renderer: Renderer,
+    pub imgui_backend: ImguiBackend,
+    pub ui_helper: UiHelper,
 
     // mut be dropped last
-    core: VulkanCore,
-    window: Window,
+    pub core: VulkanCore,
+    pub window: Window,
 }
 
 impl Drop for OutputFrame {
@@ -60,48 +65,16 @@ impl Drop for OutputFrame {
 }
 
 impl OutputFrame {
-    pub fn new(
-        window: Window,
-        core: VulkanCore,
-        renderer: Renderer,
-        imgui_backend: ImguiBackend,
-    ) -> RisResult<Self> {
-        Ok(Self {
-            current_frame: 0,
-            renderer,
-            imgui_backend,
-            core,
-            window,
-        })
-    }
-
-    pub fn prepare_imgui_frame(&mut self, frame: Frame, state: &mut GodState) -> &mut imgui::Ui {
-        let window_size = self.window.size();
-        let window_drawable_size = self.window_drawable_size();
-        let imgui_ui = self.imgui_backend.prepare_frame(
-            frame,
-            state,
-            (window_size.0 as f32, window_size.1 as f32),
-            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-        );
-
-        imgui_ui
-    }
-
-    pub fn window_drawable_size(&self) -> (u32, u32) {
-        self.window.vulkan_drawable_size()
-    }
-
     pub fn run(
         &mut self,
-        _frame: Frame,
+        frame: Frame,
         state: &mut GodState,
         god_asset: &RisGodAsset,
-    ) -> RisResult<()> {
+    ) -> RisResult<GameloopState> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
-            return Ok(());
+            return Ok(GameloopState::WantsToContinue);
         }
 
         let mut r = ris_debug::new_record!("run output frame");
@@ -131,6 +104,25 @@ impl OutputFrame {
 
         unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
         unsafe { device.reset_fences(&[*in_flight]) }?;
+
+        // ui helper
+        ris_debug::add_record!(r, "ui helper")?;
+
+        let window_size = self.window.size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
+        let imgui_ui = self.imgui_backend.prepare_frame(
+            frame,
+            state,
+            (window_size.0 as f32, window_size.1 as f32),
+            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+        );
+
+        let ui_helper_state = self.ui_helper.draw(UiHelperDrawData {
+            ui: imgui_ui,
+            frame,
+            state,
+            window_drawable_size,
+        })?;
 
         // rebuild renderers
         ris_debug::add_record!(r, "rebuild renderers")?;
@@ -170,7 +162,9 @@ impl OutputFrame {
             Ok((image_index, _is_sub_optimal)) => image_index,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR => {
-                    return self.core.recreate_swapchain(self.window_drawable_size())
+                    self.core
+                        .recreate_swapchain(self.window.vulkan_drawable_size())?;
+                    return Ok(ui_helper_state);
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
@@ -197,7 +191,7 @@ impl OutputFrame {
 
         // prepare camera
         ris_debug::add_record!(r, "prepare camera")?;
-        let window_drawable_size = self.window_drawable_size();
+        let window_drawable_size = self.window.vulkan_drawable_size();
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
         state.camera.aspect_ratio = w / h;
 
@@ -299,7 +293,7 @@ impl OutputFrame {
             Ok(_) => state.event_window_resized,
             Err(vk_result) => match vk_result {
                 vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => {
-                    Some(self.window_drawable_size())
+                    Some(self.window.vulkan_drawable_size())
                 }
                 vk_result => {
                     return ris_error::new_result!("failed to present queue: {}", vk_result)
@@ -312,6 +306,6 @@ impl OutputFrame {
         }
 
         ris_debug::end_record!(r)?;
-        Ok(())
+        Ok(ui_helper_state)
     }
 }

@@ -133,19 +133,23 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
-            test(results, run_check, "cargo check");
-            test(results, run_check, "cargo check -r");
-            test(results, run_build, "cargo build");
-            test(results, run_build, "cargo build -r");
-            test(results, run_test, "cargo test");
-            test(results, run_test, "cargo test -r");
-            test(results, run_miri, &cargo_nightly("miri test")?);
-            test(results, run_clippy, "cargo clippy -- -Dwarnings");
-            test(results, run_clippy, "cargo clippy -r -- -Dwarnings");
-            test(results, run_clippy, "cargo clippy --tests -- -Dwarnings");
-            test(results, run_clippy, "cargo clippy -r --tests -- -Dwarnings");
-            test(results, run_clippy, "cargo clippy -p cli -- -Dwarnings");
-            test(results, run_clippy, "cargo clippy -r -p cli -- -Dwarnings");
+            test(results, run_check, cargo("check"));
+            test(results, run_check, cargo("check -r"));
+            test(results, run_build, cargo("build"));
+            test(results, run_build, cargo("build -r"));
+            test(results, run_test, cargo("test"));
+            test(results, run_test, cargo("test -r"));
+            test(results, run_miri, cargo_nightly("miri test"));
+            test(results, run_clippy, cargo("clippy -- -Dwarnings"));
+            test(results, run_clippy, cargo("clippy -r -- -Dwarnings"));
+            test(results, run_clippy, cargo("clippy --tests -- -Dwarnings"));
+            test(
+                results,
+                run_clippy,
+                cargo("clippy -r --tests -- -Dwarnings"),
+            );
+            test(results, run_clippy, cargo("clippy -p cli -- -Dwarnings"));
+            test(results, run_clippy, cargo("clippy -r -p cli -- -Dwarnings"));
         }
 
         print_empty(5);
@@ -174,14 +178,33 @@ impl ICommand for Pipeline {
     }
 }
 
-fn test(results: &mut Vec<(String, TestResult)>, should_execute: bool, cmd: &str) {
+fn test(
+    results: &mut Vec<(String, TestResult)>,
+    should_execute: bool,
+    cmd: Result<String, String>,
+) {
     if !should_execute {
+        let cmd = match cmd {
+            Ok(cmd) => cmd,
+            Err(cmd) => cmd,
+        };
+
         let result = (cmd.to_string(), TestResult::Skipped);
         results.push(result);
         return;
     }
 
-    let exit_status = crate::cmd::run(cmd, None);
+    let cmd = match cmd {
+        Ok(cmd) => cmd,
+        Err(cmd) => {
+            eprintln!("error: failed to run command, because cargo could not be found");
+            let result = (cmd, TestResult::Failed);
+            results.push(result);
+            return;
+        }
+    };
+
+    let exit_status = crate::cmd::run(&cmd, None);
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
             Some(code) => code == 0,
@@ -194,21 +217,25 @@ fn test(results: &mut Vec<(String, TestResult)>, should_execute: bool, cmd: &str
     results.push(result);
 }
 
-#[cfg(target_os = "windows")]
-fn cargo_nightly(args: &str) -> RisResult<String> {
-    let where_cargo = crate::cmd::run_where("cargo")?;
+fn cargo(args: &str) -> Result<String, String> {
+    Ok(format!("cargo {}", args))
+}
 
-    for cargo in where_cargo {
-        if cargo.contains(".cargo") {
-            return Ok(format!("{} +nightly {}", cargo, args));
+#[cfg(target_os = "windows")]
+fn cargo_nightly(args: &str) -> Result<String, String> {
+    if let Ok(where_cargo) = crate::cmd::run_where("cargo") {
+        for cargo in where_cargo {
+            if cargo.contains(".cargo") {
+                return Ok(format!("{} +nightly {}", cargo, args));
+            }
         }
     }
 
-    ris_error::new_result!("failed to find nightly cargo")
+    Err(format!("cargo +nightly {}", args))
 }
 
 #[cfg(not(target_os = "windows"))]
-fn cargo_nightly(args: &str) -> RisResult<String> {
+fn cargo_nightly(args: &str) -> Result<String, String> {
     Ok(format!("cargo +nightly {}", args))
 }
 
