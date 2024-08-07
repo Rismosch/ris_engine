@@ -53,16 +53,16 @@ pub struct Mat4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
 
 impl Mat2 {
     pub fn init(value: f32) -> Self {
-        Self(Vec2(value, 0.), Vec2(0., value))
+        Self(Vec2(value, 0.0), Vec2(0.0, value))
     }
 }
 
 impl Mat3 {
     pub fn init(value: f32) -> Self {
         Self(
-            Vec3(value, 0., 0.),
-            Vec3(0., value, 0.),
-            Vec3(0., 0., value),
+            Vec3(value, 0.0, 0.0),
+            Vec3(0.0, value, 0.0),
+            Vec3(0.0, 0.0, value),
         )
     }
 }
@@ -70,17 +70,31 @@ impl Mat3 {
 impl Mat4 {
     pub fn init(value: f32) -> Self {
         Self(
-            Vec4(value, 0., 0., 0.),
-            Vec4(0., value, 0., 0.),
-            Vec4(0., 0., value, 0.),
-            Vec4(0., 0., 0., value),
+            Vec4(value, 0.0, 0.0, 0.0),
+            Vec4(0.0, value, 0.0, 0.0),
+            Vec4(0.0, 0.0, value, 0.0),
+            Vec4(0.0, 0.0, 0.0, value),
         )
     }
 }
 
 impl From<Mat2> for Mat3 {
     fn from(value: Mat2) -> Self {
-        let mut r = Self::init(1.);
+        let mut r = Self::init(1.0);
+
+        r.0 .0 = value.0 .0;
+        r.1 .0 = value.1 .0;
+
+        r.0 .1 = value.0 .1;
+        r.1 .1 = value.1 .1;
+
+        r
+    }
+}
+
+impl From<Mat3> for Mat2 {
+    fn from(value: Mat3) -> Self {
+        let mut r = Self::init(1.0);
 
         r.0 .0 = value.0 .0;
         r.1 .0 = value.1 .0;
@@ -94,7 +108,21 @@ impl From<Mat2> for Mat3 {
 
 impl From<Mat2> for Mat4 {
     fn from(value: Mat2) -> Self {
-        let mut r = Self::init(1.);
+        let mut r = Self::init(1.0);
+
+        r.0 .0 = value.0 .0;
+        r.1 .0 = value.1 .0;
+
+        r.0 .1 = value.0 .1;
+        r.1 .1 = value.1 .1;
+
+        r
+    }
+}
+
+impl From<Mat4> for Mat2 {
+    fn from(value: Mat4) -> Self {
+        let mut r = Self::init(1.0);
 
         r.0 .0 = value.0 .0;
         r.1 .0 = value.1 .0;
@@ -108,7 +136,27 @@ impl From<Mat2> for Mat4 {
 
 impl From<Mat3> for Mat4 {
     fn from(value: Mat3) -> Self {
-        let mut r = Self::init(1.);
+        let mut r = Self::init(1.0);
+
+        r.0 .0 = value.0 .0;
+        r.1 .0 = value.1 .0;
+        r.2 .0 = value.2 .0;
+
+        r.0 .1 = value.0 .1;
+        r.1 .1 = value.1 .1;
+        r.2 .1 = value.2 .1;
+
+        r.0 .2 = value.0 .2;
+        r.1 .2 = value.1 .2;
+        r.2 .2 = value.2 .2;
+
+        r
+    }
+}
+
+impl From<Mat4> for Mat3 {
+    fn from(value: Mat4) -> Self {
+        let mut r = Self::init(1.0);
 
         r.0 .0 = value.0 .0;
         r.1 .0 = value.1 .0;

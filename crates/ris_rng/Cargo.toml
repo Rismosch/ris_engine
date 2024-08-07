@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ris_error = { path = "../ris_error" }
+ris_math = { path = "../ris_math" }

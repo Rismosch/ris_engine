@@ -48,8 +48,8 @@ impl Camera {
         let rotation = default_rotation * camera_rotation;
         let translation = -1.0 * self.position;
 
-        let translation_mat = affine::translation(translation);
-        let rotation_mat = affine::rotation(rotation);
+        let translation_mat = affine::from_translation(translation);
+        let rotation_mat = Mat4::from(affine::from_rotation(rotation));
 
         rotation_mat * translation_mat
     }

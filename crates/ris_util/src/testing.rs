@@ -1,6 +1,17 @@
+use ris_math::vector::Vec2;
+use ris_math::vector::Vec3;
+use ris_math::vector::Vec4;
+use ris_math::quaternion::Quat;
+
 pub fn repeat<F: FnMut(usize) + Clone>(repeats: usize, test: F) {
     for i in 0..repeats {
         test.clone()(i);
+        //let mut clone = test.clone();
+        //let result = std::panic::catch_unwind(move||(clone)(i));
+
+        //if result.is_err() {
+        //    panic!("failed at iteration {}", i);
+        //}
     }
 }
 
@@ -134,6 +145,60 @@ macro_rules! assert_bytes_eq {
                     format!($($arg)*),
                 )
             },
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! assert_vec2_eq {
+    ($left:expr, $right:expr) => {{
+        $crate::assert_feq!($left.0, $right.0);
+        $crate::assert_feq!($left.1, $right.1);
+    }};
+}
+
+#[macro_export]
+macro_rules! assert_vec3_eq {
+    ($left:expr, $right:expr) => {{
+        $crate::assert_feq!($left.0, $right.0);
+        $crate::assert_feq!($left.1, $right.1);
+        $crate::assert_feq!($left.2, $right.2);
+    }};
+}
+
+#[macro_export]
+macro_rules! assert_vec4_eq {
+    ($left:expr, $right:expr) => {{
+        $crate::assert_feq!($left.0, $right.0);
+        $crate::assert_feq!($left.1, $right.1);
+        $crate::assert_feq!($left.2, $right.2);
+        $crate::assert_feq!($left.3, $right.3);
+    }};
+}
+
+#[macro_export]
+macro_rules! assert_quat_eq {
+    ($left:expr, $right:expr) => {{
+        let left = ris_math::vector::Vec4::from($left);
+        let right = ris_math::vector::Vec4::from($right);
+
+        let mut sign_left = left.sign();
+        let sign_right = right.sign();
+        let sign_equal = sign_left.equal(sign_right).all();
+
+        if ris_math::vector::vk_to_bool(sign_equal) {
+            $crate::assert_feq!($left.0, $right.0);
+            $crate::assert_feq!($left.1, $right.1);
+            $crate::assert_feq!($left.2, $right.2);
+            $crate::assert_feq!($left.3, $right.3);
+        } else {
+            // a quaternion with negated components represent the same rotation. so, if not all
+            // signs match, attempt to negate one side
+
+            $crate::assert_feq!($left.0, -$right.0);
+            $crate::assert_feq!($left.1, -$right.1);
+            $crate::assert_feq!($left.2, -$right.2);
+            $crate::assert_feq!($left.3, -$right.3);
         }
     }};
 }
