@@ -93,6 +93,10 @@ fn should_convert_trs() {
 #[test]
 #[should_panic]
 fn should_panic_when_scale_is_negative() {
+    unsafe {
+        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+    }
+
     let t = Vec3::default();
     let r = Quat::default();
     let s = -1.0;
@@ -103,6 +107,10 @@ fn should_panic_when_scale_is_negative() {
 #[test]
 #[should_panic]
 fn should_panic_when_scale_is_zero() {
+    unsafe {
+        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+    }
+
     let t = Vec3::default();
     let r = Quat::default();
     let s = 0.0;
