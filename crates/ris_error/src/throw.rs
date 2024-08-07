@@ -37,6 +37,21 @@ macro_rules! throw_assert {
     }};
 }
 
+#[macro_export]
+macro_rules! throw_debug_assert {
+    ($result:expr, $($arg:tt)*) => {{
+        #[cfg(not(debug_assertions))]
+        {
+            let _ = $result;
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            $crate::throw_assert!($result, $($arg)*)
+        }
+    }};
+}
+
 pub fn show_panic_message_box(message: &str) {
     if unsafe { !SHOW_MESSAGE_BOX_ON_THROW } {
         return;

@@ -9,6 +9,8 @@ use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_feq;
+use ris_util::assert_quat_eq;
+use ris_util::assert_vec3_eq;
 use ris_util::testing;
 use ris_util::testing::miri_choose;
 
@@ -21,14 +23,12 @@ fn should_convert_translation() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let pos = rng.next_pos_3();
+        let t = rng.next_pos_3();
 
-        let mat = affine::translation(pos);
-        let pos_ = affine::get_translation(mat);
+        let m = affine::from_translation(t);
+        let t_ = affine::to_translation(m);
 
-        assert_feq!(pos.0, pos_.0);
-        assert_feq!(pos.1, pos_.1);
-        assert_feq!(pos.2, pos_.2);
+        assert_vec3_eq!(t, t_);
     });
 }
 
@@ -38,27 +38,15 @@ fn should_convert_rotation() {
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
-    testing::repeat(miri_choose(1_000_000, 100), move |_| {
+    testing::repeat(miri_choose(1_000_000, 100), move |i| {
         let mut rng = rng.borrow_mut();
 
-        let rot = rng.next_rot();
+        let r = rng.next_rot();
 
-        let mat = affine::rotation(rot);
-        let rot_ = affine::get_rotation(mat);
+        let m = affine::from_rotation(r);
+        let r_ = affine::to_rotation(m);
 
-        if f32::signum(rot.0) != f32::signum(rot_.0) {
-            // a quaternion with each component negated represents the same rotation
-            assert_feq!(rot.0, -rot_.0);
-            assert_feq!(rot.1, -rot_.1);
-            assert_feq!(rot.2, -rot_.2);
-            assert_feq!(rot.3, -rot_.3);
-        } else {
-            assert_feq!(rot.0, rot_.0);
-            assert_feq!(rot.1, rot_.1);
-            assert_feq!(rot.2, rot_.2);
-            assert_feq!(rot.3, rot_.3);
-        }
-
+        assert_quat_eq!(r, r_);
     });
 }
 
@@ -71,18 +59,53 @@ fn should_convert_scale() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let scale = rng.next_pos_3();
+        let s = rng.next_pos_3();
 
-        let mat = affine::scale(scale);
-        let scale_ = affine::get_scale(mat);
+        let m = affine::from_scale(s);
+        let s_ = affine::to_scale(m);
 
-        assert_feq!(scale.0, scale_.0);
-        assert_feq!(scale.1, scale_.1);
-        assert_feq!(scale.2, scale_.2);
+        assert_vec3_eq!(s, s_);
     });
 }
 
 #[test]
 fn should_convert_trs() {
-    panic!()
+    let seed = Seed::new().unwrap();
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
+
+    testing::repeat(miri_choose(1_000_000, 100), move |_| {
+        let mut rng = rng.borrow_mut();
+
+        let t = rng.next_pos_3();
+        let r = rng.next_rot();
+        let s = rng.next_f();
+
+        let m = affine::trs(t, r, s);
+        let (t_, r_, s_) = affine::decompose_trs(m);
+
+        assert_vec3_eq!(t, t_);
+        assert_quat_eq!(r, r_);
+        assert_feq!(s, s_);
+    });
+}
+
+#[test]
+#[should_panic]
+fn should_panic_when_scale_is_negative() {
+    let t = Vec3::default();
+    let r = Quat::default();
+    let s = -1.0;
+
+    let _ = affine::trs(t, r, s);
+}
+
+#[test]
+#[should_panic]
+fn should_panic_when_scale_is_zero() {
+    let t = Vec3::default();
+    let r = Quat::default();
+    let s = 0.0;
+
+    let _ = affine::trs(t, r, s);
 }

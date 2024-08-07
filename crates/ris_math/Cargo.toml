@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 ash = "0.37.3"
+ris_error = { path = "../ris_error" }
+ris_log = { path = "../ris_log" }

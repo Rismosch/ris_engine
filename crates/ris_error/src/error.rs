@@ -153,11 +153,7 @@ macro_rules! debug_assert {
 
         #[cfg(debug_assertions)]
         {
-            if $value {
-                Ok(())
-            } else {
-                ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
-            }
+            $crate::assert!($value)
         }
     }};
 }
