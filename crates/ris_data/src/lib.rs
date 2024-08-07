@@ -1,4 +1,5 @@
 pub mod gameloop;
+pub mod gameobject;
 pub mod info;
 pub mod input;
 pub mod settings;
