@@ -2,6 +2,7 @@ use crate::matrix::Mat4;
 use crate::quaternion::Quat;
 use crate::vector::Vec3;
 
+/// returns a translation matrix
 pub fn translation(translation: Vec3) -> Mat4 {
     let Vec3(x, y, z) = translation;
 
@@ -13,6 +14,7 @@ pub fn translation(translation: Vec3) -> Mat4 {
     mat
 }
 
+/// returns a rotation matrix
 pub fn rotation(rotation: Quat) -> Mat4 {
     let Quat(x, y, z, w) = rotation;
 
@@ -46,6 +48,7 @@ pub fn rotation(rotation: Quat) -> Mat4 {
     mat
 }
 
+/// returns a scale matrix
 pub fn scale(scale: Vec3) -> Mat4 {
     let Vec3(x, y, z) = scale;
 
@@ -57,6 +60,7 @@ pub fn scale(scale: Vec3) -> Mat4 {
     mat
 }
 
+/// returns a translation-rotation-scale matrix
 pub fn trs(t: Vec3, r: Quat, s: Vec3) -> Mat4 {
     let t = translation(t);
     let r = rotation(r);
@@ -65,6 +69,7 @@ pub fn trs(t: Vec3, r: Quat, s: Vec3) -> Mat4 {
     t * r * s
 }
 
+/// converts a translation matrix to a translation vector
 pub fn get_translation(mat: Mat4) -> Vec3 {
     let x = mat.3 .0;
     let y = mat.3 .1;
@@ -73,11 +78,9 @@ pub fn get_translation(mat: Mat4) -> Vec3 {
     Vec3(x, y, z)
 }
 
+/// converts a rotation matrix to a quaternion
 pub fn get_rotation(mat: Mat4) -> Quat {
-    let nxt = [1, 2, 0];
-
     let tr = mat.0.0 + mat.1.1 + mat.2.2;
-
     if tr > 0.0 {
         let s = f32::sqrt(tr + 1.0);
         let w = s / 2.0;
@@ -87,6 +90,8 @@ pub fn get_rotation(mat: Mat4) -> Quat {
         let z = (mat.0.1 - mat.1.0) * s;
         Quat(x,y,z,w)
     } else {
+        let nxt = [1, 2, 0];
+
         let mut i = 0;
         if mat.1.1 > mat.0.0 {
             i = 1;
@@ -114,6 +119,9 @@ pub fn get_rotation(mat: Mat4) -> Quat {
     }
 }
 
+/// converts a scale matrix to a scale vector.
+///
+/// **NOTE:** to get the scale of a trs matrix, use `get_trs` instead
 pub fn get_scale(mat: Mat4) -> Vec3 {
     let x = mat.0.0;
     let y = mat.1.1;
@@ -122,6 +130,7 @@ pub fn get_scale(mat: Mat4) -> Vec3 {
     Vec3(x, y, z)
 }
 
+/// converts a trs matrix to a translation, rotation and scale
 pub fn get_trs(mat: Mat4) -> (Vec3, Quat, Vec3) {
     (Vec3::default(), Quat::default(), Vec3::default())
 }

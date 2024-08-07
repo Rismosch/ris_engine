@@ -46,16 +46,17 @@ fn should_convert_rotation() {
         let mat = affine::rotation(rot);
         let rot_ = affine::get_rotation(mat);
 
-        if f32::signum(rot.0) == f32::signum(rot_.0) {
-            assert_feq!(rot.0, rot_.0);
-            assert_feq!(rot.1, rot_.1);
-            assert_feq!(rot.2, rot_.2);
-            assert_feq!(rot.3, rot_.3);
-        } else {
+        if f32::signum(rot.0) != f32::signum(rot_.0) {
+            // a quaternion with each component negated represents the same rotation
             assert_feq!(rot.0, -rot_.0);
             assert_feq!(rot.1, -rot_.1);
             assert_feq!(rot.2, -rot_.2);
             assert_feq!(rot.3, -rot_.3);
+        } else {
+            assert_feq!(rot.0, rot_.0);
+            assert_feq!(rot.1, rot_.1);
+            assert_feq!(rot.2, rot_.2);
+            assert_feq!(rot.3, rot_.3);
         }
 
     });
