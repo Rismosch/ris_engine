@@ -48,12 +48,12 @@ impl IUiHelperModule for GizmoModule {
         ui.checkbox("draw text", &mut self.draw_text);
 
         if self.draw_line {
-            let color_rotation = Quat::from((self.angle, ris_math::vector::VEC3_ONE));
-            let color_dir = color_rotation.rotate(ris_math::vector::VEC3_RIGHT);
+            let color_rotation = Quat::from((self.angle, Vec3::init(1.0)));
+            let color_dir = color_rotation.rotate(Vec3::right());
             let color = Rgb::from(color_dir.normalize());
             ris_debug::gizmo::segment(
-                -1.0 * ris_math::vector::VEC3_ONE,
-                ris_math::vector::VEC3_ONE,
+                -1.0 * Vec3::init(1.0),
+                Vec3::init(1.0),
                 color,
             )?;
         }
@@ -74,7 +74,7 @@ impl IUiHelperModule for GizmoModule {
                     for k in 0..10 {
                         ris_debug::gizmo::view_point(
                             Vec3(i as f32, j as f32, k as f32),
-                            Quat::from((0.25 * PI, ris_math::vector::VEC3_ONE)),
+                            Quat::from((0.25 * PI, Vec3::init(1.0))),
                             None,
                         )?;
                     }
@@ -84,28 +84,28 @@ impl IUiHelperModule for GizmoModule {
 
         if self.draw_aabb {
             ris_debug::gizmo::aabb(
-                -1.0 * ris_math::vector::VEC3_ONE,
-                ris_math::vector::VEC3_ONE,
+                -1.0 * Vec3::init(1.0),
+                Vec3::init(1.0),
                 None,
             )?;
         }
 
         if self.draw_obb {
             ris_debug::gizmo::obb(
-                ris_math::vector::VEC3_ZERO,
-                ris_math::vector::VEC3_ONE,
-                Quat::from((self.angle, ris_math::vector::VEC3_ONE)),
+                Vec3::init(0.0),
+                Vec3::init(1.0),
+                Quat::from((self.angle, Vec3::init(1.0))),
                 None,
             )?;
         }
 
         if self.draw_text {
-            ris_debug::gizmo::text(ris_math::vector::VEC3_RIGHT, "right")?;
-            ris_debug::gizmo::text(ris_math::vector::VEC3_LEFT, "left")?;
-            ris_debug::gizmo::text(ris_math::vector::VEC3_FORWARD, "forward")?;
-            ris_debug::gizmo::text(ris_math::vector::VEC3_BACKWARD, "backward")?;
-            ris_debug::gizmo::text(ris_math::vector::VEC3_UP, "up")?;
-            ris_debug::gizmo::text(ris_math::vector::VEC3_DOWN, "down")?;
+            ris_debug::gizmo::text(Vec3::right(), "right")?;
+            ris_debug::gizmo::text(Vec3::left(), "left")?;
+            ris_debug::gizmo::text(Vec3::forward(), "forward")?;
+            ris_debug::gizmo::text(Vec3::backward(), "backward")?;
+            ris_debug::gizmo::text(Vec3::up(), "up")?;
+            ris_debug::gizmo::text(Vec3::down(), "down")?;
         }
 
         Ok(())

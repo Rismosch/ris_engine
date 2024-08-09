@@ -43,7 +43,7 @@ impl Camera {
         //
         //  a single rotation is sufficiant to translate one to the other
 
-        let default_rotation = Quat::from((0.5 * PI, crate::vector::VEC3_RIGHT));
+        let default_rotation = Quat::from((0.5 * PI, Vec3::right()));
         let camera_rotation = self.rotation.conjugate();
         let rotation = default_rotation * camera_rotation;
         let translation = -1.0 * self.position;

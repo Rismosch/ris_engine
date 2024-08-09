@@ -3,19 +3,6 @@ use ash::vk;
 use crate::matrix::Mat2;
 
 //
-// constants
-//
-
-pub const VEC3_ZERO: Vec3 = Vec3(0., 0., 0.);
-pub const VEC3_ONE: Vec3 = Vec3(1., 1., 1.);
-pub const VEC3_RIGHT: Vec3 = Vec3(1., 0., 0.);
-pub const VEC3_LEFT: Vec3 = Vec3(-1., 0., 0.);
-pub const VEC3_FORWARD: Vec3 = Vec3(0., 1., 0.);
-pub const VEC3_BACKWARD: Vec3 = Vec3(0., -1., 0.);
-pub const VEC3_UP: Vec3 = Vec3(0., 0., 1.);
-pub const VEC3_DOWN: Vec3 = Vec3(0., 0., -1.);
-
-//
 // definition
 //
 
@@ -32,40 +19,13 @@ pub struct Vec3(pub f32, pub f32, pub f32);
 pub struct Vec4(pub f32, pub f32, pub f32, pub f32);
 
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
-pub struct VkBvec2(pub vk::Bool32, pub vk::Bool32);
+pub struct Bvec2(pub bool, pub bool);
 
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
-pub struct VkBvec3(pub vk::Bool32, pub vk::Bool32, pub vk::Bool32);
+pub struct Bvec3(pub bool, pub bool, pub bool);
 
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
-pub struct VkBvec4(
-    pub vk::Bool32,
-    pub vk::Bool32,
-    pub vk::Bool32,
-    pub vk::Bool32,
-);
-
-pub fn bool_to_vk(value: bool) -> vk::Bool32 {
-    if value {
-        vk::TRUE
-    } else {
-        vk::FALSE
-    }
-}
-
-pub fn vk_to_bool(value: vk::Bool32) -> bool {
-    match value {
-        vk::TRUE => true,
-        vk::FALSE => false,
-        x => panic!(
-            "cannot convert vk::Bool32 to bool, because {} is not a defined value",
-            x
-        ),
-    }
-}
+pub struct Bvec4(pub bool, pub bool, pub bool, pub bool);
 
 //
 // constructors
@@ -87,6 +47,30 @@ impl Vec3 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value)
     }
+
+    pub fn right() -> Vec3 {
+        Vec3(1., 0., 0.)
+    }
+
+    pub fn left() -> Vec3 {
+        Vec3(-1., 0., 0.)
+    }
+
+    pub fn forward() -> Vec3 {
+        Vec3(0., 1., 0.)
+    }
+
+    pub fn backward() -> Vec3 {
+        Vec3(0., -1., 0.)
+    }
+
+    pub fn up() -> Vec3 {
+        Vec3(0., 0., 1.)
+    }
+
+    pub fn down() -> Vec3 {
+        Vec3(0., 0., -1.)
+    }
 }
 
 impl From<Vec4> for Vec3 {
@@ -107,38 +91,21 @@ impl From<Mat2> for Vec4 {
     }
 }
 
-impl VkBvec2 {
-    pub fn init(value: vk::Bool32) -> Self {
+impl Bvec2 {
+    pub fn init(value: bool) -> Self {
         Self(value, value)
     }
-
-    pub fn from(value0: bool, value1: bool) -> Self {
-        Self(bool_to_vk(value0), bool_to_vk(value1))
-    }
 }
 
-impl VkBvec3 {
-    pub fn init(value: vk::Bool32) -> Self {
+impl Bvec3 {
+    pub fn init(value: bool) -> Self {
         Self(value, value, value)
     }
-
-    pub fn from(value0: bool, value1: bool, value2: bool) -> Self {
-        Self(bool_to_vk(value0), bool_to_vk(value1), bool_to_vk(value2))
-    }
 }
 
-impl VkBvec4 {
-    pub fn init(value: vk::Bool32) -> Self {
+impl Bvec4 {
+    pub fn init(value: bool) -> Self {
         Self(value, value, value, value)
-    }
-
-    pub fn from(value0: bool, value1: bool, value2: bool, value3: bool) -> Self {
-        Self(
-            bool_to_vk(value0),
-            bool_to_vk(value1),
-            bool_to_vk(value2),
-            bool_to_vk(value3),
-        )
     }
 }
 
@@ -368,224 +335,224 @@ impl Vec4 {
     }
 }
 
-impl VkBvec2 {
-    pub fn x(self) -> vk::Bool32 {
+impl Bvec2 {
+    pub fn x(self) -> bool {
         self.0
     }
 
-    pub fn y(self) -> vk::Bool32 {
+    pub fn y(self) -> bool {
         self.1
     }
 
-    pub fn r(self) -> vk::Bool32 {
+    pub fn r(self) -> bool {
         self.0
     }
 
-    pub fn g(self) -> vk::Bool32 {
+    pub fn g(self) -> bool {
         self.1
     }
 
-    pub fn s(self) -> vk::Bool32 {
+    pub fn s(self) -> bool {
         self.0
     }
 
-    pub fn t(self) -> vk::Bool32 {
+    pub fn t(self) -> bool {
         self.1
     }
 
-    pub fn set_x(&mut self, x: vk::Bool32) {
+    pub fn set_x(&mut self, x: bool) {
         self.0 = x
     }
 
-    pub fn set_y(&mut self, y: vk::Bool32) {
+    pub fn set_y(&mut self, y: bool) {
         self.1 = y
     }
 
-    pub fn set_r(&mut self, r: vk::Bool32) {
+    pub fn set_r(&mut self, r: bool) {
         self.0 = r
     }
 
-    pub fn set_g(&mut self, g: vk::Bool32) {
+    pub fn set_g(&mut self, g: bool) {
         self.1 = g
     }
 
-    pub fn set_s(&mut self, s: vk::Bool32) {
+    pub fn set_s(&mut self, s: bool) {
         self.0 = s
     }
 
-    pub fn set_t(&mut self, t: vk::Bool32) {
+    pub fn set_t(&mut self, t: bool) {
         self.1 = t
     }
 }
 
-impl VkBvec3 {
-    pub fn x(self) -> vk::Bool32 {
+impl Bvec3 {
+    pub fn x(self) -> bool {
         self.0
     }
 
-    pub fn y(self) -> vk::Bool32 {
+    pub fn y(self) -> bool {
         self.1
     }
 
-    pub fn z(self) -> vk::Bool32 {
+    pub fn z(self) -> bool {
         self.2
     }
 
-    pub fn r(self) -> vk::Bool32 {
+    pub fn r(self) -> bool {
         self.0
     }
 
-    pub fn g(self) -> vk::Bool32 {
+    pub fn g(self) -> bool {
         self.1
     }
 
-    pub fn b(self) -> vk::Bool32 {
+    pub fn b(self) -> bool {
         self.2
     }
 
-    pub fn s(self) -> vk::Bool32 {
+    pub fn s(self) -> bool {
         self.0
     }
 
-    pub fn t(self) -> vk::Bool32 {
+    pub fn t(self) -> bool {
         self.1
     }
 
-    pub fn p(self) -> vk::Bool32 {
+    pub fn p(self) -> bool {
         self.2
     }
 
-    pub fn set_x(&mut self, x: vk::Bool32) {
+    pub fn set_x(&mut self, x: bool) {
         self.0 = x
     }
 
-    pub fn set_y(&mut self, y: vk::Bool32) {
+    pub fn set_y(&mut self, y: bool) {
         self.1 = y
     }
 
-    pub fn set_z(&mut self, z: vk::Bool32) {
+    pub fn set_z(&mut self, z: bool) {
         self.2 = z
     }
 
-    pub fn set_r(&mut self, r: vk::Bool32) {
+    pub fn set_r(&mut self, r: bool) {
         self.0 = r
     }
 
-    pub fn set_g(&mut self, g: vk::Bool32) {
+    pub fn set_g(&mut self, g: bool) {
         self.1 = g
     }
 
-    pub fn set_b(&mut self, b: vk::Bool32) {
+    pub fn set_b(&mut self, b: bool) {
         self.2 = b
     }
 
-    pub fn set_s(&mut self, s: vk::Bool32) {
+    pub fn set_s(&mut self, s: bool) {
         self.0 = s
     }
 
-    pub fn set_t(&mut self, t: vk::Bool32) {
+    pub fn set_t(&mut self, t: bool) {
         self.1 = t
     }
 
-    pub fn set_p(&mut self, p: vk::Bool32) {
+    pub fn set_p(&mut self, p: bool) {
         self.2 = p
     }
 }
 
-impl VkBvec4 {
-    pub fn x(self) -> vk::Bool32 {
+impl Bvec4 {
+    pub fn x(self) -> bool {
         self.0
     }
 
-    pub fn y(self) -> vk::Bool32 {
+    pub fn y(self) -> bool {
         self.1
     }
 
-    pub fn z(self) -> vk::Bool32 {
+    pub fn z(self) -> bool {
         self.2
     }
 
-    pub fn w(self) -> vk::Bool32 {
+    pub fn w(self) -> bool {
         self.3
     }
 
-    pub fn r(self) -> vk::Bool32 {
+    pub fn r(self) -> bool {
         self.0
     }
 
-    pub fn g(self) -> vk::Bool32 {
+    pub fn g(self) -> bool {
         self.1
     }
 
-    pub fn b(self) -> vk::Bool32 {
+    pub fn b(self) -> bool {
         self.2
     }
 
-    pub fn a(self) -> vk::Bool32 {
+    pub fn a(self) -> bool {
         self.3
     }
 
-    pub fn s(self) -> vk::Bool32 {
+    pub fn s(self) -> bool {
         self.0
     }
 
-    pub fn t(self) -> vk::Bool32 {
+    pub fn t(self) -> bool {
         self.1
     }
 
-    pub fn p(self) -> vk::Bool32 {
+    pub fn p(self) -> bool {
         self.2
     }
 
-    pub fn q(self) -> vk::Bool32 {
+    pub fn q(self) -> bool {
         self.3
     }
 
-    pub fn set_x(&mut self, x: vk::Bool32) {
+    pub fn set_x(&mut self, x: bool) {
         self.0 = x
     }
 
-    pub fn set_y(&mut self, y: vk::Bool32) {
+    pub fn set_y(&mut self, y: bool) {
         self.1 = y
     }
 
-    pub fn set_z(&mut self, z: vk::Bool32) {
+    pub fn set_z(&mut self, z: bool) {
         self.2 = z
     }
 
-    pub fn set_w(&mut self, w: vk::Bool32) {
+    pub fn set_w(&mut self, w: bool) {
         self.3 = w
     }
 
-    pub fn set_r(&mut self, r: vk::Bool32) {
+    pub fn set_r(&mut self, r: bool) {
         self.0 = r
     }
 
-    pub fn set_g(&mut self, g: vk::Bool32) {
+    pub fn set_g(&mut self, g: bool) {
         self.1 = g
     }
 
-    pub fn set_b(&mut self, b: vk::Bool32) {
+    pub fn set_b(&mut self, b: bool) {
         self.2 = b
     }
 
-    pub fn set_a(&mut self, a: vk::Bool32) {
+    pub fn set_a(&mut self, a: bool) {
         self.3 = a
     }
 
-    pub fn set_s(&mut self, s: vk::Bool32) {
+    pub fn set_s(&mut self, s: bool) {
         self.0 = s
     }
 
-    pub fn set_t(&mut self, t: vk::Bool32) {
+    pub fn set_t(&mut self, t: bool) {
         self.1 = t
     }
 
-    pub fn set_p(&mut self, p: vk::Bool32) {
+    pub fn set_p(&mut self, p: bool) {
         self.2 = p
     }
 
-    pub fn set_q(&mut self, q: vk::Bool32) {
+    pub fn set_q(&mut self, q: bool) {
         self.3 = q
     }
 }
@@ -674,8 +641,8 @@ impl std::ops::IndexMut<usize> for Vec4 {
     }
 }
 
-impl std::ops::Index<usize> for VkBvec2 {
-    type Output = vk::Bool32;
+impl std::ops::Index<usize> for Bvec2 {
+    type Output = bool;
 
     fn index(&self, index: usize) -> &Self::Output {
         debug_assert!(index < 2);
@@ -688,7 +655,7 @@ impl std::ops::Index<usize> for VkBvec2 {
     }
 }
 
-impl std::ops::IndexMut<usize> for VkBvec2 {
+impl std::ops::IndexMut<usize> for Bvec2 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 2);
 
@@ -700,8 +667,8 @@ impl std::ops::IndexMut<usize> for VkBvec2 {
     }
 }
 
-impl std::ops::Index<usize> for VkBvec3 {
-    type Output = vk::Bool32;
+impl std::ops::Index<usize> for Bvec3 {
+    type Output = bool;
 
     fn index(&self, index: usize) -> &Self::Output {
         debug_assert!(index < 3);
@@ -715,7 +682,7 @@ impl std::ops::Index<usize> for VkBvec3 {
     }
 }
 
-impl std::ops::IndexMut<usize> for VkBvec3 {
+impl std::ops::IndexMut<usize> for Bvec3 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
 
@@ -728,8 +695,8 @@ impl std::ops::IndexMut<usize> for VkBvec3 {
     }
 }
 
-impl std::ops::Index<usize> for VkBvec4 {
-    type Output = vk::Bool32;
+impl std::ops::Index<usize> for Bvec4 {
+    type Output = bool;
 
     fn index(&self, index: usize) -> &Self::Output {
         debug_assert!(index < 4);
@@ -744,7 +711,7 @@ impl std::ops::Index<usize> for VkBvec4 {
     }
 }
 
-impl std::ops::IndexMut<usize> for VkBvec4 {
+impl std::ops::IndexMut<usize> for Bvec4 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 4);
 
@@ -1237,31 +1204,31 @@ impl std::ops::Neg for Vec4 {
     }
 }
 
-impl std::ops::BitOr<vk::Bool32> for VkBvec2 {
+impl std::ops::BitOr<bool> for Bvec2 {
     type Output = Self;
 
-    fn bitor(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitor(self, rhs: bool) -> Self::Output {
         Self(self.0 | rhs, self.1 | rhs)
     }
 }
 
-impl std::ops::BitOr<vk::Bool32> for VkBvec3 {
+impl std::ops::BitOr<bool> for Bvec3 {
     type Output = Self;
 
-    fn bitor(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitor(self, rhs: bool) -> Self::Output {
         Self(self.0 | rhs, self.1 | rhs, self.2 | rhs)
     }
 }
 
-impl std::ops::BitOr<vk::Bool32> for VkBvec4 {
+impl std::ops::BitOr<bool> for Bvec4 {
     type Output = Self;
 
-    fn bitor(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitor(self, rhs: bool) -> Self::Output {
         Self(self.0 | rhs, self.1 | rhs, self.2 | rhs, self.3 | rhs)
     }
 }
 
-impl std::ops::BitOr<VkBvec2> for VkBvec2 {
+impl std::ops::BitOr<Bvec2> for Bvec2 {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -1269,7 +1236,7 @@ impl std::ops::BitOr<VkBvec2> for VkBvec2 {
     }
 }
 
-impl std::ops::BitOr<VkBvec3> for VkBvec3 {
+impl std::ops::BitOr<Bvec3> for Bvec3 {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -1277,7 +1244,7 @@ impl std::ops::BitOr<VkBvec3> for VkBvec3 {
     }
 }
 
-impl std::ops::BitOr<Self> for VkBvec4 {
+impl std::ops::BitOr<Self> for Bvec4 {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -1290,31 +1257,31 @@ impl std::ops::BitOr<Self> for VkBvec4 {
     }
 }
 
-impl std::ops::BitAnd<vk::Bool32> for VkBvec2 {
+impl std::ops::BitAnd<bool> for Bvec2 {
     type Output = Self;
 
-    fn bitand(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitand(self, rhs: bool) -> Self::Output {
         Self(self.0 & rhs, self.1 & rhs)
     }
 }
 
-impl std::ops::BitAnd<vk::Bool32> for VkBvec3 {
+impl std::ops::BitAnd<bool> for Bvec3 {
     type Output = Self;
 
-    fn bitand(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitand(self, rhs: bool) -> Self::Output {
         Self(self.0 & rhs, self.1 & rhs, self.2 & rhs)
     }
 }
 
-impl std::ops::BitAnd<vk::Bool32> for VkBvec4 {
+impl std::ops::BitAnd<bool> for Bvec4 {
     type Output = Self;
 
-    fn bitand(self, rhs: vk::Bool32) -> Self::Output {
+    fn bitand(self, rhs: bool) -> Self::Output {
         Self(self.0 & rhs, self.1 & rhs, self.2 & rhs, self.3 & rhs)
     }
 }
 
-impl std::ops::BitAnd<VkBvec2> for VkBvec2 {
+impl std::ops::BitAnd<Bvec2> for Bvec2 {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -1322,7 +1289,7 @@ impl std::ops::BitAnd<VkBvec2> for VkBvec2 {
     }
 }
 
-impl std::ops::BitAnd<VkBvec3> for VkBvec3 {
+impl std::ops::BitAnd<Bvec3> for Bvec3 {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -1330,7 +1297,7 @@ impl std::ops::BitAnd<VkBvec3> for VkBvec3 {
     }
 }
 
-impl std::ops::BitAnd<Self> for VkBvec4 {
+impl std::ops::BitAnd<Self> for Bvec4 {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -1417,12 +1384,12 @@ impl Vec2 {
         )
     }
 
-    pub fn is_nan(self) -> VkBvec2 {
-        VkBvec2::from(f32::is_nan(self.0), f32::is_nan(self.1))
+    pub fn is_nan(self) -> Bvec2 {
+        Bvec2(f32::is_nan(self.0), f32::is_nan(self.1))
     }
 
-    pub fn is_infinite(self) -> VkBvec2 {
-        VkBvec2::from(f32::is_infinite(self.0), f32::is_infinite(self.1))
+    pub fn is_infinite(self) -> Bvec2 {
+        Bvec2(f32::is_infinite(self.0), f32::is_infinite(self.1))
     }
 }
 
@@ -1511,16 +1478,16 @@ impl Vec3 {
         )
     }
 
-    pub fn is_nan(self) -> VkBvec3 {
-        VkBvec3::from(
+    pub fn is_nan(self) -> Bvec3 {
+        Bvec3(
             f32::is_nan(self.0),
             f32::is_nan(self.1),
             f32::is_nan(self.2),
         )
     }
 
-    pub fn is_infinite(self) -> VkBvec3 {
-        VkBvec3::from(
+    pub fn is_infinite(self) -> Bvec3 {
+        Bvec3(
             f32::is_infinite(self.0),
             f32::is_infinite(self.1),
             f32::is_infinite(self.2),
@@ -1659,8 +1626,8 @@ impl Vec4 {
         )
     }
 
-    pub fn is_nan(self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn is_nan(self) -> Bvec4 {
+        Bvec4(
             f32::is_nan(self.0),
             f32::is_nan(self.1),
             f32::is_nan(self.2),
@@ -1668,8 +1635,8 @@ impl Vec4 {
         )
     }
 
-    pub fn is_infinite(self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn is_infinite(self) -> Bvec4 {
+        Bvec4(
             f32::is_infinite(self.0),
             f32::is_infinite(self.1),
             f32::is_infinite(self.2),
@@ -1866,60 +1833,60 @@ impl Vec4 {
 //
 
 impl Vec2 {
-    pub fn less_than(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 < rhs.0, self.1 < rhs.1)
+    pub fn less_than(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 < rhs.0, self.1 < rhs.1)
     }
 
-    pub fn less_than_equal(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 <= rhs.0, self.1 <= rhs.1)
+    pub fn less_than_equal(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 <= rhs.0, self.1 <= rhs.1)
     }
 
-    pub fn greater_than(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 > rhs.0, self.1 > rhs.1)
+    pub fn greater_than(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 > rhs.0, self.1 > rhs.1)
     }
 
-    pub fn greater_than_equal(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 >= rhs.0, self.1 >= rhs.1)
+    pub fn greater_than_equal(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 >= rhs.0, self.1 >= rhs.1)
     }
 
-    pub fn equal(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 == rhs.0, self.1 == rhs.1)
+    pub fn equal(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 == rhs.0, self.1 == rhs.1)
     }
 
-    pub fn not_equal(self, rhs: Self) -> VkBvec2 {
-        VkBvec2::from(self.0 != rhs.0, self.1 != rhs.1)
+    pub fn not_equal(self, rhs: Self) -> Bvec2 {
+        Bvec2(self.0 != rhs.0, self.1 != rhs.1)
     }
 }
 
 impl Vec3 {
-    pub fn less_than(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 < rhs.0, self.1 < rhs.1, self.2 < rhs.2)
+    pub fn less_than(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 < rhs.0, self.1 < rhs.1, self.2 < rhs.2)
     }
 
-    pub fn less_than_equal(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 <= rhs.0, self.1 <= rhs.1, self.2 <= rhs.2)
+    pub fn less_than_equal(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 <= rhs.0, self.1 <= rhs.1, self.2 <= rhs.2)
     }
 
-    pub fn greater_than(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 > rhs.0, self.1 > rhs.1, self.2 > rhs.2)
+    pub fn greater_than(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 > rhs.0, self.1 > rhs.1, self.2 > rhs.2)
     }
 
-    pub fn greater_than_equal(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 >= rhs.0, self.1 >= rhs.1, self.2 >= rhs.2)
+    pub fn greater_than_equal(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 >= rhs.0, self.1 >= rhs.1, self.2 >= rhs.2)
     }
 
-    pub fn equal(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 == rhs.0, self.1 == rhs.1, self.2 == rhs.2)
+    pub fn equal(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 == rhs.0, self.1 == rhs.1, self.2 == rhs.2)
     }
 
-    pub fn not_equal(self, rhs: Self) -> VkBvec3 {
-        VkBvec3::from(self.0 != rhs.0, self.1 != rhs.1, self.2 != rhs.2)
+    pub fn not_equal(self, rhs: Self) -> Bvec3 {
+        Bvec3(self.0 != rhs.0, self.1 != rhs.1, self.2 != rhs.2)
     }
 }
 
 impl Vec4 {
-    pub fn less_than(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn less_than(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 < rhs.0,
             self.1 < rhs.1,
             self.2 < rhs.2,
@@ -1927,8 +1894,8 @@ impl Vec4 {
         )
     }
 
-    pub fn less_than_equal(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn less_than_equal(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 <= rhs.0,
             self.1 <= rhs.1,
             self.2 <= rhs.2,
@@ -1936,8 +1903,8 @@ impl Vec4 {
         )
     }
 
-    pub fn greater_than(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn greater_than(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 > rhs.0,
             self.1 > rhs.1,
             self.2 > rhs.2,
@@ -1945,8 +1912,8 @@ impl Vec4 {
         )
     }
 
-    pub fn greater_than_equal(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn greater_than_equal(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 >= rhs.0,
             self.1 >= rhs.1,
             self.2 >= rhs.2,
@@ -1954,8 +1921,8 @@ impl Vec4 {
         )
     }
 
-    pub fn equal(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn equal(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 == rhs.0,
             self.1 == rhs.1,
             self.2 == rhs.2,
@@ -1963,8 +1930,8 @@ impl Vec4 {
         )
     }
 
-    pub fn not_equal(self, rhs: Self) -> VkBvec4 {
-        VkBvec4::from(
+    pub fn not_equal(self, rhs: Self) -> Bvec4 {
+        Bvec4(
             self.0 != rhs.0,
             self.1 != rhs.1,
             self.2 != rhs.2,
@@ -1973,37 +1940,37 @@ impl Vec4 {
     }
 }
 
-impl VkBvec2 {
-    pub fn any(self) -> vk::Bool32 {
+impl Bvec2 {
+    pub fn any(self) -> bool {
         self.0 | self.1
     }
 
-    pub fn all(self) -> vk::Bool32 {
+    pub fn all(self) -> bool {
         self.0 & self.1
     }
 }
 
-impl VkBvec3 {
-    pub fn any(self) -> vk::Bool32 {
+impl Bvec3 {
+    pub fn any(self) -> bool {
         self.0 | self.1 | self.2
     }
 
-    pub fn all(self) -> vk::Bool32 {
+    pub fn all(self) -> bool {
         self.0 & self.1 & self.2
     }
 }
 
-impl VkBvec4 {
-    pub fn any(self) -> vk::Bool32 {
+impl Bvec4 {
+    pub fn any(self) -> bool {
         self.0 | self.1 | self.2 | self.3
     }
 
-    pub fn all(self) -> vk::Bool32 {
+    pub fn all(self) -> bool {
         self.0 & self.1 & self.2 & self.3
     }
 }
 
-impl std::ops::Not for VkBvec2 {
+impl std::ops::Not for Bvec2 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -2011,7 +1978,7 @@ impl std::ops::Not for VkBvec2 {
     }
 }
 
-impl std::ops::Not for VkBvec3 {
+impl std::ops::Not for Bvec3 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -2019,7 +1986,7 @@ impl std::ops::Not for VkBvec3 {
     }
 }
 
-impl std::ops::Not for VkBvec4 {
+impl std::ops::Not for Bvec4 {
     type Output = Self;
 
     fn not(self) -> Self::Output {
