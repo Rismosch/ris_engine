@@ -5,3 +5,4 @@ pub mod cell;
 pub mod keys;
 pub mod ptr;
 pub mod ris_map;
+pub mod scene;
