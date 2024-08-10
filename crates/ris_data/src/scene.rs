@@ -1,3 +1,4 @@
+use ris_error::Extensions;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -8,19 +9,21 @@ use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GameObjectId {
-    Movable {
-        index: usize,
-    },
-    Static{
-        chunk: usize,
-        index: usize,
-    },
+pub enum GameObjectKind {
+    Movable,
+    Static {chunk: usize},
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GameObjectId {
+    kind: GameObjectKind,
+    index: usize,
 }
 
 impl Default for GameObjectId {
     fn default() -> Self {
-        Self::Movable{
+        Self{
+            kind: GameObjectKind::Movable,
             index: usize::MAX,
         }
     }
@@ -36,6 +39,7 @@ pub struct GameObjectHandle {
 pub struct GameObject {
     // identification
     handle: GameObjectHandle,
+    is_alive: bool,
 
     // local values
     is_visible: bool,
@@ -57,9 +61,10 @@ pub type GameObjectStrongPtr = StrongPtr<ArefCell<GameObject>>;
 pub type GameObjectWeakPtr = WeakPtr<ArefCell<GameObject>>;
 
 impl GameObject {
-    pub fn new(handle: GameObjectHandle) -> GameObjectStrongPtr {
+    pub fn new(handle: GameObjectHandle, is_alive: bool) -> GameObjectStrongPtr {
         let game_object = Self {
             handle,
+            is_alive,
             is_visible: true,
             position: Vec3::init(0.0),
             rotation: Quat::identity(),
@@ -89,20 +94,20 @@ pub struct Scene {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneError {
     GameObjectIsDestroyed,
-    ParentAlreadyAssigned,
     ParentMayNotBeSelf,
     CircularHierarchy,
     IndexOutOfBounds,
+    OutOfMemory,
 }
 
 impl std::fmt::Display for SceneError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             SceneError::GameObjectIsDestroyed => write!(f, "game object was destroyed"),
-            SceneError::ParentAlreadyAssigned => write!(f, "parent is already assigned"),
             SceneError::ParentMayNotBeSelf => write!(f, "self cannot be its parent"),
             SceneError::CircularHierarchy => write!(f, "operation would have caused a circular hierarchy"),
             SceneError::IndexOutOfBounds => write!(f, "index was out of bounds"),
+            SceneError::OutOfMemory => write!(f, "out of memory"),
         }
     }
 }
@@ -113,7 +118,11 @@ impl std::error::Error for SceneError {}
 
 impl GameObjectHandle {
     pub fn is_alive(self, scene: &Scene) -> bool {
-        scene.resolve(self).is_ok()
+        let Ok(ptr) = scene.resolve(self) else {
+            return false;
+        };
+
+        ptr.borrow().is_alive
     }
 
     pub fn destroy(self, scene: &Scene) {
@@ -121,8 +130,7 @@ impl GameObjectHandle {
             return;
         };
 
-        let mut aref_mut = ptr.borrow_mut();
-        aref_mut.handle.generation = aref_mut.handle.generation.wrapping_add(1);
+        ptr.borrow_mut().is_alive = false;
     }
 
     pub fn is_visible(self, scene: &Scene) -> SceneResult<bool> {
@@ -231,14 +239,7 @@ impl GameObjectHandle {
             None => None,
         };
 
-        // checks. only apply changes when these pass
-        let old_handle = old_parent.as_ref().map(|x| x.borrow().handle);
-        let new_handle = new_parent.as_ref().map(|x| x.borrow().handle);
-
-        // don't assign if the new parent is the same as the old
-        if old_handle == new_handle {
-            return Err(SceneError::ParentAlreadyAssigned);
-        }
+        // do some checks. only apply changes when these pass
 
         // don't assign itself as parent
         if let Some(new_handle) = new_handle {
@@ -311,7 +312,7 @@ impl GameObjectHandle {
         Ok(ptr.borrow().children.len())
     }
 
-    pub fn get_child(self, scene: &Scene, index: usize) -> SceneResult<GameObjectHandle> {
+    pub fn child(self, scene: &Scene, index: usize) -> SceneResult<GameObjectHandle> {
         let ptr = self.clear_destroyed_children(scene)?;
         let aref = ptr.borrow();
 
@@ -319,36 +320,6 @@ impl GameObjectHandle {
             Ok(aref.children[index])
         } else {
             Err(SceneError::IndexOutOfBounds)
-        }
-    }
-
-    pub fn add_child(self, scene: &Scene, child: GameObjectHandle, sibling_index: usize) -> SceneResult<()> {
-        let ptr = self.clear_destroyed_children(scene)?;
-        let mut aref_mut = ptr.borrow_mut();
-
-    }
-
-    pub fn remove_child(self, scene: &Scene, child: GameObjectHandle) -> SceneResult<Option<GameObjectHandle>> {
-        let ptr = scene.resolve(self)?;
-        let mut aref_mut = ptr.borrow_mut();
-
-        let position = aref_mut.children
-            .iter()
-            .position(|x| *x == child);
-
-        if let Some(position) = position {
-            let child_handle = aref_mut.children.remove(position);
-
-            if let Ok(child_ptr) = scene.resolve(child_handle) {
-                let mut child_aref_mut = child_ptr.borrow_mut();
-                child_aref_mut.parent = None;
-                child_aref_mut.cache_is_dirty = true;
-                Ok(Some(child_handle))
-            } else {
-                Ok(None)
-            }
-        } else {
-            Ok(None)
         }
     }
 
@@ -371,12 +342,28 @@ impl GameObjectHandle {
         Ok(ptr)
     }
 
-    pub fn sibling_index() {
+    pub fn sibling_index(self, scene: &Scene) -> SceneResult<usize> {
+        let Some(parent) = self.parent(scene)? else {
+            return Ok(0)
+        };
 
+        let position = parent.children_iter(scene)?.position(|x| x == self);
+        let index = ris_error::unwrap!(
+            position.unroll(),
+            "",
+        );
+
+        Ok(index)
     }
 
-    pub fn set_sibling_index() {
+    pub fn set_sibling_index(self, scene: &Scene, sibling_index: usize) -> SceneResult<()> {
+        let Some(parent) = self.parent(scene)? else {
+            return Ok(());
+        };
 
+        self.set_parent(scene, Some(parent), sibling_index)?;
+
+        Ok(())
     }
 }
 
@@ -411,13 +398,14 @@ impl Scene {
         let mut movables = Vec::with_capacity(movables_len);
         for i in 0..movables_len {
             let handle = GameObjectHandle {
-                id: GameObjectId::Movable {
+                id: GameObjectId {
+                    kind: GameObjectKind::Movable,
                     index: i,
                 },
                 generation: 0,
             };
 
-            let game_object = GameObject::new(handle);
+            let game_object = GameObject::new(handle, false);
             movables.push(game_object);
         }
 
@@ -426,14 +414,14 @@ impl Scene {
             let mut chunk = Vec::with_capacity(statics_per_chunk);
             for j in 0..statics_per_chunk {
                 let handle = GameObjectHandle {
-                    id: GameObjectId::Static {
-                        chunk: i,
+                    id: GameObjectId {
+                        kind: GameObjectKind::Static{chunk: i},
                         index: j,
                     },
                     generation: 0,
                 };
 
-                let game_object = GameObject::new(handle);
+                let game_object = GameObject::new(handle, false);
                 chunk.push(game_object);
             }
 
@@ -447,9 +435,9 @@ impl Scene {
     }
 
     pub fn resolve(&self, handle: GameObjectHandle) -> SceneResult<GameObjectWeakPtr> {
-        let ptr = match handle.id {
-            GameObjectId::Movable { index } => &self.movables[index],
-            GameObjectId::Static { chunk, index } => &self.statics[chunk][index],
+        let ptr = match handle.id.kind {
+            GameObjectKind::Movable => &self.movables[handle.id.index],
+            GameObjectKind::Static { chunk } => &self.statics[chunk][handle.id.index],
         };
 
         if ptr.borrow().handle.generation == handle.generation {
@@ -457,5 +445,24 @@ impl Scene {
         } else {
             Err(SceneError::GameObjectIsDestroyed)
         }
+    }
+
+    pub fn new_game_object(&mut self, kind: GameObjectKind) -> SceneResult<GameObjectHandle> {
+        let chunk = match kind {
+            GameObjectKind::Movable => &mut self.movables,
+            GameObjectKind::Static { chunk } => &mut self.statics[chunk],
+        };
+
+        let Some(position) = chunk.iter().position(|x| x.borrow().is_alive) else {
+            return Err(SceneError::OutOfMemory);
+        };
+
+        let ptr = &mut chunk[position];
+        let mut handle = ptr.borrow().handle;
+        handle.generation = handle.generation.wrapping_add(1);
+        let game_object = GameObject::new(handle, true);
+        *ptr = game_object;
+
+        Ok(handle)
     }
 }
