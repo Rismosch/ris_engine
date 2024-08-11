@@ -1,10 +1,18 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use ris_data::scene::GameObjectHandle;
 use ris_data::scene::GameObjectKind;
 use ris_data::scene::Scene;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
+use ris_rng::rng::Rng;
+use ris_rng::rng::Seed;
+use ris_util::assert_feq;
 use ris_util::assert_quat_eq;
 use ris_util::assert_vec3_eq;
+use ris_util::testing;
+use ris_util::testing::miri_choose;
 
 #[test]
 fn should_create_and_resolve_game_object() {
@@ -412,16 +420,53 @@ fn should_get_is_visible_in_hierarchy() {
 }
 
 #[test]
-fn should_get_and_set_world_position() {
-    panic!()
+fn should_get_and_set_world_transform() {
+    let seed = Seed::new().unwrap();
+    println!("seed: {:?}", seed);
+    let rng = Rc::new(RefCell::new(Rng::new(seed)));
+
+    testing::repeat(miri_choose(10_000, 100), move |_i| {
+        let mut rng = rng.borrow_mut();
+
+        let scene = Scene::new(5, 0, 0);
+        let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+        let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+        let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+        let g3 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+        let g4 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+
+        g1.set_parent(&scene, Some(g0), 0).unwrap();
+        g2.set_parent(&scene, Some(g0), 0).unwrap();
+        g3.set_parent(&scene, Some(g0), 0).unwrap();
+        g4.set_parent(&scene, Some(g3), 0).unwrap();
+
+        set_random_transform(&mut rng, g0, &scene);
+        set_random_transform(&mut rng, g1, &scene);
+        set_random_transform(&mut rng, g2, &scene);
+        set_random_transform(&mut rng, g3, &scene);
+        set_random_transform(&mut rng, g4, &scene);
+
+        let p = rng.next_pos_3();
+        let r = rng.next_rot();
+        let s = rng.range_f(0.000_001, 1.0);
+        g4.set_world_position(&scene, p).unwrap();
+        g4.set_world_rotation(&scene, r).unwrap();
+        g4.set_world_scale(&scene, s).unwrap();
+        let p_ = g4.world_position(&scene).unwrap();
+        let r_ = g4.world_rotation(&scene).unwrap();
+        let s_ = g4.world_scale(&scene).unwrap();
+
+        assert_vec3_eq!(p, p_, 0.000_002);
+        assert_quat_eq!(r, r_);
+        assert_feq!(s, s_);
+    });
 }
 
-#[test]
-fn should_get_and_set_world_rotation() {
-    panic!()
-}
-
-#[test]
-fn should_get_and_set_world_scale() {
-    panic!()
+fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
+    let p = rng.next_pos_3();
+    let r = rng.next_rot();
+    let s = rng.range_f(0.000_001, 1.0);
+    g.set_local_position(scene, p).unwrap();
+    g.set_local_rotation(scene, r).unwrap();
+    g.set_local_scale(scene, s).unwrap();
 }

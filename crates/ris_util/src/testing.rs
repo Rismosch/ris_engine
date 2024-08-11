@@ -23,11 +23,12 @@ pub fn retry<F: FnMut() + Clone + std::panic::UnwindSafe>(retries: usize, test: 
     assert!(result.is_ok(), "failed {} times", retries);
 }
 
+pub const MIN_NORM: f32 = 0.000_001f32;
+
 #[macro_export]
 macro_rules! assert_feq {
     ($left:expr, $right:expr) => {{
-        const MIN_NORM: f32 = 0.000_001f32;
-        $crate::assert_feq!($left, $right, MIN_NORM, "");
+        $crate::assert_feq!($left, $right, $crate::testing::MIN_NORM, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         $crate::assert_feq!($left, $right, $tolerance, "");
@@ -155,9 +156,12 @@ macro_rules! assert_vec2_eq {
 #[macro_export]
 macro_rules! assert_vec3_eq {
     ($left:expr, $right:expr) => {{
-        $crate::assert_feq!($left.0, $right.0);
-        $crate::assert_feq!($left.1, $right.1);
-        $crate::assert_feq!($left.2, $right.2);
+        $crate::assert_vec3_eq!($left, $right, $crate::testing::MIN_NORM);
+    }};
+    ($left:expr, $right:expr, $tolerance:expr) => {{
+        $crate::assert_feq!($left.0, $right.0, $tolerance);
+        $crate::assert_feq!($left.1, $right.1, $tolerance);
+        $crate::assert_feq!($left.2, $right.2, $tolerance);
     }};
 }
 
@@ -176,23 +180,20 @@ macro_rules! assert_quat_eq {
     ($left:expr, $right:expr) => {{
         let left = ris_math::vector::Vec4::from($left);
         let right = ris_math::vector::Vec4::from($right);
+        let min_norm = ris_math::vector::Vec4::init($crate::testing::MIN_NORM);
 
-        let mut sign_left = left.sign();
-        let sign_right = right.sign();
+        // a quaternion with negated components represents the same rotation.
+        // check the diff twice: once normal and once with negated components.
+        let result1 = (left - right).abs().less_than(min_norm).all();
+        let result2 = (left + right).abs().less_than(min_norm).all();
 
-        if sign_left.equal(sign_right).all() {
-            $crate::assert_feq!($left.0, $right.0);
-            $crate::assert_feq!($left.1, $right.1);
-            $crate::assert_feq!($left.2, $right.2);
-            $crate::assert_feq!($left.3, $right.3);
-        } else {
-            // a quaternion with negated components represent the same rotation. so, if not all
-            // signs match, attempt to negate one side
-
-            $crate::assert_feq!($left.0, -$right.0);
-            $crate::assert_feq!($left.1, -$right.1);
-            $crate::assert_feq!($left.2, -$right.2);
-            $crate::assert_feq!($left.3, -$right.3);
+        // when both checks fail, the quaternions are not equal
+        if !result1 && !result2 {
+            panic!(
+                "expected {:?} and {:?} to be equal",
+                $left,
+                $right,
+            );
         }
     }};
 }

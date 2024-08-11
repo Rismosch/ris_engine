@@ -230,9 +230,23 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
-        let _ = scene;
-        let _ = value;
-        panic!("not implemented")
+        let position = match self.parent(scene)? {
+            Some(parent_handle) => {
+                let parent_trs = parent_handle.model(scene)?;
+                let (
+                    parent_world_position,
+                    parent_world_rotation,
+                    parent_world_scale,
+                ) = affine::trs_decompose(parent_trs);
+
+                let p = (value - parent_world_position) / parent_world_scale;
+                parent_world_rotation.conjugate().rotate(p)
+            },
+            None => value,
+        };
+
+        self.set_local_position(scene, position)?;
+        Ok(())
     }
 
     pub fn world_rotation(self, scene: &Scene) -> SceneResult<Quat> {
@@ -242,9 +256,16 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
-        let _ = scene;
-        let _ = value;
-        panic!("not implemented")
+        let rotation = match self.parent(scene)? {
+            Some(parent_handle) => {
+                let parent_world_rotation = parent_handle.world_rotation(scene)?;
+                parent_world_rotation.conjugate() * value
+            },
+            None => value,
+        };
+
+        self.set_local_rotation(scene, rotation)?;
+        Ok(())
     }
 
     pub fn world_scale(self, scene: &Scene) -> SceneResult<f32> {
@@ -254,9 +275,16 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
-        let _ = scene;
-        let _ = value;
-        panic!("not implemented")
+        let scale = match self.parent(scene)? {
+            Some(parent_handle) => {
+                let parent_world_scale = parent_handle.world_scale(scene)?;
+                value / parent_world_scale
+            }
+            None => value,
+        };
+
+        self.set_local_scale(scene, scale)?;
+        Ok(())
     }
 
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> SceneResult<bool> {
