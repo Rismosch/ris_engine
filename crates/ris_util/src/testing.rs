@@ -189,11 +189,7 @@ macro_rules! assert_quat_eq {
 
         // when both checks fail, the quaternions are not equal
         if !result1 && !result2 {
-            panic!(
-                "expected {:?} and {:?} to be equal",
-                $left,
-                $right,
-            );
+            panic!("expected {:?} and {:?} to be equal", $left, $right,);
         }
     }};
 }

@@ -2,8 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use ris_math::affine;
-use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_feq;
@@ -90,13 +88,14 @@ fn should_convert_trs() {
 
 #[test]
 #[should_panic]
+#[cfg(debug_assertions)]
 fn should_panic_when_scale_is_negative() {
     unsafe {
         ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
-    let t = Vec3::default();
-    let r = Quat::default();
+    let t = ris_math::vector::Vec3::default();
+    let r = ris_math::quaternion::Quat::default();
     let s = -1.0;
 
     let _ = affine::trs_compose(t, r, s);
@@ -104,13 +103,14 @@ fn should_panic_when_scale_is_negative() {
 
 #[test]
 #[should_panic]
+#[cfg(debug_assertions)]
 fn should_panic_when_scale_is_zero() {
     unsafe {
         ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
-    let t = Vec3::default();
-    let r = Quat::default();
+    let t = ris_math::vector::Vec3::default();
+    let r = ris_math::quaternion::Quat::default();
     let s = 0.0;
 
     let _ = affine::trs_compose(t, r, s);

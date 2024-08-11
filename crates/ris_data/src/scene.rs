@@ -233,15 +233,12 @@ impl GameObjectHandle {
         let position = match self.parent(scene)? {
             Some(parent_handle) => {
                 let parent_trs = parent_handle.model(scene)?;
-                let (
-                    parent_world_position,
-                    parent_world_rotation,
-                    parent_world_scale,
-                ) = affine::trs_decompose(parent_trs);
+                let (parent_world_position, parent_world_rotation, parent_world_scale) =
+                    affine::trs_decompose(parent_trs);
 
                 let p = (value - parent_world_position) / parent_world_scale;
                 parent_world_rotation.conjugate().rotate(p)
-            },
+            }
             None => value,
         };
 
@@ -260,7 +257,7 @@ impl GameObjectHandle {
             Some(parent_handle) => {
                 let parent_world_rotation = parent_handle.world_rotation(scene)?;
                 parent_world_rotation.conjugate() * value
-            },
+            }
             None => value,
         };
 
