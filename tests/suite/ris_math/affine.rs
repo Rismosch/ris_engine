@@ -1,9 +1,7 @@
 use std::cell::RefCell;
-use std::io::Write;
 use std::rc::Rc;
 
 use ris_math::affine;
-use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
@@ -38,7 +36,7 @@ fn should_convert_rotation() {
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
-    testing::repeat(miri_choose(1_000_000, 100), move |i| {
+    testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
         let r = rng.next_rot();

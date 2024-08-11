@@ -62,8 +62,8 @@ pub type GameObjectStrongPtr = StrongPtr<ArefCell<GameObject>>;
 pub type GameObjectWeakPtr = WeakPtr<ArefCell<GameObject>>;
 
 impl GameObject {
-    pub fn new(handle: GameObjectHandle, is_alive: bool) -> GameObjectStrongPtr {
-        let game_object = Self {
+    pub fn new(handle: GameObjectHandle, is_alive: bool) -> GameObject {
+        Self {
             handle,
             is_alive,
             is_visible: true,
@@ -75,9 +75,7 @@ impl GameObject {
             model: Mat4::default(),
             parent: None,
             children: Vec::new(),
-        };
-
-        StrongPtr::new(ArefCell::new(game_object))
+        }
     }
 }
 
@@ -120,6 +118,24 @@ pub type SceneResult<T> = Result<T, SceneError>;
 impl std::error::Error for SceneError {}
 
 impl GameObjectHandle {
+    pub fn new(scene: &Scene, kind: GameObjectKind) -> SceneResult<GameObjectHandle> {
+        let chunk = match kind {
+            GameObjectKind::Movable => &scene.movables,
+            GameObjectKind::Static { chunk } => &scene.statics[chunk],
+        };
+
+        let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
+            return Err(SceneError::OutOfMemory);
+        };
+
+        let ptr = &chunk[position];
+        let mut handle = ptr.borrow().handle;
+        handle.generation = handle.generation.wrapping_add(1);
+        let game_object = GameObject::new(handle, true);
+        *ptr.borrow_mut() = game_object;
+
+        Ok(handle)
+    }
     pub fn is_alive(self, scene: &Scene) -> bool {
         let Ok(ptr) = scene.resolve(self) else {
             return false;
@@ -268,16 +284,7 @@ impl GameObjectHandle {
     ) -> SceneResult<()> {
         let my_handle = self;
         let old_handle = self.parent(scene)?;
-        let new_handle = match parent.take() {
-            Some(handle) => {
-                if handle.is_alive(scene) {
-                    Some(handle)
-                } else {
-                    None
-                }
-            }
-            None => None,
-        };
+        let new_handle = parent.take().filter(|x| x.is_alive(scene));
 
         let old_parent = old_handle.and_then(|x| scene.resolve(x).ok());
         let new_parent = new_handle.and_then(|x| scene.resolve(x).ok());
@@ -495,7 +502,8 @@ impl Scene {
             };
 
             let game_object = GameObject::new(handle, false);
-            movables.push(game_object);
+            let ptr = StrongPtr::new(ArefCell::new(game_object));
+            movables.push(ptr);
         }
 
         let mut statics = Vec::with_capacity(static_chunks);
@@ -511,7 +519,8 @@ impl Scene {
                 };
 
                 let game_object = GameObject::new(handle, false);
-                chunk.push(game_object);
+                let ptr = StrongPtr::new(ArefCell::new(game_object));
+                chunk.push(ptr);
             }
 
             statics.push(chunk);
@@ -536,24 +545,5 @@ impl Scene {
         } else {
             Err(SceneError::GameObjectIsDestroyed)
         }
-    }
-
-    pub fn new_game_object(&mut self, kind: GameObjectKind) -> SceneResult<GameObjectHandle> {
-        let chunk = match kind {
-            GameObjectKind::Movable => &mut self.movables,
-            GameObjectKind::Static { chunk } => &mut self.statics[chunk],
-        };
-
-        let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
-            return Err(SceneError::OutOfMemory);
-        };
-
-        let ptr = &mut chunk[position];
-        let mut handle = ptr.borrow().handle;
-        handle.generation = handle.generation.wrapping_add(1);
-        let game_object = GameObject::new(handle, true);
-        *ptr = game_object;
-
-        Ok(handle)
     }
 }

@@ -44,8 +44,3 @@ fn should_panic_on_deref_weak_ptr_when_strong_ptr_was_dropped() {
     drop(ptr);
     let _ = *weak;
 }
-
-#[test]
-fn should_leak_when_dropping_while_a_reference_exists() {
-    panic!()
-}

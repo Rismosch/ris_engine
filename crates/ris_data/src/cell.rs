@@ -106,49 +106,55 @@ impl<T> ArefCell<T> {
     }
 }
 
-#[cfg(debug_assertions)]
 impl<T: ?Sized> Drop for ArefCell<T> {
     fn drop(&mut self) {
-        self.refs.store(isize::MAX, Ordering::SeqCst);
+        #[cfg(debug_assertions)]
+        {
+            self.refs.store(isize::MAX, Ordering::SeqCst);
+        }
     }
 }
 
-#[cfg(debug_assertions)]
 impl<T: ?Sized> Drop for Aref<T> {
     fn drop(&mut self) {
-        let prev_refs = self.refs.load(Ordering::SeqCst);
+        #[cfg(debug_assertions)]
+        {
+            let prev_refs = self.refs.load(Ordering::SeqCst);
 
-        if TRACING {
-            let backtrace = ris_error::get_backtrace!();
-            ris_log::trace!(
-                "DROP BORROW prev_refs: {} backtrace: {}",
-                prev_refs,
-                backtrace
-            );
-        }
+            if TRACING {
+                let backtrace = ris_error::get_backtrace!();
+                ris_log::trace!(
+                    "DROP BORROW prev_refs: {} backtrace: {}",
+                    prev_refs,
+                    backtrace
+                );
+            }
 
-        if prev_refs != isize::MAX {
-            self.refs.fetch_sub(1, Ordering::SeqCst);
+            if prev_refs != isize::MAX {
+                self.refs.fetch_sub(1, Ordering::SeqCst);
+            }
         }
     }
 }
 
-#[cfg(debug_assertions)]
 impl<T: ?Sized> Drop for ArefMut<T> {
     fn drop(&mut self) {
-        let prev_refs = self.refs.load(Ordering::SeqCst);
+        #[cfg(debug_assertions)]
+        {
+            let prev_refs = self.refs.load(Ordering::SeqCst);
 
-        if TRACING {
-            let backtrace = ris_error::get_backtrace!();
-            ris_log::trace!(
-                "DROP BORROW MUT prev_refs: {} backtrace: {}",
-                prev_refs,
-                backtrace
-            );
-        }
+            if TRACING {
+                let backtrace = ris_error::get_backtrace!();
+                ris_log::trace!(
+                    "DROP BORROW MUT prev_refs: {} backtrace: {}",
+                    prev_refs,
+                    backtrace
+                );
+            }
 
-        if prev_refs != isize::MAX {
-            self.refs.fetch_add(1, Ordering::SeqCst);
+            if prev_refs != isize::MAX {
+                self.refs.fetch_add(1, Ordering::SeqCst);
+            }
         }
     }
 }
