@@ -123,8 +123,8 @@ pub fn to_scale(m: Mat3) -> Vec3 {
 }
 
 /// returns a translation-rotation-scale matrix
-pub fn trs(t: Vec3, r: Quat, s: f32) -> Mat4 {
-    ris_error::throw_debug_assert!(s > 0.0, "negative scale is not supported");
+pub fn trs_compose(t: Vec3, r: Quat, s: f32) -> Mat4 {
+    ris_error::throw_debug_assert!(s > 0.0, "non-positive scale is not supported");
 
     let t = from_translation(t);
     let r = Mat4::from(from_rotation(r));
@@ -134,7 +134,7 @@ pub fn trs(t: Vec3, r: Quat, s: f32) -> Mat4 {
 }
 
 /// converts a trs matrix to a translation, rotation and scale
-pub fn decompose_trs(m: Mat4) -> (Vec3, Quat, f32) {
+pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
     // compute translation
     let translation = to_translation(m);
 

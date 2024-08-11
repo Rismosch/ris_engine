@@ -386,3 +386,22 @@ fn should_stop_iter_children_when_parent_is_destroyed() {
     assert!(result.is_empty());
 }
 
+#[test]
+fn should_get_is_visible_in_hierarchy() {
+    panic!()
+}
+
+#[test]
+fn should_get_and_set_world_position() {
+    panic!()
+}
+
+#[test]
+fn should_get_and_set_world_rotation() {
+    panic!()
+}
+
+#[test]
+fn should_get_and_set_world_scale() {
+    panic!()
+}

@@ -1,4 +1,5 @@
 use ris_error::Extensions;
+use ris_math::affine;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -155,7 +156,8 @@ impl GameObjectHandle {
 
         if aref_mut.position.not_equal(value).any() {
             aref_mut.position = value;
-            aref_mut.cache_is_dirty = true;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -174,7 +176,8 @@ impl GameObjectHandle {
         let right = Vec4::from(value);
         if left.not_equal(right).any() {
             aref_mut.rotation = value;
-            aref_mut.cache_is_dirty = true;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -195,27 +198,57 @@ impl GameObjectHandle {
 
         if aref_mut.scale != value {
             aref_mut.scale = value;
-            aref_mut.cache_is_dirty = true;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
     }
 
+    pub fn world_position(self, scene: &Scene) -> SceneResult<Vec3> {
+        let model = self.model(scene)?;
+        let (position, _rotation, _scale) = affine::trs_decompose(model);
+        Ok(position)
+    }
+
+    pub fn set_world_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
+        panic!("not implemented")
+    }
+
+    pub fn world_rotation(self, scene: &Scene) -> SceneResult<Quat> {
+        let model = self.model(scene)?;
+        let (_position, rotation, _scale) = affine::trs_decompose(model);
+        Ok(rotation)
+    }
+
+    pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
+        panic!("not implemented")
+    }
+
+    pub fn world_scale(self, scene: &Scene) -> SceneResult<f32> {
+        let model = self.model(scene)?;
+        let (_position, _rotation, scale) = affine::trs_decompose(model);
+        Ok(scale)
+    }
+
+    pub fn set_world_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
+        panic!("not implemented")
+    }
+
+    pub fn is_visible_in_hierarchy(self, scene: &Scene) -> SceneResult<bool> {
+        let ptr = self.recalculate_cache(scene)?;
+        Ok(ptr.borrow().is_visible_in_hierarchy)
+    }
+
+    pub fn model(self, scene: &Scene) -> SceneResult<Mat4> {
+        let ptr = self.recalculate_cache(scene)?;
+        Ok(ptr.borrow().model)
+    }
+
     pub fn parent(self, scene: &Scene) -> SceneResult<Option<GameObjectHandle>> {
-        let ptr = scene.resolve(self)?;
-        let mut aref_mut = ptr.borrow_mut();
-
-        let Some(parent_handle) = aref_mut.parent else {
-            return Ok(None)
-        };
-
-        let parent_ptr = scene.resolve(parent_handle);
-        if parent_ptr.is_ok() {
-            Ok(Some(parent_handle))
-        } else {
-            aref_mut.parent = None;
-            aref_mut.cache_is_dirty = true;
-            Ok(None)
+        match self.parent_ptr(scene)? {
+            Some(parent_ptr) => Ok(Some(parent_ptr.borrow().handle)),
+            None => Ok(None),
         }
     }
 
@@ -281,7 +314,8 @@ impl GameObjectHandle {
 
         // set parent
         aref_mut.parent = new_handle;
-        aref_mut.cache_is_dirty = true;
+        drop(aref_mut);
+        self.set_cache_to_dirty(scene)?;
 
         Ok(())
     }
@@ -314,6 +348,95 @@ impl GameObjectHandle {
         }
     }
 
+    pub fn sibling_index(self, scene: &Scene) -> SceneResult<usize> {
+        let Some(parent) = self.parent(scene)? else {
+            return Ok(0)
+        };
+
+        let position = parent.child_iter(scene)?.position(|x| x == self);
+        let index = ris_error::unwrap!(
+            position.unroll(),
+            "failed to find sibling index, despite having a parent. this error should never occur and hints at a serious issue"
+        );
+
+        Ok(index)
+    }
+
+    pub fn set_sibling_index(self, scene: &Scene, sibling_index: usize) -> SceneResult<()> {
+        let Some(parent) = self.parent(scene)? else {
+            return Ok(());
+        };
+
+        self.set_parent(scene, Some(parent), sibling_index)?;
+
+        Ok(())
+    }
+
+    fn set_cache_to_dirty(self, scene: &Scene) -> SceneResult<()> {
+        let ptr = scene.resolve(self)?;
+        ptr.borrow_mut().cache_is_dirty = true;
+
+        for child in self.child_iter(scene)? {
+            child.set_cache_to_dirty(scene)?;
+        }
+
+        Ok(())
+    }
+
+    fn recalculate_cache(self, scene: &Scene) -> SceneResult<GameObjectWeakPtr> {
+        let ptr = scene.resolve(self)?;
+        if !ptr.borrow().cache_is_dirty {
+            return Ok(ptr);
+        }
+
+        let (
+            parent_is_visible_in_hierarchy,
+            parent_model,
+        ) = match self.parent_ptr(scene)? {
+            Some(parent_ptr) => {
+                let parent_handle = parent_ptr.borrow().handle;
+                parent_handle.recalculate_cache(scene)?;
+                let parent_aref = parent_ptr.borrow();
+
+                (
+                    parent_aref.is_visible_in_hierarchy,
+                    parent_aref.model,
+                )
+            },
+            None => (true, Mat4::init(1.0)),
+        };
+
+        let mut aref_mut = ptr.borrow_mut();
+
+        aref_mut.is_visible_in_hierarchy = parent_is_visible_in_hierarchy && aref_mut.is_visible;
+        aref_mut.model = parent_model * affine::trs_compose(
+            aref_mut.position,
+            aref_mut.rotation,
+            aref_mut.scale,
+        );
+
+        aref_mut.cache_is_dirty = false; 
+        Ok(ptr)
+    }
+
+    fn parent_ptr(self, scene: &Scene) -> SceneResult<Option<GameObjectWeakPtr>> {
+        let ptr = scene.resolve(self)?;
+        let mut aref_mut = ptr.borrow_mut();
+
+        let Some(parent_handle) = aref_mut.parent else {
+            return Ok(None)
+        };
+
+        if let Ok(parent_ptr) = scene.resolve(parent_handle) {
+            Ok(Some(parent_ptr))
+        } else {
+            aref_mut.parent = None;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
+            Ok(None)
+        }
+    }
+
     fn clear_destroyed_children(self, scene: &Scene) -> SceneResult<GameObjectWeakPtr> {
         let ptr = scene.resolve(self)?;
         let mut aref_mut = ptr.borrow_mut();
@@ -331,30 +454,6 @@ impl GameObjectHandle {
         }
 
         Ok(ptr)
-    }
-
-    pub fn sibling_index(self, scene: &Scene) -> SceneResult<usize> {
-        let Some(parent) = self.parent(scene)? else {
-            return Ok(0)
-        };
-
-        let position = parent.child_iter(scene)?.position(|x| x == self);
-        let index = ris_error::unwrap!(
-            position.unroll(),
-            "",
-        );
-
-        Ok(index)
-    }
-
-    pub fn set_sibling_index(self, scene: &Scene, sibling_index: usize) -> SceneResult<()> {
-        let Some(parent) = self.parent(scene)? else {
-            return Ok(());
-        };
-
-        self.set_parent(scene, Some(parent), sibling_index)?;
-
-        Ok(())
     }
 }
 

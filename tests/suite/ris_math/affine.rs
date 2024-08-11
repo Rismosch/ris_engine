@@ -79,10 +79,10 @@ fn should_convert_trs() {
 
         let t = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.next_f();
+        let s = rng.range_f(0.000_001, 1.0);
 
-        let m = affine::trs(t, r, s);
-        let (t_, r_, s_) = affine::decompose_trs(m);
+        let m = affine::trs_compose(t, r, s);
+        let (t_, r_, s_) = affine::trs_decompose(m);
 
         assert_vec3_eq!(t, t_);
         assert_quat_eq!(r, r_);
@@ -101,7 +101,7 @@ fn should_panic_when_scale_is_negative() {
     let r = Quat::default();
     let s = -1.0;
 
-    let _ = affine::trs(t, r, s);
+    let _ = affine::trs_compose(t, r, s);
 }
 
 #[test]
@@ -115,5 +115,5 @@ fn should_panic_when_scale_is_zero() {
     let r = Quat::default();
     let s = 0.0;
 
-    let _ = affine::trs(t, r, s);
+    let _ = affine::trs_compose(t, r, s);
 }
