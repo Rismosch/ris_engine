@@ -65,8 +65,8 @@ fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
 
 #[test]
 fn should_rotate_around_up() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_UP));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::up()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() < 0.);
     assert!(result.y() > 0.);
     assert!(result.z() == 0.);
@@ -74,8 +74,8 @@ fn should_rotate_around_up() {
 
 #[test]
 fn should_rotate_around_down() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_DOWN));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::down()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() > 0.);
     assert!(result.y() > 0.);
     assert!(result.z() == 0.);
@@ -83,8 +83,8 @@ fn should_rotate_around_down() {
 
 #[test]
 fn should_rotate_around_left() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_LEFT));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::left()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() > 0.);
     assert!(result.z() < 0.);
@@ -92,8 +92,8 @@ fn should_rotate_around_left() {
 
 #[test]
 fn should_rotate_around_right() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_RIGHT));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::right()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() > 0.);
     assert!(result.z() > 0.);
@@ -101,8 +101,8 @@ fn should_rotate_around_right() {
 
 #[test]
 fn should_rotate_around_forward() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_FORWARD));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::forward()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() == 1.);
     assert!(result.z() == 0.);
@@ -110,8 +110,8 @@ fn should_rotate_around_forward() {
 
 #[test]
 fn should_rotate_around_backward() {
-    let rotation = Quat::from((0.25 * PI, ris_math::vector::VEC3_BACKWARD));
-    let result = rotation.rotate(ris_math::vector::VEC3_FORWARD);
+    let rotation = Quat::from((0.25 * PI, Vec3::backward()));
+    let result = rotation.rotate(Vec3::forward());
     assert!(result.x() == 0.);
     assert!(result.y() == 1.);
     assert!(result.z() == 0.);

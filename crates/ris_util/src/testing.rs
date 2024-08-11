@@ -1,8 +1,3 @@
-use ris_math::vector::Vec2;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec4;
-use ris_math::quaternion::Quat;
-
 pub fn repeat<F: FnMut(usize) + Clone>(repeats: usize, test: F) {
     for i in 0..repeats {
         test.clone()(i);
@@ -184,9 +179,8 @@ macro_rules! assert_quat_eq {
 
         let mut sign_left = left.sign();
         let sign_right = right.sign();
-        let sign_equal = sign_left.equal(sign_right).all();
 
-        if ris_math::vector::vk_to_bool(sign_equal) {
+        if sign_left.equal(sign_right).all() {
             $crate::assert_feq!($left.0, $right.0);
             $crate::assert_feq!($left.1, $right.1);
             $crate::assert_feq!($left.2, $right.2);

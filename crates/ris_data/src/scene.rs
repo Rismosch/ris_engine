@@ -94,7 +94,7 @@ pub struct Scene {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneError {
     GameObjectIsDestroyed,
-    ParentMayNotBeSelf,
+    ScaleMustBePositive,
     CircularHierarchy,
     IndexOutOfBounds,
     OutOfMemory,
@@ -104,7 +104,7 @@ impl std::fmt::Display for SceneError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             SceneError::GameObjectIsDestroyed => write!(f, "game object was destroyed"),
-            SceneError::ParentMayNotBeSelf => write!(f, "self cannot be its parent"),
+            SceneError::ScaleMustBePositive => write!(f, "scale must be larger than 0"),
             SceneError::CircularHierarchy => write!(f, "operation would have caused a circular hierarchy"),
             SceneError::IndexOutOfBounds => write!(f, "index was out of bounds"),
             SceneError::OutOfMemory => write!(f, "out of memory"),
@@ -186,11 +186,9 @@ impl GameObjectHandle {
     }
 
     pub fn set_local_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
-        ris_error::throw_debug_assert!(
-            value > 0.0,
-            "expected scale to be bigger than 0 but was {}",
-            value,
-        );
+        if value <= 0.0 {
+            return Err(SceneError::ScaleMustBePositive);
+        }
 
         let ptr = scene.resolve(self)?;
         let mut aref_mut = ptr.borrow_mut();
@@ -212,41 +210,34 @@ impl GameObjectHandle {
         };
 
         let parent_ptr = scene.resolve(parent_handle);
-        if parent_ptr.is_err() {
+        if parent_ptr.is_ok() {
+            Ok(Some(parent_handle))
+        } else {
             aref_mut.parent = None;
             aref_mut.cache_is_dirty = true;
+            Ok(None)
         }
-
-        Ok(Some(parent_handle))
     }
 
     pub fn set_parent(
         self,
         scene: &Scene,
-        parent: Option<GameObjectHandle>,
+        mut parent: Option<GameObjectHandle>,
         sibling_index: usize,
     ) -> SceneResult<()> {
         let my_handle = self;
         let old_handle = self.parent(scene)?;
-        let new_handle = parent;
-
-        let old_parent = match old_handle {
-            Some(x) => Some(scene.resolve(x)?),
+        let new_handle = match parent.take() {
+            Some(handle) => if handle.is_alive(&scene) {
+                Some(handle)
+            } else {
+                None
+            },
             None => None,
         };
-        let new_parent = match new_handle {
-            Some(x) => Some(scene.resolve(x)?),
-            None => None,
-        };
 
-        // do some checks. only apply changes when these pass
-
-        // don't assign itself as parent
-        if let Some(new_handle) = new_handle {
-            if new_handle == my_handle {
-                return Err(SceneError::ParentMayNotBeSelf);
-            }
-        }
+        let old_parent = old_handle.map(|x| scene.resolve(x).ok()).flatten();
+        let new_parent = new_handle.map(|x| scene.resolve(x).ok()).flatten();
 
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
@@ -258,8 +249,8 @@ impl GameObjectHandle {
             to_test = parent_handle.parent(scene)?;
         }
 
-        // checks complete. can now apply changes
-        let ptr = scene.resolve(self)?;
+        // apply changes
+        let ptr = self.clear_destroyed_children(&scene)?;
         let mut aref_mut = ptr.borrow_mut();
 
         // remove game object from previous parents children
@@ -295,7 +286,7 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn children_iter(self, scene: &Scene) -> SceneResult<ChildIter> {
+    pub fn child_iter(self, scene: &Scene) -> SceneResult<ChildIter> {
         if !self.is_alive(scene) {
             return Err(SceneError::GameObjectIsDestroyed);
         }
@@ -347,7 +338,7 @@ impl GameObjectHandle {
             return Ok(0)
         };
 
-        let position = parent.children_iter(scene)?.position(|x| x == self);
+        let position = parent.child_iter(scene)?.position(|x| x == self);
         let index = ris_error::unwrap!(
             position.unroll(),
             "",
@@ -440,7 +431,12 @@ impl Scene {
             GameObjectKind::Static { chunk } => &self.statics[chunk][handle.id.index],
         };
 
-        if ptr.borrow().handle.generation == handle.generation {
+        let aref = ptr.borrow();
+
+        let is_alive = aref.is_alive;
+        let generation_matches = aref.handle.generation == handle.generation;
+
+        if is_alive && generation_matches {
             Ok(ptr.to_weak())
         } else {
             Err(SceneError::GameObjectIsDestroyed)
@@ -453,7 +449,7 @@ impl Scene {
             GameObjectKind::Static { chunk } => &mut self.statics[chunk],
         };
 
-        let Some(position) = chunk.iter().position(|x| x.borrow().is_alive) else {
+        let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
             return Err(SceneError::OutOfMemory);
         };
 

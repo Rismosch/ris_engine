@@ -1,5 +1,3 @@
-use ash::vk;
-
 use crate::matrix::Mat2;
 
 //
