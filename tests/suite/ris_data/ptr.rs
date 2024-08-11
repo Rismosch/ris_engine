@@ -46,6 +46,6 @@ fn should_panic_on_deref_weak_ptr_when_strong_ptr_was_dropped() {
 }
 
 #[test]
-fn fail() {
-    panic!("what if a dereferenced reference exists, while strong ptr is being dropped? the same question should be asked for arefcell");
+fn should_leak_when_dropping_while_a_reference_exists() {
+    panic!()
 }

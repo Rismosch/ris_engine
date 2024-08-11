@@ -60,23 +60,23 @@ pub fn from_rotation(r: Quat) -> Mat3 {
 
 /// converts a rotation matrix to a quaternion
 pub fn to_rotation(m: Mat3) -> Quat {
-    let tr = m.0.0 + m.1.1 + m.2.2;
+    let tr = m.0 .0 + m.1 .1 + m.2 .2;
     if tr > 0.0 {
         let s = f32::sqrt(tr + 1.0);
         let w = s / 2.0;
         let s = 0.5 / s;
-        let x = (m.1.2 - m.2.1) * s;
-        let y = (m.2.0 - m.0.2) * s;
-        let z = (m.0.1 - m.1.0) * s;
-        Quat(x,y,z,w)
+        let x = (m.1 .2 - m.2 .1) * s;
+        let y = (m.2 .0 - m.0 .2) * s;
+        let z = (m.0 .1 - m.1 .0) * s;
+        Quat(x, y, z, w)
     } else {
         let nxt = [1, 2, 0];
 
         let mut i = 0;
-        if m.1.1 > m.0.0 {
+        if m.1 .1 > m.0 .0 {
             i = 1;
         }
-        if m.2.2 > m[i][i] {
+        if m.2 .2 > m[i][i] {
             i = 2;
         }
         let j = nxt[i];
@@ -104,9 +104,9 @@ pub fn from_scale(s: Vec3) -> Mat3 {
     let Vec3(x, y, z) = s;
 
     let mut m = Mat3::init(1.0);
-    m.0.0 = x;
-    m.1.1 = y;
-    m.2.2 = z;
+    m.0 .0 = x;
+    m.1 .1 = y;
+    m.2 .2 = z;
 
     m
 }
@@ -115,9 +115,9 @@ pub fn from_scale(s: Vec3) -> Mat3 {
 ///
 /// **NOTE:** if you want to extract a scale from a trs matrix, use `decompose_trs` instead
 pub fn to_scale(m: Mat3) -> Vec3 {
-    let x = m.0.0;
-    let y = m.1.1;
-    let z = m.2.2;
+    let x = m.0 .0;
+    let y = m.1 .1;
+    let z = m.2 .2;
 
     Vec3(x, y, z)
 }
@@ -147,7 +147,7 @@ pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
 
     // compute shear xy and make 2nd column orthogonal to 1st
     let mut sxy = m.0.dot(m.1);
-    m.1 = m.1 - sxy * m.0;
+    m.1 -= sxy * m.0;
 
     // compute scale y and normalize 2nd column
     let sy = m.1.length();
@@ -156,9 +156,9 @@ pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
 
     // compute shear xz and yz, and make 3rd column orthogonal to the 1st and 2nd
     let mut sxz = m.0.dot(m.2);
-    m.2 = m.2 - sxz * m.0;
+    m.2 -= sxz * m.0;
     let mut syz = m.1.dot(m.2);
-    m.2 = m.2 - syz * m.1;
+    m.2 -= syz * m.1;
 
     // compute scale z and normalize 3rd column
     let sz = m.2.length();
@@ -180,4 +180,3 @@ pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
     // return
     (translation, rotation, scale)
 }
-

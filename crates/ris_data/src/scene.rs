@@ -12,7 +12,7 @@ use crate::ptr::WeakPtr;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameObjectKind {
     Movable,
-    Static {chunk: usize},
+    Static { chunk: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub struct GameObjectId {
 
 impl Default for GameObjectId {
     fn default() -> Self {
-        Self{
+        Self {
             kind: GameObjectKind::Movable,
             index: usize::MAX,
         }
@@ -106,7 +106,9 @@ impl std::fmt::Display for SceneError {
         match *self {
             SceneError::GameObjectIsDestroyed => write!(f, "game object was destroyed"),
             SceneError::ScaleMustBePositive => write!(f, "scale must be larger than 0"),
-            SceneError::CircularHierarchy => write!(f, "operation would have caused a circular hierarchy"),
+            SceneError::CircularHierarchy => {
+                write!(f, "operation would have caused a circular hierarchy")
+            }
             SceneError::IndexOutOfBounds => write!(f, "index was out of bounds"),
             SceneError::OutOfMemory => write!(f, "out of memory"),
         }
@@ -212,6 +214,8 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
+        let _ = scene;
+        let _ = value;
         panic!("not implemented")
     }
 
@@ -222,6 +226,8 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
+        let _ = scene;
+        let _ = value;
         panic!("not implemented")
     }
 
@@ -232,6 +238,8 @@ impl GameObjectHandle {
     }
 
     pub fn set_world_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
+        let _ = scene;
+        let _ = value;
         panic!("not implemented")
     }
 
@@ -261,16 +269,18 @@ impl GameObjectHandle {
         let my_handle = self;
         let old_handle = self.parent(scene)?;
         let new_handle = match parent.take() {
-            Some(handle) => if handle.is_alive(&scene) {
-                Some(handle)
-            } else {
-                None
-            },
+            Some(handle) => {
+                if handle.is_alive(scene) {
+                    Some(handle)
+                } else {
+                    None
+                }
+            }
             None => None,
         };
 
-        let old_parent = old_handle.map(|x| scene.resolve(x).ok()).flatten();
-        let new_parent = new_handle.map(|x| scene.resolve(x).ok()).flatten();
+        let old_parent = old_handle.and_then(|x| scene.resolve(x).ok());
+        let new_parent = new_handle.and_then(|x| scene.resolve(x).ok());
 
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
@@ -283,13 +293,14 @@ impl GameObjectHandle {
         }
 
         // apply changes
-        let ptr = self.clear_destroyed_children(&scene)?;
+        let ptr = self.clear_destroyed_children(scene)?;
         let mut aref_mut = ptr.borrow_mut();
 
         // remove game object from previous parents children
         if let Some(old_parent) = old_parent {
             let mut old_aref_mut = old_parent.borrow_mut();
-            let position = old_aref_mut.children
+            let position = old_aref_mut
+                .children
                 .iter()
                 .position(|x| *x == aref_mut.handle);
 
@@ -301,7 +312,8 @@ impl GameObjectHandle {
         // add game object to new parents children
         if let Some(new_parent) = new_parent {
             let mut new_aref_mut = new_parent.borrow_mut();
-            let position = new_aref_mut.children
+            let position = new_aref_mut
+                .children
                 .iter()
                 .position(|x| *x == aref_mut.handle);
 
@@ -325,7 +337,7 @@ impl GameObjectHandle {
             return Err(SceneError::GameObjectIsDestroyed);
         }
 
-        Ok(ChildIter{
+        Ok(ChildIter {
             handle: self,
             scene,
             index: 0,
@@ -350,7 +362,7 @@ impl GameObjectHandle {
 
     pub fn sibling_index(self, scene: &Scene) -> SceneResult<usize> {
         let Some(parent) = self.parent(scene)? else {
-            return Ok(0)
+            return Ok(0);
         };
 
         let position = parent.child_iter(scene)?.position(|x| x == self);
@@ -389,33 +401,24 @@ impl GameObjectHandle {
             return Ok(ptr);
         }
 
-        let (
-            parent_is_visible_in_hierarchy,
-            parent_model,
-        ) = match self.parent_ptr(scene)? {
+        let (parent_is_visible_in_hierarchy, parent_model) = match self.parent_ptr(scene)? {
             Some(parent_ptr) => {
                 let parent_handle = parent_ptr.borrow().handle;
                 parent_handle.recalculate_cache(scene)?;
                 let parent_aref = parent_ptr.borrow();
 
-                (
-                    parent_aref.is_visible_in_hierarchy,
-                    parent_aref.model,
-                )
-            },
+                (parent_aref.is_visible_in_hierarchy, parent_aref.model)
+            }
             None => (true, Mat4::init(1.0)),
         };
 
         let mut aref_mut = ptr.borrow_mut();
 
         aref_mut.is_visible_in_hierarchy = parent_is_visible_in_hierarchy && aref_mut.is_visible;
-        aref_mut.model = parent_model * affine::trs_compose(
-            aref_mut.position,
-            aref_mut.rotation,
-            aref_mut.scale,
-        );
+        aref_mut.model = parent_model
+            * affine::trs_compose(aref_mut.position, aref_mut.rotation, aref_mut.scale);
 
-        aref_mut.cache_is_dirty = false; 
+        aref_mut.cache_is_dirty = false;
         Ok(ptr)
     }
 
@@ -424,7 +427,7 @@ impl GameObjectHandle {
         let mut aref_mut = ptr.borrow_mut();
 
         let Some(parent_handle) = aref_mut.parent else {
-            return Ok(None)
+            return Ok(None);
         };
 
         if let Ok(parent_ptr) = scene.resolve(parent_handle) {
@@ -470,8 +473,8 @@ impl<'a> Iterator for ChildIter<'a> {
         while let Some(&child_handle) = aref.children.get(self.index) {
             self.index += 1;
 
-            if child_handle.is_alive(&self.scene) {
-                return Some(child_handle)
+            if child_handle.is_alive(self.scene) {
+                return Some(child_handle);
             }
         }
 
@@ -480,11 +483,7 @@ impl<'a> Iterator for ChildIter<'a> {
 }
 
 impl Scene {
-    pub fn new(
-        movables_len: usize,
-        static_chunks: usize,
-        statics_per_chunk: usize,
-    ) -> Self {
+    pub fn new(movables_len: usize, static_chunks: usize, statics_per_chunk: usize) -> Self {
         let mut movables = Vec::with_capacity(movables_len);
         for i in 0..movables_len {
             let handle = GameObjectHandle {
@@ -505,7 +504,7 @@ impl Scene {
             for j in 0..statics_per_chunk {
                 let handle = GameObjectHandle {
                     id: GameObjectId {
-                        kind: GameObjectKind::Static{chunk: i},
+                        kind: GameObjectKind::Static { chunk: i },
                         index: j,
                     },
                     generation: 0,
@@ -518,10 +517,7 @@ impl Scene {
             statics.push(chunk);
         }
 
-        Self {
-            movables,
-            statics,
-        }
+        Self { movables, statics }
     }
 
     pub fn resolve(&self, handle: GameObjectHandle) -> SceneResult<GameObjectWeakPtr> {

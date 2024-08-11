@@ -51,11 +51,7 @@ impl IUiHelperModule for GizmoModule {
             let color_rotation = Quat::from((self.angle, Vec3::init(1.0)));
             let color_dir = color_rotation.rotate(Vec3::right());
             let color = Rgb::from(color_dir.normalize());
-            ris_debug::gizmo::segment(
-                -1.0 * Vec3::init(1.0),
-                Vec3::init(1.0),
-                color,
-            )?;
+            ris_debug::gizmo::segment(-1.0 * Vec3::init(1.0), Vec3::init(1.0), color)?;
         }
 
         if self.draw_point {
@@ -83,11 +79,7 @@ impl IUiHelperModule for GizmoModule {
         }
 
         if self.draw_aabb {
-            ris_debug::gizmo::aabb(
-                -1.0 * Vec3::init(1.0),
-                Vec3::init(1.0),
-                None,
-            )?;
+            ris_debug::gizmo::aabb(-1.0 * Vec3::init(1.0), Vec3::init(1.0), None)?;
         }
 
         if self.draw_obb {

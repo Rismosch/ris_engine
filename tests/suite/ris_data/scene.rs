@@ -2,8 +2,8 @@ use ris_data::scene::GameObjectKind;
 use ris_data::scene::Scene;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
-use ris_util::assert_vec3_eq;
 use ris_util::assert_quat_eq;
+use ris_util::assert_vec3_eq;
 
 #[test]
 fn should_create_and_resolve_game_object() {
@@ -17,7 +17,9 @@ fn should_create_and_resolve_game_object() {
 #[test]
 fn should_not_resolve_destroyed_handle() {
     let mut scene = Scene::new(0, 2, 2);
-    let g = scene.new_game_object(GameObjectKind::Static{chunk: 0}).unwrap();
+    let g = scene
+        .new_game_object(GameObjectKind::Static { chunk: 0 })
+        .unwrap();
     g.destroy(&scene);
 
     assert!(!g.is_alive(&scene));
@@ -27,9 +29,9 @@ fn should_not_resolve_destroyed_handle() {
 #[test]
 fn should_not_create_when_out_of_memory() {
     let mut scene = Scene::new(0, 2, 2);
-    let g0 = scene.new_game_object(GameObjectKind::Static{chunk: 0});
-    let g1 = scene.new_game_object(GameObjectKind::Static{chunk: 0});
-    let g2 = scene.new_game_object(GameObjectKind::Static{chunk: 0});
+    let g0 = scene.new_game_object(GameObjectKind::Static { chunk: 0 });
+    let g1 = scene.new_game_object(GameObjectKind::Static { chunk: 0 });
+    let g2 = scene.new_game_object(GameObjectKind::Static { chunk: 0 });
 
     assert!(g0.is_ok());
     assert!(g1.is_ok());
@@ -191,7 +193,7 @@ fn should_not_assign_destroyed_child() {
 
 #[test]
 fn should_not_assign_destroyed_parent() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -218,7 +220,7 @@ fn should_not_assign_destroyed_parent() {
 
 #[test]
 fn should_set_sibling_index() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -264,7 +266,7 @@ fn should_set_sibling_index() {
 
 #[test]
 fn should_destroy_child() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -293,7 +295,7 @@ fn should_destroy_child() {
 
 #[test]
 fn should_destroy_parent() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -320,7 +322,7 @@ fn should_destroy_parent() {
 
 #[test]
 fn should_iter_children() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -343,7 +345,7 @@ fn should_iter_children() {
 
 #[test]
 fn should_skip_destroyed_children_on_iter_children() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();
@@ -367,7 +369,7 @@ fn should_skip_destroyed_children_on_iter_children() {
 
 #[test]
 fn should_stop_iter_children_when_parent_is_destroyed() {
-    let mut scene = Scene::new(5,0,0);
+    let mut scene = Scene::new(5, 0, 0);
     let parent = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g1 = scene.new_game_object(GameObjectKind::Movable).unwrap();
     let g2 = scene.new_game_object(GameObjectKind::Movable).unwrap();

@@ -26,7 +26,7 @@ impl<T: Default> Default for StrongPtr<T> {
 impl<T> StrongPtr<T> {
     pub fn new(value: T) -> Self {
         let ptr = Box::leak(Box::new(value));
-        let value = unsafe {NonNull::new_unchecked(ptr)};
+        let value = unsafe { NonNull::new_unchecked(ptr) };
 
         Self {
             #[cfg(debug_assertions)]
@@ -52,7 +52,7 @@ impl<T> Drop for StrongPtr<T> {
         }
 
         let ptr = self.value.as_ptr();
-        let _ = unsafe {Box::from_raw(ptr)};
+        let _ = unsafe { Box::from_raw(ptr) };
     }
 }
 
@@ -60,7 +60,7 @@ impl<T> std::ops::Deref for StrongPtr<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {self.value.as_ref()}
+        unsafe { self.value.as_ref() }
     }
 }
 
@@ -76,7 +76,7 @@ impl<T> std::ops::Deref for WeakPtr<T> {
             );
         }
 
-        unsafe {self.value.as_ref()}
+        unsafe { self.value.as_ref() }
     }
 }
 
