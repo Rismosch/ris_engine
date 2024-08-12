@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use ris_data::scene::GameObjectHandle;
-use ris_data::scene::GameObjectKind;
-use ris_data::scene::Scene;
+use ris_data::game_object::GameObjectHandle;
+use ris_data::game_object::GameObjectKind;
+use ris_data::game_object::scene::Scene;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
