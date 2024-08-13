@@ -130,7 +130,14 @@ impl GameObjectHandle {
 
     pub fn set_visible(self, scene: &Scene, value: bool) -> SceneResult<()> {
         let ptr = scene.resolve(self)?;
-        ptr.borrow_mut().is_visible = value;
+        let mut aref_mut = ptr.borrow_mut();
+
+        if aref_mut.is_visible != value {
+            aref_mut.is_visible = value;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
+        }
+
         Ok(())
     }
 
@@ -389,6 +396,10 @@ impl GameObjectHandle {
 
     fn set_cache_to_dirty(self, scene: &Scene) -> SceneResult<()> {
         let ptr = scene.resolve(self)?;
+        if ptr.borrow().cache_is_dirty {
+            return Ok(());
+        }
+
         ptr.borrow_mut().cache_is_dirty = true;
 
         for child in self.child_iter(scene)? {

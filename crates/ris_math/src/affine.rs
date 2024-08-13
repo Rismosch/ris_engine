@@ -133,8 +133,41 @@ pub fn trs_compose(t: Vec3, r: Quat, s: f32) -> Mat4 {
     t * r * s
 }
 
-/// converts a trs matrix to a translation, rotation and scale
+/// decomposes a trandlation-rotation-scale matrix
 pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
+    // compute translation
+    let translation = to_translation(m);
+
+    // for the next steps we only care bout the top left 3x3 matrix
+    let mut m = Mat3::from(m);
+
+    // compute scale, assume scale is uniform
+    let scale = m.0.length();
+
+    // normalize columns
+    m.0 = m.0.normalize();
+    m.1 = m.1.normalize();
+    m.2 = m.2.normalize();
+
+    // at this point m is a pure rotation matrix, compute rotation
+    let rotation = to_rotation(m);
+
+    // return
+    (translation, rotation, scale)
+}
+
+pub struct Decomposed {
+    pub scale: Vec3,
+    pub skew: Vec3,
+    pub rotation: Quat,
+    pub translation: Vec3,
+}
+
+/// fully decomposes a matrix. this is a more complete implementation than `trs_decompose`. but it
+/// should be noted that this implementation is not 100% complete.
+///
+/// TODO: look into a full implementation once it is required. look into glm and Graphics Gems II
+pub fn decompose_fully(m: Mat4) -> Decomposed {
     // compute translation
     let translation = to_translation(m);
 
@@ -166,17 +199,17 @@ pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
     sxz /= sz;
     syz /= sz;
 
-    // consume scale and shear. unused values may be exposed in the future
-    let scale = sx;
-    let _ = sy;
-    let _ = sz;
-    let _ = sxy;
-    let _ = sxz;
-    let _ = syz;
-
     // at this point m is a pure rotation matrix, compute rotation
     let rotation = to_rotation(m);
 
     // return
-    (translation, rotation, scale)
+    let skew = Vec3(syz, sxz, sxy);
+    let scale = Vec3(sx, sy, sz);
+
+    Decomposed{
+        scale,
+        skew,
+        rotation,
+        translation,
+    }
 }
