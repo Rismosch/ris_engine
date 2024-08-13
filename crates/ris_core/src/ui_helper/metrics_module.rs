@@ -11,7 +11,7 @@ use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::UiHelperDrawData;
 
 const PLOT_MIN_FPS: f32 = 0.0;
-const PLOT_MAX_FPS: f32 = 5_000.0;
+const PLOT_MAX_FPS: f32 = 3_000.0;
 const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 3;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 

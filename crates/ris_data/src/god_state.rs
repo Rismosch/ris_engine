@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use ris_math::camera::Camera;
 
+use crate::game_object::scene::Scene;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -9,10 +12,9 @@ pub struct GodState {
     pub event_rebuild_renderers: bool,
     pub event_window_resized: Option<(u32, u32)>,
 
-    // input
-    pub input: Input,
-
     // general
+    pub input: Input,
+    pub scene: Arc<Scene>,
     pub camera: Camera,
 
     // settings
@@ -26,11 +28,14 @@ impl GodState {
             event_rebuild_renderers: false,
             event_window_resized: None,
 
-            // input
-            input: Default::default(),
-
             // general
-            camera: Default::default(),
+            input: Input::default(),
+            scene: Arc::new(Scene::new(
+                crate::game_object::scene::DEFAULT_MOVABLES_LEN,
+                crate::game_object::scene::DEFAULT_STATIC_CHUNKS,
+                crate::game_object::scene::DEFAULT_STATICS_PER_CHUNK,
+            )),
+            camera: Camera::default(),
 
             // settings
             settings,

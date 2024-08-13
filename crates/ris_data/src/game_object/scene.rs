@@ -1,13 +1,5 @@
-use ris_error::Extensions;
-use ris_math::affine;
-use ris_math::matrix::Mat4;
-use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec4;
-
 use crate::cell::ArefCell;
 use crate::ptr::StrongPtr;
-use crate::ptr::WeakPtr;
 
 use super::game_object::GameObject;
 use super::game_object::GameObjectHandle;
@@ -15,6 +7,10 @@ use super::game_object::GameObjectId;
 use super::game_object::GameObjectKind;
 use super::game_object::GameObjectStrongPtr;
 use super::game_object::GameObjectWeakPtr;
+
+pub const DEFAULT_MOVABLES_LEN: usize = 1024;
+pub const DEFAULT_STATIC_CHUNKS: usize = 8;
+pub const DEFAULT_STATICS_PER_CHUNK: usize = 1024;
 
 pub struct Scene {
     pub movables: Vec<GameObjectStrongPtr>,
@@ -104,5 +100,16 @@ impl Scene {
         } else {
             Err(SceneError::GameObjectIsDestroyed)
         }
+    }
+
+    pub fn count_available_game_objects(&self, kind: GameObjectKind) -> usize {
+        let chunk = match kind {
+            GameObjectKind::Movable => &self.movables,
+            GameObjectKind::Static { chunk } => &self.statics[chunk],
+        };
+
+        chunk.iter()
+            .filter(|x| x.borrow().is_alive())
+            .count()
     }
 }

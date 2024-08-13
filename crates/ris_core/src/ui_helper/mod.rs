@@ -16,13 +16,15 @@ use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
 pub mod gizmo_module;
+pub mod hierarchy_module;
 pub mod metrics_module;
 pub mod settings_module;
 pub mod util;
 
-use crate::ui_helper::gizmo_module::GizmoModule;
-use crate::ui_helper::metrics_module::MetricsModule;
-use crate::ui_helper::settings_module::SettingsModule;
+use gizmo_module::GizmoModule;
+use hierarchy_module::HierarchyModule;
+use metrics_module::MetricsModule;
+use settings_module::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
@@ -66,6 +68,7 @@ macro_rules! module_vec {
 fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     let modules = module_vec![
         GizmoModule,
+        HierarchyModule,
         MetricsModule,
         SettingsModule,
         // add new modules here
@@ -431,12 +434,16 @@ impl UiHelper {
 
             let mut opened = true;
 
-            ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
+            let window = ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
                 .movable(true)
                 .position([position_x, position_y], imgui::Condition::FirstUseEver)
                 .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
                 .opened(&mut opened)
                 .build(|| self.window_callback(i, &mut data));
+
+            if let Some(window) = window {
+                window?;
+            }
 
             if opened {
                 i += 1;

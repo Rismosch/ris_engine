@@ -115,12 +115,16 @@ impl GameObjectHandle {
         ptr.borrow().is_alive
     }
 
-    pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.resolve(self) else {
-            return;
-        };
+    pub fn destroy(self, scene: &Scene) -> SceneResult<()> {
+        let ptr = scene.resolve(self)?;
+        let handle = ptr.borrow().handle();
+
+        for child in handle.child_iter(&scene)? {
+            child.destroy(scene)?;
+        }
 
         ptr.borrow_mut().is_alive = false;
+        Ok(())
     }
 
     pub fn is_visible(self, scene: &Scene) -> SceneResult<bool> {
