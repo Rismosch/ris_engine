@@ -127,14 +127,14 @@ fn should_set_parent() {
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
 
-    assert_eq!(parent.children_len(&scene).unwrap(), 1);
+    assert_eq!(parent.child_len(&scene).unwrap(), 1);
     let actual_child = parent.child(&scene, 0).unwrap();
     assert_eq!(child, actual_child);
 
     // remove parent
     child.set_parent(&scene, None, 0).unwrap();
     assert!(child.parent(&scene).unwrap().is_none());
-    assert_eq!(parent.children_len(&scene).unwrap(), 0);
+    assert_eq!(parent.child_len(&scene).unwrap(), 0);
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn should_not_assign_child_more_than_once() {
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
 
-    assert_eq!(parent.children_len(&scene).unwrap(), 1);
+    assert_eq!(parent.child_len(&scene).unwrap(), 1);
     let actual_child = parent.child(&scene, 0).unwrap();
     assert_eq!(child, actual_child);
 }
@@ -195,7 +195,7 @@ fn should_not_assign_destroyed_child() {
 
     assert!(child.set_parent(&scene, Some(parent), 0).is_err());
 
-    assert_eq!(parent.children_len(&scene).unwrap(), 0);
+    assert_eq!(parent.child_len(&scene).unwrap(), 0);
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn should_set_sibling_index() {
     g3.set_parent(&scene, Some(parent), 1).unwrap();
     g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
-    assert_eq!(parent.children_len(&scene).unwrap(), 4);
+    assert_eq!(parent.child_len(&scene).unwrap(), 4);
 
     assert_eq!(g1.sibling_index(&scene).unwrap(), 2);
     assert_eq!(g2.sibling_index(&scene).unwrap(), 0);
@@ -288,7 +288,7 @@ fn should_destroy_child() {
     g1.destroy(&scene);
     g2.destroy(&scene);
 
-    assert_eq!(parent.children_len(&scene).unwrap(), 2);
+    assert_eq!(parent.child_len(&scene).unwrap(), 2);
 
     assert!(g1.sibling_index(&scene).is_err());
     assert!(g2.sibling_index(&scene).is_err());
