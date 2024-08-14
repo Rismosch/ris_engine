@@ -36,6 +36,7 @@ pub struct GameObject {
     // identification
     handle: GameObjectHandle,
     is_alive: bool,
+    name: String,
 
     // local values
     is_visible: bool,
@@ -61,6 +62,7 @@ impl GameObject {
         Self {
             handle,
             is_alive,
+            name: "game object".to_string(),
             is_visible: true,
             position: Vec3::init(0.0),
             rotation: Quat::identity(),
@@ -115,15 +117,31 @@ impl GameObjectHandle {
         ptr.borrow().is_alive
     }
 
-    pub fn destroy(self, scene: &Scene) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    pub fn destroy(self, scene: &Scene) {
+        let Ok(ptr) = scene.resolve(self) else {
+            return;
+        };
         let handle = ptr.borrow().handle();
 
-        for child in handle.child_iter(&scene)? {
-            child.destroy(scene)?;
+        let Ok(child_iter) = handle.child_iter(&scene) else {
+            return;
+        };
+
+        for child in child_iter {
+            child.destroy(scene);
         }
 
         ptr.borrow_mut().is_alive = false;
+    }
+
+    pub fn name(self, scene: &Scene) -> SceneResult<String> {
+        let ptr = scene.resolve(self)?;
+        Ok(ptr.borrow().name.clone())
+    }
+
+    pub fn set_name(self, scene: &Scene, value: impl AsRef<str>) -> SceneResult<()> {
+        let ptr = scene.resolve(self)?;
+        ptr.borrow_mut().name = value.as_ref().to_string();
         Ok(())
     }
 
@@ -358,7 +376,7 @@ impl GameObjectHandle {
         })
     }
 
-    pub fn children_len(self, scene: &Scene) -> SceneResult<usize> {
+    pub fn child_len(self, scene: &Scene) -> SceneResult<usize> {
         let ptr = self.clear_destroyed_children(scene)?;
         Ok(ptr.borrow().children.len())
     }

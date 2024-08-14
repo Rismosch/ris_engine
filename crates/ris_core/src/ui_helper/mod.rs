@@ -1,10 +1,13 @@
+use std::ffi::CString;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::ptr;
 use std::time::Instant;
 
 use imgui::Ui;
+use imgui::WindowFlags;
 use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame::Frame;
@@ -116,6 +119,9 @@ pub struct UiHelper {
 
     config_filepath: PathBuf,
 
+    show_ui: bool,
+    show_demo: bool,
+    reimport_asset_future: Option<JobFuture<()>>,
     crash_timestamp: Instant,
     restart_timestamp: Instant,
     close_window_timestamp: Instant,
@@ -170,6 +176,9 @@ impl UiHelper {
 
                     config_filepath,
 
+                    show_ui: true,
+                    show_demo: false,
+                    reimport_asset_future: None,
                     crash_timestamp: now,
                     restart_timestamp: now,
                     close_window_timestamp: now,
@@ -272,23 +281,129 @@ impl UiHelper {
 
             config_filepath: config_filepath.to_path_buf(),
 
+            show_ui: true,
+            show_demo: false,
+            reimport_asset_future: None,
             crash_timestamp: now,
             restart_timestamp: now,
             close_window_timestamp: now,
         })
     }
 
-    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
-        let result = data
+    pub fn draw(
+        &mut self,
+        mut data: UiHelperDrawData,
+    ) -> RisResult<GameloopState> {
+        let window_flags = WindowFlags::MENU_BAR
+            | WindowFlags::NO_DOCKING 
+            | WindowFlags::NO_TITLE_BAR
+            | WindowFlags::NO_COLLAPSE
+            | WindowFlags::NO_RESIZE
+            | WindowFlags::NO_MOVE
+            | WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
+            | WindowFlags::NO_NAV_FOCUS;
+
+        let size = [
+            data.window_drawable_size.0 as f32,
+            data.window_drawable_size.1 as f32,
+        ];
+
+        let result = if !self.show_ui {
+            None
+        } else {
+            data
             .ui
-            .window("UiHelperMenuBar")
-            .movable(false)
-            .position([-1.0, 0.0], imgui::Condition::Always)
-            .menu_bar(true)
-            .title_bar(false)
-            .resizable(false)
-            .draw_background(false)
-            .build(|| self.menu_callback(data));
+            .window("dockspace")
+            .flags(window_flags)
+            .position([0.0, 0.0], imgui::Condition::Always)
+            .size(size, imgui::Condition::Always)
+            .bg_alpha(0.0)
+            .build(|| {
+                let id = "dockspace";
+                let id_cstr = CString::new(id)?;
+                let id_uint = unsafe {imgui::sys::igGetID_Str(id_cstr.as_ptr())};
+                let size = imgui::sys::ImVec2 {
+                    x: 0.0,
+                    y: 0.0,
+                };
+                let flags = 1 << 3; // ImGuiDockNodeFlags_PassthruCentralNode
+
+                unsafe{imgui::sys::igDockSpace(id_uint, size, flags, ptr::null())};
+
+                self.menu_callback(&mut data)
+            })
+        };
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F1) {
+            let duration = Instant::now() - self.restart_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual restart requestd");
+                return Ok(GameloopState::WantsToRestart);
+            }
+        } else {
+            self.restart_timestamp = Instant::now();
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F2) {
+            self.show_ui = !self.show_ui;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F3) {
+            self.show_demo = !self.show_demo;
+        }
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F4) {
+            let duration = Instant::now() - self.crash_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual crash requested");
+                return ris_error::new_result!("manual crash");
+            }
+        } else {
+            self.crash_timestamp = Instant::now();
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F5) {
+            reimport_assets(&mut self.reimport_asset_future)?;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F6) {
+            reimport_assets(&mut self.reimport_asset_future)?;
+            data.state.event_rebuild_renderers = true;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F7) {
+            let window = UiHelperWindow {
+                id: self.window_id,
+                name: "pick a module".to_string(),
+                module: None,
+            };
+
+            self.windows.push(window);
+            self.window_id = self.window_id.wrapping_add(1);
+        }
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F8) {
+            let duration = Instant::now() - self.close_window_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                self.windows.clear();
+            }
+        } else {
+            self.close_window_timestamp = Instant::now();
+        }
+
+        if self.show_demo {
+            data.ui.show_demo_window(&mut self.show_demo);
+        }
+
+        if let Some(future) = self.reimport_asset_future.take() {
+            future.wait(None)?;
+        }
 
         match result {
             Some(result) => result,
@@ -296,48 +411,47 @@ impl UiHelper {
         }
     }
 
-    fn menu_callback(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
-        let UiHelperDrawData {
-            ui,
-            frame,
-            state,
-            window_drawable_size,
-        } = data;
-
-        let mut reimport_asset_future = None;
-
-        if let Some(_menu_bar) = ui.begin_menu_bar() {
-            if let Some(_menu) = ui.begin_menu("start") {
-                if ui.menu_item("restart (F1)") {
+    fn menu_callback(&mut self, mut data: &mut UiHelperDrawData) -> RisResult<GameloopState> {
+        if let Some(_menu_bar) = data.ui.begin_menu_bar() {
+            if let Some(_menu) = data.ui.begin_menu("start") {
+                if data.ui.menu_item("restart (F1)") {
                     ris_log::fatal!("manual restart requestd");
                     return Ok(GameloopState::WantsToRestart);
                 }
 
-                if ui.menu_item("crash (F4)") {
+                if data.ui.menu_item("toggle ui (F2)") {
+                    self.show_ui = !self.show_ui;
+                }
+
+                if data.ui.menu_item("toggle demo window (F3)") {
+                    self.show_demo = !self.show_demo;
+                }
+
+                if data.ui.menu_item("crash (F4)") {
                     ris_log::fatal!("manual crash requested");
                     return ris_error::new_result!("manual crash");
                 }
 
-                if ui.menu_item("quit") {
+                if data.ui.menu_item("quit") {
                     return Ok(GameloopState::WantsToQuit);
                 }
             }
 
-            if let Some(_menu) = ui.begin_menu("debug") {
-                if ui.menu_item("reimport assets (F5)") {
-                    reimport_assets(&mut reimport_asset_future)?;
+            if let Some(_menu) = data.ui.begin_menu("debug") {
+                if data.ui.menu_item("reimport assets (F5)") {
+                    reimport_assets(&mut self.reimport_asset_future)?;
                 }
 
-                if ui.menu_item("rebuild renderers (F6)") {
-                    reimport_assets(&mut reimport_asset_future)?;
-                    state.event_rebuild_renderers = true;
+                if data.ui.menu_item("rebuild renderers (F6)") {
+                    reimport_assets(&mut self.reimport_asset_future)?;
+                    data.state.event_rebuild_renderers = true;
                 }
 
-                ui.separator();
+                data.ui.separator();
 
-                if let Some(_spawn_window) = ui.begin_menu("spawn window (F7)") {
+                if let Some(_spawn_window) = data.ui.begin_menu("spawn window (F7)") {
                     for builder in self.builders.iter() {
-                        if ui.menu_item(&builder.name) {
+                        if data.ui.menu_item(&builder.name) {
                             let module = (builder.build)(&self.app_info);
 
                             let window = UiHelperWindow {
@@ -352,74 +466,11 @@ impl UiHelper {
                     }
                 }
 
-                if ui.menu_item("close all windows (F8)") {
+                if data.ui.menu_item("close all windows (F8)") {
                     self.windows.clear();
                 }
             }
         }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F1) {
-            let duration = Instant::now() - self.restart_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual restart requestd");
-                return Ok(GameloopState::WantsToRestart);
-            }
-        } else {
-            self.restart_timestamp = Instant::now();
-        }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F4) {
-            let duration = Instant::now() - self.crash_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual crash requested");
-                return ris_error::new_result!("manual crash");
-            }
-        } else {
-            self.crash_timestamp = Instant::now();
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F5) {
-            reimport_assets(&mut reimport_asset_future)?;
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F6) {
-            reimport_assets(&mut reimport_asset_future)?;
-            state.event_rebuild_renderers = true;
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F7) {
-            let window = UiHelperWindow {
-                id: self.window_id,
-                name: "pick a module".to_string(),
-                module: None,
-            };
-
-            self.windows.push(window);
-            self.window_id = self.window_id.wrapping_add(1);
-        }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F8) {
-            let duration = Instant::now() - self.close_window_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                self.windows.clear();
-            }
-        } else {
-            self.close_window_timestamp = Instant::now();
-        }
-
-        // take ownership of data again. otherwise the loop below does not compile
-        let mut data = UiHelperDrawData {
-            ui,
-            frame,
-            state,
-            window_drawable_size,
-        };
 
         let mut i = 0;
 
@@ -427,33 +478,29 @@ impl UiHelper {
             let window = &self.windows[i];
 
             let window_pos = (window.id + 1) as f32;
-            let max_width = window_drawable_size.0 as f32 - WINDOW_SIZE[0];
-            let max_height = window_drawable_size.1 as f32 - WINDOW_SIZE[1];
+            let max_width = data.window_drawable_size.0 as f32 - WINDOW_SIZE[0];
+            let max_height = data.window_drawable_size.1 as f32 - WINDOW_SIZE[1];
             let position_x = (WINDOW_OFFSET * window_pos) % max_width;
             let position_y = (WINDOW_OFFSET * window_pos) % max_height;
 
             let mut opened = true;
 
-            let window = ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
-                .movable(true)
-                .position([position_x, position_y], imgui::Condition::FirstUseEver)
-                .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
-                .opened(&mut opened)
-                .build(|| self.window_callback(i, &mut data));
+            let cond = 1 << 2; // ImGuiCond_FirstUseEver
+            unsafe {imgui::sys::igSetNextWindowSize(WINDOW_SIZE.into(), cond)};
+            unsafe {imgui::sys::igSetNextWindowPos([position_x, position_y].into(), cond, [0.0,0.0].into())};
 
-            if let Some(window) = window {
-                window?;
+            let window_name = CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
+            if unsafe{imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0)} {
+                self.window_callback(i, &mut data)?;
             }
+
+            unsafe{imgui::sys::igEnd()};
 
             if opened {
                 i += 1;
             } else {
                 self.windows.remove(i);
             }
-        }
-
-        if let Some(future) = reimport_asset_future.take() {
-            future.wait(None)?;
         }
 
         Ok(GameloopState::WantsToContinue)

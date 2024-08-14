@@ -3,6 +3,7 @@ use std::ffi::CString;
 use std::ptr;
 
 use ris_data::game_object::GameObjectHandle;
+use ris_data::game_object::GameObjectId;
 use ris_data::game_object::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
@@ -10,8 +11,13 @@ use ris_error::RisResult;
 use super::IUiHelperModule;
 use super::UiHelperDrawData;
 
+const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
+static DUMMY_PAYLOAD: u32 = 42;
+static mut PAYLOAD: Option<GameObjectHandle> = None;
+
 pub struct HierarchyModule {
     selected_chunk: usize,
+    selected_game_object: Option<GameObjectId>,
 }
 
 impl IUiHelperModule for HierarchyModule {
@@ -22,6 +28,7 @@ impl IUiHelperModule for HierarchyModule {
     fn build(_app_info: &ris_data::info::app_info::AppInfo) -> Box<dyn IUiHelperModule> {
         Box::new(Self{
             selected_chunk: 0,
+            selected_game_object: None,
         })
     }
 
@@ -31,8 +38,6 @@ impl IUiHelperModule for HierarchyModule {
             state: GodState { scene, .. },
             ..
         } = data;
-
-        //ui.show_demo_window(&mut true);
 
         let mut choices = Vec::with_capacity(scene.statics.len() + 1);
         choices.push("movables".to_string());
@@ -61,8 +66,6 @@ impl IUiHelperModule for HierarchyModule {
 
         ui.label_text("available", format!("{}/{}", available, chunk.len()));
 
-        let id = "game objects";
-        let cstr_id = CString::new(id)?;
         if unsafe {imgui::sys::igBeginPopupContextWindow(ptr::null(), 1)} {
             if ui.menu_item("new") {
                 GameObjectHandle::new(&scene, kind)?;
@@ -84,63 +87,105 @@ impl IUiHelperModule for HierarchyModule {
             .collect::<Vec<_>>();
 
         for handle in handles {
-            draw_node(handle, data)?;
+            self.draw_node(handle, data)?;
         }
 
         Ok(())
     }
 }
 
-fn draw_node(handle: GameObjectHandle, data: &mut UiHelperDrawData) -> RisResult<()> {
-    let UiHelperDrawData {
-        ui,
-        state: GodState { scene, .. },
-        ..
-    } = data;
+impl HierarchyModule {
+    fn draw_node(&mut self, handle: GameObjectHandle, data: &mut UiHelperDrawData) -> RisResult<()> {
+        let UiHelperDrawData {
+            ui,
+            state: GodState { scene, .. },
+            ..
+        } = data;
 
-    let name = format!("game object {}", handle.id.index);
-    let name_cstr = CString::new(name)?;
+        let name = handle.name(scene)?;
+        let id = CString::new(format!("{}#{:?}", name, handle))?;
 
-    let open = unsafe {imgui::sys::igTreeNode_Str(name_cstr.as_ptr())};
+        let has_children = handle.child_len(&scene)? > 0;
+        let is_selected = self.selected_game_object
+            .map(|x| x == handle.id).unwrap_or(false);
 
-    if unsafe {imgui::sys::igBeginPopupContextItem(ptr::null(), 1)}  {
-        if ui.menu_item("new") {
-            let child = GameObjectHandle::new(&scene, handle.id.kind)?;
-            child.set_parent(&scene, Some(handle), usize::MAX)?;
-            ris_log::debug!("parent: {:?}", handle);
+        let mut flags = 0;
+        if is_selected {
+            flags |= 1 << 0; // ImGuiTreeNodeFlags_Selected
+        }
+        if !has_children {
+            flags |= 1 << 8; // ImGuiTreeNodeFlags_Leaf
         }
 
-        if ui.menu_item("delete") {
-            handle.destroy(&scene);
+        let open = unsafe {imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags)};
+
+        if unsafe {imgui::sys::igBeginPopupContextItem(ptr::null(), 1)}  {
+            if ui.menu_item("new") {
+                let child = GameObjectHandle::new(&scene, handle.id.kind)?;
+                child.set_parent(&scene, Some(handle), usize::MAX)?;
+                ris_log::debug!("parent: {:?}", handle);
+            }
+
+            if ui.menu_item("delete") {
+                handle.destroy(&scene);
+            }
+
+            unsafe {imgui::sys::igEndPopup()};
         }
 
-        unsafe {imgui::sys::igEndPopup()};
-    }
+        if unsafe {imgui::sys::igIsItemClicked(0)} {
+            self.selected_game_object = Some(handle.id);
+        }
 
-    //super::util::right_click_menu("id", || {
-    //    if ui.menu_item("new") {
-    //        let child = GameObjectHandle::new(&scene, handle.id.kind)?;
-    //        child.set_parent(&scene, Some(handle), usize::MAX)?;
-    //        ris_log::debug!("parent: {:?}", handle);
-    //    }
+        if unsafe {imgui::sys::igBeginDragDropSource(0)} {
+            unsafe {
+                PAYLOAD = Some(handle);
 
-    //    if ui.menu_item("delete") {
-    //        handle.destroy(&scene);
-    //    }
+                // wtf rust
+                // is there really no easier way to cast to *void?
+                let data = &DUMMY_PAYLOAD as *const u32 as *const std::ffi::c_void;
 
-    //    Ok(())
-    //})?;
+                imgui::sys::igSetDragDropPayload(
+                    PAYLOAD_ID.as_ptr(),
+                    data,
+                    std::mem::size_of_val(&DUMMY_PAYLOAD),
+                    0,
+                );
 
-    if open {
-        if handle.is_alive(&scene) {
-            let children = handle.child_iter(&scene)?.collect::<Vec<_>>();
-            for child in children {
-                draw_node(child, data)?;
+                let drag_text = CString::new(name)?;
+                imgui::sys::igText(drag_text.as_ptr());
+
+                imgui::sys::igEndDragDropSource();
             }
         }
 
-        unsafe {imgui::sys::igTreePop()};
-    }
+        if unsafe {imgui::sys::igBeginDragDropTarget()} {
+            unsafe {
+                let payload = imgui::sys::igAcceptDragDropPayload(PAYLOAD_ID.as_ptr(), 0);
+                if !payload.is_null() && *((*payload).Data as *const u32) == DUMMY_PAYLOAD {
+                    if let Some(dragged_handle) = PAYLOAD.take() {
+                        let drag_result = dragged_handle.set_parent(&scene, Some(handle), 0);
+                        if let Err(e) = drag_result {
+                            ris_log::error!("failed to drag: {}", e);
+                        }
+                    }
+                }
 
-    Ok(())
+                imgui::sys::igEndDragDropTarget();
+            }
+        }
+
+        if open {
+            if handle.is_alive(&scene) {
+                let children = handle.child_iter(&scene)?.collect::<Vec<_>>();
+                for child in children {
+                    self.draw_node(child, data)?;
+                }
+            }
+
+            unsafe {imgui::sys::igTreePop()};
+        }
+
+        Ok(())
+    }
 }
