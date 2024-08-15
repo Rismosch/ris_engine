@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 sdl2 = "0.34.5"
 chrono = "0.4"
+imgui = { version = "0.11.0", features = ["docking"] }
 ris_asset = { path = "../crates/ris_asset" }
 ris_core = { path = "../crates/ris_core" }
 ris_error = { path = "../crates/ris_error" }

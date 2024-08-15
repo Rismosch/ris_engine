@@ -12,8 +12,6 @@ use super::IUiHelperModule;
 use super::UiHelperDrawData;
 
 const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
-static DUMMY_PAYLOAD: u32 = 42;
-static mut PAYLOAD: Option<GameObjectHandle> = None;
 
 pub struct HierarchyModule {
     selected_chunk: usize,
@@ -139,16 +137,17 @@ impl HierarchyModule {
 
         if unsafe {imgui::sys::igBeginDragDropSource(0)} {
             unsafe {
-                PAYLOAD = Some(handle);
+                let payload = Box::new(handle);
+                let payload_ptr = Box::leak(payload);
 
                 // wtf rust
                 // is there really no easier way to cast to *void?
-                let data = &DUMMY_PAYLOAD as *const u32 as *const std::ffi::c_void;
+                let data = payload_ptr as *const GameObjectHandle as *const std::ffi::c_void;
 
                 imgui::sys::igSetDragDropPayload(
                     PAYLOAD_ID.as_ptr(),
                     data,
-                    std::mem::size_of_val(&DUMMY_PAYLOAD),
+                    std::mem::size_of::<GameObjectHandle>(),
                     0,
                 );
 
@@ -162,12 +161,12 @@ impl HierarchyModule {
         if unsafe {imgui::sys::igBeginDragDropTarget()} {
             unsafe {
                 let payload = imgui::sys::igAcceptDragDropPayload(PAYLOAD_ID.as_ptr(), 0);
-                if !payload.is_null() && *((*payload).Data as *const u32) == DUMMY_PAYLOAD {
-                    if let Some(dragged_handle) = PAYLOAD.take() {
-                        let drag_result = dragged_handle.set_parent(&scene, Some(handle), 0);
-                        if let Err(e) = drag_result {
-                            ris_log::error!("failed to drag: {}", e);
-                        }
+                if !payload.is_null() {
+                    let data_ptr = (*payload).Data as *const GameObjectHandle;
+                    let dragged_handle = *data_ptr;
+
+                    if let Err(e) = dragged_handle.set_parent(&scene, Some(handle), 0) {
+                        ris_log::error!("failed to drag: {}", e);
                     }
                 }
 
