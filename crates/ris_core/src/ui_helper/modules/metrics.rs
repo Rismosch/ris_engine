@@ -8,6 +8,7 @@ use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
 const PLOT_MIN_FPS: f32 = 0.0;
@@ -16,7 +17,7 @@ const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 3;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
-    app_info: AppInfo,
+    shared_state: SharedStateWeakPtr,
     show_plot: bool,
     plot_frames: Vec<(Instant, Frame)>,
     average_frames: Vec<Frame>,
@@ -30,9 +31,9 @@ impl IUiHelperModule for MetricsModule {
         "metrics"
     }
 
-    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
-            app_info: app_info.clone(),
+            shared_state,
             show_plot: true,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
@@ -95,7 +96,7 @@ impl IUiHelperModule for MetricsModule {
 
         ui.checkbox("show plot", &mut self.show_plot);
         ui.same_line();
-        super::util::help_marker(
+        crate::ui_helper::util::help_marker(
             ui,
             "plotting is not performant. you may gain fps by disabling it.",
         );
@@ -144,7 +145,8 @@ impl IUiHelperModule for MetricsModule {
                 profiler_evaluations = ris_debug::profiler::evaluate()?;
             }
 
-            let dir = PathBuf::from(&self.app_info.file.pref_path).join("profiler");
+            let pref_path = &self.shared_state.borrow().app_info.file.pref_path;
+            let dir = PathBuf::from(pref_path).join("profiler");
 
             if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');

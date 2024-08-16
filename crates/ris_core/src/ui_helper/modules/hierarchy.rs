@@ -8,14 +8,16 @@ use ris_data::game_object::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
-use super::IUiHelperModule;
-use super::UiHelperDrawData;
+use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::Selected;
+use crate::ui_helper::SharedStateWeakPtr;
+use crate::ui_helper::UiHelperDrawData;
 
 const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
 
 pub struct HierarchyModule {
+    shared_state: SharedStateWeakPtr,
     selected_chunk: usize,
-    selected_game_object: Option<GameObjectId>,
 }
 
 impl IUiHelperModule for HierarchyModule {
@@ -23,10 +25,10 @@ impl IUiHelperModule for HierarchyModule {
         "hierarchy"
     }
 
-    fn build(_app_info: &ris_data::info::app_info::AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self{
+            shared_state,
             selected_chunk: 0,
-            selected_game_object: None,
         })
     }
 
@@ -101,11 +103,16 @@ impl HierarchyModule {
         } = data;
 
         let name = handle.name(scene)?;
-        let id = CString::new(format!("{}#{:?}", name, handle))?;
+        let id = CString::new(format!("{}##{:?}", name, handle))?;
 
         let has_children = handle.child_len(&scene)? > 0;
-        let is_selected = self.selected_game_object
-            .map(|x| x == handle.id).unwrap_or(false);
+        let is_selected = {
+            let aref = self.shared_state.borrow();
+            let selected = aref.selected.as_ref();
+            selected.map(|x| match x {
+                Selected::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
+            }).unwrap_or(false)
+        };
 
         let mut flags = 0;
         if is_selected {
@@ -132,7 +139,7 @@ impl HierarchyModule {
         }
 
         if unsafe {imgui::sys::igIsItemClicked(0)} {
-            self.selected_game_object = Some(handle.id);
+            self.shared_state.borrow_mut().selected = Some(Selected::GameObject(handle));
         }
 
         if unsafe {imgui::sys::igBeginDragDropSource(0)} {

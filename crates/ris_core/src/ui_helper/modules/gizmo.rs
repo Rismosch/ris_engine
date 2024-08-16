@@ -6,6 +6,7 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
 pub struct GizmoModule {
@@ -23,7 +24,7 @@ impl IUiHelperModule for GizmoModule {
         "gizmo"
     }
 
-    fn build(_app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(_shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             angle: 0.0,
             draw_line: false,

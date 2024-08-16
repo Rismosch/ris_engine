@@ -10,24 +10,26 @@ use imgui::Ui;
 use imgui::WindowFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_data::cell::ArefCell;
+use ris_data::game_object::GameObjectHandle;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
+use ris_data::ptr::StrongPtr;
+use ris_data::ptr::WeakPtr;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
-pub mod gizmo_module;
-pub mod hierarchy_module;
-pub mod metrics_module;
-pub mod settings_module;
+pub mod modules;
 pub mod util;
 
-use gizmo_module::GizmoModule;
-use hierarchy_module::HierarchyModule;
-use metrics_module::MetricsModule;
-use settings_module::SettingsModule;
+use modules::gizmo::GizmoModule;
+use modules::hierarchy::HierarchyModule;
+use modules::inspector::InspectorModule;
+use modules::metrics::MetricsModule;
+use modules::settings::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
@@ -41,7 +43,7 @@ pub trait IUiHelperModule {
     fn name() -> &'static str
     where
         Self: Sized;
-    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule>
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule>
     where
         Self: Sized;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
@@ -50,7 +52,7 @@ pub trait IUiHelperModule {
 #[allow(clippy::type_complexity)]
 pub struct UiHelperModuleBuilder {
     pub name: String,
-    pub build: Box<dyn Fn(&AppInfo) -> Box<dyn IUiHelperModule>>,
+    pub build: Box<dyn Fn(SharedStateWeakPtr) -> Box<dyn IUiHelperModule>>,
 }
 
 macro_rules! module {
@@ -72,6 +74,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     let modules = module_vec![
         GizmoModule,
         HierarchyModule,
+        InspectorModule,
         MetricsModule,
         SettingsModule,
         // add new modules here
@@ -103,6 +106,28 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     Ok(modules)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Selected {
+    GameObject(GameObjectHandle)
+}
+
+pub struct SharedState {
+    app_info: AppInfo,
+    selected: Option<Selected>,
+}
+
+impl SharedState {
+    fn new(app_info: AppInfo) -> SharedStateStrongPtr {
+        StrongPtr::new(ArefCell::new(Self {
+            app_info,
+            selected: None,
+        }))
+    }
+}
+
+pub type SharedStateStrongPtr = StrongPtr<ArefCell<SharedState>>;
+pub type SharedStateWeakPtr = WeakPtr<ArefCell<SharedState>>;
+
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
@@ -111,7 +136,6 @@ pub struct UiHelperDrawData<'a> {
 }
 
 pub struct UiHelper {
-    app_info: AppInfo,
     builders: Vec<UiHelperModuleBuilder>,
 
     windows: Vec<UiHelperWindow>,
@@ -119,6 +143,7 @@ pub struct UiHelper {
 
     config_filepath: PathBuf,
 
+    shared_state: SharedStateStrongPtr,
     show_ui: bool,
     show_demo: bool,
     reimport_asset_future: Option<JobFuture<()>>,
@@ -168,7 +193,6 @@ impl UiHelper {
                 let now = Instant::now();
 
                 Ok(Self {
-                    app_info: app_info.clone(),
                     builders: builders()?,
 
                     windows: Vec::new(),
@@ -176,6 +200,7 @@ impl UiHelper {
 
                     config_filepath,
 
+                    shared_state: SharedState::new(app_info.clone()),
                     show_ui: true,
                     show_demo: false,
                     reimport_asset_future: None,
@@ -224,6 +249,7 @@ impl UiHelper {
 
         let mut windows = Vec::new();
         let mut max_window_id = 0;
+        let shared_state = SharedState::new(app_info.clone());
 
         for entry in yaml.entries.iter() {
             let Some((ref key, ref value)) = entry.key_value else {
@@ -258,7 +284,7 @@ impl UiHelper {
             max_window_id = usize::max(max_window_id, id);
 
             let builder = &builders[builder_index];
-            let module = (builder.build)(app_info);
+            let module = (builder.build)(shared_state.to_weak());
 
             let window = UiHelperWindow {
                 id,
@@ -274,13 +300,13 @@ impl UiHelper {
 
         Ok(Self {
             builders,
-            app_info: app_info.clone(),
 
             windows,
             window_id: max_window_id + 1,
 
             config_filepath: config_filepath.to_path_buf(),
 
+            shared_state,
             show_ui: true,
             show_demo: false,
             reimport_asset_future: None,
@@ -452,7 +478,8 @@ impl UiHelper {
                 if let Some(_spawn_window) = data.ui.begin_menu("spawn window (F7)") {
                     for builder in self.builders.iter() {
                         if data.ui.menu_item(&builder.name) {
-                            let module = (builder.build)(&self.app_info);
+                            let shared_state = self.shared_state.to_weak();
+                            let module = (builder.build)(shared_state);
 
                             let window = UiHelperWindow {
                                 id: self.window_id,
@@ -528,7 +555,8 @@ impl UiHelper {
 
             if index > 0 {
                 let builder = &self.builders[index - 1];
-                let module = (builder.build)(&self.app_info);
+                let shared_state = self.shared_state.to_weak();
+                let module = (builder.build)(shared_state);
                 window.module = Some(module);
                 window.name = builder.name.clone();
             }
