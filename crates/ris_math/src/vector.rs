@@ -35,6 +35,18 @@ impl Vec2 {
     }
 }
 
+impl From<[f32; 2]> for Vec2 {
+    fn from(value: [f32; 2]) -> Self {
+        Self(value[0], value[1])
+    }
+}
+
+impl From<Vec2> for [f32; 2] {
+    fn from(value: Vec2) -> Self {
+        [value.0, value.1]
+    }
+}
+
 impl From<Vec3> for Vec2 {
     fn from(value: Vec3) -> Self {
         Self(value.0, value.1)
@@ -71,6 +83,18 @@ impl Vec3 {
     }
 }
 
+impl From<[f32; 3]> for Vec3 {
+    fn from(value: [f32; 3]) -> Self {
+        Self(value[0], value[1], value[2])
+    }
+}
+
+impl From<Vec3> for [f32; 3] {
+    fn from(value: Vec3) -> Self {
+        [value.0, value.1, value.2]
+    }
+}
+
 impl From<Vec4> for Vec3 {
     fn from(value: Vec4) -> Self {
         Self(value.0, value.1, value.2)
@@ -86,6 +110,18 @@ impl Vec4 {
 impl From<Mat2> for Vec4 {
     fn from(value: Mat2) -> Self {
         Self(value.0 .0, value.0 .1, value.1 .0, value.1 .1)
+    }
+}
+
+impl From<[f32; 4]> for Vec4 {
+    fn from(value: [f32; 4]) -> Self {
+        Self(value[0], value[1], value[2], value[3])
+    }
+}
+
+impl From<Vec4> for [f32; 4] {
+    fn from(value: Vec4) -> Self {
+        [value.0, value.1, value.2, value.3]
     }
 }
 
@@ -1313,6 +1349,20 @@ impl std::ops::BitAnd<Self> for Bvec4 {
 //
 
 impl Vec2 {
+    pub fn radians(self) -> Self {
+        Self(
+            self.0.to_radians(),
+            self.1.to_radians(),
+        )
+    }
+
+    pub fn degrees(self) -> Self {
+        Self(
+            self.0.to_degrees(),
+            self.1.to_degrees(),
+        )
+    }
+
     pub fn abs(self) -> Self {
         Self(self.0.abs(), self.1.abs())
     }
@@ -1392,6 +1442,22 @@ impl Vec2 {
 }
 
 impl Vec3 {
+    pub fn radians(self) -> Self {
+        Self(
+            self.0.to_radians(),
+            self.1.to_radians(),
+            self.2.to_radians(),
+        )
+    }
+
+    pub fn degrees(self) -> Self {
+        Self(
+            self.0.to_degrees(),
+            self.1.to_degrees(),
+            self.2.to_degrees(),
+        )
+    }
+
     pub fn abs(self) -> Self {
         Self(self.0.abs(), self.1.abs(), self.2.abs())
     }
@@ -1494,6 +1560,24 @@ impl Vec3 {
 }
 
 impl Vec4 {
+    pub fn radians(self) -> Self {
+        Self(
+            self.0.to_radians(),
+            self.1.to_radians(),
+            self.2.to_radians(),
+            self.3.to_radians(),
+        )
+    }
+
+    pub fn degrees(self) -> Self {
+        Self(
+            self.0.to_degrees(),
+            self.1.to_degrees(),
+            self.2.to_degrees(),
+            self.3.to_degrees(),
+        )
+    }
+
     pub fn abs(self) -> Self {
         Self(self.0.abs(), self.1.abs(), self.2.abs(), self.3.abs())
     }
