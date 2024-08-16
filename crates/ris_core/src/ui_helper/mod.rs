@@ -563,7 +563,17 @@ impl UiHelper {
         }
 
         if let Some(module) = &mut window.module {
-            module.draw(data)?;
+            let result = module.draw(data);
+
+            // returning an error may cause imgui to fail, because some end method may not be
+            // called. this is bad, because this causes imgui to panic, which suppresses the
+            // original error. thus we intentionally log it, to avoid this suppression. this may
+            // cause the error to be logged twice, but twice is better than not at all.
+            if let Err(e) = &result {
+                ris_log::error!("failed to draw module: {:?}", e);
+            }
+
+            result?;
         }
 
         Ok(())

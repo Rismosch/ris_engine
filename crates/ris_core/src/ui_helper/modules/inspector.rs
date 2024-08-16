@@ -28,6 +28,11 @@ impl IUiHelperModule for InspectorModule {
 
         match selected {
             Selected::GameObject(handle) => {
+                if !handle.is_alive(&data.state.scene) {
+                    self.shared_state.borrow_mut().selected = None;
+                    return Ok(());
+                }
+
                 let mut name = handle.name(&data.state.scene)?;
 
                 if data.ui.input_text("name", &mut name).build() {
