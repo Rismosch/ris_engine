@@ -41,7 +41,23 @@ impl IUiHelperModule for InspectorModule {
 
                 if self.shared_state.borrow().selector.selection_changed() {
                     let rotation = handle.local_rotation(&data.state.scene)?;
-                    self.cashed_euler_angles = ris_math::euler_angles::from(rotation);
+                    let mut e = ris_math::euler_angles::from(rotation);
+
+                    // get rid of negative zero, caused by euler conversion
+                    let tolerance = 0.000_000_1;
+                    if f32::abs(e.x()) < tolerance {
+                        e.set_x(0.0);
+                    }
+
+                    if f32::abs(e.y()) < tolerance {
+                        e.set_y(0.0);
+                    }
+
+                    if f32::abs(e.z()) < tolerance {
+                        e.set_z(0.0);
+                    }
+
+                    ris_log::trace!("cached euler angles: {:?}", self.cashed_euler_angles);
                 }
 
                 let mut name = handle.name(&data.state.scene)?;
@@ -68,8 +84,6 @@ impl IUiHelperModule for InspectorModule {
                 }
 
                 let label = CString::new("rotation")?;
-                //let rotation = handle.local_rotation(&data.state.scene)?;
-                //let mut rotation_euler: [f32; 3] = ris_math::euler_angles::from(rotation).into();
                 let mut euler_angles: [f32; 3] = self.cashed_euler_angles.into();
                 let focused = unsafe {imgui::sys::igDragFloat3(
                     label.as_ptr(),
