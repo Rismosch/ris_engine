@@ -178,18 +178,29 @@ macro_rules! assert_vec4_eq {
 #[macro_export]
 macro_rules! assert_quat_eq {
     ($left:expr, $right:expr) => {{
+        $crate::assert_quat_eq!($left, $right, $crate::testing::MIN_NORM);
+    }};
+    ($left:expr, $right:expr, $tolerance:expr) => {{
         let left = ris_math::vector::Vec4::from($left);
         let right = ris_math::vector::Vec4::from($right);
-        let min_norm = ris_math::vector::Vec4::init($crate::testing::MIN_NORM);
+        let min_norm = ris_math::vector::Vec4::init($tolerance);
 
         // a quaternion with negated components represents the same rotation.
         // check the diff twice: once normal and once with negated components.
-        let result1 = (left - right).abs().less_than(min_norm).all();
-        let result2 = (left + right).abs().less_than(min_norm).all();
+        let abs1 = (left - right).abs();
+        let abs2 = (left + right).abs();
+        let result1 = abs1.less_than(min_norm).all();
+        let result2 = abs2.less_than(min_norm).all();
 
         // when both checks fail, the quaternions are not equal
         if !result1 && !result2 {
-            panic!("expected {:?} and {:?} to be equal", $left, $right,);
+            let failed_abs = if !result1 {
+                abs1
+            } else {
+                abs2
+            };
+
+            panic!("expected {:?} and {:?} to be within {:?} but differed by {:?}", $left, $right, $tolerance, failed_abs);
         }
     }};
 }
