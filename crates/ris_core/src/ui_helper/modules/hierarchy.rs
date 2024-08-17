@@ -9,7 +9,8 @@ use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
 use crate::ui_helper::IUiHelperModule;
-use crate::ui_helper::Selected;
+use crate::ui_helper::selection::Selection;
+use crate::ui_helper::selection::Selector;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
@@ -96,6 +97,12 @@ impl IUiHelperModule for HierarchyModule {
 
 impl HierarchyModule {
     fn draw_node(&mut self, handle: GameObjectHandle, data: &mut UiHelperDrawData) -> RisResult<()> {
+        ris_debug::gizmo::view_point(
+            handle.world_position(&data.state.scene)?,
+            handle.world_rotation(&data.state.scene)?,
+            None,
+        )?;
+
         let UiHelperDrawData {
             ui,
             state: GodState { scene, .. },
@@ -108,13 +115,19 @@ impl HierarchyModule {
         let has_children = handle.child_len(&scene)? > 0;
         let is_selected = {
             let aref = self.shared_state.borrow();
-            let selected = aref.selected.as_ref();
+            let selected = aref.selector.get_selection();
             selected.map(|x| match x {
-                Selected::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
+                Selection::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
             }).unwrap_or(false)
         };
 
         let mut flags = 0;
+
+        flags |= 1 << 7; // ImGuiTreeNodeFlags_OpenOnArrow
+        flags |= 1 << 6; // ImGuiTreeNodeFlags_OpenOnDoubleClick
+        flags |= 1 << 11; // ImGuiTreeNodeFlags_SpanAvailWidth
+        flags |= 1 << 15; // ImGuiTreeNodeFlags_NavLeftJumpsBackHere
+
         if is_selected {
             flags |= 1 << 0; // ImGuiTreeNodeFlags_Selected
         }
@@ -138,8 +151,9 @@ impl HierarchyModule {
             unsafe {imgui::sys::igEndPopup()};
         }
 
-        if unsafe {imgui::sys::igIsItemClicked(0)} {
-            self.shared_state.borrow_mut().selected = Some(Selected::GameObject(handle));
+        if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
+            let selection = Some(Selection::GameObject(handle));
+            self.shared_state.borrow_mut().selector.set_selection(selection);
         }
 
         if unsafe {imgui::sys::igBeginDragDropSource(0)} {

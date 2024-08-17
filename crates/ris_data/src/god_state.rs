@@ -17,6 +17,8 @@ pub struct GodState {
     pub scene: Arc<Scene>,
     pub camera: Camera,
 
+    pub debug_ui_is_focused: bool,
+
     // settings
     pub settings: Settings,
 }
@@ -36,6 +38,8 @@ impl GodState {
                 crate::game_object::scene::DEFAULT_STATICS_PER_CHUNK,
             )),
             camera: Camera::default(),
+
+            debug_ui_is_focused: false,
 
             // settings
             settings,

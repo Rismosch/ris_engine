@@ -8,10 +8,10 @@ use std::time::Instant;
 
 use imgui::Ui;
 use imgui::WindowFlags;
+use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
 use ris_data::cell::ArefCell;
-use ris_data::game_object::GameObjectHandle;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
@@ -23,7 +23,10 @@ use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
 pub mod modules;
+pub mod selection;
 pub mod util;
+
+use selection::Selector;
 
 use modules::gizmo::GizmoModule;
 use modules::hierarchy::HierarchyModule;
@@ -106,21 +109,16 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     Ok(modules)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Selected {
-    GameObject(GameObjectHandle)
-}
-
 pub struct SharedState {
     app_info: AppInfo,
-    selected: Option<Selected>,
+    selector: Selector,
 }
 
 impl SharedState {
     fn new(app_info: AppInfo) -> SharedStateStrongPtr {
         StrongPtr::new(ArefCell::new(Self {
             app_info,
-            selected: None,
+            selector: Selector::new(),
         }))
     }
 }
@@ -320,6 +318,8 @@ impl UiHelper {
         &mut self,
         mut data: UiHelperDrawData,
     ) -> RisResult<GameloopState> {
+        self.shared_state.borrow_mut().selector.update();
+
         let window_flags = WindowFlags::MENU_BAR
             | WindowFlags::NO_DOCKING 
             | WindowFlags::NO_TITLE_BAR
@@ -345,6 +345,8 @@ impl UiHelper {
             .size(size, imgui::Condition::Always)
             .bg_alpha(0.0)
             .build(|| {
+                data.state.debug_ui_is_focused = data.ui.is_window_focused_with_flags(WindowFocusedFlags::ANY_WINDOW);
+
                 let id = "dockspace";
                 let id_cstr = CString::new(id)?;
                 let id_uint = unsafe {imgui::sys::igGetID_Str(id_cstr.as_ptr())};
@@ -567,8 +569,8 @@ impl UiHelper {
 
             // returning an error may cause imgui to fail, because some end method may not be
             // called. this is bad, because this causes imgui to panic, which suppresses the
-            // original error. thus we intentionally log it, to avoid this suppression. this may
-            // cause the error to be logged twice, but twice is better than not at all.
+            // original error. thus we manually log the error, to avoid this suppression. this
+            // may cause the error to be logged twice, but twice is better than not at all.
             if let Err(e) = &result {
                 ris_log::error!("failed to draw module: {:?}", e);
             }

@@ -85,6 +85,10 @@ impl LogicFrame {
         let input = &state.input;
 
         // game logic
+        if state.debug_ui_is_focused {
+            return Ok(GameloopState::WantsToContinue);
+        }
+
         let rotation_speed = 2. * frame.average_seconds();
         let movement_speed = 2. * frame.average_seconds();
         let mouse_speed = 20. * frame.average_seconds();
