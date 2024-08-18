@@ -21,10 +21,11 @@ enum Space {
 pub struct InspectorModule {
     shared_state: SharedStateWeakPtr,
     space: Space,
-    cached_vector_xyz: Vec3,
-    cached_vector_xyw: Vec3,
-    cached_vector_xzw: Vec3,
-    cached_vector_yzw: Vec3,
+    cached_rotation: Quat,
+    cached_xyz: Vec3,
+    cached_xyw: Vec3,
+    cached_xzw: Vec3,
+    cached_yzw: Vec3,
 }
 
 impl IUiHelperModule for InspectorModule {
@@ -36,10 +37,11 @@ impl IUiHelperModule for InspectorModule {
         Box::new(Self {
             shared_state,
             space: Space::Local,
-            cached_vector_yzw: Vec3(0.0, 0.0, 1.0),
-            cached_vector_xzw: Vec3(0.0, 0.0, 1.0),
-            cached_vector_xyw: Vec3(0.0, 0.0, 1.0),
-            cached_vector_xyz: Vec3(1.0, 0.0, 0.0),
+            cached_rotation: Quat::identity(),
+            cached_yzw: Vec3(0.0, 0.0, 1.0),
+            cached_xzw: Vec3(0.0, 0.0, 1.0),
+            cached_xyw: Vec3(0.0, 0.0, 1.0),
+            cached_xyz: Vec3(1.0, 0.0, 0.0),
         })
     }
 
@@ -79,9 +81,7 @@ impl IUiHelperModule for InspectorModule {
                     Space::Local => 0,
                     Space::World => 1,
                 };
-                let space_changed =
-                    data.ui
-                        .combo_simple_string("transform", &mut current_space_item, &space_items);
+                data.ui.combo_simple_string("transform", &mut current_space_item, &space_items);
                 match current_space_item {
                     0 => self.space = Space::Local,
                     1 => self.space = Space::World,
@@ -114,12 +114,6 @@ impl IUiHelperModule for InspectorModule {
                     },
                 };
 
-                let selection_changed = self.shared_state.borrow().selector.selection_changed();
-                if selection_changed || space_changed {
-                    let rotation = get_rotation(handle, &data.state.scene)?;
-                    self.cache_rotation(rotation);
-                }
-
                 let format = CString::new("%.3f")?;
 
                 let label = CString::new("position")?;
@@ -142,8 +136,12 @@ impl IUiHelperModule for InspectorModule {
                 }
 
                 let label = CString::new("rotation")?;
-                let rotation = get_rotation(handle, &data.state.scene)?;
-                let mut old_rotation: [f32; 4] = rotation.into();
+                if !data.ui.is_mouse_dragging(imgui::MouseButton::Left) {
+                    let rotation = get_rotation(handle, &data.state.scene)?;
+                    self.cached_rotation = rotation;
+                    self.cache_rotation_axes(rotation);
+                }
+                let mut old_rotation: [f32; 4] = self.cached_rotation.into();
                 purge_negative_0(&mut old_rotation);
                 let mut new_rotation: [f32; 4] = old_rotation.clone();
                 let changed = unsafe {
@@ -157,6 +155,7 @@ impl IUiHelperModule for InspectorModule {
                         0,
                     )
                 };
+                self.cached_rotation = new_rotation.into();
                 if changed {
                     let x: f32;
                     let y: f32;
@@ -166,43 +165,55 @@ impl IUiHelperModule for InspectorModule {
                     if new_rotation[0] != old_rotation[0] {
                         x = new_rotation[0].clamp(-1.0, 1.0);
                         let radius_yzw = f32::sqrt(1.0 - x * x);
-                        let scaled_yzw = radius_yzw * self.cached_vector_yzw.normalize();
+                        let scaled_yzw = radius_yzw * self.cached_yzw.normalize();
                         y = scaled_yzw.0;
                         z = scaled_yzw.1;
                         w = scaled_yzw.2;
-                        self.cached_vector_xyz = Vec3(x, y, z);
-                        self.cached_vector_xyw = Vec3(x, y, w);
-                        self.cached_vector_xzw = Vec3(x, z, w);
+                        self.cached_rotation.set_y(y);
+                        self.cached_rotation.set_z(z);
+                        self.cached_rotation.set_w(w);
+                        self.cached_xyz = Vec3(x, y, z);
+                        self.cached_xyw = Vec3(x, y, w);
+                        self.cached_xzw = Vec3(x, z, w);
                     } else if new_rotation[1] != old_rotation[1] {
                         y = new_rotation[1].clamp(-1.0, 1.0);
                         let radius_xzw = f32::sqrt(1.0 - y * y);
-                        let scaled_xzw = radius_xzw * self.cached_vector_xzw.normalize();
+                        let scaled_xzw = radius_xzw * self.cached_xzw.normalize();
                         x = scaled_xzw.0;
                         z = scaled_xzw.1;
                         w = scaled_xzw.2;
-                        self.cached_vector_xyz = Vec3(x, y, z);
-                        self.cached_vector_xyw = Vec3(x, y, w);
-                        self.cached_vector_yzw = Vec3(y, z, w);
+                        self.cached_rotation.set_x(x);
+                        self.cached_rotation.set_z(z);
+                        self.cached_rotation.set_w(w);
+                        self.cached_xyz = Vec3(x, y, z);
+                        self.cached_xyw = Vec3(x, y, w);
+                        self.cached_yzw = Vec3(y, z, w);
                     } else if new_rotation[2] != old_rotation[2] {
                         z = new_rotation[2].clamp(-1.0, 1.0);
                         let radius_xyw = f32::sqrt(1.0 - z * z);
-                        let scaled_xyw = radius_xyw * self.cached_vector_xyw.normalize();
+                        let scaled_xyw = radius_xyw * self.cached_xyw.normalize();
                         x = scaled_xyw.0;
                         y = scaled_xyw.1;
                         w = scaled_xyw.2;
-                        self.cached_vector_xyz = Vec3(x, y, z);
-                        self.cached_vector_yzw = Vec3(y, z, w);
-                        self.cached_vector_xzw = Vec3(x, z, w);
+                        self.cached_rotation.set_x(x);
+                        self.cached_rotation.set_y(y);
+                        self.cached_rotation.set_w(w);
+                        self.cached_xyz = Vec3(x, y, z);
+                        self.cached_yzw = Vec3(y, z, w);
+                        self.cached_xzw = Vec3(x, z, w);
                     } else if new_rotation[3] != old_rotation[3] {
                         w = new_rotation[3].clamp(-1.0, 1.0);
                         let radius_xyz = f32::sqrt(1.0 - w * w);
-                        let scaled_xyz = radius_xyz * self.cached_vector_xyz.normalize();
+                        let scaled_xyz = radius_xyz * self.cached_xyz.normalize();
                         x = scaled_xyz.0;
                         y = scaled_xyz.1;
                         z = scaled_xyz.2;
-                        self.cached_vector_xyw = Vec3(x, y, w);
-                        self.cached_vector_xzw = Vec3(x, z, w);
-                        self.cached_vector_yzw = Vec3(y, z, w);
+                        self.cached_rotation.set_x(x);
+                        self.cached_rotation.set_y(y);
+                        self.cached_rotation.set_z(z);
+                        self.cached_xyw = Vec3(x, y, w);
+                        self.cached_xzw = Vec3(x, z, w);
+                        self.cached_yzw = Vec3(y, z, w);
                     } else {
                         x = new_rotation[0].clamp(-1.0, 1.0);
                         y = new_rotation[1].clamp(-1.0, 1.0);
@@ -210,22 +221,18 @@ impl IUiHelperModule for InspectorModule {
                         w = new_rotation[3].clamp(-1.0, 1.0);
                     }
 
-                    let quat = if x.is_nan() || x.is_infinite() ||
+                    let q = if x.is_nan() || x.is_infinite() ||
                         y.is_nan() || y.is_infinite() ||
                         z.is_nan() || z.is_infinite() ||
                         w.is_nan() || w.is_infinite() {
-                        ris_log::error!("the fuck {} {} {} {}", x, y, z, w);
-                        let q = Quat::identity();
-                        self.cache_rotation(q);
-                        q
+                        let identity = Quat::identity();
+                        self.cache_rotation_axes(identity);
+                        identity
                     } else {
                         Quat(x, y, z, w).normalize()
                     };
 
-                    let q1 = quat;
-                    set_rotation(handle, &data.state.scene, quat)?;
-                    let q2 = get_rotation(handle, &data.state.scene)?;
-                    ris_log::trace!("hi {:?} {:?}", q1, q2);
+                    set_rotation(handle, &data.state.scene, q)?;
                 }
 
                 data.ui.same_line();
@@ -345,7 +352,7 @@ impl IUiHelperModule for InspectorModule {
 
                     if let Some(rotation) = rotation {
                         set_rotation(handle, &data.state.scene, rotation)?;
-                        self.cache_rotation(rotation);
+                        self.cache_rotation_axes(rotation);
                     }
                 }
 
@@ -370,12 +377,12 @@ impl IUiHelperModule for InspectorModule {
 
                 let world_position = handle.world_position(&data.state.scene)?;
                 let world_rotation = handle.world_rotation(&data.state.scene)?;
-                let local_rotation = handle.local_rotation(&data.state.scene)?;
+                let axis_rotation = get_rotation(handle, &data.state.scene)?;
                 let parent_world_rotation = match handle.parent(&data.state.scene)? {
                     Some(parent) => parent.world_rotation(&data.state.scene)?,
                     None => Quat::identity(),
                 };
-                let (_, axis) = local_rotation.into();
+                let (_, axis) = axis_rotation.into();
                 let mut rotated_axis = parent_world_rotation.rotate(axis);
                 rotated_axis *= 0.5;
                 ris_debug::gizmo::view_point(
@@ -398,24 +405,24 @@ impl IUiHelperModule for InspectorModule {
 }
 
 impl InspectorModule {
-    fn cache_rotation(&mut self, q: Quat) {
-        self.cached_vector_xyz = Vec3(q.x(), q.y(), q.z());
-        self.cached_vector_xyw = Vec3(q.x(), q.y(), q.w());
-        self.cached_vector_xzw = Vec3(q.x(), q.z(), q.w());
-        self.cached_vector_yzw = Vec3(q.y(), q.z(), q.w());
+    fn cache_rotation_axes(&mut self, q: Quat) {
+        self.cached_xyz = Vec3(q.x(), q.y(), q.z());
+        self.cached_xyw = Vec3(q.x(), q.y(), q.w());
+        self.cached_xzw = Vec3(q.x(), q.z(), q.w());
+        self.cached_yzw = Vec3(q.y(), q.z(), q.w());
 
         let tolerance = 0.000_01;
-        if self.cached_vector_xyz.length_squared() < tolerance {
-            self.cached_vector_xyz = Vec3(1.0, 0.0, 0.0);
+        if self.cached_xyz.length_squared() < tolerance {
+            self.cached_xyz = Vec3(1.0, 0.0, 0.0);
         }
-        if self.cached_vector_xyw.length_squared() < tolerance {
-            self.cached_vector_xyw = Vec3(0.0, 0.0, 1.0);
+        if self.cached_xyw.length_squared() < tolerance {
+            self.cached_xyw = Vec3(0.0, 0.0, 1.0);
         }
-        if self.cached_vector_xzw.length_squared() < tolerance {
-            self.cached_vector_xzw = Vec3(0.0, 0.0, 1.0);
+        if self.cached_xzw.length_squared() < tolerance {
+            self.cached_xzw = Vec3(0.0, 0.0, 1.0);
         }
-        if self.cached_vector_yzw.length_squared() < tolerance {
-            self.cached_vector_yzw = Vec3(0.0, 0.0, 1.0);
+        if self.cached_yzw.length_squared() < tolerance {
+            self.cached_yzw = Vec3(0.0, 0.0, 1.0);
         }
     }
 }
