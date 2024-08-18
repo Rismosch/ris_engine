@@ -1,3 +1,4 @@
+use crate::affine;
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
@@ -18,6 +19,11 @@ pub type AngleAxis = (f32, Vec3);
 impl Quat {
     pub fn identity() -> Self {
         Self(0., 0., 0., 1.)
+    }
+
+    pub fn look_at(direction: Vec3, up: Vec3) -> Self {
+        let m = affine::look_at(direction, up);
+        affine::to_rotation(m)
     }
 }
 

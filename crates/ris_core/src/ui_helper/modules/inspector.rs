@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::time::Duration;
 
 use ris_data::game_object::scene::Scene;
 use ris_data::game_object::scene::SceneResult;
@@ -223,12 +222,131 @@ impl IUiHelperModule for InspectorModule {
                         Quat(x, y, z, w).normalize()
                     };
 
+                    let q1 = quat;
                     set_rotation(handle, &data.state.scene, quat)?;
+                    let q2 = get_rotation(handle, &data.state.scene)?;
+                    ris_log::trace!("hi {:?} {:?}", q1, q2);
                 }
 
                 data.ui.same_line();
+                let set_rotation_popup_id = "set_rotation_popup";
                 if data.ui.button("set") {
-                    ris_log::debug!("bruh");
+                    data.ui.open_popup(set_rotation_popup_id)
+                }
+
+                if let Some(_token) = data.ui.begin_popup(set_rotation_popup_id) {
+                    let mut rotation = None;
+
+                    if data.ui.menu_item("right up") {
+                        rotation = Some(Quat::look_at(Vec3::right(), Vec3::up()));
+                    }
+
+                    if data.ui.menu_item("right forward") {
+                        rotation = Some(Quat::look_at(Vec3::right(), Vec3::forward()));
+                    }
+
+                    if data.ui.menu_item("right down") {
+                        rotation = Some(Quat::look_at(Vec3::right(), Vec3::down()));
+                    }
+
+                    if data.ui.menu_item("right backward") {
+                        rotation = Some(Quat::look_at(Vec3::right(), Vec3::backward()));
+                    }
+
+                    data.ui.separator();
+
+                    if data.ui.menu_item("left up") {
+                        rotation = Some(Quat::look_at(Vec3::left(), Vec3::up()));
+                    }
+
+                    if data.ui.menu_item("left forward") {
+                        rotation = Some(Quat::look_at(Vec3::left(), Vec3::forward()));
+                    }
+
+                    if data.ui.menu_item("left down") {
+                        rotation = Some(Quat::look_at(Vec3::left(), Vec3::down()));
+                    }
+
+                    if data.ui.menu_item("left backward") {
+                        rotation = Some(Quat::look_at(Vec3::left(), Vec3::backward()));
+                    }
+
+                    data.ui.separator();
+
+                    if data.ui.menu_item("forward up") {
+                        rotation = Some(Quat::look_at(Vec3::forward(), Vec3::up()));
+                    }
+
+                    if data.ui.menu_item("forward right") {
+                        rotation = Some(Quat::look_at(Vec3::forward(), Vec3::right()));
+                    }
+
+                    if data.ui.menu_item("forward down") {
+                        rotation = Some(Quat::look_at(Vec3::forward(), Vec3::down()));
+                    }
+
+                    if data.ui.menu_item("forward left") {
+                        rotation = Some(Quat::look_at(Vec3::forward(), Vec3::left()));
+                    }
+
+                    data.ui.separator();
+
+                    if data.ui.menu_item("backward up") {
+                        rotation = Some(Quat::look_at(Vec3::backward(), Vec3::up()));
+                    }
+
+                    if data.ui.menu_item("backward right") {
+                        rotation = Some(Quat::look_at(Vec3::backward(), Vec3::right()));
+                    }
+
+                    if data.ui.menu_item("backward down") {
+                        rotation = Some(Quat::look_at(Vec3::backward(), Vec3::down()));
+                    }
+
+                    if data.ui.menu_item("backward left") {
+                        rotation = Some(Quat::look_at(Vec3::backward(), Vec3::left()));
+                    }
+
+                    data.ui.separator();
+
+                    if data.ui.menu_item("up forward") {
+                        rotation = Some(Quat::look_at(Vec3::up(), Vec3::forward()));
+                    }
+
+                    if data.ui.menu_item("up right") {
+                        rotation = Some(Quat::look_at(Vec3::up(), Vec3::right()));
+                    }
+
+                    if data.ui.menu_item("up backward") {
+                        rotation = Some(Quat::look_at(Vec3::up(), Vec3::backward()));
+                    }
+
+                    if data.ui.menu_item("up left") {
+                        rotation = Some(Quat::look_at(Vec3::up(), Vec3::left()));
+                    }
+
+                    data.ui.separator();
+
+                    if data.ui.menu_item("down forward") {
+                        rotation = Some(Quat::look_at(Vec3::down(), Vec3::forward()));
+                    }
+
+                    if data.ui.menu_item("down right") {
+                        rotation = Some(Quat::look_at(Vec3::down(), Vec3::right()));
+                    }
+
+                    if data.ui.menu_item("down backward") {
+                        rotation = Some(Quat::look_at(Vec3::down(), Vec3::backward()));
+                    }
+
+                    if data.ui.menu_item("down left") {
+                        rotation = Some(Quat::look_at(Vec3::down(), Vec3::left()));
+                    }
+
+                    if let Some(rotation) = rotation {
+                        set_rotation(handle, &data.state.scene, rotation)?;
+                        self.cache_rotation(rotation);
+                    }
                 }
 
                 let label = CString::new("scale")?;
@@ -252,16 +370,22 @@ impl IUiHelperModule for InspectorModule {
 
                 let world_position = handle.world_position(&data.state.scene)?;
                 let world_rotation = handle.world_rotation(&data.state.scene)?;
-                let (_, mut axis) = world_rotation.into();
-                axis *= 0.5;
+                let local_rotation = handle.local_rotation(&data.state.scene)?;
+                let parent_world_rotation = match handle.parent(&data.state.scene)? {
+                    Some(parent) => parent.world_rotation(&data.state.scene)?,
+                    None => Quat::identity(),
+                };
+                let (_, axis) = local_rotation.into();
+                let mut rotated_axis = parent_world_rotation.rotate(axis);
+                rotated_axis *= 0.5;
                 ris_debug::gizmo::view_point(
                     world_position,
                     world_rotation,
                     None,
                 )?;
                 ris_debug::gizmo::segment(
-                    world_position - axis,
-                    world_position + axis,
+                    world_position - rotated_axis,
+                    world_position + rotated_axis,
                     ris_math::color::Rgb::white(),
                 )?;
 

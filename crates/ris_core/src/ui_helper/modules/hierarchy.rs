@@ -143,7 +143,7 @@ impl HierarchyModule {
                 ris_log::debug!("parent: {:?}", handle);
             }
 
-            if ui.menu_item("delete") {
+            if ui.menu_item("destroy") {
                 handle.destroy(&scene);
             }
 
