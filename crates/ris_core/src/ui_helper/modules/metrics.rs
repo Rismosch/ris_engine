@@ -3,7 +3,6 @@ use std::time::Duration;
 use std::time::Instant;
 
 use ris_data::gameloop::frame::Frame;
-use ris_data::info::app_info::AppInfo;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
@@ -18,7 +17,6 @@ const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
     shared_state: SharedStateWeakPtr,
-    show_plot: bool,
     plot_frames: Vec<(Instant, Frame)>,
     average_frames: Vec<Frame>,
     instant_since_last_average_calculation: Instant,
@@ -34,7 +32,6 @@ impl IUiHelperModule for MetricsModule {
     fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             shared_state,
-            show_plot: true,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
             instant_since_last_average_calculation: Instant::now(),
@@ -94,23 +91,14 @@ impl IUiHelperModule for MetricsModule {
             plot_values.push(frame.average_fps() as f32);
         }
 
-        ui.checkbox("show plot", &mut self.show_plot);
-        ui.same_line();
-        crate::ui_helper::util::help_marker(
-            ui,
-            "plotting is not performant. you may gain fps by disabling it.",
-        );
+        let graph_width = ui.content_region_avail()[0];
+        let graph_height = ui.item_rect_size()[1] * 3.;
 
-        if self.show_plot {
-            let graph_width = ui.content_region_avail()[0];
-            let graph_height = ui.item_rect_size()[1] * 3.;
-
-            ui.plot_lines("##history", plot_values.as_slice())
-                .graph_size([graph_width, graph_height])
-                .scale_min(PLOT_MIN_FPS)
-                .scale_max(PLOT_MAX_FPS)
-                .build();
-        }
+        ui.plot_lines("##history", plot_values.as_slice())
+            .graph_size([graph_width, graph_height])
+            .scale_min(PLOT_MIN_FPS)
+            .scale_max(PLOT_MAX_FPS)
+            .build();
 
         let mut header_flags = imgui::TreeNodeFlags::empty();
         header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);

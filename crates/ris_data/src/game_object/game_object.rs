@@ -123,7 +123,7 @@ impl GameObjectHandle {
         };
         let handle = ptr.borrow().handle();
 
-        let Ok(child_iter) = handle.child_iter(&scene) else {
+        let Ok(child_iter) = handle.child_iter(scene) else {
             return;
         };
 
@@ -517,4 +517,3 @@ impl<'a> Iterator for ChildIter<'a> {
         None
     }
 }
-

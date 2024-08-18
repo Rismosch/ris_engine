@@ -1,4 +1,3 @@
-use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
 use ris_error::RisResult;

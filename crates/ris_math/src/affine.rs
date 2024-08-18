@@ -206,7 +206,7 @@ pub fn decompose_fully(m: Mat4) -> Decomposed {
     let skew = Vec3(syz, sxz, sxy);
     let scale = Vec3(sx, sy, sz);
 
-    Decomposed{
+    Decomposed {
         scale,
         skew,
         rotation,

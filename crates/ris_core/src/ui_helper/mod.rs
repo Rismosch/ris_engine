@@ -314,14 +314,11 @@ impl UiHelper {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        mut data: UiHelperDrawData,
-    ) -> RisResult<GameloopState> {
+    pub fn draw(&mut self, mut data: UiHelperDrawData) -> RisResult<GameloopState> {
         self.shared_state.borrow_mut().selector.update();
 
         let window_flags = WindowFlags::MENU_BAR
-            | WindowFlags::NO_DOCKING 
+            | WindowFlags::NO_DOCKING
             | WindowFlags::NO_TITLE_BAR
             | WindowFlags::NO_COLLAPSE
             | WindowFlags::NO_RESIZE
@@ -337,29 +334,27 @@ impl UiHelper {
         let result = if !self.show_ui {
             None
         } else {
-            data
-            .ui
-            .window("dockspace")
-            .flags(window_flags)
-            .position([0.0, 0.0], imgui::Condition::Always)
-            .size(size, imgui::Condition::Always)
-            .bg_alpha(0.0)
-            .build(|| {
-                data.state.debug_ui_is_focused = data.ui.is_window_focused_with_flags(WindowFocusedFlags::ANY_WINDOW);
+            data.ui
+                .window("dockspace")
+                .flags(window_flags)
+                .position([0.0, 0.0], imgui::Condition::Always)
+                .size(size, imgui::Condition::Always)
+                .bg_alpha(0.0)
+                .build(|| {
+                    data.state.debug_ui_is_focused = data
+                        .ui
+                        .is_window_focused_with_flags(WindowFocusedFlags::ANY_WINDOW);
 
-                let id = "dockspace";
-                let id_cstr = CString::new(id)?;
-                let id_uint = unsafe {imgui::sys::igGetID_Str(id_cstr.as_ptr())};
-                let size = imgui::sys::ImVec2 {
-                    x: 0.0,
-                    y: 0.0,
-                };
-                let flags = 1 << 3; // ImGuiDockNodeFlags_PassthruCentralNode
+                    let id = "dockspace";
+                    let id_cstr = CString::new(id)?;
+                    let id_uint = unsafe { imgui::sys::igGetID_Str(id_cstr.as_ptr()) };
+                    let size = imgui::sys::ImVec2 { x: 0.0, y: 0.0 };
+                    let flags = 1 << 3; // ImGuiDockNodeFlags_PassthruCentralNode
 
-                unsafe{imgui::sys::igDockSpace(id_uint, size, flags, ptr::null())};
+                    unsafe { imgui::sys::igDockSpace(id_uint, size, flags, ptr::null()) };
 
-                self.menu_callback(&mut data)
-            })
+                    self.menu_callback(&mut data)
+                })
         };
 
         if data.state.input.keyboard.keys.is_hold(Scancode::F1) {
@@ -515,15 +510,22 @@ impl UiHelper {
             let mut opened = true;
 
             let cond = 1 << 2; // ImGuiCond_FirstUseEver
-            unsafe {imgui::sys::igSetNextWindowSize(WINDOW_SIZE.into(), cond)};
-            unsafe {imgui::sys::igSetNextWindowPos([position_x, position_y].into(), cond, [0.0,0.0].into())};
+            unsafe { imgui::sys::igSetNextWindowSize(WINDOW_SIZE.into(), cond) };
+            unsafe {
+                imgui::sys::igSetNextWindowPos(
+                    [position_x, position_y].into(),
+                    cond,
+                    [0.0, 0.0].into(),
+                )
+            };
 
-            let window_name = CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
-            if unsafe{imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0)} {
+            let window_name =
+                CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
+            if unsafe { imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0) } {
                 self.window_callback(i, &mut data)?;
             }
 
-            unsafe{imgui::sys::igEnd()};
+            unsafe { imgui::sys::igEnd() };
 
             if opened {
                 i += 1;

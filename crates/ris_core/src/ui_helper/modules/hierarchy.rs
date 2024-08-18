@@ -3,14 +3,12 @@ use std::ffi::CString;
 use std::ptr;
 
 use ris_data::game_object::GameObjectHandle;
-use ris_data::game_object::GameObjectId;
 use ris_data::game_object::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
-use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::selection::Selection;
-use crate::ui_helper::selection::Selector;
+use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
@@ -27,7 +25,7 @@ impl IUiHelperModule for HierarchyModule {
     }
 
     fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
-        Box::new(Self{
+        Box::new(Self {
             shared_state,
             selected_chunk: 0,
         })
@@ -42,7 +40,7 @@ impl IUiHelperModule for HierarchyModule {
 
         let mut choices = Vec::with_capacity(scene.statics.len() + 1);
         choices.push("movables".to_string());
-        
+
         for i in 0..(choices.capacity() - 1) {
             choices.push(format!("statics {}", i));
         }
@@ -50,32 +48,27 @@ impl IUiHelperModule for HierarchyModule {
         ui.combo_simple_string("chunk", &mut self.selected_chunk, &choices);
 
         let (chunk, kind) = if self.selected_chunk == 0 {
-            (
-                &scene.movables,
-                GameObjectKind::Movable,
-            )
+            (&scene.movables, GameObjectKind::Movable)
         } else {
             let chunk = self.selected_chunk - 1;
-            
-            (
-                &scene.statics[chunk],
-                GameObjectKind::Static{chunk},
-            )
+
+            (&scene.statics[chunk], GameObjectKind::Static { chunk })
         };
 
         let available = scene.count_available_game_objects(kind);
 
         ui.label_text("available", format!("{}/{}", available, chunk.len()));
 
-        if unsafe {imgui::sys::igBeginPopupContextWindow(ptr::null(), 1)} {
+        if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
             if ui.menu_item("new") {
                 GameObjectHandle::new(&scene, kind)?;
             }
 
-            unsafe {imgui::sys::igEndPopup()}
+            unsafe { imgui::sys::igEndPopup() }
         }
 
-        let handles = chunk.iter()
+        let handles = chunk
+            .iter()
             .filter(|x| {
                 let handle = x.borrow().handle();
                 let parent_handle = handle.parent(&scene).unwrap_or(None);
@@ -96,7 +89,11 @@ impl IUiHelperModule for HierarchyModule {
 }
 
 impl HierarchyModule {
-    fn draw_node(&mut self, handle: GameObjectHandle, data: &mut UiHelperDrawData) -> RisResult<()> {
+    fn draw_node(
+        &mut self,
+        handle: GameObjectHandle,
+        data: &mut UiHelperDrawData,
+    ) -> RisResult<()> {
         ris_debug::gizmo::view_point(
             handle.world_position(&data.state.scene)?,
             handle.world_rotation(&data.state.scene)?,
@@ -116,9 +113,11 @@ impl HierarchyModule {
         let is_selected = {
             let aref = self.shared_state.borrow();
             let selected = aref.selector.get_selection();
-            selected.map(|x| match x {
-                Selection::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
-            }).unwrap_or(false)
+            selected
+                .map(|x| match x {
+                    Selection::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
+                })
+                .unwrap_or(false)
         };
 
         let mut flags = 0;
@@ -135,9 +134,9 @@ impl HierarchyModule {
             flags |= 1 << 8; // ImGuiTreeNodeFlags_Leaf
         }
 
-        let open = unsafe {imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags)};
+        let open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
-        if unsafe {imgui::sys::igBeginPopupContextItem(ptr::null(), 1)}  {
+        if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
                 let child = GameObjectHandle::new(&scene, handle.id.kind)?;
                 child.set_parent(&scene, Some(handle), usize::MAX)?;
@@ -148,15 +147,18 @@ impl HierarchyModule {
                 handle.destroy(&scene);
             }
 
-            unsafe {imgui::sys::igEndPopup()};
+            unsafe { imgui::sys::igEndPopup() };
         }
 
-        if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
+        if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
             let selection = Some(Selection::GameObject(handle));
-            self.shared_state.borrow_mut().selector.set_selection(selection);
+            self.shared_state
+                .borrow_mut()
+                .selector
+                .set_selection(selection);
         }
 
-        if unsafe {imgui::sys::igBeginDragDropSource(0)} {
+        if unsafe { imgui::sys::igBeginDragDropSource(0) } {
             unsafe {
                 let payload = Box::new(handle);
                 let payload_ptr = Box::leak(payload);
@@ -179,7 +181,7 @@ impl HierarchyModule {
             }
         }
 
-        if unsafe {imgui::sys::igBeginDragDropTarget()} {
+        if unsafe { imgui::sys::igBeginDragDropTarget() } {
             unsafe {
                 let payload = imgui::sys::igAcceptDragDropPayload(PAYLOAD_ID.as_ptr(), 0);
                 if !payload.is_null() {
@@ -203,7 +205,7 @@ impl HierarchyModule {
                 }
             }
 
-            unsafe {imgui::sys::igTreePop()};
+            unsafe { imgui::sys::igTreePop() };
         }
 
         Ok(())

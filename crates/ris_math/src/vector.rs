@@ -1350,17 +1350,11 @@ impl std::ops::BitAnd<Self> for Bvec4 {
 
 impl Vec2 {
     pub fn radians(self) -> Self {
-        Self(
-            self.0.to_radians(),
-            self.1.to_radians(),
-        )
+        Self(self.0.to_radians(), self.1.to_radians())
     }
 
     pub fn degrees(self) -> Self {
-        Self(
-            self.0.to_degrees(),
-            self.1.to_degrees(),
-        )
+        Self(self.0.to_degrees(), self.1.to_degrees())
     }
 
     pub fn abs(self) -> Self {

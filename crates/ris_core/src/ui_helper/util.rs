@@ -1,8 +1,4 @@
-use std::ffi::CString;
-
 use imgui::Ui;
-
-use ris_error::RisResult;
 
 pub fn help_marker(ui: &Ui, text: &str) {
     ui.text_disabled("(?)");
@@ -14,4 +10,3 @@ pub fn help_marker(ui: &Ui, text: &str) {
         });
     }
 }
-

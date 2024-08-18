@@ -194,13 +194,12 @@ macro_rules! assert_quat_eq {
 
         // when both checks fail, the quaternions are not equal
         if !result1 && !result2 {
-            let failed_abs = if !result1 {
-                abs1
-            } else {
-                abs2
-            };
+            let failed_abs = if !result1 { abs1 } else { abs2 };
 
-            panic!("expected {:?} and {:?} to be within {:?} but differed by {:?}", $left, $right, $tolerance, failed_abs);
+            panic!(
+                "expected {:?} and {:?} to be within {:?} but differed by {:?}",
+                $left, $right, $tolerance, failed_abs
+            );
         }
     }};
 }

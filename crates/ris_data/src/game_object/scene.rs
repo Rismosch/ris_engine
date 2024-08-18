@@ -108,8 +108,6 @@ impl Scene {
             GameObjectKind::Static { chunk } => &self.statics[chunk],
         };
 
-        chunk.iter()
-            .filter(|x| x.borrow().is_alive())
-            .count()
+        chunk.iter().filter(|x| x.borrow().is_alive()).count()
     }
 }

@@ -2,7 +2,7 @@ use ris_data::game_object::GameObjectHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
-    GameObject(GameObjectHandle)
+    GameObject(GameObjectHandle),
 }
 
 pub struct Selector {
@@ -12,7 +12,7 @@ pub struct Selector {
 
 impl Selector {
     pub fn new() -> Self {
-        Self{
+        Self {
             previous_selection: None,
             current_selection: None,
         }

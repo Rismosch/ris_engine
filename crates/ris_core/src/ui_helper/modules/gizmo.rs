@@ -1,6 +1,5 @@
 use std::f32::consts::PI;
 
-use ris_data::info::app_info::AppInfo;
 use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;

@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ris_data::game_object::scene::Scene;
 use ris_data::game_object::GameObjectHandle;
 use ris_data::game_object::GameObjectKind;
-use ris_data::game_object::scene::Scene;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
@@ -316,15 +316,11 @@ fn should_destroy_parent() {
 
     parent.destroy(&scene);
 
-    assert!(g1.parent(&scene).unwrap().is_none());
-    assert!(g2.parent(&scene).unwrap().is_none());
-    assert!(g3.parent(&scene).unwrap().is_none());
-    assert!(g4.parent(&scene).unwrap().is_none());
-
-    assert_eq!(g1.sibling_index(&scene).unwrap(), 0);
-    assert_eq!(g2.sibling_index(&scene).unwrap(), 0);
-    assert_eq!(g3.sibling_index(&scene).unwrap(), 0);
-    assert_eq!(g4.sibling_index(&scene).unwrap(), 0);
+    assert!(!parent.is_alive(&scene));
+    assert!(!g1.is_alive(&scene));
+    assert!(!g2.is_alive(&scene));
+    assert!(!g3.is_alive(&scene));
+    assert!(!g4.is_alive(&scene));
 }
 
 #[test]
