@@ -139,7 +139,7 @@ impl HierarchyModule {
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
                 let child = GameObjectHandle::new(&scene, handle.id.kind)?;
-                child.set_parent(&scene, Some(handle), usize::MAX)?;
+                child.set_parent(&scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }
 
@@ -188,7 +188,7 @@ impl HierarchyModule {
                     let data_ptr = (*payload).Data as *const GameObjectHandle;
                     let dragged_handle = *data_ptr;
 
-                    if let Err(e) = dragged_handle.set_parent(&scene, Some(handle), 0) {
+                    if let Err(e) = dragged_handle.set_parent(&scene, Some(handle), 0, true) {
                         ris_log::error!("failed to drag: {}", e);
                     }
                 }

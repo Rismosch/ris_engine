@@ -306,8 +306,8 @@ impl GameObjectHandle {
         scene: &Scene,
         mut parent: Option<GameObjectHandle>,
         sibling_index: usize,
+        keep_world_transform: bool,
     ) -> SceneResult<()> {
-        let my_handle = self;
         let old_handle = self.parent(scene)?;
         let new_handle = parent.take().filter(|x| x.is_alive(scene));
 
@@ -317,7 +317,7 @@ impl GameObjectHandle {
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
         while let Some(parent_handle) = to_test {
-            if parent_handle == my_handle {
+            if parent_handle == self {
                 return Err(SceneError::CircularHierarchy);
             }
 
@@ -325,6 +325,16 @@ impl GameObjectHandle {
         }
 
         // apply changes
+        let world_transform = if keep_world_transform {
+            let position = self.world_position(&scene)?;
+            let rotation = self.world_rotation(&scene)?;
+            let scale = self.world_scale(&scene)?;
+
+            Some((position, rotation, scale))
+        } else {
+            None
+        };
+        
         let ptr = self.clear_destroyed_children(scene)?;
         let mut aref_mut = ptr.borrow_mut();
 
@@ -359,7 +369,14 @@ impl GameObjectHandle {
         // set parent
         aref_mut.parent = new_handle;
         drop(aref_mut);
-        self.set_cache_to_dirty(scene)?;
+
+        if let Some((position, rotation, scale)) = world_transform {
+            self.set_world_position(scene, position)?;
+            self.set_world_rotation(scene, rotation)?;
+            self.set_world_scale(scene, scale)?;
+        } else {
+            self.set_cache_to_dirty(scene)?;
+        }
 
         Ok(())
     }
@@ -411,7 +428,7 @@ impl GameObjectHandle {
             return Ok(());
         };
 
-        self.set_parent(scene, Some(parent), sibling_index)?;
+        self.set_parent(scene, Some(parent), sibling_index, true)?;
 
         Ok(())
     }

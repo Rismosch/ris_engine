@@ -27,6 +27,18 @@ impl Default for Quat {
     }
 }
 
+impl From<[f32; 4]> for Quat {
+    fn from(value: [f32; 4]) -> Self {
+        Quat(value[0], value[1], value[2], value[3])
+    }
+}
+
+impl From<Quat> for [f32; 4] {
+    fn from(value: Quat) -> Self {
+        [value.0, value.1, value.2, value.3]
+    }
+}
+
 impl From<Vec4> for Quat {
     fn from(value: Vec4) -> Self {
         Self(value.0, value.1, value.2, value.3)
