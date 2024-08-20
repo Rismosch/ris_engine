@@ -732,7 +732,6 @@ impl std::ops::IndexMut<usize> for Bvec2 {
     }
 }
 
-
 impl std::ops::IndexMut<usize> for Bvec3 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
@@ -1107,10 +1106,7 @@ impl std::ops::BitXor<bool> for Bvec2 {
     type Output = Self;
 
     fn bitxor(self, rhs: bool) -> Self::Output {
-        Self (
-            self.0 ^ rhs,
-            self.1 ^ rhs,
-        )
+        Self(self.0 ^ rhs, self.1 ^ rhs)
     }
 }
 
@@ -1118,11 +1114,7 @@ impl std::ops::BitXor<bool> for Bvec3 {
     type Output = Self;
 
     fn bitxor(self, rhs: bool) -> Self::Output {
-        Self (
-            self.0 ^ rhs,
-            self.1 ^ rhs,
-            self.2 ^ rhs,
-        )
+        Self(self.0 ^ rhs, self.1 ^ rhs, self.2 ^ rhs)
     }
 }
 
@@ -1130,12 +1122,7 @@ impl std::ops::BitXor<bool> for Bvec4 {
     type Output = Self;
 
     fn bitxor(self, rhs: bool) -> Self::Output {
-        Self (
-            self.0 ^ rhs,
-            self.1 ^ rhs,
-            self.2 ^ rhs,
-            self.3 ^ rhs,
-        )
+        Self(self.0 ^ rhs, self.1 ^ rhs, self.2 ^ rhs, self.3 ^ rhs)
     }
 }
 
@@ -1143,10 +1130,7 @@ impl std::ops::BitXor<Bvec2> for bool {
     type Output = Bvec2;
 
     fn bitxor(self, rhs: Bvec2) -> Self::Output {
-        Bvec2 (
-            self ^ rhs.0,
-            self ^ rhs.1,
-        )
+        Bvec2(self ^ rhs.0, self ^ rhs.1)
     }
 }
 
@@ -1154,11 +1138,7 @@ impl std::ops::BitXor<Bvec3> for bool {
     type Output = Bvec3;
 
     fn bitxor(self, rhs: Bvec3) -> Self::Output {
-        Bvec3 (
-            self ^ rhs.0,
-            self ^ rhs.1,
-            self ^ rhs.2,
-        )
+        Bvec3(self ^ rhs.0, self ^ rhs.1, self ^ rhs.2)
     }
 }
 
@@ -1166,12 +1146,7 @@ impl std::ops::BitXor<Bvec4> for bool {
     type Output = Bvec4;
 
     fn bitxor(self, rhs: Bvec4) -> Self::Output {
-        Bvec4 (
-            self ^ rhs.0,
-            self ^ rhs.1,
-            self ^ rhs.2,
-            self ^ rhs.3,
-        )
+        Bvec4(self ^ rhs.0, self ^ rhs.1, self ^ rhs.2, self ^ rhs.3)
     }
 }
 
@@ -1179,10 +1154,7 @@ impl std::ops::BitXor<Bvec2> for Bvec2 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 ^ rhs.0,
-            self.1 ^ rhs.1,
-        )
+        Self(self.0 ^ rhs.0, self.1 ^ rhs.1)
     }
 }
 
@@ -1190,11 +1162,7 @@ impl std::ops::BitXor<Bvec3> for Bvec3 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self (
-            self.0 ^ rhs.0,
-            self.1 ^ rhs.1,
-            self.2 ^ rhs.2,
-        )
+        Self(self.0 ^ rhs.0, self.1 ^ rhs.1, self.2 ^ rhs.2)
     }
 }
 
@@ -1202,7 +1170,7 @@ impl std::ops::BitXor<Bvec4> for Bvec4 {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self (
+        Self(
             self.0 ^ rhs.0,
             self.1 ^ rhs.1,
             self.2 ^ rhs.2,
@@ -1524,10 +1492,7 @@ impl std::ops::Rem<f32> for Vec2 {
     type Output = Self;
 
     fn rem(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 % rhs,
-            self.1 % rhs,
-        )
+        Self(self.0 % rhs, self.1 % rhs)
     }
 }
 
@@ -1535,11 +1500,7 @@ impl std::ops::Rem<f32> for Vec3 {
     type Output = Self;
 
     fn rem(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 % rhs,
-            self.1 % rhs,
-            self.2 % rhs,
-        )
+        Self(self.0 % rhs, self.1 % rhs, self.2 % rhs)
     }
 }
 
@@ -1547,12 +1508,7 @@ impl std::ops::Rem<f32> for Vec4 {
     type Output = Self;
 
     fn rem(self, rhs: f32) -> Self::Output {
-        Self(
-            self.0 % rhs,
-            self.1 % rhs,
-            self.2 % rhs,
-            self.3 % rhs,
-        )
+        Self(self.0 % rhs, self.1 % rhs, self.2 % rhs, self.3 % rhs)
     }
 }
 
@@ -1560,10 +1516,7 @@ impl std::ops::Rem<Vec2> for f32 {
     type Output = Vec2;
 
     fn rem(self, rhs: Vec2) -> Self::Output {
-        Vec2(
-            self % rhs.0,
-            self % rhs.1,
-        )
+        Vec2(self % rhs.0, self % rhs.1)
     }
 }
 
@@ -1571,11 +1524,7 @@ impl std::ops::Rem<Vec3> for f32 {
     type Output = Vec3;
 
     fn rem(self, rhs: Vec3) -> Self::Output {
-        Vec3(
-            self % rhs.0,
-            self % rhs.1,
-            self % rhs.2,
-        )
+        Vec3(self % rhs.0, self % rhs.1, self % rhs.2)
     }
 }
 
@@ -1583,12 +1532,7 @@ impl std::ops::Rem<Vec4> for f32 {
     type Output = Vec4;
 
     fn rem(self, rhs: Vec4) -> Self::Output {
-        Vec4(
-            self % rhs.0,
-            self % rhs.1,
-            self % rhs.2,
-            self % rhs.3,
-        )
+        Vec4(self % rhs.0, self % rhs.1, self % rhs.2, self % rhs.3)
     }
 }
 
@@ -1596,10 +1540,7 @@ impl std::ops::Rem<Vec2> for Vec2 {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 % rhs.0,
-            self.1 % rhs.1,
-        )
+        Self(self.0 % rhs.0, self.1 % rhs.1)
     }
 }
 
@@ -1607,11 +1548,7 @@ impl std::ops::Rem<Vec3> for Vec3 {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 % rhs.0,
-            self.1 % rhs.1,
-            self.2 % rhs.2,
-        )
+        Self(self.0 % rhs.0, self.1 % rhs.1, self.2 % rhs.2)
     }
 }
 
@@ -2353,10 +2290,7 @@ impl Vec2 {
     }
 
     pub fn not_equal(self, rhs: Self) -> Bvec2 {
-        Bvec2(
-            self.0 != rhs.0,
-            self.1 != rhs.1,
-        )
+        Bvec2(self.0 != rhs.0, self.1 != rhs.1)
     }
 
     pub fn not_fequal(self, rhs: Self, tolerance: f32) -> Bvec2 {
@@ -2397,11 +2331,7 @@ impl Vec3 {
     }
 
     pub fn not_equal(self, rhs: Self) -> Bvec3 {
-        Bvec3(
-            self.0 != rhs.0,
-            self.1 != rhs.1,
-            self.2 != rhs.2,
-        )
+        Bvec3(self.0 != rhs.0, self.1 != rhs.1, self.2 != rhs.2)
     }
 
     pub fn not_fequal(self, rhs: Self, tolerance: f32) -> Bvec3 {

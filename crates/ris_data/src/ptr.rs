@@ -89,3 +89,8 @@ impl<T> Clone for WeakPtr<T> {
         }
     }
 }
+
+unsafe impl<T> Send for StrongPtr<T> where T: Send {}
+unsafe impl<T> Sync for StrongPtr<T> where T: Sync {}
+unsafe impl<T> Send for WeakPtr<T> where T: Send {}
+unsafe impl<T> Sync for WeakPtr<T> where T: Sync {}

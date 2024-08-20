@@ -2,8 +2,8 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
-use ris_data::game_object::GameObjectHandle;
-use ris_data::game_object::GameObjectKind;
+use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::id::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
@@ -61,7 +61,7 @@ impl IUiHelperModule for HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                GameObjectHandle::new(&scene, kind)?;
+                GameObjectHandle::new(scene, kind)?;
             }
 
             unsafe { imgui::sys::igEndPopup() }
@@ -71,7 +71,7 @@ impl IUiHelperModule for HierarchyModule {
             .iter()
             .filter(|x| {
                 let handle = x.borrow().handle();
-                let parent_handle = handle.parent(&scene).unwrap_or(None);
+                let parent_handle = handle.parent(scene).unwrap_or(None);
                 let is_root = parent_handle.is_none();
                 let is_alive = x.borrow().is_alive();
 
@@ -109,13 +109,13 @@ impl HierarchyModule {
         let name = handle.name(scene)?;
         let id = CString::new(format!("{}##{:?}", name, handle))?;
 
-        let has_children = handle.child_len(&scene)? > 0;
+        let has_children = handle.child_len(scene)? > 0;
         let is_selected = {
             let aref = self.shared_state.borrow();
             let selected = aref.selector.get_selection();
             selected
                 .map(|x| match x {
-                    Selection::GameObject(x) => x.is_alive(&scene) && x.id == handle.id,
+                    Selection::GameObject(x) => x.is_alive(scene) && x.id == handle.id,
                 })
                 .unwrap_or(false)
         };
@@ -138,13 +138,13 @@ impl HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                let child = GameObjectHandle::new(&scene, handle.id.kind)?;
-                child.set_parent(&scene, Some(handle), usize::MAX, false)?;
+                let child = GameObjectHandle::new(scene, handle.id.kind)?;
+                child.set_parent(scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }
 
             if ui.menu_item("destroy") {
-                handle.destroy(&scene);
+                handle.destroy(scene);
             }
 
             unsafe { imgui::sys::igEndPopup() };
@@ -188,7 +188,7 @@ impl HierarchyModule {
                     let data_ptr = (*payload).Data as *const GameObjectHandle;
                     let dragged_handle = *data_ptr;
 
-                    if let Err(e) = dragged_handle.set_parent(&scene, Some(handle), 0, true) {
+                    if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
                         ris_log::error!("failed to drag: {}", e);
                     }
                 }
@@ -198,8 +198,8 @@ impl HierarchyModule {
         }
 
         if open {
-            if handle.is_alive(&scene) {
-                let children = handle.child_iter(&scene)?.collect::<Vec<_>>();
+            if handle.is_alive(scene) {
+                let children = handle.child_iter(scene)?.collect::<Vec<_>>();
                 for child in children {
                     self.draw_node(child, data)?;
                 }

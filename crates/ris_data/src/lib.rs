@@ -1,4 +1,4 @@
-pub mod game_object;
+pub mod ecs;
 pub mod gameloop;
 pub mod info;
 pub mod input;

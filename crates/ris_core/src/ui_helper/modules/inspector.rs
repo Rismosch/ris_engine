@@ -1,8 +1,8 @@
 use std::ffi::CString;
 
-use ris_data::game_object::scene::Scene;
-use ris_data::game_object::scene::SceneResult;
-use ris_data::game_object::GameObjectHandle;
+use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::scene::Scene;
+use ris_data::ecs::scene::SceneResult;
 use ris_error::RisResult;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -70,8 +70,10 @@ impl IUiHelperModule for InspectorModule {
 
                 {
                     let _token = data.ui.begin_disabled(true);
-                    let mut is_visible_in_hierarchy = handle.is_visible_in_hierarchy(&data.state.scene)?;
-                    data.ui.checkbox("is visible in hierarchy", &mut is_visible_in_hierarchy);
+                    let mut is_visible_in_hierarchy =
+                        handle.is_visible_in_hierarchy(&data.state.scene)?;
+                    data.ui
+                        .checkbox("is visible in hierarchy", &mut is_visible_in_hierarchy);
                 }
 
                 data.ui.separator();
@@ -81,7 +83,8 @@ impl IUiHelperModule for InspectorModule {
                     Space::Local => 0,
                     Space::World => 1,
                 };
-                data.ui.combo_simple_string("transform", &mut current_space_item, &space_items);
+                data.ui
+                    .combo_simple_string("transform", &mut current_space_item, &space_items);
                 match current_space_item {
                     0 => self.space = Space::Local,
                     1 => self.space = Space::World,
@@ -103,7 +106,7 @@ impl IUiHelperModule for InspectorModule {
                         set_rotation = GameObjectHandle::set_local_rotation;
                         get_scale = GameObjectHandle::local_scale;
                         set_scale = GameObjectHandle::set_local_scale;
-                    },
+                    }
                     Space::World => {
                         get_position = GameObjectHandle::world_position;
                         set_position = GameObjectHandle::set_world_position;
@@ -111,7 +114,7 @@ impl IUiHelperModule for InspectorModule {
                         set_rotation = GameObjectHandle::set_world_rotation;
                         get_scale = GameObjectHandle::world_scale;
                         set_scale = GameObjectHandle::set_world_scale;
-                    },
+                    }
                 };
 
                 let format = CString::new("%.3f")?;
@@ -143,7 +146,7 @@ impl IUiHelperModule for InspectorModule {
                 }
                 let mut old_rotation: [f32; 4] = self.cached_rotation.into();
                 purge_negative_0(&mut old_rotation);
-                let mut new_rotation: [f32; 4] = old_rotation.clone();
+                let mut new_rotation: [f32; 4] = old_rotation;
                 let changed = unsafe {
                     imgui::sys::igDragFloat4(
                         label.as_ptr(),
@@ -221,10 +224,15 @@ impl IUiHelperModule for InspectorModule {
                         w = new_rotation[3].clamp(-1.0, 1.0);
                     }
 
-                    let q = if x.is_nan() || x.is_infinite() ||
-                        y.is_nan() || y.is_infinite() ||
-                        z.is_nan() || z.is_infinite() ||
-                        w.is_nan() || w.is_infinite() {
+                    let q = if x.is_nan()
+                        || x.is_infinite()
+                        || y.is_nan()
+                        || y.is_infinite()
+                        || z.is_nan()
+                        || z.is_infinite()
+                        || w.is_nan()
+                        || w.is_infinite()
+                    {
                         let identity = Quat::identity();
                         self.cache_rotation_axes(identity);
                         identity
@@ -385,20 +393,16 @@ impl IUiHelperModule for InspectorModule {
 
                         match handle.parent(&data.state.scene)? {
                             Some(parent) => parent.world_rotation(&data.state.scene)?.rotate(axis),
-                            None => axis
+                            None => axis,
                         }
-                    },
+                    }
                     Space::World => {
                         let (_, axis) = world_rotation.into();
                         axis
-                    },
+                    }
                 };
 
-                ris_debug::gizmo::view_point(
-                    world_position,
-                    world_rotation,
-                    None,
-                )?;
+                ris_debug::gizmo::view_point(world_position, world_rotation, None)?;
                 ris_debug::gizmo::segment(
                     world_position - rotation_axis * 0.5,
                     world_position + rotation_axis * 0.5,

@@ -205,5 +205,5 @@ impl<T> std::ops::DerefMut for ArefMut<T> {
     }
 }
 
-unsafe impl<T> Send for ArefCell<T> {}
-unsafe impl<T> Sync for ArefCell<T> {}
+unsafe impl<T> Send for ArefCell<T> where T: Send {}
+unsafe impl<T> Sync for ArefCell<T> where T: Sync {}

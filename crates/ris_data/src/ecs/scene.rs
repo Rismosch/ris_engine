@@ -2,11 +2,11 @@ use crate::cell::ArefCell;
 use crate::ptr::StrongPtr;
 
 use super::game_object::GameObject;
-use super::game_object::GameObjectHandle;
-use super::game_object::GameObjectId;
-use super::game_object::GameObjectKind;
 use super::game_object::GameObjectStrongPtr;
 use super::game_object::GameObjectWeakPtr;
+use super::id::GameObjectHandle;
+use super::id::GameObjectId;
+use super::id::GameObjectKind;
 
 pub const DEFAULT_MOVABLES_LEN: usize = 1024;
 pub const DEFAULT_STATIC_CHUNKS: usize = 8;

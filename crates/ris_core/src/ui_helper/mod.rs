@@ -118,7 +118,7 @@ impl SharedState {
     fn new(app_info: AppInfo) -> SharedStateStrongPtr {
         StrongPtr::new(ArefCell::new(Self {
             app_info,
-            selector: Selector::new(),
+            selector: Selector::default(),
         }))
     }
 }
@@ -434,7 +434,7 @@ impl UiHelper {
         }
     }
 
-    fn menu_callback(&mut self, mut data: &mut UiHelperDrawData) -> RisResult<GameloopState> {
+    fn menu_callback(&mut self, data: &mut UiHelperDrawData) -> RisResult<GameloopState> {
         if let Some(_menu_bar) = data.ui.begin_menu_bar() {
             if let Some(_menu) = data.ui.begin_menu("start") {
                 if data.ui.menu_item("restart (F1)") {
@@ -522,7 +522,7 @@ impl UiHelper {
             let window_name =
                 CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
             if unsafe { imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0) } {
-                self.window_callback(i, &mut data)?;
+                self.window_callback(i, data)?;
             }
 
             unsafe { imgui::sys::igEnd() };

@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use ris_data::game_object::scene::Scene;
-use ris_data::game_object::GameObjectHandle;
-use ris_data::game_object::GameObjectKind;
+use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::scene::Scene;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
@@ -244,7 +244,8 @@ fn should_not_assign_destroyed_parent() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     assert!(g1.parent(&scene).unwrap().is_none());
     assert!(g2.parent(&scene).unwrap().is_none());
@@ -270,7 +271,8 @@ fn should_set_sibling_index() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     assert_eq!(parent.child_len(&scene).unwrap(), 4);
 
@@ -315,7 +317,8 @@ fn should_destroy_child() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     g1.destroy(&scene);
     g2.destroy(&scene);
@@ -344,7 +347,8 @@ fn should_destroy_parent() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     parent.destroy(&scene);
 
@@ -367,7 +371,8 @@ fn should_iter_children() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     let result = parent.child_iter(&scene).unwrap().collect::<Vec<_>>();
 
@@ -390,7 +395,8 @@ fn should_skip_destroyed_children_on_iter_children() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     let iter = parent.child_iter(&scene).unwrap();
     g1.destroy(&scene);
@@ -414,7 +420,8 @@ fn should_stop_iter_children_when_parent_is_destroyed() {
     g1.set_parent(&scene, Some(parent), 0, false).unwrap();
     g2.set_parent(&scene, Some(parent), 0, false).unwrap();
     g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX, false)
+        .unwrap();
 
     let iter = parent.child_iter(&scene).unwrap();
     parent.destroy(&scene);

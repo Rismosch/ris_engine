@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ris_math::camera::Camera;
 
-use crate::game_object::scene::Scene;
+use crate::ecs::scene::Scene;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -33,9 +33,9 @@ impl GodState {
             // general
             input: Input::default(),
             scene: Arc::new(Scene::new(
-                crate::game_object::scene::DEFAULT_MOVABLES_LEN,
-                crate::game_object::scene::DEFAULT_STATIC_CHUNKS,
-                crate::game_object::scene::DEFAULT_STATICS_PER_CHUNK,
+                crate::ecs::scene::DEFAULT_MOVABLES_LEN,
+                crate::ecs::scene::DEFAULT_STATIC_CHUNKS,
+                crate::ecs::scene::DEFAULT_STATICS_PER_CHUNK,
             )),
             camera: Camera::default(),
 

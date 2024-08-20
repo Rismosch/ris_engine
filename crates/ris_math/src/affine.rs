@@ -101,14 +101,12 @@ pub fn to_rotation(m: Mat3) -> Quat {
 
 // returns a rotation matrix, using direction and up
 pub fn look_at(direction: Vec3, up: Vec3) -> Mat3 {
-    let mut m = Mat3::default();
+    let m2 = up;
+    let right = direction.cross(m2);
+    let m0 = right / f32::sqrt(f32::max(0.000_01, right.length_squared()));
+    let m1 = m2.cross(m0);
 
-    m.2 = up;
-    let right = direction.cross(m.2);
-    m.0 = right / f32::sqrt(f32::max(0.000_01, right.length_squared()));
-    m.1 = m.2.cross(m.0);
-
-    m
+    Mat3(m0, m1, m2)
 }
 
 /// returns a scale matrix

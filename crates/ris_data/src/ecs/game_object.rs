@@ -9,27 +9,12 @@ use crate::cell::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::id::GameObjectHandle;
+use super::id::GameObjectId;
+use super::id::GameObjectKind;
 use super::scene::Scene;
 use super::scene::SceneError;
 use super::scene::SceneResult;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GameObjectKind {
-    Movable,
-    Static { chunk: usize },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GameObjectId {
-    pub kind: GameObjectKind,
-    pub index: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GameObjectHandle {
-    pub id: GameObjectId,
-    pub generation: usize,
-}
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -326,15 +311,15 @@ impl GameObjectHandle {
 
         // apply changes
         let world_transform = if keep_world_transform {
-            let position = self.world_position(&scene)?;
-            let rotation = self.world_rotation(&scene)?;
-            let scale = self.world_scale(&scene)?;
+            let position = self.world_position(scene)?;
+            let rotation = self.world_rotation(scene)?;
+            let scale = self.world_scale(scene)?;
 
             Some((position, rotation, scale))
         } else {
             None
         };
-        
+
         let ptr = self.clear_destroyed_children(scene)?;
         let mut aref_mut = ptr.borrow_mut();
 
