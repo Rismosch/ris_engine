@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ris_math::camera::Camera;
 
 use crate::ecs::scene::Scene;
+use crate::ecs::scene::SceneCreateInfo;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -24,7 +25,7 @@ pub struct GodState {
 }
 
 impl GodState {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new(settings: Settings, info: SceneCreateInfo) -> Self {
         Self {
             // events
             event_rebuild_renderers: false,
@@ -32,11 +33,7 @@ impl GodState {
 
             // general
             input: Input::default(),
-            scene: Arc::new(Scene::new(
-                crate::ecs::scene::DEFAULT_MOVABLES_LEN,
-                crate::ecs::scene::DEFAULT_STATIC_CHUNKS,
-                crate::ecs::scene::DEFAULT_STATICS_PER_CHUNK,
-            )),
+            scene: Arc::new(Scene::new(info)),
             camera: Camera::default(),
 
             debug_ui_is_focused: false,

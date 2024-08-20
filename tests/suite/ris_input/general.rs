@@ -1,9 +1,11 @@
+use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::god_state::GodState;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_data::settings::Settings;
 use ris_input::general_logic::update_general;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
+use ris_util::testing::miri_choose;
 
 struct TestContext {
     rng: Rng,
@@ -14,7 +16,16 @@ impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new().unwrap());
 
-        let state = GodState::new(Settings::default());
+        let scene_create_info = miri_choose(
+            SceneCreateInfo::default(),
+            SceneCreateInfo {
+                movables: 5,
+                static_chunks: 1,
+                statics_per_chunk: 5,
+            },
+        );
+
+        let state = GodState::new(Settings::default(), scene_create_info);
 
         Self { rng, state }
     }

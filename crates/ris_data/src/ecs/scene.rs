@@ -8,14 +8,9 @@ use super::id::GameObjectHandle;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
 
-pub const DEFAULT_MOVABLES_LEN: usize = 1024;
-pub const DEFAULT_STATIC_CHUNKS: usize = 8;
-pub const DEFAULT_STATICS_PER_CHUNK: usize = 1024;
-
-pub struct Scene {
-    pub movables: Vec<GameObjectStrongPtr>,
-    pub statics: Vec<Vec<GameObjectStrongPtr>>,
-}
+const DEFAULT_MOVABLES: usize = 1024;
+const DEFAULT_STATIC_CHUNKS: usize = 8;
+const DEFAULT_STATICS_PER_CHUNK: usize = 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneError {
@@ -24,6 +19,18 @@ pub enum SceneError {
     CircularHierarchy,
     IndexOutOfBounds,
     OutOfMemory,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SceneCreateInfo {
+    pub movables: usize,
+    pub static_chunks: usize,
+    pub statics_per_chunk: usize,
+}
+
+pub struct Scene {
+    pub movables: Vec<GameObjectStrongPtr>,
+    pub statics: Vec<Vec<GameObjectStrongPtr>>,
 }
 
 impl std::fmt::Display for SceneError {
@@ -44,10 +51,20 @@ pub type SceneResult<T> = Result<T, SceneError>;
 
 impl std::error::Error for SceneError {}
 
+impl Default for SceneCreateInfo {
+    fn default() -> Self {
+        Self {
+            movables: DEFAULT_MOVABLES,
+            static_chunks: DEFAULT_STATIC_CHUNKS,
+            statics_per_chunk: DEFAULT_STATICS_PER_CHUNK,
+        }
+    }
+}
+
 impl Scene {
-    pub fn new(movables_len: usize, static_chunks: usize, statics_per_chunk: usize) -> Self {
-        let mut movables = Vec::with_capacity(movables_len);
-        for i in 0..movables_len {
+    pub fn new(info: SceneCreateInfo) -> Self {
+        let mut movables = Vec::with_capacity(info.movables);
+        for i in 0..info.movables {
             let handle = GameObjectHandle {
                 id: GameObjectId {
                     kind: GameObjectKind::Movable,
@@ -61,10 +78,10 @@ impl Scene {
             movables.push(ptr);
         }
 
-        let mut statics = Vec::with_capacity(static_chunks);
-        for i in 0..static_chunks {
-            let mut chunk = Vec::with_capacity(statics_per_chunk);
-            for j in 0..statics_per_chunk {
+        let mut statics = Vec::with_capacity(info.static_chunks);
+        for i in 0..info.static_chunks {
+            let mut chunk = Vec::with_capacity(info.statics_per_chunk);
+            for j in 0..info.statics_per_chunk {
                 let handle = GameObjectHandle {
                     id: GameObjectId {
                         kind: GameObjectKind::Static { chunk: i },

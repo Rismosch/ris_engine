@@ -10,7 +10,6 @@ use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
 use super::id::GameObjectHandle;
-use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
 use super::scene::SceneError;

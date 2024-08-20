@@ -3,6 +3,7 @@ use sdl2::keyboard::Scancode;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
+use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -162,7 +163,8 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let mut state = GodState::new(settings);
+        let scene_create_info = SceneCreateInfo::default();
+        let mut state = GodState::new(settings, scene_create_info);
 
         {
             let input = &mut state.input;
