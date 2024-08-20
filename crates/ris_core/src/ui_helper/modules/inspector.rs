@@ -377,22 +377,31 @@ impl IUiHelperModule for InspectorModule {
 
                 let world_position = handle.world_position(&data.state.scene)?;
                 let world_rotation = handle.world_rotation(&data.state.scene)?;
-                let axis_rotation = get_rotation(handle, &data.state.scene)?;
-                let parent_world_rotation = match handle.parent(&data.state.scene)? {
-                    Some(parent) => parent.world_rotation(&data.state.scene)?,
-                    None => Quat::identity(),
+
+                let rotation_axis = match self.space {
+                    Space::Local => {
+                        let axis_rotation = handle.local_rotation(&data.state.scene)?;
+                        let (_, axis) = axis_rotation.into();
+
+                        match handle.parent(&data.state.scene)? {
+                            Some(parent) => parent.world_rotation(&data.state.scene)?.rotate(axis),
+                            None => axis
+                        }
+                    },
+                    Space::World => {
+                        let (_, axis) = world_rotation.into();
+                        axis
+                    },
                 };
-                let (_, axis) = axis_rotation.into();
-                let mut rotated_axis = parent_world_rotation.rotate(axis);
-                rotated_axis *= 0.5;
+
                 ris_debug::gizmo::view_point(
                     world_position,
                     world_rotation,
                     None,
                 )?;
                 ris_debug::gizmo::segment(
-                    world_position - rotated_axis,
-                    world_position + rotated_axis,
+                    world_position - rotation_axis * 0.5,
+                    world_position + rotation_axis * 0.5,
                     ris_math::color::Rgb::white(),
                 )?;
 
