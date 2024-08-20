@@ -104,13 +104,11 @@ Assuming everything is installed correctly, you can now compile and run the engi
 cargo run
 ```
 
-Alternatively, you can build a release-ready package, by running the command below. Note that this builds with all optimizations enabled, which takes significantly longer than just using `cargo run`.
+Alternatively, you can build a release-ready package, by running the command below. Note that this builds with all optimizations enabled, which may take longer than just using `cargo run`.
 
 ```bash
 cargo run -p cli build
 ```
-
-For more info about `cli`, see `./cli/README.md`.
 
 ## Testing
 
@@ -119,3 +117,13 @@ All tests are found under `./tests/` and can be run with:
 ```bash
 cargo test
 ```
+
+Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several muinutes.
+
+```bash
+cargo run -p cli pipeline all
+```
+
+## Cli
+
+For more info about the command `cargo run -p cli`, see [`./cli/README.md`](./cli/README.md).
