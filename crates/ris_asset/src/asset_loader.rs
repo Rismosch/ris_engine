@@ -67,10 +67,7 @@ impl Drop for AssetLoaderGuard {
     }
 }
 
-/// # Safety
-///
-/// The asset loader is a singleton. Initialize it only once.
-pub unsafe fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
+pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     let asset_path;
 
     // search for assets relative

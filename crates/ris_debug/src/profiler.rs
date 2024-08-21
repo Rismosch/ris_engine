@@ -42,10 +42,7 @@ impl Drop for ProfilerGuard {
     }
 }
 
-/// # Safety
-///
-/// The profiler is a singleton. Initialize only once.
-pub unsafe fn init() -> RisResult<ProfilerGuard> {
+pub fn init() -> RisResult<ProfilerGuard> {
     let mut profiler = PROFILER.lock()?;
     *profiler = Some(Profiler {
         state: ProfilerState::Stopped,

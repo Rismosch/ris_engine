@@ -5,6 +5,11 @@ use std::sync::{
     Arc,
 };
 
+/// Threadsafe single owner, which allows non-owning copies. Dropping the StrongPtr invalidates all created WeakPtrs.
+///
+/// Assertions are removed om releasebuilds, thus making it act like a raw pointer.
+///
+/// This allows for very cheap copies and memory management without reference counting.
 pub struct StrongPtr<T> {
     #[cfg(debug_assertions)]
     alive: Arc<AtomicBool>,

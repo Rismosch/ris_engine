@@ -65,6 +65,9 @@ shaderc = "0.8"
 # development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies)
 criterion = { version = "0.3", features = ["html_reports"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "^0.2.30"
+
 [profile.dev]
 opt-level = 0
 debug = true

@@ -74,7 +74,7 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
     let file_appender = Box::new(FileAppender::new(&logs_dir)?);
     let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender, file_appender];
 
-    let log_guard = unsafe { log::init(LOG_LEVEL, appenders) };
+    let log_guard = log::init(LOG_LEVEL, appenders);
 
     Ok(log_guard)
 }

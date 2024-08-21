@@ -25,10 +25,7 @@ impl Drop for GizmoGuard {
     }
 }
 
-/// # Safety
-///
-/// Gizmo is a singleton. Initialize only once.
-pub unsafe fn init() -> RisResult<GizmoGuard> {
+pub fn init() -> RisResult<GizmoGuard> {
     let mut gizmo = GIZMOS.lock()?;
     *gizmo = Some(Gizmos {
         shapes: Vec::new(),

@@ -67,15 +67,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let workers = crate::determine_thread_count(&god_object.app_info, settings);
 
-            let new_guard = unsafe {
-                job_system::init(
-                    job_system::DEFAULT_BUFFER_CAPACITY,
-                    cpu_count,
-                    workers,
-                    true,
-                )
-            };
-
+            let new_guard = job_system::init(
+                job_system::DEFAULT_BUFFER_CAPACITY,
+                cpu_count,
+                workers,
+                true,
+            );
             god_object.job_system_guard = new_guard;
 
             ris_log::debug!("job system restarted!");
