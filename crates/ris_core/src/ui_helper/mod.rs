@@ -11,11 +11,11 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
-use ris_data::cell::ArefCell;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
+use ris_data::ptr::ArefCell;
 use ris_data::ptr::StrongPtr;
 use ris_data::ptr::WeakPtr;
 use ris_data::settings::ris_yaml::RisYaml;

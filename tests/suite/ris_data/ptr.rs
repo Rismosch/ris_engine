@@ -1,4 +1,4 @@
-use ris_data::cell::ArefCell;
+use ris_data::ptr::ArefCell;
 use ris_data::ptr::StrongPtr;
 
 #[test]

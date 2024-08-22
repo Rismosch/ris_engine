@@ -5,7 +5,7 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
-use crate::cell::ArefCell;
+use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
@@ -367,7 +367,7 @@ impl GameObjectHandle {
 
     pub fn child_iter(self, scene: &Scene) -> SceneResult<ChildIter> {
         if !self.is_alive(scene) {
-            return Err(SceneError::GameObjectIsDestroyed);
+            return Err(SceneError::ObjectIsDestroyed);
         }
 
         Ok(ChildIter {

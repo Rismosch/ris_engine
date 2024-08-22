@@ -19,9 +19,10 @@ impl TestContext {
         let scene_create_info = miri_choose(
             SceneCreateInfo::default(),
             SceneCreateInfo {
-                movables: 5,
-                static_chunks: 1,
-                statics_per_chunk: 5,
+                movables: 0,
+                static_chunks: 0,
+                statics_per_chunk: 0,
+                visual_meshes: 0,
             },
         );
 

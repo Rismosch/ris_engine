@@ -3,8 +3,16 @@ use std::rc::Rc;
 
 use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::id::ComponentHandle;
+use ris_data::ecs::id::ComponentKind;
+use ris_data::ecs::id::IComponent;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
+use ris_data::ecs::scene::SceneError;
+use ris_data::ecs::visual_mesh::VisualMesh;
+use ris_data::ecs::script::Script;
+use ris_data::ptr::ArefCell;
+use ris_data::ptr::StrongPtr;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
@@ -19,6 +27,7 @@ const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
     movables: 5,
     static_chunks: 0,
     statics_per_chunk: 0,
+    visual_meshes: 1,
 };
 
 #[test]
@@ -518,3 +527,23 @@ fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
     g.set_local_rotation(scene, r).unwrap();
     g.set_local_scale(scene, s).unwrap();
 }
+
+#[test]
+fn should_resolve_component() {
+    let mut scene = Scene::new(SCENE_CREATE_INFO);
+    let handle = ComponentHandle {
+        kind: ComponentKind::VisualMesh,
+        index: 0,
+        generation: 0,
+    };
+    let visual_mesh = VisualMesh::new(handle, true);
+    let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
+    scene.visual_meshes[0] = ptr;
+
+    let result1 = scene.resolve_component::<VisualMesh>(handle);
+    let result2 = scene.resolve_component::<Script>(handle);
+
+    assert!(result1.is_ok());
+    assert!(result2.err().unwrap() == SceneError::InvalidCast);
+}
+
