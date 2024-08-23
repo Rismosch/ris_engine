@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use super::game_object::GameObject;
 use super::mesh_component::MeshComponent;
+use super::script_component::ScriptComponent;
 
 //
 // ids
@@ -84,3 +85,4 @@ impl<T, Id: Eq> Eq for Handle<T, Id> {}
 
 pub type GameObjectHandle = Handle<GameObject, GameObjectId>;
 pub type MeshComponentHandle = Handle<MeshComponent, IndexId>;
+pub type ScriptComponentHandle = Handle<ScriptComponent, IndexId>;
