@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
+use ris_data::ecs::id::EcsObject;
 use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::god_state::GodState;

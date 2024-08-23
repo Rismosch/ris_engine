@@ -1,3 +1,12 @@
+use std::marker::PhantomData;
+
+use super::game_object::GameObject;
+use super::visual_mesh::VisualMesh;
+
+//
+// ids
+//
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameObjectKind {
     Movable,
@@ -11,30 +20,67 @@ pub struct GameObjectId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GameObjectHandle {
-    pub id: GameObjectId,
-    pub generation: usize,
-}
-
-pub const COMPONENT_TYPE_ID_SCRIPT: usize = 0;
-pub const COMPONENT_TYPE_ID_VISUAL_MESH: usize = 1;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ComponentKind {
-    Script,
-    VisualMesh,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ComponentHandle {
-    pub kind: ComponentKind,
+pub struct IndexId {
     pub index: usize,
-    pub generation: usize,
 }
 
-pub trait IComponent {
-    fn type_id() -> usize;
-    fn new(handle: ComponentHandle, is_alive: bool) -> Self;
-    fn handle(&self) -> ComponentHandle;
+impl IndexId {
+    pub fn new(index: usize) -> Self {
+        Self {
+            index,
+        }
+    }
+}
+
+//
+// handle <-> ecs object
+//
+
+pub trait EcsObject<Id> {
+    fn handle(&self) -> Handle<Self, Id>;
     fn is_alive(&self) -> bool;
 }
+
+#[derive(Debug)]
+pub struct Handle<T: ?Sized, Id> {
+    pub id: Id,
+    pub generation: usize,
+    boo: PhantomData<T>,
+}
+
+impl<T, Id> Handle<T, Id> {
+    pub fn from(id: Id, generation: usize) -> Self {
+        Self {
+            id,
+            generation,
+            boo: PhantomData::default(),
+        }
+    }
+}
+
+impl<T, Id: Clone> Clone for Handle<T, Id> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            generation: self.generation,
+            boo: PhantomData::default(),
+        }
+    }
+}
+
+impl<T, Id: PartialEq> PartialEq for Handle<T, Id> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id &&
+            self.generation == other.generation
+    }
+}
+
+impl<T, Id: Copy> Copy for Handle<T, Id> {}
+impl<T, Id: Eq> Eq for Handle<T, Id> {}
+
+//
+// handle declarations
+//
+
+pub type GameObjectHandle = Handle<GameObject, GameObjectId>;
+pub type VisualMeshHandle = Handle<VisualMesh, IndexId>;

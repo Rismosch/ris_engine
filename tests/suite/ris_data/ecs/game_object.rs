@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ris_data::ecs::id::EcsObject;
 use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
-use ris_data::ecs::id::ComponentHandle;
-use ris_data::ecs::id::ComponentKind;
-use ris_data::ecs::id::IComponent;
+use ris_data::ecs::id::IndexId;
+use ris_data::ecs::id::Handle;
+use ris_data::ecs::id::VisualMeshHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::scene::SceneError;
 use ris_data::ecs::visual_mesh::VisualMesh;
-use ris_data::ecs::script::Script;
 use ris_data::ptr::ArefCell;
 use ris_data::ptr::StrongPtr;
 use ris_math::quaternion::Quat;
@@ -35,7 +35,7 @@ fn should_create_and_resolve_game_object() {
     let scene = Scene::new(SCENE_CREATE_INFO);
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let ptr = scene.resolve(g);
+    let ptr = scene.resolve_game_object(g);
     assert!(ptr.is_ok());
 }
 
@@ -46,7 +46,7 @@ fn should_not_resolve_destroyed_handle() {
     g.destroy(&scene);
 
     assert!(!g.is_alive(&scene));
-    assert!(scene.resolve(g).is_err());
+    assert!(scene.resolve_game_object(g).is_err());
 }
 
 #[test]
@@ -531,19 +531,14 @@ fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
 #[test]
 fn should_resolve_component() {
     let mut scene = Scene::new(SCENE_CREATE_INFO);
-    let handle = ComponentHandle {
-        kind: ComponentKind::VisualMesh,
-        index: 0,
-        generation: 0,
-    };
+    let id = IndexId::new(0);
+    let handle = Handle::from(id, 0);
     let visual_mesh = VisualMesh::new(handle, true);
     let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
     scene.visual_meshes[0] = ptr;
 
-    let result1 = scene.resolve_component::<VisualMesh>(handle);
-    let result2 = scene.resolve_component::<Script>(handle);
+    let result = scene.resolve_visual_mesh(handle);
 
-    assert!(result1.is_ok());
-    assert!(result2.err().unwrap() == SceneError::InvalidCast);
+    assert!(result.is_ok());
 }
 

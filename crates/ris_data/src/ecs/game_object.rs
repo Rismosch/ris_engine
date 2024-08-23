@@ -9,7 +9,9 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::id::EcsObject;
 use super::id::GameObjectHandle;
+use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
 use super::scene::SceneError;
@@ -38,9 +40,6 @@ pub struct GameObject {
     children: Vec<GameObjectHandle>,
 }
 
-pub type GameObjectStrongPtr = StrongPtr<ArefCell<GameObject>>;
-pub type GameObjectWeakPtr = WeakPtr<ArefCell<GameObject>>;
-
 impl GameObject {
     pub fn new(handle: GameObjectHandle, is_alive: bool) -> GameObject {
         Self {
@@ -58,12 +57,14 @@ impl GameObject {
             children: Vec::new(),
         }
     }
+}
 
-    pub fn handle(&self) -> GameObjectHandle {
+impl EcsObject<GameObjectId> for GameObject {
+    fn handle(&self) -> GameObjectHandle {
         self.handle
     }
 
-    pub fn is_alive(&self) -> bool {
+    fn is_alive(&self) -> bool {
         self.is_alive
     }
 }
@@ -94,7 +95,7 @@ impl GameObjectHandle {
         Ok(handle)
     }
     pub fn is_alive(self, scene: &Scene) -> bool {
-        let Ok(ptr) = scene.resolve(self) else {
+        let Ok(ptr) = scene.resolve_game_object(self) else {
             return false;
         };
 
@@ -102,7 +103,7 @@ impl GameObjectHandle {
     }
 
     pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.resolve(self) else {
+        let Ok(ptr) = scene.resolve_game_object(self) else {
             return;
         };
         let handle = ptr.borrow().handle();
@@ -119,23 +120,23 @@ impl GameObjectHandle {
     }
 
     pub fn name(self, scene: &Scene) -> SceneResult<String> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         Ok(ptr.borrow().name.clone())
     }
 
     pub fn set_name(self, scene: &Scene, value: impl AsRef<str>) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         ptr.borrow_mut().name = value.as_ref().to_string();
         Ok(())
     }
 
     pub fn is_visible(self, scene: &Scene) -> SceneResult<bool> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         Ok(ptr.borrow().is_visible)
     }
 
     pub fn set_visible(self, scene: &Scene, value: bool) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.is_visible != value {
@@ -148,12 +149,12 @@ impl GameObjectHandle {
     }
 
     pub fn local_position(self, scene: &Scene) -> SceneResult<Vec3> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         Ok(ptr.borrow().position)
     }
 
     pub fn set_local_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.position.not_equal(value).any() {
@@ -166,12 +167,12 @@ impl GameObjectHandle {
     }
 
     pub fn local_rotation(self, scene: &Scene) -> SceneResult<Quat> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         Ok(ptr.borrow().rotation)
     }
 
     pub fn set_local_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let left = Vec4::from(aref_mut.rotation);
@@ -186,7 +187,7 @@ impl GameObjectHandle {
     }
 
     pub fn local_scale(self, scene: &Scene) -> SceneResult<f32> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         Ok(ptr.borrow().scale)
     }
 
@@ -195,7 +196,7 @@ impl GameObjectHandle {
             return Err(SceneError::ScaleMustBePositive);
         }
 
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.scale != value {
@@ -295,8 +296,8 @@ impl GameObjectHandle {
         let old_handle = self.parent(scene)?;
         let new_handle = parent.take().filter(|x| x.is_alive(scene));
 
-        let old_parent = old_handle.and_then(|x| scene.resolve(x).ok());
-        let new_parent = new_handle.and_then(|x| scene.resolve(x).ok());
+        let old_parent = old_handle.and_then(|x| scene.resolve_game_object(x).ok());
+        let new_parent = new_handle.and_then(|x| scene.resolve_game_object(x).ok());
 
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
@@ -418,7 +419,7 @@ impl GameObjectHandle {
     }
 
     fn set_cache_to_dirty(self, scene: &Scene) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve_game_object(self)?;
         if ptr.borrow().cache_is_dirty {
             return Ok(());
         }
@@ -432,8 +433,8 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    fn recalculate_cache(self, scene: &Scene) -> SceneResult<GameObjectWeakPtr> {
-        let ptr = scene.resolve(self)?;
+    fn recalculate_cache(self, scene: &Scene) -> SceneResult<WeakPtr<ArefCell<GameObject>>> {
+        let ptr = scene.resolve_game_object(self)?;
         if !ptr.borrow().cache_is_dirty {
             return Ok(ptr);
         }
@@ -459,15 +460,15 @@ impl GameObjectHandle {
         Ok(ptr)
     }
 
-    fn parent_ptr(self, scene: &Scene) -> SceneResult<Option<GameObjectWeakPtr>> {
-        let ptr = scene.resolve(self)?;
+    fn parent_ptr(self, scene: &Scene) -> SceneResult<Option<WeakPtr<ArefCell<GameObject>>>> {
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let Some(parent_handle) = aref_mut.parent else {
             return Ok(None);
         };
 
-        if let Ok(parent_ptr) = scene.resolve(parent_handle) {
+        if let Ok(parent_ptr) = scene.resolve_game_object(parent_handle) {
             Ok(Some(parent_ptr))
         } else {
             aref_mut.parent = None;
@@ -477,14 +478,14 @@ impl GameObjectHandle {
         }
     }
 
-    fn clear_destroyed_children(self, scene: &Scene) -> SceneResult<GameObjectWeakPtr> {
-        let ptr = scene.resolve(self)?;
+    fn clear_destroyed_children(self, scene: &Scene) -> SceneResult<WeakPtr<ArefCell<GameObject>>> {
+        let ptr = scene.resolve_game_object(self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let mut i = 0;
         while i < aref_mut.children.len() {
             let child_handle = aref_mut.children[i];
-            let child = scene.resolve(child_handle);
+            let child = scene.resolve_game_object(child_handle);
 
             if child.is_err() {
                 aref_mut.children.remove(i);
@@ -501,7 +502,7 @@ impl<'a> Iterator for ChildIter<'a> {
     type Item = GameObjectHandle;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Ok(ptr) = self.scene.resolve(self.handle) else {
+        let Ok(ptr) = self.scene.resolve_game_object(self.handle) else {
             return None;
         };
 
