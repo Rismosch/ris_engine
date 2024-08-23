@@ -6,11 +6,11 @@ use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::IndexId;
 use ris_data::ecs::id::Handle;
-use ris_data::ecs::id::VisualMeshHandle;
+use ris_data::ecs::id::MeshComponentHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::scene::SceneError;
-use ris_data::ecs::visual_mesh::VisualMesh;
+use ris_data::ecs::mesh_component::MeshComponent;
 use ris_data::ptr::ArefCell;
 use ris_data::ptr::StrongPtr;
 use ris_math::quaternion::Quat;
@@ -24,10 +24,10 @@ use ris_util::testing;
 use ris_util::testing::miri_choose;
 
 const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
-    movables: 5,
+    movable_game_objects: 5,
     static_chunks: 0,
-    statics_per_chunk: 0,
-    visual_meshes: 1,
+    static_game_objects_per_chunk: 0,
+    mesh_components: 1,
 };
 
 #[test]
@@ -533,11 +533,11 @@ fn should_resolve_component() {
     let mut scene = Scene::new(SCENE_CREATE_INFO);
     let id = IndexId::new(0);
     let handle = Handle::from(id, 0);
-    let visual_mesh = VisualMesh::new(handle, true);
+    let visual_mesh = MeshComponent::new(handle, true);
     let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
-    scene.visual_meshes[0] = ptr;
+    scene.mesh_components[0] = ptr;
 
-    let result = scene.resolve_visual_mesh(handle);
+    let result = scene.resolve_mesh_component(handle);
 
     assert!(result.is_ok());
 }

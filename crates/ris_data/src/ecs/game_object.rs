@@ -78,8 +78,8 @@ pub struct ChildIter<'a> {
 impl GameObjectHandle {
     pub fn new(scene: &Scene, kind: GameObjectKind) -> SceneResult<GameObjectHandle> {
         let chunk = match kind {
-            GameObjectKind::Movable => &scene.movables,
-            GameObjectKind::Static { chunk } => &scene.statics[chunk],
+            GameObjectKind::Movable => &scene.movable_game_objects,
+            GameObjectKind::Static { chunk } => &scene.static_game_objects[chunk],
         };
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {

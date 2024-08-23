@@ -4,16 +4,16 @@ use crate::ptr::WeakPtr;
 
 use super::id::EcsObject;
 use super::id::IndexId;
-use super::id::VisualMeshHandle;
+use super::id::MeshComponentHandle;
 
-pub struct VisualMesh {
+pub struct MeshComponent {
     // identification
-    handle: VisualMeshHandle,
+    handle: MeshComponentHandle,
     is_alive: bool,
 }
 
-impl VisualMesh {
-    pub fn new(handle: VisualMeshHandle, is_alive: bool) -> Self {
+impl MeshComponent {
+    pub fn new(handle: MeshComponentHandle, is_alive: bool) -> Self {
         Self {
             handle,
             is_alive,
@@ -21,8 +21,8 @@ impl VisualMesh {
     }
 }
 
-impl EcsObject<IndexId> for VisualMesh {
-    fn handle(&self) -> VisualMeshHandle {
+impl EcsObject<IndexId> for MeshComponent {
+    fn handle(&self) -> MeshComponentHandle {
         self.handle
     }
 

@@ -1,5 +1,5 @@
 pub mod game_object;
 pub mod id;
+pub mod mesh_component;
 pub mod scene;
-pub mod script;
-pub mod visual_mesh;
+pub mod script_component;

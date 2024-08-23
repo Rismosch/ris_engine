@@ -39,7 +39,7 @@ impl IUiHelperModule for HierarchyModule {
             ..
         } = data;
 
-        let mut choices = Vec::with_capacity(scene.statics.len() + 1);
+        let mut choices = Vec::with_capacity(scene.static_game_objects.len() + 1);
         choices.push("movables".to_string());
 
         for i in 0..(choices.capacity() - 1) {
@@ -49,11 +49,11 @@ impl IUiHelperModule for HierarchyModule {
         ui.combo_simple_string("chunk", &mut self.selected_chunk, &choices);
 
         let (chunk, kind) = if self.selected_chunk == 0 {
-            (&scene.movables, GameObjectKind::Movable)
+            (&scene.movable_game_objects, GameObjectKind::Movable)
         } else {
             let chunk = self.selected_chunk - 1;
 
-            (&scene.statics[chunk], GameObjectKind::Static { chunk })
+            (&scene.static_game_objects[chunk], GameObjectKind::Static { chunk })
         };
 
         let available = scene.count_available_game_objects(kind);

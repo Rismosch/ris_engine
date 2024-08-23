@@ -2,8 +2,9 @@
 //use crate::ptr::StrongPtr;
 //use crate::ptr::WeakPtr;
 //
-//use super::id::ComponentHandle;
-//use super::id::IComponent;
+//use super::id::EcsObject;
+//use super::id::IndexId;
+//use super::id::ScriptHandle;
 //
 //pub struct Script {
 //    // identification
