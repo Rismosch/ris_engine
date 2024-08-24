@@ -9,6 +9,7 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::id::Component;
 use super::id::EcsObject;
 use super::id::GameObjectHandle;
 use super::id::GameObjectId;
@@ -29,6 +30,7 @@ pub struct GameObject {
     position: Vec3,
     rotation: Quat,
     scale: f32,
+    components: Vec<Box<dyn Component>>,
 
     // cache
     cache_is_dirty: bool,
@@ -50,6 +52,7 @@ impl GameObject {
             position: Vec3::init(0.0),
             rotation: Quat::identity(),
             scale: 1.0,
+            components: Vec::new(),
             cache_is_dirty: true,
             is_visible_in_hierarchy: true,
             model: Mat4::default(),
@@ -106,8 +109,13 @@ impl GameObjectHandle {
         let Ok(ptr) = scene.resolve_game_object(self) else {
             return;
         };
-        let handle = ptr.borrow().handle();
 
+        let mut i = 0;
+        for component in ptr.borrow().components.iter() {
+
+        }
+
+        let handle = ptr.borrow().handle();
         let Ok(child_iter) = handle.child_iter(scene) else {
             return;
         };

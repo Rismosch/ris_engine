@@ -2,6 +2,8 @@ use std::marker::PhantomData;
 
 use super::game_object::GameObject;
 use super::mesh_component::MeshComponent;
+use super::scene::Scene;
+use super::scene::SceneResult;
 use super::script_component::ScriptComponent;
 
 //
@@ -34,13 +36,21 @@ impl IndexId {
 }
 
 //
-// handle <-> ecs object
+// components
 //
 
 pub trait EcsObject<Id> {
     fn handle(&self) -> Handle<Self, Id>;
     fn is_alive(&self) -> bool;
 }
+
+pub trait Component : std::fmt::Debug {
+    fn destroy(&mut self, scene: &Scene);
+}
+
+//
+// handle
+//
 
 #[derive(Debug)]
 pub struct Handle<T: ?Sized, Id> {
@@ -78,6 +88,7 @@ impl<T, Id: PartialEq> PartialEq for Handle<T, Id> {
 
 impl<T, Id: Copy> Copy for Handle<T, Id> {}
 impl<T, Id: Eq> Eq for Handle<T, Id> {}
+
 
 //
 // handle declarations
