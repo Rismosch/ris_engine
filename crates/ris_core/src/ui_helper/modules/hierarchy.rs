@@ -3,7 +3,9 @@ use std::ffi::CString;
 use std::ptr;
 
 use ris_data::ecs::id::EcsObject;
+use ris_data::ecs::id::EcsId;
 use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::id::GameObjectId;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
@@ -139,7 +141,10 @@ impl HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                let child = GameObjectHandle::new(scene, handle.id.kind)?;
+                let EcsId::GameObject(id) = handle.id else {
+                    return ris_error::new_result!("handle id was not a gameobject");
+                };
+                let child = GameObjectHandle::new(scene, id.kind)?;
                 child.set_parent(scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }

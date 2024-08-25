@@ -162,7 +162,7 @@ impl GodObject {
 
         // god state
         let scene_create_info = SceneCreateInfo::default();
-        let mut state = GodState::new(settings, scene_create_info);
+        let mut state = GodState::new(settings, scene_create_info)?;
 
         {
             let input = &mut state.input;

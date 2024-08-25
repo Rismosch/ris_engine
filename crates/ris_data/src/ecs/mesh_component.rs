@@ -3,7 +3,7 @@ use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
 use super::id::EcsObject;
-use super::id::IndexId;
+use super::id::EcsTypeId;
 use super::id::MeshComponentHandle;
 
 pub struct MeshComponent {
@@ -21,7 +21,11 @@ impl MeshComponent {
     }
 }
 
-impl EcsObject<IndexId> for MeshComponent {
+impl EcsObject for MeshComponent {
+    fn ecs_type_id() -> EcsTypeId {
+        super::id::ECS_TYPE_ID_MESH_COMPONENT
+    }
+
     fn handle(&self) -> MeshComponentHandle {
         self.handle
     }

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use ris_error::RisResult;
 use ris_math::camera::Camera;
 
 use crate::ecs::scene::Scene;
@@ -25,22 +26,22 @@ pub struct GodState {
 }
 
 impl GodState {
-    pub fn new(settings: Settings, info: SceneCreateInfo) -> Self {
-        Self {
+    pub fn new(settings: Settings, info: SceneCreateInfo) -> RisResult<Self> {
+        Ok(Self {
             // events
             event_rebuild_renderers: false,
             event_window_resized: None,
 
             // general
             input: Input::default(),
-            scene: Arc::new(Scene::new(info)),
+            scene: Arc::new(Scene::new(info)?),
             camera: Camera::default(),
 
             debug_ui_is_focused: false,
 
             // settings
             settings,
-        }
+        })
     }
 
     pub fn reset_events(&mut self) {

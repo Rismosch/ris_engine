@@ -26,7 +26,7 @@ impl TestContext {
             },
         );
 
-        let state = GodState::new(Settings::default(), scene_create_info);
+        let state = GodState::new(Settings::default(), scene_create_info).unwrap();
 
         Self { rng, state }
     }

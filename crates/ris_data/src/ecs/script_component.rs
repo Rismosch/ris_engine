@@ -8,7 +8,7 @@ use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
 use super::id::EcsObject;
-use super::id::IndexId;
+use super::id::EcsTypeId;
 use super::id::ScriptComponentHandle;
 use super::id::GameObjectHandle;
 use super::scene::Scene;
@@ -52,7 +52,11 @@ impl ScriptComponent {
     }
 }
 
-impl EcsObject<IndexId> for ScriptComponent {
+impl EcsObject for ScriptComponent {
+    fn ecs_type_id() -> EcsTypeId {
+        super::id::ECS_TYPE_ID_SCRIPT_COMPONENT
+    }
+
     fn handle(&self) -> ScriptComponentHandle {
         self.handle
     }
