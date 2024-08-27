@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use super::game_object::GameObject;
-use super::id::EcsId;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
+use super::id::SceneId;
 use super::mesh_component::MeshComponent;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -11,8 +11,52 @@ use super::script_component::ScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynHandle {
-    pub id: EcsId,
-    pub generation: usize,
+    ecs_type_id: EcsTypeId,
+    scene_id: SceneId,
+    generation: usize,
+}
+
+impl DynHandle {
+    pub fn new(ecs_type_id: EcsTypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
+        // assert the ecs_type_id matches with the scene_id
+        let type_matches_id = match scene_id {
+            SceneId::GameObject(_) => ecs_type_id == ECS_TYPE_ID_GAME_OBJECT,
+            SceneId::Index(_) => ecs_type_id != ECS_TYPE_ID_GAME_OBJECT,
+        };
+
+        if type_matches_id {
+            Ok(Self{
+                ecs_type_id,
+                scene_id,
+                generation,
+            })
+        } else {
+            return Err(EcsError::TypeDoesNotMatchId);
+        }
+    }
+
+    pub fn ecs_type_id(self) -> EcsTypeId {
+        self.ecs_type_id
+    }
+
+    pub fn scene_id(self) -> SceneId {
+        self.scene_id
+    }
+
+    pub fn generation(self) -> usize {
+        self.generation
+    }
+
+    pub fn cast<T: EcsObject>(self) -> EcsResult<GenericHandle<T>> {
+        if T::ecs_type_id() == self.ecs_type_id {
+            Ok(GenericHandle {
+                inner: self,
+                boo: PhantomData::default(),
+            })
+        } else {
+            Err(EcsError::TypeDoesNotMatchId)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -28,13 +72,6 @@ impl<T: EcsObject> std::ops::Deref for GenericHandle<T> {
     }
 }
 
-pub trait Handle {
-    fn ecs_type_id() -> EcsTypeId where Self: Sized;
-    fn to_dyn(self) -> DynHandle;
-}
-
-pub trait ComponentHandle : Handle {}
-
 impl<T: EcsObject> std::ops::DerefMut for GenericHandle<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
@@ -42,22 +79,10 @@ impl<T: EcsObject> std::ops::DerefMut for GenericHandle<T> {
 }
 
 impl<T: EcsObject> GenericHandle<T> {
-    pub fn new(id: EcsId, generation: usize) -> EcsResult<Self> {
-        // assert the id matches with the type
-        let type_matches_id = match id {
-            EcsId::GameObject(_) => T::ecs_type_id() == ECS_TYPE_ID_GAME_OBJECT,
-            EcsId::Index(_) => T::ecs_type_id() != ECS_TYPE_ID_GAME_OBJECT,
-        };
-
-        if !type_matches_id {
-            return Err(EcsError::TypeDoesNotMatchId);
-        }
-
+    pub fn new(scene_id: SceneId, generation: usize) -> EcsResult<Self> {
+        let inner = DynHandle::new(T::ecs_type_id(), scene_id, generation)?;
         Ok(Self {
-            inner: DynHandle {
-                id,
-                generation,
-            },
+            inner,
             boo: PhantomData::default(),
         })
     }
@@ -85,9 +110,12 @@ impl<T: EcsObject> PartialEq for GenericHandle<T> {
 impl<T: EcsObject> Copy for GenericHandle<T> {}
 impl<T: EcsObject> Eq for GenericHandle<T> {}
 
-//
-// declarations
-//
+pub trait Handle {
+    fn ecs_type_id() -> EcsTypeId where Self: Sized;
+    fn to_dyn(self) -> DynHandle;
+}
+
+pub trait ComponentHandle : Handle {}
 
 macro_rules! decl_handle {
     (
@@ -147,6 +175,10 @@ macro_rules! decl_component_handle {
         impl ComponentHandle for $handle_name {}
     }
 }
+
+//
+// declarations
+//
 
 pub const ECS_TYPE_ID_GAME_OBJECT: EcsTypeId = 0;
 pub const ECS_TYPE_ID_MESH_COMPONENT: EcsTypeId = 1;

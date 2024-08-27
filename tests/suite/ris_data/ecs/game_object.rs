@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use ris_data::ecs::handle::GameObjectHandle;
 use ris_data::ecs::handle::GenericHandle;
-use ris_data::ecs::id::EcsId;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::id::SceneId;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::mesh_component::MeshComponent;
@@ -527,8 +527,9 @@ fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
 
 #[test]
 fn should_resolve_component() {
+    panic!();
     let mut scene = Scene::new(SCENE_CREATE_INFO).unwrap();
-    let id = EcsId::Index(0);
+    let id = SceneId::Index(0);
     let handle = GenericHandle::new(id, 0).unwrap();
     let visual_mesh = MeshComponent::new(handle.into(), true);
     let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
@@ -537,5 +538,10 @@ fn should_resolve_component() {
     let result = scene.resolve(handle);
 
     assert!(result.is_ok());
+}
+
+#[test]
+fn should_cast_handles() {
+    panic!();
 }
 

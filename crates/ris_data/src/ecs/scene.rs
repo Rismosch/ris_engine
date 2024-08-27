@@ -9,7 +9,7 @@ use super::handle::GenericHandle;
 use super::id::EcsObject;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
-use super::id::EcsId;
+use super::id::SceneId;
 use super::mesh_component::MeshComponent;
 
 const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
@@ -89,12 +89,12 @@ impl Scene {
     }
 
     pub fn resolve<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<WeakPtr<ArefCell<T>>> {
-        let ptr: WeakPtr<ArefCell<T>> = match handle.id {
-            EcsId::GameObject(GameObjectId { kind, index }) => match kind {
+        let ptr: WeakPtr<ArefCell<T>> = match handle.scene_id() {
+            SceneId::GameObject(GameObjectId { kind, index }) => match kind {
                 GameObjectKind::Static { chunk } => cast(&self.static_game_objects[chunk][index])?,
                 GameObjectKind::Movable => cast(&self.movable_game_objects[index])?,
             },
-            EcsId::Index(index) => match T::ecs_type_id() {
+            SceneId::Index(index) => match T::ecs_type_id() {
                 super::handle::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
                 //id::ECS_TYPE_ID_SCRIPT_COMPONENT => (),
                 _ => return Err(EcsError::OutOfBounds),
@@ -104,7 +104,7 @@ impl Scene {
         let aref = ptr.borrow();
 
         let is_alive = aref.is_alive();
-        let generation_matches = aref.handle().generation == handle.generation;
+        let generation_matches = aref.handle().generation() == handle.generation();
 
         if is_alive && generation_matches {
             Ok(ptr)

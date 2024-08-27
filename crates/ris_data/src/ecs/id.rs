@@ -18,18 +18,18 @@ pub struct GameObjectId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EcsId {
+pub enum SceneId {
     GameObject(GameObjectId),
     Index(usize),
 }
 
-impl From<GameObjectId> for EcsId {
+impl From<GameObjectId> for SceneId {
     fn from(value: GameObjectId) -> Self {
         Self::GameObject(value)
     }
 }
 
-impl From<usize> for EcsId {
+impl From<usize> for SceneId {
     fn from(value: usize) -> Self {
         Self::Index(value)
     }

@@ -4,7 +4,7 @@ use std::ptr;
 
 use ris_data::ecs::handle::GameObjectHandle;
 use ris_data::ecs::id::EcsObject;
-use ris_data::ecs::id::EcsId;
+use ris_data::ecs::id::SceneId;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
@@ -117,7 +117,7 @@ impl HierarchyModule {
             let selected = aref.selector.get_selection();
             selected
                 .map(|x| match x {
-                    Selection::GameObject(x) => x.is_alive(scene) && x.id == handle.id,
+                    Selection::GameObject(x) => x.is_alive(scene) && x == handle,
                 })
                 .unwrap_or(false)
         };
@@ -140,7 +140,7 @@ impl HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                let EcsId::GameObject(id) = handle.id else {
+                let SceneId::GameObject(id) = handle.scene_id() else {
                     return ris_error::new_result!("handle id was not a gameobject");
                 };
                 let child = GameObjectHandle::new(scene, id.kind)?;

@@ -6,7 +6,6 @@ use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
 use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
 use super::error::EcsError;
@@ -14,7 +13,6 @@ use super::error::EcsResult;
 use super::handle::GenericHandle;
 use super::handle::GameObjectHandle;
 use super::id::Component;
-use super::id::EcsId;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::id::GameObjectKind;
@@ -96,12 +94,13 @@ impl GameObjectHandle {
         };
 
         let ptr = &chunk[position];
-        let mut handle = ptr.borrow().handle;
-        handle.generation = handle.generation.wrapping_add(1);
-        let game_object = GameObject::new(handle, true);
+        let old_handle = ptr.borrow().handle;
+        let new_generation = old_handle.generation().wrapping_add(1);
+        let new_handle = GenericHandle::new(old_handle.scene_id(), new_generation)?;
+        let game_object = GameObject::new(new_handle.into(), true);
         *ptr.borrow_mut() = game_object;
 
-        Ok(handle)
+        Ok(new_handle.into())
     }
     pub fn is_alive(self, scene: &Scene) -> bool {
         let Ok(ptr) = scene.resolve(*self) else {
