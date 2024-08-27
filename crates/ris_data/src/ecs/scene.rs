@@ -5,13 +5,10 @@ use crate::ptr::WeakPtr;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
+use super::handle::GenericHandle;
 use super::id::EcsObject;
-use super::id::GameObjectHandle;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
-use super::id::GenericHandle;
-use super::id::Handle;
-use super::id::MeshComponentHandle;
 use super::id::EcsId;
 use super::mesh_component::MeshComponent;
 
@@ -98,7 +95,7 @@ impl Scene {
                 GameObjectKind::Movable => cast(&self.movable_game_objects[index])?,
             },
             EcsId::Index(index) => match T::ecs_type_id() {
-                super::id::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
+                super::handle::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
                 //id::ECS_TYPE_ID_SCRIPT_COMPONENT => (),
                 _ => return Err(EcsError::OutOfBounds),
             },

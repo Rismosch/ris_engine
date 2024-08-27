@@ -11,12 +11,12 @@ use crate::ptr::WeakPtr;
 
 use super::error::EcsError;
 use super::error::EcsResult;
+use super::handle::GenericHandle;
+use super::handle::GameObjectHandle;
 use super::id::Component;
+use super::id::EcsId;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
-use super::id::GenericHandle;
-use super::id::GameObjectHandle;
-use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
 
@@ -66,7 +66,7 @@ impl GameObject {
 
 impl EcsObject for GameObject {
     fn ecs_type_id() -> EcsTypeId {
-        super::id::ECS_TYPE_ID_GAME_OBJECT
+        super::handle::ECS_TYPE_ID_GAME_OBJECT
     }
 
     fn handle(&self) -> GenericHandle<Self> {

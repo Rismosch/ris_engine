@@ -1,11 +1,7 @@
-use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
-use crate::ptr::WeakPtr;
-
 use super::id::EcsObject;
 use super::id::EcsTypeId;
-use super::id::GenericHandle;
-use super::id::MeshComponentHandle;
+use super::handle::GenericHandle;
+use super::handle::MeshComponentHandle;
 
 #[derive(Debug)]
 pub struct MeshComponent {
@@ -25,7 +21,7 @@ impl MeshComponent {
 
 impl EcsObject for MeshComponent {
     fn ecs_type_id() -> EcsTypeId {
-        super::id::ECS_TYPE_ID_MESH_COMPONENT
+        super::handle::ECS_TYPE_ID_MESH_COMPONENT
     }
 
     fn handle(&self) -> GenericHandle<Self> {

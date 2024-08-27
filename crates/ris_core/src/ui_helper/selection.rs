@@ -1,4 +1,4 @@
-use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::handle::GameObjectHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {

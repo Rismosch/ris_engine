@@ -1,14 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use ris_data::ecs::error::EcsError;
-use ris_data::ecs::id::EcsObject;
+use ris_data::ecs::handle::GameObjectHandle;
+use ris_data::ecs::handle::GenericHandle;
 use ris_data::ecs::id::EcsId;
-use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
-use ris_data::ecs::id::GenericHandle;
-use ris_data::ecs::id::Handle;
-use ris_data::ecs::id::MeshComponentHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::mesh_component::MeshComponent;

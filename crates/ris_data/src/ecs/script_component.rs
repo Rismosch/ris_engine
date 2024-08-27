@@ -1,17 +1,13 @@
-use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
-use crate::ptr::WeakPtr;
-
 use ris_error::RisResult;
 
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
+use super::handle::ScriptComponentHandle;
+use super::handle::GameObjectHandle;
+use super::handle::GenericHandle;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
-use super::id::ScriptComponentHandle;
-use super::id::GameObjectHandle;
-use super::id::GenericHandle;
 use super::scene::Scene;
 
 pub struct ScriptStartData<'a> {
@@ -56,7 +52,7 @@ impl ScriptComponent {
 
 impl EcsObject for ScriptComponent {
     fn ecs_type_id() -> EcsTypeId {
-        super::id::ECS_TYPE_ID_SCRIPT_COMPONENT
+        super::handle::ECS_TYPE_ID_SCRIPT_COMPONENT
     }
 
     fn handle(&self) -> GenericHandle<Self> {

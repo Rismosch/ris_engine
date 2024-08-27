@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::handle::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
 use ris_error::RisResult;
