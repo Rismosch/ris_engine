@@ -11,6 +11,7 @@ use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::id::ScriptComponentHandle;
 use super::id::GameObjectHandle;
+use super::id::GenericHandle;
 use super::scene::Scene;
 
 pub struct ScriptStartData<'a> {
@@ -29,12 +30,13 @@ pub struct ScriptEndData<'a> {
     pub scene: &'a Scene,
 }
 
-pub trait Script {
+pub trait Script : std::fmt::Debug {
     fn start(&mut self, data: ScriptStartData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
 }
 
+#[derive(Debug)]
 pub struct ScriptComponent {
     handle: ScriptComponentHandle,
     script: Option<Box<dyn Script>>,
@@ -57,8 +59,8 @@ impl EcsObject for ScriptComponent {
         super::id::ECS_TYPE_ID_SCRIPT_COMPONENT
     }
 
-    fn handle(&self) -> ScriptComponentHandle {
-        self.handle
+    fn handle(&self) -> GenericHandle<Self> {
+        *self.handle
     }
 
     fn is_alive(&self) -> bool {

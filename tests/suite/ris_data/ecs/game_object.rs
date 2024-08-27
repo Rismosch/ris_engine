@@ -1,15 +1,16 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ris_data::ecs::error::EcsError;
 use ris_data::ecs::id::EcsObject;
 use ris_data::ecs::id::EcsId;
 use ris_data::ecs::id::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::id::GenericHandle;
 use ris_data::ecs::id::Handle;
 use ris_data::ecs::id::MeshComponentHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
-use ris_data::ecs::scene::SceneError;
 use ris_data::ecs::mesh_component::MeshComponent;
 use ris_data::ptr::ArefCell;
 use ris_data::ptr::StrongPtr;
@@ -35,7 +36,7 @@ fn should_create_and_resolve_game_object() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let ptr = scene.resolve(g);
+    let ptr = scene.resolve(g.into());
     assert!(ptr.is_ok());
 }
 
@@ -46,7 +47,7 @@ fn should_not_resolve_destroyed_handle() {
     g.destroy(&scene);
 
     assert!(!g.is_alive(&scene));
-    assert!(scene.resolve(g).is_err());
+    assert!(scene.resolve(g.into()).is_err());
 }
 
 #[test]
@@ -532,8 +533,8 @@ fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
 fn should_resolve_component() {
     let mut scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let id = EcsId::Index(0);
-    let handle = Handle::from(id, 0).unwrap();
-    let visual_mesh = MeshComponent::new(handle, true);
+    let handle = GenericHandle::new(id, 0).unwrap();
+    let visual_mesh = MeshComponent::new(handle.into(), true);
     let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
     scene.mesh_components[0] = ptr;
 

@@ -9,15 +9,16 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::error::EcsError;
+use super::error::EcsResult;
 use super::id::Component;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
+use super::id::GenericHandle;
 use super::id::GameObjectHandle;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
-use super::scene::SceneError;
-use super::scene::SceneResult;
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -68,8 +69,8 @@ impl EcsObject for GameObject {
         super::id::ECS_TYPE_ID_GAME_OBJECT
     }
 
-    fn handle(&self) -> GameObjectHandle {
-        self.handle
+    fn handle(&self) -> GenericHandle<Self> {
+        *self.handle
     }
 
     fn is_alive(&self) -> bool {
@@ -84,14 +85,14 @@ pub struct ChildIter<'a> {
 }
 
 impl GameObjectHandle {
-    pub fn new(scene: &Scene, kind: GameObjectKind) -> SceneResult<GameObjectHandle> {
+    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
         let chunk = match kind {
             GameObjectKind::Movable => &scene.movable_game_objects,
             GameObjectKind::Static { chunk } => &scene.static_game_objects[chunk],
         };
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
-            return Err(SceneError::OutOfMemory);
+            return Err(EcsError::OutOfMemory);
         };
 
         let ptr = &chunk[position];
@@ -103,7 +104,7 @@ impl GameObjectHandle {
         Ok(handle)
     }
     pub fn is_alive(self, scene: &Scene) -> bool {
-        let Ok(ptr) = scene.resolve(self) else {
+        let Ok(ptr) = scene.resolve(*self) else {
             return false;
         };
 
@@ -111,7 +112,7 @@ impl GameObjectHandle {
     }
 
     pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.resolve(self) else {
+        let Ok(ptr) = scene.resolve(*self) else {
             return;
         };
 
@@ -121,6 +122,7 @@ impl GameObjectHandle {
         }
 
         let handle = ptr.borrow().handle();
+        let handle = GameObjectHandle(handle);
         let Ok(child_iter) = handle.child_iter(scene) else {
             return;
         };
@@ -132,24 +134,24 @@ impl GameObjectHandle {
         ptr.borrow_mut().is_alive = false;
     }
 
-    pub fn name(self, scene: &Scene) -> SceneResult<String> {
-        let ptr = scene.resolve(self)?;
+    pub fn name(self, scene: &Scene) -> EcsResult<String> {
+        let ptr = scene.resolve(*self)?;
         Ok(ptr.borrow().name.clone())
     }
 
-    pub fn set_name(self, scene: &Scene, value: impl AsRef<str>) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    pub fn set_name(self, scene: &Scene, value: impl AsRef<str>) -> EcsResult<()> {
+        let ptr = scene.resolve(*self)?;
         ptr.borrow_mut().name = value.as_ref().to_string();
         Ok(())
     }
 
-    pub fn is_visible(self, scene: &Scene) -> SceneResult<bool> {
-        let ptr = scene.resolve(self)?;
+    pub fn is_visible(self, scene: &Scene) -> EcsResult<bool> {
+        let ptr = scene.resolve(*self)?;
         Ok(ptr.borrow().is_visible)
     }
 
-    pub fn set_visible(self, scene: &Scene, value: bool) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    pub fn set_visible(self, scene: &Scene, value: bool) -> EcsResult<()> {
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.is_visible != value {
@@ -161,13 +163,13 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn local_position(self, scene: &Scene) -> SceneResult<Vec3> {
-        let ptr = scene.resolve(self)?;
+    pub fn local_position(self, scene: &Scene) -> EcsResult<Vec3> {
+        let ptr = scene.resolve(*self)?;
         Ok(ptr.borrow().position)
     }
 
-    pub fn set_local_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    pub fn set_local_position(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.position.not_equal(value).any() {
@@ -179,13 +181,13 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn local_rotation(self, scene: &Scene) -> SceneResult<Quat> {
-        let ptr = scene.resolve(self)?;
+    pub fn local_rotation(self, scene: &Scene) -> EcsResult<Quat> {
+        let ptr = scene.resolve(*self)?;
         Ok(ptr.borrow().rotation)
     }
 
-    pub fn set_local_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    pub fn set_local_rotation(self, scene: &Scene, value: Quat) -> EcsResult<()> {
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let left = Vec4::from(aref_mut.rotation);
@@ -199,17 +201,17 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn local_scale(self, scene: &Scene) -> SceneResult<f32> {
-        let ptr = scene.resolve(self)?;
+    pub fn local_scale(self, scene: &Scene) -> EcsResult<f32> {
+        let ptr = scene.resolve(*self)?;
         Ok(ptr.borrow().scale)
     }
 
-    pub fn set_local_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
+    pub fn set_local_scale(self, scene: &Scene, value: f32) -> EcsResult<()> {
         if value <= 0.0 {
-            return Err(SceneError::ScaleMustBePositive);
+            return Err(EcsError::InvalidOperation("scale must be positive".to_string()));
         }
 
-        let ptr = scene.resolve(self)?;
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         if aref_mut.scale != value {
@@ -221,13 +223,13 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn world_position(self, scene: &Scene) -> SceneResult<Vec3> {
+    pub fn world_position(self, scene: &Scene) -> EcsResult<Vec3> {
         let model = self.model(scene)?;
         let (position, _rotation, _scale) = affine::trs_decompose(model);
         Ok(position)
     }
 
-    pub fn set_world_position(self, scene: &Scene, value: Vec3) -> SceneResult<()> {
+    pub fn set_world_position(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
         let position = match self.parent(scene)? {
             Some(parent_handle) => {
                 let parent_trs = parent_handle.model(scene)?;
@@ -244,13 +246,13 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn world_rotation(self, scene: &Scene) -> SceneResult<Quat> {
+    pub fn world_rotation(self, scene: &Scene) -> EcsResult<Quat> {
         let model = self.model(scene)?;
         let (_position, rotation, _scale) = affine::trs_decompose(model);
         Ok(rotation)
     }
 
-    pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> SceneResult<()> {
+    pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> EcsResult<()> {
         let rotation = match self.parent(scene)? {
             Some(parent_handle) => {
                 let parent_world_rotation = parent_handle.world_rotation(scene)?;
@@ -263,13 +265,13 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn world_scale(self, scene: &Scene) -> SceneResult<f32> {
+    pub fn world_scale(self, scene: &Scene) -> EcsResult<f32> {
         let model = self.model(scene)?;
         let (_position, _rotation, scale) = affine::trs_decompose(model);
         Ok(scale)
     }
 
-    pub fn set_world_scale(self, scene: &Scene, value: f32) -> SceneResult<()> {
+    pub fn set_world_scale(self, scene: &Scene, value: f32) -> EcsResult<()> {
         let scale = match self.parent(scene)? {
             Some(parent_handle) => {
                 let parent_world_scale = parent_handle.world_scale(scene)?;
@@ -282,17 +284,17 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn is_visible_in_hierarchy(self, scene: &Scene) -> SceneResult<bool> {
+    pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
         let ptr = self.recalculate_cache(scene)?;
         Ok(ptr.borrow().is_visible_in_hierarchy)
     }
 
-    pub fn model(self, scene: &Scene) -> SceneResult<Mat4> {
+    pub fn model(self, scene: &Scene) -> EcsResult<Mat4> {
         let ptr = self.recalculate_cache(scene)?;
         Ok(ptr.borrow().model)
     }
 
-    pub fn parent(self, scene: &Scene) -> SceneResult<Option<GameObjectHandle>> {
+    pub fn parent(self, scene: &Scene) -> EcsResult<Option<GameObjectHandle>> {
         match self.parent_ptr(scene)? {
             Some(parent_ptr) => Ok(Some(parent_ptr.borrow().handle)),
             None => Ok(None),
@@ -305,18 +307,18 @@ impl GameObjectHandle {
         mut parent: Option<GameObjectHandle>,
         sibling_index: usize,
         keep_world_transform: bool,
-    ) -> SceneResult<()> {
+    ) -> EcsResult<()> {
         let old_handle = self.parent(scene)?;
         let new_handle = parent.take().filter(|x| x.is_alive(scene));
 
-        let old_parent = old_handle.and_then(|x| scene.resolve(x).ok());
-        let new_parent = new_handle.and_then(|x| scene.resolve(x).ok());
+        let old_parent = old_handle.and_then(|x| scene.resolve(*x).ok());
+        let new_parent = new_handle.and_then(|x| scene.resolve(*x).ok());
 
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
         while let Some(parent_handle) = to_test {
             if parent_handle == self {
-                return Err(SceneError::CircularHierarchy);
+                return Err(EcsError::InvalidOperation("circular dependency".to_string()));
             }
 
             to_test = parent_handle.parent(scene)?;
@@ -379,9 +381,9 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn child_iter(self, scene: &Scene) -> SceneResult<ChildIter> {
+    pub fn child_iter(self, scene: &Scene) -> EcsResult<ChildIter> {
         if !self.is_alive(scene) {
-            return Err(SceneError::ObjectIsDestroyed);
+            return Err(EcsError::ObjectIsDestroyed);
         }
 
         Ok(ChildIter {
@@ -391,23 +393,23 @@ impl GameObjectHandle {
         })
     }
 
-    pub fn child_len(self, scene: &Scene) -> SceneResult<usize> {
+    pub fn child_len(self, scene: &Scene) -> EcsResult<usize> {
         let ptr = self.clear_destroyed_children(scene)?;
         Ok(ptr.borrow().children.len())
     }
 
-    pub fn child(self, scene: &Scene, index: usize) -> SceneResult<GameObjectHandle> {
+    pub fn child(self, scene: &Scene, index: usize) -> EcsResult<GameObjectHandle> {
         let ptr = self.clear_destroyed_children(scene)?;
         let aref = ptr.borrow();
 
         if index < aref.children.len() {
             Ok(aref.children[index])
         } else {
-            Err(SceneError::OutOfBounds)
+            Err(EcsError::OutOfBounds)
         }
     }
 
-    pub fn sibling_index(self, scene: &Scene) -> SceneResult<usize> {
+    pub fn sibling_index(self, scene: &Scene) -> EcsResult<usize> {
         let Some(parent) = self.parent(scene)? else {
             return Ok(0);
         };
@@ -421,7 +423,7 @@ impl GameObjectHandle {
         Ok(index)
     }
 
-    pub fn set_sibling_index(self, scene: &Scene, sibling_index: usize) -> SceneResult<()> {
+    pub fn set_sibling_index(self, scene: &Scene, sibling_index: usize) -> EcsResult<()> {
         let Some(parent) = self.parent(scene)? else {
             return Ok(());
         };
@@ -431,8 +433,8 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    fn set_cache_to_dirty(self, scene: &Scene) -> SceneResult<()> {
-        let ptr = scene.resolve(self)?;
+    fn set_cache_to_dirty(self, scene: &Scene) -> EcsResult<()> {
+        let ptr = scene.resolve(*self)?;
         if ptr.borrow().cache_is_dirty {
             return Ok(());
         }
@@ -446,8 +448,8 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    fn recalculate_cache(self, scene: &Scene) -> SceneResult<WeakPtr<ArefCell<GameObject>>> {
-        let ptr = scene.resolve(self)?;
+    fn recalculate_cache(self, scene: &Scene) -> EcsResult<WeakPtr<ArefCell<GameObject>>> {
+        let ptr = scene.resolve(*self)?;
         if !ptr.borrow().cache_is_dirty {
             return Ok(ptr);
         }
@@ -473,15 +475,15 @@ impl GameObjectHandle {
         Ok(ptr)
     }
 
-    fn parent_ptr(self, scene: &Scene) -> SceneResult<Option<WeakPtr<ArefCell<GameObject>>>> {
-        let ptr = scene.resolve(self)?;
+    fn parent_ptr(self, scene: &Scene) -> EcsResult<Option<WeakPtr<ArefCell<GameObject>>>> {
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let Some(parent_handle) = aref_mut.parent else {
             return Ok(None);
         };
 
-        if let Ok(parent_ptr) = scene.resolve(parent_handle) {
+        if let Ok(parent_ptr) = scene.resolve(*parent_handle) {
             Ok(Some(parent_ptr))
         } else {
             aref_mut.parent = None;
@@ -491,14 +493,14 @@ impl GameObjectHandle {
         }
     }
 
-    fn clear_destroyed_children(self, scene: &Scene) -> SceneResult<WeakPtr<ArefCell<GameObject>>> {
-        let ptr = scene.resolve(self)?;
+    fn clear_destroyed_children(self, scene: &Scene) -> EcsResult<WeakPtr<ArefCell<GameObject>>> {
+        let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 
         let mut i = 0;
         while i < aref_mut.children.len() {
             let child_handle = aref_mut.children[i];
-            let child = scene.resolve(child_handle);
+            let child = scene.resolve(*child_handle);
 
             if child.is_err() {
                 aref_mut.children.remove(i);
@@ -515,7 +517,7 @@ impl<'a> Iterator for ChildIter<'a> {
     type Item = GameObjectHandle;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Ok(ptr) = self.scene.resolve(self.handle) else {
+        let Ok(ptr) = self.scene.resolve(*self.handle) else {
             return None;
         };
 

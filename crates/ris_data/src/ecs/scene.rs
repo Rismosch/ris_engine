@@ -2,11 +2,16 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::error::EcsError;
+use super::error::EcsResult;
 use super::game_object::GameObject;
 use super::id::EcsObject;
+use super::id::GameObjectHandle;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
+use super::id::GenericHandle;
 use super::id::Handle;
+use super::id::MeshComponentHandle;
 use super::id::EcsId;
 use super::mesh_component::MeshComponent;
 
@@ -14,17 +19,6 @@ const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
 const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
 const DEFAULT_MESH_COMPONENTS: usize = 1024;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SceneError {
-    ObjectIsDestroyed,
-    ScaleMustBePositive,
-    CircularHierarchy,
-    OutOfBounds,
-    OutOfMemory,
-    TypeDoesNotMatchId,
-    InvalidCast,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SceneCreateInfo {
@@ -40,26 +34,6 @@ pub struct Scene {
     pub mesh_components: Vec<StrongPtr<ArefCell<MeshComponent>>>,
 }
 
-impl std::fmt::Display for SceneError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            SceneError::ObjectIsDestroyed => write!(f, "object is destroyed"),
-            SceneError::ScaleMustBePositive => write!(f, "scale must be larger than 0"),
-            SceneError::CircularHierarchy => {
-                write!(f, "operation would have caused a circular hierarchy")
-            }
-            SceneError::OutOfBounds => write!(f, "operation was out of bounds"),
-            SceneError::OutOfMemory => write!(f, "out of memory"),
-            SceneError::TypeDoesNotMatchId => write!(f, "type does not match the id"),
-            SceneError::InvalidCast => write!(f, "cast is invalid"),
-        }
-    }
-}
-
-pub type SceneResult<T> = Result<T, SceneError>;
-
-impl std::error::Error for SceneError {}
-
 impl Default for SceneCreateInfo {
     fn default() -> Self {
         Self {
@@ -72,15 +46,15 @@ impl Default for SceneCreateInfo {
 }
 
 impl Scene {
-    pub fn new(info: SceneCreateInfo) -> SceneResult<Self> {
+    pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let mut movable_game_objects = Vec::with_capacity(info.movable_game_objects);
         for i in 0..info.movable_game_objects {
             let id = GameObjectId {
                 kind: GameObjectKind::Movable,
                 index: i,
             };
-            let handle = Handle::from(id.into(), 0)?;
-            let game_object = GameObject::new(handle, false);
+            let handle = GenericHandle::new(id.into(), 0)?;
+            let game_object = GameObject::new(handle.into(), false);
             let ptr = StrongPtr::new(ArefCell::new(game_object));
             movable_game_objects.push(ptr);
         }
@@ -93,8 +67,8 @@ impl Scene {
                     kind: GameObjectKind::Static { chunk: i },
                     index: j,
                 };
-                let handle = Handle::from(id.into(), 0)?;
-                let game_object = GameObject::new(handle, false);
+                let handle = GenericHandle::new(id.into(), 0)?;
+                let game_object = GameObject::new(handle.into(), false);
                 let ptr = StrongPtr::new(ArefCell::new(game_object));
                 chunk.push(ptr);
             }
@@ -104,8 +78,8 @@ impl Scene {
 
         let mut mesh_components = Vec::with_capacity(info.mesh_components);
         for i in 0..info.mesh_components {
-            let handle = Handle::from(i.into(), 0)?;
-            let visual_mesh = MeshComponent::new(handle, false);
+            let handle = GenericHandle::new(i.into(), 0)?;
+            let visual_mesh = MeshComponent::new(handle.into(), false);
             let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
             mesh_components.push(ptr);
         }
@@ -117,7 +91,7 @@ impl Scene {
         })
     }
 
-    pub fn resolve<T: EcsObject>(&self, handle: Handle<T>) -> SceneResult<WeakPtr<ArefCell<T>>> {
+    pub fn resolve<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<WeakPtr<ArefCell<T>>> {
         let ptr: WeakPtr<ArefCell<T>> = match handle.id {
             EcsId::GameObject(GameObjectId { kind, index }) => match kind {
                 GameObjectKind::Static { chunk } => cast(&self.static_game_objects[chunk][index])?,
@@ -126,7 +100,7 @@ impl Scene {
             EcsId::Index(index) => match T::ecs_type_id() {
                 super::id::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
                 //id::ECS_TYPE_ID_SCRIPT_COMPONENT => (),
-                _ => return Err(SceneError::OutOfBounds),
+                _ => return Err(EcsError::OutOfBounds),
             },
         };
 
@@ -138,7 +112,7 @@ impl Scene {
         if is_alive && generation_matches {
             Ok(ptr)
         } else {
-            Err(SceneError::ObjectIsDestroyed)
+            Err(EcsError::ObjectIsDestroyed)
         }
     }
 
@@ -152,22 +126,20 @@ impl Scene {
     }
 }
 
-fn cast<T: EcsObject, U: EcsObject>(ptr: &StrongPtr<ArefCell<T>>) -> SceneResult<WeakPtr<ArefCell<U>>> {
+fn cast<T: EcsObject, U: EcsObject>(ptr: &StrongPtr<ArefCell<T>>) -> EcsResult<WeakPtr<ArefCell<U>>> {
 
-    // if i haven't fucked up the match logic in Scene::resolve, then T and U should always be the
-    // same and the transmute is safe. however, if i do fuck up the logic, then this assert catches
-    // it. well, that assumes that i haven't fucked up the ecs type ids, which should properly
-    // match their type. oh well. good luck future me.
-
+    // if the logic in Scene::resolve is sound, then an additional assertion is not needed. do one
+    // anyways in debug, just to be safe.
+    
     #[cfg(debug_assertions)]
     {
         if T::ecs_type_id() != U::ecs_type_id() {
-            return Err(SceneError::InvalidCast);
+            return Err(EcsError::InvalidOperation("invalid cast".to_string()));
         }
     }
 
-    let weak = ptr.to_weak();
-    let result = unsafe {std::mem::transmute::<WeakPtr<ArefCell<T>>, WeakPtr<ArefCell<U>>>(weak)};
+    // transmute is safe, because T is equal to U
+    let result = unsafe {std::mem::transmute::<WeakPtr<ArefCell<T>>, WeakPtr<ArefCell<U>>>(ptr.to_weak())};
 
     Ok(result)
 }

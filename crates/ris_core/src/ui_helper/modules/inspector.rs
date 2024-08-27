@@ -1,8 +1,8 @@
 use std::ffi::CString;
 
 use ris_data::ecs::id::GameObjectHandle;
+use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
-use ris_data::ecs::scene::SceneResult;
 use ris_error::RisResult;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -91,12 +91,12 @@ impl IUiHelperModule for InspectorModule {
                     _ => unreachable!(),
                 }
 
-                let get_position: fn(GameObjectHandle, &Scene) -> SceneResult<Vec3>;
-                let set_position: fn(GameObjectHandle, &Scene, Vec3) -> SceneResult<()>;
-                let get_rotation: fn(GameObjectHandle, &Scene) -> SceneResult<Quat>;
-                let set_rotation: fn(GameObjectHandle, &Scene, Quat) -> SceneResult<()>;
-                let get_scale: fn(GameObjectHandle, &Scene) -> SceneResult<f32>;
-                let set_scale: fn(GameObjectHandle, &Scene, f32) -> SceneResult<()>;
+                let get_position: fn(GameObjectHandle, &Scene) -> EcsResult<Vec3>;
+                let set_position: fn(GameObjectHandle, &Scene, Vec3) -> EcsResult<()>;
+                let get_rotation: fn(GameObjectHandle, &Scene) -> EcsResult<Quat>;
+                let set_rotation: fn(GameObjectHandle, &Scene, Quat) -> EcsResult<()>;
+                let get_scale: fn(GameObjectHandle, &Scene) -> EcsResult<f32>;
+                let set_scale: fn(GameObjectHandle, &Scene, f32) -> EcsResult<()>;
 
                 match self.space {
                     Space::Local => {

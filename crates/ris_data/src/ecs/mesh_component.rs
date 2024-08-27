@@ -4,8 +4,10 @@ use crate::ptr::WeakPtr;
 
 use super::id::EcsObject;
 use super::id::EcsTypeId;
+use super::id::GenericHandle;
 use super::id::MeshComponentHandle;
 
+#[derive(Debug)]
 pub struct MeshComponent {
     // identification
     handle: MeshComponentHandle,
@@ -26,8 +28,8 @@ impl EcsObject for MeshComponent {
         super::id::ECS_TYPE_ID_MESH_COMPONENT
     }
 
-    fn handle(&self) -> MeshComponentHandle {
-        self.handle
+    fn handle(&self) -> GenericHandle<Self> {
+        *self.handle
     }
 
     fn is_alive(&self) -> bool {
