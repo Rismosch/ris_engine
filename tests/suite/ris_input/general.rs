@@ -23,6 +23,7 @@ impl TestContext {
                 static_chunks: 0,
                 static_game_objects_per_chunk: 0,
                 mesh_components: 0,
+                script_components: 0,
             },
         );
 

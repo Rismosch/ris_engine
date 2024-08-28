@@ -7,7 +7,6 @@ use super::decl::ScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::handle::GenericHandle;
 use super::id::EcsObject;
-use super::id::EcsTypeId;
 use super::scene::Scene;
 
 pub struct ScriptStartData<'a> {

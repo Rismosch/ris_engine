@@ -1,7 +1,5 @@
 use std::marker::PhantomData;
 
-use super::game_object::GameObject;
-use super::id::EcsIdentifiable;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::id::SceneId;
@@ -25,7 +23,7 @@ pub struct GenericHandle<T: EcsObject + ?Sized> {
     boo: PhantomData<T>,
 }
 
-pub trait Handle {
+pub trait Handle : std::fmt::Debug {
     fn ecs_type_id() -> EcsTypeId where Self: Sized;
     fn to_dyn(self) -> DynHandle;
 }

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::handle::GenericHandle;
 use super::scene::Scene;
 
@@ -50,7 +52,8 @@ pub trait EcsObject : EcsIdentifiable {
     fn is_alive(&self) -> bool;
 }
 
-pub trait Component : std::fmt::Debug {
+pub trait Component : EcsObject {
+    fn new() -> Self;
     fn destroy(&mut self, scene: &Scene);
 }
 

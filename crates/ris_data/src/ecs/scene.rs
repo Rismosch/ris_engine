@@ -11,11 +11,13 @@ use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::id::SceneId;
 use super::mesh_component::MeshComponent;
+use super::script_component::ScriptComponent;
 
 const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
 const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
 const DEFAULT_MESH_COMPONENTS: usize = 1024;
+const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SceneCreateInfo {
@@ -23,12 +25,14 @@ pub struct SceneCreateInfo {
     pub static_chunks: usize,
     pub static_game_objects_per_chunk: usize,
     pub mesh_components: usize,
+    pub script_components: usize,
 }
 
 pub struct Scene {
     pub movable_game_objects: Vec<StrongPtr<ArefCell<GameObject>>>,
     pub static_game_objects: Vec<Vec<StrongPtr<ArefCell<GameObject>>>>,
     pub mesh_components: Vec<StrongPtr<ArefCell<MeshComponent>>>,
+    pub script_components: Vec<StrongPtr<ArefCell<ScriptComponent>>>,
 }
 
 impl Default for SceneCreateInfo {
@@ -38,6 +42,7 @@ impl Default for SceneCreateInfo {
             static_chunks: DEFAULT_STATIC_CHUNKS,
             static_game_objects_per_chunk: DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK,
             mesh_components: DEFAULT_MESH_COMPONENTS,
+            script_components: DEFAULT_SCRIPT_COMPONENTS,
         }
     }
 }
@@ -76,15 +81,24 @@ impl Scene {
         let mut mesh_components = Vec::with_capacity(info.mesh_components);
         for i in 0..info.mesh_components {
             let handle = GenericHandle::new(i.into(), 0)?;
-            let visual_mesh = MeshComponent::new(handle.into(), false);
-            let ptr = StrongPtr::new(ArefCell::new(visual_mesh));
+            let mesh = MeshComponent::new(handle.into(), false);
+            let ptr = StrongPtr::new(ArefCell::new(mesh));
             mesh_components.push(ptr);
+        }
+
+        let mut script_components = Vec::with_capacity(info.script_components);
+        for i in 0..info.script_components {
+            let handle = GenericHandle::new(i.into(), 0)?;
+            let script = ScriptComponent::new(handle.into(), None);
+            let ptr = StrongPtr::new(ArefCell::new(script));
+            script_components.push(ptr);
         }
 
         Ok(Self {
             movable_game_objects,
             static_game_objects,
             mesh_components,
+            script_components,
         })
     }
 
@@ -96,7 +110,7 @@ impl Scene {
             },
             SceneId::Index(index) => match T::ecs_type_id() {
                 super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
-                //id::ECS_TYPE_ID_SCRIPT_COMPONENT => (),
+                super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components[index])?,
                 _ => return Err(EcsError::OutOfBounds),
             },
         };

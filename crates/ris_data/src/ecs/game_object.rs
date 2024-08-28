@@ -11,6 +11,7 @@ use crate::ptr::WeakPtr;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
+use super::handle::ComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsObject;
@@ -29,7 +30,7 @@ pub struct GameObject {
     position: Vec3,
     rotation: Quat,
     scale: f32,
-    components: Vec<Box<dyn Component>>,
+    components: Vec<Box<dyn ComponentHandle>>,
 
     // cache
     cache_is_dirty: bool,
@@ -77,6 +78,19 @@ pub struct ChildIter<'a> {
     index: usize,
 }
 
+const GET_FROM_FLAG_THIS: isize = 0b001;
+const GET_FROM_FLAG_CHILDREN: isize = 0b010;
+const GET_FROM_FLAG_PARENTS: isize = 0b100;
+
+pub enum GetFrom {
+    This = GET_FROM_FLAG_THIS,
+    Children = GET_FROM_FLAG_CHILDREN,
+    Parents = GET_FROM_FLAG_PARENTS,
+    ThisAndChildren = GET_FROM_FLAG_THIS | GET_FROM_FLAG_CHILDREN,
+    ThisAndParents = GET_FROM_FLAG_THIS | GET_FROM_FLAG_PARENTS,
+    All = GET_FROM_FLAG_THIS | GET_FROM_FLAG_CHILDREN | GET_FROM_FLAG_PARENTS,
+}
+
 impl GameObjectHandle {
     pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
         let chunk = match kind {
@@ -97,6 +111,27 @@ impl GameObjectHandle {
 
         Ok(new_handle.into())
     }
+
+    pub fn add_component<T: ComponentHandle>(self, scene: &Scene) -> EcsResult<T> {
+        // todo:
+        // scene::get_chunk_by_id (resolve uses this function internally)
+        // scene::find_destroyed_entry
+        // create components
+        // fill entry with new component
+        // return handle from component
+
+        panic!();
+    }
+
+    pub fn get_component<T: ComponentHandle>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<T>> {
+        let flags = get_from as isize;
+        let search_this = (flags & GET_FROM_FLAG_THIS) != 0;
+        let search_children = (flags & GET_FROM_FLAG_CHILDREN) != 0;
+        let search_parents = (flags & GET_FROM_FLAG_PARENTS) != 0;
+
+        panic!()
+    }
+
     pub fn is_alive(self, scene: &Scene) -> bool {
         let Ok(ptr) = scene.resolve(*self) else {
             return false;
@@ -109,11 +144,6 @@ impl GameObjectHandle {
         let Ok(ptr) = scene.resolve(*self) else {
             return;
         };
-
-        let mut i = 0;
-        for component in ptr.borrow().components.iter() {
-
-        }
 
         let handle = ptr.borrow().handle();
         let handle = GameObjectHandle(handle);
