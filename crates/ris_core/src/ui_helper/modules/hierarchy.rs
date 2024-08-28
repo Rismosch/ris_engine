@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
-use ris_data::ecs::handle::GameObjectHandle;
+use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::EcsObject;
 use ris_data::ecs::id::SceneId;
 use ris_data::ecs::id::GameObjectKind;

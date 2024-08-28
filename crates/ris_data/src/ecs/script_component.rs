@@ -3,8 +3,8 @@ use ris_error::RisResult;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-use super::handle::ScriptComponentHandle;
-use super::handle::GameObjectHandle;
+use super::decl::ScriptComponentHandle;
+use super::decl::GameObjectHandle;
 use super::handle::GenericHandle;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
@@ -51,10 +51,6 @@ impl ScriptComponent {
 }
 
 impl EcsObject for ScriptComponent {
-    fn ecs_type_id() -> EcsTypeId {
-        super::handle::ECS_TYPE_ID_SCRIPT_COMPONENT
-    }
-
     fn handle(&self) -> GenericHandle<Self> {
         *self.handle
     }

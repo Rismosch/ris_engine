@@ -1,7 +1,6 @@
+use super::decl::MeshComponentHandle;
 use super::id::EcsObject;
-use super::id::EcsTypeId;
 use super::handle::GenericHandle;
-use super::handle::MeshComponentHandle;
 
 #[derive(Debug)]
 pub struct MeshComponent {
@@ -20,10 +19,6 @@ impl MeshComponent {
 }
 
 impl EcsObject for MeshComponent {
-    fn ecs_type_id() -> EcsTypeId {
-        super::handle::ECS_TYPE_ID_MESH_COMPONENT
-    }
-
     fn handle(&self) -> GenericHandle<Self> {
         *self.handle
     }

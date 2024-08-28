@@ -1,3 +1,4 @@
+pub mod decl;
 pub mod error;
 pub mod game_object;
 pub mod handle;

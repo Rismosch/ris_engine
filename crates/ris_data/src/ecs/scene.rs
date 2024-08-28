@@ -95,7 +95,7 @@ impl Scene {
                 GameObjectKind::Movable => cast(&self.movable_game_objects[index])?,
             },
             SceneId::Index(index) => match T::ecs_type_id() {
-                super::handle::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
+                super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
                 //id::ECS_TYPE_ID_SCRIPT_COMPONENT => (),
                 _ => return Err(EcsError::OutOfBounds),
             },

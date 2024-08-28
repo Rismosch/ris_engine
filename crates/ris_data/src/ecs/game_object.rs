@@ -8,13 +8,12 @@ use ris_math::vector::Vec4;
 use crate::ptr::ArefCell;
 use crate::ptr::WeakPtr;
 
+use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::GenericHandle;
-use super::handle::GameObjectHandle;
 use super::id::Component;
 use super::id::EcsObject;
-use super::id::EcsTypeId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
 
@@ -63,10 +62,6 @@ impl GameObject {
 }
 
 impl EcsObject for GameObject {
-    fn ecs_type_id() -> EcsTypeId {
-        super::handle::ECS_TYPE_ID_GAME_OBJECT
-    }
-
     fn handle(&self) -> GenericHandle<Self> {
         *self.handle
     }

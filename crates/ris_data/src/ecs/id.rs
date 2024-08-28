@@ -41,8 +41,11 @@ pub type EcsTypeId = usize;
 // ecs traits
 //
 
-pub trait EcsObject {
+pub trait EcsIdentifiable {
     fn ecs_type_id() -> EcsTypeId;
+}
+
+pub trait EcsObject : EcsIdentifiable {
     fn handle(&self) -> GenericHandle<Self>;
     fn is_alive(&self) -> bool;
 }
