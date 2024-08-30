@@ -3,9 +3,10 @@ use super::handle::ComponentHandle;
 use super::handle::DynHandle;
 use super::handle::Handle;
 use super::handle::GenericHandle;
-use super::id::EcsIdentifiable;
+use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::mesh_component::MeshComponent;
+use super::scene::Scene;
 use super::script_component::ScriptComponent;
 
 pub const ECS_TYPE_ID_GAME_OBJECT: EcsTypeId = 0;
@@ -74,9 +75,15 @@ mod declare {
                 }
             }
 
-            impl EcsIdentifiable for $handle_type {
+            impl EcsObject for $handle_type {
                 fn ecs_type_id() -> EcsTypeId {
                     $ecs_type_id
+                }
+            }
+
+            impl $handle_name {
+                fn is_alive(self, scene: &Scene) -> bool {
+                    self.0.is_alive(scene)
                 }
             }
         }

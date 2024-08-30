@@ -33,28 +33,14 @@ pub trait Script : std::fmt::Debug {
 
 #[derive(Debug)]
 pub struct ScriptComponent {
-    handle: ScriptComponentHandle,
     script: Option<Box<dyn Script>>,
 }
 
-impl ScriptComponent {
-    pub fn new(
-        handle: ScriptComponentHandle,
-        script: Option<Box<dyn Script>>,
-    ) -> Self {
+impl Default for ScriptComponent {
+    fn default() -> Self {
         Self {
-            handle,
-            script,
+            script: None,
         }
     }
 }
 
-impl EcsObject for ScriptComponent {
-    fn handle(&self) -> GenericHandle<Self> {
-        *self.handle
-    }
-
-    fn is_alive(&self) -> bool {
-        self.script.is_some()
-    }
-}

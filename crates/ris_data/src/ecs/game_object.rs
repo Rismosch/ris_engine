@@ -15,14 +15,14 @@ use super::handle::ComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsObject;
+use super::id::EcsWeakPtr;
+use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::scene::Scene;
 
 #[derive(Debug)]
 pub struct GameObject {
     // identification
-    handle: GameObjectHandle,
-    is_alive: bool,
     name: String,
 
     // local values
@@ -42,11 +42,9 @@ pub struct GameObject {
     children: Vec<GameObjectHandle>,
 }
 
-impl GameObject {
-    pub fn new(handle: GameObjectHandle, is_alive: bool) -> GameObject {
+impl Default for GameObject {
+    fn default() -> Self {
         Self {
-            handle,
-            is_alive,
             name: "game object".to_string(),
             is_visible: true,
             position: Vec3::init(0.0),
@@ -59,16 +57,6 @@ impl GameObject {
             parent: None,
             children: Vec::new(),
         }
-    }
-}
-
-impl EcsObject for GameObject {
-    fn handle(&self) -> GenericHandle<Self> {
-        *self.handle
-    }
-
-    fn is_alive(&self) -> bool {
-        self.is_alive
     }
 }
 
@@ -93,23 +81,12 @@ pub enum GetFrom {
 
 impl GameObjectHandle {
     pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
-        let chunk = match kind {
-            GameObjectKind::Movable => &scene.movable_game_objects,
-            GameObjectKind::Static { chunk } => &scene.static_game_objects[chunk],
+        let id = GameObjectId {
+            kind,
+            index: 0,
         };
-
-        let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
-            return Err(EcsError::OutOfMemory);
-        };
-
-        let ptr = &chunk[position];
-        let old_handle = ptr.borrow().handle;
-        let new_generation = old_handle.generation().wrapping_add(1);
-        let new_handle = GenericHandle::new(old_handle.scene_id(), new_generation)?;
-        let game_object = GameObject::new(new_handle.into(), true);
-        *ptr.borrow_mut() = game_object;
-
-        Ok(new_handle.into())
+        let ptr = scene.reserve(id.into())?;
+        Ok(ptr.borrow().handle.into())
     }
 
     pub fn add_component<T: ComponentHandle>(self, scene: &Scene) -> EcsResult<T> {
@@ -132,30 +109,18 @@ impl GameObjectHandle {
         panic!()
     }
 
-    pub fn is_alive(self, scene: &Scene) -> bool {
-        let Ok(ptr) = scene.resolve(*self) else {
-            return false;
-        };
-
-        ptr.borrow().is_alive
-    }
-
     pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.resolve(*self) else {
+        let Ok(ptr) = scene.resolve(self.into()) else {
             return;
         };
 
-        let handle = ptr.borrow().handle();
-        let handle = GameObjectHandle(handle);
-        let Ok(child_iter) = handle.child_iter(scene) else {
-            return;
+        if let Ok(child_iter) = self.child_iter(scene) {
+            for child in child_iter {
+                child.destroy(scene);
+            }
         };
 
-        for child in child_iter {
-            child.destroy(scene);
-        }
-
-        ptr.borrow_mut().is_alive = false;
+        scene.mark_as_destroyed(self.into());
     }
 
     pub fn name(self, scene: &Scene) -> EcsResult<String> {
@@ -319,9 +284,20 @@ impl GameObjectHandle {
     }
 
     pub fn parent(self, scene: &Scene) -> EcsResult<Option<GameObjectHandle>> {
-        match self.parent_ptr(scene)? {
-            Some(parent_ptr) => Ok(Some(parent_ptr.borrow().handle)),
-            None => Ok(None),
+        let ptr = scene.resolve(*self)?;
+        let mut aref_mut = ptr.borrow_mut();
+
+        let Some(parent_handle) = aref_mut.parent else {
+            return Ok(None);
+        };
+
+        if parent_handle.is_alive(scene) {
+            Ok(Some(parent_handle))
+        } else {
+            aref_mut.parent = None;
+            drop(aref_mut);
+            self.set_cache_to_dirty(scene)?;
+            Ok(None)
         }
     }
 
@@ -368,7 +344,7 @@ impl GameObjectHandle {
             let position = old_aref_mut
                 .children
                 .iter()
-                .position(|x| *x == aref_mut.handle);
+                .position(|x| *x == self);
 
             if let Some(position) = position {
                 old_aref_mut.children.remove(position);
@@ -381,12 +357,12 @@ impl GameObjectHandle {
             let position = new_aref_mut
                 .children
                 .iter()
-                .position(|x| *x == aref_mut.handle);
+                .position(|x| *x == self);
 
             // only add if it is not a child yet
             if position.is_none() {
                 let index = sibling_index.clamp(0, new_aref_mut.children.len());
-                new_aref_mut.children.insert(index, aref_mut.handle);
+                new_aref_mut.children.insert(index, self);
             }
         }
 
@@ -472,20 +448,20 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    fn recalculate_cache(self, scene: &Scene) -> EcsResult<WeakPtr<ArefCell<GameObject>>> {
+    fn recalculate_cache(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {
         let ptr = scene.resolve(*self)?;
         if !ptr.borrow().cache_is_dirty {
             return Ok(ptr);
         }
 
-        let (parent_is_visible_in_hierarchy, parent_model) = match self.parent_ptr(scene)? {
-            Some(parent_ptr) => {
-                let parent_handle = parent_ptr.borrow().handle;
+        let (parent_is_visible_in_hierarchy, parent_model) = match self.parent(scene)? {
+            Some(parent_handle) => {
                 parent_handle.recalculate_cache(scene)?;
+                let parent_ptr = scene.resolve(*parent_handle)?;
                 let parent_aref = parent_ptr.borrow();
 
                 (parent_aref.is_visible_in_hierarchy, parent_aref.model)
-            }
+            },
             None => (true, Mat4::init(1.0)),
         };
 
@@ -499,25 +475,7 @@ impl GameObjectHandle {
         Ok(ptr)
     }
 
-    fn parent_ptr(self, scene: &Scene) -> EcsResult<Option<WeakPtr<ArefCell<GameObject>>>> {
-        let ptr = scene.resolve(*self)?;
-        let mut aref_mut = ptr.borrow_mut();
-
-        let Some(parent_handle) = aref_mut.parent else {
-            return Ok(None);
-        };
-
-        if let Ok(parent_ptr) = scene.resolve(*parent_handle) {
-            Ok(Some(parent_ptr))
-        } else {
-            aref_mut.parent = None;
-            drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
-            Ok(None)
-        }
-    }
-
-    fn clear_destroyed_children(self, scene: &Scene) -> EcsResult<WeakPtr<ArefCell<GameObject>>> {
+    fn clear_destroyed_children(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {
         let ptr = scene.resolve(*self)?;
         let mut aref_mut = ptr.borrow_mut();
 

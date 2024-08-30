@@ -28,9 +28,9 @@ fn should_add() {
         panic!("id was not index based");
     };
     let ptr = &scene.mesh_components[index];
-    let mesh_: MeshComponentHandle = ptr.borrow().handle().into();
+    let mesh_: MeshComponentHandle = ptr.borrow().handle.into();
 
-    assert!(ptr.borrow().is_alive());
+    assert!(ptr.borrow().is_alive);
     assert_eq!(mesh, mesh_);
 }
 

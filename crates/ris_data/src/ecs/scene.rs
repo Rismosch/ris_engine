@@ -6,7 +6,11 @@ use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
 use super::handle::GenericHandle;
+use super::id::Component;
+use super::id::EcsInstance;
 use super::id::EcsObject;
+use super::id::EcsPtr;
+use super::id::EcsWeakPtr;
 use super::id::GameObjectId;
 use super::id::GameObjectKind;
 use super::id::SceneId;
@@ -29,10 +33,10 @@ pub struct SceneCreateInfo {
 }
 
 pub struct Scene {
-    pub movable_game_objects: Vec<StrongPtr<ArefCell<GameObject>>>,
-    pub static_game_objects: Vec<Vec<StrongPtr<ArefCell<GameObject>>>>,
-    pub mesh_components: Vec<StrongPtr<ArefCell<MeshComponent>>>,
-    pub script_components: Vec<StrongPtr<ArefCell<ScriptComponent>>>,
+    pub movable_game_objects: Vec<EcsPtr<GameObject>>,
+    pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
+    pub mesh_components: Vec<EcsPtr<MeshComponent>>,
+    pub script_components: Vec<EcsPtr<ScriptComponent>>,
 }
 
 impl Default for SceneCreateInfo {
@@ -51,13 +55,13 @@ impl Scene {
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let mut movable_game_objects = Vec::with_capacity(info.movable_game_objects);
         for i in 0..info.movable_game_objects {
-            let id = GameObjectId {
+            let scene_id = SceneId::GameObject(GameObjectId{
                 kind: GameObjectKind::Movable,
-                index: i,
-            };
-            let handle = GenericHandle::new(id.into(), 0)?;
-            let game_object = GameObject::new(handle.into(), false);
-            let ptr = StrongPtr::new(ArefCell::new(game_object));
+                index: i
+            });
+            let handle = GenericHandle::new(scene_id, 0)?;
+            let instance = EcsInstance::new(handle);
+            let ptr = StrongPtr::new(ArefCell::new(instance));
             movable_game_objects.push(ptr);
         }
 
@@ -65,13 +69,13 @@ impl Scene {
         for i in 0..info.static_chunks {
             let mut chunk = Vec::with_capacity(info.static_game_objects_per_chunk);
             for j in 0..info.static_game_objects_per_chunk {
-                let id = GameObjectId {
-                    kind: GameObjectKind::Static { chunk: i },
+                let scene_id = SceneId::GameObject(GameObjectId{
+                    kind: GameObjectKind::Static{chunk: i},
                     index: j,
-                };
-                let handle = GenericHandle::new(id.into(), 0)?;
-                let game_object = GameObject::new(handle.into(), false);
-                let ptr = StrongPtr::new(ArefCell::new(game_object));
+                });
+                let handle = GenericHandle::new(scene_id, 0)?;
+                let instance = EcsInstance::new(handle);
+                let ptr = StrongPtr::new(ArefCell::new(instance));
                 chunk.push(ptr);
             }
 
@@ -80,17 +84,19 @@ impl Scene {
 
         let mut mesh_components = Vec::with_capacity(info.mesh_components);
         for i in 0..info.mesh_components {
-            let handle = GenericHandle::new(i.into(), 0)?;
-            let mesh = MeshComponent::new(handle.into(), false);
-            let ptr = StrongPtr::new(ArefCell::new(mesh));
+            let scene_id = SceneId::Index(i);
+            let handle = GenericHandle::new(scene_id, 0)?;
+            let instance = EcsInstance::new(handle);
+            let ptr = StrongPtr::new(ArefCell::new(instance));
             mesh_components.push(ptr);
         }
 
         let mut script_components = Vec::with_capacity(info.script_components);
         for i in 0..info.script_components {
-            let handle = GenericHandle::new(i.into(), 0)?;
-            let script = ScriptComponent::new(handle.into(), None);
-            let ptr = StrongPtr::new(ArefCell::new(script));
+            let scene_id = SceneId::Index(i);
+            let handle = GenericHandle::new(scene_id, 0)?;
+            let instance = EcsInstance::new(handle);
+            let ptr = StrongPtr::new(ArefCell::new(instance));
             script_components.push(ptr);
         }
 
@@ -102,55 +108,89 @@ impl Scene {
         })
     }
 
-    pub fn resolve<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<WeakPtr<ArefCell<T>>> {
-        let ptr: WeakPtr<ArefCell<T>> = match handle.scene_id() {
-            SceneId::GameObject(GameObjectId { kind, index }) => match kind {
-                GameObjectKind::Static { chunk } => cast(&self.static_game_objects[chunk][index])?,
-                GameObjectKind::Movable => cast(&self.movable_game_objects[index])?,
-            },
-            SceneId::Index(index) => match T::ecs_type_id() {
-                super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components[index])?,
-                super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components[index])?,
-                _ => return Err(EcsError::OutOfBounds),
-            },
+    pub fn resolve<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {
+        let chunk = self.find_chunk(handle.scene_id())?;
+        let index = match handle.scene_id() {
+            SceneId::GameObject(GameObjectId{index, ..}) => index,
+            SceneId::Index(index) => index,
         };
-
+        let ptr = &chunk[index];
         let aref = ptr.borrow();
 
-        let is_alive = aref.is_alive();
-        let generation_matches = aref.handle().generation() == handle.generation();
+        let is_alive = aref.is_alive;
+        let generation_matches = aref.handle.generation() == handle.generation();
 
         if is_alive && generation_matches {
-            Ok(ptr)
+            Ok(ptr.to_weak())
         } else {
             Err(EcsError::ObjectIsDestroyed)
         }
     }
 
+    pub fn reserve<T: EcsObject>(&self, scene_id: SceneId) -> EcsResult<EcsWeakPtr<T>> {
+        let chunk = self.find_chunk(scene_id)?;
+
+        let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
+            return Err(EcsError::OutOfMemory);
+        };
+
+        let ptr = &chunk[position];
+        let old_handle = ptr.borrow().handle;
+        let new_generation = old_handle.generation().wrapping_add(1);
+        let new_handle = GenericHandle::new(old_handle.scene_id(), new_generation)?;
+
+        let mut aref_mut = ptr.borrow_mut();
+        aref_mut.handle = new_handle;
+        aref_mut.is_alive = true;
+        aref_mut.value = T::default();
+        drop(aref_mut);
+
+        Ok(ptr.to_weak())
+    }
+
+    pub fn mark_as_destroyed<T: EcsObject>(&self, handle: GenericHandle<T>) {
+        let Ok(chunk) = self.find_chunk::<T>(handle.scene_id()) else {
+            return;
+        };
+        let index = match handle.scene_id() {
+            SceneId::GameObject(GameObjectId{index, ..}) => index,
+            SceneId::Index(index) => index,
+        };
+        let ptr = &chunk[index];
+        ptr.borrow_mut().is_alive = false;
+    }
+
     pub fn count_available_game_objects(&self, kind: GameObjectKind) -> usize {
-        let chunk = match kind {
+        let chunk = match kind{
             GameObjectKind::Movable => &self.movable_game_objects,
             GameObjectKind::Static { chunk } => &self.static_game_objects[chunk],
         };
 
-        chunk.iter().filter(|x| x.borrow().is_alive()).count()
+        chunk.iter().filter(|x| x.borrow().is_alive).count()
+    }
+
+    fn find_chunk<T: EcsObject>(&self, scene_id: SceneId) -> EcsResult<&[EcsPtr<T>]> {
+        match scene_id {
+            SceneId::GameObject(GameObjectId { kind, index }) => match kind {
+                GameObjectKind::Static { chunk } => cast(&self.static_game_objects[chunk]),
+                GameObjectKind::Movable => cast(&self.movable_game_objects),
+            },
+            SceneId::Index(index) => match T::ecs_type_id() {
+                super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components),
+                super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components),
+                _ => return Err(EcsError::OutOfBounds),
+            },
+        }
     }
 }
 
-fn cast<T: EcsObject, U: EcsObject>(ptr: &StrongPtr<ArefCell<T>>) -> EcsResult<WeakPtr<ArefCell<U>>> {
-
-    // if the logic in Scene::resolve is sound, then an additional assertion is not needed. do one
-    // anyways in debug, just to be safe.
-    
-    #[cfg(debug_assertions)]
-    {
-        if T::ecs_type_id() != U::ecs_type_id() {
-            return Err(EcsError::InvalidOperation("invalid cast".to_string()));
-        }
+fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> { 
+    if T::ecs_type_id() != U::ecs_type_id() {
+        return Err(EcsError::InvalidOperation("invalid cast".to_string()));
     }
 
     // transmute is safe, because T is equal to U
-    let result = unsafe {std::mem::transmute::<WeakPtr<ArefCell<T>>, WeakPtr<ArefCell<U>>>(ptr.to_weak())};
+    let result = unsafe {std::mem::transmute::<&[EcsPtr<T>], &[EcsPtr<U>]>(chunk)};
 
     Ok(result)
 }

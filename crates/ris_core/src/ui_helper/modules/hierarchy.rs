@@ -72,14 +72,14 @@ impl IUiHelperModule for HierarchyModule {
         let handles = chunk
             .iter()
             .filter(|x| {
-                let handle: GameObjectHandle = x.borrow().handle().into();
+                let handle: GameObjectHandle = x.borrow().handle.into();
                 let parent_handle = handle.parent(scene).unwrap_or(None);
                 let is_root = parent_handle.is_none();
-                let is_alive = x.borrow().is_alive();
+                let is_alive = x.borrow().is_alive;
 
                 is_alive && is_root
             })
-            .map(|x| x.borrow().handle())
+            .map(|x| x.borrow().handle)
             .collect::<Vec<_>>();
 
         for handle in handles {

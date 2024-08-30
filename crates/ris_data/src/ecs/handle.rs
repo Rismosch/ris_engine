@@ -5,6 +5,7 @@ use super::id::EcsTypeId;
 use super::id::SceneId;
 use super::error::EcsError;
 use super::error::EcsResult;
+use super::scene::Scene;
 
 //
 // handles
@@ -101,22 +102,11 @@ impl DynHandle {
     pub fn generation(self) -> usize {
         self.generation
     }
-
-    //pub fn cast<T: EcsObject>(self) -> EcsResult<GenericHandle<T>> {
-    //    if T::ecs_type_id() == self.ecs_type_id {
-    //        Ok(GenericHandle {
-    //            inner: self,
-    //            boo: PhantomData::default(),
-    //        })
-    //    } else {
-    //        Err(EcsError::TypeDoesNotMatchId)
-    //    }
-    //}
 }
 
 impl<T: EcsObject + ?Sized> GenericHandle<T> {
     pub fn ecs_type_id(self) -> EcsTypeId {
-        self.ecs_type_id()
+        self.inner.ecs_type_id()
     }
 }
 
@@ -155,3 +145,12 @@ impl<T: EcsObject> PartialEq for GenericHandle<T> {
 impl<T: EcsObject> Copy for GenericHandle<T> {}
 impl<T: EcsObject> Eq for GenericHandle<T> {}
 
+//
+// common functions
+//
+
+impl<T: EcsObject> GenericHandle<T> {
+    pub fn is_alive(self, scene: &Scene) -> bool {
+        scene.resolve(self).is_ok()
+    }
+}
