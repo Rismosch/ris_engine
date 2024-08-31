@@ -4,7 +4,9 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::decl::GameObjectHandle;
 use super::error::EcsError;
+use super::error::EcsResult;
 use super::handle::GenericHandle;
 use super::scene::Scene;
 
@@ -63,7 +65,9 @@ pub trait EcsObject: Default {
 }
 
 pub trait Component : EcsObject {
+    fn create(game_object: GameObjectHandle) -> Self;
     fn destroy(&mut self, scene: &Scene);
+    fn game_object(&self) -> GameObjectHandle;
 }
 
 pub struct EcsInstance<T: EcsObject> {

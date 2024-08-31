@@ -19,11 +19,11 @@ const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
 
 #[test]
 fn should_add() {
-    panic!()
+    panic!();
     //let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     //let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    //let mesh = g.add_component::<MeshComponentHandle>(&scene).unwrap();
+    //let mesh = g.add_component::<MeshComponent>(&scene).unwrap();
 
     //let SceneId::Index(index) = mesh.scene_id() else {
     //    panic!("id was not index based");
