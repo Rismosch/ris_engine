@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::id::SceneId;
+use super::id::SceneKind;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::scene::Scene;
@@ -38,9 +39,10 @@ pub trait ComponentHandle : Handle {}
 impl DynHandle {
     pub fn new(ecs_type_id: EcsTypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
         // assert the ecs_type_id matches with the scene_id
-        let type_matches_id = match scene_id {
-            SceneId::GameObject(_) => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
-            SceneId::Index(_) => ecs_type_id != super::decl::ECS_TYPE_ID_GAME_OBJECT,
+        let type_matches_id = match scene_id.kind {
+            SceneKind::StaticGameObjct { .. } => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
+            SceneKind::MovableGameObject => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
+            SceneKind::Component => ecs_type_id != super::decl::ECS_TYPE_ID_GAME_OBJECT,
         };
 
         if type_matches_id {
@@ -151,6 +153,6 @@ impl<T: EcsObject> Eq for GenericHandle<T> {}
 
 impl<T: EcsObject> GenericHandle<T> {
     pub fn is_alive(self, scene: &Scene) -> bool {
-        scene.resolve(self).is_ok()
+        scene.deref(self).is_ok()
     }
 }

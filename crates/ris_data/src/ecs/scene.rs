@@ -11,8 +11,7 @@ use super::id::EcsInstance;
 use super::id::EcsObject;
 use super::id::EcsPtr;
 use super::id::EcsWeakPtr;
-use super::id::GameObjectId;
-use super::id::GameObjectKind;
+use super::id::SceneKind;
 use super::id::SceneId;
 use super::mesh_component::MeshComponent;
 use super::script_component::ScriptComponent;
@@ -55,11 +54,11 @@ impl Scene {
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let mut movable_game_objects = Vec::with_capacity(info.movable_game_objects);
         for i in 0..info.movable_game_objects {
-            let scene_id = SceneId::GameObject(GameObjectId{
-                kind: GameObjectKind::Movable,
-                index: i
-            });
-            let handle = GenericHandle::new(scene_id, 0)?;
+            let id = SceneId {
+                kind: SceneKind::MovableGameObject,
+                index: i,
+            };
+            let handle = GenericHandle::new(id, 0)?;
             let instance = EcsInstance::new(handle);
             let ptr = StrongPtr::new(ArefCell::new(instance));
             movable_game_objects.push(ptr);
@@ -69,11 +68,11 @@ impl Scene {
         for i in 0..info.static_chunks {
             let mut chunk = Vec::with_capacity(info.static_game_objects_per_chunk);
             for j in 0..info.static_game_objects_per_chunk {
-                let scene_id = SceneId::GameObject(GameObjectId{
-                    kind: GameObjectKind::Static{chunk: i},
+                let id = SceneId{
+                    kind: SceneKind::StaticGameObjct{chunk: i},
                     index: j,
-                });
-                let handle = GenericHandle::new(scene_id, 0)?;
+                };
+                let handle = GenericHandle::new(id, 0)?;
                 let instance = EcsInstance::new(handle);
                 let ptr = StrongPtr::new(ArefCell::new(instance));
                 chunk.push(ptr);
@@ -84,8 +83,11 @@ impl Scene {
 
         let mut mesh_components = Vec::with_capacity(info.mesh_components);
         for i in 0..info.mesh_components {
-            let scene_id = SceneId::Index(i);
-            let handle = GenericHandle::new(scene_id, 0)?;
+            let id = SceneId{
+                kind: SceneKind::Component,
+                index: i,
+            };
+            let handle = GenericHandle::new(id, 0)?;
             let instance = EcsInstance::new(handle);
             let ptr = StrongPtr::new(ArefCell::new(instance));
             mesh_components.push(ptr);
@@ -93,8 +95,11 @@ impl Scene {
 
         let mut script_components = Vec::with_capacity(info.script_components);
         for i in 0..info.script_components {
-            let scene_id = SceneId::Index(i);
-            let handle = GenericHandle::new(scene_id, 0)?;
+            let id = SceneId{
+                kind: SceneKind::Component,
+                index: i,
+            };
+            let handle = GenericHandle::new(id, 0)?;
             let instance = EcsInstance::new(handle);
             let ptr = StrongPtr::new(ArefCell::new(instance));
             script_components.push(ptr);
@@ -108,12 +113,9 @@ impl Scene {
         })
     }
 
-    pub fn resolve<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {
-        let chunk = self.find_chunk(handle.scene_id())?;
-        let index = match handle.scene_id() {
-            SceneId::GameObject(GameObjectId{index, ..}) => index,
-            SceneId::Index(index) => index,
-        };
+    pub fn deref<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {
+        let chunk = self.find_chunk(handle.scene_id().kind)?;
+        let index = handle.scene_id().index;
         let ptr = &chunk[index];
         let aref = ptr.borrow();
 
@@ -127,8 +129,8 @@ impl Scene {
         }
     }
 
-    pub fn reserve<T: EcsObject>(&self, scene_id: SceneId) -> EcsResult<EcsWeakPtr<T>> {
-        let chunk = self.find_chunk(scene_id)?;
+    pub fn create_new<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
+        let chunk = self.find_chunk(kind)?;
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
             return Err(EcsError::OutOfMemory);
@@ -149,33 +151,20 @@ impl Scene {
     }
 
     pub fn mark_as_destroyed<T: EcsObject>(&self, handle: GenericHandle<T>) {
-        let Ok(chunk) = self.find_chunk::<T>(handle.scene_id()) else {
+        let Ok(chunk) = self.find_chunk::<T>(handle.scene_id().kind) else {
             return;
         };
-        let index = match handle.scene_id() {
-            SceneId::GameObject(GameObjectId{index, ..}) => index,
-            SceneId::Index(index) => index,
-        };
+        let index = handle.scene_id().index;
         let ptr = &chunk[index];
         ptr.borrow_mut().is_alive = false;
     }
 
-    pub fn count_available_game_objects(&self, kind: GameObjectKind) -> usize {
-        let chunk = match kind{
-            GameObjectKind::Movable => &self.movable_game_objects,
-            GameObjectKind::Static { chunk } => &self.static_game_objects[chunk],
-        };
 
-        chunk.iter().filter(|x| x.borrow().is_alive).count()
-    }
-
-    fn find_chunk<T: EcsObject>(&self, scene_id: SceneId) -> EcsResult<&[EcsPtr<T>]> {
-        match scene_id {
-            SceneId::GameObject(GameObjectId { kind, index }) => match kind {
-                GameObjectKind::Static { chunk } => cast(&self.static_game_objects[chunk]),
-                GameObjectKind::Movable => cast(&self.movable_game_objects),
-            },
-            SceneId::Index(index) => match T::ecs_type_id() {
+    fn find_chunk<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
+        match kind {
+            SceneKind::MovableGameObject => cast(&self.movable_game_objects),
+            SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
+            SceneKind::Component => match T::ecs_type_id() {
                 super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components),
                 super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components),
                 _ => return Err(EcsError::OutOfBounds),
@@ -186,7 +175,7 @@ impl Scene {
 
 fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> { 
     if T::ecs_type_id() != U::ecs_type_id() {
-        return Err(EcsError::InvalidOperation("invalid cast".to_string()));
+        return Err(EcsError::InvalidCast);
     }
 
     // transmute is safe, because T is equal to U

@@ -5,6 +5,7 @@ use std::ptr;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::EcsObject;
 use ris_data::ecs::id::SceneId;
+use ris_data::ecs::id::SceneKind;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
@@ -57,9 +58,11 @@ impl IUiHelperModule for HierarchyModule {
             (&scene.static_game_objects[chunk], GameObjectKind::Static { chunk })
         };
 
-        let available = scene.count_available_game_objects(kind);
-
-        ui.label_text("available", format!("{}/{}", available, chunk.len()));
+        let alive = chunk
+            .iter()
+            .filter(|x| x.borrow().is_alive)
+            .count();
+        ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
 
         if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
             if ui.menu_item("new") {
@@ -140,10 +143,17 @@ impl HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                let SceneId::GameObject(id) = handle.scene_id() else {
-                    return ris_error::new_result!("handle id was not a gameobject");
+                let kind = handle.scene_id().kind;
+                let is_game_object = match kind {
+                    SceneKind::MovableGameObject => true,
+                    SceneKind::StaticGameObjct { .. } => true,
+                    SceneKind::Component => false,
                 };
-                let child = GameObjectHandle::new(scene, id.kind)?;
+
+                if !is_game_object {
+                    return ris_error::new_result!("handle id was not a gameobject");
+                }
+                let child = GameObjectHandle::new(scene, kind.try_into()?)?;
                 child.set_parent(scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }

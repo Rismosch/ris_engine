@@ -24,22 +24,22 @@ const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
 };
 
 #[test]
-fn should_create_and_resolve_game_object() {
+fn should_create_and_deref_game_object() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let ptr = scene.resolve(g.into());
+    let ptr = scene.deref(g.into());
     assert!(ptr.is_ok());
 }
 
 #[test]
-fn should_not_resolve_destroyed_handle() {
+fn should_not_deref_destroyed_handle() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     g.destroy(&scene);
 
     assert!(!g.is_alive(&scene));
-    assert!(scene.resolve(g.into()).is_err());
+    assert!(scene.deref(g.into()).is_err());
 }
 
 #[test]

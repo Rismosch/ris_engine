@@ -4,6 +4,7 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::error::EcsError;
 use super::handle::GenericHandle;
 use super::scene::Scene;
 
@@ -18,30 +19,40 @@ pub enum GameObjectKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GameObjectId {
-    pub kind: GameObjectKind,
-    pub index: usize,
+pub enum SceneKind {
+    MovableGameObject,
+    StaticGameObjct{ chunk: usize},
+    Component,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SceneId {
-    GameObject(GameObjectId),
-    Index(usize),
-}
-
-impl From<GameObjectId> for SceneId {
-    fn from(value: GameObjectId) -> Self {
-        Self::GameObject(value)
-    }
-}
-
-impl From<usize> for SceneId {
-    fn from(value: usize) -> Self {
-        Self::Index(value)
-    }
+pub struct SceneId {
+    pub kind: SceneKind,
+    pub index: usize,
 }
 
 pub type EcsTypeId = usize;
+
+impl From<GameObjectKind> for SceneKind {
+    fn from(value: GameObjectKind) -> Self {
+        match value {
+            GameObjectKind::Movable => Self::MovableGameObject,
+            GameObjectKind::Static { chunk } => Self::StaticGameObjct { chunk},
+        }
+    }
+}
+
+impl TryFrom<SceneKind> for GameObjectKind {
+    type Error = EcsError;
+
+    fn try_from(value: SceneKind) -> Result<Self, Self::Error> {
+        match value {
+            SceneKind::MovableGameObject => Ok(Self::Movable),
+            SceneKind::StaticGameObjct { chunk } => Ok(Self::Static{chunk}),
+            SceneKind::Component => Err(EcsError::InvalidCast)
+        }
+    }
+}
 
 //
 // ecs traits and objects

@@ -19,19 +19,20 @@ const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
 
 #[test]
 fn should_add() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    panic!()
+    //let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    //let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let mesh = g.add_component::<MeshComponentHandle>(&scene).unwrap();
+    //let mesh = g.add_component::<MeshComponentHandle>(&scene).unwrap();
 
-    let SceneId::Index(index) = mesh.scene_id() else {
-        panic!("id was not index based");
-    };
-    let ptr = &scene.mesh_components[index];
-    let mesh_: MeshComponentHandle = ptr.borrow().handle.into();
+    //let SceneId::Index(index) = mesh.scene_id() else {
+    //    panic!("id was not index based");
+    //};
+    //let ptr = &scene.mesh_components[index];
+    //let mesh_: MeshComponentHandle = ptr.borrow().handle.into();
 
-    assert!(ptr.borrow().is_alive);
-    assert_eq!(mesh, mesh_);
+    //assert!(ptr.borrow().is_alive);
+    //assert_eq!(mesh, mesh_);
 }
 
 #[test]
