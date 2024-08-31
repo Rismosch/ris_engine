@@ -52,58 +52,17 @@ impl Default for SceneCreateInfo {
 
 impl Scene {
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
-        let mut movable_game_objects = Vec::with_capacity(info.movable_game_objects);
-        for i in 0..info.movable_game_objects {
-            let id = SceneId {
-                kind: SceneKind::MovableGameObject,
-                index: i,
-            };
-            let handle = GenericHandle::new(id, 0)?;
-            let instance = EcsInstance::new(handle);
-            let ptr = StrongPtr::new(ArefCell::new(instance));
-            movable_game_objects.push(ptr);
-        }
+        let movable_game_objects = create_chunk(SceneKind::MovableGameObject, info.movable_game_objects)?;
 
         let mut static_game_objects = Vec::with_capacity(info.static_chunks);
         for i in 0..info.static_chunks {
-            let mut chunk = Vec::with_capacity(info.static_game_objects_per_chunk);
-            for j in 0..info.static_game_objects_per_chunk {
-                let id = SceneId{
-                    kind: SceneKind::StaticGameObjct{chunk: i},
-                    index: j,
-                };
-                let handle = GenericHandle::new(id, 0)?;
-                let instance = EcsInstance::new(handle);
-                let ptr = StrongPtr::new(ArefCell::new(instance));
-                chunk.push(ptr);
-            }
-
+            let kind = SceneKind::StaticGameObjct{chunk: i};
+            let chunk = create_chunk(kind,info.static_game_objects_per_chunk)?;
             static_game_objects.push(chunk);
         }
 
-        let mut mesh_components = Vec::with_capacity(info.mesh_components);
-        for i in 0..info.mesh_components {
-            let id = SceneId{
-                kind: SceneKind::Component,
-                index: i,
-            };
-            let handle = GenericHandle::new(id, 0)?;
-            let instance = EcsInstance::new(handle);
-            let ptr = StrongPtr::new(ArefCell::new(instance));
-            mesh_components.push(ptr);
-        }
-
-        let mut script_components = Vec::with_capacity(info.script_components);
-        for i in 0..info.script_components {
-            let id = SceneId{
-                kind: SceneKind::Component,
-                index: i,
-            };
-            let handle = GenericHandle::new(id, 0)?;
-            let instance = EcsInstance::new(handle);
-            let ptr = StrongPtr::new(ArefCell::new(instance));
-            script_components.push(ptr);
-        }
+        let mesh_components = create_chunk(SceneKind::Component, info.mesh_components)?;
+        let script_components = create_chunk(SceneKind::Component, info.script_components)?;
 
         Ok(Self {
             movable_game_objects,
@@ -171,6 +130,22 @@ impl Scene {
             },
         }
     }
+}
+
+fn create_chunk<T: EcsObject>(kind: SceneKind, capacity: usize) -> EcsResult<Vec<EcsPtr<T>>> {
+    let mut result = Vec::with_capacity(capacity);
+    for i in 0..capacity {
+        let id = SceneId {
+            kind,
+            index: i,
+        };
+        let handle = GenericHandle::new(id, 0)?;
+        let instance = EcsInstance::new(handle);
+        let ptr = StrongPtr::new(ArefCell::new(instance));
+        result.push(ptr);
+    }
+
+    Ok(result)
 }
 
 fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> { 
