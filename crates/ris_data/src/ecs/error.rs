@@ -2,6 +2,7 @@
 pub enum EcsError {
     InvalidCast,
     InvalidOperation(String),
+    IsNull,
     ObjectIsDestroyed,
     OutOfBounds,
     OutOfMemory,
@@ -13,6 +14,7 @@ impl std::fmt::Display for EcsError {
         match self {
             EcsError::InvalidCast => write!(f, "invalid cast"),
             EcsError::InvalidOperation(reason) => write!(f, "invalid operation: {}", reason),
+            EcsError::IsNull => write!(f, "is null"),
             EcsError::ObjectIsDestroyed => write!(f, "object is destroyed"),
             EcsError::OutOfBounds => write!(f, "operation was out of bounds"),
             EcsError::OutOfMemory => write!(f, "out of memory"),

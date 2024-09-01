@@ -121,12 +121,13 @@ impl Scene {
 
     fn find_chunk<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
         match kind {
+            SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::MovableGameObject => cast(&self.movable_game_objects),
             SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
             SceneKind::Component => match T::ecs_type_id() {
                 super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components),
                 super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components),
-                _ => return Err(EcsError::OutOfBounds),
+                _ => Err(EcsError::OutOfBounds),
             },
         }
     }

@@ -22,6 +22,7 @@ pub enum GameObjectKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneKind {
+    Null,
     MovableGameObject,
     StaticGameObjct{ chunk: usize},
     Component,
@@ -49,6 +50,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
 
     fn try_from(value: SceneKind) -> Result<Self, Self::Error> {
         match value {
+            SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::MovableGameObject => Ok(Self::Movable),
             SceneKind::StaticGameObjct { chunk } => Ok(Self::Static{chunk}),
             SceneKind::Component => Err(EcsError::InvalidCast)
@@ -60,7 +62,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
 // ecs traits and objects
 //
 
-pub trait EcsObject: Default {
+pub trait EcsObject: Debug + Default {
     fn ecs_type_id() -> EcsTypeId;
 }
 

@@ -15,8 +15,8 @@ fn should_cast_handles() {
     let generic_handle = GenericHandle::<GameObject>::new(id, 0).unwrap();
     let dyn_handle = DynHandle::from(generic_handle);
 
-    let result1 = GenericHandle::<GameObject>::try_from(dyn_handle);
-    let result2 = GenericHandle::<ScriptComponent>::try_from(dyn_handle);
+    let result1 = GenericHandle::<GameObject>::from_dyn(dyn_handle);
+    let result2 = GenericHandle::<ScriptComponent>::from_dyn(dyn_handle);
 
     assert!(result1.is_ok());
     assert!(result2.is_err());

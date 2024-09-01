@@ -85,20 +85,19 @@ impl GameObjectHandle {
         Ok(ptr.borrow().handle.into())
     }
 
-    pub fn add_component<T: Component>(self, scene: &Scene) -> EcsResult<GenericHandle<T>>
+    pub fn add_component<T: Component + 'static>(self, scene: &Scene) -> EcsResult<GenericHandle<T>>
     {
-        panic!();
-        //let ptr = scene.deref(self.into())?;
+        let ptr = scene.deref(self.into())?;
 
-        //let component_ptr = scene.create_new::<T>(SceneKind::Component)?;
-        //let component_handle = component_ptr.borrow().handle;
+        let component_ptr = scene.create_new::<T>(SceneKind::Component)?;
+        let component_handle = component_ptr.borrow().handle;
 
-        //let boxed_handle = Box::new(component_handle);
+        let boxed_handle = Box::new(component_handle);
 
-        //ptr.borrow_mut().components.push(boxed_handle);
-        //component_ptr.borrow_mut().value = T::create(self);
+        ptr.borrow_mut().components.push(boxed_handle);
+        component_ptr.borrow_mut().value = T::create(self);
 
-        //Ok(component_handle)
+        Ok(component_handle)
     }
 
     pub fn get_component<T: ComponentHandle>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<T>> {

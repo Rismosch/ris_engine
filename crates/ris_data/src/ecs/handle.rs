@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use super::id::Component;
 use super::id::EcsObject;
 use super::id::EcsTypeId;
 use super::id::SceneId;
@@ -40,6 +41,7 @@ impl DynHandle {
     pub fn new(ecs_type_id: EcsTypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
         // assert the ecs_type_id matches with the scene_id
         let type_matches_id = match scene_id.kind {
+            SceneKind::Null => true,
             SceneKind::StaticGameObjct { .. } => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
             SceneKind::MovableGameObject => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
             SceneKind::Component => ecs_type_id != super::decl::ECS_TYPE_ID_GAME_OBJECT,
@@ -53,6 +55,17 @@ impl DynHandle {
             })
         } else {
             return Err(EcsError::TypeDoesNotMatchId);
+        }
+    }
+
+    pub fn null(ecs_type_id: EcsTypeId) -> Self {
+        Self{
+            ecs_type_id,
+            scene_id: SceneId {
+                kind: SceneKind::Null,
+                index: 0,
+            },
+            generation: 0,
         }
     }
 }
@@ -71,12 +84,18 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
             boo: PhantomData::default(),
         })
     }
+
+    pub fn null() -> Self {
+        let inner = DynHandle::null(T::ecs_type_id());
+        Self {
+            inner,
+            boo: PhantomData::default(),
+        }
+    }
 }
 
-impl<T: EcsObject> TryFrom<DynHandle> for GenericHandle<T> {
-    type Error = EcsError;
-
-    fn try_from(value: DynHandle) -> Result<Self, Self::Error> {
+impl<T: EcsObject> GenericHandle<T> {
+    pub fn from_dyn(value: DynHandle) -> EcsResult<Self> {
         if T::ecs_type_id() == value.ecs_type_id {
             Ok(GenericHandle {
                 inner: value,
@@ -85,6 +104,11 @@ impl<T: EcsObject> TryFrom<DynHandle> for GenericHandle<T> {
         } else {
             Err(EcsError::TypeDoesNotMatchId)
         }
+    }
+
+    pub fn from_handle(value: impl Handle) -> EcsResult<Self> {
+        let dyn_handle = value.to_dyn();
+        Self::from_dyn(dyn_handle)
     }
 }
 
@@ -146,6 +170,18 @@ impl<T: EcsObject> PartialEq for GenericHandle<T> {
 
 impl<T: EcsObject> Copy for GenericHandle<T> {}
 impl<T: EcsObject> Eq for GenericHandle<T> {}
+
+impl<T: EcsObject> Handle for GenericHandle<T> {
+    fn ecs_type_id() -> EcsTypeId {
+        T::ecs_type_id()
+    }
+
+    fn to_dyn(self) -> DynHandle {
+        self.inner
+    }
+}
+
+impl<T: Component> ComponentHandle for GenericHandle<T> {}
 
 //
 // common functions

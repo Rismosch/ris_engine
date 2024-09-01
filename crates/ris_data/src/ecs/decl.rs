@@ -82,7 +82,12 @@ mod declare {
             }
 
             impl $handle_name {
-                fn is_alive(self, scene: &Scene) -> bool {
+                pub fn null() -> Self {
+                    let handle = GenericHandle::null();
+                    Self(handle)
+                }
+
+                pub fn is_alive(self, scene: &Scene) -> bool {
                     self.0.is_alive(scene)
                 }
             }
