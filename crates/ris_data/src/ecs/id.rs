@@ -7,7 +7,6 @@ use crate::ptr::WeakPtr;
 use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
-use super::error::EcsResult;
 use super::handle::GenericHandle;
 use super::scene::Scene;
 

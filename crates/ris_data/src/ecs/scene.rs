@@ -1,12 +1,10 @@
 use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
-use crate::ptr::WeakPtr;
 
 use super::decl::EcsTypeId;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
-use super::handle::DynHandle;
 use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;

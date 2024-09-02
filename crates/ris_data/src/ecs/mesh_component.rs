@@ -1,8 +1,5 @@
 use super::decl::GameObjectHandle;
-use super::decl::MeshComponentHandle;
 use super::id::Component;
-use super::id::EcsObject;
-use super::handle::GenericHandle;
 use super::scene::Scene;
 
 #[derive(Debug)]
@@ -26,7 +23,7 @@ impl Component for MeshComponent {
         }
     }
 
-    fn destroy(&mut self, scene: &Scene) {
+    fn destroy(&mut self, _scene: &Scene) {
     }
 
     fn game_object(&self) -> GameObjectHandle {

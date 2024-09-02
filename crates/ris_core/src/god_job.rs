@@ -1,3 +1,10 @@
+use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::decl::ScriptComponentHandle;
+use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::script_component::Script;
+use ris_data::ecs::script_component::ScriptEndData;
+use ris_data::ecs::script_component::ScriptStartData;
+use ris_data::ecs::script_component::ScriptUpdateData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
@@ -9,8 +16,43 @@ pub enum WantsTo {
     Restart,
 }
 
+#[derive(Debug, Default)]
+struct TestScript {
+    counter: usize,
+}
+
+impl Script for TestScript {
+    fn start(&mut self, _data: ScriptStartData) -> RisResult<()> {
+        ris_log::debug!("test started");
+        Ok(())
+    }
+
+    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
+        if data.state.input.keyboard.keys.is_down(sdl2::keyboard::Scancode::Up) {
+            self.counter = self.counter.saturating_add(1);
+            ris_log::debug!("counter set to: {}", self.counter);
+        }
+
+        if data.state.input.keyboard.keys.is_down(sdl2::keyboard::Scancode::Down) {
+            self.counter = self.counter.saturating_sub(1);
+            ris_log::debug!("counter set to: {}", self.counter);
+        }
+
+        Ok(())
+    }
+
+    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
+        ris_log::debug!("test ended");
+        Ok(())
+    }
+}
+
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
+
+    let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+    let script: ScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+    script.start(&god_object.state.scene, TestScript::default())?;
 
     loop {
         ris_debug::profiler::new_frame()?;
@@ -41,6 +83,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::add_record!(r, "logic frame")?;
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
+
+        for script in god_object.state.scene.script_components.iter() {
+            let mut aref_mut = script.borrow_mut();
+            if aref_mut.is_alive {
+                aref_mut.update(frame, &god_object.state)?;
+            }
+        }
 
         ris_debug::add_record!(r, "output frame")?;
         let output_result =

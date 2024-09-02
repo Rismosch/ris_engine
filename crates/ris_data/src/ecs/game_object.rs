@@ -5,9 +5,6 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
-use crate::ptr::ArefCell;
-use crate::ptr::WeakPtr;
-
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -15,7 +12,6 @@ use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
-use super::id::EcsObject;
 use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
