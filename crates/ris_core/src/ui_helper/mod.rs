@@ -1,28 +1,38 @@
+use std::ffi::CString;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::ptr;
 use std::time::Instant;
 
 use imgui::Ui;
+use imgui::WindowFlags;
+use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
+use ris_data::ptr::ArefCell;
+use ris_data::ptr::StrongPtr;
+use ris_data::ptr::WeakPtr;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 
-pub mod gizmo_module;
-pub mod metrics_module;
-pub mod settings_module;
+pub mod modules;
+pub mod selection;
 pub mod util;
 
-use crate::ui_helper::gizmo_module::GizmoModule;
-use crate::ui_helper::metrics_module::MetricsModule;
-use crate::ui_helper::settings_module::SettingsModule;
+use selection::Selector;
+
+use modules::gizmo::GizmoModule;
+use modules::hierarchy::HierarchyModule;
+use modules::inspector::InspectorModule;
+use modules::metrics::MetricsModule;
+use modules::settings::SettingsModule;
 
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
@@ -36,7 +46,7 @@ pub trait IUiHelperModule {
     fn name() -> &'static str
     where
         Self: Sized;
-    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule>
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule>
     where
         Self: Sized;
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()>;
@@ -45,7 +55,7 @@ pub trait IUiHelperModule {
 #[allow(clippy::type_complexity)]
 pub struct UiHelperModuleBuilder {
     pub name: String,
-    pub build: Box<dyn Fn(&AppInfo) -> Box<dyn IUiHelperModule>>,
+    pub build: Box<dyn Fn(SharedStateWeakPtr) -> Box<dyn IUiHelperModule>>,
 }
 
 macro_rules! module {
@@ -66,6 +76,8 @@ macro_rules! module_vec {
 fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     let modules = module_vec![
         GizmoModule,
+        HierarchyModule,
+        InspectorModule,
         MetricsModule,
         SettingsModule,
         // add new modules here
@@ -97,6 +109,23 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     Ok(modules)
 }
 
+pub struct SharedState {
+    app_info: AppInfo,
+    selector: Selector,
+}
+
+impl SharedState {
+    fn new(app_info: AppInfo) -> SharedStateStrongPtr {
+        StrongPtr::new(ArefCell::new(Self {
+            app_info,
+            selector: Selector::default(),
+        }))
+    }
+}
+
+pub type SharedStateStrongPtr = StrongPtr<ArefCell<SharedState>>;
+pub type SharedStateWeakPtr = WeakPtr<ArefCell<SharedState>>;
+
 pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
@@ -105,7 +134,6 @@ pub struct UiHelperDrawData<'a> {
 }
 
 pub struct UiHelper {
-    app_info: AppInfo,
     builders: Vec<UiHelperModuleBuilder>,
 
     windows: Vec<UiHelperWindow>,
@@ -113,6 +141,10 @@ pub struct UiHelper {
 
     config_filepath: PathBuf,
 
+    shared_state: SharedStateStrongPtr,
+    show_ui: bool,
+    show_demo: bool,
+    reimport_asset_future: Option<JobFuture<()>>,
     crash_timestamp: Instant,
     restart_timestamp: Instant,
     close_window_timestamp: Instant,
@@ -159,7 +191,6 @@ impl UiHelper {
                 let now = Instant::now();
 
                 Ok(Self {
-                    app_info: app_info.clone(),
                     builders: builders()?,
 
                     windows: Vec::new(),
@@ -167,6 +198,10 @@ impl UiHelper {
 
                     config_filepath,
 
+                    shared_state: SharedState::new(app_info.clone()),
+                    show_ui: true,
+                    show_demo: false,
+                    reimport_asset_future: None,
                     crash_timestamp: now,
                     restart_timestamp: now,
                     close_window_timestamp: now,
@@ -212,6 +247,7 @@ impl UiHelper {
 
         let mut windows = Vec::new();
         let mut max_window_id = 0;
+        let shared_state = SharedState::new(app_info.clone());
 
         for entry in yaml.entries.iter() {
             let Some((ref key, ref value)) = entry.key_value else {
@@ -246,7 +282,7 @@ impl UiHelper {
             max_window_id = usize::max(max_window_id, id);
 
             let builder = &builders[builder_index];
-            let module = (builder.build)(app_info);
+            let module = (builder.build)(shared_state.to_weak());
 
             let window = UiHelperWindow {
                 id,
@@ -262,30 +298,135 @@ impl UiHelper {
 
         Ok(Self {
             builders,
-            app_info: app_info.clone(),
 
             windows,
             window_id: max_window_id + 1,
 
             config_filepath: config_filepath.to_path_buf(),
 
+            shared_state,
+            show_ui: true,
+            show_demo: false,
+            reimport_asset_future: None,
             crash_timestamp: now,
             restart_timestamp: now,
             close_window_timestamp: now,
         })
     }
 
-    pub fn draw(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
-        let result = data
-            .ui
-            .window("UiHelperMenuBar")
-            .movable(false)
-            .position([-1.0, 0.0], imgui::Condition::Always)
-            .menu_bar(true)
-            .title_bar(false)
-            .resizable(false)
-            .draw_background(false)
-            .build(|| self.menu_callback(data));
+    pub fn draw(&mut self, mut data: UiHelperDrawData) -> RisResult<GameloopState> {
+        self.shared_state.borrow_mut().selector.update();
+
+        let window_flags = WindowFlags::MENU_BAR
+            | WindowFlags::NO_DOCKING
+            | WindowFlags::NO_TITLE_BAR
+            | WindowFlags::NO_COLLAPSE
+            | WindowFlags::NO_RESIZE
+            | WindowFlags::NO_MOVE
+            | WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
+            | WindowFlags::NO_NAV_FOCUS;
+
+        let size = [
+            data.window_drawable_size.0 as f32,
+            data.window_drawable_size.1 as f32,
+        ];
+
+        let result = if !self.show_ui {
+            None
+        } else {
+            data.ui
+                .window("dockspace")
+                .flags(window_flags)
+                .position([0.0, 0.0], imgui::Condition::Always)
+                .size(size, imgui::Condition::Always)
+                .bg_alpha(0.0)
+                .build(|| {
+                    data.state.debug_ui_is_focused = data
+                        .ui
+                        .is_window_focused_with_flags(WindowFocusedFlags::ANY_WINDOW);
+
+                    let id = "dockspace";
+                    let id_cstr = CString::new(id)?;
+                    let id_uint = unsafe { imgui::sys::igGetID_Str(id_cstr.as_ptr()) };
+                    let size = imgui::sys::ImVec2 { x: 0.0, y: 0.0 };
+                    let flags = 1 << 3; // ImGuiDockNodeFlags_PassthruCentralNode
+
+                    unsafe { imgui::sys::igDockSpace(id_uint, size, flags, ptr::null()) };
+
+                    self.menu_callback(&mut data)
+                })
+        };
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F1) {
+            let duration = Instant::now() - self.restart_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual restart requestd");
+                return Ok(GameloopState::WantsToRestart);
+            }
+        } else {
+            self.restart_timestamp = Instant::now();
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F2) {
+            self.show_ui = !self.show_ui;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F3) {
+            self.show_demo = !self.show_demo;
+        }
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F4) {
+            let duration = Instant::now() - self.crash_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                ris_log::fatal!("manual crash requested");
+                return ris_error::new_result!("manual crash");
+            }
+        } else {
+            self.crash_timestamp = Instant::now();
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F5) {
+            reimport_assets(&mut self.reimport_asset_future)?;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F6) {
+            reimport_assets(&mut self.reimport_asset_future)?;
+            data.state.event_rebuild_renderers = true;
+        }
+
+        if data.state.input.keyboard.keys.is_down(Scancode::F7) {
+            let window = UiHelperWindow {
+                id: self.window_id,
+                name: "pick a module".to_string(),
+                module: None,
+            };
+
+            self.windows.push(window);
+            self.window_id = self.window_id.wrapping_add(1);
+        }
+
+        if data.state.input.keyboard.keys.is_hold(Scancode::F8) {
+            let duration = Instant::now() - self.close_window_timestamp;
+            let seconds = duration.as_secs();
+
+            if seconds >= CRASH_TIMEOUT_IN_SECS {
+                self.windows.clear();
+            }
+        } else {
+            self.close_window_timestamp = Instant::now();
+        }
+
+        if self.show_demo {
+            data.ui.show_demo_window(&mut self.show_demo);
+        }
+
+        if let Some(future) = self.reimport_asset_future.take() {
+            future.wait(None)?;
+        }
 
         match result {
             Some(result) => result,
@@ -293,49 +434,49 @@ impl UiHelper {
         }
     }
 
-    fn menu_callback(&mut self, data: UiHelperDrawData) -> RisResult<GameloopState> {
-        let UiHelperDrawData {
-            ui,
-            frame,
-            state,
-            window_drawable_size,
-        } = data;
-
-        let mut reimport_asset_future = None;
-
-        if let Some(_menu_bar) = ui.begin_menu_bar() {
-            if let Some(_menu) = ui.begin_menu("start") {
-                if ui.menu_item("restart (F1)") {
+    fn menu_callback(&mut self, data: &mut UiHelperDrawData) -> RisResult<GameloopState> {
+        if let Some(_menu_bar) = data.ui.begin_menu_bar() {
+            if let Some(_menu) = data.ui.begin_menu("start") {
+                if data.ui.menu_item("restart (F1)") {
                     ris_log::fatal!("manual restart requestd");
                     return Ok(GameloopState::WantsToRestart);
                 }
 
-                if ui.menu_item("crash (F4)") {
+                if data.ui.menu_item("toggle ui (F2)") {
+                    self.show_ui = !self.show_ui;
+                }
+
+                if data.ui.menu_item("toggle demo window (F3)") {
+                    self.show_demo = !self.show_demo;
+                }
+
+                if data.ui.menu_item("crash (F4)") {
                     ris_log::fatal!("manual crash requested");
                     return ris_error::new_result!("manual crash");
                 }
 
-                if ui.menu_item("quit") {
+                if data.ui.menu_item("quit") {
                     return Ok(GameloopState::WantsToQuit);
                 }
             }
 
-            if let Some(_menu) = ui.begin_menu("debug") {
-                if ui.menu_item("reimport assets (F5)") {
-                    reimport_assets(&mut reimport_asset_future)?;
+            if let Some(_menu) = data.ui.begin_menu("debug") {
+                if data.ui.menu_item("reimport assets (F5)") {
+                    reimport_assets(&mut self.reimport_asset_future)?;
                 }
 
-                if ui.menu_item("rebuild renderers (F6)") {
-                    reimport_assets(&mut reimport_asset_future)?;
-                    state.event_rebuild_renderers = true;
+                if data.ui.menu_item("rebuild renderers (F6)") {
+                    reimport_assets(&mut self.reimport_asset_future)?;
+                    data.state.event_rebuild_renderers = true;
                 }
 
-                ui.separator();
+                data.ui.separator();
 
-                if let Some(_spawn_window) = ui.begin_menu("spawn window (F7)") {
+                if let Some(_spawn_window) = data.ui.begin_menu("spawn window (F7)") {
                     for builder in self.builders.iter() {
-                        if ui.menu_item(&builder.name) {
-                            let module = (builder.build)(&self.app_info);
+                        if data.ui.menu_item(&builder.name) {
+                            let shared_state = self.shared_state.to_weak();
+                            let module = (builder.build)(shared_state);
 
                             let window = UiHelperWindow {
                                 id: self.window_id,
@@ -349,74 +490,11 @@ impl UiHelper {
                     }
                 }
 
-                if ui.menu_item("close all windows (F8)") {
+                if data.ui.menu_item("close all windows (F8)") {
                     self.windows.clear();
                 }
             }
         }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F1) {
-            let duration = Instant::now() - self.restart_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual restart requestd");
-                return Ok(GameloopState::WantsToRestart);
-            }
-        } else {
-            self.restart_timestamp = Instant::now();
-        }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F4) {
-            let duration = Instant::now() - self.crash_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual crash requested");
-                return ris_error::new_result!("manual crash");
-            }
-        } else {
-            self.crash_timestamp = Instant::now();
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F5) {
-            reimport_assets(&mut reimport_asset_future)?;
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F6) {
-            reimport_assets(&mut reimport_asset_future)?;
-            state.event_rebuild_renderers = true;
-        }
-
-        if state.input.keyboard.keys.is_down(Scancode::F7) {
-            let window = UiHelperWindow {
-                id: self.window_id,
-                name: "pick a module".to_string(),
-                module: None,
-            };
-
-            self.windows.push(window);
-            self.window_id = self.window_id.wrapping_add(1);
-        }
-
-        if state.input.keyboard.keys.is_hold(Scancode::F8) {
-            let duration = Instant::now() - self.close_window_timestamp;
-            let seconds = duration.as_secs();
-
-            if seconds >= CRASH_TIMEOUT_IN_SECS {
-                self.windows.clear();
-            }
-        } else {
-            self.close_window_timestamp = Instant::now();
-        }
-
-        // take ownership of data again. otherwise the loop below does not compile
-        let mut data = UiHelperDrawData {
-            ui,
-            frame,
-            state,
-            window_drawable_size,
-        };
 
         let mut i = 0;
 
@@ -424,29 +502,36 @@ impl UiHelper {
             let window = &self.windows[i];
 
             let window_pos = (window.id + 1) as f32;
-            let max_width = window_drawable_size.0 as f32 - WINDOW_SIZE[0];
-            let max_height = window_drawable_size.1 as f32 - WINDOW_SIZE[1];
+            let max_width = data.window_drawable_size.0 as f32 - WINDOW_SIZE[0];
+            let max_height = data.window_drawable_size.1 as f32 - WINDOW_SIZE[1];
             let position_x = (WINDOW_OFFSET * window_pos) % max_width;
             let position_y = (WINDOW_OFFSET * window_pos) % max_height;
 
             let mut opened = true;
 
-            ui.window(format!("{}##ui_helper_window_{}", window.name, window.id))
-                .movable(true)
-                .position([position_x, position_y], imgui::Condition::FirstUseEver)
-                .size(WINDOW_SIZE, imgui::Condition::FirstUseEver)
-                .opened(&mut opened)
-                .build(|| self.window_callback(i, &mut data));
+            let cond = 1 << 2; // ImGuiCond_FirstUseEver
+            unsafe { imgui::sys::igSetNextWindowSize(WINDOW_SIZE.into(), cond) };
+            unsafe {
+                imgui::sys::igSetNextWindowPos(
+                    [position_x, position_y].into(),
+                    cond,
+                    [0.0, 0.0].into(),
+                )
+            };
+
+            let window_name =
+                CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
+            if unsafe { imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0) } {
+                self.window_callback(i, data)?;
+            }
+
+            unsafe { imgui::sys::igEnd() };
 
             if opened {
                 i += 1;
             } else {
                 self.windows.remove(i);
             }
-        }
-
-        if let Some(future) = reimport_asset_future.take() {
-            future.wait(None)?;
         }
 
         Ok(GameloopState::WantsToContinue)
@@ -474,14 +559,25 @@ impl UiHelper {
 
             if index > 0 {
                 let builder = &self.builders[index - 1];
-                let module = (builder.build)(&self.app_info);
+                let shared_state = self.shared_state.to_weak();
+                let module = (builder.build)(shared_state);
                 window.module = Some(module);
                 window.name = builder.name.clone();
             }
         }
 
         if let Some(module) = &mut window.module {
-            module.draw(data)?;
+            let result = module.draw(data);
+
+            // returning an error may cause imgui to fail, because some end method may not be
+            // called. this is bad, because this causes imgui to panic, which suppresses the
+            // original error. thus we manually log the error, to avoid this suppression. this
+            // may cause the error to be logged twice, but twice is better than not at all.
+            if let Err(e) = &result {
+                ris_log::error!("failed to draw module: {:?}", e);
+            }
+
+            result?;
         }
 
         Ok(())

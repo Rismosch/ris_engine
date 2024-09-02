@@ -56,7 +56,7 @@ ris_video = { path = "crates/ris_video" }
 ash = "0.37.3"
 cfg-if = "1"
 chrono = "0.4"
-imgui = "0.11.0"
+imgui = { version = "0.11.0", features = ["docking"] }
 png = "0.17.10"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
@@ -64,6 +64,9 @@ shaderc = "0.8"
 
 # development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies)
 criterion = { version = "0.3", features = ["html_reports"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "^0.2.30"
 
 [profile.dev]
 opt-level = 0

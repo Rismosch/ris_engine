@@ -3,21 +3,20 @@ use std::time::Duration;
 use std::time::Instant;
 
 use ris_data::gameloop::frame::Frame;
-use ris_data::info::app_info::AppInfo;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
 
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
 const PLOT_MIN_FPS: f32 = 0.0;
-const PLOT_MAX_FPS: f32 = 5_000.0;
+const PLOT_MAX_FPS: f32 = 3_000.0;
 const PLOT_SAMPLE_WINDOW_IN_SECS: u64 = 3;
 const AVERAGE_SAMPLE_WINDOW_IN_SECS: u64 = 1;
 
 pub struct MetricsModule {
-    app_info: AppInfo,
-    show_plot: bool,
+    shared_state: SharedStateWeakPtr,
     plot_frames: Vec<(Instant, Frame)>,
     average_frames: Vec<Frame>,
     instant_since_last_average_calculation: Instant,
@@ -30,10 +29,9 @@ impl IUiHelperModule for MetricsModule {
         "metrics"
     }
 
-    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
-            app_info: app_info.clone(),
-            show_plot: true,
+            shared_state,
             plot_frames: Vec::new(),
             average_frames: Vec::new(),
             instant_since_last_average_calculation: Instant::now(),
@@ -93,23 +91,14 @@ impl IUiHelperModule for MetricsModule {
             plot_values.push(frame.average_fps() as f32);
         }
 
-        ui.checkbox("show plot", &mut self.show_plot);
-        ui.same_line();
-        super::util::help_marker(
-            ui,
-            "plotting is not performant. you may gain fps by disabling it.",
-        );
+        let graph_width = ui.content_region_avail()[0];
+        let graph_height = ui.item_rect_size()[1] * 3.;
 
-        if self.show_plot {
-            let graph_width = ui.content_region_avail()[0];
-            let graph_height = ui.item_rect_size()[1] * 3.;
-
-            ui.plot_lines("##history", plot_values.as_slice())
-                .graph_size([graph_width, graph_height])
-                .scale_min(PLOT_MIN_FPS)
-                .scale_max(PLOT_MAX_FPS)
-                .build();
-        }
+        ui.plot_lines("##history", plot_values.as_slice())
+            .graph_size([graph_width, graph_height])
+            .scale_min(PLOT_MIN_FPS)
+            .scale_max(PLOT_MAX_FPS)
+            .build();
 
         let mut header_flags = imgui::TreeNodeFlags::empty();
         header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
@@ -144,7 +133,8 @@ impl IUiHelperModule for MetricsModule {
                 profiler_evaluations = ris_debug::profiler::evaluate()?;
             }
 
-            let dir = PathBuf::from(&self.app_info.file.pref_path).join("profiler");
+            let pref_path = &self.shared_state.borrow().app_info.file.pref_path;
+            let dir = PathBuf::from(pref_path).join("profiler");
 
             if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');

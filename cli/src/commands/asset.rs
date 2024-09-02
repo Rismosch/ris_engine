@@ -125,7 +125,7 @@ impl Asset {
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];
 
-        let _log_guard = unsafe { ris_log::log::init(LOG_LEVEL, appenders) };
+        let _log_guard = ris_log::log::init(LOG_LEVEL, appenders);
 
         match command {
             AssetCommand::Compile => {

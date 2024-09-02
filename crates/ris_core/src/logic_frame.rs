@@ -17,6 +17,7 @@ use ris_input::general_logic::update_general;
 use ris_input::keyboard_logic;
 use ris_input::mouse_logic;
 use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 pub struct LogicFrame {
     // input
@@ -84,6 +85,10 @@ impl LogicFrame {
         let input = &state.input;
 
         // game logic
+        if state.debug_ui_is_focused {
+            return Ok(GameloopState::WantsToContinue);
+        }
+
         let rotation_speed = 2. * frame.average_seconds();
         let movement_speed = 2. * frame.average_seconds();
         let mouse_speed = 20. * frame.average_seconds();
@@ -96,7 +101,7 @@ impl LogicFrame {
         } else if input.general.buttons.is_down(action::OK) {
             self.camera_horizontal_angle = 0.0;
             self.camera_vertical_angle = 0.0;
-            state.camera.position = ris_math::vector::VEC3_BACKWARD;
+            state.camera.position = Vec3::backward();
         }
 
         if input.general.buttons.is_hold(action::CAMERA_UP) {
@@ -123,27 +128,27 @@ impl LogicFrame {
         }
         self.camera_vertical_angle = f32::clamp(self.camera_vertical_angle, -0.5 * PI, 0.5 * PI);
 
-        let rotation1 = Quat::from((self.camera_vertical_angle, ris_math::vector::VEC3_RIGHT));
-        let rotation2 = Quat::from((self.camera_horizontal_angle, ris_math::vector::VEC3_UP));
+        let rotation1 = Quat::from((self.camera_vertical_angle, Vec3::right()));
+        let rotation2 = Quat::from((self.camera_horizontal_angle, Vec3::up()));
         state.camera.rotation = rotation2 * rotation1;
 
         if input.general.buttons.is_hold(action::MOVE_UP) {
-            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
+            let forward = state.camera.rotation.rotate(Vec3::forward());
             state.camera.position += movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_DOWN) {
-            let forward = state.camera.rotation.rotate(ris_math::vector::VEC3_FORWARD);
+            let forward = state.camera.rotation.rotate(Vec3::forward());
             state.camera.position -= movement_speed * forward;
         }
 
         if input.general.buttons.is_hold(action::MOVE_LEFT) {
-            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
+            let right = state.camera.rotation.rotate(Vec3::right());
             state.camera.position -= movement_speed * right;
         }
 
         if input.general.buttons.is_hold(action::MOVE_RIGHT) {
-            let right = state.camera.rotation.rotate(ris_math::vector::VEC3_RIGHT);
+            let right = state.camera.rotation.rotate(Vec3::right());
             state.camera.position += movement_speed * right;
         }
 

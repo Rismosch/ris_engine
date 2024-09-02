@@ -47,10 +47,7 @@ impl Drop for Logger {
     }
 }
 
-/// # Safety
-///
-/// The logger is a singleton. Initialize it only once.
-pub unsafe fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
+pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
     if matches!(log_level, LogLevel::None) || appenders.is_empty() {
         return LogGuard;
     }

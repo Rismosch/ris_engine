@@ -1,3 +1,4 @@
+use crate::affine;
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
@@ -19,11 +20,28 @@ impl Quat {
     pub fn identity() -> Self {
         Self(0., 0., 0., 1.)
     }
+
+    pub fn look_at(direction: Vec3, up: Vec3) -> Self {
+        let m = affine::look_at(direction, up);
+        affine::to_rotation(m)
+    }
 }
 
 impl Default for Quat {
     fn default() -> Self {
         Self::identity()
+    }
+}
+
+impl From<[f32; 4]> for Quat {
+    fn from(value: [f32; 4]) -> Self {
+        Quat(value[0], value[1], value[2], value[3])
+    }
+}
+
+impl From<Quat> for [f32; 4] {
+    fn from(value: Quat) -> Self {
+        [value.0, value.1, value.2, value.3]
     }
 }
 

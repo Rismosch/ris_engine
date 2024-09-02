@@ -6,20 +6,7 @@ use std::ops::IndexMut;
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
-//
-// constants
-//
-
 pub const MIN_NORM: f32 = 1.0 / 255.0;
-
-pub const RGB_BLACK: Rgb = Rgb(0., 0., 0.);
-pub const RGB_WHITE: Rgb = Rgb(1., 1., 1.);
-pub const RGB_RED: Rgb = Rgb(1., 0., 0.);
-pub const RGB_GREEN: Rgb = Rgb(0., 1., 0.);
-pub const RGB_BLUE: Rgb = Rgb(0., 0., 1.);
-pub const RGB_CYAN: Rgb = Rgb(0., 1., 1.);
-pub const RGB_MAGENTA: Rgb = Rgb(1., 0., 1.);
-pub const RGB_YELLOW: Rgb = Rgb(1., 1., 0.);
 
 //
 // traits
@@ -81,6 +68,40 @@ pub type OkLcha = Alpha<OkLch>;
 //
 // constructors
 //
+
+impl Rgb {
+    pub fn black() -> Rgb {
+        Rgb(0.0, 0.0, 0.0)
+    }
+
+    pub fn white() -> Rgb {
+        Rgb(1.0, 1.0, 1.0)
+    }
+
+    pub fn red() -> Rgb {
+        Rgb(1.0, 0.0, 0.0)
+    }
+
+    pub fn green() -> Rgb {
+        Rgb(0.0, 1.0, 0.0)
+    }
+
+    pub fn blue() -> Rgb {
+        Rgb(0.0, 0.0, 1.0)
+    }
+
+    pub fn cyan() -> Rgb {
+        Rgb(0.0, 1.0, 1.0)
+    }
+
+    pub fn magenta() -> Rgb {
+        Rgb(1.0, 0.0, 1.0)
+    }
+
+    pub fn yellow() -> Rgb {
+        Rgb(1.0, 1.0, 0.0)
+    }
+}
 
 impl From<Rgb> for OkLab {
     fn from(value: Rgb) -> Self {

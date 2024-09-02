@@ -1,3 +1,4 @@
+pub mod affine;
 pub mod color;
 pub mod fast;
 pub mod matrix;

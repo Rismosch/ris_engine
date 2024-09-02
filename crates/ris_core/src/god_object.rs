@@ -3,6 +3,7 @@ use sdl2::keyboard::Scancode;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
+use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -80,21 +81,19 @@ impl GodObject {
         // job system
         let cpu_count = app_info.cpu.cpu_count;
         let workers = crate::determine_thread_count(&app_info, &settings);
-        let job_system_guard = unsafe {
-            job_system::init(
-                job_system::DEFAULT_BUFFER_CAPACITY,
-                cpu_count,
-                workers,
-                true,
-            )
-        };
+        let job_system_guard = job_system::init(
+            job_system::DEFAULT_BUFFER_CAPACITY,
+            cpu_count,
+            workers,
+            true,
+        );
 
         // assets
         import_assets()?;
-        let asset_loader_guard = unsafe { asset_loader::init(&app_info)? };
+        let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // profiling
-        let profiler_guard = unsafe { ris_debug::profiler::init() }?;
+        let profiler_guard = ris_debug::profiler::init()?;
 
         // sdl
         let sdl_context =
@@ -128,7 +127,7 @@ impl GodObject {
         let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // gizmo renderer
-        let gizmo_guard = unsafe { ris_debug::gizmo::init() }?;
+        let gizmo_guard = ris_debug::gizmo::init()?;
         let gizmo_segment_renderer =
             unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
         let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
@@ -162,7 +161,8 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let mut state = GodState::new(settings);
+        let scene_create_info = SceneCreateInfo::default();
+        let mut state = GodState::new(settings, scene_create_info)?;
 
         {
             let input = &mut state.input;

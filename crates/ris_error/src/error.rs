@@ -6,6 +6,8 @@ use chrono::DateTime;
 use chrono::Local;
 
 pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
+// useful, for finding errors that are not logged
+pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
 
 pub type SourceError = Option<Arc<dyn Error + 'static>>;
 pub type RisResult<T> = Result<T, RisError>;
@@ -126,6 +128,10 @@ macro_rules! get_backtrace {
             ris_log::warning!("created backtrace. this operation is expensive. excessive use may cost performance");
         }
 
+        if $crate::error::PRINT_BACKTRACE_WHEN_GENERATED {
+            ris_log::trace!("backtrace:\n{}", backtrace);
+        }
+
         backtrace
     }}
 }
@@ -153,11 +159,7 @@ macro_rules! debug_assert {
 
         #[cfg(debug_assertions)]
         {
-            if $value {
-                Ok(())
-            } else {
-                ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
-            }
+            $crate::assert!($value)
         }
     }};
 }

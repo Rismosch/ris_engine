@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
+use ris_error::RisResult;
 use ris_math::camera::Camera;
 
+use crate::ecs::scene::Scene;
+use crate::ecs::scene::SceneCreateInfo;
 use crate::input::Input;
 use crate::settings::Settings;
 
@@ -9,32 +14,34 @@ pub struct GodState {
     pub event_rebuild_renderers: bool,
     pub event_window_resized: Option<(u32, u32)>,
 
-    // input
-    pub input: Input,
-
     // general
+    pub input: Input,
+    pub scene: Arc<Scene>,
     pub camera: Camera,
+
+    pub debug_ui_is_focused: bool,
 
     // settings
     pub settings: Settings,
 }
 
 impl GodState {
-    pub fn new(settings: Settings) -> Self {
-        Self {
+    pub fn new(settings: Settings, info: SceneCreateInfo) -> RisResult<Self> {
+        Ok(Self {
             // events
             event_rebuild_renderers: false,
             event_window_resized: None,
 
-            // input
-            input: Default::default(),
-
             // general
-            camera: Default::default(),
+            input: Input::default(),
+            scene: Arc::new(Scene::new(info)?),
+            camera: Camera::default(),
+
+            debug_ui_is_focused: false,
 
             // settings
             settings,
-        }
+        })
     }
 
     pub fn reset_events(&mut self) {

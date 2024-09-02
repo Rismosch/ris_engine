@@ -25,10 +25,7 @@ impl Drop for GizmoGuard {
     }
 }
 
-/// # Safety
-///
-/// Gizmo is a singleton. Initialize only once.
-pub unsafe fn init() -> RisResult<GizmoGuard> {
+pub fn init() -> RisResult<GizmoGuard> {
     let mut gizmo = GIZMOS.lock()?;
     *gizmo = Some(Gizmos {
         shapes: Vec::new(),
@@ -210,20 +207,20 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
                 let camera_distance = camera.position.distance(position);
                 let scale = MAGIC_SCALE * camera_distance;
 
-                let red = color.unwrap_or(ris_math::color::RGB_RED);
-                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
-                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
-                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
-                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
-                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+                let red = color.unwrap_or(Rgb::red());
+                let green = color.unwrap_or(Rgb::green());
+                let blue = color.unwrap_or(Rgb::blue());
+                let cyan = color.unwrap_or(Rgb::cyan());
+                let magenta = color.unwrap_or(Rgb::magenta());
+                let yellow = color.unwrap_or(Rgb::yellow());
 
                 let v0 = position;
-                let v1 = position + scale * ris_math::vector::VEC3_RIGHT;
-                let v2 = position + scale * ris_math::vector::VEC3_LEFT;
-                let v3 = position + scale * ris_math::vector::VEC3_FORWARD;
-                let v4 = position + scale * ris_math::vector::VEC3_BACKWARD;
-                let v5 = position + scale * ris_math::vector::VEC3_UP;
-                let v6 = position + scale * ris_math::vector::VEC3_DOWN;
+                let v1 = position + scale * Vec3::right();
+                let v2 = position + scale * Vec3::left();
+                let v3 = position + scale * Vec3::forward();
+                let v4 = position + scale * Vec3::backward();
+                let v5 = position + scale * Vec3::up();
+                let v6 = position + scale * Vec3::down();
 
                 add_segment(camera, &mut segments, v0, v1, red);
                 add_segment(camera, &mut segments, v0, v2, cyan);
@@ -237,26 +234,26 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
                 rotation,
                 color,
             } => {
-                let red = color.unwrap_or(ris_math::color::RGB_RED);
-                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
-                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
+                let red = color.unwrap_or(Rgb::red());
+                let green = color.unwrap_or(Rgb::green());
+                let blue = color.unwrap_or(Rgb::blue());
 
                 let v0 = position;
-                let v1 = position + rotation.rotate(ris_math::vector::VEC3_RIGHT);
-                let v2 = position + rotation.rotate(ris_math::vector::VEC3_FORWARD);
-                let v3 = position + rotation.rotate(ris_math::vector::VEC3_UP);
+                let v1 = position + rotation.rotate(Vec3::right());
+                let v2 = position + rotation.rotate(Vec3::forward());
+                let v3 = position + rotation.rotate(Vec3::up());
 
                 add_segment(camera, &mut segments, v0, v1, red);
                 add_segment(camera, &mut segments, v0, v2, green);
                 add_segment(camera, &mut segments, v0, v3, blue);
             }
             GizmoShape::Aabb { min, max, color } => {
-                let red = color.unwrap_or(ris_math::color::RGB_RED);
-                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
-                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
-                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
-                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
-                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+                let red = color.unwrap_or(Rgb::red());
+                let green = color.unwrap_or(Rgb::green());
+                let blue = color.unwrap_or(Rgb::blue());
+                let cyan = color.unwrap_or(Rgb::cyan());
+                let magenta = color.unwrap_or(Rgb::magenta());
+                let yellow = color.unwrap_or(Rgb::yellow());
 
                 let v0 = Vec3(min.x(), min.y(), min.z());
                 let v1 = Vec3(max.x(), min.y(), min.z());
@@ -286,16 +283,16 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
                 rotation,
                 color,
             } => {
-                let red = color.unwrap_or(ris_math::color::RGB_RED);
-                let green = color.unwrap_or(ris_math::color::RGB_GREEN);
-                let blue = color.unwrap_or(ris_math::color::RGB_BLUE);
-                let cyan = color.unwrap_or(ris_math::color::RGB_CYAN);
-                let magenta = color.unwrap_or(ris_math::color::RGB_MAGENTA);
-                let yellow = color.unwrap_or(ris_math::color::RGB_YELLOW);
+                let red = color.unwrap_or(Rgb::red());
+                let green = color.unwrap_or(Rgb::green());
+                let blue = color.unwrap_or(Rgb::blue());
+                let cyan = color.unwrap_or(Rgb::cyan());
+                let magenta = color.unwrap_or(Rgb::magenta());
+                let yellow = color.unwrap_or(Rgb::yellow());
 
-                let x = half_scale.x() * rotation.rotate(ris_math::vector::VEC3_RIGHT);
-                let y = half_scale.y() * rotation.rotate(ris_math::vector::VEC3_FORWARD);
-                let z = half_scale.z() * rotation.rotate(ris_math::vector::VEC3_UP);
+                let x = half_scale.x() * rotation.rotate(Vec3::right());
+                let y = half_scale.y() * rotation.rotate(Vec3::forward());
+                let z = half_scale.z() * rotation.rotate(Vec3::up());
 
                 let v0 = center - x - y - z;
                 let v1 = center + x - y - z;

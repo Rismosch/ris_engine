@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ris_data::cell::ArefCell;
+use ris_data::ptr::ArefCell;
 
 //-----------------------------//
 //                             //

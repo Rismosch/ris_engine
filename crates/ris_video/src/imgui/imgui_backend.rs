@@ -51,6 +51,7 @@ impl ImguiBackend {
 
         io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
         io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
+        io.config_flags.insert(ConfigFlags::DOCKING_ENABLE);
 
         context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));
 

@@ -62,10 +62,7 @@ impl Drop for JobSystemGuard {
 
 pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 
-/// # Safety
-///
-/// The job system is a singleton. Initialize it only once.
-pub unsafe fn init(
+pub fn init(
     buffer_capacity: usize,
     cpu_count: usize,
     threads: usize,

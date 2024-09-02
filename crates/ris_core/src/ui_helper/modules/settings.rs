@@ -1,13 +1,13 @@
-use ris_data::info::app_info::AppInfo;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
 use ris_error::RisResult;
 
 use crate::ui_helper::IUiHelperModule;
+use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
 pub struct SettingsModule {
-    app_info: AppInfo,
+    shared_state: SharedStateWeakPtr,
     saved: bool,
 }
 
@@ -18,9 +18,9 @@ impl IUiHelperModule for SettingsModule {
         "settings"
     }
 
-    fn build(app_info: &AppInfo) -> Box<dyn IUiHelperModule> {
+    fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
-            app_info: app_info.clone(),
+            shared_state,
             saved: true,
         })
     }
@@ -31,7 +31,9 @@ impl IUiHelperModule for SettingsModule {
 
         if ui.collapsing_header("jobs", imgui::TreeNodeFlags::empty()) {
             let mut workers = settings.job().get_workers();
-            if ui.slider("workers", 1, self.app_info.cpu.cpu_count, &mut workers) {
+
+            let cpu_count = self.shared_state.borrow().app_info.cpu.cpu_count;
+            if ui.slider("workers", 1, cpu_count, &mut workers) {
                 settings.job_mut().set_workers(workers);
                 self.saved = false;
             }
@@ -51,8 +53,9 @@ impl IUiHelperModule for SettingsModule {
 
                 ui.same_line();
                 if ui.button("load") {
-                    let serializer = SettingsSerializer::new(&self.app_info);
-                    if let Some(deserialized_settings) = serializer.deserialize(&self.app_info) {
+                    let app_info = &self.shared_state.borrow().app_info;
+                    let serializer = SettingsSerializer::new(app_info);
+                    if let Some(deserialized_settings) = serializer.deserialize(app_info) {
                         *settings = deserialized_settings;
                     }
                     self.saved = true;
@@ -67,7 +70,8 @@ impl IUiHelperModule for SettingsModule {
             }
 
             if ui.button("restore default") {
-                *settings = Settings::new(&self.app_info);
+                let app_info = &self.shared_state.borrow().app_info;
+                *settings = Settings::new(app_info);
                 self.saved = false;
             }
         }
