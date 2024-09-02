@@ -100,13 +100,38 @@ impl GameObjectHandle {
         Ok(component_handle)
     }
 
-    pub fn get_component<T: ComponentHandle>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<T>> {
+    pub fn get_component<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<GenericHandle<T>>> {
         let flags = get_from as isize;
         let search_this = (flags & GET_FROM_FLAG_THIS) != 0;
         let search_children = (flags & GET_FROM_FLAG_CHILDREN) != 0;
         let search_parents = (flags & GET_FROM_FLAG_PARENTS) != 0;
 
-        panic!()
+        let mut result = Vec::new();
+
+        if search_this {
+            let ptr = scene.deref(self.into())?;
+            let aref = ptr.borrow();
+
+            for component in aref.components.iter() {
+                //let test = *component.cl;
+            }
+        }
+
+        if search_children {
+            for child in self.child_iter(scene)? {
+                let mut child_components = child.get_component(scene, GetFrom::ThisAndChildren)?;
+                result.append(&mut child_components);
+            }
+        }
+
+        if search_parents {
+            if let Some(parent) = self.parent(scene)? {
+                let mut parent_components = parent.get_component(scene, GetFrom::ThisAndParents)?;
+                result.append(&mut parent_components);
+            }
+        }
+
+        Ok(result)
     }
 
     pub fn destroy(self, scene: &Scene) {

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use super::id::Component;
@@ -26,7 +27,7 @@ pub struct GenericHandle<T: EcsObject + ?Sized> {
     boo: PhantomData<T>,
 }
 
-pub trait Handle : std::fmt::Debug {
+pub trait Handle : Debug {
     fn ecs_type_id() -> EcsTypeId where Self: Sized;
     fn to_dyn(self) -> DynHandle;
 }
