@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
+use super::decl::EcsTypeId;
 use super::id::Component;
 use super::id::EcsObject;
-use super::id::EcsTypeId;
 use super::id::SceneId;
 use super::id::SceneKind;
 use super::error::EcsError;
@@ -21,6 +21,11 @@ pub struct DynHandle {
     generation: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DynComponentHandle {
+    inner: DynHandle,
+}
+
 #[derive(Debug)]
 pub struct GenericHandle<T: EcsObject + ?Sized> {
     inner: DynHandle,
@@ -32,7 +37,9 @@ pub trait Handle : Debug {
     fn to_dyn(self) -> DynHandle;
 }
 
-pub trait ComponentHandle : Handle {}
+pub trait ComponentHandle : Handle {
+    fn to_dyn_component(self) -> DynComponentHandle;
+}
 
 // 
 // constructors
@@ -43,9 +50,9 @@ impl DynHandle {
         // assert the ecs_type_id matches with the scene_id
         let type_matches_id = match scene_id.kind {
             SceneKind::Null => true,
-            SceneKind::StaticGameObjct { .. } => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
-            SceneKind::MovableGameObject => ecs_type_id == super::decl::ECS_TYPE_ID_GAME_OBJECT,
-            SceneKind::Component => ecs_type_id != super::decl::ECS_TYPE_ID_GAME_OBJECT,
+            SceneKind::StaticGameObjct { .. } => ecs_type_id == EcsTypeId::GameObject,
+            SceneKind::MovableGameObject => ecs_type_id == EcsTypeId::GameObject,
+            SceneKind::Component => ecs_type_id != EcsTypeId::GameObject,
         };
 
         if type_matches_id {
@@ -55,7 +62,7 @@ impl DynHandle {
                 generation,
             })
         } else {
-            return Err(EcsError::TypeDoesNotMatchId);
+            return Err(EcsError::TypeDoesNotMatchSceneKind);
         }
     }
 
@@ -74,6 +81,20 @@ impl DynHandle {
 impl<T: EcsObject> From<GenericHandle<T>> for DynHandle {
     fn from(value: GenericHandle<T>) -> Self {
         value.inner
+    }
+}
+
+impl From<DynComponentHandle> for DynHandle {
+    fn from(value: DynComponentHandle) -> Self {
+        value.inner
+    }
+}
+
+impl<T: Component> From<GenericHandle<T>> for DynComponentHandle {
+    fn from(value: GenericHandle<T>) -> Self {
+        Self {
+            inner: value.to_dyn(),
+        }
     }
 }
 
@@ -103,7 +124,7 @@ impl<T: EcsObject> GenericHandle<T> {
                 boo: PhantomData::default(),
             })
         } else {
-            Err(EcsError::TypeDoesNotMatchId)
+            Err(EcsError::InvalidCast)
         }
     }
 
@@ -141,16 +162,17 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
 // trait implementations
 //
 
-impl<T: EcsObject> std::ops::Deref for GenericHandle<T> {
+impl std::ops::Deref for DynComponentHandle {
     type Target = DynHandle;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<T: EcsObject> std::ops::DerefMut for GenericHandle<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+impl<T: EcsObject> std::ops::Deref for GenericHandle<T> {
+    type Target = DynHandle;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 
@@ -182,7 +204,11 @@ impl<T: EcsObject> Handle for GenericHandle<T> {
     }
 }
 
-impl<T: Component> ComponentHandle for GenericHandle<T> {}
+impl<T: Component> ComponentHandle for GenericHandle<T> {
+    fn to_dyn_component(self) -> DynComponentHandle {
+        self.into()
+    }
+}
 
 //
 // common functions

@@ -6,6 +6,7 @@ use crate::god_state::GodState;
 use super::decl::ScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::handle::GenericHandle;
+use super::id::Component;
 use super::id::EcsObject;
 use super::scene::Scene;
 
@@ -41,6 +42,20 @@ impl Default for ScriptComponent {
         Self {
             script: None,
         }
+    }
+}
+
+impl Component for ScriptComponent {
+    fn create(game_object: GameObjectHandle) -> Self {
+        panic!()
+    }
+
+    fn destroy(&mut self, scene: &Scene) {
+        panic!()
+    }
+
+    fn game_object(&self) -> GameObjectHandle {
+        panic!()
     }
 }
 

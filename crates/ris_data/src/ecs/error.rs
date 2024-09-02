@@ -4,9 +4,9 @@ pub enum EcsError {
     InvalidOperation(String),
     IsNull,
     ObjectIsDestroyed,
-    OutOfBounds,
+    //OutOfBounds,
     OutOfMemory,
-    TypeDoesNotMatchId,
+    TypeDoesNotMatchSceneKind,
 }
 
 impl std::fmt::Display for EcsError {
@@ -16,9 +16,9 @@ impl std::fmt::Display for EcsError {
             EcsError::InvalidOperation(reason) => write!(f, "invalid operation: {}", reason),
             EcsError::IsNull => write!(f, "is null"),
             EcsError::ObjectIsDestroyed => write!(f, "object is destroyed"),
-            EcsError::OutOfBounds => write!(f, "operation was out of bounds"),
+            //EcsError::OutOfBounds => write!(f, "operation was out of bounds"),
             EcsError::OutOfMemory => write!(f, "out of memory"),
-            EcsError::TypeDoesNotMatchId => write!(f, "type does not match the id"),
+            EcsError::TypeDoesNotMatchSceneKind => write!(f, "type does not match the scene kind"),
         }
     }
 }

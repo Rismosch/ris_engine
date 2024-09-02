@@ -143,7 +143,7 @@ fn should_set_parent() {
     assert_eq!(parent, actual_parent);
 
     assert_eq!(parent.child_len(&scene).unwrap(), 1);
-    let actual_child = parent.child(&scene, 0).unwrap();
+    let actual_child = parent.child(&scene, 0).unwrap().unwrap();
     assert_eq!(child, actual_child);
 
     // remove parent
@@ -228,7 +228,7 @@ fn should_not_assign_child_more_than_once() {
     assert_eq!(parent, actual_parent);
 
     assert_eq!(parent.child_len(&scene).unwrap(), 1);
-    let actual_child = parent.child(&scene, 0).unwrap();
+    let actual_child = parent.child(&scene, 0).unwrap().unwrap();
     assert_eq!(child, actual_child);
 }
 
@@ -296,11 +296,11 @@ fn should_set_sibling_index() {
     assert_eq!(g3.sibling_index(&scene).unwrap(), 1);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 3);
 
-    assert_eq!(parent.child(&scene, 0).unwrap(), g2);
-    assert_eq!(parent.child(&scene, 1).unwrap(), g3);
-    assert_eq!(parent.child(&scene, 2).unwrap(), g1);
-    assert_eq!(parent.child(&scene, 3).unwrap(), g4);
-    assert!(parent.child(&scene, 4).is_err());
+    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g2);
+    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g3);
+    assert_eq!(parent.child(&scene, 2).unwrap().unwrap(), g1);
+    assert_eq!(parent.child(&scene, 3).unwrap().unwrap(), g4);
+    assert!(parent.child(&scene, 4).unwrap().is_none());
 
     // set via method
     g2.set_sibling_index(&scene, 4).unwrap();
@@ -313,11 +313,11 @@ fn should_set_sibling_index() {
     assert_eq!(g3.sibling_index(&scene).unwrap(), 2);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 1);
 
-    assert_eq!(parent.child(&scene, 0).unwrap(), g1);
-    assert_eq!(parent.child(&scene, 1).unwrap(), g4);
-    assert_eq!(parent.child(&scene, 2).unwrap(), g3);
-    assert_eq!(parent.child(&scene, 3).unwrap(), g2);
-    assert!(parent.child(&scene, 4).is_err());
+    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g1);
+    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g4);
+    assert_eq!(parent.child(&scene, 2).unwrap().unwrap(), g3);
+    assert_eq!(parent.child(&scene, 3).unwrap().unwrap(), g2);
+    assert!(parent.child(&scene, 4).unwrap().is_none());
 }
 
 #[test]
@@ -345,9 +345,9 @@ fn should_destroy_child() {
     assert_eq!(g3.sibling_index(&scene).unwrap(), 0);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 1);
 
-    assert_eq!(parent.child(&scene, 0).unwrap(), g3);
-    assert_eq!(parent.child(&scene, 1).unwrap(), g4);
-    assert!(parent.child(&scene, 2).is_err());
+    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g3);
+    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g4);
+    assert!(parent.child(&scene, 2).unwrap().is_none());
 }
 
 #[test]

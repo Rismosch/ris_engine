@@ -2,9 +2,12 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::decl::EcsTypeId;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
+use super::handle::DynHandle;
+use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsInstance;
@@ -110,14 +113,43 @@ impl Scene {
     }
 
     pub fn mark_as_destroyed<T: EcsObject>(&self, handle: GenericHandle<T>) {
-        let Ok(chunk) = self.find_chunk::<T>(handle.scene_id().kind) else {
+        let SceneId { kind, index } = handle.scene_id();
+
+        let Ok(chunk) = self.find_chunk::<T>(kind) else {
             return;
         };
-        let index = handle.scene_id().index;
         let ptr = &chunk[index];
         ptr.borrow_mut().is_alive = false;
     }
 
+    pub fn destroy_component(&self, handle: DynComponentHandle) {
+        let kind = handle.scene_id().kind;
+        let ecs_type_id = handle.ecs_type_id();
+
+        if kind != SceneKind::Component {
+            return;
+        }
+
+        match ecs_type_id {
+            EcsTypeId::GameObject => return,
+            EcsTypeId::MeshComponent => {
+                let generic_handle = GenericHandle::<MeshComponent>::from_dyn(handle.into());
+                let unwrapped = ris_error::unwrap!(
+                    generic_handle,
+                    "handle was not a mesh component",
+                );
+                self.destroy_component_inner(unwrapped);
+            },
+            EcsTypeId::ScriptComponent => {
+                let generic_handle = GenericHandle::<ScriptComponent>::from_dyn(handle.into());
+                let unwrapped = ris_error::unwrap!(
+                    generic_handle,
+                    "handle was not a scrip component",
+                );
+                self.destroy_component_inner(unwrapped);
+            },
+        }
+    }
 
     fn find_chunk<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
         match kind {
@@ -125,11 +157,23 @@ impl Scene {
             SceneKind::MovableGameObject => cast(&self.movable_game_objects),
             SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
             SceneKind::Component => match T::ecs_type_id() {
-                super::decl::ECS_TYPE_ID_MESH_COMPONENT => cast(&self.mesh_components),
-                super::decl::ECS_TYPE_ID_SCRIPT_COMPONENT => cast(&self.script_components),
-                _ => Err(EcsError::OutOfBounds),
+                EcsTypeId::GameObject => Err(EcsError::TypeDoesNotMatchSceneKind),
+                EcsTypeId::MeshComponent => cast(&self.mesh_components),
+                EcsTypeId::ScriptComponent => cast(&self.script_components),
             },
         }
+    }
+
+    fn destroy_component_inner<T: Component>(&self, handle: GenericHandle<T>) {
+        let SceneId { kind, index } = handle.scene_id();
+
+        let Ok(chunk) = self.find_chunk::<T>(kind) else {
+            return;
+        };
+        let ptr = &chunk[index];
+        let mut aref_mut = ptr.borrow_mut();
+        aref_mut.destroy(self);
+        aref_mut.is_alive = false;
     }
 }
 

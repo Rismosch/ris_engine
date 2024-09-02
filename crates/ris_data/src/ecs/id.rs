@@ -4,6 +4,7 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;
 
+use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -33,8 +34,6 @@ pub struct SceneId {
     pub kind: SceneKind,
     pub index: usize,
 }
-
-pub type EcsTypeId = usize;
 
 impl From<GameObjectKind> for SceneKind {
     fn from(value: GameObjectKind) -> Self {

@@ -12,12 +12,13 @@ use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::ComponentHandle;
+use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsObject;
 use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
-use crate::ecs::id::SceneKind;
+use super::id::SceneKind;
 use super::scene::Scene;
 
 #[derive(Debug)]
@@ -30,7 +31,7 @@ pub struct GameObject {
     position: Vec3,
     rotation: Quat,
     scale: f32,
-    components: Vec<Box<dyn ComponentHandle>>,
+    components: Vec<DynComponentHandle>,
 
     // cache
     cache_is_dirty: bool,
@@ -66,17 +67,17 @@ pub struct ChildIter<'a> {
     index: usize,
 }
 
-const GET_FROM_FLAG_THIS: isize = 0b001;
-const GET_FROM_FLAG_CHILDREN: isize = 0b010;
-const GET_FROM_FLAG_PARENTS: isize = 0b100;
+const GET_FROM_THIS: isize = 0b001;
+const GET_FROM_CHILDREN: isize = 0b010;
+const GET_FROM_PARENTS: isize = 0b100;
 
 pub enum GetFrom {
-    This = GET_FROM_FLAG_THIS,
-    Children = GET_FROM_FLAG_CHILDREN,
-    Parents = GET_FROM_FLAG_PARENTS,
-    ThisAndChildren = GET_FROM_FLAG_THIS | GET_FROM_FLAG_CHILDREN,
-    ThisAndParents = GET_FROM_FLAG_THIS | GET_FROM_FLAG_PARENTS,
-    All = GET_FROM_FLAG_THIS | GET_FROM_FLAG_CHILDREN | GET_FROM_FLAG_PARENTS,
+    This = GET_FROM_THIS,
+    Children = GET_FROM_CHILDREN,
+    Parents = GET_FROM_PARENTS,
+    ThisAndChildren = GET_FROM_THIS | GET_FROM_CHILDREN,
+    ThisAndParents = GET_FROM_THIS | GET_FROM_PARENTS,
+    All = GET_FROM_THIS | GET_FROM_CHILDREN | GET_FROM_PARENTS,
 }
 
 impl GameObjectHandle {
@@ -85,59 +86,19 @@ impl GameObjectHandle {
         Ok(ptr.borrow().handle.into())
     }
 
-    pub fn add_component<T: Component + 'static>(self, scene: &Scene) -> EcsResult<GenericHandle<T>>
-    {
-        let ptr = scene.deref(self.into())?;
-
-        let component_ptr = scene.create_new::<T>(SceneKind::Component)?;
-        let component_handle = component_ptr.borrow().handle;
-
-        let boxed_handle = Box::new(component_handle);
-
-        ptr.borrow_mut().components.push(boxed_handle);
-        component_ptr.borrow_mut().value = T::create(self);
-
-        Ok(component_handle)
-    }
-
-    pub fn get_component<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<GenericHandle<T>>> {
-        let flags = get_from as isize;
-        let search_this = (flags & GET_FROM_FLAG_THIS) != 0;
-        let search_children = (flags & GET_FROM_FLAG_CHILDREN) != 0;
-        let search_parents = (flags & GET_FROM_FLAG_PARENTS) != 0;
-
-        let mut result = Vec::new();
-
-        if search_this {
-            let ptr = scene.deref(self.into())?;
-            let aref = ptr.borrow();
-
-            for component in aref.components.iter() {
-                //let test = *component.cl;
-            }
-        }
-
-        if search_children {
-            for child in self.child_iter(scene)? {
-                let mut child_components = child.get_component(scene, GetFrom::ThisAndChildren)?;
-                result.append(&mut child_components);
-            }
-        }
-
-        if search_parents {
-            if let Some(parent) = self.parent(scene)? {
-                let mut parent_components = parent.get_component(scene, GetFrom::ThisAndParents)?;
-                result.append(&mut parent_components);
-            }
-        }
-
-        Ok(result)
-    }
-
     pub fn destroy(self, scene: &Scene) {
         let Ok(ptr) = scene.deref(self.into()) else {
             return;
         };
+
+        let components = ptr.borrow_mut().components
+            .clone()
+            .into_iter()
+            .rev();
+
+        for component in components {
+            self.remove_and_destroy_component(scene, component);
+        }
 
         if let Ok(child_iter) = self.child_iter(scene) {
             for child in child_iter {
@@ -298,6 +259,73 @@ impl GameObjectHandle {
         Ok(())
     }
 
+    pub fn add_component<T: Component + 'static>(self, scene: &Scene) -> EcsResult<GenericHandle<T>>
+    {
+        let ptr = scene.deref(self.into())?;
+
+        let component_ptr = scene.create_new::<T>(SceneKind::Component)?;
+        let component_handle = component_ptr.borrow().handle;
+        let component_dyn = component_handle.to_dyn_component();
+
+        ptr.borrow_mut().components.push(component_dyn);
+        component_ptr.borrow_mut().value = T::create(self);
+
+        Ok(component_handle)
+    }
+
+    pub fn get_components<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<GenericHandle<T>>> {
+        let flags = get_from as isize;
+        let search_this = (flags & GET_FROM_THIS) != 0;
+        let search_children = (flags & GET_FROM_CHILDREN) != 0;
+        let search_parents = (flags & GET_FROM_PARENTS) != 0;
+
+        let mut result = Vec::new();
+
+        if search_this {
+            let ptr = scene.deref(self.into())?;
+            let aref = ptr.borrow();
+
+            for &component in aref.components.iter() {
+                if let Ok(generic_handle) = GenericHandle::<T>::from_dyn(component.into()) {
+                    result.push(generic_handle);
+                }
+            }
+        }
+
+        if search_children {
+            for child in self.child_iter(scene)? {
+                let mut child_components = child.get_components(scene, GetFrom::ThisAndChildren)?;
+                result.append(&mut child_components);
+            }
+        }
+
+        if search_parents {
+            if let Some(parent) = self.parent(scene)? {
+                let mut parent_components = parent.get_components(scene, GetFrom::ThisAndParents)?;
+                result.append(&mut parent_components);
+            }
+        }
+
+        Ok(result)
+    }
+
+    pub fn remove_and_destroy_component(self, scene: &Scene, component: DynComponentHandle) {
+        let Ok(ptr) = scene.deref(self.into()) else {
+            return;
+        };
+
+        let mut aref_mut = ptr.borrow_mut();
+        let position = aref_mut.components
+            .iter()
+            .position(|&x| x == component);
+        let Some(position) = position else {
+            return;
+        };
+
+        aref_mut.components.remove(position);
+        scene.destroy_component(component);
+    }
+
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
         let ptr = self.recalculate_cache(scene)?;
         Ok(ptr.borrow().is_visible_in_hierarchy)
@@ -423,14 +451,14 @@ impl GameObjectHandle {
         Ok(ptr.borrow().children.len())
     }
 
-    pub fn child(self, scene: &Scene, index: usize) -> EcsResult<GameObjectHandle> {
+    pub fn child(self, scene: &Scene, index: usize) -> EcsResult<Option<GameObjectHandle>> {
         let ptr = self.clear_destroyed_children(scene)?;
         let aref = ptr.borrow();
 
         if index < aref.children.len() {
-            Ok(aref.children[index])
+            Ok(Some(aref.children[index]))
         } else {
-            Err(EcsError::OutOfBounds)
+            Ok(None)
         }
     }
 
