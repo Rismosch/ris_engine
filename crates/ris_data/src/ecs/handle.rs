@@ -2,12 +2,12 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use super::decl::EcsTypeId;
+use super::error::EcsError;
+use super::error::EcsResult;
 use super::id::Component;
 use super::id::EcsObject;
 use super::id::SceneId;
 use super::id::SceneKind;
-use super::error::EcsError;
-use super::error::EcsResult;
 use super::scene::Scene;
 
 //
@@ -32,16 +32,18 @@ pub struct GenericHandle<T: EcsObject + ?Sized> {
     boo: PhantomData<T>,
 }
 
-pub trait Handle : Debug {
-    fn ecs_type_id() -> EcsTypeId where Self: Sized;
+pub trait Handle: Debug {
+    fn ecs_type_id() -> EcsTypeId
+    where
+        Self: Sized;
     fn to_dyn(self) -> DynHandle;
 }
 
-pub trait ComponentHandle : Handle {
+pub trait ComponentHandle: Handle {
     fn to_dyn_component(self) -> DynComponentHandle;
 }
 
-// 
+//
 // constructors
 //
 
@@ -56,18 +58,18 @@ impl DynHandle {
         };
 
         if type_matches_id {
-            Ok(Self{
+            Ok(Self {
                 ecs_type_id,
                 scene_id,
                 generation,
             })
         } else {
-            return Err(EcsError::TypeDoesNotMatchSceneKind);
+            Err(EcsError::TypeDoesNotMatchSceneKind)
         }
     }
 
     pub fn null(ecs_type_id: EcsTypeId) -> Self {
-        Self{
+        Self {
             ecs_type_id,
             scene_id: SceneId {
                 kind: SceneKind::Null,
@@ -103,7 +105,7 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
         let inner = DynHandle::new(T::ecs_type_id(), scene_id, generation)?;
         Ok(Self {
             inner,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         })
     }
 
@@ -111,7 +113,7 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
         let inner = DynHandle::null(T::ecs_type_id());
         Self {
             inner,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         }
     }
 }
@@ -121,7 +123,7 @@ impl<T: EcsObject> GenericHandle<T> {
         if T::ecs_type_id() == value.ecs_type_id {
             Ok(GenericHandle {
                 inner: value,
-                boo: PhantomData::default(),
+                boo: PhantomData,
             })
         } else {
             Err(EcsError::InvalidCast)
@@ -178,10 +180,7 @@ impl<T: EcsObject> std::ops::Deref for GenericHandle<T> {
 
 impl<T: EcsObject> Clone for GenericHandle<T> {
     fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-            boo: PhantomData::default(),
-        }
+        *self
     }
 }
 

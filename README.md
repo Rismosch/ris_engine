@@ -34,7 +34,8 @@ Barebones game engine. Home made passion project.
   - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
 - [x] Settings/Configuration
-- [ ] Gameobjects
+- [x] Gameobjects
+- [x] Scripting
 
 ## Requirements
 

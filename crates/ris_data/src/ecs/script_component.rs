@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::gameloop::frame::Frame;
@@ -8,7 +7,6 @@ use crate::god_state::GodState;
 
 use super::decl::GameObjectHandle;
 use super::decl::ScriptComponentHandle;
-use super::error::EcsResult;
 use super::id::Component;
 use super::scene::Scene;
 
@@ -28,7 +26,7 @@ pub struct ScriptEndData<'a> {
     pub scene: &'a Scene,
 }
 
-pub trait Script : Debug {
+pub trait Script: Debug + Send + Sync {
     fn start(&mut self, data: ScriptStartData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
@@ -87,7 +85,9 @@ impl ScriptComponent {
 
         match self.script.as_mut() {
             Some(script) => script.update(data),
-            None => ris_error::new_result!("attempted to call update on a script that hasn't been started yet"),
+            None => ris_error::new_result!(
+                "attempted to call update on a script that hasn't been started yet"
+            ),
         }
     }
 }
@@ -97,10 +97,7 @@ impl ScriptComponentHandle {
         let ptr = scene.deref(self.into())?;
         let game_object = ptr.borrow().game_object();
 
-        let data = ScriptStartData {
-            game_object,
-            scene,
-        };
+        let data = ScriptStartData { game_object, scene };
 
         script.start(data)?;
         ptr.borrow_mut().script = Some(Box::new(script));

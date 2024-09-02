@@ -1,12 +1,7 @@
-use std::ptr::NonNull;
 use std::cell::UnsafeCell;
+use std::ptr::NonNull;
 #[cfg(debug_assertions)]
-use std::sync::{
-    atomic::AtomicBool,
-    atomic::AtomicIsize,
-    atomic::Ordering,
-    Arc,
-};
+use std::sync::{atomic::AtomicBool, atomic::AtomicIsize, atomic::Ordering, Arc};
 
 // enable to log all borrows and when they are dropped. useful for debugging.
 #[cfg(debug_assertions)]
@@ -305,4 +300,3 @@ unsafe impl<T> Send for WeakPtr<T> where T: Send {}
 unsafe impl<T> Sync for WeakPtr<T> where T: Sync {}
 
 pub struct InvalidCast;
-

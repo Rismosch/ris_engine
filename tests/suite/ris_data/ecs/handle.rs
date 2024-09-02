@@ -3,7 +3,6 @@ use ris_data::ecs::handle::DynHandle;
 use ris_data::ecs::handle::GenericHandle;
 use ris_data::ecs::id::SceneId;
 use ris_data::ecs::id::SceneKind;
-use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::script_component::ScriptComponent;
 
 #[test]

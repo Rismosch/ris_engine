@@ -1,14 +1,9 @@
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshComponentHandle;
+use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
-use ris_data::ecs::handle::Handle;
-use ris_data::ecs::handle::GenericHandle;
-use ris_data::ecs::id::SceneId;
-use ris_data::ecs::mesh_component::MeshComponent;
-use ris_data::ecs::id::EcsObject;
-use ris_data::ecs::game_object::GetFrom;
 
 const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
     movable_game_objects: 8,
@@ -46,13 +41,27 @@ fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
         mesh_components.push(mesh);
     }
 
-    game_objects[1].set_parent(&scene, Some(game_objects[0]), 0, true).unwrap();
-    game_objects[2].set_parent(&scene, Some(game_objects[1]), 0, true).unwrap();
-    game_objects[3].set_parent(&scene, Some(game_objects[2]), 0, true).unwrap();
-    game_objects[4].set_parent(&scene, Some(game_objects[2]), 0, true).unwrap();
-    game_objects[5].set_parent(&scene, Some(game_objects[3]), 0, true).unwrap();
-    game_objects[6].set_parent(&scene, Some(game_objects[4]), 0, true).unwrap();
-    game_objects[7].set_parent(&scene, Some(game_objects[4]), 0, true).unwrap();
+    game_objects[1]
+        .set_parent(&scene, Some(game_objects[0]), 0, true)
+        .unwrap();
+    game_objects[2]
+        .set_parent(&scene, Some(game_objects[1]), 0, true)
+        .unwrap();
+    game_objects[3]
+        .set_parent(&scene, Some(game_objects[2]), 0, true)
+        .unwrap();
+    game_objects[4]
+        .set_parent(&scene, Some(game_objects[2]), 0, true)
+        .unwrap();
+    game_objects[5]
+        .set_parent(&scene, Some(game_objects[3]), 0, true)
+        .unwrap();
+    game_objects[6]
+        .set_parent(&scene, Some(game_objects[4]), 0, true)
+        .unwrap();
+    game_objects[7]
+        .set_parent(&scene, Some(game_objects[4]), 0, true)
+        .unwrap();
 
     (scene, game_objects, mesh_components)
 }
@@ -92,7 +101,7 @@ fn should_get_from_children() {
     ];
 
     for expected in expected {
-        assert!(actual.iter().find(|&&x| x == expected).is_some());
+        assert!(actual.iter().any(|&x| x == expected));
     }
 }
 
@@ -107,13 +116,10 @@ fn should_get_from_parent() {
         .map(|x| x.into())
         .collect();
 
-    let expected = vec![
-        mesh_components[0],
-        mesh_components[1],
-    ];
+    let expected = vec![mesh_components[0], mesh_components[1]];
 
     for expected in expected {
-        assert!(actual.iter().find(|&&x| x == expected).is_some());
+        assert!(actual.iter().any(|&x| x == expected));
     }
 }
 
@@ -138,7 +144,7 @@ fn should_get_from_self_and_children() {
     ];
 
     for expected in expected {
-        assert!(actual.iter().find(|&&x| x == expected).is_some());
+        assert!(actual.iter().any(|&x| x == expected));
     }
 }
 
@@ -153,14 +159,10 @@ fn should_get_from_self_and_parent() {
         .map(|x| x.into())
         .collect();
 
-    let expected = vec![
-        mesh_components[0],
-        mesh_components[1],
-        mesh_components[2],
-    ];
+    let expected = vec![mesh_components[0], mesh_components[1], mesh_components[2]];
 
     for expected in expected {
-        assert!(actual.iter().find(|&&x| x == expected).is_some());
+        assert!(actual.iter().any(|&x| x == expected));
     }
 }
 
@@ -178,7 +180,7 @@ fn should_get_from_all() {
     let expected = mesh_components.clone();
 
     for expected in expected {
-        assert!(actual.iter().find(|&&x| x == expected).is_some());
+        assert!(actual.iter().any(|&x| x == expected));
     }
 }
 
@@ -193,10 +195,30 @@ fn should_nothing_when_nothing_is_attached() {
 
     let _mesh: MeshComponentHandle = g2.add_component(&scene).unwrap().into();
 
-    let result_1: Vec<MeshComponentHandle> = g1.get_components(&scene, GetFrom::This).unwrap().into_iter().map(|x| x.into()).collect();
-    let result_2: Vec<MeshComponentHandle> = g1.get_components(&scene, GetFrom::ThisAndParents).unwrap().into_iter().map(|x| x.into()).collect();
-    let result_3: Vec<MeshComponentHandle> = g3.get_components(&scene, GetFrom::This).unwrap().into_iter().map(|x| x.into()).collect();
-    let result_4: Vec<MeshComponentHandle> = g3.get_components(&scene, GetFrom::ThisAndChildren).unwrap().into_iter().map(|x| x.into()).collect();
+    let result_1: Vec<MeshComponentHandle> = g1
+        .get_components(&scene, GetFrom::This)
+        .unwrap()
+        .into_iter()
+        .map(|x| x.into())
+        .collect();
+    let result_2: Vec<MeshComponentHandle> = g1
+        .get_components(&scene, GetFrom::ThisAndParents)
+        .unwrap()
+        .into_iter()
+        .map(|x| x.into())
+        .collect();
+    let result_3: Vec<MeshComponentHandle> = g3
+        .get_components(&scene, GetFrom::This)
+        .unwrap()
+        .into_iter()
+        .map(|x| x.into())
+        .collect();
+    let result_4: Vec<MeshComponentHandle> = g3
+        .get_components(&scene, GetFrom::ThisAndChildren)
+        .unwrap()
+        .into_iter()
+        .map(|x| x.into())
+        .collect();
 
     assert!(result_1.is_empty());
     assert!(result_2.is_empty());

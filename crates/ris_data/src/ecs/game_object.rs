@@ -87,10 +87,7 @@ impl GameObjectHandle {
             return;
         };
 
-        let components = ptr.borrow_mut().components
-            .clone()
-            .into_iter()
-            .rev();
+        let components = ptr.borrow_mut().components.clone().into_iter().rev();
 
         for component in components {
             self.remove_and_destroy_component(scene, component);
@@ -179,7 +176,9 @@ impl GameObjectHandle {
 
     pub fn set_local_scale(self, scene: &Scene, value: f32) -> EcsResult<()> {
         if value <= 0.0 {
-            return Err(EcsError::InvalidOperation("scale must be positive".to_string()));
+            return Err(EcsError::InvalidOperation(
+                "scale must be positive".to_string(),
+            ));
         }
 
         let ptr = scene.deref(self.into())?;
@@ -255,8 +254,10 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn add_component<T: Component + 'static>(self, scene: &Scene) -> EcsResult<GenericHandle<T>>
-    {
+    pub fn add_component<T: Component + 'static>(
+        self,
+        scene: &Scene,
+    ) -> EcsResult<GenericHandle<T>> {
         let ptr = scene.deref(self.into())?;
 
         let component_ptr = scene.create_new::<T>(SceneKind::Component)?;
@@ -269,7 +270,11 @@ impl GameObjectHandle {
         Ok(component_handle)
     }
 
-    pub fn get_components<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Vec<GenericHandle<T>>> {
+    pub fn get_components<T: Component>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Vec<GenericHandle<T>>> {
         let flags = get_from as isize;
         let search_this = (flags & GET_FROM_THIS) != 0;
         let search_children = (flags & GET_FROM_CHILDREN) != 0;
@@ -297,7 +302,8 @@ impl GameObjectHandle {
 
         if search_parents {
             if let Some(parent) = self.parent(scene)? {
-                let mut parent_components = parent.get_components(scene, GetFrom::ThisAndParents)?;
+                let mut parent_components =
+                    parent.get_components(scene, GetFrom::ThisAndParents)?;
                 result.append(&mut parent_components);
             }
         }
@@ -311,9 +317,7 @@ impl GameObjectHandle {
         };
 
         let mut aref_mut = ptr.borrow_mut();
-        let position = aref_mut.components
-            .iter()
-            .position(|&x| x == component);
+        let position = aref_mut.components.iter().position(|&x| x == component);
         let Some(position) = position else {
             return;
         };
@@ -367,7 +371,9 @@ impl GameObjectHandle {
         let mut to_test = new_handle;
         while let Some(parent_handle) = to_test {
             if parent_handle == self {
-                return Err(EcsError::InvalidOperation("circular dependency".to_string()));
+                return Err(EcsError::InvalidOperation(
+                    "circular dependency".to_string(),
+                ));
             }
 
             to_test = parent_handle.parent(scene)?;
@@ -390,10 +396,7 @@ impl GameObjectHandle {
         // remove game object from previous parents children
         if let Some(old_parent) = old_parent {
             let mut old_aref_mut = old_parent.borrow_mut();
-            let position = old_aref_mut
-                .children
-                .iter()
-                .position(|x| *x == self);
+            let position = old_aref_mut.children.iter().position(|x| *x == self);
 
             if let Some(position) = position {
                 old_aref_mut.children.remove(position);
@@ -403,10 +406,7 @@ impl GameObjectHandle {
         // add game object to new parents children
         if let Some(new_parent) = new_parent {
             let mut new_aref_mut = new_parent.borrow_mut();
-            let position = new_aref_mut
-                .children
-                .iter()
-                .position(|x| *x == self);
+            let position = new_aref_mut.children.iter().position(|x| *x == self);
 
             // only add if it is not a child yet
             if position.is_none() {
@@ -510,7 +510,7 @@ impl GameObjectHandle {
                 let parent_aref = parent_ptr.borrow();
 
                 (parent_aref.is_visible_in_hierarchy, parent_aref.model)
-            },
+            }
             None => (true, Mat4::init(1.0)),
         };
 

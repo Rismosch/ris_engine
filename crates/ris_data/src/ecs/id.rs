@@ -24,7 +24,7 @@ pub enum GameObjectKind {
 pub enum SceneKind {
     Null,
     MovableGameObject,
-    StaticGameObjct{ chunk: usize},
+    StaticGameObjct { chunk: usize },
     Component,
 }
 
@@ -38,7 +38,7 @@ impl From<GameObjectKind> for SceneKind {
     fn from(value: GameObjectKind) -> Self {
         match value {
             GameObjectKind::Movable => Self::MovableGameObject,
-            GameObjectKind::Static { chunk } => Self::StaticGameObjct { chunk},
+            GameObjectKind::Static { chunk } => Self::StaticGameObjct { chunk },
         }
     }
 }
@@ -50,8 +50,8 @@ impl TryFrom<SceneKind> for GameObjectKind {
         match value {
             SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::MovableGameObject => Ok(Self::Movable),
-            SceneKind::StaticGameObjct { chunk } => Ok(Self::Static{chunk}),
-            SceneKind::Component => Err(EcsError::InvalidCast)
+            SceneKind::StaticGameObjct { chunk } => Ok(Self::Static { chunk }),
+            SceneKind::Component => Err(EcsError::InvalidCast),
         }
     }
 }
@@ -64,7 +64,7 @@ pub trait EcsObject: Debug + Default {
     fn ecs_type_id() -> EcsTypeId;
 }
 
-pub trait Component : EcsObject {
+pub trait Component: EcsObject {
     fn create(game_object: GameObjectHandle) -> Self;
     fn destroy(&mut self, scene: &Scene);
     fn game_object(&self) -> GameObjectHandle;
@@ -81,7 +81,7 @@ pub type EcsWeakPtr<T> = WeakPtr<ArefCell<EcsInstance<T>>>;
 
 impl<T: EcsObject> EcsInstance<T> {
     pub fn new(handle: GenericHandle<T>) -> Self {
-        Self{
+        Self {
             value: T::default(),
             handle,
             is_alive: false,
@@ -102,3 +102,5 @@ impl<T: EcsObject> std::ops::DerefMut for EcsInstance<T> {
     }
 }
 
+unsafe impl<T: EcsObject> Send for EcsInstance<T> where T: Send {}
+unsafe impl<T: EcsObject> Sync for EcsInstance<T> where T: Sync {}

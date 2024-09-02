@@ -28,12 +28,24 @@ impl Script for TestScript {
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
-        if data.state.input.keyboard.keys.is_down(sdl2::keyboard::Scancode::Up) {
+        if data
+            .state
+            .input
+            .keyboard
+            .keys
+            .is_down(sdl2::keyboard::Scancode::Up)
+        {
             self.counter = self.counter.saturating_add(1);
             ris_log::debug!("counter set to: {}", self.counter);
         }
 
-        if data.state.input.keyboard.keys.is_down(sdl2::keyboard::Scancode::Down) {
+        if data
+            .state
+            .input
+            .keyboard
+            .keys
+            .is_down(sdl2::keyboard::Scancode::Down)
+        {
             self.counter = self.counter.saturating_sub(1);
             ris_log::debug!("counter set to: {}", self.counter);
         }

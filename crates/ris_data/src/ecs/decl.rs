@@ -1,9 +1,9 @@
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
-use super::handle::DynHandle;
 use super::handle::DynComponentHandle;
-use super::handle::Handle;
+use super::handle::DynHandle;
 use super::handle::GenericHandle;
+use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsObject;
 use super::mesh_component::MeshComponent;
@@ -17,16 +17,8 @@ pub enum EcsTypeId {
     ScriptComponent,
 }
 
-declare::object!(
-    GameObjectHandle,
-    GameObject,
-    EcsTypeId::GameObject,
-);
-declare::component!(
-    MeshComponentHandle,
-    MeshComponent,
-    EcsTypeId::MeshComponent,
-);
+declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
+declare::component!(MeshComponentHandle, MeshComponent, EcsTypeId::MeshComponent,);
 declare::component!(
     ScriptComponentHandle,
     ScriptComponent,
@@ -53,7 +45,6 @@ mod declare {
             $handle_type:ident,
             $ecs_type_id:expr $(,)?
         ) => {
-
             #[derive(Debug, Clone, Copy, PartialEq, Eq)]
             pub struct $handle_name(pub GenericHandle<$handle_type>);
 
@@ -108,7 +99,7 @@ mod declare {
                     self.0.is_alive(scene)
                 }
             }
-        }
+        };
     }
 
     macro_rules! component {
@@ -124,10 +115,9 @@ mod declare {
                     self.0.into()
                 }
             }
-        }
+        };
     }
 
-    pub (crate) use object;
-    pub (crate) use component;
+    pub(crate) use component;
+    pub(crate) use object;
 }
-

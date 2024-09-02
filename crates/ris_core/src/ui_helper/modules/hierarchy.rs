@@ -3,10 +3,8 @@ use std::ffi::CString;
 use std::ptr;
 
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::id::EcsObject;
-use ris_data::ecs::id::SceneId;
-use ris_data::ecs::id::SceneKind;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::id::SceneKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
@@ -55,13 +53,13 @@ impl IUiHelperModule for HierarchyModule {
         } else {
             let chunk = self.selected_chunk - 1;
 
-            (&scene.static_game_objects[chunk], GameObjectKind::Static { chunk })
+            (
+                &scene.static_game_objects[chunk],
+                GameObjectKind::Static { chunk },
+            )
         };
 
-        let alive = chunk
-            .iter()
-            .filter(|x| x.borrow().is_alive)
-            .count();
+        let alive = chunk.iter().filter(|x| x.borrow().is_alive).count();
         ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
 
         if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {

@@ -520,4 +520,3 @@ fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
     g.set_local_rotation(scene, r).unwrap();
     g.set_local_scale(scene, s).unwrap();
 }
-
