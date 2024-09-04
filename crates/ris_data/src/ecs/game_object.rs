@@ -76,6 +76,12 @@ pub enum GetFrom {
     All = GET_FROM_THIS | GET_FROM_CHILDREN | GET_FROM_PARENTS,
 }
 
+impl Default for GameObjectHandle {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 impl GameObjectHandle {
     pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
         let ptr = scene.create_new(kind.into())?;

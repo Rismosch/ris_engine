@@ -55,7 +55,23 @@ fn vec_overwrite(c: &mut Criterion) {
                 vec.clear();
                 let len = value.len();
                 vec.reserve(len);
-                unsafe {vec.set_len(len) };
+                unsafe { vec.set_len(len) };
+                vec.copy_from_slice(value);
+                black_box(&vec);
+            }
+
+            black_box(vec);
+        })
+    });
+
+    group.bench_function("copy_from_slice", |b| {
+        b.iter(|| {
+            let mut vec = Vec::new();
+
+            for value in &values {
+                let len = value.len();
+                vec.reserve(len);
+                unsafe { vec.set_len(len) };
                 vec.copy_from_slice(value);
                 black_box(&vec);
             }
