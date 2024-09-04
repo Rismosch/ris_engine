@@ -5,10 +5,10 @@ use ris_error::RisResult;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-use super::decl::GameObjectHandle;
-use super::decl::ScriptComponentHandle;
-use super::id::Component;
-use super::scene::Scene;
+use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::decl::ScriptComponentHandle;
+use crate::ecs::id::Component;
+use crate::ecs::scene::Scene;
 
 pub struct ScriptStartData<'a> {
     pub game_object: GameObjectHandle,

@@ -119,7 +119,7 @@ All tests are found under `./tests/` and can be run with:
 cargo test
 ```
 
-Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several muinutes.
+Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several minutes.
 
 ```bash
 cargo run -p cli pipeline all

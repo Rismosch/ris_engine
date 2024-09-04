@@ -1,6 +1,8 @@
 use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 
+use super::components::mesh::MeshComponent;
+use super::components::script::ScriptComponent;
 use super::decl::EcsTypeId;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -14,8 +16,6 @@ use super::id::EcsPtr;
 use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
-use super::mesh_component::MeshComponent;
-use super::script_component::ScriptComponent;
 
 const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;

@@ -1,10 +1,10 @@
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::ScriptComponentHandle;
 use ris_data::ecs::id::GameObjectKind;
-use ris_data::ecs::script_component::Script;
-use ris_data::ecs::script_component::ScriptEndData;
-use ris_data::ecs::script_component::ScriptStartData;
-use ris_data::ecs::script_component::ScriptUpdateData;
+use ris_data::ecs::components::script::Script;
+use ris_data::ecs::components::script::ScriptEndData;
+use ris_data::ecs::components::script::ScriptStartData;
+use ris_data::ecs::components::script::ScriptUpdateData;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
 use ris_jobs::job_system;

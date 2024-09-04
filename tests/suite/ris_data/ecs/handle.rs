@@ -3,7 +3,7 @@ use ris_data::ecs::handle::DynHandle;
 use ris_data::ecs::handle::GenericHandle;
 use ris_data::ecs::id::SceneId;
 use ris_data::ecs::id::SceneKind;
-use ris_data::ecs::script_component::ScriptComponent;
+use ris_data::ecs::components::script::ScriptComponent;
 
 #[test]
 fn should_cast_handles() {

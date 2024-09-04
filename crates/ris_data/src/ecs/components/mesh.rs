@@ -1,6 +1,6 @@
-use super::decl::GameObjectHandle;
-use super::id::Component;
-use super::scene::Scene;
+use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::id::Component;
+use crate::ecs::scene::Scene;
 
 #[derive(Debug)]
 pub struct MeshComponent {

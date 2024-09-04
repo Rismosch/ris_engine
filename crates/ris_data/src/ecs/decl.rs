@@ -1,3 +1,5 @@
+use super::components::mesh::MeshComponent;
+use super::components::script::ScriptComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -6,9 +8,7 @@ use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsObject;
-use super::mesh_component::MeshComponent;
 use super::scene::Scene;
-use super::script_component::ScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {

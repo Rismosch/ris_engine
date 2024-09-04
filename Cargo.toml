@@ -105,3 +105,7 @@ harness = false
 [[bench]]
 name = "math"
 harness = false
+
+[[bench]]
+name = "vec"
+harness = false
