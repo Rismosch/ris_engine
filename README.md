@@ -33,9 +33,14 @@ Barebones game engine. Home made passion project.
 - [x] Codecs
   - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
+  - [ ] glTF
 - [x] Settings/Configuration
-- [x] Gameobjects
-- [x] Scripting
+- [x] Gameobjects and components
+  - [ ] Mesh renderer
+  - [x] Scripting
+- [ ] Scene editing, saving and loading
+- [ ] Collisions
+- [ ] Animations
 
 ## Requirements
 
