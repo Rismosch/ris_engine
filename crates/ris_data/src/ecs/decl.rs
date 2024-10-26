@@ -1,4 +1,7 @@
+use ris_error::RisResult;
+
 use super::components::mesh::MeshComponent;
+use super::components::script::Script;
 use super::components::script::ScriptComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;

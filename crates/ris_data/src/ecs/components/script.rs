@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::gameloop::frame::Frame;
@@ -36,6 +37,12 @@ pub trait Script: Debug + Send + Sync {
 pub struct ScriptComponent {
     game_object: GameObjectHandle,
     script: Option<Box<dyn Script>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GenericScriptComponentHandle<T: Script> {
+    handle: ScriptComponentHandle,
+    boo: std::marker::PhantomData<T>,
 }
 
 impl Default for ScriptComponent {
@@ -103,5 +110,43 @@ impl ScriptComponentHandle {
         ptr.borrow_mut().script = Some(Box::new(script));
 
         Ok(())
+    }
+}
+
+impl<T: Script + Default + 'static> GenericScriptComponentHandle<T> {
+    pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
+        let handle: ScriptComponentHandle = game_object.add_component(&scene)?.into();
+        let script = T::default();
+        handle.start(&scene, script)?;
+
+        let generic_handle = Self {
+            handle,
+            boo: std::marker::PhantomData::default(),
+        };
+
+        Ok(generic_handle)
+    }
+
+    pub fn script(
+        self,
+        scene: &Scene,
+        callback: impl FnOnce(&T) -> RisResult<()>,
+    ) -> RisResult<()> {
+        let ptr = scene.deref(self.handle.into())?;
+        let aref = ptr.borrow();
+        let script = aref.script.as_ref().unroll()?;
+        let deref = std::ops::Deref::deref(script);
+
+
+        panic!()
+    }
+
+    pub fn script_mut(
+        self,
+        scene: &ScriptEndData,
+        callback: impl FnOnce(&mut T) -> RisResult<()>,
+    ) -> RisResult<()> {
+        // use arefcell instead box, then we can return aref and aref mut
+        panic!()
     }
 }
