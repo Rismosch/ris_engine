@@ -3,7 +3,6 @@ use ris_data::ecs::components::script::ScriptEndData;
 use ris_data::ecs::components::script::ScriptStartData;
 use ris_data::ecs::components::script::ScriptUpdateData;
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::decl::ScriptComponentHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
@@ -63,8 +62,19 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-    let script: ScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    script.start(&god_object.state.scene, TestScript::default())?;
+    let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
+
+    {
+        let mut script = test.script_mut(&god_object.state.scene)?;
+        ris_log::debug!("counter 1: {}", script.counter);
+
+        script.counter = 42;
+
+        ris_log::debug!("counter 2: {}", script.counter);
+    }
+
+    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+    //script.start(&god_object.state.scene, TestScript::default())?;
 
     loop {
         ris_debug::profiler::new_frame()?;

@@ -2,7 +2,7 @@ use ris_error::RisResult;
 
 use super::components::mesh::MeshComponent;
 use super::components::script::Script;
-use super::components::script::ScriptComponent;
+use super::components::script::DynScriptComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -12,6 +12,8 @@ use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsObject;
 use super::scene::Scene;
+
+pub use super::components::script::ScriptComponentHandle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {
@@ -23,8 +25,8 @@ pub enum EcsTypeId {
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
 declare::component!(MeshComponentHandle, MeshComponent, EcsTypeId::MeshComponent,);
 declare::component!(
-    ScriptComponentHandle,
-    ScriptComponent,
+    DynScriptComponentHandle,
+    DynScriptComponent,
     EcsTypeId::ScriptComponent,
 );
 

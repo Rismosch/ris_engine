@@ -1,15 +1,18 @@
 use std::fmt::Debug;
+use std::marker::PhantomData;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::decl::DynScriptComponentHandle;
+use crate::ecs::id::Component;
+use crate::ecs::id::EcsInstance;
+use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
-
-use crate::ecs::decl::GameObjectHandle;
-use crate::ecs::decl::ScriptComponentHandle;
-use crate::ecs::id::Component;
-use crate::ecs::scene::Scene;
+use crate::ptr::Aref;
+use crate::ptr::ArefMut;
 
 pub struct ScriptStartData<'a> {
     pub game_object: GameObjectHandle,
@@ -34,18 +37,28 @@ pub trait Script: Debug + Send + Sync {
 }
 
 #[derive(Debug)]
-pub struct ScriptComponent {
+pub struct DynScriptComponent {
     game_object: GameObjectHandle,
     script: Option<Box<dyn Script>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GenericScriptComponentHandle<T: Script> {
-    handle: ScriptComponentHandle,
-    boo: std::marker::PhantomData<T>,
+pub struct ScriptComponentHandle<T: Script> {
+    handle: DynScriptComponentHandle,
+    boo: PhantomData<T>,
 }
 
-impl Default for ScriptComponent {
+pub struct ScriptComponentRef<T: Script> {
+    reference: Aref<EcsInstance<DynScriptComponent>>,
+    boo: PhantomData<T>,
+}
+
+pub struct ScriptComponentRefMut<T: Script> {
+    reference: ArefMut<EcsInstance<DynScriptComponent>>,
+    boo: PhantomData<T>,
+}
+
+impl Default for DynScriptComponent {
     fn default() -> Self {
         Self {
             game_object: GameObjectHandle::null(),
@@ -54,7 +67,7 @@ impl Default for ScriptComponent {
     }
 }
 
-impl Component for ScriptComponent {
+impl Component for DynScriptComponent {
     fn create(game_object: GameObjectHandle) -> Self {
         Self {
             game_object,
@@ -82,7 +95,7 @@ impl Component for ScriptComponent {
     }
 }
 
-impl ScriptComponent {
+impl DynScriptComponent {
     pub fn update(&mut self, frame: Frame, state: &GodState) -> RisResult<()> {
         let data = ScriptUpdateData {
             game_object: self.game_object,
@@ -99,10 +112,14 @@ impl ScriptComponent {
     }
 }
 
-impl ScriptComponentHandle {
+impl DynScriptComponentHandle {
     pub fn start<T: Script + 'static>(self, scene: &Scene, mut script: T) -> RisResult<()> {
         let ptr = scene.deref(self.into())?;
         let game_object = ptr.borrow().game_object();
+
+        if ptr.borrow().script.is_some() {
+            return ris_error::new_result!("cannot start an already started script");
+        }
 
         let data = ScriptStartData { game_object, scene };
 
@@ -113,9 +130,9 @@ impl ScriptComponentHandle {
     }
 }
 
-impl<T: Script + Default + 'static> GenericScriptComponentHandle<T> {
+impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
-        let handle: ScriptComponentHandle = game_object.add_component(&scene)?.into();
+        let handle: DynScriptComponentHandle = game_object.add_component(&scene)?.into();
         let script = T::default();
         handle.start(&scene, script)?;
 
@@ -130,23 +147,93 @@ impl<T: Script + Default + 'static> GenericScriptComponentHandle<T> {
     pub fn script(
         self,
         scene: &Scene,
-        callback: impl FnOnce(&T) -> RisResult<()>,
-    ) -> RisResult<()> {
+    ) -> RisResult<ScriptComponentRef<T>> {
         let ptr = scene.deref(self.handle.into())?;
         let aref = ptr.borrow();
-        let script = aref.script.as_ref().unroll()?;
-        let deref = std::ops::Deref::deref(script);
 
-
-        panic!()
+        Ok(ScriptComponentRef {
+            reference: aref,
+            boo: PhantomData::default(),
+        })
     }
 
     pub fn script_mut(
         self,
-        scene: &ScriptEndData,
-        callback: impl FnOnce(&mut T) -> RisResult<()>,
-    ) -> RisResult<()> {
-        // use arefcell instead box, then we can return aref and aref mut
-        panic!()
+        scene: &Scene,
+    ) -> RisResult<ScriptComponentRefMut<T>> {
+        let ptr = scene.deref(self.handle.into())?;
+        let aref_mut = ptr.borrow_mut();
+
+        Ok(ScriptComponentRefMut{
+            reference: aref_mut,
+            boo: PhantomData::default(),
+        })
+    }
+}
+
+impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        let script = ris_error::unwrap!(
+            self.reference.script.as_ref().unroll(),
+            "script component did not store a script",
+        );
+        let deref = script.deref();
+
+        let dyn_ptr = deref as *const dyn Script;
+        let t_ptr = dyn_ptr as *const T;
+
+        // this is safe, because the constructor ensures that the script is of type T
+        let reference = unsafe { t_ptr.as_ref() };
+
+        ris_error::unwrap!(
+            reference.unroll(),
+            "honestly, something is very wrong if reference manages to be none",
+        )
+    }
+}
+
+impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        let script = ris_error::unwrap!(
+            self.reference.script.as_ref().unroll(),
+            "script component did not store a script",
+        );
+        let deref = script.deref();
+
+        let dyn_ptr = deref as *const dyn Script;
+        let t_ptr = dyn_ptr as *const T;
+
+        // this is safe, because the constructor ensures that the script is of type T
+        let reference = unsafe { t_ptr.as_ref() };
+
+        ris_error::unwrap!(
+            reference.unroll(),
+            "honestly, something is very wrong if reference manages to be none",
+        )
+    }
+}
+
+impl<T: Script + Default + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        let script = ris_error::unwrap!(
+            self.reference.script.as_mut().unroll(),
+            "script component did not store a script",
+        );
+        let deref = script.deref_mut();
+
+        let dyn_ptr = deref as *mut dyn Script;
+        let t_ptr = dyn_ptr as *mut T;
+
+        // this is safe, because the constructor ensures that the script is of type T
+        let reference = unsafe {t_ptr.as_mut()};
+
+        ris_error::unwrap!(
+            reference.unroll(),
+            "honestly, something is very wrong if reference manages to be none",
+        )
     }
 }

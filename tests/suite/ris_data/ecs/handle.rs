@@ -1,4 +1,4 @@
-use ris_data::ecs::components::script::ScriptComponent;
+use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::game_object::GameObject;
 use ris_data::ecs::handle::DynHandle;
 use ris_data::ecs::handle::GenericHandle;
@@ -15,7 +15,7 @@ fn should_cast_handles() {
     let dyn_handle = DynHandle::from(generic_handle);
 
     let result1 = GenericHandle::<GameObject>::from_dyn(dyn_handle);
-    let result2 = GenericHandle::<ScriptComponent>::from_dyn(dyn_handle);
+    let result2 = GenericHandle::<DynScriptComponent>::from_dyn(dyn_handle);
 
     assert!(result1.is_ok());
     assert!(result2.is_err());

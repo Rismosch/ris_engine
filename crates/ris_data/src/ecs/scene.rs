@@ -2,7 +2,7 @@ use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 
 use super::components::mesh::MeshComponent;
-use super::components::script::ScriptComponent;
+use super::components::script::DynScriptComponent;
 use super::decl::EcsTypeId;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -36,7 +36,7 @@ pub struct Scene {
     pub movable_game_objects: Vec<EcsPtr<GameObject>>,
     pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
     pub mesh_components: Vec<EcsPtr<MeshComponent>>,
-    pub script_components: Vec<EcsPtr<ScriptComponent>>,
+    pub script_components: Vec<EcsPtr<DynScriptComponent>>,
 }
 
 impl Default for SceneCreateInfo {
@@ -138,7 +138,7 @@ impl Scene {
                 self.destroy_component_inner(unwrapped);
             }
             EcsTypeId::ScriptComponent => {
-                let generic_handle = GenericHandle::<ScriptComponent>::from_dyn(handle.into());
+                let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
                 let unwrapped =
                     ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
                 self.destroy_component_inner(unwrapped);

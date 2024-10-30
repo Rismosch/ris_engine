@@ -1,4 +1,5 @@
 use ris_error::Extensions;
+use ris_error::RisResult;
 use ris_math::affine;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
@@ -6,6 +7,7 @@ use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
 use super::decl::GameObjectHandle;
+use super::decl::ScriptComponentHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::ComponentHandle;
@@ -16,6 +18,8 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
+
+use super::components::script::Script;
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -330,6 +334,13 @@ impl GameObjectHandle {
 
         aref_mut.components.remove(position);
         scene.destroy_component(component);
+    }
+
+    pub fn add_script<T: Script + Default + 'static>(self, scene: &Scene) -> RisResult<ScriptComponentHandle<T>> {
+        ScriptComponentHandle::<T>::new(
+            scene,
+            self,
+        )
     }
 
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
