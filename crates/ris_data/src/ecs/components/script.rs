@@ -112,33 +112,20 @@ impl DynScriptComponent {
     }
 }
 
-impl DynScriptComponentHandle {
-    pub fn start<T: Script + 'static>(self, scene: &Scene, mut script: T) -> RisResult<()> {
-        let ptr = scene.deref(self.into())?;
-        let game_object = ptr.borrow().game_object();
-
-        if ptr.borrow().script.is_some() {
-            return ris_error::new_result!("cannot start an already started script");
-        }
-
-        let data = ScriptStartData { game_object, scene };
-
-        script.start(data)?;
-        ptr.borrow_mut().script = Some(Box::new(script));
-
-        Ok(())
-    }
-}
-
 impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(&scene)?.into();
-        let script = T::default();
-        handle.start(&scene, script)?;
+        let mut script = T::default();
+        
+        let data = ScriptStartData { game_object, scene};
+        script.start(data)?;
+
+        let ptr = scene.deref(handle.into())?;
+        ptr.borrow_mut().script = Some(Box::new(script));
 
         let generic_handle = Self {
             handle,
-            boo: std::marker::PhantomData::default(),
+            boo: PhantomData::default(),
         };
 
         Ok(generic_handle)
