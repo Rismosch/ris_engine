@@ -110,6 +110,20 @@ impl DynScriptComponent {
             ),
         }
     }
+
+    pub fn end(&mut self, scene: &Scene) -> RisResult<()> {
+        let data = ScriptEndData {
+            game_object: self.game_object,
+            scene,
+        };
+
+        match self.script.as_mut() {
+            Some(script) => script.end(data),
+            None => ris_error::new_result!(
+                "attempted to call end on a script that hasn't been started yet"
+            ),
+        }
+    }
 }
 
 impl<T: Script + Default + 'static> ScriptComponentHandle<T> {

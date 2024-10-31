@@ -62,6 +62,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+
+    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+    //script.start(&god_object.state.scene, TestScript::default())?;
+    
     let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
 
     {
@@ -72,9 +76,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_log::debug!("counter 2: {}", script.counter);
     }
-
-    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    //script.start(&god_object.state.scene, TestScript::default())?;
 
     loop {
         ris_debug::profiler::new_frame()?;
@@ -158,16 +159,30 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::end_record!(r)?;
 
-        if logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit {
-            return Ok(WantsTo::Quit);
+        // continue?
+        let wants_to_quit = logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+        let wants_to_restart = logic_state == GameloopState::WantsToRestart || output_state == GameloopState::WantsToRestart;
+
+        let wants_to_option = if wants_to_quit {
+            Some(WantsTo::Quit)
+        } else if wants_to_restart {
+            Some(WantsTo::Restart)
+        } else {
+            None
+        };
+
+        let Some(wants_to) = wants_to_option else {
+            continue;
+        };
+
+        // shutdown
+        for script in god_object.state.scene.script_components.iter() {
+            let mut aref_mut = script.borrow_mut();
+            if aref_mut.is_alive {
+                aref_mut.end(&god_object.state.scene)?;
+            }
         }
 
-        if logic_state == GameloopState::WantsToRestart
-            || output_state == GameloopState::WantsToRestart
-        {
-            return Ok(WantsTo::Restart);
-        }
-
-        // continue
+        return Ok(wants_to);
     }
 }

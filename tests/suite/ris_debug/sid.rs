@@ -33,3 +33,8 @@ fn should_detect_collision() {
     // cannot work and thus is turned off.
     assert!(sid1 == sid2);
 }
+
+#[test]
+fn should_create_file_sids() {
+    panic!();
+}
