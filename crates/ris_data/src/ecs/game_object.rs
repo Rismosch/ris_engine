@@ -33,11 +33,6 @@ pub struct GameObject {
     scale: f32,
     components: Vec<DynComponentHandle>,
 
-    // cache
-    cache_is_dirty: bool,
-    is_visible_in_hierarchy: bool,
-    model: Mat4,
-
     // hierarchy
     parent: Option<GameObjectHandle>,
     children: Vec<GameObjectHandle>,
@@ -52,9 +47,6 @@ impl Default for GameObject {
             rotation: Quat::identity(),
             scale: 1.0,
             components: Vec::new(),
-            cache_is_dirty: true,
-            is_visible_in_hierarchy: true,
-            model: Mat4::default(),
             parent: None,
             children: Vec::new(),
         }
@@ -135,7 +127,6 @@ impl GameObjectHandle {
         if aref_mut.is_visible != value {
             aref_mut.is_visible = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -153,7 +144,6 @@ impl GameObjectHandle {
         if aref_mut.position.not_equal(value).any() {
             aref_mut.position = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -173,7 +163,6 @@ impl GameObjectHandle {
         if left.not_equal(right).any() {
             aref_mut.rotation = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -197,7 +186,6 @@ impl GameObjectHandle {
         if aref_mut.scale != value {
             aref_mut.scale = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -344,13 +332,36 @@ impl GameObjectHandle {
     }
 
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
-        let ptr = self.recalculate_cache(scene)?;
-        Ok(ptr.borrow().is_visible_in_hierarchy)
+        let mut option = Some(self);
+        while let Some(handle) = option {
+            if !handle.is_visible(scene)? {
+                return Ok(false);
+            }
+
+            option = handle.parent(scene)?;
+        }
+
+        Ok(true)
     }
 
     pub fn model(self, scene: &Scene) -> EcsResult<Mat4> {
-        let ptr = self.recalculate_cache(scene)?;
-        Ok(ptr.borrow().model)
+        let mut model = Mat4::init(1.0);
+        let mut option = Some(self);
+        while let Some(handle) = option {
+            let ptr = scene.deref(handle.into())?;
+            let aref = ptr.borrow();
+
+            model = affine::trs_compose(
+                aref.position,
+                aref.rotation,
+                aref.scale,
+            ) * model;
+
+            drop(aref);
+            option = handle.parent(scene)?;
+        }
+
+        Ok(model)
     }
 
     pub fn parent(self, scene: &Scene) -> EcsResult<Option<GameObjectHandle>> {
@@ -366,7 +377,6 @@ impl GameObjectHandle {
         } else {
             aref_mut.parent = None;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
             Ok(None)
         }
     }
@@ -440,8 +450,6 @@ impl GameObjectHandle {
             self.set_world_position(scene, position)?;
             self.set_world_rotation(scene, rotation)?;
             self.set_world_scale(scene, scale)?;
-        } else {
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -497,48 +505,6 @@ impl GameObjectHandle {
         self.set_parent(scene, Some(parent), sibling_index, true)?;
 
         Ok(())
-    }
-
-    fn set_cache_to_dirty(self, scene: &Scene) -> EcsResult<()> {
-        let ptr = scene.deref(self.into())?;
-        if ptr.borrow().cache_is_dirty {
-            return Ok(());
-        }
-
-        ptr.borrow_mut().cache_is_dirty = true;
-
-        for child in self.child_iter(scene)? {
-            child.set_cache_to_dirty(scene)?;
-        }
-
-        Ok(())
-    }
-
-    fn recalculate_cache(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {
-        let ptr = scene.deref(self.into())?;
-        if !ptr.borrow().cache_is_dirty {
-            return Ok(ptr);
-        }
-
-        let (parent_is_visible_in_hierarchy, parent_model) = match self.parent(scene)? {
-            Some(parent_handle) => {
-                parent_handle.recalculate_cache(scene)?;
-                let parent_ptr = scene.deref(*parent_handle)?;
-                let parent_aref = parent_ptr.borrow();
-
-                (parent_aref.is_visible_in_hierarchy, parent_aref.model)
-            }
-            None => (true, Mat4::init(1.0)),
-        };
-
-        let mut aref_mut = ptr.borrow_mut();
-
-        aref_mut.is_visible_in_hierarchy = parent_is_visible_in_hierarchy && aref_mut.is_visible;
-        aref_mut.model = parent_model
-            * affine::trs_compose(aref_mut.position, aref_mut.rotation, aref_mut.scale);
-
-        aref_mut.cache_is_dirty = false;
-        Ok(ptr)
     }
 
     fn clear_destroyed_children(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {
