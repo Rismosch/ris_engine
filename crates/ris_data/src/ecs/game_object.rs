@@ -269,26 +269,23 @@ impl GameObjectHandle {
         Ok(component_handle)
     }
 
+    pub fn add_script<T: Script + 'static>(self, scene: &Scene) -> RisResult<ScriptComponentHandle<T>> {
+        ScriptComponentHandle::<T>::new(
+            scene,
+            self,
+        )
+    }
+
     pub fn get_component<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Option<GenericHandle<T>>> {
         let components = self.get_components::<T>(scene, get_from)?;
         let first = components.into_iter().next();
         Ok(first)
     }
 
-    pub fn get_scripts<T: Script + 'static>(
-        self,
-        scene: &Scene,
-        get_from: GetFrom,
-    ) -> EcsResult<Vec<ScriptComponentHandle<T>>> {
-        let components: Vec<DynScriptComponentHandle> = self.get_components::<DynScriptComponent>(scene, get_from)?
-            .into_iter()
-            .map(|x| DynScriptComponentHandle::from(x))
-            .collect();
-
-
-
-        
-        panic!();
+    pub fn get_script<T: Script + 'static>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Option<ScriptComponentHandle<T>>> {
+        let components = self.get_scripts::<T>(scene, get_from)?;
+        let first = components.into_iter().next();
+        Ok(first)
     }
 
     pub fn get_components<T: Component>(
@@ -332,6 +329,24 @@ impl GameObjectHandle {
         Ok(result)
     }
 
+    pub fn get_scripts<T: Script + 'static>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Vec<ScriptComponentHandle<T>>> {
+        let components = self.get_components::<DynScriptComponent>(scene, get_from)?
+            .into_iter()
+            .map(|x| {
+                let dyn_handle = DynScriptComponentHandle::from(x);
+                ScriptComponentHandle::<T>::try_from(dyn_handle, scene)
+            })
+            .filter(|x| x.is_ok())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>();
+
+        Ok(components)
+    }
+
     pub fn remove_and_destroy_component(self, scene: &Scene, component: DynComponentHandle) {
         let Ok(ptr) = scene.deref(self.into()) else {
             return;
@@ -345,13 +360,6 @@ impl GameObjectHandle {
 
         aref_mut.components.remove(position);
         scene.destroy_component(component);
-    }
-
-    pub fn add_script<T: Script + 'static>(self, scene: &Scene) -> RisResult<ScriptComponentHandle<T>> {
-        ScriptComponentHandle::<T>::new(
-            scene,
-            self,
-        )
     }
 
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {

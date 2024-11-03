@@ -256,3 +256,8 @@ fn should_destroy_components_when_game_object_is_destroyed() {
     g.destroy(&scene);
     assert!(!m.is_alive(&scene));
 }
+
+#[test]
+fn should_destroy_component() {
+    panic!();
+}

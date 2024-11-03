@@ -5,6 +5,8 @@ use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::ecs::error::EcsError;
+use crate::ecs::error::EcsResult;
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::decl::DynScriptComponentHandle;
 use crate::ecs::id::Component;
@@ -48,9 +50,15 @@ pub trait Script: Debug + Send + Sync {
 }
 
 #[derive(Debug)]
+pub struct DynScript {
+    boxxed: Box<dyn Script>,
+    id: Sid,
+}
+
+#[derive(Debug)]
 pub struct DynScriptComponent {
     game_object: GameObjectHandle,
-    script: Option<Box<dyn Script>>,
+    script: Option<DynScript>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,7 +104,7 @@ impl Component for DynScriptComponent {
             scene,
         };
 
-        if let Err(e) = script.end(data) {
+        if let Err(e) = script.boxxed.end(data) {
             ris_log::error!("failed to end script {:?}: {}", script, e);
         }
     }
@@ -115,7 +123,7 @@ impl DynScriptComponent {
         };
 
         match self.script.as_mut() {
-            Some(script) => script.update(data),
+            Some(script) => script.boxxed.update(data),
             None => ris_error::new_result!(
                 "attempted to call update on a script that hasn't been started yet"
             ),
@@ -129,7 +137,7 @@ impl DynScriptComponent {
         };
 
         match self.script.as_mut() {
-            Some(script) => script.end(data),
+            Some(script) => script.boxxed.end(data),
             None => ris_error::new_result!(
                 "attempted to call end on a script that hasn't been started yet"
             ),
@@ -145,7 +153,10 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         let script = T::start(data)?;
 
         let ptr = scene.deref(handle.into())?;
-        ptr.borrow_mut().script = Some(Box::new(script));
+        ptr.borrow_mut().script = Some(DynScript{
+            boxxed: Box::new(script),
+            id: T::id(),
+        });
 
         let generic_handle = Self {
             handle,
@@ -153,6 +164,29 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         };
 
         Ok(generic_handle)
+    }
+
+    pub fn try_from(handle: DynScriptComponentHandle, scene: &Scene) -> EcsResult<Self> {
+        let ptr = scene.deref(handle.into())?;
+        let aref = ptr.borrow();
+        let Some(script) = &aref.script else {
+            return Err(EcsError::InvalidOperation("script component was not started".to_string()));
+        };
+
+        if T::id() != script.id {
+            return Err(EcsError::InvalidCast);
+        }
+
+        let generic_handle = Self {
+            handle,
+            boo: PhantomData::default(),
+        };
+
+        Ok(generic_handle)
+    }
+
+    pub fn dyn_handle(self) -> DynScriptComponentHandle {
+        self.handle
     }
 
     pub fn script(
@@ -190,7 +224,7 @@ impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRef<T> {
             self.reference.script.as_ref().unroll(),
             "script component did not store a script",
         );
-        let deref = script.deref();
+        let deref = script.boxxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -213,7 +247,7 @@ impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRefMut<T>
             self.reference.script.as_ref().unroll(),
             "script component did not store a script",
         );
-        let deref = script.deref();
+        let deref = script.boxxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -234,7 +268,7 @@ impl<T: Script + Default + 'static> std::ops::DerefMut for ScriptComponentRefMut
             self.reference.script.as_mut().unroll(),
             "script component did not store a script",
         );
-        let deref = script.deref_mut();
+        let deref = script.boxxed.deref_mut();
 
         let dyn_ptr = deref as *mut dyn Script;
         let t_ptr = dyn_ptr as *mut T;
