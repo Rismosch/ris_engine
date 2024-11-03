@@ -72,9 +72,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let test_id = TestScript::id();
     ris_log::debug!("test script id: {}", test_id);
 
-    let s = game_object.get_component::<ris_data::ecs::script::DynScriptComponent>(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap();
-
-    let bruh = *s;
+    let s : ris_data::ecs::decl::MeshComponentHandle = game_object.get_component(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap().into();
 
     {
         let mut script = test.script_mut(&god_object.state.scene)?;

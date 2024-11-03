@@ -6,6 +6,7 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
+use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -17,6 +18,7 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
+use super::script::DynScriptComponent;
 use super::script::Script;
 use super::script::ScriptComponentHandle;
 
@@ -273,6 +275,22 @@ impl GameObjectHandle {
         Ok(first)
     }
 
+    pub fn get_scripts<T: Script + 'static>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Vec<ScriptComponentHandle<T>>> {
+        let components: Vec<DynScriptComponentHandle> = self.get_components::<DynScriptComponent>(scene, get_from)?
+            .into_iter()
+            .map(|x| DynScriptComponentHandle::from(x))
+            .collect();
+
+
+
+        
+        panic!();
+    }
+
     pub fn get_components<T: Component>(
         self,
         scene: &Scene,
@@ -329,7 +347,7 @@ impl GameObjectHandle {
         scene.destroy_component(component);
     }
 
-    pub fn add_script<T: Script + Default + 'static>(self, scene: &Scene) -> RisResult<ScriptComponentHandle<T>> {
+    pub fn add_script<T: Script + 'static>(self, scene: &Scene) -> RisResult<ScriptComponentHandle<T>> {
         ScriptComponentHandle::<T>::new(
             scene,
             self,
