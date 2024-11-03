@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use crate::ecs::error::EcsResult;
 use crate::ptr::ArefCell;
 use crate::ptr::StrongPtr;
 use crate::ptr::WeakPtr;

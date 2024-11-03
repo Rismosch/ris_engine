@@ -264,7 +264,8 @@ impl GameObjectHandle {
         let component_dyn = component_handle.to_dyn_component();
 
         ptr.borrow_mut().components.push(component_dyn);
-        component_ptr.borrow_mut().value = T::create(self);
+        let component = T::create(self);
+        component_ptr.borrow_mut().value = component;
 
         Ok(component_handle)
     }

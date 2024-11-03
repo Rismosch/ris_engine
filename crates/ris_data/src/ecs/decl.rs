@@ -25,19 +25,6 @@ declare::component!(
     EcsTypeId::ScriptComponent,
 );
 
-impl MeshComponentHandle {
-    pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.deref(self.into()) else {
-            return;
-        };
-
-        let game_object = ptr.borrow().game_object();
-        let dyn_component = self.to_dyn_component();
-
-        game_object.remove_and_destroy_component(scene, dyn_component);
-    }
-}
-
 mod declare {
     macro_rules! object {
         (

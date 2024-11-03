@@ -63,11 +63,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+    game_object.set_name(&god_object.state.scene, "this is a test")?;
 
     //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
     //script.start(&god_object.state.scene, TestScript::default())?;
     
     let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
+    let test_game_object = test.game_object(&god_object.state.scene)?;
+    let name = test_game_object.name(&god_object.state.scene)?;
+    ris_log::debug!("test script name: {}", name);
 
     let test_id = TestScript::id();
     ris_log::debug!("test script id: {}", test_id);

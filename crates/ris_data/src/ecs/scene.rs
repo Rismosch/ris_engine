@@ -3,6 +3,7 @@ use crate::ptr::StrongPtr;
 
 use super::components::mesh::MeshComponent;
 use super::decl::EcsTypeId;
+use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
@@ -121,6 +122,39 @@ impl Scene {
         ptr.borrow_mut().is_alive = false;
     }
 
+    pub fn find_game_object_of_component(&self, handle: DynComponentHandle) -> EcsResult<GameObjectHandle> {
+        let kind = handle.scene_id().kind;
+        let ecs_type_id = handle.ecs_type_id();
+
+        if kind != SceneKind::Component {
+            return Err(EcsError::InvalidCast);
+        }
+
+        let game_object = match ecs_type_id {
+            EcsTypeId::GameObject => ris_error::throw!("component was of type GameObject. this should be impossible. congrats on triggering this :)"),
+            EcsTypeId::MeshComponent => {
+                let generic_handle = GenericHandle::<MeshComponent>::from_dyn(handle.into());
+                let generic =
+                    ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
+
+                let ptr = self.deref(generic)?;
+                let aref = ptr.borrow();
+                aref.game_object()
+            }
+            EcsTypeId::ScriptComponent => {
+                let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
+                let generic =
+                    ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
+
+                let ptr = self.deref(generic)?;
+                let aref = ptr.borrow();
+                aref.game_object()
+            }
+        };
+
+        Ok(game_object)
+    }
+
     pub fn destroy_component(&self, handle: DynComponentHandle) {
         let kind = handle.scene_id().kind;
         let ecs_type_id = handle.ecs_type_id();
@@ -130,18 +164,20 @@ impl Scene {
         }
 
         match ecs_type_id {
-            EcsTypeId::GameObject => (),
+            EcsTypeId::GameObject => ris_error::throw!("component was of type GameObject. this should be impossible. congrats on triggering this :)"),
             EcsTypeId::MeshComponent => {
                 let generic_handle = GenericHandle::<MeshComponent>::from_dyn(handle.into());
-                let unwrapped =
+                let generic =
                     ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
-                self.destroy_component_inner(unwrapped);
+
+                self.destroy_component_inner(generic);
             }
             EcsTypeId::ScriptComponent => {
                 let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
-                let unwrapped =
+                let generic =
                     ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
-                self.destroy_component_inner(unwrapped);
+
+                self.destroy_component_inner(generic);
             }
         }
     }
@@ -195,3 +231,4 @@ fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U
 
     Ok(result)
 }
+

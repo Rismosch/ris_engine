@@ -9,6 +9,7 @@ use crate::ecs::error::EcsError;
 use crate::ecs::error::EcsResult;
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::decl::DynScriptComponentHandle;
+use crate::ecs::handle::ComponentHandle;
 use crate::ecs::id::Component;
 use crate::ecs::id::EcsInstance;
 use crate::ecs::scene::Scene;
@@ -188,6 +189,16 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
 
     pub fn dyn_handle(self) -> DynScriptComponentHandle {
         self.handle
+    }
+
+    pub fn game_object(self, scene: &Scene) -> EcsResult<GameObjectHandle> {
+        let dyn_handle = self.handle;
+        dyn_handle.game_object(scene)
+    }
+
+    pub fn destroy(self, scene: &Scene) {
+        let dyn_handle = self.handle;
+        dyn_handle.destroy(scene)
     }
 
     pub fn script(

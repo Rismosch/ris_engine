@@ -1,4 +1,5 @@
 use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::error::EcsResult;
 use crate::ecs::id::Component;
 use crate::ecs::scene::Scene;
 use crate::mesh::Mesh;

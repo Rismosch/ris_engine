@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use super::decl::EcsTypeId;
+use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::id::Component;
@@ -32,7 +33,7 @@ pub struct GenericHandle<T: EcsObject + ?Sized> {
     boo: PhantomData<T>,
 }
 
-pub trait Handle: Debug {
+pub trait Handle: Debug + Clone + Copy {
     fn ecs_type_id() -> EcsTypeId
     where
         Self: Sized;
@@ -41,6 +42,21 @@ pub trait Handle: Debug {
 
 pub trait ComponentHandle: Handle {
     fn to_dyn_component(self) -> DynComponentHandle;
+
+    fn game_object(self, scene: &Scene) -> EcsResult<GameObjectHandle> {
+        let dyn_component = self.to_dyn_component();
+        scene.find_game_object_of_component(dyn_component)
+    }
+
+    fn destroy(self, scene: &Scene) {
+        let Ok(game_object) = self.game_object(scene) else {
+            return;
+        };
+
+        let dyn_component = self.to_dyn_component();
+
+        game_object.remove_and_destroy_component(scene, dyn_component);
+    }
 }
 
 //
