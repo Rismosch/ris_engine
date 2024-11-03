@@ -33,9 +33,14 @@ Barebones game engine. Home made passion project.
 - [x] Codecs
   - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
+  - [ ] glTF
 - [x] Settings/Configuration
-- [x] Gameobjects
-- [x] Scripting
+- [x] Gameobjects and components
+  - [ ] Mesh renderer
+  - [x] Scripting
+- [ ] Scene editing, saving and loading
+- [ ] Collisions
+- [ ] Animations
 
 ## Requirements
 
@@ -119,7 +124,7 @@ All tests are found under `./tests/` and can be run with:
 cargo test
 ```
 
-Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several muinutes.
+Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several minutes.
 
 ```bash
 cargo run -p cli pipeline all

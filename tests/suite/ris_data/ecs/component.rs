@@ -1,6 +1,7 @@
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshComponentHandle;
 use ris_data::ecs::game_object::GetFrom;
+use ris_data::ecs::handle::ComponentHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
@@ -185,7 +186,7 @@ fn should_get_from_all() {
 }
 
 #[test]
-fn should_nothing_when_nothing_is_attached() {
+fn should_get_nothing_when_nothing_is_attached() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let _g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -224,6 +225,20 @@ fn should_nothing_when_nothing_is_attached() {
     assert!(result_2.is_empty());
     assert!(result_3.is_empty());
     assert!(result_4.is_empty());
+}
+
+#[test]
+fn should_get_first_component() {
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let m1: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let m2: MeshComponentHandle = g
+        .get_component(&scene, GetFrom::This)
+        .unwrap()
+        .unwrap()
+        .into();
+
+    assert_eq!(m1, m2);
 }
 
 #[test]

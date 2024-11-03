@@ -1,10 +1,12 @@
 use ris_error::Extensions;
+use ris_error::RisResult;
 use ris_math::affine;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
+use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -16,6 +18,9 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
+use super::script::DynScriptComponent;
+use super::script::Script;
+use super::script::ScriptComponentHandle;
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -28,11 +33,6 @@ pub struct GameObject {
     rotation: Quat,
     scale: f32,
     components: Vec<DynComponentHandle>,
-
-    // cache
-    cache_is_dirty: bool,
-    is_visible_in_hierarchy: bool,
-    model: Mat4,
 
     // hierarchy
     parent: Option<GameObjectHandle>,
@@ -48,9 +48,6 @@ impl Default for GameObject {
             rotation: Quat::identity(),
             scale: 1.0,
             components: Vec::new(),
-            cache_is_dirty: true,
-            is_visible_in_hierarchy: true,
-            model: Mat4::default(),
             parent: None,
             children: Vec::new(),
         }
@@ -74,6 +71,12 @@ pub enum GetFrom {
     ThisAndChildren = GET_FROM_THIS | GET_FROM_CHILDREN,
     ThisAndParents = GET_FROM_THIS | GET_FROM_PARENTS,
     All = GET_FROM_THIS | GET_FROM_CHILDREN | GET_FROM_PARENTS,
+}
+
+impl Default for GameObjectHandle {
+    fn default() -> Self {
+        Self::null()
+    }
 }
 
 impl GameObjectHandle {
@@ -125,7 +128,6 @@ impl GameObjectHandle {
         if aref_mut.is_visible != value {
             aref_mut.is_visible = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -143,7 +145,6 @@ impl GameObjectHandle {
         if aref_mut.position.not_equal(value).any() {
             aref_mut.position = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -163,7 +164,6 @@ impl GameObjectHandle {
         if left.not_equal(right).any() {
             aref_mut.rotation = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -187,7 +187,6 @@ impl GameObjectHandle {
         if aref_mut.scale != value {
             aref_mut.scale = value;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -265,9 +264,37 @@ impl GameObjectHandle {
         let component_dyn = component_handle.to_dyn_component();
 
         ptr.borrow_mut().components.push(component_dyn);
-        component_ptr.borrow_mut().value = T::create(self);
+        let component = T::create(self);
+        component_ptr.borrow_mut().value = component;
 
         Ok(component_handle)
+    }
+
+    pub fn add_script<T: Script + 'static>(
+        self,
+        scene: &Scene,
+    ) -> RisResult<ScriptComponentHandle<T>> {
+        ScriptComponentHandle::<T>::new(scene, self)
+    }
+
+    pub fn get_component<T: Component>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Option<GenericHandle<T>>> {
+        let components = self.get_components::<T>(scene, get_from)?;
+        let first = components.into_iter().next();
+        Ok(first)
+    }
+
+    pub fn get_script<T: Script + 'static>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Option<ScriptComponentHandle<T>>> {
+        let components = self.get_scripts::<T>(scene, get_from)?;
+        let first = components.into_iter().next();
+        Ok(first)
     }
 
     pub fn get_components<T: Component>(
@@ -311,6 +338,23 @@ impl GameObjectHandle {
         Ok(result)
     }
 
+    pub fn get_scripts<T: Script + 'static>(
+        self,
+        scene: &Scene,
+        get_from: GetFrom,
+    ) -> EcsResult<Vec<ScriptComponentHandle<T>>> {
+        let components = self
+            .get_components::<DynScriptComponent>(scene, get_from)?
+            .into_iter()
+            .flat_map(|x| {
+                let dyn_handle = DynScriptComponentHandle::from(x);
+                ScriptComponentHandle::<T>::try_from(dyn_handle, scene)
+            })
+            .collect::<Vec<_>>();
+
+        Ok(components)
+    }
+
     pub fn remove_and_destroy_component(self, scene: &Scene, component: DynComponentHandle) {
         let Ok(ptr) = scene.deref(self.into()) else {
             return;
@@ -327,13 +371,32 @@ impl GameObjectHandle {
     }
 
     pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
-        let ptr = self.recalculate_cache(scene)?;
-        Ok(ptr.borrow().is_visible_in_hierarchy)
+        let mut option = Some(self);
+        while let Some(handle) = option {
+            if !handle.is_visible(scene)? {
+                return Ok(false);
+            }
+
+            option = handle.parent(scene)?;
+        }
+
+        Ok(true)
     }
 
     pub fn model(self, scene: &Scene) -> EcsResult<Mat4> {
-        let ptr = self.recalculate_cache(scene)?;
-        Ok(ptr.borrow().model)
+        let mut model = Mat4::init(1.0);
+        let mut option = Some(self);
+        while let Some(handle) = option {
+            let ptr = scene.deref(handle.into())?;
+            let aref = ptr.borrow();
+
+            model = affine::trs_compose(aref.position, aref.rotation, aref.scale) * model;
+
+            drop(aref);
+            option = handle.parent(scene)?;
+        }
+
+        Ok(model)
     }
 
     pub fn parent(self, scene: &Scene) -> EcsResult<Option<GameObjectHandle>> {
@@ -349,7 +412,6 @@ impl GameObjectHandle {
         } else {
             aref_mut.parent = None;
             drop(aref_mut);
-            self.set_cache_to_dirty(scene)?;
             Ok(None)
         }
     }
@@ -423,8 +485,6 @@ impl GameObjectHandle {
             self.set_world_position(scene, position)?;
             self.set_world_rotation(scene, rotation)?;
             self.set_world_scale(scene, scale)?;
-        } else {
-            self.set_cache_to_dirty(scene)?;
         }
 
         Ok(())
@@ -480,48 +540,6 @@ impl GameObjectHandle {
         self.set_parent(scene, Some(parent), sibling_index, true)?;
 
         Ok(())
-    }
-
-    fn set_cache_to_dirty(self, scene: &Scene) -> EcsResult<()> {
-        let ptr = scene.deref(self.into())?;
-        if ptr.borrow().cache_is_dirty {
-            return Ok(());
-        }
-
-        ptr.borrow_mut().cache_is_dirty = true;
-
-        for child in self.child_iter(scene)? {
-            child.set_cache_to_dirty(scene)?;
-        }
-
-        Ok(())
-    }
-
-    fn recalculate_cache(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {
-        let ptr = scene.deref(self.into())?;
-        if !ptr.borrow().cache_is_dirty {
-            return Ok(ptr);
-        }
-
-        let (parent_is_visible_in_hierarchy, parent_model) = match self.parent(scene)? {
-            Some(parent_handle) => {
-                parent_handle.recalculate_cache(scene)?;
-                let parent_ptr = scene.deref(*parent_handle)?;
-                let parent_aref = parent_ptr.borrow();
-
-                (parent_aref.is_visible_in_hierarchy, parent_aref.model)
-            }
-            None => (true, Mat4::init(1.0)),
-        };
-
-        let mut aref_mut = ptr.borrow_mut();
-
-        aref_mut.is_visible_in_hierarchy = parent_is_visible_in_hierarchy && aref_mut.is_visible;
-        aref_mut.model = parent_model
-            * affine::trs_compose(aref_mut.position, aref_mut.rotation, aref_mut.scale);
-
-        aref_mut.cache_is_dirty = false;
-        Ok(ptr)
     }
 
     fn clear_destroyed_children(self, scene: &Scene) -> EcsResult<EcsWeakPtr<GameObject>> {

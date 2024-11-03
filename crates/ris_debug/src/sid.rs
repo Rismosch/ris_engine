@@ -50,23 +50,16 @@ impl std::hash::Hash for Sid {
     }
 }
 
+pub const PRIME: u32 = 2166136261u32;
+
 #[macro_export]
 macro_rules! sid {
     ($value:expr) => {{
         const HASH: u32 = {
             let bytes = $value.as_bytes();
-            let mut hash = 2166136261u32;
 
-            // const for-loops are not supported yet, thus a crude while must do the job
-            // https://github.com/rust-lang/rust/issues/87575
-            let mut i = 0;
-            while i < bytes.len() {
-                let byte = bytes[i];
-                let byte_as_int: u32 = byte as u32;
-                hash ^= byte_as_int;
-                hash = hash.wrapping_mul(16777619u32);
-                i += 1;
-            }
+            let mut hash = $crate::sid::PRIME;
+            $crate::const_hash!(hash, bytes);
 
             hash
         };
@@ -75,6 +68,51 @@ macro_rules! sid {
             hash: HASH,
             #[cfg(debug_assertions)]
             value: $value.to_string(),
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! fsid {
+    () => {{
+        $crate::fsid!(0u32)
+    }};
+    ($salt:expr) => {{
+        const file: &str = file!();
+        const line: u32 = line!();
+        const salt: u32 = $salt;
+
+        const HASH: u32 = {
+            let file_bytes = file.as_bytes();
+            let line_bytes = line.to_le_bytes();
+            let salt_bytes = salt.to_le_bytes();
+
+            let mut hash = $crate::sid::PRIME;
+            $crate::const_hash!(hash, file_bytes);
+            $crate::const_hash!(hash, line_bytes);
+            $crate::const_hash!(hash, salt_bytes);
+
+            hash
+        };
+
+        $crate::sid::Sid {
+            hash: HASH,
+            #[cfg(debug_assertions)]
+            value: format!("{}:{}/salt={}", file, line, salt),
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! const_hash {
+    ($hash:expr, $bytes:expr) => {{
+        let mut i = 0;
+        while i < $bytes.len() {
+            let byte = $bytes[i];
+            let byte_as_int: u32 = byte as u32;
+            $hash ^= byte_as_int;
+            $hash = $hash.wrapping_mul(16777619u32);
+            i += 1;
         }
     }};
 }

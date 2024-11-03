@@ -1,14 +1,13 @@
+use super::components::mesh::MeshComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
 use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
-use super::id::Component;
 use super::id::EcsObject;
-use super::mesh_component::MeshComponent;
 use super::scene::Scene;
-use super::script_component::ScriptComponent;
+use super::script::DynScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {
@@ -20,23 +19,10 @@ pub enum EcsTypeId {
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
 declare::component!(MeshComponentHandle, MeshComponent, EcsTypeId::MeshComponent,);
 declare::component!(
-    ScriptComponentHandle,
-    ScriptComponent,
+    DynScriptComponentHandle,
+    DynScriptComponent,
     EcsTypeId::ScriptComponent,
 );
-
-impl MeshComponentHandle {
-    pub fn destroy(self, scene: &Scene) {
-        let Ok(ptr) = scene.deref(self.into()) else {
-            return;
-        };
-
-        let game_object = ptr.borrow().game_object();
-        let dyn_component = self.to_dyn_component();
-
-        game_object.remove_and_destroy_component(scene, dyn_component);
-    }
-}
 
 mod declare {
     macro_rules! object {

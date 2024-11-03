@@ -1,10 +1,6 @@
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::decl::ScriptComponentHandle;
 use ris_data::ecs::id::GameObjectKind;
-use ris_data::ecs::script_component::Script;
-use ris_data::ecs::script_component::ScriptEndData;
-use ris_data::ecs::script_component::ScriptStartData;
-use ris_data::ecs::script_component::ScriptUpdateData;
+use ris_data::ecs::script::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
@@ -22,9 +18,13 @@ struct TestScript {
 }
 
 impl Script for TestScript {
-    fn start(&mut self, _data: ScriptStartData) -> RisResult<()> {
+    fn id() -> Sid {
+        ris_debug::fsid!()
+    }
+
+    fn start(_data: ScriptStartData) -> RisResult<Self> {
         ris_log::debug!("test started");
-        Ok(())
+        Ok(Self::default())
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
@@ -63,8 +63,29 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-    let script: ScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    script.start(&god_object.state.scene, TestScript::default())?;
+    game_object.set_name(&god_object.state.scene, "this is a test")?;
+
+    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+    //script.start(&god_object.state.scene, TestScript::default())?;
+
+    let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
+    let test_game_object = test.game_object(&god_object.state.scene)?;
+    let name = test_game_object.name(&god_object.state.scene)?;
+    ris_log::debug!("test script name: {}", name);
+
+    let test_id = TestScript::id();
+    ris_log::debug!("test script id: {}", test_id);
+
+    //let s : ris_data::ecs::decl::MeshComponentHandle = game_object.get_component(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap().into();
+
+    {
+        let mut script = test.script_mut(&god_object.state.scene)?;
+        ris_log::debug!("counter 1: {}", script.counter);
+
+        script.counter = 42;
+
+        ris_log::debug!("counter 2: {}", script.counter);
+    }
 
     loop {
         ris_debug::profiler::new_frame()?;
@@ -148,16 +169,32 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_debug::end_record!(r)?;
 
-        if logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit {
-            return Ok(WantsTo::Quit);
+        // continue?
+        let wants_to_quit =
+            logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+        let wants_to_restart = logic_state == GameloopState::WantsToRestart
+            || output_state == GameloopState::WantsToRestart;
+
+        let wants_to_option = if wants_to_quit {
+            Some(WantsTo::Quit)
+        } else if wants_to_restart {
+            Some(WantsTo::Restart)
+        } else {
+            None
+        };
+
+        let Some(wants_to) = wants_to_option else {
+            continue;
+        };
+
+        // shutdown
+        for script in god_object.state.scene.script_components.iter() {
+            let mut aref_mut = script.borrow_mut();
+            if aref_mut.is_alive {
+                aref_mut.end(&god_object.state.scene)?;
+            }
         }
 
-        if logic_state == GameloopState::WantsToRestart
-            || output_state == GameloopState::WantsToRestart
-        {
-            return Ok(WantsTo::Restart);
-        }
-
-        // continue
+        return Ok(wants_to);
     }
 }

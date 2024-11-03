@@ -16,13 +16,13 @@ pub struct Vec3(pub f32, pub f32, pub f32);
 #[repr(C)]
 pub struct Vec4(pub f32, pub f32, pub f32, pub f32);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Bvec2(pub bool, pub bool);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Bvec3(pub bool, pub bool, pub bool);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Bvec4(pub bool, pub bool, pub bool, pub bool);
 
 //
@@ -2416,6 +2416,28 @@ impl Vec4 {
         )
     }
 }
+
+impl std::cmp::PartialEq for Vec2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.equal(*other).all()
+    }
+}
+
+impl std::cmp::PartialEq for Vec3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.equal(*other).all()
+    }
+}
+
+impl std::cmp::PartialEq for Vec4 {
+    fn eq(&self, other: &Self) -> bool {
+        self.equal(*other).all()
+    }
+}
+
+impl std::cmp::Eq for Vec2 {}
+impl std::cmp::Eq for Vec3 {}
+impl std::cmp::Eq for Vec4 {}
 
 impl Bvec2 {
     pub fn any(self) -> bool {
