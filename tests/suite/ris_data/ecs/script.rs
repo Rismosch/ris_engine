@@ -81,20 +81,93 @@ fn should_deref_handle() {
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
     let value_1 = script.script(&scene).unwrap().value;
+    script.script_mut(&scene).unwrap().value = 42;
+    let value_2 = script.script(&scene).unwrap().value;
+    script.destroy(&scene);
 
-    let reference = &mut script.script_mut(&scene).unwrap().value;
-    
+    assert_eq!(value_1, 0);
+    assert_eq!(value_2, 42);
+}
 
-    panic!("reached end");
+#[test]
+fn should_not_deref_handle_when_script_is_destroyed() {
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let script = g.add_script::<TestScriptISize>(&scene).unwrap();
+
+    script.destroy(&scene);
+    let reference = script.script_mut(&scene);
+
+    assert!(reference.is_err());
+}
+
+#[test]
+#[should_panic]
+fn should_panic_when_deref_while_reference_exists() {
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let script = g.add_script::<TestScriptISize>(&scene).unwrap();
+
+    let _reference1 = script.script(&scene);
+    let _reference2 = script.script_mut(&scene); // panics
+}
+
+#[test]
+fn should_allow_multiple_references() {
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let script = g.add_script::<TestScriptISize>(&scene).unwrap();
+
+    let _reference1 = script.script(&scene);
+    let _reference2 = script.script(&scene);
+    let _reference3 = script.script(&scene);
 }
 
 #[test]
 fn should_get_scripts() {
-    panic!()
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
+    let script2 = g.add_script::<TestScriptString>(&scene).unwrap();
+    let script3 = g.add_script::<TestScriptISize>(&scene).unwrap();
+    let script4 = g.add_script::<TestScriptString>(&scene).unwrap();
+    let script5 = g.add_script::<TestScriptISize>(&scene).unwrap();
+
+    script1.script_mut(&scene).unwrap().value = 1;
+    script2.script_mut(&scene).unwrap().value = 2.to_string();
+    script3.script_mut(&scene).unwrap().value = 3;
+    script4.script_mut(&scene).unwrap().value = 4.to_string();
+    script5.script_mut(&scene).unwrap().value = 5;
+
+    let scripts_isize = g.get_scripts::<TestScriptISize>(&scene, GetFrom::This).unwrap();
+    let scripts_string = g.get_scripts::<TestScriptString>(&scene, GetFrom::This).unwrap();
+
+    assert_eq!(scripts_isize.len(), 3);
+    assert_eq!(scripts_isize[0].script(&scene).unwrap().value, 1);
+    assert_eq!(scripts_isize[1].script(&scene).unwrap().value, 3);
+    assert_eq!(scripts_isize[2].script(&scene).unwrap().value, 5);
+
+    assert_eq!(scripts_string.len(), 2);
+    assert_eq!(scripts_string[0].script(&scene).unwrap().value, "2");
+    assert_eq!(scripts_string[1].script(&scene).unwrap().value, "4");
 }
 
 #[test]
 fn should_get_first_script() {
-    panic!()
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
+    let script2 = g.add_script::<TestScriptISize>(&scene).unwrap();
+    let script3 = g.add_script::<TestScriptISize>(&scene).unwrap();
+
+    script1.script_mut(&scene).unwrap().value = 1;
+    script2.script_mut(&scene).unwrap().value = 2;
+    script3.script_mut(&scene).unwrap().value = 3;
+
+    let script1 = g.get_script::<TestScriptISize>(&scene, GetFrom::This).unwrap().unwrap();
+    let script2 = g.get_script::<TestScriptString>(&scene, GetFrom::This).unwrap();
+
+    assert_eq!(script1.script(&scene).unwrap().value, 1);
+    assert!(script2.is_none());
 }
 
