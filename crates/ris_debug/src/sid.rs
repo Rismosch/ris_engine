@@ -98,7 +98,7 @@ macro_rules! fsid {
         $crate::sid::Sid {
             hash: HASH,
             #[cfg(debug_assertions)]
-            value: format!("{}:{} salt = {}", file, line, salt),
+            value: format!("{}:{}/salt={}", file, line, salt),
         }
     }};
 }

@@ -7,7 +7,6 @@ use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
 use super::decl::GameObjectHandle;
-use super::decl::ScriptComponentHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::ComponentHandle;
@@ -18,8 +17,8 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
-
-use super::components::script::Script;
+use super::script::Script;
+use super::script::ScriptComponentHandle;
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -266,6 +265,12 @@ impl GameObjectHandle {
         component_ptr.borrow_mut().value = T::create(self);
 
         Ok(component_handle)
+    }
+
+    pub fn get_component<T: Component>(self, scene: &Scene, get_from: GetFrom) -> EcsResult<Option<GenericHandle<T>>> {
+        let components = self.get_components::<T>(scene, get_from)?;
+        let first = components.into_iter().next();
+        Ok(first)
     }
 
     pub fn get_components<T: Component>(

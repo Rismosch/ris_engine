@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
+use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -13,6 +14,15 @@ use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 use crate::ptr::Aref;
 use crate::ptr::ArefMut;
+
+pub mod prelude {
+    pub use ris_debug::sid::Sid;
+
+    pub use super::Script;
+    pub use super::ScriptEndData;
+    pub use super::ScriptStartData;
+    pub use super::ScriptUpdateData;
+}
 
 pub struct ScriptStartData<'a> {
     pub game_object: GameObjectHandle,
@@ -31,7 +41,8 @@ pub struct ScriptEndData<'a> {
 }
 
 pub trait Script: Debug + Send + Sync {
-    fn start(&mut self, data: ScriptStartData) -> RisResult<()>;
+    fn id() -> Sid where Self: Sized;
+    fn start(data: ScriptStartData) -> RisResult<Self> where Self: Sized;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
 }
@@ -126,13 +137,12 @@ impl DynScriptComponent {
     }
 }
 
-impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
+impl<T: Script + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(&scene)?.into();
-        let mut script = T::default();
-        
+
         let data = ScriptStartData { game_object, scene};
-        script.start(data)?;
+        let script = T::start(data)?;
 
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(Box::new(script));

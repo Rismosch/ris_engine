@@ -185,7 +185,7 @@ fn should_get_from_all() {
 }
 
 #[test]
-fn should_nothing_when_nothing_is_attached() {
+fn should_get_nothing_when_nothing_is_attached() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let _g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -224,6 +224,11 @@ fn should_nothing_when_nothing_is_attached() {
     assert!(result_2.is_empty());
     assert!(result_3.is_empty());
     assert!(result_4.is_empty());
+}
+
+#[test]
+fn should_get_first_component() {
+    panic!();
 }
 
 #[test]

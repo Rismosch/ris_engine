@@ -6,3 +6,4 @@ pub mod game_object;
 pub mod handle;
 pub mod id;
 pub mod scene;
+pub mod script;

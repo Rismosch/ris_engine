@@ -1,9 +1,6 @@
-use ris_data::ecs::components::script::Script;
-use ris_data::ecs::components::script::ScriptEndData;
-use ris_data::ecs::components::script::ScriptStartData;
-use ris_data::ecs::components::script::ScriptUpdateData;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::script::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
@@ -21,9 +18,13 @@ struct TestScript {
 }
 
 impl Script for TestScript {
-    fn start(&mut self, _data: ScriptStartData) -> RisResult<()> {
+    fn id() -> Sid {
+        ris_debug::fsid!()
+    }
+
+    fn start(_data: ScriptStartData) -> RisResult<Self> {
         ris_log::debug!("test started");
-        Ok(())
+        Ok(Self::default())
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
@@ -67,6 +68,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     //script.start(&god_object.state.scene, TestScript::default())?;
     
     let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
+
+    let test_id = TestScript::id();
+    ris_log::debug!("test script id: {}", test_id);
+
+    let s = game_object.get_component::<ris_data::ecs::script::DynScriptComponent>(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap();
+
+    let bruh = *s;
 
     {
         let mut script = test.script_mut(&god_object.state.scene)?;
