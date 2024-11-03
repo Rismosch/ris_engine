@@ -1,6 +1,6 @@
 # cli
 
-A command line utility tool to enable CI/CD, runs features of `ris_engine` as a oneshot cli program and provides further utility functions.
+A command line utility tool to enable CI/CD. This command runs features of `ris_engine` as a oneshot cli program and provides further utility functions.
 
 ## Usage
 

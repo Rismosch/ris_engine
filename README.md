@@ -1,8 +1,6 @@
 # ris_engine
 
-Barebones game engine. Home made passion project. 
-
-🏗️ **VERY WIP** 👷
+Barebones game engine. Home made passion project.
 
 ![thumbnail](screenshot.png)
 
@@ -26,6 +24,7 @@ Barebones game engine. Home made passion project.
   - [x] GUI via Dear ImGui
   - [x] Profiling
   - [x] Gizmos
+  - [x] const hashed string ids
 - [x] Asset System
   - [x] Importing (convert raw assets to usable form)
   - [x] Loading (use in engine)
@@ -41,6 +40,11 @@ Barebones game engine. Home made passion project.
 - [ ] Scene editing, saving and loading
 - [ ] Collisions
 - [ ] Animations
+- [ ] Sound
+
+**Legend**:
+- [x] fully implemented
+- [ ] planned
 
 ## Requirements
 
@@ -60,13 +64,13 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 In this repo you will find the `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the Vulkan SDK, which provides binaries for `SDL2` and `shaderc`.
 
-#### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repository.
+#### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repo.
 
 These DLLs need to be available in your environment. So either assign it to your environment variables or move them to the root of the directory.
 
 #### 2. Set the environment variable `SHADERC_LIB_DIR`
 
-[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`.
+[shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency nonetheless. It searches the DLL in `SHADERC_LIB_DIR`.
 
 For more info, check this link: https://docs.rs/shaderc/0.8.3/shaderc/index.html
 
@@ -115,6 +119,15 @@ Alternatively, you can build a release-ready package, by running the command bel
 ```bash
 cargo run -p cli build
 ```
+
+Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. To do so, run the following two commands:
+
+```bash
+cargo run -p cli asset import
+cargo run -p cli asset compile
+```
+
+After compiling, you will find the file `ris_assets` in the root of this repo. It contains all assets used by `ris_engine`.
 
 ## Testing
 
