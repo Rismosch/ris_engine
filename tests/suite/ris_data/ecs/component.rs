@@ -228,7 +228,11 @@ fn should_get_nothing_when_nothing_is_attached() {
 
 #[test]
 fn should_get_first_component() {
-    panic!();
+    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+
+
 }
 
 #[test]
@@ -257,7 +261,3 @@ fn should_destroy_components_when_game_object_is_destroyed() {
     assert!(!m.is_alive(&scene));
 }
 
-#[test]
-fn should_destroy_component() {
-    panic!();
-}

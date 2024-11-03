@@ -36,5 +36,11 @@ fn should_detect_collision() {
 
 #[test]
 fn should_create_file_sids() {
-    panic!();
+    let sid1 = ris_debug::fsid!();
+    let sid2 = ris_debug::fsid!();
+    let sid3 = ris_debug::fsid!();
+
+    assert!(sid1 != sid2);
+    assert!(sid1 != sid3);
+    assert!(sid2 != sid3);
 }

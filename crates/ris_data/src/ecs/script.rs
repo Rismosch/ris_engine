@@ -19,6 +19,7 @@ use crate::ptr::ArefMut;
 
 pub mod prelude {
     pub use ris_debug::sid::Sid;
+    pub use ris_error::RisResult;
 
     pub use super::Script;
     pub use super::ScriptEndData;
@@ -61,7 +62,7 @@ pub struct DynScriptComponent {
     script: Option<DynScript>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ScriptComponentHandle<T: Script> {
     handle: DynScriptComponentHandle,
     boo: PhantomData<T>,
@@ -216,7 +217,18 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
     }
 }
 
-impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRef<T> {
+impl<T: Script> Clone for ScriptComponentHandle<T> {
+    fn clone(&self) -> Self {
+        Self {
+            handle: self.handle,
+            boo: PhantomData::default(),
+        }
+    }
+}
+
+impl<T: Script> Copy for ScriptComponentHandle<T> {}
+
+impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -239,7 +251,7 @@ impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRef<T> {
     }
 }
 
-impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
+impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -262,7 +274,7 @@ impl<T: Script + Default + 'static> std::ops::Deref for ScriptComponentRefMut<T>
     }
 }
 
-impl<T: Script + Default + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
+impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let script = ris_error::unwrap!(
             self.reference.script.as_mut().unroll(),

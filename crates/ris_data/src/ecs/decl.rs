@@ -1,5 +1,3 @@
-use ris_error::RisResult;
-
 use super::components::mesh::MeshComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
@@ -10,7 +8,6 @@ use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsObject;
 use super::scene::Scene;
-use super::script::Script;
 use super::script::DynScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
