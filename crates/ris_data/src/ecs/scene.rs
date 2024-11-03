@@ -122,7 +122,10 @@ impl Scene {
         ptr.borrow_mut().is_alive = false;
     }
 
-    pub fn find_game_object_of_component(&self, handle: DynComponentHandle) -> EcsResult<GameObjectHandle> {
+    pub fn find_game_object_of_component(
+        &self,
+        handle: DynComponentHandle,
+    ) -> EcsResult<GameObjectHandle> {
         let kind = handle.scene_id().kind;
         let ecs_type_id = handle.ecs_type_id();
 
@@ -231,4 +234,3 @@ fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U
 
     Ok(result)
 }
-

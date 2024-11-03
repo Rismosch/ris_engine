@@ -231,9 +231,14 @@ fn should_get_nothing_when_nothing_is_attached() {
 fn should_get_first_component() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let m1: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let m2: MeshComponentHandle = g
+        .get_component(&scene, GetFrom::This)
+        .unwrap()
+        .unwrap()
+        .into();
 
-
+    assert_eq!(m1, m2);
 }
 
 #[test]
@@ -261,4 +266,3 @@ fn should_destroy_components_when_game_object_is_destroyed() {
     g.destroy(&scene);
     assert!(!m.is_alive(&scene));
 }
-

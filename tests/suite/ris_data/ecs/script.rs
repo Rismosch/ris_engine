@@ -1,5 +1,4 @@
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::decl::MeshComponentHandle;
 use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
@@ -15,7 +14,7 @@ const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
 };
 
 #[derive(Debug)]
-struct TestScriptString{
+struct TestScriptString {
     value: String,
 }
 
@@ -29,16 +28,18 @@ impl Script for TestScriptString {
         ris_debug::fsid!()
     }
 
-    fn start(data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self{value: String::new()})
+    fn start(_data: ScriptStartData) -> RisResult<Self> {
+        Ok(Self {
+            value: String::new(),
+        })
     }
 
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
+    fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
         self.value.push_str("\nupdate");
         Ok(())
     }
 
-    fn end(&mut self, data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
         self.value.push_str("\nend");
         Ok(())
     }
@@ -49,22 +50,20 @@ impl Script for TestScriptISize {
         ris_debug::fsid!()
     }
 
-    fn start(data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self{value: 0})
+    fn start(_data: ScriptStartData) -> RisResult<Self> {
+        Ok(Self { value: 0 })
     }
 
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
+    fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
         self.value += 1;
         Ok(())
     }
 
-    fn end(&mut self, data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
         self.value *= -1;
         Ok(())
     }
 }
-
-
 
 #[test]
 fn should_add_script() {
@@ -103,6 +102,7 @@ fn should_not_deref_handle_when_script_is_destroyed() {
 
 #[test]
 #[should_panic]
+#[cfg(debug_assertions)]
 fn should_panic_when_deref_while_reference_exists() {
     let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -139,8 +139,12 @@ fn should_get_scripts() {
     script4.script_mut(&scene).unwrap().value = 4.to_string();
     script5.script_mut(&scene).unwrap().value = 5;
 
-    let scripts_isize = g.get_scripts::<TestScriptISize>(&scene, GetFrom::This).unwrap();
-    let scripts_string = g.get_scripts::<TestScriptString>(&scene, GetFrom::This).unwrap();
+    let scripts_isize = g
+        .get_scripts::<TestScriptISize>(&scene, GetFrom::This)
+        .unwrap();
+    let scripts_string = g
+        .get_scripts::<TestScriptString>(&scene, GetFrom::This)
+        .unwrap();
 
     assert_eq!(scripts_isize.len(), 3);
     assert_eq!(scripts_isize[0].script(&scene).unwrap().value, 1);
@@ -164,10 +168,14 @@ fn should_get_first_script() {
     script2.script_mut(&scene).unwrap().value = 2;
     script3.script_mut(&scene).unwrap().value = 3;
 
-    let script1 = g.get_script::<TestScriptISize>(&scene, GetFrom::This).unwrap().unwrap();
-    let script2 = g.get_script::<TestScriptString>(&scene, GetFrom::This).unwrap();
+    let script1 = g
+        .get_script::<TestScriptISize>(&scene, GetFrom::This)
+        .unwrap()
+        .unwrap();
+    let script2 = g
+        .get_script::<TestScriptString>(&scene, GetFrom::This)
+        .unwrap();
 
     assert_eq!(script1.script(&scene).unwrap().value, 1);
     assert!(script2.is_none());
 }
-

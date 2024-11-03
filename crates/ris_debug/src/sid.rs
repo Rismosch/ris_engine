@@ -114,5 +114,5 @@ macro_rules! const_hash {
             $hash = $hash.wrapping_mul(16777619u32);
             i += 1;
         }
-    }}
+    }};
 }

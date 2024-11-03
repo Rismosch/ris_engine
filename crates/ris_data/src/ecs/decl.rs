@@ -5,7 +5,6 @@ use super::handle::DynComponentHandle;
 use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
-use super::id::Component;
 use super::id::EcsObject;
 use super::scene::Scene;
 use super::script::DynScriptComponent;

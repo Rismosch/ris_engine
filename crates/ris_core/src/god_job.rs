@@ -67,7 +67,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
     //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
     //script.start(&god_object.state.scene, TestScript::default())?;
-    
+
     let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
     let test_game_object = test.game_object(&god_object.state.scene)?;
     let name = test_game_object.name(&god_object.state.scene)?;
@@ -170,8 +170,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::end_record!(r)?;
 
         // continue?
-        let wants_to_quit = logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
-        let wants_to_restart = logic_state == GameloopState::WantsToRestart || output_state == GameloopState::WantsToRestart;
+        let wants_to_quit =
+            logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+        let wants_to_restart = logic_state == GameloopState::WantsToRestart
+            || output_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {
             Some(WantsTo::Quit)

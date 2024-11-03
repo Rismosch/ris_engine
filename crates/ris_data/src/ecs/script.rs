@@ -5,10 +5,10 @@ use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::ecs::decl::DynScriptComponentHandle;
+use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::error::EcsError;
 use crate::ecs::error::EcsResult;
-use crate::ecs::decl::GameObjectHandle;
-use crate::ecs::decl::DynScriptComponentHandle;
 use crate::ecs::handle::ComponentHandle;
 use crate::ecs::id::Component;
 use crate::ecs::id::EcsInstance;
@@ -45,8 +45,12 @@ pub struct ScriptEndData<'a> {
 }
 
 pub trait Script: Debug + Send + Sync {
-    fn id() -> Sid where Self: Sized;
-    fn start(data: ScriptStartData) -> RisResult<Self> where Self: Sized;
+    fn id() -> Sid
+    where
+        Self: Sized;
+    fn start(data: ScriptStartData) -> RisResult<Self>
+    where
+        Self: Sized;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
 }
@@ -149,20 +153,20 @@ impl DynScriptComponent {
 
 impl<T: Script + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
-        let handle: DynScriptComponentHandle = game_object.add_component(&scene)?.into();
+        let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
-        let data = ScriptStartData { game_object, scene};
+        let data = ScriptStartData { game_object, scene };
         let script = T::start(data)?;
 
         let ptr = scene.deref(handle.into())?;
-        ptr.borrow_mut().script = Some(DynScript{
+        ptr.borrow_mut().script = Some(DynScript {
             boxxed: Box::new(script),
             id: T::id(),
         });
 
         let generic_handle = Self {
             handle,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         };
 
         Ok(generic_handle)
@@ -172,7 +176,9 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         let ptr = scene.deref(handle.into())?;
         let aref = ptr.borrow();
         let Some(script) = &aref.script else {
-            return Err(EcsError::InvalidOperation("script component was not started".to_string()));
+            return Err(EcsError::InvalidOperation(
+                "script component was not started".to_string(),
+            ));
         };
 
         if T::id() != script.id {
@@ -181,7 +187,7 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
 
         let generic_handle = Self {
             handle,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         };
 
         Ok(generic_handle)
@@ -201,39 +207,30 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         dyn_handle.destroy(scene)
     }
 
-    pub fn script(
-        self,
-        scene: &Scene,
-    ) -> RisResult<ScriptComponentRef<T>> {
+    pub fn script(self, scene: &Scene) -> RisResult<ScriptComponentRef<T>> {
         let ptr = scene.deref(self.handle.into())?;
         let aref = ptr.borrow();
 
         Ok(ScriptComponentRef {
             reference: aref,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         })
     }
 
-    pub fn script_mut(
-        self,
-        scene: &Scene,
-    ) -> RisResult<ScriptComponentRefMut<T>> {
+    pub fn script_mut(self, scene: &Scene) -> RisResult<ScriptComponentRefMut<T>> {
         let ptr = scene.deref(self.handle.into())?;
         let aref_mut = ptr.borrow_mut();
 
-        Ok(ScriptComponentRefMut{
+        Ok(ScriptComponentRefMut {
             reference: aref_mut,
-            boo: PhantomData::default(),
+            boo: PhantomData,
         })
     }
 }
 
 impl<T: Script> Clone for ScriptComponentHandle<T> {
     fn clone(&self) -> Self {
-        Self {
-            handle: self.handle,
-            boo: PhantomData::default(),
-        }
+        *self
     }
 }
 
@@ -297,7 +294,7 @@ impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
         let t_ptr = dyn_ptr as *mut T;
 
         // this is safe, because the constructor ensures that the script is of type T
-        let reference = unsafe {t_ptr.as_mut()};
+        let reference = unsafe { t_ptr.as_mut() };
 
         ris_error::unwrap!(
             reference.unroll(),
