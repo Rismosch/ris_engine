@@ -1,3 +1,6 @@
+use ash::vk;
+
+use ris_error::RisResult;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
@@ -18,7 +21,9 @@ pub struct Mesh {
 
 pub struct VideoMesh {
     pub vertices: Buffer,
+    pub vertex_count: usize,
     pub indices: Buffer,
+    pub index_count: usize,
 }
 
 impl Mesh {
@@ -38,6 +43,58 @@ impl Mesh {
     pub fn set_indices(&mut self, value: &[u32]) {
         self.is_dirty = true;
         ris_util::vec::fast_copy(&mut self.indices, value);
+    }
+}
+
+impl VideoMesh {
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        self.vertices.free(device);
+        self.indices.free(device);
+    }
+
+    pub unsafe fn alloc(
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        mesh: Mesh,
+    ) -> RisResult<Self> {
+        ris_log::warning!("IMPLEMENT STAGING, THESE BUFFERS SHOULD ONLY BE WRITTEN TO ONCE");
+
+        // vertices
+        let vertices = mesh.vertices();
+        let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+        let vertex_buffer = Buffer::alloc(
+            device, 
+            vertex_buffer_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+        )?;
+
+        vertex_buffer.write(device, vertices)?;
+
+        // indices
+        let indices = mesh.indices();
+        let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
+        let index_buffer = Buffer::alloc(
+            device,
+            index_buffer_size,
+            vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+
+        index_buffer.write(device, &indices)?;
+
+        Ok(Self {
+            vertices: vertex_buffer,
+            vertex_count: vertices.len(),
+            indices: index_buffer,
+            index_count: indices.len(),
+        })
     }
 }
 

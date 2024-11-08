@@ -1,5 +1,5 @@
-use ris_data::ptr::ArefCell;
-use ris_data::ptr::StrongPtr;
+use ris_ptr::ArefCell;
+use ris_ptr::StrongPtr;
 
 #[test]
 fn should_deref_strong_ptr() {
