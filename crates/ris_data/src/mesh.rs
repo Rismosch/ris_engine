@@ -1,5 +1,6 @@
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
+use ris_video_data::buffer::Buffer;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
@@ -13,6 +14,11 @@ pub struct Mesh {
     pub is_dirty: bool,
     vertices: Vec<Vertex>,
     indices: Vec<u32>,
+}
+
+pub struct VideoMesh {
+    pub vertices: Buffer,
+    pub indices: Buffer,
 }
 
 impl Mesh {

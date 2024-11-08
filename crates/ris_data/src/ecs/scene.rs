@@ -1,5 +1,5 @@
-use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
+use ris_ptr::ArefCell;
+use ris_ptr::StrongPtr;
 
 use super::components::mesh::MeshComponent;
 use super::decl::EcsTypeId;

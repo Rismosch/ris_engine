@@ -4,6 +4,8 @@ use std::marker::PhantomData;
 use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_ptr::Aref;
+use ris_ptr::ArefMut;
 
 use crate::ecs::decl::DynScriptComponentHandle;
 use crate::ecs::decl::GameObjectHandle;
@@ -15,8 +17,6 @@ use crate::ecs::id::EcsInstance;
 use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
-use crate::ptr::Aref;
-use crate::ptr::ArefMut;
 
 pub mod prelude {
     pub use ris_debug::sid::Sid;

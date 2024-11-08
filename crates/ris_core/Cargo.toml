@@ -20,6 +20,7 @@ ris_input = { path = "../ris_input" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
+ris_ptr = { path = "../ris_ptr" }
 ris_rng = { path = "../ris_rng" }
 ris_util = { path = "../ris_util" }
 ris_video_data = { path = "../ris_video_data" }

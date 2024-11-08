@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
-use crate::ptr::WeakPtr;
+use ris_ptr::ArefCell;
+use ris_ptr::StrongPtr;
+use ris_ptr::WeakPtr;
 
 use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;

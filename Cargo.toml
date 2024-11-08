@@ -31,6 +31,7 @@ members = [
     "crates/ris_jobs",
     "crates/ris_log",
     "crates/ris_math",
+    "crates/ris_ptr",
     "crates/ris_rng",
     "crates/ris_util",
     "crates/ris_video_data",
@@ -49,6 +50,7 @@ ris_input = { path = "crates/ris_input" }
 ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }
 ris_math = { path = "crates/ris_math" }
+ris_ptr = { path = "crates/ris_ptr" }
 ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video_data = { path = "crates/ris_video_data" }
