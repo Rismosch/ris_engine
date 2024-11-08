@@ -4,8 +4,7 @@ use ris_error::RisResult;
 use ris_math::color::Rgb;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-
-use crate::vulkan::buffer::Buffer;
+use ris_video_data::buffer::Buffer;
 
 #[repr(C)]
 pub struct Vertex {

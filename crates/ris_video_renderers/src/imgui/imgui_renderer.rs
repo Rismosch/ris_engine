@@ -14,12 +14,12 @@ use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
+use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::SwapchainEntry;
+use ris_video_data::texture::Texture;
+use ris_video_data::texture::TextureCreateInfo;
 
-use crate::imgui::imgui_mesh::Mesh;
-use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::SwapchainEntry;
-use crate::vulkan::texture::Texture;
-use crate::vulkan::texture::TextureCreateInfo;
+use super::imgui_mesh::Mesh;
 
 pub struct ImguiFrame {
     mesh: Option<Mesh>,

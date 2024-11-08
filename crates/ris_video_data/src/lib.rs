@@ -3,6 +3,7 @@ pub mod core;
 pub mod frame_in_flight;
 pub mod image;
 pub mod layers;
+pub mod shader;
 pub mod suitable_device;
 pub mod surface_details;
 pub mod swapchain;

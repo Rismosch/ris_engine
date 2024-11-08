@@ -10,14 +10,14 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_video::gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
-use ris_video::gizmo::gizmo_text_renderer::GizmoTextRenderer;
-use ris_video::imgui::imgui_backend::ImguiBackend;
-use ris_video::imgui::imgui_renderer::ImguiRenderer;
-use ris_video::scene::scene_renderer::SceneRenderer;
-use ris_video::vulkan::core::VulkanCore;
-use ris_video::vulkan::frame_in_flight::FrameInFlight;
-use ris_video::vulkan::swapchain::SwapchainEntry;
+use ris_video_data::core::VulkanCore;
+use ris_video_data::frame_in_flight::FrameInFlight;
+use ris_video_data::swapchain::SwapchainEntry;
+use ris_video_renderers::GizmoSegmentRenderer;
+use ris_video_renderers::GizmoTextRenderer;
+use ris_video_renderers::ImguiBackend;
+use ris_video_renderers::ImguiRenderer;
+use ris_video_renderers::SceneRenderer;
 
 use crate::ui_helper::UiHelper;
 use crate::ui_helper::UiHelperDrawData;
@@ -197,8 +197,8 @@ impl OutputFrame {
 
         // scene
         ris_debug::add_record!(r, "scene")?;
-        let vertices = ris_video::scene::scene_mesh::VERTICES;
-        let indices = ris_video::scene::scene_mesh::INDICES;
+        let vertices = ris_video_renderers::scene::scene_mesh::VERTICES;
+        let indices = ris_video_renderers::scene::scene_mesh::INDICES;
         self.renderer.scene.draw(
             &self.core,
             swapchain_entry,

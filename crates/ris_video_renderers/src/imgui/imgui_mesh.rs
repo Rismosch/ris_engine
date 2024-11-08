@@ -4,8 +4,7 @@ use imgui::DrawData;
 use imgui::DrawVert;
 
 use ris_error::RisResult;
-
-use crate::vulkan::buffer::Buffer;
+use ris_video_data::buffer::Buffer;
 
 pub struct Mesh {
     pub vertices: Buffer,

@@ -8,11 +8,11 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
+use ris_video_data::buffer::Buffer;
+use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::SwapchainEntry;
 
-use crate::gizmo::gizmo_segment_mesh::GizmoSegmentMesh;
-use crate::vulkan::buffer::Buffer;
-use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::SwapchainEntry;
+use super::gizmo_segment_mesh::GizmoSegmentMesh;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -144,9 +144,9 @@ impl GizmoSegmentRenderer {
         let gs_bytes = gs_future.wait(None)??;
         let fs_bytes = fs_future.wait(None)??;
 
-        let vs_module = crate::shader::create_module(device, &vs_bytes)?;
-        let gs_module = crate::shader::create_module(device, &gs_bytes)?;
-        let fs_module = crate::shader::create_module(device, &fs_bytes)?;
+        let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
+        let gs_module = ris_video_data::shader::create_module(device, &gs_bytes)?;
+        let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
@@ -154,7 +154,7 @@ impl GizmoSegmentRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
+                p_name: ris_video_data::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
@@ -163,7 +163,7 @@ impl GizmoSegmentRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: gs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
+                p_name: ris_video_data::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::GEOMETRY,
             },
@@ -172,7 +172,7 @@ impl GizmoSegmentRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
+                p_name: ris_video_data::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
@@ -345,7 +345,7 @@ impl GizmoSegmentRenderer {
 
         let depth_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: crate::vulkan::util::find_depth_format(
+            format: ris_video_data::util::find_depth_format(
                 instance,
                 suitable_device.physical_device,
             )?,

@@ -2,14 +2,13 @@ use ash::vk;
 
 use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::RisResult;
-
-use crate::vulkan::buffer::Buffer;
-use crate::vulkan::buffer::CopyToImageInfo;
-use crate::vulkan::core::VulkanCore;
-use crate::vulkan::image::TransitionLayoutInfo;
-use crate::vulkan::texture::Texture;
-use crate::vulkan::texture::TextureCreateInfo;
-use crate::vulkan::transient_command::TransientCommandSync;
+use ris_video_data::buffer::Buffer;
+use ris_video_data::buffer::CopyToImageInfo;
+use ris_video_data::core::VulkanCore;
+use ris_video_data::image::TransitionLayoutInfo;
+use ris_video_data::texture::Texture;
+use ris_video_data::texture::TextureCreateInfo;
+use ris_video_data::transient_command::TransientCommandSync;
 
 pub struct GizmoTextMesh {
     pub vertices: Buffer,

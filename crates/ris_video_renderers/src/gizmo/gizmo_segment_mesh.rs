@@ -2,8 +2,7 @@ use ash::vk;
 
 use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::RisResult;
-
-use crate::vulkan::buffer::Buffer;
+use ris_video_data::buffer::Buffer;
 
 pub struct GizmoSegmentMesh {
     pub vertices: Buffer,

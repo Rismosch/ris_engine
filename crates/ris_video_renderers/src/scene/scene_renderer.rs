@@ -4,77 +4,81 @@ use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
+use ris_video_data::buffer::Buffer;
+use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::SwapchainEntry;
+use ris_video_data::texture::Texture;
+use ris_video_data::texture::TextureCreateInfo;
 
-use crate::gizmo::gizmo_text_mesh::GizmoTextMesh;
-use crate::vulkan::buffer::Buffer;
-use crate::vulkan::core::VulkanCore;
-use crate::vulkan::swapchain::SwapchainEntry;
-use crate::vulkan::texture::Texture;
-use crate::vulkan::texture::TextureCreateInfo;
+use super::scene_mesh::Mesh;
+use super::scene_mesh::Vertex;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
+    pub model: Mat4,
     pub view: Mat4,
     pub proj: Mat4,
-    pub screen_width: u32,
-    pub screen_height: u32,
 }
 
-struct GizmoTextFrame {
-    mesh: Option<GizmoTextMesh>,
+pub struct SceneFrame {
+    mesh: Option<Mesh>,
     framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
 }
 
-impl GizmoTextFrame {
+impl SceneFrame {
+    /// # Safety
+    ///
+    /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
         }
 
         if let Some(framebuffer) = self.framebuffer.take() {
-            unsafe { device.destroy_framebuffer(framebuffer, None) };
+            device.destroy_framebuffer(framebuffer, None);
         }
 
         self.descriptor_buffer.free(device);
     }
 }
 
-pub struct GizmoTextRenderer {
-    pipeline: vk::Pipeline,
-    pipeline_layout: vk::PipelineLayout,
-    render_pass: vk::RenderPass,
+pub struct SceneRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
-    frames: Vec<GizmoTextFrame>,
-    font_texture: Texture,
+    render_pass: vk::RenderPass,
+    pipeline: vk::Pipeline,
+    pipeline_layout: vk::PipelineLayout,
+    frames: Vec<SceneFrame>,
+    texture: Texture,
 }
 
-impl GizmoTextRenderer {
+impl SceneRenderer {
     /// # Safety
     ///
     /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        for frame in self.frames.iter_mut() {
-            frame.free(device);
+        unsafe {
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
+            }
+
+            device.destroy_descriptor_pool(self.descriptor_pool, None);
+            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+
+            device.destroy_pipeline(self.pipeline, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
+            device.destroy_render_pass(self.render_pass, None);
+
+            self.texture.free(device);
         }
-
-        device.destroy_descriptor_pool(self.descriptor_pool, None);
-        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-
-        device.destroy_pipeline(self.pipeline, None);
-        device.destroy_pipeline_layout(self.pipeline_layout, None);
-        device.destroy_render_pass(self.render_pass, None);
-
-        self.font_texture.free(device);
     }
 
     /// # Safety
@@ -97,6 +101,31 @@ impl GizmoTextRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
+        // texture
+        let texture_asset_id = god_asset.texture.clone();
+        let content = ris_asset::load_async(texture_asset_id.clone()).wait(None)??;
+        let (pixels, desc) = qoi::decode(&content, None)?;
+
+        let pixels_rgba = match desc.channels {
+            qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
+            qoi::Channels::RGBA => pixels,
+        };
+
+        let texture = unsafe {
+            Texture::alloc(TextureCreateInfo {
+                device,
+                queue: *graphics_queue,
+                transient_command_pool: *transient_command_pool,
+                physical_device_memory_properties,
+                physical_device_properties,
+                width: desc.width,
+                height: desc.height,
+                format: vk::Format::R8G8B8A8_SRGB,
+                filter: vk::Filter::LINEAR,
+                pixels_rgba: &pixels_rgba,
+            })
+        }?;
+
         // descriptor sets
         let descriptor_set_layout_bindings = [
             vk::DescriptorSetLayoutBinding {
@@ -108,13 +137,6 @@ impl GizmoTextRenderer {
             },
             vk::DescriptorSetLayoutBinding {
                 binding: 1,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::GEOMETRY,
-                p_immutable_samplers: ptr::null(),
-            },
-            vk::DescriptorSetLayoutBinding {
-                binding: 2,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
@@ -137,10 +159,6 @@ impl GizmoTextRenderer {
         let descriptor_pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: swapchain.entries.len() as u32,
-            },
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: swapchain.entries.len() as u32,
             },
             vk::DescriptorPoolSize {
@@ -178,17 +196,15 @@ impl GizmoTextRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_async(god_asset.gizmo_text_vert_spv.clone());
-        let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
-        let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
+        let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_async(god_asset.default_frag_spv.clone());
 
-        let vs_bytes = vs_future.wait(None)??;
-        let gs_bytes = gs_future.wait(None)??;
-        let fs_bytes = fs_future.wait(None)??;
+        let vs_bytes = vs_asset_future.wait(None)??;
+        let fs_bytes = fs_asset_future.wait(None)??;
 
-        let vs_module = crate::shader::create_module(device, &vs_bytes)?;
-        let gs_module = crate::shader::create_module(device, &gs_bytes)?;
-        let fs_module = crate::shader::create_module(device, &fs_bytes)?;
+        let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
+        let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
+        let entry = ris_video_data::shader::ENTRY.as_ptr();
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
@@ -196,7 +212,7 @@ impl GizmoTextRenderer {
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
+                p_name: entry,
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
@@ -204,17 +220,8 @@ impl GizmoTextRenderer {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
                 p_next: ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
-                module: gs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
-                p_specialization_info: ptr::null(),
-                stage: vk::ShaderStageFlags::GEOMETRY,
-            },
-            vk::PipelineShaderStageCreateInfo {
-                s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_module,
-                p_name: crate::shader::ENTRY.as_ptr(),
+                p_name: entry,
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
@@ -223,27 +230,28 @@ impl GizmoTextRenderer {
         // pipeline
         let vertex_binding_descriptions = [vk::VertexInputBindingDescription {
             binding: 0,
-            stride: std::mem::size_of::<GizmoTextVertex>() as u32,
+            stride: std::mem::size_of::<Vertex>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
         }];
+
         let vertex_attribute_descriptions = [
             vk::VertexInputAttributeDescription {
                 location: 0,
                 binding: 0,
                 format: vk::Format::R32G32B32_SFLOAT,
-                offset: std::mem::offset_of!(GizmoTextVertex, pos) as u32,
+                offset: std::mem::offset_of!(Vertex, pos) as u32,
             },
             vk::VertexInputAttributeDescription {
                 location: 1,
                 binding: 0,
-                format: vk::Format::R32_UINT,
-                offset: std::mem::offset_of!(GizmoTextVertex, text_addr) as u32,
+                format: vk::Format::R32G32B32_SFLOAT,
+                offset: std::mem::offset_of!(Vertex, color) as u32,
             },
             vk::VertexInputAttributeDescription {
                 location: 2,
                 binding: 0,
-                format: vk::Format::R32_UINT,
-                offset: std::mem::offset_of!(GizmoTextVertex, text_len) as u32,
+                format: vk::Format::R32G32_SFLOAT,
+                offset: std::mem::offset_of!(Vertex, uv) as u32,
             },
         ];
 
@@ -261,7 +269,7 @@ impl GizmoTextRenderer {
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
-            topology: vk::PrimitiveTopology::POINT_LIST,
+            topology: vk::PrimitiveTopology::TRIANGLE_LIST,
             primitive_restart_enable: vk::FALSE,
         }];
 
@@ -300,7 +308,7 @@ impl GizmoTextRenderer {
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             sample_shading_enable: vk::FALSE,
-            min_sample_shading: 1.,
+            min_sample_shading: 0.0,
             p_sample_mask: ptr::null(),
             alpha_to_coverage_enable: vk::FALSE,
             alpha_to_one_enable: vk::FALSE,
@@ -328,16 +336,27 @@ impl GizmoTextRenderer {
             front: stencil_op_state,
             back: stencil_op_state,
             min_depth_bounds: 0.0,
-            max_depth_bounds: 0.0,
+            max_depth_bounds: 1.0,
         }];
 
+        // pseudocode of how blending with vk::PipelineColorBlendAttachmentState works:
+        //
+        //     if (blend_enable) {
+        //         final_color.rgb = (src_color_blend_factor * new_color.rgb) <color_blend_op> (dst_color_blend_factor * old_color.rgb);
+        //         final_color.a = (src_alpha_blend_factor * new_color.a) <alpha_blend_op> (dst_alpha_blend_factor * old_color.a);
+        //     } else {
+        //         final_color = new_color;
+        //     }
+        //
+        //     final_color = final_color & color_write_mask;
+
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
-            blend_enable: vk::TRUE,
-            src_color_blend_factor: vk::BlendFactor::SRC_ALPHA,
-            dst_color_blend_factor: vk::BlendFactor::ONE_MINUS_SRC_ALPHA,
+            blend_enable: vk::FALSE,
+            src_color_blend_factor: vk::BlendFactor::ONE,
+            dst_color_blend_factor: vk::BlendFactor::ZERO,
             color_blend_op: vk::BlendOp::ADD,
             src_alpha_blend_factor: vk::BlendFactor::ONE,
-            dst_alpha_blend_factor: vk::BlendFactor::ONE_MINUS_SRC_ALPHA,
+            dst_alpha_blend_factor: vk::BlendFactor::ZERO,
             alpha_blend_op: vk::BlendOp::ADD,
             color_write_mask: vk::ColorComponentFlags::RGBA,
         }];
@@ -350,7 +369,7 @@ impl GizmoTextRenderer {
             logic_op: vk::LogicOp::COPY,
             attachment_count: color_blend_attachment_states.len() as u32,
             p_attachments: color_blend_attachment_states.as_ptr(),
-            blend_constants: [0., 0., 0., 0.],
+            blend_constants: [0.0, 0.0, 0.0, 0.0],
         }];
 
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
@@ -383,23 +402,23 @@ impl GizmoTextRenderer {
             flags: vk::AttachmentDescriptionFlags::empty(),
             format: swapchain.format.format,
             samples: vk::SampleCountFlags::TYPE_1,
-            load_op: vk::AttachmentLoadOp::LOAD,
+            load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
-            initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+            initial_layout: vk::ImageLayout::UNDEFINED,
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
         };
 
         let depth_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: crate::vulkan::util::find_depth_format(
+            format: ris_video_data::util::find_depth_format(
                 instance,
                 suitable_device.physical_device,
             )?,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
-            store_op: vk::AttachmentStoreOp::STORE,
+            store_op: vk::AttachmentStoreOp::DONT_CARE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
             initial_layout: vk::ImageLayout::UNDEFINED,
@@ -492,33 +511,7 @@ impl GizmoTextRenderer {
         let pipeline = graphics_pipelines.into_iter().next().unroll()?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
-        unsafe { device.destroy_shader_module(gs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
-
-        // texture
-        let font_future = ris_asset::load_async(god_asset.debug_font_texture.clone());
-        let font_data = font_future.wait(None)??;
-        let (pixels, desc) = qoi::decode(&font_data, None)?;
-
-        let pixels_rgba = match desc.channels {
-            qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
-            qoi::Channels::RGBA => pixels,
-        };
-
-        let font_texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: desc.width,
-                height: desc.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::NEAREST,
-                pixels_rgba: &pixels_rgba,
-            })
-        }?;
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
@@ -540,7 +533,7 @@ impl GizmoTextRenderer {
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let frame = GizmoTextFrame {
+                let frame = SceneFrame {
                     mesh: None,
                     framebuffer: None,
                     descriptor_buffer,
@@ -552,13 +545,13 @@ impl GizmoTextRenderer {
         }
 
         Ok(Self {
-            pipeline,
-            pipeline_layout,
-            render_pass,
             descriptor_set_layout,
             descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
             frames,
-            font_texture,
+            texture,
         })
     }
 
@@ -566,8 +559,8 @@ impl GizmoTextRenderer {
         &mut self,
         core: &VulkanCore,
         entry: &SwapchainEntry,
-        vertices: &[GizmoTextVertex],
-        text: &[u8],
+        vertices: &[Vertex],
+        indices: &[u32],
         window_drawable_size: (u32, u32),
         camera: &Camera,
     ) -> RisResult<()> {
@@ -587,7 +580,7 @@ impl GizmoTextRenderer {
             ..
         } = entry;
 
-        let GizmoTextFrame {
+        let SceneFrame {
             mesh,
             framebuffer,
             descriptor_buffer,
@@ -595,39 +588,23 @@ impl GizmoTextRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
-        //if vertices.is_empty() {
-        //    return Ok(());
-        //}
-
         // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties =
-            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-        let mesh = if vertices.is_empty() {
-            None
-        } else {
-            let mesh = match mesh {
-                Some(mesh) => {
-                    mesh.update(
-                        core,
-                        physical_device_memory_properties,
-                        physical_device_properties,
-                        vertices,
-                        text,
-                    )?;
-                    mesh
-                }
-                None => {
-                    let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
-                    *mesh = Some(new_mesh);
-                    mesh.as_mut().unroll()?
-                }
-            };
-
-            Some(mesh)
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(device, physical_device_memory_properties, vertices, indices)?;
+                mesh
+            }
+            None => {
+                let new_mesh = unsafe {
+                    Mesh::alloc(device, physical_device_memory_properties, vertices, indices)
+                }?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().unroll()?
+            }
         };
 
         // framebuffer
@@ -689,11 +666,6 @@ impl GizmoTextRenderer {
                 vk::SubpassContents::INLINE,
             );
 
-            let Some(mesh) = mesh else {
-                device.cmd_end_render_pass(*command_buffer);
-                return Ok(());
-            };
-
             device.cmd_bind_pipeline(
                 *command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
@@ -701,10 +673,12 @@ impl GizmoTextRenderer {
             );
 
             let viewports = [vk::Viewport {
+                x: 0.0,
+                y: 0.0,
                 width: window_drawable_size.0 as f32,
                 height: window_drawable_size.1 as f32,
+                min_depth: 0.0,
                 max_depth: 1.0,
-                ..Default::default()
             }];
 
             let scissors = [vk::Rect2D {
@@ -720,29 +694,29 @@ impl GizmoTextRenderer {
 
             device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
+            device.cmd_bind_index_buffer(
+                *command_buffer,
+                mesh.indices.buffer,
+                0,
+                vk::IndexType::UINT32,
+            );
+
             let ubo = [UniformBufferObject {
+                model: Mat4::init(1.0),
                 view: camera.view_matrix(),
                 proj: camera.projection_matrix(),
-                screen_width: window_drawable_size.0,
-                screen_height: window_drawable_size.1,
             }];
             descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
-            let infos0 = [vk::DescriptorBufferInfo {
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
                 buffer: descriptor_buffer.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];
 
-            let infos1 = [vk::DescriptorImageInfo {
-                sampler: mesh.text_texture.sampler,
-                image_view: mesh.text_texture.view,
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            }];
-
-            let infos2 = [vk::DescriptorImageInfo {
-                sampler: self.font_texture.sampler,
-                image_view: self.font_texture.view,
+            let descriptor_image_info = [vk::DescriptorImageInfo {
+                sampler: self.texture.sampler,
+                image_view: self.texture.view,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             }];
 
@@ -753,10 +727,10 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 0,
                     dst_array_element: 0,
-                    descriptor_count: infos0.len() as u32,
+                    descriptor_count: descriptor_buffer_info.len() as u32,
                     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                     p_image_info: ptr::null(),
-                    p_buffer_info: infos0.as_ptr(),
+                    p_buffer_info: descriptor_buffer_info.as_ptr(),
                     p_texel_buffer_view: ptr::null(),
                 },
                 vk::WriteDescriptorSet {
@@ -765,21 +739,9 @@ impl GizmoTextRenderer {
                     dst_set: *descriptor_set,
                     dst_binding: 1,
                     dst_array_element: 0,
-                    descriptor_count: infos2.len() as u32,
+                    descriptor_count: descriptor_image_info.len() as u32,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: infos1.as_ptr(),
-                    p_buffer_info: ptr::null(),
-                    p_texel_buffer_view: ptr::null(),
-                },
-                vk::WriteDescriptorSet {
-                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
-                    dst_set: *descriptor_set,
-                    dst_binding: 2,
-                    dst_array_element: 0,
-                    descriptor_count: infos1.len() as u32,
-                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: infos2.as_ptr(),
+                    p_image_info: descriptor_image_info.as_ptr(),
                     p_buffer_info: ptr::null(),
                     p_texel_buffer_view: ptr::null(),
                 },
@@ -796,8 +758,8 @@ impl GizmoTextRenderer {
                 &[],
             );
 
-            device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0);
-
+            let index_count = indices.len() as u32;
+            device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0);
             device.cmd_end_render_pass(*command_buffer);
         }
 
