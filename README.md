@@ -36,11 +36,12 @@ Barebones game engine. Home made passion project.
 - [x] Settings/Configuration
 - [x] Gameobjects and components
   - [ ] Mesh renderer
+    - [ ] Materials
   - [x] Scripting
 - [ ] Scene editing, saving and loading
 - [ ] Collisions
 - [ ] Animations
-- [ ] Sound
+- [ ] 3d Sound
 
 **Legend**:
 - [x] fully implemented
