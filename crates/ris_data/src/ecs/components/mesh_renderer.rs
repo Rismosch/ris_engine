@@ -4,12 +4,12 @@ use crate::ecs::scene::Scene;
 use crate::mesh::Mesh;
 
 #[derive(Debug, Default)]
-pub struct MeshComponent {
+pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
     mesh: Mesh,
 }
 
-impl Component for MeshComponent {
+impl Component for MeshRendererComponent {
     fn create(game_object: GameObjectHandle) -> Self {
         Self {
             game_object,
@@ -24,7 +24,7 @@ impl Component for MeshComponent {
     }
 }
 
-impl MeshComponent {
+impl MeshRendererComponent {
     pub fn mesh(&self) -> &Mesh {
         &self.mesh
     }

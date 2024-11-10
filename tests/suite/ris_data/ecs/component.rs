@@ -6,23 +6,22 @@ use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 
-const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
-    movable_game_objects: 8,
-    static_chunks: 0,
-    static_game_objects_per_chunk: 0,
-    mesh_components: 8,
-    script_components: 0,
-};
+fn scene_create_info() -> SceneCreateInfo {
+    let mut info = SceneCreateInfo::empty();
+    info.movable_game_objects = 8;
+    info.mesh_renderer_components = 8;
+    info
+}
 
 #[test]
 fn should_add() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     let mesh: MeshComponentHandle = g.add_component(&scene).unwrap().into();
 
     let index = mesh.scene_id().index;
-    let ptr = &scene.mesh_components[index];
+    let ptr = &scene.mesh_renderer_components[index];
     let mesh_: MeshComponentHandle = ptr.borrow().handle.into();
 
     assert!(ptr.borrow().is_alive);
@@ -30,7 +29,7 @@ fn should_add() {
 }
 
 fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let mut game_objects = Vec::new();
     let mut mesh_components = Vec::new();
 
@@ -187,7 +186,7 @@ fn should_get_from_all() {
 
 #[test]
 fn should_get_nothing_when_nothing_is_attached() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let _g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -229,7 +228,7 @@ fn should_get_nothing_when_nothing_is_attached() {
 
 #[test]
 fn should_get_first_component() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let m1: MeshComponentHandle = g.add_component(&scene).unwrap().into();
     let m2: MeshComponentHandle = g
@@ -243,7 +242,7 @@ fn should_get_first_component() {
 
 #[test]
 fn should_detach_component_when_destroyed() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
     m.destroy(&scene);
@@ -260,7 +259,7 @@ fn should_detach_component_when_destroyed() {
 
 #[test]
 fn should_destroy_components_when_game_object_is_destroyed() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
     g.destroy(&scene);

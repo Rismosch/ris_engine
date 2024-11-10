@@ -5,13 +5,12 @@ use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::script::prelude::*;
 
-const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
-    movable_game_objects: 5,
-    static_chunks: 0,
-    static_game_objects_per_chunk: 0,
-    mesh_components: 0,
-    script_components: 5,
-};
+fn scene_create_info() -> SceneCreateInfo {
+    let mut info = SceneCreateInfo::empty();
+    info.movable_game_objects = 5;
+    info.script_components = 5;
+    info
+}
 
 #[derive(Debug)]
 struct TestScriptString {
@@ -67,7 +66,7 @@ impl Script for TestScriptISize {
 
 #[test]
 fn should_add_script() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let _script_string = g.add_script::<TestScriptString>(&scene).unwrap();
     let _script_isize = g.add_script::<TestScriptISize>(&scene).unwrap();
@@ -75,7 +74,7 @@ fn should_add_script() {
 
 #[test]
 fn should_deref_handle() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
@@ -90,7 +89,7 @@ fn should_deref_handle() {
 
 #[test]
 fn should_not_deref_handle_when_script_is_destroyed() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
@@ -104,7 +103,7 @@ fn should_not_deref_handle_when_script_is_destroyed() {
 #[should_panic]
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_while_reference_exists() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
@@ -114,7 +113,7 @@ fn should_panic_when_deref_while_reference_exists() {
 
 #[test]
 fn should_allow_multiple_references() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
@@ -125,7 +124,7 @@ fn should_allow_multiple_references() {
 
 #[test]
 fn should_get_scripts() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
     let script2 = g.add_script::<TestScriptString>(&scene).unwrap();
@@ -158,7 +157,7 @@ fn should_get_scripts() {
 
 #[test]
 fn should_get_first_script() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
     let script2 = g.add_script::<TestScriptISize>(&scene).unwrap();

@@ -57,7 +57,7 @@ impl VideoMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         mesh: Mesh,
     ) -> RisResult<Self> {
-        ris_log::warning!("IMPLEMENT STAGING, THESE BUFFERS SHOULD ONLY BE WRITTEN TO ONCE");
+        ris_log::warning!("IMPLEMENT STAGING, https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer");
 
         // vertices
         let vertices = mesh.vertices();

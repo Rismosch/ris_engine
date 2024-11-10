@@ -1,4 +1,4 @@
-use super::components::mesh::MeshComponent;
+use super::components::mesh_renderer::MeshRendererComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -12,12 +12,12 @@ use super::script::DynScriptComponent;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {
     GameObject,
-    MeshComponent,
+    MeshRendererComponent,
     ScriptComponent,
 }
 
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
-declare::component!(MeshComponentHandle, MeshComponent, EcsTypeId::MeshComponent,);
+declare::component!(MeshComponentHandle, MeshRendererComponent, EcsTypeId::MeshRendererComponent,);
 declare::component!(
     DynScriptComponentHandle,
     DynScriptComponent,
