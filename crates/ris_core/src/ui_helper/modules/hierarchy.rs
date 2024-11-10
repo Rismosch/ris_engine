@@ -143,10 +143,9 @@ impl HierarchyModule {
             if ui.menu_item("new") {
                 let kind = handle.scene_id().kind;
                 let is_game_object = match kind {
-                    SceneKind::Null => false,
                     SceneKind::MovableGameObject => true,
                     SceneKind::StaticGameObjct { .. } => true,
-                    SceneKind::Component => false,
+                    _ => false,
                 };
 
                 if !is_game_object {

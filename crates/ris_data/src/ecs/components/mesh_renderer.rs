@@ -1,7 +1,7 @@
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::id::Component;
+use crate::ecs::mesh::Mesh;
 use crate::ecs::scene::Scene;
-use crate::mesh::Mesh;
 
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {

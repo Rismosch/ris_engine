@@ -6,6 +6,7 @@ use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
+use super::id::SceneKind;
 use super::scene::Scene;
 use super::script::DynScriptComponent;
 
@@ -14,6 +15,25 @@ pub enum EcsTypeId {
     GameObject,
     MeshRendererComponent,
     ScriptComponent,
+    VideoMesh,
+}
+
+impl EcsTypeId {
+    pub fn matches(self, scene_kind: SceneKind) -> bool {
+        if scene_kind == SceneKind::Null {
+            return true;
+        }
+
+        match (self, scene_kind) {
+            (_, SceneKind::Null) => true,
+            (Self::GameObject, SceneKind::MovableGameObject) => true,
+            (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ }) => true,
+            (Self::MeshRendererComponent, SceneKind::Component) => true,
+            (Self::ScriptComponent, SceneKind::Component) => true,
+            (Self::VideoMesh, SceneKind::Other) => true,
+            _ => false,
+        }
+    }
 }
 
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);

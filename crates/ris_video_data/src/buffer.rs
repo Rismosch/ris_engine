@@ -8,7 +8,7 @@ use ris_error::RisResult;
 use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandSync;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Buffer {
     pub buffer: vk::Buffer,
     pub memory: vk::DeviceMemory,

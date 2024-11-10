@@ -26,6 +26,7 @@ pub enum SceneKind {
     MovableGameObject,
     StaticGameObjct { chunk: usize },
     Component,
+    Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,7 +52,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
             SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::MovableGameObject => Ok(Self::Movable),
             SceneKind::StaticGameObjct { chunk } => Ok(Self::Static { chunk }),
-            SceneKind::Component => Err(EcsError::InvalidCast),
+            _ => Err(EcsError::InvalidCast),
         }
     }
 }

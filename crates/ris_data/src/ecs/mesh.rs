@@ -5,6 +5,9 @@ use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
 
+use super::decl::EcsTypeId;
+use super::id::EcsObject;
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Vertex {
@@ -19,11 +22,17 @@ pub struct Mesh {
     indices: Vec<u32>,
 }
 
+#[derive(Debug, Default)]
 pub struct VideoMesh {
-    pub vertices: Buffer,
-    pub vertex_count: usize,
-    pub indices: Buffer,
-    pub index_count: usize,
+    inner: Option<VideoMeshInner>,
+}
+
+#[derive(Debug)]
+struct VideoMeshInner {
+    vertices: Buffer,
+    vertex_count: usize,
+    indices: Buffer,
+    index_count: usize,
 }
 
 impl Mesh {
@@ -46,18 +55,31 @@ impl Mesh {
     }
 }
 
+impl EcsObject for VideoMesh {
+    fn ecs_type_id() -> EcsTypeId {
+        EcsTypeId::VideoMesh
+    }
+}
+
 impl VideoMesh {
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        self.vertices.free(device);
-        self.indices.free(device);
+        if let Some(inner) = self.inner.take() {
+            inner.vertices.free(device);
+            inner.indices.free(device);
+        }
     }
 
     pub unsafe fn alloc(
+        &mut self,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         mesh: Mesh,
-    ) -> RisResult<Self> {
+    ) -> RisResult<()> {
         ris_log::warning!("IMPLEMENT STAGING, https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer");
+
+        if self.inner.is_some() {
+            return ris_error::new_result!("video mesh is already allocated");
+        }
 
         // vertices
         let vertices = mesh.vertices();
@@ -89,12 +111,16 @@ impl VideoMesh {
 
         index_buffer.write(device, &indices)?;
 
-        Ok(Self {
+        let inner = VideoMeshInner {
             vertices: vertex_buffer,
             vertex_count: vertices.len(),
             indices: index_buffer,
             index_count: indices.len(),
-        })
+        };
+
+        self.inner = Some(inner);
+
+        Ok(())
     }
 }
 
