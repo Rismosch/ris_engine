@@ -192,13 +192,14 @@ impl<T: EcsObject> Clone for GenericHandle<T> {
     }
 }
 
+impl<T: EcsObject> Copy for GenericHandle<T> {}
+
 impl<T: EcsObject> PartialEq for GenericHandle<T> {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<T: EcsObject> Copy for GenericHandle<T> {}
 impl<T: EcsObject> Eq for GenericHandle<T> {}
 
 impl<T: EcsObject> Handle for GenericHandle<T> {

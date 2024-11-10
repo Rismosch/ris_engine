@@ -80,7 +80,7 @@ impl Default for GameObjectHandle {
 }
 
 impl GameObjectHandle {
-    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
+    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
         let ptr = scene.create_new(kind.into())?;
         Ok(ptr.borrow().handle.into())
     }

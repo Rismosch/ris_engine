@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 use std::ptr::NonNull;
 #[cfg(debug_assertions)]
-use std::sync::{atomic::AtomicBool, atomic::AtomicIsize, atomic::Ordering, Arc};
+use std::sync::{atomic::AtomicIsize, atomic::Ordering, Arc};
 
 // enable to log all borrows and when they are dropped. useful for debugging.
 #[cfg(debug_assertions)]

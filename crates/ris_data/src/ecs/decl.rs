@@ -7,6 +7,7 @@ use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
 use super::id::SceneKind;
+use super::mesh::VideoMesh;
 use super::scene::Scene;
 use super::script::DynScriptComponent;
 
@@ -37,12 +38,13 @@ impl EcsTypeId {
 }
 
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
-declare::component!(MeshComponentHandle, MeshRendererComponent, EcsTypeId::MeshRendererComponent,);
+declare::component!(MeshRendererComponentHandle, MeshRendererComponent, EcsTypeId::MeshRendererComponent,);
 declare::component!(
     DynScriptComponentHandle,
     DynScriptComponent,
     EcsTypeId::ScriptComponent,
 );
+declare::object!(VideoMeshHandle, VideoMesh, EcsTypeId::VideoMesh,);
 
 mod declare {
     macro_rules! object {

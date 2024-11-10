@@ -1,7 +1,6 @@
-use std::cell::UnsafeCell;
 use std::ptr::NonNull;
 #[cfg(debug_assertions)]
-use std::sync::{atomic::AtomicBool, atomic::AtomicIsize, atomic::Ordering, Arc};
+use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 
 /// Threadsafe single owner, which allows non-owning copies. Dropping the StrongPtr invalidates all created WeakPtrs.
 ///

@@ -1,5 +1,10 @@
+use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
 use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::decl::MeshRendererComponentHandle;
+use ris_data::ecs::decl::VideoMeshHandle;
+use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::mesh::Mesh;
 use ris_data::ecs::script::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
@@ -62,30 +67,48 @@ impl Script for TestScript {
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
+    // TESTING
+
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
     game_object.set_name(&god_object.state.scene, "this is a test")?;
 
     //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
     //script.start(&god_object.state.scene, TestScript::default())?;
 
-    let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
-    let test_game_object = test.game_object(&god_object.state.scene)?;
-    let name = test_game_object.name(&god_object.state.scene)?;
-    ris_log::debug!("test script name: {}", name);
-
-    let test_id = TestScript::id();
-    ris_log::debug!("test script id: {}", test_id);
-
-    //let s : ris_data::ecs::decl::MeshComponentHandle = game_object.get_component(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap().into();
+    let script = game_object.add_script::<TestScript>(&god_object.state.scene)?;
 
     {
-        let mut script = test.script_mut(&god_object.state.scene)?;
-        ris_log::debug!("counter 1: {}", script.counter);
+        let mut ref_mut = script.script_mut(&god_object.state.scene)?;
+        ris_log::debug!("counter 1: {}", ref_mut.counter);
 
-        script.counter = 42;
+        ref_mut.counter = 42;
 
-        ris_log::debug!("counter 2: {}", script.counter);
+        ris_log::debug!("counter 2: {}", ref_mut.counter);
     }
+
+    let physical_device_memory_properties = unsafe {
+        god_object.output_frame.core.instance.get_physical_device_memory_properties(god_object.output_frame.core.suitable_device.physical_device)
+    };
+
+    let mesh = Mesh::primitive_cube();
+    let video_mesh = VideoMeshHandle::new(&god_object.state.scene)?;
+    video_mesh.upload(
+        &god_object.state.scene,
+        &god_object.output_frame.core.device,
+        physical_device_memory_properties,
+        mesh,
+    )?;
+    let mesh_renderer: MeshRendererComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+    mesh_renderer.set_video_mesh(&god_object.state.scene, video_mesh)?;
+
+    {
+        ris_log::debug!("test game object handle: {:#?}", game_object);
+        let game_object_ptr = god_object.state.scene.deref(game_object.into())?;
+        let game_object_ref = &game_object_ptr.borrow().value;
+        ris_log::debug!("test game object: {:#?}", game_object_ref);
+    }
+
+    // TESTING END
 
     loop {
         ris_debug::profiler::new_frame()?;

@@ -1,12 +1,14 @@
 use ash::vk;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
 
-use super::decl::EcsTypeId;
-use super::id::EcsObject;
+use super::decl::VideoMeshHandle;
+use super::id::SceneKind;
+use super::scene::Scene;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
@@ -17,9 +19,8 @@ pub struct Vertex {
 
 #[derive(Debug, Default)]
 pub struct Mesh {
-    pub is_dirty: bool,
-    vertices: Vec<Vertex>,
-    indices: Vec<u32>,
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
 }
 
 #[derive(Debug, Default)]
@@ -35,81 +36,69 @@ struct VideoMeshInner {
     index_count: usize,
 }
 
-impl Mesh {
-    pub fn vertices(&self) -> &[Vertex] {
-        &self.vertices
+impl VideoMeshHandle {
+    pub fn new(scene: &Scene) -> RisResult<Self> {
+        let ptr = scene.create_new::<VideoMesh>(SceneKind::Other)?;
+        Ok(ptr.borrow().handle.into())
     }
 
-    pub fn set_vertices(&mut self, value: &[Vertex]) {
-        self.is_dirty = true;
-        ris_util::vec::fast_copy(&mut self.vertices, value);
-    }
-
-    pub fn indices(&self) -> &[u32] {
-        &self.indices
-    }
-
-    pub fn set_indices(&mut self, value: &[u32]) {
-        self.is_dirty = true;
-        ris_util::vec::fast_copy(&mut self.indices, value);
-    }
-}
-
-impl EcsObject for VideoMesh {
-    fn ecs_type_id() -> EcsTypeId {
-        EcsTypeId::VideoMesh
-    }
-}
-
-impl VideoMesh {
-    pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(inner) = self.inner.take() {
-            inner.vertices.free(device);
-            inner.indices.free(device);
+    pub fn free(self, scene: &Scene, device: &ash::Device) -> RisResult<()> {
+        let ptr = scene.deref(self.into())?;
+        if let Some(inner) = ptr.borrow_mut().inner.take() {
+            unsafe {
+                inner.vertices.free(device);
+                inner.indices.free(device);
+            }
         }
-    }
 
-    pub unsafe fn alloc(
-        &mut self,
+        Ok(())
+    }
+    
+    pub fn upload(
+        self,
+        scene: &Scene,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         mesh: Mesh,
     ) -> RisResult<()> {
-        ris_log::warning!("IMPLEMENT STAGING, https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer");
-
-        if self.inner.is_some() {
-            return ris_error::new_result!("video mesh is already allocated");
+        let ptr = scene.deref(self.into())?;
+        if ptr.borrow_mut().inner.is_some() {
+            return ris_error::new_result!("video mesh already stores an uploaded mesh");
         }
 
         // vertices
-        let vertices = mesh.vertices();
+        let vertices = mesh.vertices.as_slice();
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        let vertex_buffer = Buffer::alloc(
-            device, 
-            vertex_buffer_size,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-        )?;
-
-        vertex_buffer.write(device, vertices)?;
+        let vertex_buffer = unsafe {
+            let buffer = Buffer::alloc(
+                device, 
+                vertex_buffer_size,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE
+                    | vk::MemoryPropertyFlags::HOST_COHERENT
+                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    physical_device_memory_properties,
+            )?;
+            buffer.write(device, vertices)?;
+            buffer
+        };
 
         // indices
-        let indices = mesh.indices();
+        let indices = mesh.indices.as_slice();
         let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
-        let index_buffer = Buffer::alloc(
-            device,
-            index_buffer_size,
-            vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
-
-        index_buffer.write(device, &indices)?;
+        let index_buffer = unsafe {
+            let buffer = Buffer::alloc(
+                device,
+                index_buffer_size,
+                vk::BufferUsageFlags::INDEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE
+                    | vk::MemoryPropertyFlags::HOST_COHERENT
+                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )?;
+            buffer.write(device, &indices)?;
+            buffer
+        };
 
         let inner = VideoMeshInner {
             vertices: vertex_buffer,
@@ -118,9 +107,33 @@ impl VideoMesh {
             index_count: indices.len(),
         };
 
-        self.inner = Some(inner);
+        ptr.borrow_mut().inner = Some(inner);
 
         Ok(())
+    }
+
+    pub fn vertices(self, scene: &Scene) -> RisResult<Option<Buffer>> {
+        let ptr = scene.deref(self.into())?;
+        let buffer = ptr.borrow().inner.as_ref().map(|x| x.vertices);
+        Ok(buffer)
+    }
+
+    pub fn vertex_count(self, scene: &Scene) -> RisResult<Option<usize>> {
+        let ptr = scene.deref(self.into())?;
+        let count = ptr.borrow().inner.as_ref().map(|x| x.vertex_count);
+        Ok(count)
+    }
+
+    pub fn indices(self, scene: &Scene) -> RisResult<Option<Buffer>> {
+        let ptr = scene.deref(self.into())?;
+        let buffer = ptr.borrow().inner.as_ref().map(|x| x.indices);
+        Ok(buffer)
+    }
+
+    pub fn index_count(self, scene: &Scene) -> RisResult<Option<usize>> {
+        let ptr = scene.deref(self.into())?;
+        let count = ptr.borrow().inner.as_ref().map(|x| x.index_count);
+        Ok(count)
     }
 }
 
@@ -131,7 +144,6 @@ impl VideoMesh {
 impl Mesh {
     pub fn primitive_cube() -> Self {
         Self {
-            is_dirty: false,
             vertices: vec![
                 // pos x
                 Vertex {

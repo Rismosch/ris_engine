@@ -1,5 +1,5 @@
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::decl::MeshComponentHandle;
+use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::handle::ComponentHandle;
 use ris_data::ecs::id::GameObjectKind;
@@ -18,24 +18,24 @@ fn should_add() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let mesh: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let mesh: MeshRendererComponentHandle = g.add_component(&scene).unwrap().into();
 
     let index = mesh.scene_id().index;
     let ptr = &scene.mesh_renderer_components[index];
-    let mesh_: MeshComponentHandle = ptr.borrow().handle.into();
+    let mesh_: MeshRendererComponentHandle = ptr.borrow().handle.into();
 
     assert!(ptr.borrow().is_alive);
     assert_eq!(mesh, mesh_);
 }
 
-fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
+fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshRendererComponentHandle>) {
     let scene = Scene::new(scene_create_info()).unwrap();
     let mut game_objects = Vec::new();
     let mut mesh_components = Vec::new();
 
     for _ in 0..scene.movable_game_objects.len() {
         let game_object = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-        let mesh: MeshComponentHandle = game_object.add_component(&scene).unwrap().into();
+        let mesh: MeshRendererComponentHandle = game_object.add_component(&scene).unwrap().into();
 
         game_objects.push(game_object);
         mesh_components.push(mesh);
@@ -70,7 +70,7 @@ fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
 fn should_get_from_self() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let result: Vec<MeshComponentHandle> = game_objects[2]
+    let result: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::This)
         .unwrap()
         .into_iter()
@@ -85,7 +85,7 @@ fn should_get_from_self() {
 fn should_get_from_children() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let actual: Vec<MeshComponentHandle> = game_objects[2]
+    let actual: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::ThisAndChildren)
         .unwrap()
         .into_iter()
@@ -109,7 +109,7 @@ fn should_get_from_children() {
 fn should_get_from_parent() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let actual: Vec<MeshComponentHandle> = game_objects[2]
+    let actual: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::ThisAndParents)
         .unwrap()
         .into_iter()
@@ -127,7 +127,7 @@ fn should_get_from_parent() {
 fn should_get_from_self_and_children() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let actual: Vec<MeshComponentHandle> = game_objects[2]
+    let actual: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::ThisAndChildren)
         .unwrap()
         .into_iter()
@@ -152,7 +152,7 @@ fn should_get_from_self_and_children() {
 fn should_get_from_self_and_parent() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let actual: Vec<MeshComponentHandle> = game_objects[2]
+    let actual: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::ThisAndParents)
         .unwrap()
         .into_iter()
@@ -170,7 +170,7 @@ fn should_get_from_self_and_parent() {
 fn should_get_from_all() {
     let (scene, game_objects, mesh_components) = build_scene();
 
-    let actual: Vec<MeshComponentHandle> = game_objects[2]
+    let actual: Vec<MeshRendererComponentHandle> = game_objects[2]
         .get_components(&scene, GetFrom::All)
         .unwrap()
         .into_iter()
@@ -193,27 +193,27 @@ fn should_get_nothing_when_nothing_is_attached() {
     let g3 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let _g4 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    let _mesh: MeshComponentHandle = g2.add_component(&scene).unwrap().into();
+    let _mesh: MeshRendererComponentHandle = g2.add_component(&scene).unwrap().into();
 
-    let result_1: Vec<MeshComponentHandle> = g1
+    let result_1: Vec<MeshRendererComponentHandle> = g1
         .get_components(&scene, GetFrom::This)
         .unwrap()
         .into_iter()
         .map(|x| x.into())
         .collect();
-    let result_2: Vec<MeshComponentHandle> = g1
+    let result_2: Vec<MeshRendererComponentHandle> = g1
         .get_components(&scene, GetFrom::ThisAndParents)
         .unwrap()
         .into_iter()
         .map(|x| x.into())
         .collect();
-    let result_3: Vec<MeshComponentHandle> = g3
+    let result_3: Vec<MeshRendererComponentHandle> = g3
         .get_components(&scene, GetFrom::This)
         .unwrap()
         .into_iter()
         .map(|x| x.into())
         .collect();
-    let result_4: Vec<MeshComponentHandle> = g3
+    let result_4: Vec<MeshRendererComponentHandle> = g3
         .get_components(&scene, GetFrom::ThisAndChildren)
         .unwrap()
         .into_iter()
@@ -230,8 +230,8 @@ fn should_get_nothing_when_nothing_is_attached() {
 fn should_get_first_component() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let m1: MeshComponentHandle = g.add_component(&scene).unwrap().into();
-    let m2: MeshComponentHandle = g
+    let m1: MeshRendererComponentHandle = g.add_component(&scene).unwrap().into();
+    let m2: MeshRendererComponentHandle = g
         .get_component(&scene, GetFrom::This)
         .unwrap()
         .unwrap()
@@ -244,10 +244,10 @@ fn should_get_first_component() {
 fn should_detach_component_when_destroyed() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let m: MeshRendererComponentHandle = g.add_component(&scene).unwrap().into();
     m.destroy(&scene);
 
-    let actual: Vec<MeshComponentHandle> = g
+    let actual: Vec<MeshRendererComponentHandle> = g
         .get_components(&scene, GetFrom::This)
         .unwrap()
         .into_iter()
@@ -261,7 +261,7 @@ fn should_detach_component_when_destroyed() {
 fn should_destroy_components_when_game_object_is_destroyed() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let m: MeshComponentHandle = g.add_component(&scene).unwrap().into();
+    let m: MeshRendererComponentHandle = g.add_component(&scene).unwrap().into();
     g.destroy(&scene);
     assert!(!m.is_alive(&scene));
 }

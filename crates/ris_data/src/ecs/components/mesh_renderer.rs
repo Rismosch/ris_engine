@@ -1,12 +1,15 @@
+use ris_error::RisResult;
+
 use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::decl::VideoMeshHandle;
+use crate::ecs::decl::MeshRendererComponentHandle;
 use crate::ecs::id::Component;
-use crate::ecs::mesh::Mesh;
 use crate::ecs::scene::Scene;
 
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
-    mesh: Mesh,
+    video_mesh: Option<VideoMeshHandle>,
 }
 
 impl Component for MeshRendererComponent {
@@ -24,12 +27,16 @@ impl Component for MeshRendererComponent {
     }
 }
 
-impl MeshRendererComponent {
-    pub fn mesh(&self) -> &Mesh {
-        &self.mesh
+impl MeshRendererComponentHandle {
+    pub fn video_mesh(self, scene: &Scene) -> RisResult<Option<VideoMeshHandle>> {
+        let ptr = scene.deref(self.into())?;
+        let video_mesh = ptr.borrow().video_mesh;
+        Ok(video_mesh)
     }
 
-    pub fn mesh_mut(&mut self) -> &mut Mesh {
-        &mut self.mesh
+    pub fn set_video_mesh(self, scene: &Scene, mesh: VideoMeshHandle) -> RisResult<()> {
+        let ptr = scene.deref(self.into())?;
+        ptr.borrow_mut().video_mesh = Some(mesh);
+        Ok(())
     }
 }
