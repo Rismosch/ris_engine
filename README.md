@@ -150,6 +150,8 @@ Alternatively, to run **much** more extensive tests, you can run the command bel
 cargo run -p cli pipeline all
 ```
 
+Using the command above, some tests run [miri](https://github.com/rust-lang/miri). If miri is not installed on your system, then the tests which require it will definitely fail.
+
 ## Cli
 
 For more info about the command `cargo run -p cli`, see [`./cli/README.md`](./cli/README.md).

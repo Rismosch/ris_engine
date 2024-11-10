@@ -140,6 +140,7 @@ impl ICommand for Pipeline {
             test(results, run_test, cargo("test"));
             test(results, run_test, cargo("test -r"));
             test(results, run_miri, cargo_nightly("miri test"));
+            test(results, run_miri, cargo_nightly("miri test -r"));
             test(results, run_clippy, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, cargo("clippy -r -- -Dwarnings"));
             test(results, run_clippy, cargo("clippy --tests -- -Dwarnings"));
