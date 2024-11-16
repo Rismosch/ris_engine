@@ -76,6 +76,13 @@ impl SceneCreateInfo {
 }
 
 impl Scene {
+    pub fn free(&self, device: &ash::Device) {
+        for video_mesh in self.video_meshes.iter() {
+            let mut aref_mut = video_mesh.borrow_mut();
+            aref_mut.free(device);
+        }
+    }
+
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let movable_game_objects =
             create_chunk(SceneKind::MovableGameObject, info.movable_game_objects)?;

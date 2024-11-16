@@ -43,7 +43,7 @@ pub struct OutputFrame {
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-            if let Err(e) = self.core.device.device_wait_idle() {
+            if let Err(e) = self.wait_idle() {
                 ris_log::fatal!(
                     "cannot clean up output frame. device_wait_idle failed: {}",
                     e
@@ -65,6 +65,11 @@ impl Drop for OutputFrame {
 }
 
 impl OutputFrame {
+    pub fn wait_idle(&self) -> RisResult<()> {
+        unsafe {self.core.device.device_wait_idle()}?;
+        Ok(())
+    }
+
     pub fn run(
         &mut self,
         frame: Frame,
@@ -197,15 +202,12 @@ impl OutputFrame {
 
         // scene
         ris_debug::add_record!(r, "scene")?;
-        let vertices = ris_video_renderers::scene::scene_mesh::VERTICES;
-        let indices = ris_video_renderers::scene::scene_mesh::INDICES;
         self.renderer.scene.draw(
             &self.core,
             swapchain_entry,
-            &vertices,
-            &indices,
             window_drawable_size,
             &state.camera,
+            &state.scene,
         )?;
 
         // gizmos

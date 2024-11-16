@@ -5,7 +5,6 @@ use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
-use ris_data::ecs::script::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
 use ris_jobs::job_system;
@@ -17,95 +16,36 @@ pub enum WantsTo {
     Restart,
 }
 
-#[derive(Debug, Default)]
-struct TestScript {
-    counter: usize,
-}
-
-impl Script for TestScript {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn start(_data: ScriptStartData) -> RisResult<Self> {
-        ris_log::debug!("test started");
-        Ok(Self::default())
-    }
-
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
-        if data
-            .state
-            .input
-            .keyboard
-            .keys
-            .is_down(sdl2::keyboard::Scancode::Up)
-        {
-            self.counter = self.counter.saturating_add(1);
-            ris_log::debug!("counter set to: {}", self.counter);
-        }
-
-        if data
-            .state
-            .input
-            .keyboard
-            .keys
-            .is_down(sdl2::keyboard::Scancode::Down)
-        {
-            self.counter = self.counter.saturating_sub(1);
-            ris_log::debug!("counter set to: {}", self.counter);
-        }
-
-        Ok(())
-    }
-
-    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
-        ris_log::debug!("test ended");
-        Ok(())
-    }
-}
-
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     // TESTING
+    
+    let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
 
-    let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-    game_object.set_name(&god_object.state.scene, "this is a test")?;
+    let count = 1;
+    for i in 0..count {
+        let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+        game_object.set_name(&god_object.state.scene, format!("mesh {}", i))?;
+        let position = rng.next_pos_3() * count as f32;
+        let rotation = rng.next_rot();
+        game_object.set_local_position(&god_object.state.scene, position)?;
+        game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
-    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    //script.start(&god_object.state.scene, TestScript::default())?;
+        let physical_device_memory_properties = unsafe {
+            god_object.output_frame.core.instance.get_physical_device_memory_properties(god_object.output_frame.core.suitable_device.physical_device)
+        };
 
-    let script = game_object.add_script::<TestScript>(&god_object.state.scene)?;
-
-    {
-        let mut ref_mut = script.script_mut(&god_object.state.scene)?;
-        ris_log::debug!("counter 1: {}", ref_mut.counter);
-
-        ref_mut.counter = 42;
-
-        ris_log::debug!("counter 2: {}", ref_mut.counter);
-    }
-
-    let physical_device_memory_properties = unsafe {
-        god_object.output_frame.core.instance.get_physical_device_memory_properties(god_object.output_frame.core.suitable_device.physical_device)
-    };
-
-    let mesh = Mesh::primitive_cube();
-    let video_mesh = VideoMeshHandle::new(&god_object.state.scene)?;
-    video_mesh.upload(
-        &god_object.state.scene,
-        &god_object.output_frame.core.device,
-        physical_device_memory_properties,
-        mesh,
-    )?;
-    let mesh_renderer: MeshRendererComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    mesh_renderer.set_video_mesh(&god_object.state.scene, video_mesh)?;
-
-    {
-        ris_log::debug!("test game object handle: {:#?}", game_object);
-        let game_object_ptr = god_object.state.scene.deref(game_object.into())?;
-        let game_object_ref = &game_object_ptr.borrow().value;
-        ris_log::debug!("test game object: {:#?}", game_object_ref);
+        let mesh = Mesh::primitive_cube();
+        let video_mesh = VideoMeshHandle::new(&god_object.state.scene)?;
+        video_mesh.upload(
+            &god_object.state.scene,
+            &god_object.output_frame.core.device,
+            physical_device_memory_properties,
+            mesh,
+        )?;
+        let mesh_renderer: MeshRendererComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
+        mesh_renderer.set_video_mesh(&god_object.state.scene, video_mesh)?;
     }
 
     // TESTING END
@@ -217,6 +157,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 aref_mut.end(&god_object.state.scene)?;
             }
         }
+
+        god_object.output_frame.wait_idle()?;
+        god_object.state.scene.free(&god_object.output_frame.core.device);
 
         return Ok(wants_to);
     }

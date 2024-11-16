@@ -36,6 +36,19 @@ struct VideoMeshInner {
     index_count: usize,
 }
 
+impl VideoMesh {
+    pub fn free(&mut self, device: &ash::Device) {
+        let Some(inner) = self.inner.take() else {
+            return;
+        };
+
+        unsafe {
+            inner.vertices.free(device);
+            inner.indices.free(device);
+        }
+    }
+}
+
 impl VideoMeshHandle {
     pub fn new(scene: &Scene) -> RisResult<Self> {
         let ptr = scene.create_new::<VideoMesh>(SceneKind::Other)?;
@@ -44,12 +57,8 @@ impl VideoMeshHandle {
 
     pub fn free(self, scene: &Scene, device: &ash::Device) -> RisResult<()> {
         let ptr = scene.deref(self.into())?;
-        if let Some(inner) = ptr.borrow_mut().inner.take() {
-            unsafe {
-                inner.vertices.free(device);
-                inner.indices.free(device);
-            }
-        }
+        let mut aref_mut = ptr.borrow_mut();
+        aref_mut.free(device);
 
         Ok(())
     }
