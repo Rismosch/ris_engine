@@ -16,6 +16,8 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
 
+const DESCRIPTOR_SETS_PER_FRAME: usize = 1024;
+
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
@@ -24,11 +26,15 @@ pub struct UniformBufferObject {
     pub proj: Mat4,
 }
 
+pub struct SceneFrameDescriptor {
+    buffer: Buffer,
+    mapped: *mut UniformBufferObject,
+    set: vk::DescriptorSet,
+}
+
 pub struct SceneFrame {
     framebuffer: Option<vk::Framebuffer>,
-    descriptor_buffer: Buffer,
-    descriptor_mapped: *mut UniformBufferObject,
-    descriptor_set: vk::DescriptorSet,
+    descriptors: Vec<SceneFrameDescriptor>,
 }
 
 impl SceneFrame {
@@ -40,7 +46,10 @@ impl SceneFrame {
             device.destroy_framebuffer(framebuffer, None);
         }
 
-        self.descriptor_buffer.free(device);
+        for descriptor in self.descriptors.iter() {
+            descriptor.buffer.free(device);
+        }
+
     }
 }
 
@@ -161,11 +170,12 @@ impl SceneRenderer {
             },
         ];
 
+        let total_descriptor_set_count = swapchain.entries.len() * DESCRIPTOR_SETS_PER_FRAME;
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: swapchain.entries.len() as u32,
+            max_sets: total_descriptor_set_count as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
@@ -173,8 +183,8 @@ impl SceneRenderer {
         let descriptor_pool =
             unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
-        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
-        for _ in 0..swapchain.entries.len() {
+        let mut descriptor_set_layout_vec = Vec::with_capacity(total_descriptor_set_count);
+        for _ in 0..total_descriptor_set_count {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
@@ -188,6 +198,7 @@ impl SceneRenderer {
 
         let descriptor_sets =
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
+        ris_error::assert!(descriptor_sets.len() == total_descriptor_set_count)?;
 
         // shaders
         let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
@@ -508,9 +519,12 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
-        let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for descriptor_set in descriptor_sets {
-            unsafe {
+        let frame_count = swapchain.entries.len();
+        let mut frames = Vec::with_capacity(frame_count);
+        for i in 0..frame_count {
+
+            let mut scene_frame_descriptors = Vec::with_capacity(DESCRIPTOR_SETS_PER_FRAME);
+            for j in 0..DESCRIPTOR_SETS_PER_FRAME {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
                 let descriptor_buffer = Buffer::alloc(
                     device,
@@ -527,14 +541,23 @@ impl SceneRenderer {
                     vk::MemoryMapFlags::empty(),
                 )? as *mut UniformBufferObject;
 
-                let frame = SceneFrame {
-                    framebuffer: None,
-                    descriptor_buffer,
-                    descriptor_mapped,
-                    descriptor_set,
+                let descriptor_set_index = i * DESCRIPTOR_SETS_PER_FRAME + j;
+                let descriptor_set = descriptor_sets[descriptor_set_index];
+
+                let scene_frame_descriptor = SceneFrameDescriptor {
+                    buffer: descriptor_buffer,
+                    mapped: descriptor_mapped,
+                    set: descriptor_set,
                 };
-                frames.push(frame);
+                
+                scene_frame_descriptors.push(scene_frame_descriptor);
             }
+
+            let frame = SceneFrame {
+                framebuffer: None,
+                descriptors: scene_frame_descriptors,
+            };
+            frames.push(frame);
         }
 
         Ok(Self {
@@ -572,9 +595,7 @@ impl SceneRenderer {
 
         let SceneFrame {
             framebuffer,
-            descriptor_buffer,
-            descriptor_mapped,
-            descriptor_set,
+            descriptors,
         } = &mut self.frames[*index];
 
         // framebuffer
@@ -662,6 +683,7 @@ impl SceneRenderer {
             device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
 
+            let mut descriptor_index = 0;
             for mesh_renderer_component in scene.mesh_renderer_components.iter() {
                 let aref = mesh_renderer_component.borrow();
                 if !aref.is_alive {
@@ -693,6 +715,13 @@ impl SceneRenderer {
                     continue;
                 };
 
+                let Some(descriptor) = descriptors.get(descriptor_index) else {
+                    ris_log::warning!("attempted to draw more object than descriptor sets are available. aborted further drawing.");
+                    break;
+                };
+
+                descriptor_index += 1;
+
                 device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
 
                 device.cmd_bind_index_buffer(
@@ -707,10 +736,10 @@ impl SceneRenderer {
                     view: camera.view_matrix(),
                     proj: camera.projection_matrix(),
                 }];
-                descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+                descriptor.mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
                 let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                    buffer: descriptor_buffer.buffer,
+                    buffer: descriptor.buffer.buffer,
                     offset: 0,
                     range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
                 }];
@@ -725,7 +754,7 @@ impl SceneRenderer {
                     vk::WriteDescriptorSet {
                         s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
                         p_next: ptr::null(),
-                        dst_set: *descriptor_set,
+                        dst_set: descriptor.set,
                         dst_binding: 0,
                         dst_array_element: 0,
                         descriptor_count: descriptor_buffer_info.len() as u32,
@@ -737,7 +766,7 @@ impl SceneRenderer {
                     vk::WriteDescriptorSet {
                         s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
                         p_next: ptr::null(),
-                        dst_set: *descriptor_set,
+                        dst_set: descriptor.set,
                         dst_binding: 1,
                         dst_array_element: 0,
                         descriptor_count: descriptor_image_info.len() as u32,
@@ -755,7 +784,7 @@ impl SceneRenderer {
                     vk::PipelineBindPoint::GRAPHICS,
                     self.pipeline_layout,
                     0,
-                    &[*descriptor_set],
+                    &[descriptor.set],
                     &[],
                 );
 

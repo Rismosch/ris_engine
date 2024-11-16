@@ -21,6 +21,15 @@ impl Quat {
         Self(0., 0., 0., 1.)
     }
 
+    pub fn angle_axis(angle: f32, axis: Vec3) -> Self {
+        let n = axis.normalize();
+        let t = angle * 0.5;
+        let re = f32::cos(t);
+        let im = f32::sin(t);
+
+        Self(n.0 * im, n.1 * im, n.2 * im, re)
+    }
+
     pub fn look_at(direction: Vec3, up: Vec3) -> Self {
         let m = affine::look_at(direction, up);
         affine::to_rotation(m)
@@ -61,13 +70,7 @@ impl From<AngleAxis> for Quat {
     fn from(value: AngleAxis) -> Self {
         let angle = value.0;
         let axis = value.1;
-
-        let n = axis.normalize();
-        let t = angle * 0.5;
-        let re = f32::cos(t);
-        let im = f32::sin(t);
-
-        Self(n.0 * im, n.1 * im, n.2 * im, re)
+        Self::angle_axis(angle, axis)
     }
 }
 
