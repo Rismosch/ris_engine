@@ -7,6 +7,8 @@ use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_error::RisResult;
+use ris_math::color::Rgb;
+use ris_math::vector::Vec3;
 use ris_jobs::job_system;
 
 use crate::god_object::GodObject;
@@ -27,10 +29,11 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     for i in 0..count {
         let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
         game_object.set_name(&god_object.state.scene, format!("mesh {}", i))?;
-        let position = rng.next_pos_3() * count as f32;
+        let scale = count as f32;
+        let position = rng.next_pos_3() * scale;
         let rotation = rng.next_rot();
-        game_object.set_local_position(&god_object.state.scene, position)?;
-        game_object.set_local_rotation(&god_object.state.scene, rotation)?;
+        //game_object.set_local_position(&god_object.state.scene, position)?;
+        //game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
         let physical_device_memory_properties = unsafe {
             god_object.output_frame.core.instance.get_physical_device_memory_properties(god_object.output_frame.core.suitable_device.physical_device)

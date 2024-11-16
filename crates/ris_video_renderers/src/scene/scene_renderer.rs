@@ -5,6 +5,7 @@ use ash::vk;
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::Scene;
+use ris_data::ecs::mesh::Vertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
@@ -15,9 +16,6 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
 
-use super::scene_mesh::Mesh;
-use super::scene_mesh::Vertex;
-
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
@@ -27,7 +25,6 @@ pub struct UniformBufferObject {
 }
 
 pub struct SceneFrame {
-    mesh: Option<Mesh>,
     framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
@@ -39,10 +36,6 @@ impl SceneFrame {
     ///
     /// Must only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(mut mesh) = self.mesh.take() {
-            mesh.free(device);
-        }
-
         if let Some(framebuffer) = self.framebuffer.take() {
             device.destroy_framebuffer(framebuffer, None);
         }
@@ -535,7 +528,6 @@ impl SceneRenderer {
                 )? as *mut UniformBufferObject;
 
                 let frame = SceneFrame {
-                    mesh: None,
                     framebuffer: None,
                     descriptor_buffer,
                     descriptor_mapped,
@@ -565,8 +557,6 @@ impl SceneRenderer {
         scene: &Scene,
     ) -> RisResult<()> {
         let VulkanCore {
-            instance,
-            suitable_device,
             device,
             swapchain,
             ..
@@ -581,31 +571,11 @@ impl SceneRenderer {
         } = entry;
 
         let SceneFrame {
-            mesh,
             framebuffer,
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
         } = &mut self.frames[*index];
-
-        //// mesh
-        //let physical_device_memory_properties = unsafe {
-        //    instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        //};
-
-        //let mesh = match mesh {
-        //    Some(mesh) => {
-        //        mesh.update(device, physical_device_memory_properties, vertices, indices)?;
-        //        mesh
-        //    }
-        //    None => {
-        //        let new_mesh = unsafe {
-        //            Mesh::alloc(device, physical_device_memory_properties, vertices, indices)
-        //        }?;
-        //        *mesh = Some(new_mesh);
-        //        mesh.as_mut().unroll()?
-        //    }
-        //};
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
@@ -692,7 +662,6 @@ impl SceneRenderer {
             device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
 
-            let mut counter = 0;
             for mesh_renderer_component in scene.mesh_renderer_components.iter() {
                 let aref = mesh_renderer_component.borrow();
                 if !aref.is_alive {
@@ -700,6 +669,10 @@ impl SceneRenderer {
                 }
 
                 let game_object = aref.game_object;
+                if game_object.is_active_in_hierarchy(scene) != Ok(true) {
+                    continue;
+                }
+
                 let Ok(model) = game_object.model(scene) else {
                     continue;
                 };
@@ -788,80 +761,8 @@ impl SceneRenderer {
 
                 let index_count_u32 = index_count as u32;
                 device.cmd_draw_indexed(*command_buffer, index_count_u32, 1, 0, 0, 0);
-
-                counter += 1;
             }
 
-            //return ris_error::new_result!("rendered {} objects", counter);
-
-        //    device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
-
-        //    device.cmd_bind_index_buffer(
-        //        *command_buffer,
-        //        mesh.indices.buffer,
-        //        0,
-        //        vk::IndexType::UINT32,
-        //    );
-
-        //    let ubo = [UniformBufferObject {
-        //        model: Mat4::init(1.0),
-        //        view: camera.view_matrix(),
-        //        proj: camera.projection_matrix(),
-        //    }];
-        //    descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
-
-        //    let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-        //        buffer: descriptor_buffer.buffer,
-        //        offset: 0,
-        //        range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
-        //    }];
-
-        //    let descriptor_image_info = [vk::DescriptorImageInfo {
-        //        sampler: self.texture.sampler,
-        //        image_view: self.texture.view,
-        //        image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-        //    }];
-
-        //    let write_descriptor_sets = [
-        //        vk::WriteDescriptorSet {
-        //            s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-        //            p_next: ptr::null(),
-        //            dst_set: *descriptor_set,
-        //            dst_binding: 0,
-        //            dst_array_element: 0,
-        //            descriptor_count: descriptor_buffer_info.len() as u32,
-        //            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-        //            p_image_info: ptr::null(),
-        //            p_buffer_info: descriptor_buffer_info.as_ptr(),
-        //            p_texel_buffer_view: ptr::null(),
-        //        },
-        //        vk::WriteDescriptorSet {
-        //            s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-        //            p_next: ptr::null(),
-        //            dst_set: *descriptor_set,
-        //            dst_binding: 1,
-        //            dst_array_element: 0,
-        //            descriptor_count: descriptor_image_info.len() as u32,
-        //            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-        //            p_image_info: descriptor_image_info.as_ptr(),
-        //            p_buffer_info: ptr::null(),
-        //            p_texel_buffer_view: ptr::null(),
-        //        },
-        //    ];
-
-        //    device.update_descriptor_sets(&write_descriptor_sets, &[]);
-
-        //    device.cmd_bind_descriptor_sets(
-        //        *command_buffer,
-        //        vk::PipelineBindPoint::GRAPHICS,
-        //        self.pipeline_layout,
-        //        0,
-        //        &[*descriptor_set],
-        //        &[],
-        //    );
-
-        //    let index_count = indices.len() as u32;
-        //    device.cmd_draw_indexed(*command_buffer, index_count, 1, 0, 0, 0);
             device.cmd_end_render_pass(*command_buffer);
         }
 

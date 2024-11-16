@@ -2,6 +2,7 @@ use ash::vk;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::color::Rgb;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
@@ -10,10 +11,11 @@ use super::decl::VideoMeshHandle;
 use super::id::SceneKind;
 use super::scene::Scene;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct Vertex {
     pub pos: Vec3,
+    pub color: Rgb,
     pub uv: Vec2,
 }
 
@@ -78,6 +80,8 @@ impl VideoMeshHandle {
         // vertices
         let vertices = mesh.vertices.as_slice();
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+
+        ris_log::trace!("uploading {} vertices with size {}...", vertices.len(), vertex_buffer_size);
         let vertex_buffer = unsafe {
             let buffer = Buffer::alloc(
                 device, 
@@ -95,6 +99,8 @@ impl VideoMeshHandle {
         // indices
         let indices = mesh.indices.as_slice();
         let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
+
+        ris_log::trace!("uploading {} indices with size {}...", indices.len(), index_buffer_size);
         let index_buffer = unsafe {
             let buffer = Buffer::alloc(
                 device,
@@ -157,109 +163,137 @@ impl Mesh {
                 // pos x
                 Vertex {
                     pos: Vec3(0.5, -0.5, 0.5),
+                    color: Rgb(1.0, 0.0, 0.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, 0.5, 0.5),
+                    color: Rgb(1.0, 0.0, 0.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, 0.5, -0.5),
+                    color: Rgb(1.0, 0.0, 0.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, -0.5, -0.5),
+                    color: Rgb(1.0, 0.0, 0.0),
                     uv: Vec2(0.0, 1.0),
                 },
                 // pos y
                 Vertex {
                     pos: Vec3(0.5, 0.5, 0.5),
+                    color: Rgb(0.0, 1.0, 0.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, 0.5, 0.5),
+                    color: Rgb(0.0, 1.0, 0.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, 0.5, -0.5),
+                    color: Rgb(0.0, 1.0, 0.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, 0.5, -0.5),
+                    color: Rgb(0.0, 1.0, 0.0),
                     uv: Vec2(0.0, 1.0),
                 },
                 // pos z
                 Vertex {
                     pos: Vec3(-0.5, 0.5, 0.5),
+                    color: Rgb(0.0, 0.0, 1.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, 0.5, 0.5),
+                    color: Rgb(0.0, 0.0, 1.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, -0.5, 0.5),
+                    color: Rgb(0.0, 0.0, 1.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, -0.5, 0.5),
+                    color: Rgb(0.0, 0.0, 1.0),
                     uv: Vec2(0.0, 1.0),
                 },
                 // neg x
                 Vertex {
                     pos: Vec3(-0.5, 0.5, 0.5),
+                    color: Rgb(0.0, 1.0, 1.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, -0.5, 0.5),
+                    color: Rgb(0.0, 1.0, 1.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, -0.5, -0.5),
+                    color: Rgb(0.0, 1.0, 1.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, 0.5, -0.5),
+                    color: Rgb(0.0, 1.0, 1.0),
                     uv: Vec2(0.0, 1.0),
                 },
                 // neg y
                 Vertex {
                     pos: Vec3(-0.5, -0.5, 0.5),
+                    color: Rgb(1.0, 0.0, 1.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, -0.5, 0.5),
+                    color: Rgb(1.0, 0.0, 1.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, -0.5, -0.5),
+                    color: Rgb(1.0, 0.0, 1.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, -0.5, -0.5),
+                    color: Rgb(1.0, 0.0, 1.0),
                     uv: Vec2(0.0, 1.0),
                 },
                 // neg z
                 Vertex {
                     pos: Vec3(-0.5, -0.5, -0.5),
+                    color: Rgb(1.0, 1.0, 0.0),
                     uv: Vec2(0.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, -0.5, -0.5),
+                    color: Rgb(1.0, 1.0, 0.0),
                     uv: Vec2(1.0, 0.0),
                 },
                 Vertex {
                     pos: Vec3(0.5, 0.5, -0.5),
+                    color: Rgb(1.0, 1.0, 0.0),
                     uv: Vec2(1.0, 1.0),
                 },
                 Vertex {
                     pos: Vec3(-0.5, 0.5, -0.5),
+                    color: Rgb(1.0, 1.0, 0.0),
                     uv: Vec2(0.0, 1.0),
                 },
             ],
             indices: vec![
-                0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12,
-                16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20,
+                0, 1, 2, 2, 3, 0,
+                4, 5, 6, 6, 7, 4,
+                8, 9, 10, 10, 11, 8,
+                12, 13, 14, 14, 15, 12,
+                16, 17, 18, 18, 19, 16,
+                20, 21, 22, 22, 23, 20,
             ],
         }
     }

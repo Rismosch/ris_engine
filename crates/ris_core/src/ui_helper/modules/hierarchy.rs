@@ -97,12 +97,6 @@ impl HierarchyModule {
         handle: GameObjectHandle,
         data: &mut UiHelperDrawData,
     ) -> RisResult<()> {
-        ris_debug::gizmo::view_point(
-            handle.world_position(&data.state.scene)?,
-            handle.world_rotation(&data.state.scene)?,
-            None,
-        )?;
-
         let UiHelperDrawData {
             ui,
             state: GodState { scene, .. },
