@@ -4,8 +4,7 @@ use imgui::DrawData;
 use imgui::DrawVert;
 
 use ris_error::RisResult;
-
-use crate::vulkan::buffer::Buffer;
+use ris_video_data::buffer::Buffer;
 
 pub struct Mesh {
     pub vertices: Buffer,
@@ -36,7 +35,8 @@ impl Mesh {
         let indices = Self::create_indices(draw_data);
         let index_count = vertices.len();
 
-        let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
+        let vertices_slice = vertices.as_slice();
+        let vertex_buffer_size = std::mem::size_of_val(vertices_slice) as vk::DeviceSize;
         let vertex_buffer = Buffer::alloc(
             device,
             vertex_buffer_size,

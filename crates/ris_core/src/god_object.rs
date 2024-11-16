@@ -14,12 +14,12 @@ use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
-use ris_video::gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
-use ris_video::gizmo::gizmo_text_renderer::GizmoTextRenderer;
-use ris_video::imgui::imgui_backend::ImguiBackend;
-use ris_video::imgui::imgui_renderer::ImguiRenderer;
-use ris_video::scene::scene_renderer::SceneRenderer;
-use ris_video::vulkan::core::VulkanCore;
+use ris_video_data::core::VulkanCore;
+use ris_video_renderers::GizmoSegmentRenderer;
+use ris_video_renderers::GizmoTextRenderer;
+use ris_video_renderers::ImguiBackend;
+use ris_video_renderers::ImguiRenderer;
+use ris_video_renderers::SceneRenderer;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
@@ -121,7 +121,7 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = unsafe { VulkanCore::alloc(&app_info, &window) }?;
+        let vulkan_core = unsafe { VulkanCore::alloc(&app_info.package.name, &window) }?;
 
         // scene renderer
         let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;

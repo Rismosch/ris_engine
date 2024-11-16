@@ -1,4 +1,4 @@
-use super::components::mesh::MeshComponent;
+use super::components::mesh_renderer::MeshRendererComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -6,23 +6,49 @@ use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
+use super::id::SceneKind;
+use super::mesh::VideoMesh;
 use super::scene::Scene;
 use super::script::DynScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {
     GameObject,
-    MeshComponent,
+    MeshRendererComponent,
     ScriptComponent,
+    VideoMesh,
+}
+
+impl EcsTypeId {
+    pub fn matches(self, scene_kind: SceneKind) -> bool {
+        if scene_kind == SceneKind::Null {
+            return true;
+        }
+
+        matches!(
+            (self, scene_kind),
+            (_, SceneKind::Null)
+                | (Self::GameObject, SceneKind::MovableGameObject)
+                | (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ })
+                | (Self::MeshRendererComponent, SceneKind::Component)
+                | (Self::ScriptComponent, SceneKind::Component)
+                | (Self::VideoMesh, SceneKind::Other)
+        )
+    }
 }
 
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
-declare::component!(MeshComponentHandle, MeshComponent, EcsTypeId::MeshComponent,);
+declare::component!(
+    MeshRendererComponentHandle,
+    MeshRendererComponent,
+    EcsTypeId::MeshRendererComponent,
+);
 declare::component!(
     DynScriptComponentHandle,
     DynScriptComponent,
     EcsTypeId::ScriptComponent,
 );
+declare::object!(VideoMeshHandle, VideoMesh, EcsTypeId::VideoMesh,);
 
 mod declare {
     macro_rules! object {

@@ -47,11 +47,11 @@ impl ICommand for Archive {
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", CLEAN));
                 explanation.push_str("Cleans the workspace by running a combination of git commands. Ignores vendored crates.\n");
-                explanation.push_str("WARNING: Uncommited changes will be lost!\n");
+                explanation.push_str("WARNING: Uncommitted changes will be lost!\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", CLEAN_EVERYTHING));
                 explanation.push_str("Cleans the workspace by running a combination of git commands. Also cleans vendored crates.\n");
-                explanation.push_str("WARNING: Uncommited changes will be lost!\n");
+                explanation.push_str("WARNING: Uncommitted changes will be lost!\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", VENDOR));
                 explanation.push_str("Vendors crates. I.e. downloads dependencies and stores them in this repo for offline use.\n");

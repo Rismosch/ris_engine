@@ -1,7 +1,7 @@
-use crate::ptr::ArefCell;
-use crate::ptr::StrongPtr;
+use ris_ptr::ArefCell;
+use ris_ptr::StrongPtr;
 
-use super::components::mesh::MeshComponent;
+use super::components::mesh_renderer::MeshRendererComponent;
 use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
@@ -16,28 +16,37 @@ use super::id::EcsPtr;
 use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
+use super::mesh::VideoMesh;
 use super::script::DynScriptComponent;
 
 const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
 const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
-const DEFAULT_MESH_COMPONENTS: usize = 1024;
+const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
 const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
+const DEFAULT_VIDEO_MESHES: usize = 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SceneCreateInfo {
+    // game objects
     pub movable_game_objects: usize,
     pub static_chunks: usize,
     pub static_game_objects_per_chunk: usize,
-    pub mesh_components: usize,
+
+    // components
+    pub mesh_renderer_components: usize,
     pub script_components: usize,
+
+    // other
+    pub video_meshes: usize,
 }
 
 pub struct Scene {
     pub movable_game_objects: Vec<EcsPtr<GameObject>>,
     pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
-    pub mesh_components: Vec<EcsPtr<MeshComponent>>,
+    pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
+    pub video_meshes: Vec<EcsPtr<VideoMesh>>,
 }
 
 impl Default for SceneCreateInfo {
@@ -46,13 +55,34 @@ impl Default for SceneCreateInfo {
             movable_game_objects: DEFAULT_MOVABLE_GAME_OBJECTS,
             static_chunks: DEFAULT_STATIC_CHUNKS,
             static_game_objects_per_chunk: DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK,
-            mesh_components: DEFAULT_MESH_COMPONENTS,
+            mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
+            video_meshes: DEFAULT_VIDEO_MESHES,
+        }
+    }
+}
+
+impl SceneCreateInfo {
+    pub fn empty() -> Self {
+        Self {
+            movable_game_objects: 0,
+            static_chunks: 0,
+            static_game_objects_per_chunk: 0,
+            mesh_renderer_components: 0,
+            script_components: 0,
+            video_meshes: 0,
         }
     }
 }
 
 impl Scene {
+    pub fn free(&self, device: &ash::Device) {
+        for video_mesh in self.video_meshes.iter() {
+            let mut aref_mut = video_mesh.borrow_mut();
+            aref_mut.free(device);
+        }
+    }
+
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let movable_game_objects =
             create_chunk(SceneKind::MovableGameObject, info.movable_game_objects)?;
@@ -64,14 +94,18 @@ impl Scene {
             static_game_objects.push(chunk);
         }
 
-        let mesh_components = create_chunk(SceneKind::Component, info.mesh_components)?;
+        let mesh_renderer_components =
+            create_chunk(SceneKind::Component, info.mesh_renderer_components)?;
         let script_components = create_chunk(SceneKind::Component, info.script_components)?;
+
+        let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
 
         Ok(Self {
             movable_game_objects,
             static_game_objects,
-            mesh_components,
+            mesh_renderer_components,
             script_components,
+            video_meshes,
         })
     }
 
@@ -134,9 +168,9 @@ impl Scene {
         }
 
         let game_object = match ecs_type_id {
-            EcsTypeId::GameObject => ris_error::throw!("component was of type GameObject. this should be impossible. congrats on triggering this :)"),
-            EcsTypeId::MeshComponent => {
-                let generic_handle = GenericHandle::<MeshComponent>::from_dyn(handle.into());
+            EcsTypeId::MeshRendererComponent => {
+                let generic_handle =
+                    GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
                 let generic =
                     ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
 
@@ -153,6 +187,10 @@ impl Scene {
                 let aref = ptr.borrow();
                 aref.game_object()
             }
+            ecs_type_id => ris_error::throw!(
+                "ecs type {:?} is not a component, and thus is not assigned to a game object",
+                ecs_type_id
+            ),
         };
 
         Ok(game_object)
@@ -167,9 +205,9 @@ impl Scene {
         }
 
         match ecs_type_id {
-            EcsTypeId::GameObject => ris_error::throw!("component was of type GameObject. this should be impossible. congrats on triggering this :)"),
-            EcsTypeId::MeshComponent => {
-                let generic_handle = GenericHandle::<MeshComponent>::from_dyn(handle.into());
+            EcsTypeId::MeshRendererComponent => {
+                let generic_handle =
+                    GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
                 let generic =
                     ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
 
@@ -182,6 +220,7 @@ impl Scene {
 
                 self.destroy_component_inner(generic);
             }
+            ecs_type_id => ris_error::throw!("ecs type {:?} is not a component", ecs_type_id),
         }
     }
 
@@ -191,9 +230,13 @@ impl Scene {
             SceneKind::MovableGameObject => cast(&self.movable_game_objects),
             SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
             SceneKind::Component => match T::ecs_type_id() {
-                EcsTypeId::GameObject => Err(EcsError::TypeDoesNotMatchSceneKind),
-                EcsTypeId::MeshComponent => cast(&self.mesh_components),
+                EcsTypeId::MeshRendererComponent => cast(&self.mesh_renderer_components),
                 EcsTypeId::ScriptComponent => cast(&self.script_components),
+                _ => Err(EcsError::TypeDoesNotMatchSceneKind),
+            },
+            SceneKind::Other => match T::ecs_type_id() {
+                EcsTypeId::VideoMesh => cast(&self.video_meshes),
+                _ => Err(EcsError::TypeDoesNotMatchSceneKind),
             },
         }
     }

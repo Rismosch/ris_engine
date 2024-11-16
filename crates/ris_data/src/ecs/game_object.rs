@@ -28,7 +28,7 @@ pub struct GameObject {
     name: String,
 
     // local values
-    is_visible: bool,
+    is_active: bool,
     position: Vec3,
     rotation: Quat,
     scale: f32,
@@ -43,7 +43,7 @@ impl Default for GameObject {
     fn default() -> Self {
         Self {
             name: "game object".to_string(),
-            is_visible: true,
+            is_active: true,
             position: Vec3::init(0.0),
             rotation: Quat::identity(),
             scale: 1.0,
@@ -80,7 +80,7 @@ impl Default for GameObjectHandle {
 }
 
 impl GameObjectHandle {
-    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<GameObjectHandle> {
+    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
         let ptr = scene.create_new(kind.into())?;
         Ok(ptr.borrow().handle.into())
     }
@@ -116,19 +116,15 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn is_visible(self, scene: &Scene) -> EcsResult<bool> {
+    pub fn is_active(self, scene: &Scene) -> EcsResult<bool> {
         let ptr = scene.deref(self.into())?;
-        Ok(ptr.borrow().is_visible)
+        Ok(ptr.borrow().is_active)
     }
 
-    pub fn set_visible(self, scene: &Scene, value: bool) -> EcsResult<()> {
+    pub fn set_active(self, scene: &Scene, value: bool) -> EcsResult<()> {
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
-
-        if aref_mut.is_visible != value {
-            aref_mut.is_visible = value;
-            drop(aref_mut);
-        }
+        aref_mut.is_active = value;
 
         Ok(())
     }
@@ -370,10 +366,10 @@ impl GameObjectHandle {
         scene.destroy_component(component);
     }
 
-    pub fn is_visible_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
+    pub fn is_active_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
         let mut option = Some(self);
         while let Some(handle) = option {
-            if !handle.is_visible(scene)? {
+            if !handle.is_active(scene)? {
                 return Ok(false);
             }
 

@@ -63,17 +63,17 @@ impl IUiHelperModule for InspectorModule {
                     handle.set_name(&data.state.scene, name)?;
                 }
 
-                let mut is_visible = handle.is_visible(&data.state.scene)?;
-                if data.ui.checkbox("is visible", &mut is_visible) {
-                    handle.set_visible(&data.state.scene, is_visible)?;
+                let mut is_active = handle.is_active(&data.state.scene)?;
+                if data.ui.checkbox("is active", &mut is_active) {
+                    handle.set_active(&data.state.scene, is_active)?;
                 }
 
                 {
                     let _token = data.ui.begin_disabled(true);
-                    let mut is_visible_in_hierarchy =
-                        handle.is_visible_in_hierarchy(&data.state.scene)?;
+                    let mut is_active_in_hierarchy =
+                        handle.is_active_in_hierarchy(&data.state.scene)?;
                     data.ui
-                        .checkbox("is visible in hierarchy", &mut is_visible_in_hierarchy);
+                        .checkbox("is active in hierarchy", &mut is_active_in_hierarchy);
                 }
 
                 data.ui.separator();

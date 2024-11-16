@@ -5,7 +5,6 @@ use std::ptr;
 use ash::vk;
 use sdl2::video::Window;
 
-use ris_data::info::app_info::AppInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -58,7 +57,7 @@ impl VulkanCore {
     /// # Safety
     ///
     /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(app_info: &AppInfo, window: &Window) -> RisResult<Self> {
+    pub unsafe fn alloc(application_name: &str, window: &Window) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -95,13 +94,13 @@ impl VulkanCore {
         ris_log::trace!("{}", log_message);
 
         // instance
-        let name = CString::new(app_info.package.name.clone())?;
+        let cstring_application_name = CString::new(application_name.to_string())?;
         let vk_app_info = vk::ApplicationInfo {
             s_type: vk::StructureType::APPLICATION_INFO,
             p_next: ptr::null(),
-            p_application_name: name.as_ptr(),
+            p_application_name: cstring_application_name.as_ptr(),
             application_version: vk::make_api_version(0, 1, 0, 0),
-            p_engine_name: name.as_ptr(),
+            p_engine_name: cstring_application_name.as_ptr(),
             engine_version: vk::make_api_version(0, 1, 0, 0),
             api_version: vk::make_api_version(0, 1, 0, 92),
         };

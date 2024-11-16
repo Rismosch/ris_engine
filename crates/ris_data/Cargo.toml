@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ash = "0.37.3"
 sdl2 = "0.34.5"
 chrono = "0.4"
 ris_debug = { path = "../ris_debug" }
@@ -14,4 +15,6 @@ ris_file = { path = "../ris_file" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
+ris_ptr = { path = "../ris_ptr" }
 ris_util = { path = "../ris_util" }
+ris_video_data = { path = "../ris_video_data" }

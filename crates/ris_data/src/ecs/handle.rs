@@ -65,15 +65,7 @@ pub trait ComponentHandle: Handle {
 
 impl DynHandle {
     pub fn new(ecs_type_id: EcsTypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
-        // assert the ecs_type_id matches with the scene_id
-        let type_matches_id = match scene_id.kind {
-            SceneKind::Null => true,
-            SceneKind::StaticGameObjct { .. } => ecs_type_id == EcsTypeId::GameObject,
-            SceneKind::MovableGameObject => ecs_type_id == EcsTypeId::GameObject,
-            SceneKind::Component => ecs_type_id != EcsTypeId::GameObject,
-        };
-
-        if type_matches_id {
+        if ecs_type_id.matches(scene_id.kind) {
             Ok(Self {
                 ecs_type_id,
                 scene_id,
@@ -200,13 +192,14 @@ impl<T: EcsObject> Clone for GenericHandle<T> {
     }
 }
 
+impl<T: EcsObject> Copy for GenericHandle<T> {}
+
 impl<T: EcsObject> PartialEq for GenericHandle<T> {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<T: EcsObject> Copy for GenericHandle<T> {}
 impl<T: EcsObject> Eq for GenericHandle<T> {}
 
 impl<T: EcsObject> Handle for GenericHandle<T> {

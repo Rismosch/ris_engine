@@ -15,17 +15,15 @@ use ris_util::assert_vec3_eq;
 use ris_util::testing;
 use ris_util::testing::miri_choose;
 
-const SCENE_CREATE_INFO: SceneCreateInfo = SceneCreateInfo {
-    movable_game_objects: 5,
-    static_chunks: 0,
-    static_game_objects_per_chunk: 0,
-    mesh_components: 0,
-    script_components: 0,
-};
+fn scene_create_info() -> SceneCreateInfo {
+    let mut info = SceneCreateInfo::empty();
+    info.movable_game_objects = 5;
+    info
+}
 
 #[test]
 fn should_create_and_deref_game_object() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     let ptr = scene.deref(g.into());
@@ -34,7 +32,7 @@ fn should_create_and_deref_game_object() {
 
 #[test]
 fn should_not_deref_destroyed_handle() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     g.destroy(&scene);
 
@@ -44,7 +42,7 @@ fn should_not_deref_destroyed_handle() {
 
 #[test]
 fn should_not_create_when_out_of_memory() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable);
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable);
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable);
@@ -61,20 +59,20 @@ fn should_not_create_when_out_of_memory() {
 }
 
 #[test]
-fn should_get_and_set_visible() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+fn should_get_and_set_active() {
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    assert!(g.is_visible(&scene).unwrap());
-    g.set_visible(&scene, false).unwrap();
-    assert!(!g.is_visible(&scene).unwrap());
-    g.set_visible(&scene, true).unwrap();
-    assert!(g.is_visible(&scene).unwrap());
+    assert!(g.is_active(&scene).unwrap());
+    g.set_active(&scene, false).unwrap();
+    assert!(!g.is_active(&scene).unwrap());
+    g.set_active(&scene, true).unwrap();
+    assert!(g.is_active(&scene).unwrap());
 }
 
 #[test]
 fn should_get_and_set_local_position() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     let expected1 = Vec3::init(0.0);
@@ -89,7 +87,7 @@ fn should_get_and_set_local_position() {
 
 #[test]
 fn should_get_and_set_local_rotation() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     let expected1 = Quat::identity();
@@ -104,7 +102,7 @@ fn should_get_and_set_local_rotation() {
 
 #[test]
 fn should_get_and_set_local_scale() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     let expected1 = 1.0;
@@ -123,7 +121,7 @@ fn should_not_set_local_scale_to_0_or_negative() {
         ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
     }
 
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
     assert!(g.set_local_scale(&scene, 0.0).is_err());
@@ -132,7 +130,7 @@ fn should_not_set_local_scale_to_0_or_negative() {
 
 #[test]
 fn should_set_parent() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let child = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
@@ -154,7 +152,7 @@ fn should_set_parent() {
 
 #[test]
 fn should_keep_position_on_set_parent() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let child1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let child2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -186,7 +184,7 @@ fn should_keep_position_on_set_parent() {
 
 #[test]
 fn should_not_cause_circular_hierarchy() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -214,7 +212,7 @@ fn should_not_cause_circular_hierarchy() {
 
 #[test]
 fn should_not_assign_child_more_than_once() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let child = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
@@ -234,7 +232,7 @@ fn should_not_assign_child_more_than_once() {
 
 #[test]
 fn should_not_assign_destroyed_child() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let child = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
@@ -247,7 +245,7 @@ fn should_not_assign_destroyed_child() {
 
 #[test]
 fn should_not_assign_destroyed_parent() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -275,7 +273,7 @@ fn should_not_assign_destroyed_parent() {
 
 #[test]
 fn should_set_sibling_index() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -322,7 +320,7 @@ fn should_set_sibling_index() {
 
 #[test]
 fn should_destroy_child() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -352,7 +350,7 @@ fn should_destroy_child() {
 
 #[test]
 fn should_destroy_parent() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -376,7 +374,7 @@ fn should_destroy_parent() {
 
 #[test]
 fn should_iter_children() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -400,7 +398,7 @@ fn should_iter_children() {
 
 #[test]
 fn should_skip_destroyed_children_on_iter_children() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -425,7 +423,7 @@ fn should_skip_destroyed_children_on_iter_children() {
 
 #[test]
 fn should_stop_iter_children_when_parent_is_destroyed() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+    let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -446,8 +444,8 @@ fn should_stop_iter_children_when_parent_is_destroyed() {
 }
 
 #[test]
-fn should_get_is_visible_in_hierarchy() {
-    let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+fn should_get_is_active_in_hierarchy() {
+    let scene = Scene::new(scene_create_info()).unwrap();
     let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -459,14 +457,14 @@ fn should_get_is_visible_in_hierarchy() {
     g3.set_parent(&scene, Some(g0), 0, false).unwrap();
     g4.set_parent(&scene, Some(g3), 0, false).unwrap();
 
-    g2.set_visible(&scene, false).unwrap();
-    g3.set_visible(&scene, false).unwrap();
+    g2.set_active(&scene, false).unwrap();
+    g3.set_active(&scene, false).unwrap();
 
-    assert!(g0.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(g1.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g2.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g3.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g4.is_visible_in_hierarchy(&scene).unwrap());
+    assert!(g0.is_active_in_hierarchy(&scene).unwrap());
+    assert!(g1.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g2.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g3.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g4.is_active_in_hierarchy(&scene).unwrap());
 }
 
 #[test]
@@ -479,7 +477,7 @@ fn should_get_and_set_world_transform() {
     testing::repeat(miri_choose(10_000, 10), move |_i| {
         let mut rng = rng.borrow_mut();
 
-        let scene = Scene::new(SCENE_CREATE_INFO).unwrap();
+        let scene = Scene::new(scene_create_info()).unwrap();
         let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
         let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
         let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();

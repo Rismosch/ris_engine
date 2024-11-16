@@ -1,9 +1,13 @@
 use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::decl::MeshRendererComponentHandle;
+use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::mesh::Mesh;
 use ris_data::ecs::script::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_error::RisResult;
 use ris_jobs::job_system;
+use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 use crate::god_object::GodObject;
 
@@ -12,49 +16,39 @@ pub enum WantsTo {
     Restart,
 }
 
-#[derive(Debug, Default)]
-struct TestScript {
-    counter: usize,
+#[derive(Debug)]
+pub struct TestRotation {
+    rotation_axis: Vec3,
 }
 
-impl Script for TestScript {
+impl Script for TestRotation {
     fn id() -> Sid {
         ris_debug::fsid!()
     }
 
     fn start(_data: ScriptStartData) -> RisResult<Self> {
-        ris_log::debug!("test started");
-        Ok(Self::default())
+        Ok(Self {
+            rotation_axis: Vec3::forward(),
+        })
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
-        if data
-            .state
-            .input
-            .keyboard
-            .keys
-            .is_down(sdl2::keyboard::Scancode::Up)
-        {
-            self.counter = self.counter.saturating_add(1);
-            ris_log::debug!("counter set to: {}", self.counter);
-        }
+        let ScriptUpdateData {
+            game_object,
+            frame,
+            state: ris_data::god_state::GodState { scene, .. },
+        } = data;
 
-        if data
-            .state
-            .input
-            .keyboard
-            .keys
-            .is_down(sdl2::keyboard::Scancode::Down)
-        {
-            self.counter = self.counter.saturating_sub(1);
-            ris_log::debug!("counter set to: {}", self.counter);
-        }
+        let rotation = game_object.local_rotation(scene)?;
+        let angle = frame.average_seconds();
+        let q = Quat::angle_axis(angle, self.rotation_axis);
+        let new_rotation = q * rotation;
+        game_object.set_local_rotation(scene, new_rotation)?;
 
         Ok(())
     }
 
     fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
-        ris_log::debug!("test ended");
         Ok(())
     }
 }
@@ -62,30 +56,49 @@ impl Script for TestScript {
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
-    let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-    game_object.set_name(&god_object.state.scene, "this is a test")?;
+    // TESTING
 
-    //let script: DynScriptComponentHandle = game_object.add_component(&god_object.state.scene)?.into();
-    //script.start(&god_object.state.scene, TestScript::default())?;
+    let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
 
-    let test = game_object.add_script::<TestScript>(&god_object.state.scene)?;
-    let test_game_object = test.game_object(&god_object.state.scene)?;
-    let name = test_game_object.name(&god_object.state.scene)?;
-    ris_log::debug!("test script name: {}", name);
+    let count = 1000;
+    let scale = 10.0;
+    for i in 0..count {
+        let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+        game_object.set_name(
+            &god_object.state.scene,
+            format!("game_object with mesh {}", i),
+        )?;
+        let position = rng.next_pos_3() * scale;
+        let rotation = rng.next_rot();
+        game_object.set_local_position(&god_object.state.scene, position)?;
+        game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
-    let test_id = TestScript::id();
-    ris_log::debug!("test script id: {}", test_id);
+        game_object.add_script::<TestRotation>(&god_object.state.scene)?;
 
-    //let s : ris_data::ecs::decl::MeshComponentHandle = game_object.get_component(&god_object.state.scene, ris_data::ecs::game_object::GetFrom::This)?.unwrap().into();
+        let physical_device_memory_properties = unsafe {
+            god_object
+                .output_frame
+                .core
+                .instance
+                .get_physical_device_memory_properties(
+                    god_object.output_frame.core.suitable_device.physical_device,
+                )
+        };
 
-    {
-        let mut script = test.script_mut(&god_object.state.scene)?;
-        ris_log::debug!("counter 1: {}", script.counter);
-
-        script.counter = 42;
-
-        ris_log::debug!("counter 2: {}", script.counter);
+        let mesh = Mesh::primitive_cube();
+        let video_mesh = VideoMeshHandle::new(&god_object.state.scene)?;
+        video_mesh.upload(
+            &god_object.state.scene,
+            &god_object.output_frame.core.device,
+            physical_device_memory_properties,
+            mesh,
+        )?;
+        let mesh_renderer: MeshRendererComponentHandle =
+            game_object.add_component(&god_object.state.scene)?.into();
+        mesh_renderer.set_video_mesh(&god_object.state.scene, video_mesh)?;
     }
+
+    // TESTING END
 
     loop {
         ris_debug::profiler::new_frame()?;
@@ -194,6 +207,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 aref_mut.end(&god_object.state.scene)?;
             }
         }
+
+        god_object.output_frame.wait_idle()?;
+        god_object
+            .state
+            .scene
+            .free(&god_object.output_frame.core.device);
 
         return Ok(wants_to);
     }
