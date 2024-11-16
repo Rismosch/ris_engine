@@ -66,7 +66,7 @@ impl Drop for OutputFrame {
 
 impl OutputFrame {
     pub fn wait_idle(&self) -> RisResult<()> {
-        unsafe {self.core.device.device_wait_idle()}?;
+        unsafe { self.core.device.device_wait_idle() }?;
         Ok(())
     }
 

@@ -136,11 +136,10 @@ impl HierarchyModule {
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
             if ui.menu_item("new") {
                 let kind = handle.scene_id().kind;
-                let is_game_object = match kind {
-                    SceneKind::MovableGameObject => true,
-                    SceneKind::StaticGameObjct { .. } => true,
-                    _ => false,
-                };
+                let is_game_object = matches!(
+                    kind,
+                    SceneKind::MovableGameObject | SceneKind::StaticGameObjct { .. }
+                );
 
                 if !is_game_object {
                     return ris_error::new_result!("handle id was not a gameobject");

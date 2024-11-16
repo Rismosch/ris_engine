@@ -1,8 +1,8 @@
 use ris_error::RisResult;
 
 use crate::ecs::decl::GameObjectHandle;
-use crate::ecs::decl::VideoMeshHandle;
 use crate::ecs::decl::MeshRendererComponentHandle;
+use crate::ecs::decl::VideoMeshHandle;
 use crate::ecs::id::Component;
 use crate::ecs::scene::Scene;
 

@@ -35,7 +35,7 @@ Barebones game engine. Home made passion project.
   - [ ] glTF
 - [x] Settings/Configuration
 - [x] Gameobjects and components
-  - [ ] Mesh renderer
+  - [x] Mesh renderer
     - [ ] Materials
   - [x] Scripting
 - [ ] Scene editing, saving and loading
@@ -44,7 +44,7 @@ Barebones game engine. Home made passion project.
 - [ ] 3d Sound
 
 **Legend**:
-- [x] fully implemented
+- [x] implemented
 - [ ] planned
 
 ## Requirements

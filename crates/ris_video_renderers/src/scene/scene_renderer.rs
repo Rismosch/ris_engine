@@ -4,8 +4,8 @@ use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_data::ecs::scene::Scene;
 use ris_data::ecs::mesh::Vertex;
+use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
@@ -49,7 +49,6 @@ impl SceneFrame {
         for descriptor in self.descriptors.iter() {
             descriptor.buffer.free(device);
         }
-
     }
 }
 
@@ -522,7 +521,6 @@ impl SceneRenderer {
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for i in 0..frame_count {
-
             let mut scene_frame_descriptors = Vec::with_capacity(DESCRIPTOR_SETS_PER_FRAME);
             for j in 0..DESCRIPTOR_SETS_PER_FRAME {
                 let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
@@ -549,7 +547,7 @@ impl SceneRenderer {
                     mapped: descriptor_mapped,
                     set: descriptor_set,
                 };
-                
+
                 scene_frame_descriptors.push(scene_frame_descriptor);
             }
 
@@ -580,9 +578,7 @@ impl SceneRenderer {
         scene: &Scene,
     ) -> RisResult<()> {
         let VulkanCore {
-            device,
-            swapchain,
-            ..
+            device, swapchain, ..
         } = core;
 
         let SwapchainEntry {
@@ -736,7 +732,9 @@ impl SceneRenderer {
                     view: camera.view_matrix(),
                     proj: camera.projection_matrix(),
                 }];
-                descriptor.mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+                descriptor
+                    .mapped
+                    .copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
                 let descriptor_buffer_info = [vk::DescriptorBufferInfo {
                     buffer: descriptor.buffer.buffer,

@@ -59,15 +59,15 @@ fn should_not_create_when_out_of_memory() {
 }
 
 #[test]
-fn should_get_and_set_visible() {
+fn should_get_and_set_active() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
 
-    assert!(g.is_visible(&scene).unwrap());
-    g.set_visible(&scene, false).unwrap();
-    assert!(!g.is_visible(&scene).unwrap());
-    g.set_visible(&scene, true).unwrap();
-    assert!(g.is_visible(&scene).unwrap());
+    assert!(g.is_active(&scene).unwrap());
+    g.set_active(&scene, false).unwrap();
+    assert!(!g.is_active(&scene).unwrap());
+    g.set_active(&scene, true).unwrap();
+    assert!(g.is_active(&scene).unwrap());
 }
 
 #[test]
@@ -444,7 +444,7 @@ fn should_stop_iter_children_when_parent_is_destroyed() {
 }
 
 #[test]
-fn should_get_is_visible_in_hierarchy() {
+fn should_get_is_active_in_hierarchy() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g0 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -457,14 +457,14 @@ fn should_get_is_visible_in_hierarchy() {
     g3.set_parent(&scene, Some(g0), 0, false).unwrap();
     g4.set_parent(&scene, Some(g3), 0, false).unwrap();
 
-    g2.set_visible(&scene, false).unwrap();
-    g3.set_visible(&scene, false).unwrap();
+    g2.set_active(&scene, false).unwrap();
+    g3.set_active(&scene, false).unwrap();
 
-    assert!(g0.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(g1.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g2.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g3.is_visible_in_hierarchy(&scene).unwrap());
-    assert!(!g4.is_visible_in_hierarchy(&scene).unwrap());
+    assert!(g0.is_active_in_hierarchy(&scene).unwrap());
+    assert!(g1.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g2.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g3.is_active_in_hierarchy(&scene).unwrap());
+    assert!(!g4.is_active_in_hierarchy(&scene).unwrap());
 }
 
 #[test]

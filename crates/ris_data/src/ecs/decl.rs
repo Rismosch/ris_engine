@@ -25,20 +25,24 @@ impl EcsTypeId {
             return true;
         }
 
-        match (self, scene_kind) {
-            (_, SceneKind::Null) => true,
-            (Self::GameObject, SceneKind::MovableGameObject) => true,
-            (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ }) => true,
-            (Self::MeshRendererComponent, SceneKind::Component) => true,
-            (Self::ScriptComponent, SceneKind::Component) => true,
-            (Self::VideoMesh, SceneKind::Other) => true,
-            _ => false,
-        }
+        matches!(
+            (self, scene_kind),
+            (_, SceneKind::Null)
+                | (Self::GameObject, SceneKind::MovableGameObject)
+                | (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ })
+                | (Self::MeshRendererComponent, SceneKind::Component)
+                | (Self::ScriptComponent, SceneKind::Component)
+                | (Self::VideoMesh, SceneKind::Other)
+        )
     }
 }
 
 declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
-declare::component!(MeshRendererComponentHandle, MeshRendererComponent, EcsTypeId::MeshRendererComponent,);
+declare::component!(
+    MeshRendererComponentHandle,
+    MeshRendererComponent,
+    EcsTypeId::MeshRendererComponent,
+);
 declare::component!(
     DynScriptComponentHandle,
     DynScriptComponent,

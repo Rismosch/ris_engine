@@ -1,6 +1,5 @@
 use ash::vk;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::color::Rgb;
 use ris_math::vector::Vec2;
@@ -64,7 +63,7 @@ impl VideoMeshHandle {
 
         Ok(())
     }
-    
+
     pub fn upload(
         self,
         scene: &Scene,
@@ -81,16 +80,20 @@ impl VideoMeshHandle {
         let vertices = mesh.vertices.as_slice();
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
 
-        ris_log::trace!("uploading {} vertices with size {}...", vertices.len(), vertex_buffer_size);
+        ris_log::trace!(
+            "uploading {} vertices with size {}...",
+            vertices.len(),
+            vertex_buffer_size
+        );
         let vertex_buffer = unsafe {
             let buffer = Buffer::alloc(
-                device, 
+                device,
                 vertex_buffer_size,
                 vk::BufferUsageFlags::VERTEX_BUFFER,
                 vk::MemoryPropertyFlags::HOST_VISIBLE
                     | vk::MemoryPropertyFlags::HOST_COHERENT
                     | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                    physical_device_memory_properties,
+                physical_device_memory_properties,
             )?;
             buffer.write(device, vertices)?;
             buffer
@@ -100,7 +103,11 @@ impl VideoMeshHandle {
         let indices = mesh.indices.as_slice();
         let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
 
-        ris_log::trace!("uploading {} indices with size {}...", indices.len(), index_buffer_size);
+        ris_log::trace!(
+            "uploading {} indices with size {}...",
+            indices.len(),
+            index_buffer_size
+        );
         let index_buffer = unsafe {
             let buffer = Buffer::alloc(
                 device,
@@ -111,7 +118,7 @@ impl VideoMeshHandle {
                     | vk::MemoryPropertyFlags::DEVICE_LOCAL,
                 physical_device_memory_properties,
             )?;
-            buffer.write(device, &indices)?;
+            buffer.write(device, indices)?;
             buffer
         };
 
@@ -288,12 +295,8 @@ impl Mesh {
                 },
             ],
             indices: vec![
-                0, 1, 2, 2, 3, 0,
-                4, 5, 6, 6, 7, 4,
-                8, 9, 10, 10, 11, 8,
-                12, 13, 14, 14, 15, 12,
-                16, 17, 18, 18, 19, 16,
-                20, 21, 22, 22, 23, 20,
+                0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12,
+                16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20,
             ],
         }
     }

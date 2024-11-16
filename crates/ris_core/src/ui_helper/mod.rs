@@ -17,10 +17,10 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::settings::ris_yaml::RisYaml;
 use ris_error::RisResult;
+use ris_jobs::job_future::JobFuture;
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 use ris_ptr::WeakPtr;
-use ris_jobs::job_future::JobFuture;
 
 pub mod modules;
 pub mod selection;
