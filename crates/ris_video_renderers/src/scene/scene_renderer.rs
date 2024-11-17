@@ -133,7 +133,7 @@ impl SceneRenderer {
         }?;
 
         // push constants
-        let push_constant_range = [vk::PushConstantRange{
+        let push_constant_range = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
             offset: 0,
             size: std::mem::size_of::<PushConstants>() as u32,
@@ -532,7 +532,6 @@ impl SceneRenderer {
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {
-
             let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
             let descriptor_buffer = Buffer::alloc(
                 device,
@@ -768,9 +767,7 @@ impl SceneRenderer {
                     continue;
                 };
 
-                let push_constants = PushConstants {
-                    model,
-                };
+                let push_constants = PushConstants { model };
 
                 let push_constants_ptr = &push_constants as *const PushConstants as *const u8;
                 let size = std::mem::size_of::<PushConstants>();
