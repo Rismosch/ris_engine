@@ -80,11 +80,11 @@ impl VideoMeshHandle {
         let vertices = mesh.vertices.as_slice();
         let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
 
-        ris_log::trace!(
-            "uploading {} vertices with size {}...",
-            vertices.len(),
-            vertex_buffer_size
-        );
+        //ris_log::trace!(
+        //    "uploading {} vertices with size {}...",
+        //    vertices.len(),
+        //    vertex_buffer_size
+        //);
         let vertex_buffer = unsafe {
             let buffer = Buffer::alloc(
                 device,
@@ -103,11 +103,11 @@ impl VideoMeshHandle {
         let indices = mesh.indices.as_slice();
         let index_buffer_size = std::mem::size_of_val(indices) as vk::DeviceSize;
 
-        ris_log::trace!(
-            "uploading {} indices with size {}...",
-            indices.len(),
-            index_buffer_size
-        );
+        //ris_log::trace!(
+        //    "uploading {} indices with size {}...",
+        //    indices.len(),
+        //    index_buffer_size
+        //);
         let index_buffer = unsafe {
             let buffer = Buffer::alloc(
                 device,
