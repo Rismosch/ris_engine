@@ -16,25 +16,31 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
 
-const DESCRIPTOR_SETS_PER_FRAME: usize = 1024;
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct PushConstants {
+    pub model: Mat4,
+}
+
+const _: () = {
+    assert!(
+        std::mem::size_of::<PushConstants>() <= 128,
+        "PushConstants may not exceed 128 bytes",
+    )
+};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
-    pub model: Mat4,
     pub view: Mat4,
     pub proj: Mat4,
 }
 
-pub struct SceneFrameDescriptor {
-    buffer: Buffer,
-    mapped: *mut UniformBufferObject,
-    set: vk::DescriptorSet,
-}
-
 pub struct SceneFrame {
     framebuffer: Option<vk::Framebuffer>,
-    descriptors: Vec<SceneFrameDescriptor>,
+    descriptor_buffer: Buffer,
+    descriptor_mapped: *mut UniformBufferObject,
+    descriptor_set: vk::DescriptorSet,
 }
 
 impl SceneFrame {
@@ -46,9 +52,7 @@ impl SceneFrame {
             device.destroy_framebuffer(framebuffer, None);
         }
 
-        for descriptor in self.descriptors.iter() {
-            descriptor.buffer.free(device);
-        }
+        self.descriptor_buffer.free(device);
     }
 }
 
@@ -128,6 +132,13 @@ impl SceneRenderer {
             })
         }?;
 
+        // push constants
+        let push_constant_range = [vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: std::mem::size_of::<PushConstants>() as u32,
+        }];
+
         // descriptor sets
         let descriptor_set_layout_bindings = [
             vk::DescriptorSetLayoutBinding {
@@ -169,7 +180,7 @@ impl SceneRenderer {
             },
         ];
 
-        let total_descriptor_set_count = swapchain.entries.len() * DESCRIPTOR_SETS_PER_FRAME;
+        let total_descriptor_set_count = swapchain.entries.len();
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: ptr::null(),
@@ -394,8 +405,8 @@ impl SceneRenderer {
             flags: vk::PipelineLayoutCreateFlags::empty(),
             set_layout_count: descriptor_set_layouts.len() as u32,
             p_set_layouts: descriptor_set_layouts.as_ptr(),
-            push_constant_range_count: 0,
-            p_push_constant_ranges: ptr::null(),
+            push_constant_range_count: push_constant_range.len() as u32,
+            p_push_constant_ranges: push_constant_range.as_ptr(),
         };
 
         let pipeline_layout =
@@ -520,40 +531,28 @@ impl SceneRenderer {
         // frames
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
-        for i in 0..frame_count {
-            let mut scene_frame_descriptors = Vec::with_capacity(DESCRIPTOR_SETS_PER_FRAME);
-            for j in 0..DESCRIPTOR_SETS_PER_FRAME {
-                let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-                let descriptor_buffer = Buffer::alloc(
-                    device,
-                    buffer_size,
-                    vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                    physical_device_memory_properties,
-                )?;
+        for descriptor_set in descriptor_sets {
+            let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+            let descriptor_buffer = Buffer::alloc(
+                device,
+                buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?;
 
-                let descriptor_mapped = device.map_memory(
-                    descriptor_buffer.memory,
-                    0,
-                    buffer_size,
-                    vk::MemoryMapFlags::empty(),
-                )? as *mut UniformBufferObject;
-
-                let descriptor_set_index = i * DESCRIPTOR_SETS_PER_FRAME + j;
-                let descriptor_set = descriptor_sets[descriptor_set_index];
-
-                let scene_frame_descriptor = SceneFrameDescriptor {
-                    buffer: descriptor_buffer,
-                    mapped: descriptor_mapped,
-                    set: descriptor_set,
-                };
-
-                scene_frame_descriptors.push(scene_frame_descriptor);
-            }
+            let descriptor_mapped = device.map_memory(
+                descriptor_buffer.memory,
+                0,
+                buffer_size,
+                vk::MemoryMapFlags::empty(),
+            )? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
                 framebuffer: None,
-                descriptors: scene_frame_descriptors,
+                descriptor_buffer,
+                descriptor_mapped,
+                descriptor_set,
             };
             frames.push(frame);
         }
@@ -591,7 +590,9 @@ impl SceneRenderer {
 
         let SceneFrame {
             framebuffer,
-            descriptors,
+            descriptor_buffer,
+            descriptor_mapped,
+            descriptor_set,
         } = &mut self.frames[*index];
 
         // framebuffer
@@ -679,7 +680,62 @@ impl SceneRenderer {
             device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
 
-            let mut descriptor_index = 0;
+            let ubo = [UniformBufferObject {
+                view: camera.view_matrix(),
+                proj: camera.projection_matrix(),
+            }];
+            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+                buffer: descriptor_buffer.buffer,
+                offset: 0,
+                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            }];
+
+            let descriptor_image_info = [vk::DescriptorImageInfo {
+                sampler: self.texture.sampler,
+                image_view: self.texture.view,
+                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            }];
+
+            let write_descriptor_sets = [
+                vk::WriteDescriptorSet {
+                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                    p_next: ptr::null(),
+                    dst_set: *descriptor_set,
+                    dst_binding: 0,
+                    dst_array_element: 0,
+                    descriptor_count: descriptor_buffer_info.len() as u32,
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    p_image_info: ptr::null(),
+                    p_buffer_info: descriptor_buffer_info.as_ptr(),
+                    p_texel_buffer_view: ptr::null(),
+                },
+                vk::WriteDescriptorSet {
+                    s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                    p_next: ptr::null(),
+                    dst_set: *descriptor_set,
+                    dst_binding: 1,
+                    dst_array_element: 0,
+                    descriptor_count: descriptor_image_info.len() as u32,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    p_image_info: descriptor_image_info.as_ptr(),
+                    p_buffer_info: ptr::null(),
+                    p_texel_buffer_view: ptr::null(),
+                },
+            ];
+
+            device.update_descriptor_sets(&write_descriptor_sets, &[]);
+
+            device.cmd_bind_descriptor_sets(
+                *command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline_layout,
+                0,
+                &[*descriptor_set],
+                &[],
+            );
+
             for mesh_renderer_component in scene.mesh_renderer_components.iter() {
                 let aref = mesh_renderer_component.borrow();
                 if !aref.is_alive {
@@ -711,12 +767,19 @@ impl SceneRenderer {
                     continue;
                 };
 
-                let Some(descriptor) = descriptors.get(descriptor_index) else {
-                    ris_log::warning!("attempted to draw more object than descriptor sets are available. aborted further drawing.");
-                    break;
-                };
+                let push_constants = PushConstants { model };
 
-                descriptor_index += 1;
+                let push_constants_ptr = &push_constants as *const PushConstants as *const u8;
+                let size = std::mem::size_of::<PushConstants>();
+                let push_constants_bytes = std::slice::from_raw_parts(push_constants_ptr, size);
+
+                device.cmd_push_constants(
+                    *command_buffer,
+                    self.pipeline_layout,
+                    vk::ShaderStageFlags::VERTEX,
+                    0,
+                    push_constants_bytes,
+                );
 
                 device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
 
@@ -725,65 +788,6 @@ impl SceneRenderer {
                     indices.buffer,
                     0,
                     vk::IndexType::UINT32,
-                );
-
-                let ubo = [UniformBufferObject {
-                    model,
-                    view: camera.view_matrix(),
-                    proj: camera.projection_matrix(),
-                }];
-                descriptor
-                    .mapped
-                    .copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
-
-                let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                    buffer: descriptor.buffer.buffer,
-                    offset: 0,
-                    range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
-                }];
-
-                let descriptor_image_info = [vk::DescriptorImageInfo {
-                    sampler: self.texture.sampler,
-                    image_view: self.texture.view,
-                    image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                }];
-
-                let write_descriptor_sets = [
-                    vk::WriteDescriptorSet {
-                        s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                        p_next: ptr::null(),
-                        dst_set: descriptor.set,
-                        dst_binding: 0,
-                        dst_array_element: 0,
-                        descriptor_count: descriptor_buffer_info.len() as u32,
-                        descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                        p_image_info: ptr::null(),
-                        p_buffer_info: descriptor_buffer_info.as_ptr(),
-                        p_texel_buffer_view: ptr::null(),
-                    },
-                    vk::WriteDescriptorSet {
-                        s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                        p_next: ptr::null(),
-                        dst_set: descriptor.set,
-                        dst_binding: 1,
-                        dst_array_element: 0,
-                        descriptor_count: descriptor_image_info.len() as u32,
-                        descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                        p_image_info: descriptor_image_info.as_ptr(),
-                        p_buffer_info: ptr::null(),
-                        p_texel_buffer_view: ptr::null(),
-                    },
-                ];
-
-                device.update_descriptor_sets(&write_descriptor_sets, &[]);
-
-                device.cmd_bind_descriptor_sets(
-                    *command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    self.pipeline_layout,
-                    0,
-                    &[descriptor.set],
-                    &[],
                 );
 
                 let index_count_u32 = index_count as u32;

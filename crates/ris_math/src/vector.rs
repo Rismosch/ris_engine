@@ -2441,30 +2441,30 @@ impl std::cmp::Eq for Vec4 {}
 
 impl Bvec2 {
     pub fn any(self) -> bool {
-        self.0 | self.1
+        self.0 || self.1
     }
 
     pub fn all(self) -> bool {
-        self.0 & self.1
+        self.0 && self.1
     }
 }
 
 impl Bvec3 {
     pub fn any(self) -> bool {
-        self.0 | self.1 | self.2
+        self.0 || self.1 || self.2
     }
 
     pub fn all(self) -> bool {
-        self.0 & self.1 & self.2
+        self.0 && self.1 && self.2
     }
 }
 
 impl Bvec4 {
     pub fn any(self) -> bool {
-        self.0 | self.1 | self.2 | self.3
+        self.0 || self.1 || self.2 || self.3
     }
 
     pub fn all(self) -> bool {
-        self.0 & self.1 & self.2 & self.3
+        self.0 && self.1 && self.2 && self.3
     }
 }
