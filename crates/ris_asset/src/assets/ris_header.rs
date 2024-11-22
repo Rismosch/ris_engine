@@ -2,7 +2,6 @@ use std::io::Cursor;
 use std::io::SeekFrom;
 
 use ris_error::RisResult;
-use ris_file::io::BinaryFormat;
 use ris_file::io::FatPtr;
 
 use crate::AssetId;
@@ -46,10 +45,13 @@ impl RisHeader {
         let is_compiled = ris_file::io::read_bool(input)?;
 
         let (references, p_content) = if is_compiled {
-            let references = ris_file::io::read_array::<Reference>(input)?
-                .iter()
-                .map(|x| Ok(AssetId::Compiled(x.0.try_into()?)))
-                .collect::<RisResult<Vec<_>>>()?;
+            let reference_count = ris_file::io::read_u32(input)? as usize;
+            let mut references = Vec::with_capacity(reference_count);
+            for _ in 0..reference_count {
+                let id = ris_file::io::read_u32(input)? as usize;
+                let reference = AssetId::Compiled(id);
+                references.push(reference);
+            }
 
             let content_begin = ris_file::io::seek(input, SeekFrom::Current(0))?;
             let content_end = ris_file::io::seek(input, SeekFrom::End(0))?;
@@ -61,11 +63,12 @@ impl RisHeader {
 
             let references_begin = ris_file::io::seek(input, SeekFrom::Current(0))?;
             let p_references = FatPtr::begin_end(references_begin, p_content.addr)?;
-
-            let references = ris_file::io::read_strings(input, p_references)?
-                .into_iter()
-                .map(AssetId::Directory)
-                .collect();
+            let reference_bytes = ris_file::io::read_unsized(input, p_references)?;
+            let reference_string = String::from_utf8(reference_bytes)?;
+            let references = reference_string
+                .split('\0')
+                .map(|x| AssetId::Directory(x.to_string()))
+                .collect::<Vec<_>>();
 
             (references, p_content)
         };
@@ -78,22 +81,3 @@ impl RisHeader {
     }
 }
 
-pub struct Reference(pub u32);
-
-impl BinaryFormat for Reference {
-    fn serialized_length() -> usize {
-        4
-    }
-
-    fn serialize(&self) -> std::io::Result<Vec<u8>> {
-        Ok(self.0.to_le_bytes().to_vec())
-    }
-
-    fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
-        if buf.len() != 4 {
-            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
-        }
-
-        Ok(Self(u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]])))
-    }
-}

@@ -70,10 +70,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         )?;
         let position = rng.next_pos_3() * scale;
         let rotation = rng.next_rot();
+        let rotation_axis = rng.next_dir_3();
         game_object.set_local_position(&god_object.state.scene, position)?;
         game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
-        game_object.add_script::<TestRotation>(&god_object.state.scene)?;
+        let test_rotation = game_object.add_script::<TestRotation>(&god_object.state.scene)?;
+        test_rotation.script_mut(&god_object.state.scene)?.rotation_axis = rotation_axis;
 
         let physical_device_memory_properties = unsafe {
             god_object

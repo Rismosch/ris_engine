@@ -7,7 +7,6 @@ use std::path::PathBuf;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_file::io::BinaryFormat;
 use ris_file::io::FatPtr;
 
 use crate::AssetId;
@@ -101,9 +100,12 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
     ris_file::io::write_fat_ptr(target_file, FatPtr::null())?; // placeholder
 
     // write lookup
+    ris_file::io::write_u32(target_file, assets.len() as u32)?;
     let addr_asset_lookup = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
-    let mut asset_lookup = vec![AssetAddr::default(); assets.len()];
-    ris_file::io::write_array(target_file, &asset_lookup)?; // placeholder
+    let mut asset_lookup = vec![0; assets.len()];
+    for asset_lookup_entry in asset_lookup.iter() {
+        ris_file::io::write_u64(target_file, *asset_lookup_entry)?; // placeholder
+    }
 
     // compile assets
     for (i, asset) in assets.iter().enumerate() {
@@ -137,9 +139,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                             let lookup_value = asset_lookup_hashmap.get(&id_path);
 
                             let compiled_id = *lookup_value.unroll()?;
-                            let reference =
-                                crate::assets::ris_header::Reference(compiled_id.try_into()?);
-                            references.push(reference);
+                            references.push(compiled_id as u32);
                         }
                     }
                 }
@@ -152,7 +152,10 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 let stream = &mut modified_file_content;
                 ris_file::io::write_checked(stream, &ris_header.magic)?;
                 ris_file::io::write_bool(stream, true)?;
-                ris_file::io::write_array(stream, &references)?;
+                ris_file::io::write_u32(stream, references.len() as u32)?;
+                for reference in references {
+                    ris_file::io::write_u32(stream, reference)?;
+                }
                 ris_file::io::write_checked(stream, &ris_asset_content)?;
 
                 modified_file_content.into_inner()
@@ -161,7 +164,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
         // write to compiled file
         let asset_addr = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
-        asset_lookup[i] = AssetAddr(asset_addr);
+        asset_lookup[i] = asset_addr;
         ris_file::io::write_checked(target_file, &modified_file_content)?;
     }
 
@@ -188,7 +191,13 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             .map(|x| x.as_str())
             .collect::<Vec<_>>();
 
-        ris_file::io::write_strings(target_file, &original_paths)?
+        let begin = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
+        ris_file::io::write_u32(target_file, original_paths.len() as u32)?;
+        for original_path in original_paths {
+            ris_file::io::write_string(target_file, original_path)?;
+        }
+        let end = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
+        FatPtr::begin_end(begin, end)?
     } else {
         let addr = ris_file::io::seek(target_file, SeekFrom::Current(0))?;
         FatPtr { addr, len: 0 }
@@ -199,7 +208,9 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
     ris_file::io::write_fat_ptr(target_file, p_original_asset_names)?;
 
     ris_file::io::seek(target_file, SeekFrom::Start(addr_asset_lookup))?;
-    ris_file::io::write_array(target_file, &asset_lookup)?;
+    for asset_lookup_entry in asset_lookup.iter() {
+        ris_file::io::write_u64(target_file, *asset_lookup_entry)?;
+    }
 
     Ok(())
 }
@@ -231,13 +242,24 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     let p_original_asset_names = ris_file::io::read_fat_ptr(source)?;
 
     // read lookup
-    let asset_lookup = ris_file::io::read_array::<AssetAddr>(source)?;
+    let asset_lookup_count = ris_file::io::read_u32(source)? as usize;
+    let mut asset_lookup = vec![0; asset_lookup_count];
+    for asset_lookup_entry in asset_lookup.iter_mut() {
+        *asset_lookup_entry = ris_file::io::read_u64(source)?;
+    }
 
     // read original paths
     let mut original_paths = if p_original_asset_names.is_null() {
         Vec::new()
     } else {
-        ris_file::io::read_strings(source, p_original_asset_names)?
+        ris_file::io::seek(source, SeekFrom::Start(p_original_asset_names.addr))?;
+        let original_path_count = ris_file::io::read_u32(source)? as usize;
+        let mut original_paths = Vec::with_capacity(original_path_count);
+        for _ in 0..original_path_count {
+            let original_path = ris_file::io::read_string(source)?;
+            original_paths.push(original_path);
+        }
+        original_paths
     };
 
     let mut i = original_paths.len();
@@ -248,7 +270,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 
     // read assets
     for i in 0..asset_lookup.len() {
-        let asset_begin = asset_lookup[i].0;
+        let asset_begin = asset_lookup[i];
         let original_path = &original_paths[i];
 
         ris_log::info!(
@@ -261,7 +283,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let asset_end = if i == asset_lookup.len() - 1 {
             p_original_asset_names.addr
         } else {
-            asset_lookup[i + 1].0
+            asset_lookup[i + 1]
         };
 
         let p_asset = FatPtr::begin_end(asset_begin, asset_end)?;
@@ -300,7 +322,10 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                 ris_file::io::write_bool(stream, false)?;
                 let addr_p_content = ris_file::io::seek(stream, SeekFrom::Current(0))?;
                 ris_file::io::write_fat_ptr(stream, FatPtr::null())?; // placeholder
-                ris_file::io::write_strings(stream, &references)?;
+                ris_file::io::write_u32(stream, references.len() as u32)?;
+                for reference in references {
+                    ris_file::io::write_string(stream, reference)?;
+                }
                 let p_content = ris_file::io::write_unsized(stream, &ris_asset_content)?;
                 ris_file::io::seek(stream, SeekFrom::Start(addr_p_content))?;
                 ris_file::io::write_fat_ptr(stream, p_content)?;
@@ -323,25 +348,3 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     Ok(())
 }
 
-#[derive(Default, Debug, Clone, Copy)]
-pub struct AssetAddr(pub u64);
-
-impl BinaryFormat for AssetAddr {
-    fn serialized_length() -> usize {
-        8
-    }
-
-    fn serialize(&self) -> std::io::Result<Vec<u8>> {
-        Ok(self.0.to_le_bytes().to_vec())
-    }
-
-    fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
-        if buf.len() != 8 {
-            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
-        }
-
-        Ok(Self(u64::from_le_bytes([
-            buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
-        ])))
-    }
-}

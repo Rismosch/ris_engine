@@ -26,15 +26,19 @@ impl AssetLoaderCompiled {
 
         let p_original_asset_names = ris_file::io::read_fat_ptr(f)?;
 
-        let asset_lookup = ris_file::io::read_array::<crate::asset_compiler::AssetAddr>(f)?;
+        let asset_lookup_count = ris_file::io::read_u32(f)? as usize;
+        let mut asset_lookup = vec![0; asset_lookup_count];
+        for asset_lookup_entry in asset_lookup.iter_mut() {
+            *asset_lookup_entry = ris_file::io::read_u64(f)?;
+        }
         let mut fat_ptr_lookup = Vec::with_capacity(asset_lookup.len());
 
         for i in 0..asset_lookup.len() {
-            let begin = asset_lookup[i].0;
+            let begin = asset_lookup[i];
             let end = if i == asset_lookup.len() - 1 {
                 p_original_asset_names.addr
             } else {
-                asset_lookup[i + 1].0
+                asset_lookup[i + 1]
             };
 
             let fat_ptr = FatPtr::begin_end(begin, end)?;
