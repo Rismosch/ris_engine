@@ -25,7 +25,7 @@ fn main() -> Result<(), String> {
 
     unsafe {
         ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
-        ris_file::util::TRACE = true;
+        ris_io::util::TRACE = true;
     }
 
     let mut raw_args = std::env::args().collect::<Vec<_>>();

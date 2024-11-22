@@ -124,7 +124,7 @@ impl ICommand for Archive {
         if vendor {
             let vendor_dir = root_dir.join(VENDOR);
             if vendor_dir.exists() {
-                ris_file::util::clean_or_create_dir(&vendor_dir)?;
+                ris_io::util::clean_or_create_dir(&vendor_dir)?;
             }
 
             let cargo_vendor = "cargo vendor";
@@ -135,13 +135,13 @@ impl ICommand for Archive {
             }
 
             let cargo_dir = crate::util::get_root_dir()?.join(CARGO_DIR_NAME);
-            ris_file::util::clean_or_create_dir(&cargo_dir)?;
+            ris_io::util::clean_or_create_dir(&cargo_dir)?;
             let config_toml_path = cargo_dir.join(CONFIG_TOML_NAME);
 
             eprintln!("writing {:?}...", config_toml_path);
             let bytes = vendor_output.as_bytes();
             let mut file = std::fs::File::create(config_toml_path)?;
-            ris_file::io::write(&mut file, bytes)?;
+            ris_io::write(&mut file, bytes)?;
         }
 
         if !compress {
@@ -154,7 +154,7 @@ impl ICommand for Archive {
             let dst_file_path = target_dir.join(format!("{}_{}", RIS_ENGINE, archive_date));
             let dst_file_path = dst_file_path.to_str().unroll()?.replace('\\', "/");
 
-            ris_file::util::clean_or_create_dir(&target_dir)?;
+            ris_io::util::clean_or_create_dir(&target_dir)?;
 
             eprintln!("compressing...");
             crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!cli_out", dst_file_path, src_dir), None)?;

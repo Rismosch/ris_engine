@@ -4,7 +4,7 @@ use std::path::Path;
 use sdl2::messagebox::MessageBoxFlag;
 
 use ris_error::RisResult;
-use ris_file::fallback_file::FallbackFileAppend;
+use ris_io::fallback_file::FallbackFileAppend;
 use ris_log::log::IAppender;
 use ris_log::log_message::LogMessage;
 

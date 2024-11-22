@@ -139,14 +139,14 @@ impl IUiHelperModule for MetricsModule {
             if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
 
-                let filename = ris_file::path::sanitize(&chrono::Local::now().to_rfc3339(), true);
+                let filename = ris_io::path::sanitize(&chrono::Local::now().to_rfc3339(), true);
                 let filename = format!("{}.csv", filename);
                 let filepath = PathBuf::from(&dir).join(filename);
 
                 std::fs::create_dir_all(&dir)?;
                 let mut file = std::fs::File::create(&filepath)?;
 
-                ris_file::io::write(&mut file, csv.as_bytes())?;
+                ris_io::write(&mut file, csv.as_bytes())?;
                 ris_log::info!("successfully written profiler result to {:?}", filepath);
             }
 
@@ -154,7 +154,7 @@ impl IUiHelperModule for MetricsModule {
                 let disabled_token = ui.begin_disabled(!dir.exists());
 
                 if ui.button("clear profiler results") {
-                    let clean_result = ris_file::util::clean_or_create_dir(&dir);
+                    let clean_result = ris_io::util::clean_or_create_dir(&dir);
                     if let Err(e) = clean_result {
                         ris_log::error!("failed to clear profiler results: {}", e);
                     }

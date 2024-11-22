@@ -3,7 +3,7 @@ use std::io::SeekFrom;
 use std::path::Path;
 
 use ris_error::RisResult;
-use ris_file::io::FatPtr;
+use ris_io::FatPtr;
 
 pub struct AssetLoaderCompiled {
     file: File,
@@ -15,21 +15,21 @@ impl AssetLoaderCompiled {
         let mut file = File::open(asset_path)?;
         let f = &mut file;
 
-        ris_file::io::seek(f, SeekFrom::Start(0))?;
+        ris_io::seek(f, SeekFrom::Start(0))?;
 
         let mut magic_bytes = [0u8; 16];
-        ris_file::io::read(f, &mut magic_bytes)?;
+        ris_io::read(f, &mut magic_bytes)?;
 
         if !ris_util::testing::bytes_eq(&magic_bytes, &crate::asset_compiler::MAGIC) {
             return ris_error::new_result!("unkown magic value: {:?}", magic_bytes);
         }
 
-        let p_original_asset_names = ris_file::io::read_fat_ptr(f)?;
+        let p_original_asset_names = ris_io::read_fat_ptr(f)?;
 
-        let asset_lookup_count = ris_file::io::read_uint(f)?;
+        let asset_lookup_count = ris_io::read_uint(f)?;
         let mut asset_lookup = vec![0; asset_lookup_count];
         for asset_lookup_entry in asset_lookup.iter_mut() {
-            *asset_lookup_entry = ris_file::io::read_u64(f)?;
+            *asset_lookup_entry = ris_io::read_u64(f)?;
         }
         let mut fat_ptr_lookup = Vec::with_capacity(asset_lookup.len());
 
@@ -57,7 +57,7 @@ impl AssetLoaderCompiled {
             .get(id)
             .ok_or_else(|| ris_error::new!("asset does not exist"))?;
 
-        let bytes = ris_file::io::read_at(&mut self.file, *p_asset)?;
+        let bytes = ris_io::read_at(&mut self.file, *p_asset)?;
         Ok(bytes)
     }
 }

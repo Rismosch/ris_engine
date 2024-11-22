@@ -3,7 +3,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ris_error::RisResult;
-use ris_file::io::FatPtr;
+use ris_io::FatPtr;
 
 use crate::ExplanationLevel;
 use crate::ICommand;
@@ -352,10 +352,10 @@ function render_chart() {
         );
 
         eprintln!("writing html...");
-        ris_file::util::clean_or_create_dir(&target_dir)?;
+        ris_io::util::clean_or_create_dir(&target_dir)?;
         let dst_path = PathBuf::from(&target_dir).join("index.html");
         let mut file = std::fs::File::create(&dst_path)?;
-        ris_file::io::write(&mut file, html.as_bytes())?;
+        ris_io::write(&mut file, html.as_bytes())?;
 
         eprintln!("done! resulting html can be found in {:?}", dst_path);
 
@@ -365,10 +365,10 @@ function render_chart() {
 
 fn read_text_file(path: impl AsRef<Path>) -> RisResult<String> {
     let mut file = std::fs::File::open(path)?;
-    let len = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
+    let len = ris_io::seek(&mut file, SeekFrom::End(0))?;
 
     let fatptr = FatPtr::begin_end(0, len)?;
-    let data = ris_file::io::read_at(&mut file, fatptr)?;
+    let data = ris_io::read_at(&mut file, fatptr)?;
     let text = String::from_utf8(data)?;
 
     Ok(text)

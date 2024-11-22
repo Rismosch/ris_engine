@@ -12,5 +12,5 @@ imgui = { version = "0.11.0", features = ["docking"] }
 ris_asset = { path = "../crates/ris_asset" }
 ris_core = { path = "../crates/ris_core" }
 ris_error = { path = "../crates/ris_error" }
-ris_file = { path = "../crates/ris_file" }
+ris_io = { path = "../crates/ris_io" }
 ris_log = { path = "../crates/ris_log" }
