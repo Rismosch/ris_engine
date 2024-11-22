@@ -24,7 +24,7 @@ impl AssetLoaderDirectory {
         let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))? as usize;
         let mut file_content = vec![0; file_size];
         ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
-        ris_file::io::read_checked(&mut file, &mut file_content)?;
+        ris_file::io::read(&mut file, &mut file_content)?;
 
         Ok(file_content)
     }

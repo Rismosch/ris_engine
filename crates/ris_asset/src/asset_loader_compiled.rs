@@ -18,7 +18,7 @@ impl AssetLoaderCompiled {
         ris_file::io::seek(f, SeekFrom::Start(0))?;
 
         let mut magic_bytes = [0u8; 16];
-        ris_file::io::read_checked(f, &mut magic_bytes)?;
+        ris_file::io::read(f, &mut magic_bytes)?;
 
         if !ris_util::testing::bytes_eq(&magic_bytes, &crate::asset_compiler::MAGIC) {
             return ris_error::new_result!("unkown magic value: {:?}", magic_bytes);
@@ -26,7 +26,7 @@ impl AssetLoaderCompiled {
 
         let p_original_asset_names = ris_file::io::read_fat_ptr(f)?;
 
-        let asset_lookup_count = ris_file::io::read_u32(f)? as usize;
+        let asset_lookup_count = ris_file::io::read_uint(f)?;
         let mut asset_lookup = vec![0; asset_lookup_count];
         for asset_lookup_entry in asset_lookup.iter_mut() {
             *asset_lookup_entry = ris_file::io::read_u64(f)?;
@@ -57,7 +57,7 @@ impl AssetLoaderCompiled {
             .get(id)
             .ok_or_else(|| ris_error::new!("asset does not exist"))?;
 
-        let bytes = ris_file::io::read_unsized(&mut self.file, *p_asset)?;
+        let bytes = ris_file::io::read_at(&mut self.file, *p_asset)?;
         Ok(bytes)
     }
 }

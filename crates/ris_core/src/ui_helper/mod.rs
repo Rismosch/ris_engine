@@ -238,7 +238,7 @@ impl UiHelper {
         let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
         ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
         let mut bytes = vec![0; file_size as usize];
-        ris_file::io::read_checked(&mut file, &mut bytes)?;
+        ris_file::io::read(&mut file, &mut bytes)?;
         let file_content = String::from_utf8(bytes)?;
         let yaml = RisYaml::try_from(file_content.as_str())?;
 

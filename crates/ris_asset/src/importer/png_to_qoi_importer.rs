@@ -48,7 +48,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
     let encoded = qoi::encode(&pixels, desc)?;
 
     let mut output = crate::asset_importer::create_file(&targets[0])?;
-    ris_file::io::write_checked(&mut output, &encoded)?;
+    ris_file::io::write(&mut output, &encoded)?;
 
     Ok(())
 }

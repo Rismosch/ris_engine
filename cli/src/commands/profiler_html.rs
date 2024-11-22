@@ -355,7 +355,7 @@ function render_chart() {
         ris_file::util::clean_or_create_dir(&target_dir)?;
         let dst_path = PathBuf::from(&target_dir).join("index.html");
         let mut file = std::fs::File::create(&dst_path)?;
-        ris_file::io::write_checked(&mut file, html.as_bytes())?;
+        ris_file::io::write(&mut file, html.as_bytes())?;
 
         eprintln!("done! resulting html can be found in {:?}", dst_path);
 
@@ -368,7 +368,7 @@ fn read_text_file(path: impl AsRef<Path>) -> RisResult<String> {
     let len = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
 
     let fatptr = FatPtr::begin_end(0, len)?;
-    let data = ris_file::io::read_unsized(&mut file, fatptr)?;
+    let data = ris_file::io::read_at(&mut file, fatptr)?;
     let text = String::from_utf8(data)?;
 
     Ok(text)

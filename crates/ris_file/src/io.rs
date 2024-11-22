@@ -8,6 +8,21 @@ use std::io::Write;
 
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
+/// represents a sized memory location. used in combination with stream io operations.
+///
+/// Example:
+///
+/// FatPtr {
+///     addr: 1,
+///     len 2,
+/// }
+///
+/// ```
+/// | Byte 0 | Byte 1 | Byte 2 | Byte 3 | Byte 4 |
+///            addr              end()
+/// ```
+///
+/// The `FatPtr` in this example refers to Byte 1 and Byte 2.
 #[derive(Debug, Clone, Copy)]
 pub struct FatPtr {
     pub addr: u64,
@@ -43,6 +58,7 @@ impl FatPtr {
 // seek
 //
 
+/// thin wrapper around `std::io::Seek::seek()`.
 pub fn seek(stream: &mut impl Seek, pos: SeekFrom) -> Result<u64> {
     stream.seek(pos)
 }
@@ -51,77 +67,91 @@ pub fn seek(stream: &mut impl Seek, pos: SeekFrom) -> Result<u64> {
 // write
 //
 
-pub fn write_unchecked(stream: &mut impl Write, buf: &[u8]) -> Result<usize> {
-    stream.write(buf)
-}
+/// writes and advances the stream. if not all bytes were written, an error is returned. returns a
+/// `FatPtr` to the bytes written.
+pub fn write(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
+    let addr = seek(stream, SeekFrom::Current(0))?;
 
-pub fn write_checked(stream: &mut impl Write, buf: &[u8]) -> Result<usize> {
     let written_bytes = stream.write(buf)?;
     let buf_len = buf.len();
-    if written_bytes == buf_len {
-        Ok(written_bytes)
-    } else {
-        Err(Error::from(ErrorKind::Other))
+    if written_bytes != buf_len {
+        return Err(Error::from(ErrorKind::Other));
     }
-}
 
-pub fn write_unsized(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
-    let addr = seek(stream, SeekFrom::Current(0))?;
     let len = buf
         .len()
         .try_into()
         .map_err(|_| Error::from(ErrorKind::InvalidData))?;
-    write_checked(stream, buf)?;
-    Ok(FatPtr { addr, len })
+
+    let fat_ptr = FatPtr {
+        addr,
+        len,
+    };
+
+    Ok(fat_ptr)
 }
 
-pub fn write_u8(stream: &mut impl Write, value: u8) -> Result<usize> {
-    write_checked(stream, &[value])
+/// writes a single `u8` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_u8(stream: &mut (impl Write + Seek), value: u8) -> Result<FatPtr> {
+    write(stream, &[value])
 }
 
-pub fn write_i32(stream: &mut impl Write, value: i32) -> Result<usize> {
+
+/// converts an `isize` to a `i32`, writes and advances the stream. returns a `FatPtr` to the bytes
+/// written.
+pub fn write_int(stream: &mut (impl Write + Seek), value: isize) -> Result<FatPtr> {
+    let int = i32::try_from(value).map_err(|_| Error::from(ErrorKind::InvalidData))?;
+    let bytes = int.to_le_bytes();
+    write(stream, &bytes)
+}
+
+/// converts an `usize` to a `u32`, writes and advances the stream. returns a `FatPtr` to the bytes
+/// written.
+pub fn write_uint(stream: &mut (impl Write + Seek), value: usize) -> Result<FatPtr> {
+    let int = u32::try_from(value).map_err(|_| Error::from(ErrorKind::InvalidData))?;
+    let bytes = int.to_le_bytes();
+    write(stream, &bytes)
+}
+
+/// writes an `u64` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_u64(stream: &mut (impl Write + Seek), value: u64) -> Result<FatPtr> {
     let bytes = value.to_le_bytes();
-    write_checked(stream, &bytes)
+    write(stream, &bytes)
 }
 
-pub fn write_u32(stream: &mut impl Write, value: u32) -> Result<usize> {
+/// writes a `f64` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_f32(stream: &mut (impl Write + Seek), value: f32) -> Result<FatPtr> {
     let bytes = value.to_le_bytes();
-    write_checked(stream, &bytes)
+    write(stream, &bytes)
 }
 
-pub fn write_u64(stream: &mut impl Write, value: u64) -> Result<usize> {
-    let bytes = value.to_le_bytes();
-    write_checked(stream, &bytes)
-}
-
-pub fn write_f32(stream: &mut impl Write, value: f32) -> Result<usize> {
-    let bytes = value.to_le_bytes();
-    write_checked(stream, &bytes)
-}
-
-pub fn write_bool(stream: &mut impl Write, value: bool) -> Result<usize> {
+/// writes an `1` if `value` is `true`, `0` otherwise. it advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_bool(stream: &mut (impl Write + Seek), value: bool) -> Result<FatPtr> {
     match value {
-        true => write_checked(stream, &[1]),
-        false => write_checked(stream, &[0]),
+        true => write(stream, &[1]),
+        false => write(stream, &[0]),
     }
 }
 
-pub fn write_fat_ptr(stream: &mut impl Write, value: FatPtr) -> Result<usize> {
-    let mut written_bytes = 0;
-    written_bytes += write_u64(stream, value.addr)?;
-    written_bytes += write_u64(stream, value.len)?;
-
-    Ok(written_bytes)
+/// writes a `FatPtr` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_fat_ptr(stream: &mut (impl Write + Seek), value: FatPtr) -> Result<FatPtr> {
+    let p_addr = write_u64(stream, value.addr)?;
+    let p_len = write_u64(stream, value.len)?;
+    let addr = p_addr.addr;
+    let len = p_addr.len + p_len.len;
+    let fat_ptr = FatPtr{addr, len};
+    Ok(fat_ptr)
 }
 
+/// writes a string and advances the stream. it does so by writing it's len as an `u32`, followed
+/// by it's UTF-8 encoded bytes.
 pub fn write_string(stream: &mut (impl Write + Seek), string: impl AsRef<str>) -> Result<FatPtr> {
     let string = string.as_ref();
     let begin = seek(stream, SeekFrom::Current(0))?;
-    let length = string.len() as u32;
-    write_u32(stream, length)?;
+    write_uint(stream, string.len())?;
     let bytes = string.as_bytes();
-    write_unsized(stream, bytes)?;
-    let end = seek(stream, SeekFrom::Current(0))?;
+    let fat_ptr = write(stream, bytes)?;
+    let end = fat_ptr.end();
     FatPtr::begin_end(begin, end)
 }
 
@@ -129,68 +159,75 @@ pub fn write_string(stream: &mut (impl Write + Seek), string: impl AsRef<str>) -
 // read
 //
 
-pub fn read_unchecked(stream: &mut impl Read, buf: &mut [u8]) -> Result<usize> {
-    stream.read(buf)
-}
-
-pub fn read_checked(stream: &mut impl Read, buf: &mut [u8]) -> Result<usize> {
-    let read_bytes = read_unchecked(stream, buf)?;
+/// reads and advances the stream. if not all expected bytes were read, an error is returned.
+pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
+    let read_bytes = stream.read(buf)?;
     let buf_len = buf.len();
     if read_bytes == buf_len {
-        Ok(read_bytes)
+        Ok(())
     } else {
         Err(Error::from(ErrorKind::Other))
     }
 }
 
-pub fn read_unsized(stream: &mut (impl Read + Seek), ptr: FatPtr) -> Result<Vec<u8>> {
+/// seeks to, reads the bytes at `ptr` and advances the stream.
+pub fn read_at(stream: &mut (impl Read + Seek), ptr: FatPtr) -> Result<Vec<u8>> {
     let capacity = ptr
         .len
         .try_into()
         .map_err(|_| Error::from(ErrorKind::InvalidData))?;
     let mut bytes = vec![0; capacity];
     seek(stream, SeekFrom::Start(ptr.addr))?;
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
     Ok(bytes)
 }
 
+/// reads a single `u8` and advances the stream.
 pub fn read_u8(stream: &mut impl Read) -> Result<u8> {
     let mut bytes = [0];
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
     Ok(bytes[0])
 }
 
-pub fn read_i32(stream: &mut impl Read) -> Result<i32> {
+/// reads an `i32`, converts it to `isize` and advances the stream.
+pub fn read_int(stream: &mut impl Read) -> Result<isize> {
     let mut bytes = [0; 4];
-    read_checked(stream, &mut bytes)?;
-
-    Ok(i32::from_le_bytes(bytes))
+    read(stream, &mut bytes)?;
+    let int = i32::from_le_bytes(bytes);
+    let result = isize::try_from(int).map_err(|_| Error::from(ErrorKind::InvalidData))?;
+    Ok(result)
 }
 
-pub fn read_u32(stream: &mut impl Read) -> Result<u32> {
+/// reads an `u32`, converts it to `usize` and advances the stream.
+pub fn read_uint(stream: &mut impl Read) -> Result<usize> {
     let mut bytes = [0; 4];
-    read_checked(stream, &mut bytes)?;
-
-    Ok(u32::from_le_bytes(bytes))
+    read(stream, &mut bytes)?;
+    let int = i32::from_le_bytes(bytes);
+    let result = usize::try_from(int).map_err(|_| Error::from(ErrorKind::InvalidData))?;
+    Ok(result)
 }
 
+/// reads an `u64` and advances the stream.
 pub fn read_u64(stream: &mut impl Read) -> Result<u64> {
     let mut bytes = [0; 8];
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
 
     Ok(u64::from_le_bytes(bytes))
 }
 
+/// reads an `f32` and advances the stream.
 pub fn read_f32(stream: &mut impl Read) -> Result<f32> {
     let mut bytes = [0; 4];
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
 
     Ok(f32::from_le_bytes(bytes))
 }
 
+/// reads an `u8` and advances the stream. returns `true` the read value is `1`, `false` if the read value is `0`, and an
+/// error otherwise.
 pub fn read_bool(stream: &mut impl Read) -> Result<bool> {
     let mut bytes = [0; 1];
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
 
     match bytes[0] {
         1 => Ok(true),
@@ -199,16 +236,19 @@ pub fn read_bool(stream: &mut impl Read) -> Result<bool> {
     }
 }
 
+/// reads a `FatPtr` and advances the stream.
 pub fn read_fat_ptr(stream: &mut impl Read) -> Result<FatPtr> {
     let addr = read_u64(stream)?;
     let len = read_u64(stream)?;
     Ok(FatPtr { addr, len })
 }
 
+/// reads a string and advances the stream. it does so by reading a `u32`, and then reads that many
+/// UTF-8 encoded bytes.
 pub fn read_string(stream: &mut (impl Read + Seek)) -> Result<String> {
-    let length = read_u32(stream)? as usize;
+    let length = read_uint(stream)?;
     let mut bytes = vec![0; length];
-    read_checked(stream, &mut bytes)?;
+    read(stream, &mut bytes)?;
     let string = String::from_utf8(bytes).map_err(|_| Error::from(ErrorKind::InvalidData))?;
     Ok(string)
 }

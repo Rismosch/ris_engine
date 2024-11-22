@@ -141,7 +141,7 @@ impl ICommand for Archive {
             eprintln!("writing {:?}...", config_toml_path);
             let bytes = vendor_output.as_bytes();
             let mut file = std::fs::File::create(config_toml_path)?;
-            ris_file::io::write_checked(&mut file, bytes)?;
+            ris_file::io::write(&mut file, bytes)?;
         }
 
         if !compress {

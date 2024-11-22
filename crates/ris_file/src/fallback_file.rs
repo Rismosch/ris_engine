@@ -213,7 +213,7 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
 
     let mut buf = vec![0u8; file_size as usize];
     crate::io::seek(file, SeekFrom::Start(0))?;
-    crate::io::read_checked(file, &mut buf)?;
+    crate::io::read(file, &mut buf)?;
 
     let mut first_new_line = None;
     let mut second_new_line = None;
@@ -240,7 +240,7 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
             // expect the first line to be a string
             let mut first_line_buf = vec![0u8; first_new_line];
             crate::io::seek(file, SeekFrom::Start(0))?;
-            crate::io::read_checked(file, &mut first_line_buf)?;
+            crate::io::read(file, &mut first_line_buf)?;
             let first_line_string = String::from_utf8(first_line_buf);
             match first_line_string {
                 Ok(date_string) => {
@@ -255,7 +255,7 @@ fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
                     let content_len = file_size - content_addr;
                     let mut content = vec![0; content_len as usize];
                     crate::io::seek(file, SeekFrom::Start(content_addr))?;
-                    crate::io::read_checked(file, &mut content)?;
+                    crate::io::read(file, &mut content)?;
 
                     Ok(content)
                 }

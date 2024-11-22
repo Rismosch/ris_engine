@@ -31,7 +31,7 @@ impl RisHeader {
     pub fn load(bytes: &[u8]) -> RisResult<Option<Self>> {
         let input = &mut Cursor::new(bytes);
         let mut magic = [0; 16];
-        ris_file::io::read_checked(input, &mut magic)?;
+        ris_file::io::read(input, &mut magic)?;
 
         if magic[0] != 0x72 || // `r`
             magic[1] != 0x69 || // `i`
@@ -45,10 +45,10 @@ impl RisHeader {
         let is_compiled = ris_file::io::read_bool(input)?;
 
         let (references, p_content) = if is_compiled {
-            let reference_count = ris_file::io::read_u32(input)? as usize;
+            let reference_count = ris_file::io::read_uint(input)?;
             let mut references = Vec::with_capacity(reference_count);
             for _ in 0..reference_count {
-                let id = ris_file::io::read_u32(input)? as usize;
+                let id = ris_file::io::read_uint(input)?;
                 let reference = AssetId::Compiled(id);
                 references.push(reference);
             }
@@ -63,7 +63,7 @@ impl RisHeader {
 
             let references_begin = ris_file::io::seek(input, SeekFrom::Current(0))?;
             let p_references = FatPtr::begin_end(references_begin, p_content.addr)?;
-            let reference_bytes = ris_file::io::read_unsized(input, p_references)?;
+            let reference_bytes = ris_file::io::read_at(input, p_references)?;
             let reference_string = String::from_utf8(reference_bytes)?;
             let references = reference_string
                 .split('\0')

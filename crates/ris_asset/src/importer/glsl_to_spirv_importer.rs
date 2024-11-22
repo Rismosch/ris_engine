@@ -139,7 +139,7 @@ impl ShaderStage {
 
             std::fs::create_dir_all(dir)?;
             let mut temp_file = std::fs::File::create(&temp_file_path)?;
-            ris_file::io::write_checked(&mut temp_file, source.as_bytes())?;
+            ris_file::io::write(&mut temp_file, source.as_bytes())?;
 
             ris_log::trace!("saved transpiled shader to: {:?}", temp_file_path);
         }
@@ -179,7 +179,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
     let file_size = ris_file::io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
     ris_file::io::seek(f, SeekFrom::Start(0))?;
-    ris_file::io::read_checked(f, &mut file_content)?;
+    ris_file::io::read(f, &mut file_content)?;
     let source_text = String::from_utf8(file_content)?;
 
     // pre processor
@@ -318,7 +318,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
-            ris_file::io::write_checked(&mut output, bytes)?;
+            ris_file::io::write(&mut output, bytes)?;
         }
     }
 
