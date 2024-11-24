@@ -22,6 +22,16 @@ struct TestScriptISize {
     value: isize,
 }
 
+impl ISerializable for TestScriptString {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        panic!("not implemented")
+    }
+
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
+        panic!("not implemented")
+    }
+}
+
 impl Script for TestScriptString {
     fn id() -> Sid {
         ris_debug::fsid!()
@@ -41,6 +51,16 @@ impl Script for TestScriptString {
     fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
         self.value.push_str("\nend");
         Ok(())
+    }
+}
+
+impl ISerializable for TestScriptISize {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        panic!("not implemented")
+    }
+
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
+        panic!("not implemented")
     }
 }
 

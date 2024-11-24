@@ -21,6 +21,16 @@ pub struct TestRotation {
     rotation_axis: Vec3,
 }
 
+impl ISerializable for TestRotation {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        panic!();
+    }
+
+    fn deserialize(bytes: &[u8]) -> RisResult<Self> {
+        panic!();
+    }
+}
+
 impl Script for TestRotation {
     fn id() -> Sid {
         ris_debug::fsid!()

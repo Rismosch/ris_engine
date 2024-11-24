@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_io::serializable::ISerializable;
 use ris_ptr::Aref;
 use ris_ptr::ArefMut;
 
@@ -21,6 +22,7 @@ use crate::god_state::GodState;
 pub mod prelude {
     pub use ris_debug::sid::Sid;
     pub use ris_error::RisResult;
+    pub use ris_io::serializable::ISerializable;
 
     pub use super::Script;
     pub use super::ScriptEndData;
@@ -44,7 +46,7 @@ pub struct ScriptEndData<'a> {
     pub scene: &'a Scene,
 }
 
-pub trait Script: Debug + Send + Sync {
+pub trait Script: Debug + Send + Sync + ISerializable {
     fn id() -> Sid
     where
         Self: Sized;

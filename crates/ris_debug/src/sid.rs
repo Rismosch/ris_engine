@@ -78,14 +78,14 @@ macro_rules! fsid {
         $crate::fsid!(0u32)
     }};
     ($salt:expr) => {{
-        const file: &str = file!();
-        const line: u32 = line!();
-        const salt: u32 = $salt;
+        const FILE: &str = file!();
+        const LINE: u32 = line!();
+        const SALT: u32 = $salt;
 
         const HASH: u32 = {
-            let file_bytes = file.as_bytes();
-            let line_bytes = line.to_le_bytes();
-            let salt_bytes = salt.to_le_bytes();
+            let file_bytes = FILE.as_bytes();
+            let line_bytes = LINE.to_le_bytes();
+            let salt_bytes = SALT.to_le_bytes();
 
             let mut hash = $crate::sid::PRIME;
             $crate::const_hash!(hash, file_bytes);
@@ -98,7 +98,7 @@ macro_rules! fsid {
         $crate::sid::Sid {
             hash: HASH,
             #[cfg(debug_assertions)]
-            value: format!("{}:{}/salt={}", file, line, salt),
+            value: format!("{}:{}/salt={}", FILE, LINE, SALT),
         }
     }};
 }
