@@ -22,7 +22,7 @@ impl ICommand for Doc {
 
     fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         let cargo_doc = "cargo doc";
-        let exit_status = crate::cmd::run(cargo_doc, None)?;
+        let exit_status = crate::cmd::run(cargo_doc)?;
 
         if !crate::cmd::has_exit_code(&exit_status, 0) {
             return ris_error::new_result!("`{}` failed", cargo_doc);

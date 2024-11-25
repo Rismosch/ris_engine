@@ -60,11 +60,11 @@ impl ICommand for Build {
         let mut rustc_version = String::new();
         let mut rustup_toolchain = String::new();
 
-        crate::cmd::run("git config --get remote.origin.url", Some(&mut git_repo))?;
-        crate::cmd::run("git rev-parse HEAD", Some(&mut git_commit))?;
-        crate::cmd::run("git rev-parse --abbrev-ref HEAD", Some(&mut git_branch))?;
-        crate::cmd::run("rustc --version", Some(&mut rustc_version))?;
-        crate::cmd::run("rustup show active-toolchain", Some(&mut rustup_toolchain))?;
+        crate::cmd::run_with_stdout("git config --get remote.origin.url", &mut git_repo)?;
+        crate::cmd::run_with_stdout("git rev-parse HEAD", &mut git_commit)?;
+        crate::cmd::run_with_stdout("git rev-parse --abbrev-ref HEAD", &mut git_branch)?;
+        crate::cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
+        crate::cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
 
         let build_date = chrono::Local::now().to_rfc3339();
 
@@ -148,7 +148,7 @@ impl ICommand for Build {
         Asset::execute_command(AssetCommand::Compile, None)?;
 
         eprintln!("compiling workspace...");
-        crate::cmd::run("cargo build --release", None)?;
+        crate::cmd::run("cargo build --release")?;
 
         ris_io::util::clean_or_create_dir(&target_dir)?;
 

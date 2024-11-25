@@ -133,24 +133,25 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
-            test(results, run_check, cargo("check"));
-            test(results, run_check, cargo("check -r"));
-            test(results, run_build, cargo("build"));
-            test(results, run_build, cargo("build -r"));
-            test(results, run_test, cargo("test"));
-            test(results, run_test, cargo("test -r"));
-            test(results, run_miri, cargo_nightly("miri test"));
-            test(results, run_miri, cargo_nightly("miri test -r"));
-            test(results, run_clippy, cargo("clippy -- -Dwarnings"));
-            test(results, run_clippy, cargo("clippy -r -- -Dwarnings"));
-            test(results, run_clippy, cargo("clippy --tests -- -Dwarnings"));
+            test(results, run_check, true, cargo("check"));
+            test(results, run_check, true, cargo("check -r"));
+            test(results, run_build, true, cargo("build"));
+            test(results, run_build, true, cargo("build -r"));
+            test(results, run_test, true, cargo("test"));
+            test(results, run_test, true, cargo("test -r"));
+            test(results, run_miri, false, cargo_nightly("miri test"));
+            test(results, run_miri, false, cargo_nightly("miri test -r"));
+            test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
+            test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
+            test(results, run_clippy, false, cargo("clippy --tests -- -Dwarnings"));
             test(
                 results,
                 run_clippy,
+                false,
                 cargo("clippy -r --tests -- -Dwarnings"),
             );
-            test(results, run_clippy, cargo("clippy -p cli -- -Dwarnings"));
-            test(results, run_clippy, cargo("clippy -r -p cli -- -Dwarnings"));
+            test(results, run_clippy, false, cargo("clippy -p cli -- -Dwarnings"));
+            test(results, run_clippy, false, cargo("clippy -r -p cli -- -Dwarnings"));
         }
 
         print_empty(5);
@@ -182,13 +183,21 @@ impl ICommand for Pipeline {
 fn test(
     results: &mut Vec<(String, TestResult)>,
     should_execute: bool,
+    with_env: bool,
     cmd: Result<String, String>,
 ) {
+    let env = ("RUSTFLAGS", "-D warnings");
+    let env_str = "RUSTFLAGS=\"-D warnings\"";
+
     if !should_execute {
-        let cmd = match cmd {
+        let mut cmd = match cmd {
             Ok(cmd) => cmd,
             Err(cmd) => cmd,
         };
+
+        if with_env {
+            cmd = format!("{} {}", env_str, cmd);
+        }
 
         let result = (cmd.to_string(), TestResult::Skipped);
         results.push(result);
@@ -205,7 +214,16 @@ fn test(
         }
     };
 
-    let exit_status = crate::cmd::run(&cmd, None);
+    let (exit_status, final_cmd) = if with_env {
+        let exit_status = crate::cmd::run_with_envs(&cmd, [env]);
+        let final_cmd = format!("{} {}", env_str, cmd);
+        (exit_status, final_cmd)
+    } else {
+        let exit_status = crate::cmd::run(&cmd);
+        let final_cmd = cmd.to_string();
+        (exit_status, final_cmd)
+    };
+
     let success = match exit_status {
         Ok(exit_status) => match exit_status.code() {
             Some(code) => code == 0,
@@ -214,7 +232,8 @@ fn test(
         Err(_) => false,
     };
 
-    let result = (cmd.to_string(), TestResult::from(success));
+
+    let result = (final_cmd, TestResult::from(success));
     results.push(result);
 }
 
