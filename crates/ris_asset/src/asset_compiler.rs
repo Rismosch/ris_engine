@@ -59,7 +59,10 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
             let to_ignore = PathBuf::from(DEFAULT_IGNORE_DIRECTORY);
             if entry_path == to_ignore {
-                ris_log::debug!("ignoring {:?}", entry_path);
+                ris_log::debug!(
+                    "ignoring \"{}\"",
+                    ris_io::path::to_str(entry_path),
+                );
                 continue;
             }
 
@@ -70,8 +73,8 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 directories.push_back(entry_path);
             } else {
                 return ris_error::new_result!(
-                    "entry \"{:?}\" is neither a file, nor a directory",
-                    entry_path
+                    "entry \"{}\" is neither a file, nor a directory",
+                    ris_io::path::to_str(entry_path),
                 );
             }
         }
@@ -79,7 +82,11 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     ris_log::trace!("found {} assets:", assets.len());
     for (i, file) in assets.iter().enumerate() {
-        ris_log::trace!("{}: {:?}", i, file);
+        ris_log::trace!(
+            "{}: \"{}\"",
+            i,
+            ris_io::path::to_str(file),
+        );
     }
 
     // create the target file
@@ -109,7 +116,12 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     // compile assets
     for (i, asset) in assets.iter().enumerate() {
-        ris_log::info!("compiling... {}/{} {:?}", i + 1, assets.len(), asset);
+        ris_log::info!(
+            "compiling... {}/{} \"{}\"",
+            i + 1,
+            assets.len(),
+            ris_io::path::to_str(asset),
+        );
 
         let mut file = File::open(asset)?;
 
@@ -274,7 +286,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let original_path = &original_paths[i];
 
         ris_log::info!(
-            "decompiling... {}/{} {:?}",
+            "decompiling... {}/{} \"{}\"",
             i + 1,
             asset_lookup.len(),
             original_path,

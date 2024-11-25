@@ -75,7 +75,10 @@ impl ICommand for Build {
         let rustup_toolchain = rustup_toolchain.trim();
         let build_date = build_date.trim();
 
-        eprintln!("read previous build info... {:?}", build_info_path);
+        eprintln!(
+            "read previous build info... \"{}\"",
+            ris_io::path::to_str(&build_info_path),
+        );
 
         let mut file_content = String::new();
         {
@@ -170,11 +173,18 @@ impl ICommand for Build {
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
             let src_sdl2_path = where_sdl2.first().unroll()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
-            eprintln!("attempting to copy {} from: {:?}", SDL2_NAME, src_sdl2_path);
+            eprintln!(
+                "attempting to copy {} from: \"{}\"",
+                SDL2_NAME,
+                src_sdl2_path,
+            );
             std::fs::copy(src_sdl2_path, dst_sdl2_path)?;
         }
 
-        eprintln!("done! final build can be found under {:?}", target_dir);
+        eprintln!(
+            "done! final build can be found under \"{}\"",
+            ris_io::path::to_str(target_dir),
+        );
 
         Ok(())
     }

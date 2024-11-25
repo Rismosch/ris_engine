@@ -26,7 +26,7 @@ impl ISerializable for TestRotation {
         panic!();
     }
 
-    fn deserialize(bytes: &[u8]) -> RisResult<Self> {
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
         panic!();
     }
 }

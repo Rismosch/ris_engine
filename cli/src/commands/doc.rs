@@ -39,9 +39,15 @@ impl ICommand for Doc {
         eprintln!("copying files...");
         ris_io::util::copy_dir_all(doc_dir, &target_dir)?;
 
-        eprintln!("done! docs can be found in {:?}", target_dir);
+        eprintln!(
+            "done! docs can be found in \"{}\"",
+            ris_io::path::to_str(&target_dir),
+        );
         let index_file = target_dir.join("ris_engine").join("index.html");
-        eprintln!("you will find the index in {:?}", index_file);
+        eprintln!(
+            "you will find the index in \"{}\"",
+            ris_io::path::to_str(index_file),
+        );
 
         Ok(())
     }

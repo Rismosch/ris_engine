@@ -59,7 +59,7 @@ pub trait Script: Debug + Send + Sync + ISerializable {
 
 #[derive(Debug)]
 pub struct DynScript {
-    boxxed: Box<dyn Script>,
+    boxed: Box<dyn Script>,
     id: Sid,
 }
 
@@ -112,7 +112,7 @@ impl Component for DynScriptComponent {
             scene,
         };
 
-        if let Err(e) = script.boxxed.end(data) {
+        if let Err(e) = script.boxed.end(data) {
             ris_log::error!("failed to end script {:?}: {}", script, e);
         }
     }
@@ -131,7 +131,7 @@ impl DynScriptComponent {
         };
 
         match self.script.as_mut() {
-            Some(script) => script.boxxed.update(data),
+            Some(script) => script.boxed.update(data),
             None => ris_error::new_result!(
                 "attempted to call update on a script that hasn't been started yet"
             ),
@@ -145,7 +145,7 @@ impl DynScriptComponent {
         };
 
         match self.script.as_mut() {
-            Some(script) => script.boxxed.end(data),
+            Some(script) => script.boxed.end(data),
             None => ris_error::new_result!(
                 "attempted to call end on a script that hasn't been started yet"
             ),
@@ -162,7 +162,7 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
 
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(DynScript {
-            boxxed: Box::new(script),
+            boxed: Box::new(script),
             id: T::id(),
         });
 
@@ -246,7 +246,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
             self.reference.script.as_ref().unroll(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref();
+        let deref = script.boxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -269,7 +269,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
             self.reference.script.as_ref().unroll(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref();
+        let deref = script.boxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -290,7 +290,7 @@ impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
             self.reference.script.as_mut().unroll(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref_mut();
+        let deref = script.boxed.deref_mut();
 
         let dyn_ptr = deref as *mut dyn Script;
         let t_ptr = dyn_ptr as *mut T;

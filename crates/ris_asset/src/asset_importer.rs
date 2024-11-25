@@ -78,7 +78,11 @@ pub fn import_all(
                 target_path.push(&target_path_part);
                 let target_path = PathBuf::from(target_path.parent().unwrap());
 
-                ris_log::debug!("import {:?} to {:?}", entry_path, target_path);
+                ris_log::debug!(
+                    "import \"{}\" to \"{}\"",
+                    ris_io::path::to_str(&entry_path),
+                    ris_io::path::to_str(&target_path),
+                );
 
                 let info = DeduceImporterInfo {
                     source_file_path: entry_path,
@@ -91,8 +95,8 @@ pub fn import_all(
                 directories.push_back(entry_path);
             } else {
                 return ris_error::new_result!(
-                    "entry {:?} is neither a file nor a directory",
-                    entry_path,
+                    "entry \"{}\" is neither a file nor a directory",
+                    ris_io::path::to_str(entry_path),
                 );
             }
         }
@@ -137,7 +141,10 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 // insert new inporter here...
                 extension => {
                     if EXTENSIONS_TO_SKIP.contains(&extension) {
-                        ris_log::debug!("skipped import {:?}", source_path);
+                        ris_log::debug!(
+                            "skipped import \"{}\"",
+                            ris_io::path::to_str(source_path),
+                        );
                         return Ok(());
                     } else {
                         return ris_error::new_result!(
