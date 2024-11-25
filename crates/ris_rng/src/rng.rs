@@ -46,18 +46,23 @@ impl Rng {
     }
 
     /// returns a random u32
-    pub fn next_u(&mut self) -> u32 {
+    pub fn next_u32(&mut self) -> u32 {
         self.pcg.next()
+    }
+
+    /// returns a random i32
+    pub fn next_i32(&mut self) -> i32 {
+        i32::from_ne_bytes(self.next_u32().to_ne_bytes())
     }
 
     /// returns a random bool
     pub fn next_bool(&mut self) -> bool {
-        (self.next_u() & 1) == 1
+        (self.next_u32() & 1) == 1
     }
 
     /// returns a random u8
     pub fn next_byte(&mut self) -> u8 {
-        (0xFF & self.next_u()) as u8
+        (0xFF & self.next_u32()) as u8
     }
 
     /// returns a Vec initialized with random u8s
@@ -71,8 +76,8 @@ impl Rng {
     }
 
     /// returns a random f32 between 0.0 and 1.0
-    pub fn next_f(&mut self) -> f32 {
-        f32::from_bits(0x3F80_0000 | (self.next_u() & 0x7F_FFFF)) - 1.
+    pub fn next_f32(&mut self) -> f32 {
+        f32::from_bits(0x3F80_0000 | (self.next_u32() & 0x7F_FFFF)) - 1.
     }
 
     /// returns a random f32 between min and max
@@ -85,7 +90,7 @@ impl Rng {
             }
         }
 
-        let r = (max - min) * self.next_f() + min;
+        let r = (max - min) * self.next_f32() + min;
 
         if r > max {
             max
@@ -105,7 +110,7 @@ impl Rng {
             }
         }
 
-        let r = (((max - min) as f32) * self.next_f()) as i32 + min;
+        let r = (((max - min) as f32) * self.next_f32()) as i32 + min;
 
         if r > max {
             max

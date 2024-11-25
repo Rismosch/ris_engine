@@ -1,3 +1,5 @@
+use std::io::Error;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Result;
 use std::io::Seek;
@@ -82,6 +84,9 @@ pub fn write_bvec2(stream: &mut (impl Write + Seek), value: Bvec2) -> Result<Fat
 
 pub fn read_bvec2(stream: &mut (impl Read + Seek)) -> Result<Bvec2> {
     let flags = crate::read_u8(stream)?;
+    if flags & 0xFC != 0 {
+        return Err(Error::from(ErrorKind::InvalidData));
+    }
     let x = (flags & 1) != 0;
     let y = ((flags >> 1) & 1) != 0;
     Ok(Bvec2(x, y))
@@ -97,6 +102,9 @@ pub fn write_bvec3(stream: &mut (impl Write + Seek), value: Bvec3) -> Result<Fat
 
 pub fn read_bvec3(stream: &mut (impl Read + Seek)) -> Result<Bvec3> {
     let flags = crate::read_u8(stream)?;
+    if flags & 0xF8 != 0 {
+        return Err(Error::from(ErrorKind::InvalidData));
+    }
     let x = (flags & 1) != 0;
     let y = ((flags >> 1) & 1) != 0;
     let z = ((flags >> 2) & 1) != 0;
@@ -114,6 +122,9 @@ pub fn write_bvec4(stream: &mut (impl Write + Seek), value: Bvec4) -> Result<Fat
 
 pub fn read_bvec4(stream: &mut (impl Read + Seek)) -> Result<Bvec4> {
     let flags = crate::read_u8(stream)?;
+    if flags & 0xF0 != 0 {
+        return Err(Error::from(ErrorKind::InvalidData));
+    }
     let x = (flags & 1) != 0;
     let y = ((flags >> 1) & 1) != 0;
     let z = ((flags >> 2) & 1) != 0;

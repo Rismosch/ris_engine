@@ -27,7 +27,7 @@ impl TestContext {
         let mut rebind_matrix = RebindMatrix::new_empty();
 
         for entry in &mut rebind_matrix.data {
-            *entry = self.rng.next_u();
+            *entry = self.rng.next_u32();
         }
 
         rebind_matrix

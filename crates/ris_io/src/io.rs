@@ -23,7 +23,7 @@ pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 /// ```
 ///
 /// The `FatPtr` in this example refers to Byte 1 and Byte 2.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FatPtr {
     pub addr: u64,
     pub len: u64,
@@ -198,7 +198,7 @@ pub fn read_int(stream: &mut impl Read) -> Result<isize> {
 pub fn read_uint(stream: &mut impl Read) -> Result<usize> {
     let mut bytes = [0; 4];
     read(stream, &mut bytes)?;
-    let int = i32::from_le_bytes(bytes);
+    let int = u32::from_le_bytes(bytes);
     let result = usize::try_from(int).map_err(|_| Error::from(ErrorKind::InvalidData))?;
     Ok(result)
 }
