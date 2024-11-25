@@ -20,3 +20,8 @@ fn should_compare_bytes() {
     assert!(!bytes_eq(&array1, &array8));
     assert!(bytes_eq(&array3, &array4));
 }
+
+#[test]
+fn write_io_tests() {
+    panic!();
+}

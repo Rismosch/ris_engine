@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::ExplanationLevel;
@@ -158,19 +157,15 @@ impl ICommand for Archive {
 
             eprintln!("compressing...");
             crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!cli_out", dst_file_path, src_dir))?;
-            crate::cmd::run(
-                &format!(
-                    "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!cli_out",
-                    dst_file_path, src_dir
-                )
-            )?;
+            crate::cmd::run(&format!(
+                "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!cli_out",
+                dst_file_path, src_dir
+            ))?;
 
-            crate::cmd::run(
-                &format!(
-                    "tar --exclude=.git --exclude=target --exclude=cli_out -czf {}.tgz -C {} .",
-                    dst_file_path, src_dir
-                )
-            )?;
+            crate::cmd::run(&format!(
+                "tar --exclude=.git --exclude=target --exclude=cli_out -czf {}.tgz -C {} .",
+                dst_file_path, src_dir
+            ))?;
 
             eprintln!("done! archive can be found in {:?}", target_dir);
             Ok(())

@@ -4,25 +4,14 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub fn run(cmd: &str) -> RisResult<std::process::ExitStatus> {
-    run_internal(
-        cmd,
-        None,
-        None::<Vec<(&str, &str)>>,
-    )
+    run_internal(cmd, None, None::<Vec<(&str, &str)>>)
 }
 
 pub fn run_with_stdout(cmd: &str, stdout: &mut String) -> RisResult<std::process::ExitStatus> {
-    run_internal(
-        cmd,
-        Some(stdout),
-        None::<Vec<(&str, &str)>>,
-    )
+    run_internal(cmd, Some(stdout), None::<Vec<(&str, &str)>>)
 }
 
-pub fn run_with_envs<I, K, V>(
-    cmd: &str,
-    envs: I,
-) -> RisResult<std::process::ExitStatus>
+pub fn run_with_envs<I, K, V>(cmd: &str, envs: I) -> RisResult<std::process::ExitStatus>
 where
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<str>,
@@ -104,11 +93,7 @@ pub fn run_where(cmd: &str) -> RisResult<Vec<String>> {
     let cmd = format!("where {}", cmd);
     let mut stdout = String::new();
 
-    run_internal(
-        &cmd,
-        Some(&mut stdout),
-        None::<Vec<(&str, &str)>>,
-    )?;
+    run_internal(&cmd, Some(&mut stdout), None::<Vec<(&str, &str)>>)?;
 
     let result = stdout
         .split('\n')

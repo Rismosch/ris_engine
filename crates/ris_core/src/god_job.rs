@@ -85,7 +85,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
         let test_rotation = game_object.add_script::<TestRotation>(&god_object.state.scene)?;
-        test_rotation.script_mut(&god_object.state.scene)?.rotation_axis = rotation_axis;
+        test_rotation
+            .script_mut(&god_object.state.scene)?
+            .rotation_axis = rotation_axis;
 
         let physical_device_memory_properties = unsafe {
             god_object

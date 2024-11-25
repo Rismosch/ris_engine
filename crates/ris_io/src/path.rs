@@ -35,5 +35,4 @@ pub fn to_str(path: impl AsRef<Path>) -> String {
     {
         debug
     }
-
 }

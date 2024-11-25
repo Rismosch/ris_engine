@@ -59,10 +59,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
             let to_ignore = PathBuf::from(DEFAULT_IGNORE_DIRECTORY);
             if entry_path == to_ignore {
-                ris_log::debug!(
-                    "ignoring \"{}\"",
-                    ris_io::path::to_str(entry_path),
-                );
+                ris_log::debug!("ignoring \"{}\"", ris_io::path::to_str(entry_path),);
                 continue;
             }
 
@@ -82,11 +79,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     ris_log::trace!("found {} assets:", assets.len());
     for (i, file) in assets.iter().enumerate() {
-        ris_log::trace!(
-            "{}: \"{}\"",
-            i,
-            ris_io::path::to_str(file),
-        );
+        ris_log::trace!("{}: \"{}\"", i, ris_io::path::to_str(file),);
     }
 
     // create the target file
@@ -157,8 +150,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content =
-                    ris_io::read_at(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
@@ -325,8 +317,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content =
-                    ris_io::read_at(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content)?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
@@ -359,4 +350,3 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 
     Ok(())
 }
-

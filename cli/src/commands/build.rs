@@ -175,8 +175,7 @@ impl ICommand for Build {
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!(
                 "attempting to copy {} from: \"{}\"",
-                SDL2_NAME,
-                src_sdl2_path,
+                SDL2_NAME, src_sdl2_path,
             );
             std::fs::copy(src_sdl2_path, dst_sdl2_path)?;
         }

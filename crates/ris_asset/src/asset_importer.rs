@@ -141,10 +141,7 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 // insert new inporter here...
                 extension => {
                     if EXTENSIONS_TO_SKIP.contains(&extension) {
-                        ris_log::debug!(
-                            "skipped import \"{}\"",
-                            ris_io::path::to_str(source_path),
-                        );
+                        ris_log::debug!("skipped import \"{}\"", ris_io::path::to_str(source_path),);
                         return Ok(());
                     } else {
                         return ris_error::new_result!(

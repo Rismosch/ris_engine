@@ -83,10 +83,7 @@ pub fn write(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
         .try_into()
         .map_err(|_| Error::from(ErrorKind::InvalidData))?;
 
-    let fat_ptr = FatPtr {
-        addr,
-        len,
-    };
+    let fat_ptr = FatPtr { addr, len };
 
     Ok(fat_ptr)
 }
@@ -95,7 +92,6 @@ pub fn write(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
 pub fn write_u8(stream: &mut (impl Write + Seek), value: u8) -> Result<FatPtr> {
     write(stream, &[value])
 }
-
 
 /// converts an `isize` to a `i32`, writes and advances the stream. returns a `FatPtr` to the bytes
 /// written.
@@ -139,7 +135,7 @@ pub fn write_fat_ptr(stream: &mut (impl Write + Seek), value: FatPtr) -> Result<
     let p_len = write_u64(stream, value.len)?;
     let addr = p_addr.addr;
     let len = p_addr.len + p_len.len;
-    let fat_ptr = FatPtr{addr, len};
+    let fat_ptr = FatPtr { addr, len };
     Ok(fat_ptr)
 }
 
@@ -252,4 +248,3 @@ pub fn read_string(stream: &mut (impl Read + Seek)) -> Result<String> {
     let string = String::from_utf8(bytes).map_err(|_| Error::from(ErrorKind::InvalidData))?;
     Ok(string)
 }
-

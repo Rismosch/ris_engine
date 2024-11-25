@@ -6,26 +6,26 @@ use std::io::Write;
 use ris_math::matrix::Mat2;
 use ris_math::matrix::Mat2x3;
 use ris_math::matrix::Mat2x4;
-use ris_math::matrix::Mat3x2;
 use ris_math::matrix::Mat3;
+use ris_math::matrix::Mat3x2;
 use ris_math::matrix::Mat3x4;
+use ris_math::matrix::Mat4;
 use ris_math::matrix::Mat4x2;
 use ris_math::matrix::Mat4x3;
-use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
-use ris_math::vector::Vec2;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec4;
 use ris_math::vector::Bvec2;
 use ris_math::vector::Bvec3;
 use ris_math::vector::Bvec4;
+use ris_math::vector::Vec2;
+use ris_math::vector::Vec3;
+use ris_math::vector::Vec4;
 
 use crate::FatPtr;
 
 pub fn write_vec2(stream: &mut (impl Write + Seek), value: Vec2) -> Result<FatPtr> {
     let ptr_x = crate::write_f32(stream, value.x())?;
     let ptr_y = crate::write_f32(stream, value.y())?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_x.addr,
         len: ptr_x.len + ptr_y.len,
     })
@@ -41,7 +41,7 @@ pub fn write_vec3(stream: &mut (impl Write + Seek), value: Vec3) -> Result<FatPt
     let ptr_x = crate::write_f32(stream, value.x())?;
     let ptr_y = crate::write_f32(stream, value.y())?;
     let ptr_z = crate::write_f32(stream, value.z())?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_x.addr,
         len: ptr_x.len + ptr_y.len + ptr_z.len,
     })
@@ -59,7 +59,7 @@ pub fn write_vec4(stream: &mut (impl Write + Seek), value: Vec4) -> Result<FatPt
     let ptr_y = crate::write_f32(stream, value.y())?;
     let ptr_z = crate::write_f32(stream, value.z())?;
     let ptr_w = crate::write_f32(stream, value.w())?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_x.addr,
         len: ptr_x.len + ptr_y.len + ptr_z.len + ptr_w.len,
     })
@@ -134,170 +134,152 @@ pub fn read_quat(stream: &mut (impl Read + Seek)) -> Result<Quat> {
 pub fn write_mat2(stream: &mut (impl Write + Seek), value: Mat2) -> Result<FatPtr> {
     let ptr_0 = write_vec2(stream, value.0)?;
     let ptr_1 = write_vec2(stream, value.1)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
-        len: ptr_0.len + ptr_1.len
+        len: ptr_0.len + ptr_1.len,
     })
 }
 
 pub fn read_mat2(stream: &mut (impl Read + Seek)) -> Result<Mat2> {
-    let mut m = Mat2::default();
-    m.0 = read_vec2(stream)?;
-    m.1 = read_vec2(stream)?;
-    Ok(m)
+    let m0 = read_vec2(stream)?;
+    let m1 = read_vec2(stream)?;
+    Ok(Mat2(m0, m1))
 }
-
 
 pub fn write_mat2x3(stream: &mut (impl Write + Seek), value: Mat2x3) -> Result<FatPtr> {
     let ptr_0 = write_vec3(stream, value.0)?;
     let ptr_1 = write_vec3(stream, value.1)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
-        len: ptr_0.len + ptr_1.len
+        len: ptr_0.len + ptr_1.len,
     })
 }
 
 pub fn read_mat2x3(stream: &mut (impl Read + Seek)) -> Result<Mat2x3> {
-    let mut m = Mat2x3::default();
-    m.0 = read_vec3(stream)?;
-    m.1 = read_vec3(stream)?;
-    Ok(m)
+    let m0 = read_vec3(stream)?;
+    let m1 = read_vec3(stream)?;
+    Ok(Mat2x3(m0, m1))
 }
-
 
 pub fn write_mat2x4(stream: &mut (impl Write + Seek), value: Mat2x4) -> Result<FatPtr> {
     let ptr_0 = write_vec4(stream, value.0)?;
     let ptr_1 = write_vec4(stream, value.1)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
-        len: ptr_0.len + ptr_1.len
+        len: ptr_0.len + ptr_1.len,
     })
 }
 
 pub fn read_mat2x4(stream: &mut (impl Read + Seek)) -> Result<Mat2x4> {
-    let mut m = Mat2x4::default();
-    m.0 = read_vec4(stream)?;
-    m.1 = read_vec4(stream)?;
-    Ok(m)
+    let m0 = read_vec4(stream)?;
+    let m1 = read_vec4(stream)?;
+    Ok(Mat2x4(m0, m1))
 }
-
 
 pub fn write_mat3x2(stream: &mut (impl Write + Seek), value: Mat3x2) -> Result<FatPtr> {
     let ptr_0 = write_vec2(stream, value.0)?;
     let ptr_1 = write_vec2(stream, value.1)?;
     let ptr_2 = write_vec2(stream, value.2)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len,
     })
 }
 
 pub fn read_mat3x2(stream: &mut (impl Read + Seek)) -> Result<Mat3x2> {
-    let mut m = Mat3x2::default();
-    m.0 = read_vec2(stream)?;
-    m.1 = read_vec2(stream)?;
-    m.2 = read_vec2(stream)?;
-    Ok(m)
+    let m0 = read_vec2(stream)?;
+    let m1 = read_vec2(stream)?;
+    let m2 = read_vec2(stream)?;
+    Ok(Mat3x2(m0, m1, m2))
 }
-
 
 pub fn write_mat3(stream: &mut (impl Write + Seek), value: Mat3) -> Result<FatPtr> {
     let ptr_0 = write_vec3(stream, value.0)?;
     let ptr_1 = write_vec3(stream, value.1)?;
     let ptr_2 = write_vec3(stream, value.2)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len,
     })
 }
 
 pub fn read_mat3(stream: &mut (impl Read + Seek)) -> Result<Mat3> {
-    let mut m = Mat3::default();
-    m.0 = read_vec3(stream)?;
-    m.1 = read_vec3(stream)?;
-    m.2 = read_vec3(stream)?;
-    Ok(m)
+    let m0 = read_vec3(stream)?;
+    let m1 = read_vec3(stream)?;
+    let m2 = read_vec3(stream)?;
+    Ok(Mat3(m0, m1, m2))
 }
-
 
 pub fn write_mat3x4(stream: &mut (impl Write + Seek), value: Mat3x4) -> Result<FatPtr> {
     let ptr_0 = write_vec4(stream, value.0)?;
     let ptr_1 = write_vec4(stream, value.1)?;
     let ptr_2 = write_vec4(stream, value.2)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len,
     })
 }
 
 pub fn read_mat3x4(stream: &mut (impl Read + Seek)) -> Result<Mat3x4> {
-    let mut m = Mat3x4::default();
-    m.0 = read_vec4(stream)?;
-    m.1 = read_vec4(stream)?;
-    m.2 = read_vec4(stream)?;
-    Ok(m)
+    let m0 = read_vec4(stream)?;
+    let m1 = read_vec4(stream)?;
+    let m2 = read_vec4(stream)?;
+    Ok(Mat3x4(m0, m1, m2))
 }
-
 
 pub fn write_mat4x2(stream: &mut (impl Write + Seek), value: Mat4x2) -> Result<FatPtr> {
     let ptr_0 = write_vec2(stream, value.0)?;
     let ptr_1 = write_vec2(stream, value.1)?;
     let ptr_2 = write_vec2(stream, value.2)?;
     let ptr_3 = write_vec2(stream, value.3)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len + ptr_3.len,
     })
 }
 
 pub fn read_mat4x2(stream: &mut (impl Read + Seek)) -> Result<Mat4x2> {
-    let mut m = Mat4x2::default();
-    m.0 = read_vec2(stream)?;
-    m.1 = read_vec2(stream)?;
-    m.2 = read_vec2(stream)?;
-    m.3 = read_vec2(stream)?;
-    Ok(m)
+    let m0 = read_vec2(stream)?;
+    let m1 = read_vec2(stream)?;
+    let m2 = read_vec2(stream)?;
+    let m3 = read_vec2(stream)?;
+    Ok(Mat4x2(m0, m1, m2, m3))
 }
-
 
 pub fn write_mat4x3(stream: &mut (impl Write + Seek), value: Mat4x3) -> Result<FatPtr> {
     let ptr_0 = write_vec3(stream, value.0)?;
     let ptr_1 = write_vec3(stream, value.1)?;
     let ptr_2 = write_vec3(stream, value.2)?;
     let ptr_3 = write_vec3(stream, value.3)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len + ptr_3.len,
     })
 }
 
 pub fn read_mat4x3(stream: &mut (impl Read + Seek)) -> Result<Mat4x3> {
-    let mut m = Mat4x3::default();
-    m.0 = read_vec3(stream)?;
-    m.1 = read_vec3(stream)?;
-    m.2 = read_vec3(stream)?;
-    m.3 = read_vec3(stream)?;
-    Ok(m)
+    let m0 = read_vec3(stream)?;
+    let m1 = read_vec3(stream)?;
+    let m2 = read_vec3(stream)?;
+    let m3 = read_vec3(stream)?;
+    Ok(Mat4x3(m0, m1, m2, m3))
 }
-
 
 pub fn write_mat4(stream: &mut (impl Write + Seek), value: Mat4) -> Result<FatPtr> {
     let ptr_0 = write_vec4(stream, value.0)?;
     let ptr_1 = write_vec4(stream, value.1)?;
     let ptr_2 = write_vec4(stream, value.2)?;
     let ptr_3 = write_vec4(stream, value.3)?;
-    Ok(FatPtr{
+    Ok(FatPtr {
         addr: ptr_0.addr,
         len: ptr_0.len + ptr_1.len + ptr_2.len + ptr_3.len,
     })
 }
 
 pub fn read_mat4(stream: &mut (impl Read + Seek)) -> Result<Mat4> {
-    let mut m = Mat4::default();
-    m.0 = read_vec4(stream)?;
-    m.1 = read_vec4(stream)?;
-    m.2 = read_vec4(stream)?;
-    m.3 = read_vec4(stream)?;
-    Ok(m)
+    let m0 = read_vec4(stream)?;
+    let m1 = read_vec4(stream)?;
+    let m2 = read_vec4(stream)?;
+    let m3 = read_vec4(stream)?;
+    Ok(Mat4(m0, m1, m2, m3))
 }
-

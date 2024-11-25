@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use ris_error::RisResult;
+use ris_io::fallback_file::FallbackFileAppend;
 
 use crate::ExplanationLevel;
 use crate::ICommand;
@@ -84,7 +85,7 @@ impl ICommand for Pipeline {
         }
     }
 
-    fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
+    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         if args.len() <= 2 {
             return crate::util::command_error(
                 "no args provided",
@@ -93,6 +94,9 @@ impl ICommand for Pipeline {
                 Self::explanation(ExplanationLevel::Detailed),
             );
         }
+
+        let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
+        let ff = &mut fallback_file_append;
 
         let mut run_check = false;
         let mut run_build = false;
@@ -143,21 +147,36 @@ impl ICommand for Pipeline {
             test(results, run_miri, false, cargo_nightly("miri test -r"));
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
-            test(results, run_clippy, false, cargo("clippy --tests -- -Dwarnings"));
+            test(
+                results,
+                run_clippy,
+                false,
+                cargo("clippy --tests -- -Dwarnings"),
+            );
             test(
                 results,
                 run_clippy,
                 false,
                 cargo("clippy -r --tests -- -Dwarnings"),
             );
-            test(results, run_clippy, false, cargo("clippy -p cli -- -Dwarnings"));
-            test(results, run_clippy, false, cargo("clippy -r -p cli -- -Dwarnings"));
+            test(
+                results,
+                run_clippy,
+                false,
+                cargo("clippy -p cli -- -Dwarnings"),
+            );
+            test(
+                results,
+                run_clippy,
+                false,
+                cargo("clippy -r -p cli -- -Dwarnings"),
+            );
         }
 
-        print_empty(5);
+        print_empty(ff, 2)?;
 
-        println!("done! finished running pipeline!");
-        println!("results:");
+        print(ff, "done! finished running pipeline!")?;
+        print(ff, "results:")?;
         for (cmd, result) in results.iter() {
             let success_str = match result {
                 TestResult::Ok => "  ok:     ",
@@ -165,18 +184,24 @@ impl ICommand for Pipeline {
                 TestResult::Skipped => "  skip:   ",
             };
 
-            println!("{} {}", success_str, cmd);
+            print(ff, format!("{} {}", success_str, cmd))?;
         }
 
-        if results.iter().all(|x| x.1 != TestResult::Failed) {
-            println!("pipeline succeeded");
-            print_empty(2);
+        let result = if results.iter().all(|x| x.1 != TestResult::Failed) {
+            print(ff, "pipeline succeeded")?;
             Ok(())
         } else {
-            println!("pipeline failed");
-            print_empty(2);
+            print(ff, "pipeline failed")?;
             ris_error::new_result!("pipeline failed")
-        }
+        };
+
+        print_empty(ff, 1)?;
+
+        println!("results stored in \"{}\"", ris_io::path::to_str(target_dir),);
+
+        print_empty(ff, 2)?;
+
+        result
     }
 }
 
@@ -232,7 +257,6 @@ fn test(
         Err(_) => false,
     };
 
-
     let result = (final_cmd, TestResult::from(success));
     results.push(result);
 }
@@ -259,8 +283,19 @@ fn cargo_nightly(args: &str) -> Result<String, String> {
     Ok(format!("cargo +nightly {}", args))
 }
 
-fn print_empty(lines: usize) {
+fn print_empty(ff: &mut FallbackFileAppend, lines: usize) -> RisResult<()> {
     for _ in 0..lines {
-        eprintln!()
+        print(ff, "")?;
     }
+
+    Ok(())
+}
+
+fn print(ff: &mut FallbackFileAppend, message: impl AsRef<str>) -> RisResult<()> {
+    eprintln!("{}", message.as_ref());
+    let stream = ff.current();
+    ris_io::write(stream, message.as_ref().as_bytes())?;
+    ris_io::write(stream, "\n".as_bytes())?;
+
+    Ok(())
 }
