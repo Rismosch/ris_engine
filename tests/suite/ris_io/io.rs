@@ -1,20 +1,20 @@
 use std::cell::RefCell;
 use std::io::Cursor;
+use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
-use std::io::Read;
 use std::rc::Rc;
 
 use ris_io::FatPtr;
 use ris_math::matrix::Mat2;
 use ris_math::matrix::Mat2x3;
 use ris_math::matrix::Mat2x4;
-use ris_math::matrix::Mat3x2;
 use ris_math::matrix::Mat3;
+use ris_math::matrix::Mat3x2;
 use ris_math::matrix::Mat3x4;
+use ris_math::matrix::Mat4;
 use ris_math::matrix::Mat4x2;
 use ris_math::matrix::Mat4x3;
-use ris_math::matrix::Mat4;
 use ris_math::vector::Bvec2;
 use ris_math::vector::Bvec3;
 use ris_math::vector::Bvec4;
@@ -205,7 +205,7 @@ fn should_read_and_write_fat_ptr() {
         let len0 = rng.next_u32() as u64;
         let len1 = rng.next_u32() as u64;
         let len = len0 | len1 << 32;
-        let input = FatPtr {addr, len};
+        let input = FatPtr { addr, len };
         let mut stream = Cursor::new(Vec::new());
         ris_io::write_fat_ptr(&mut stream, input).unwrap();
         ris_io::seek(&mut stream, SeekFrom::Start(0)).unwrap();
@@ -576,20 +576,13 @@ fn should_read_and_write_everything_via_fat_ptrs() {
         let len0 = rng.next_u32() as u64;
         let len1 = rng.next_u32() as u64;
         let len = len0 | len1 << 32;
-        let input_fat_ptr = FatPtr {addr, len};
+        let input_fat_ptr = FatPtr { addr, len };
         let input_string = rng.next_u32().to_string();
         let input_vec2 = rng.next_pos_2();
         let input_vec3 = rng.next_pos_3();
         let input_vec4 = rng.next_pos_4();
-        let input_bvec2 = Bvec2(
-            rng.next_bool(),
-            rng.next_bool(),
-        );
-        let input_bvec3 = Bvec3(
-            rng.next_bool(),
-            rng.next_bool(),
-            rng.next_bool(),
-        );
+        let input_bvec2 = Bvec2(rng.next_bool(), rng.next_bool());
+        let input_bvec3 = Bvec3(rng.next_bool(), rng.next_bool(), rng.next_bool());
         let input_bvec4 = Bvec4(
             rng.next_bool(),
             rng.next_bool(),
@@ -597,33 +590,12 @@ fn should_read_and_write_everything_via_fat_ptrs() {
             rng.next_bool(),
         );
         let input_quat = rng.next_rot();
-        let input_mat2 = Mat2(
-            rng.next_pos_2(),
-            rng.next_pos_2(),
-        );
-        let input_mat2x3 = Mat2x3(
-            rng.next_pos_3(),
-            rng.next_pos_3(),
-        );
-        let input_mat2x4 = Mat2x4(
-            rng.next_pos_4(),
-            rng.next_pos_4(),
-        );
-        let input_mat3x2 = Mat3x2(
-            rng.next_pos_2(),
-            rng.next_pos_2(),
-            rng.next_pos_2(),
-        );
-        let input_mat3 = Mat3(
-            rng.next_pos_3(),
-            rng.next_pos_3(),
-            rng.next_pos_3(),
-        );
-        let input_mat3x4 = Mat3x4(
-            rng.next_pos_4(),
-            rng.next_pos_4(),
-            rng.next_pos_4(),
-        );
+        let input_mat2 = Mat2(rng.next_pos_2(), rng.next_pos_2());
+        let input_mat2x3 = Mat2x3(rng.next_pos_3(), rng.next_pos_3());
+        let input_mat2x4 = Mat2x4(rng.next_pos_4(), rng.next_pos_4());
+        let input_mat3x2 = Mat3x2(rng.next_pos_2(), rng.next_pos_2(), rng.next_pos_2());
+        let input_mat3 = Mat3(rng.next_pos_3(), rng.next_pos_3(), rng.next_pos_3());
+        let input_mat3x4 = Mat3x4(rng.next_pos_4(), rng.next_pos_4(), rng.next_pos_4());
         let input_mat4x2 = Mat4x2(
             rng.next_pos_2(),
             rng.next_pos_2(),
@@ -677,30 +649,38 @@ fn should_read_and_write_everything_via_fat_ptrs() {
             s.read_to_end(&mut bytes).unwrap();
             bytes
         });
-        let output_u8 = test_read(&mut rng, &mut stream, ptr_u8, |s| ris_io::read_u8(s)).unwrap();
-        let output_int = test_read(&mut rng, &mut stream, ptr_int, |s| ris_io::read_int(s)).unwrap();
-        let output_uint = test_read(&mut rng, &mut stream, ptr_uint, |s| ris_io::read_uint(s)).unwrap();
-        let output_u64 = test_read(&mut rng, &mut stream, ptr_u64, |s| ris_io::read_u64(s)).unwrap();
-        let output_f32 = test_read(&mut rng, &mut stream, ptr_f32, |s| ris_io::read_f32(s)).unwrap();
-        let output_bool = test_read(&mut rng, &mut stream, ptr_bool, |s| ris_io::read_bool(s)).unwrap();
-        let output_fat_ptr = test_read(&mut rng, &mut stream, ptr_fat_ptr, |s| ris_io::read_fat_ptr(s)).unwrap();
-        let output_string = test_read(&mut rng, &mut stream, ptr_string, |s| ris_io::read_string(s)).unwrap();
-        let output_vec2 = test_read(&mut rng, &mut stream, ptr_vec2, |s| ris_io::read_vec2(s)).unwrap();
-        let output_vec3 = test_read(&mut rng, &mut stream, ptr_vec3, |s| ris_io::read_vec3(s)).unwrap();
-        let output_vec4 = test_read(&mut rng, &mut stream, ptr_vec4, |s| ris_io::read_vec4(s)).unwrap();
-        let output_bvec2 = test_read(&mut rng, &mut stream, ptr_bvec2, |s| ris_io::read_bvec2(s)).unwrap();
-        let output_bvec3 = test_read(&mut rng, &mut stream, ptr_bvec3, |s| ris_io::read_bvec3(s)).unwrap();
-        let output_bvec4 = test_read(&mut rng, &mut stream, ptr_bvec4, |s| ris_io::read_bvec4(s)).unwrap();
-        let output_quat = test_read(&mut rng, &mut stream, ptr_quat, |s| ris_io::read_quat(s)).unwrap();
-        let output_mat2 = test_read(&mut rng, &mut stream, ptr_mat2, |s| ris_io::read_mat2(s)).unwrap();
-        let output_mat2x3 = test_read(&mut rng, &mut stream, ptr_mat2x3, |s| ris_io::read_mat2x3(s)).unwrap();
-        let output_mat2x4 = test_read(&mut rng, &mut stream, ptr_mat2x4, |s| ris_io::read_mat2x4(s)).unwrap();
-        let output_mat3x2 = test_read(&mut rng, &mut stream, ptr_mat3x2, |s| ris_io::read_mat3x2(s)).unwrap();
-        let output_mat3 = test_read(&mut rng, &mut stream, ptr_mat3, |s| ris_io::read_mat3(s)).unwrap();
-        let output_mat3x4 = test_read(&mut rng, &mut stream, ptr_mat3x4, |s| ris_io::read_mat3x4(s)).unwrap();
-        let output_mat4x2 = test_read(&mut rng, &mut stream, ptr_mat4x2, |s| ris_io::read_mat4x2(s)).unwrap();
-        let output_mat4x3 = test_read(&mut rng, &mut stream, ptr_mat4x3, |s| ris_io::read_mat4x3(s)).unwrap();
-        let output_mat4 = test_read(&mut rng, &mut stream, ptr_mat4, |s| ris_io::read_mat4(s)).unwrap();
+        let output_u8 = test_read(&mut rng, &mut stream, ptr_u8, ris_io::read_u8).unwrap();
+        let output_int = test_read(&mut rng, &mut stream, ptr_int, ris_io::read_int).unwrap();
+        let output_uint = test_read(&mut rng, &mut stream, ptr_uint, ris_io::read_uint).unwrap();
+        let output_u64 = test_read(&mut rng, &mut stream, ptr_u64, ris_io::read_u64).unwrap();
+        let output_f32 = test_read(&mut rng, &mut stream, ptr_f32, ris_io::read_f32).unwrap();
+        let output_bool = test_read(&mut rng, &mut stream, ptr_bool, ris_io::read_bool).unwrap();
+        let output_fat_ptr =
+            test_read(&mut rng, &mut stream, ptr_fat_ptr, ris_io::read_fat_ptr).unwrap();
+        let output_string =
+            test_read(&mut rng, &mut stream, ptr_string, ris_io::read_string).unwrap();
+        let output_vec2 = test_read(&mut rng, &mut stream, ptr_vec2, ris_io::read_vec2).unwrap();
+        let output_vec3 = test_read(&mut rng, &mut stream, ptr_vec3, ris_io::read_vec3).unwrap();
+        let output_vec4 = test_read(&mut rng, &mut stream, ptr_vec4, ris_io::read_vec4).unwrap();
+        let output_bvec2 = test_read(&mut rng, &mut stream, ptr_bvec2, ris_io::read_bvec2).unwrap();
+        let output_bvec3 = test_read(&mut rng, &mut stream, ptr_bvec3, ris_io::read_bvec3).unwrap();
+        let output_bvec4 = test_read(&mut rng, &mut stream, ptr_bvec4, ris_io::read_bvec4).unwrap();
+        let output_quat = test_read(&mut rng, &mut stream, ptr_quat, ris_io::read_quat).unwrap();
+        let output_mat2 = test_read(&mut rng, &mut stream, ptr_mat2, ris_io::read_mat2).unwrap();
+        let output_mat2x3 =
+            test_read(&mut rng, &mut stream, ptr_mat2x3, ris_io::read_mat2x3).unwrap();
+        let output_mat2x4 =
+            test_read(&mut rng, &mut stream, ptr_mat2x4, ris_io::read_mat2x4).unwrap();
+        let output_mat3x2 =
+            test_read(&mut rng, &mut stream, ptr_mat3x2, ris_io::read_mat3x2).unwrap();
+        let output_mat3 = test_read(&mut rng, &mut stream, ptr_mat3, ris_io::read_mat3).unwrap();
+        let output_mat3x4 =
+            test_read(&mut rng, &mut stream, ptr_mat3x4, ris_io::read_mat3x4).unwrap();
+        let output_mat4x2 =
+            test_read(&mut rng, &mut stream, ptr_mat4x2, ris_io::read_mat4x2).unwrap();
+        let output_mat4x3 =
+            test_read(&mut rng, &mut stream, ptr_mat4x3, ris_io::read_mat4x3).unwrap();
+        let output_mat4 = test_read(&mut rng, &mut stream, ptr_mat4, ris_io::read_mat4).unwrap();
 
         assert_bytes_eq!(input_bytes, output_bytes);
         assert_eq!(input_u8, output_u8);
@@ -747,8 +727,8 @@ fn test_read<T>(
     let result = callback(&mut byte_stream);
 
     // assert that all bytes were actually read
-    let current_addr = byte_stream.seek(SeekFrom::Current(0)).unwrap();
-    let end_addr = byte_stream.seek(SeekFrom::End(0)).unwrap();
+    let current_addr = ris_io::seek(stream, SeekFrom::Current(0)).unwrap();
+    let end_addr = ris_io::seek(stream, SeekFrom::End(0)).unwrap();
     assert_eq!(current_addr, end_addr);
 
     result

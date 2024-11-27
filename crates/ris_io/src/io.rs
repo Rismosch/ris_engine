@@ -95,7 +95,7 @@ pub fn write_u8(stream: &mut (impl Write + Seek), value: u8) -> Result<FatPtr> {
 
 /// converts an `isize` to a `i32`, writes and advances the stream. returns a `FatPtr` to the bytes
 /// written.
-/// 
+///
 /// deliberately not called `write_isize`, because no `isize` is being written.
 pub fn write_int(stream: &mut (impl Write + Seek), value: isize) -> Result<FatPtr> {
     let int = i32::try_from(value).map_err(|_| Error::from(ErrorKind::InvalidData))?;
@@ -105,7 +105,7 @@ pub fn write_int(stream: &mut (impl Write + Seek), value: isize) -> Result<FatPt
 
 /// converts an `usize` to a `u32`, writes and advances the stream. returns a `FatPtr` to the bytes
 /// written.
-/// 
+///
 /// deliberately not called `write_usize`, because no `usize` is being written.
 pub fn write_uint(stream: &mut (impl Write + Seek), value: usize) -> Result<FatPtr> {
     let int = u32::try_from(value).map_err(|_| Error::from(ErrorKind::InvalidData))?;
@@ -190,7 +190,7 @@ pub fn read_u8(stream: &mut impl Read) -> Result<u8> {
 }
 
 /// reads an `i32`, converts it to `isize` and advances the stream.
-/// 
+///
 /// deliberately not called `read_isize`, because no `usize` is being read.
 pub fn read_int(stream: &mut impl Read) -> Result<isize> {
     let mut bytes = [0; 4];
