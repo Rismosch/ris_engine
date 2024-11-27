@@ -77,7 +77,7 @@ fn should_rebind_buttons() {
     let mut context = TestContext::new();
 
     for _ in 0..100 {
-        let input_index = context.rng.range_i(0, 31);
+        let input_index = context.rng.next_i32_between(0, 31);
         let input = 1 << input_index as u32;
 
         context.state.input.gamepad.buttons.update(input);

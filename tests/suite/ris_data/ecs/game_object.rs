@@ -497,7 +497,7 @@ fn should_get_and_set_world_transform() {
 
         let p = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.range_f(0.000_001, 1.0);
+        let s = rng.next_f32_between(0.000_001, 1.0);
         g4.set_world_position(&scene, p).unwrap();
         g4.set_world_rotation(&scene, r).unwrap();
         g4.set_world_scale(&scene, s).unwrap();
@@ -514,7 +514,7 @@ fn should_get_and_set_world_transform() {
 fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
     let p = rng.next_pos_3();
     let r = rng.next_rot();
-    let s = rng.range_f(0.000_001, 1.0);
+    let s = rng.next_f32_between(0.000_001, 1.0);
     g.set_local_position(scene, p).unwrap();
     g.set_local_rotation(scene, r).unwrap();
     g.set_local_scale(scene, s).unwrap();

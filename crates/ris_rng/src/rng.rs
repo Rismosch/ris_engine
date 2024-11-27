@@ -61,7 +61,7 @@ impl Rng {
     }
 
     /// returns a random u8
-    pub fn next_byte(&mut self) -> u8 {
+    pub fn next_u8(&mut self) -> u8 {
         (0xFF & self.next_u32()) as u8
     }
 
@@ -69,7 +69,7 @@ impl Rng {
     pub fn next_bytes(&mut self, buf_len: usize) -> Vec<u8> {
         let mut buf = vec![0; buf_len];
         for item in buf.iter_mut().take(buf_len) {
-            *item = self.next_byte();
+            *item = self.next_u8();
         }
 
         buf
@@ -81,7 +81,7 @@ impl Rng {
     }
 
     /// returns a random f32 between min and max
-    pub fn range_f(&mut self, min: f32, max: f32) -> f32 {
+    pub fn next_f32_between(&mut self, min: f32, max: f32) -> f32 {
         if max <= min {
             if max == min {
                 return min;
@@ -100,7 +100,7 @@ impl Rng {
     }
 
     /// min and max are inclusive
-    pub fn range_i(&mut self, min: i32, max: i32) -> i32 {
+    pub fn next_i32_between(&mut self, min: i32, max: i32) -> i32 {
         let max = max + 1;
         if max <= min {
             if max == min {
@@ -120,25 +120,25 @@ impl Rng {
     }
 
     pub fn next_pos_2(&mut self) -> Vec2 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
 
         Vec2(x, y)
     }
 
     pub fn next_pos_3(&mut self) -> Vec3 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
-        let z = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
+        let z = self.next_f32_between(-1.0, 1.0);
 
         Vec3(x, y, z)
     }
 
     pub fn next_pos_4(&mut self) -> Vec4 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
-        let z = self.range_f(-1.0, 1.0);
-        let w = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
+        let z = self.next_f32_between(-1.0, 1.0);
+        let w = self.next_f32_between(-1.0, 1.0);
 
         Vec4(x, y, z, w)
     }

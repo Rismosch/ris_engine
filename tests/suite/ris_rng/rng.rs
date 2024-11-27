@@ -56,7 +56,7 @@ fn should_generate_numbers_between_int_range() {
     let max = 42;
 
     for _ in 0..LOOP_ITERATIONS {
-        let random = rng.range_i(min, max);
+        let random = rng.next_i32_between(min, max);
         assert!(random >= min);
         assert!(random <= max);
     }
@@ -70,7 +70,7 @@ fn should_generate_numbers_between_float_range() {
     let max = 56.78;
 
     for _ in 0..LOOP_ITERATIONS {
-        let random = rng.range_f(min, max);
+        let random = rng.next_f32_between(min, max);
         assert!(random >= min);
         assert!(random <= max);
     }

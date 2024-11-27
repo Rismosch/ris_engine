@@ -19,9 +19,9 @@ fn should_convert_rgb_to_lab() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let r = rng.range_f(0., 1.);
-        let g = rng.range_f(0., 1.);
-        let b = rng.range_f(0., 1.);
+        let r = rng.next_f32_between(0., 1.);
+        let g = rng.next_f32_between(0., 1.);
+        let b = rng.next_f32_between(0., 1.);
 
         let rgb = color::Rgb(r, g, b);
         let lab: color::OkLab = rgb.into();
@@ -45,9 +45,9 @@ fn should_convert_lab_to_lch() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let l = rng.range_f(0., 1.);
-        let a = rng.range_f(-0.5, 0.5);
-        let b = rng.range_f(-0.5, 0.5);
+        let l = rng.next_f32_between(0., 1.);
+        let a = rng.next_f32_between(-0.5, 0.5);
+        let b = rng.next_f32_between(-0.5, 0.5);
 
         let lab = color::OkLab(l, a, b);
         let lch: color::OkLch = lab.into();
@@ -71,9 +71,9 @@ fn should_convert_rgb_to_lch() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let r = rng.range_f(0., 1.);
-        let g = rng.range_f(0., 1.);
-        let b = rng.range_f(0., 1.);
+        let r = rng.next_f32_between(0., 1.);
+        let g = rng.next_f32_between(0., 1.);
+        let b = rng.next_f32_between(0., 1.);
 
         let rgb = color::Rgb(r, g, b);
         let lch: color::OkLch = rgb.into();
@@ -104,9 +104,9 @@ fn should_convert_rgb_to_bytes() {
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let r = rng.range_f(0., 1.);
-        let g = rng.range_f(0., 1.);
-        let b = rng.range_f(0., 1.);
+        let r = rng.next_f32_between(0., 1.);
+        let g = rng.next_f32_between(0., 1.);
+        let b = rng.next_f32_between(0., 1.);
 
         let rgb = color::Rgb(r, g, b);
         let bytes = rgb.to_bytes();

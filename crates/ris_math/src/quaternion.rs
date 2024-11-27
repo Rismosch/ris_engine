@@ -201,15 +201,7 @@ impl std::ops::IndexMut<usize> for Quat {
 //
 
 impl Quat {
-    // initialization
     // utility
-    pub fn dot(p: Quat, q: Quat) -> f32 {
-        let p_ = Vec4::from(p);
-        let q_ = Vec4::from(q);
-
-        p_.dot(q_)
-    }
-
     pub fn conjugate(self) -> Self {
         Self(-self.0, -self.1, -self.2, self.3)
     }
@@ -257,3 +249,14 @@ impl std::ops::Mul<Quat> for Quat {
         Self(i, j, k, re)
     }
 }
+
+impl std::cmp::PartialEq for Quat {
+    fn eq(&self, other: &Self) -> bool {
+        let Quat(x1, y1, z1, w1) = *self;
+        let Quat(x2, y2, z2, w2) = *other;
+
+        x1 == x2 && y1 == y2 && z1 == z2 && w1 == w2
+    }
+}
+
+impl std::cmp::Eq for Quat {}
