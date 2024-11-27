@@ -727,8 +727,8 @@ fn test_read<T>(
     let result = callback(&mut byte_stream);
 
     // assert that all bytes were actually read
-    let current_addr = ris_io::seek(stream, SeekFrom::Current(0)).unwrap();
-    let end_addr = ris_io::seek(stream, SeekFrom::End(0)).unwrap();
+    let current_addr = ris_io::seek(&mut byte_stream, SeekFrom::Current(0)).unwrap();
+    let end_addr = ris_io::seek(&mut byte_stream, SeekFrom::End(0)).unwrap();
     assert_eq!(current_addr, end_addr);
 
     result
