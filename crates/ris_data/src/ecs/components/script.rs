@@ -39,9 +39,7 @@ pub trait Script: Debug + Send + Sync + ISerializable {
     fn id() -> Sid
     where
         Self: Sized;
-    fn start(data: ScriptStartData) -> RisResult<Self>
-    where
-        Self: Sized;
+    fn start(&mut self, data: ScriptStartData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
 }
@@ -142,12 +140,13 @@ impl DynScriptComponent {
     }
 }
 
-impl<T: Script + 'static> ScriptComponentHandle<T> {
+impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
         let data = ScriptStartData { game_object, scene };
-        let script = T::start(data)?;
+        let mut script = T::default();
+        script.start(data)?;
 
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(DynScript {
@@ -162,7 +161,9 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
 
         Ok(generic_handle)
     }
+}
 
+impl<T: Script + 'static> ScriptComponentHandle<T> {
     pub fn try_from(handle: DynScriptComponentHandle, scene: &Scene) -> EcsResult<Self> {
         let ptr = scene.deref(handle.into())?;
         let aref = ptr.borrow();

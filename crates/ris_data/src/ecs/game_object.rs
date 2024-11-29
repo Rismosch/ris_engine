@@ -266,7 +266,7 @@ impl GameObjectHandle {
         Ok(component_handle)
     }
 
-    pub fn add_script<T: Script + 'static>(
+    pub fn add_script<T: Script + Default + 'static>(
         self,
         scene: &Scene,
     ) -> RisResult<ScriptComponentHandle<T>> {

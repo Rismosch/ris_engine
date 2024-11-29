@@ -16,7 +16,7 @@ pub enum WantsTo {
     Restart,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TestRotation {
     rotation_axis: Vec3,
 }
@@ -36,10 +36,8 @@ impl Script for TestRotation {
         ris_debug::fsid!()
     }
 
-    fn start(_data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self {
-            rotation_axis: Vec3::forward(),
-        })
+    fn start(&mut self, _data: ScriptStartData) -> RisResult<()> {
+        Ok(())
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
