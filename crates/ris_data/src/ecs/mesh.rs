@@ -9,14 +9,7 @@ use ris_video_data::buffer::Buffer;
 use super::decl::VideoMeshHandle;
 use super::id::SceneKind;
 use super::scene::Scene;
-
-#[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
-pub struct Vertex {
-    pub pos: Vec3,
-    pub color: Rgb,
-    pub uv: Vec2,
-}
+use super::vertex::Vertex;
 
 #[derive(Debug, Default)]
 pub struct Mesh {
