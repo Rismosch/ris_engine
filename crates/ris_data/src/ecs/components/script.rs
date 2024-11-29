@@ -19,17 +19,6 @@ use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-pub mod prelude {
-    pub use ris_debug::sid::Sid;
-    pub use ris_error::RisResult;
-    pub use ris_io::serializable::ISerializable;
-
-    pub use super::Script;
-    pub use super::ScriptEndData;
-    pub use super::ScriptStartData;
-    pub use super::ScriptUpdateData;
-}
-
 pub struct ScriptStartData<'a> {
     pub game_object: GameObjectHandle,
     pub scene: &'a Scene,

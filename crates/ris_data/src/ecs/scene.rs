@@ -2,6 +2,7 @@ use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 
 use super::components::mesh_renderer::MeshRendererComponent;
+use super::components::script::DynScriptComponent;
 use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
@@ -17,7 +18,6 @@ use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
 use super::mesh::VideoMesh;
-use super::script::DynScriptComponent;
 
 const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;

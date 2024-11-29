@@ -3,7 +3,7 @@ use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
-use ris_data::ecs::script::prelude::*;
+use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
 use ris_math::quaternion::Quat;

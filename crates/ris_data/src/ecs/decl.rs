@@ -1,4 +1,5 @@
 use super::components::mesh_renderer::MeshRendererComponent;
+use super::components::script::DynScriptComponent;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -9,7 +10,6 @@ use super::id::EcsObject;
 use super::id::SceneKind;
 use super::mesh::VideoMesh;
 use super::scene::Scene;
-use super::script::DynScriptComponent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcsTypeId {

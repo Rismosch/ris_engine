@@ -6,6 +6,9 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
+use super::components::script::DynScriptComponent;
+use super::components::script::Script;
+use super::components::script::ScriptComponentHandle;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
@@ -18,9 +21,6 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
-use super::script::DynScriptComponent;
-use super::script::Script;
-use super::script::ScriptComponentHandle;
 
 #[derive(Debug)]
 pub struct GameObject {
