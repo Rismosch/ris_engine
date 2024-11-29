@@ -4,8 +4,10 @@ use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
+use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
+use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+use ris_data::ecs::mesh::Vertex;
 use ris_data::ecs::scene::Scene;
-use ris_data::ecs::vertex::Vertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
@@ -243,55 +245,14 @@ impl SceneRenderer {
         ];
 
         // pipeline
-        /*
-        let vertex_binding_descriptions = [vk::VertexInputBindingDescription {
-            binding: 0,
-            stride: std::mem::size_of::<Vertex>() as u32,
-            input_rate: vk::VertexInputRate::VERTEX,
-        }];
-
-        let vertex_attribute_descriptions = [
-            vk::VertexInputAttributeDescription {
-                location: 0,
-                binding: 0,
-                format: vk::Format::R32G32B32_SFLOAT,
-                offset: std::mem::offset_of!(Vertex, pos) as u32,
-            },
-            vk::VertexInputAttributeDescription {
-                location: 1,
-                binding: 0,
-                format: vk::Format::R32G32B32_SFLOAT,
-                offset: std::mem::offset_of!(Vertex, color) as u32,
-            },
-            vk::VertexInputAttributeDescription {
-                location: 2,
-                binding: 0,
-                format: vk::Format::R32G32_SFLOAT,
-                offset: std::mem::offset_of!(Vertex, uv) as u32,
-            },
-        ];
-
         let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
-            p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
-            vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
-            p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
-        }];
-        */
-        let vertex_binding_descriptions = Vertex::binding_descriptions();
-        let vertex_attribute_descriptions = Vertex::attribute_descriptions();
-
-        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
-            s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
-            p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
-            vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
-            p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
+            vertex_binding_description_count: VERTEX_BINDING_DESCRIPTIONS.len() as u32,
+            p_vertex_binding_descriptions: VERTEX_BINDING_DESCRIPTIONS.as_ptr(),
+            vertex_attribute_description_count: VERTEX_ATTRIBUTE_DESCRIPTIONS.len() as u32,
+            p_vertex_attribute_descriptions: VERTEX_ATTRIBUTE_DESCRIPTIONS.as_ptr(),
         }];
 
         let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {

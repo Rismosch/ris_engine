@@ -8,4 +8,3 @@ pub mod id;
 pub mod mesh;
 pub mod scene;
 pub mod script;
-pub mod vertex;
