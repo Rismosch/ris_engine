@@ -14,14 +14,14 @@ impl BuildInfo {
         //@@AUTO GENERATE START@@
         BuildInfo {
             git_repo: String::from(r"https://github.com/Rismosch/ris_engine.git"),
-            git_commit: String::from(r"dc3fb046957fee4a1dd0dccf81663af867bf15ea"),
+            git_commit: String::from(r"72e4904a84f6412027319cb5460fa882b369c214"),
             git_branch: String::from(r"dev"),
             rustc_version: String::from(r"rustc 1.77.2 (25ef9e3d8 2024-04-09)"),
             rustup_toolchain: String::from(
-                r"stable-x86_64-pc-windows-msvc (environment override by RUSTUP_TOOLCHAIN)",
+                r"stable-x86_64-unknown-linux-gnu (environment override by RUSTUP_TOOLCHAIN)",
             ),
             build_profile: profile(),
-            build_date: String::from(r"2024-11-25T20:54:39.077504400+01:00"),
+            build_date: String::from(r"2024-11-30T09:10:02.899482440+01:00"),
         }
         //@@AUTO GENERATE END@@
     }

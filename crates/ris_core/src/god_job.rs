@@ -36,12 +36,12 @@ impl Script for TestRotation {
         ris_debug::fsid!()
     }
 
-    fn start(&mut self, _data: ScriptStartData) -> RisResult<()> {
+    fn start(&mut self, _data: ScriptStartEnd) -> RisResult<()> {
         Ok(())
     }
 
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
-        let ScriptUpdateData {
+    fn update(&mut self, data: ScriptUpdate) -> RisResult<()> {
+        let ScriptUpdate {
             game_object,
             frame,
             state: ris_data::god_state::GodState { scene, .. },
@@ -56,7 +56,7 @@ impl Script for TestRotation {
         Ok(())
     }
 
-    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEnd) -> RisResult<()> {
         Ok(())
     }
 }

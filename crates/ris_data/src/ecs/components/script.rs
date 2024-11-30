@@ -19,29 +19,24 @@ use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-pub struct ScriptStartData<'a> {
+pub struct ScriptStartEnd<'a> {
     pub game_object: GameObjectHandle,
     pub scene: &'a Scene,
 }
 
-pub struct ScriptUpdateData<'a> {
+pub struct ScriptUpdate<'a> {
     pub game_object: GameObjectHandle,
     pub frame: Frame,
     pub state: &'a GodState,
-}
-
-pub struct ScriptEndData<'a> {
-    pub game_object: GameObjectHandle,
-    pub scene: &'a Scene,
 }
 
 pub trait Script: Debug + Send + Sync + ISerializable {
     fn id() -> Sid
     where
         Self: Sized;
-    fn start(&mut self, data: ScriptStartData) -> RisResult<()>;
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
-    fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
+    fn start(&mut self, data: ScriptStartEnd) -> RisResult<()>;
+    fn update(&mut self, data: ScriptUpdate) -> RisResult<()>;
+    fn end(&mut self, data: ScriptStartEnd) -> RisResult<()>;
 }
 
 #[derive(Debug)]
@@ -94,7 +89,7 @@ impl Component for DynScriptComponent {
             return;
         };
 
-        let data = ScriptEndData {
+        let data = ScriptStartEnd {
             game_object: self.game_object,
             scene,
         };
@@ -111,7 +106,7 @@ impl Component for DynScriptComponent {
 
 impl DynScriptComponent {
     pub fn update(&mut self, frame: Frame, state: &GodState) -> RisResult<()> {
-        let data = ScriptUpdateData {
+        let data = ScriptUpdate {
             game_object: self.game_object,
             frame,
             state,
@@ -126,7 +121,7 @@ impl DynScriptComponent {
     }
 
     pub fn end(&mut self, scene: &Scene) -> RisResult<()> {
-        let data = ScriptEndData {
+        let data = ScriptStartEnd {
             game_object: self.game_object,
             scene,
         };
@@ -144,7 +139,7 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
-        let data = ScriptStartData { game_object, scene };
+        let data = ScriptStartEnd { game_object, scene };
         let mut script = T::default();
         script.start(data)?;
 
