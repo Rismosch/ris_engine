@@ -1,5 +1,8 @@
+use std::marker::PhantomData;
+
 use super::components::mesh_renderer::MeshRendererComponent;
 use super::components::script::DynScriptComponent;
+use super::components::script::Script;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -49,6 +52,20 @@ declare::component!(
     EcsTypeId::ScriptComponent,
 );
 declare::object!(VideoMeshHandle, VideoMesh, EcsTypeId::VideoMesh,);
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ScriptComponentHandle<T: Script> {
+    pub handle: DynScriptComponentHandle,
+    pub boo: PhantomData<T>,
+}
+
+impl<T: Script> Clone for ScriptComponentHandle<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T: Script> Copy for ScriptComponentHandle<T> {}
 
 mod declare {
     macro_rules! object {

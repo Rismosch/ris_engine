@@ -8,9 +8,9 @@ use ris_math::vector::Vec4;
 
 use super::components::script::DynScriptComponent;
 use super::components::script::Script;
-use super::components::script::ScriptComponentHandle;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
+use super::decl::ScriptComponentHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::ComponentHandle;

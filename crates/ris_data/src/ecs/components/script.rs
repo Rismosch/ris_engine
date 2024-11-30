@@ -10,6 +10,7 @@ use ris_ptr::ArefMut;
 
 use crate::ecs::decl::DynScriptComponentHandle;
 use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::decl::ScriptComponentHandle;
 use crate::ecs::error::EcsError;
 use crate::ecs::error::EcsResult;
 use crate::ecs::handle::ComponentHandle;
@@ -49,12 +50,6 @@ pub struct DynScript {
 pub struct DynScriptComponent {
     game_object: GameObjectHandle,
     script: Option<DynScript>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ScriptComponentHandle<T: Script> {
-    handle: DynScriptComponentHandle,
-    boo: PhantomData<T>,
 }
 
 pub struct ScriptComponentRef<T: Script> {
@@ -214,14 +209,6 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         })
     }
 }
-
-impl<T: Script> Clone for ScriptComponentHandle<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<T: Script> Copy for ScriptComponentHandle<T> {}
 
 impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
     type Target = T;
