@@ -125,6 +125,10 @@ impl Scene {
         }
     }
 
+    //pub fn deref_dyn_component(&self, handle: DynComponentHandle) -> EcsResult<EcsWeakPtr<dyn Component>> {
+    //    panic!();
+    //}
+
     pub fn create_new<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(kind)?;
 

@@ -717,7 +717,7 @@ impl SceneRenderer {
                     continue;
                 }
 
-                let game_object = aref.game_object;
+                let game_object = aref.game_object();
                 if game_object.is_active_in_hierarchy(scene) != Ok(true) {
                     continue;
                 }
@@ -726,7 +726,7 @@ impl SceneRenderer {
                     continue;
                 };
 
-                let Some(video_mesh_handle) = aref.video_mesh else {
+                let Some(video_mesh_handle) = aref.video_mesh() else {
                     continue;
                 };
 

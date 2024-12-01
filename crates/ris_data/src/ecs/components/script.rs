@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
+use imgui::Ui;
+
 use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -20,24 +22,31 @@ use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-pub struct ScriptStartEnd<'a> {
+pub struct ScriptStartEndData<'a> {
     pub game_object: GameObjectHandle,
     pub scene: &'a Scene,
 }
 
-pub struct ScriptUpdate<'a> {
+pub struct ScriptUpdateData<'a> {
+    pub game_object: GameObjectHandle,
+    pub frame: Frame,
+    pub state: &'a GodState,
+}
+
+pub struct ScriptInspectData<'a> {
+    pub ui: &'a Ui,
     pub game_object: GameObjectHandle,
     pub frame: Frame,
     pub state: &'a GodState,
 }
 
 pub trait Script: Debug + Send + Sync + ISerializable {
-    fn id() -> Sid
-    where
-        Self: Sized;
-    fn start(&mut self, data: ScriptStartEnd) -> RisResult<()>;
-    fn update(&mut self, data: ScriptUpdate) -> RisResult<()>;
-    fn end(&mut self, data: ScriptStartEnd) -> RisResult<()>;
+    fn id() -> Sid where Self: Sized;
+    fn name(&self) -> &'static str;
+    fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
+    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
+    fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
+    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()>;
 }
 
 #[derive(Debug)]
@@ -84,7 +93,7 @@ impl Component for DynScriptComponent {
             return;
         };
 
-        let data = ScriptStartEnd {
+        let data = ScriptStartEndData {
             game_object: self.game_object,
             scene,
         };
@@ -100,15 +109,23 @@ impl Component for DynScriptComponent {
 }
 
 impl DynScriptComponent {
+    pub fn game_object(&self) -> GameObjectHandle {
+        self.game_object
+    }
+
+    pub fn script_mut(&mut self) -> Option<&mut Box<dyn Script>> {
+        self.script.as_mut().map(|x| &mut x.boxed)
+    }
+
     pub fn update(&mut self, frame: Frame, state: &GodState) -> RisResult<()> {
-        let data = ScriptUpdate {
+        let data = ScriptUpdateData {
             game_object: self.game_object,
             frame,
             state,
         };
 
-        match self.script.as_mut() {
-            Some(script) => script.boxed.update(data),
+        match self.script_mut() {
+            Some(script) => script.update(data),
             None => ris_error::new_result!(
                 "attempted to call update on a script that hasn't been started yet"
             ),
@@ -116,13 +133,13 @@ impl DynScriptComponent {
     }
 
     pub fn end(&mut self, scene: &Scene) -> RisResult<()> {
-        let data = ScriptStartEnd {
+        let data = ScriptStartEndData {
             game_object: self.game_object,
             scene,
         };
 
-        match self.script.as_mut() {
-            Some(script) => script.boxed.end(data),
+        match self.script_mut() {
+            Some(script) => script.end(data),
             None => ris_error::new_result!(
                 "attempted to call end on a script that hasn't been started yet"
             ),
@@ -134,7 +151,7 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
-        let data = ScriptStartEnd { game_object, scene };
+        let data = ScriptStartEndData { game_object, scene };
         let mut script = T::default();
         script.start(data)?;
 

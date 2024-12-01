@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use ris_error::RisResult;
+
 use super::components::mesh_renderer::MeshRendererComponent;
 use super::components::script::DynScriptComponent;
 use super::components::script::Script;

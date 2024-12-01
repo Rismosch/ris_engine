@@ -23,11 +23,11 @@ pub struct TestRotation {
 
 impl ISerializable for TestRotation {
     fn serialize(&self) -> RisResult<Vec<u8>> {
-        panic!();
+        ris_error::new_result!("not implemented")
     }
 
     fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        panic!();
+        ris_error::new_result!("not implemented")
     }
 }
 
@@ -36,12 +36,16 @@ impl Script for TestRotation {
         ris_debug::fsid!()
     }
 
-    fn start(&mut self, _data: ScriptStartEnd) -> RisResult<()> {
+    fn name(&self) -> &'static str { 
+        "TestRotation"
+    }
+
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
 
-    fn update(&mut self, data: ScriptUpdate) -> RisResult<()> {
-        let ScriptUpdate {
+    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
+        let ScriptUpdateData {
             game_object,
             frame,
             state: ris_data::god_state::GodState { scene, .. },
@@ -56,7 +60,23 @@ impl Script for TestRotation {
         Ok(())
     }
 
-    fn end(&mut self, _data: ScriptStartEnd) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
+        let ScriptInspectData {
+            ui,
+            ..
+        } = data;
+
+        ui.label_text("this is the script inspector", "label");
+
+        crate::ui_helper::util::drag_vec3(
+            "rotation axis",
+            &mut self.rotation_axis,
+        )?;
+
         Ok(())
     }
 }

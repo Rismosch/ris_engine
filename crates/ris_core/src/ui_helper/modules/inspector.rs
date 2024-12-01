@@ -1,8 +1,11 @@
 use std::ffi::CString;
 
+use ris_data::ecs::components::script::ScriptInspectData;
+use ris_data::ecs::decl::EcsTypeId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -11,6 +14,7 @@ use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
+use crate::ui_helper::util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -117,27 +121,17 @@ impl IUiHelperModule for InspectorModule {
                     }
                 };
 
-                let format = CString::new("%.3f")?;
+                let mut position = get_position(handle, &data.state.scene)?;
 
-                let label = CString::new("position")?;
-                let position = get_position(handle, &data.state.scene)?;
-                let mut position: [f32; 3] = position.into();
-                purge_negative_0(&mut position);
-                let changed = unsafe {
-                    imgui::sys::igDragFloat3(
-                        label.as_ptr(),
-                        position.as_mut_ptr(),
-                        0.01,
-                        0.0,
-                        0.0,
-                        format.as_ptr(),
-                        0,
-                    )
-                };
+                let changed = util::drag_vec3(
+                    "position",
+                    &mut position,
+                )?;
                 if changed {
-                    set_position(handle, &data.state.scene, position.into())?;
+                    set_position(handle, &data.state.scene, position)?;
                 }
 
+                let format = CString::new("%.3f")?;
                 let label = CString::new("rotation")?;
                 if !data.ui.is_mouse_dragging(imgui::MouseButton::Left) {
                     let rotation = get_rotation(handle, &data.state.scene)?;
@@ -145,7 +139,7 @@ impl IUiHelperModule for InspectorModule {
                     self.cache_rotation_axes(rotation);
                 }
                 let mut old_rotation: [f32; 4] = self.cached_rotation.into();
-                purge_negative_0(&mut old_rotation);
+                util::purge_negative_0(&mut old_rotation);
                 let mut new_rotation: [f32; 4] = old_rotation;
                 let changed = unsafe {
                     imgui::sys::igDragFloat4(
@@ -409,6 +403,56 @@ impl IUiHelperModule for InspectorModule {
                     ris_math::color::Rgb::white(),
                 )?;
 
+                for component in handle.components(&data.state.scene)? {
+                    data.ui.separator();
+
+                    let index = component.scene_id().index;
+
+                    match component.ecs_type_id() {
+                        EcsTypeId::MeshRendererComponent => {
+                            let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
+                            let aref_mut = ptr.borrow_mut();
+
+                            let mut header_label = format!("mesh##{:?}", aref_mut.game_object());
+
+                            let mut header_flags = imgui::TreeNodeFlags::empty();
+                            header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
+                            if !data.ui.collapsing_header(header_label, header_flags) {
+                                continue;
+                            }
+
+                            data.ui.label_text("label", "im a mesh :)");
+                        },
+                        EcsTypeId::ScriptComponent => {
+                            let ptr = data.state.scene.script_components[index].to_weak();
+                            let mut aref_mut = ptr.borrow_mut();
+                            let game_object = aref_mut.game_object();
+                            let script = aref_mut.script_mut().unroll()?;
+
+                            let header_label = format!(
+                                "{} (script)##{:?}",
+                                script.name(),
+                                game_object,
+                            );
+                            let mut header_flags = imgui::TreeNodeFlags::empty();
+                            header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
+                            if !data.ui.collapsing_header(header_label, header_flags) {
+                                continue;
+                            }
+
+                            let script_inspect_data = ScriptInspectData {
+                                ui: data.ui,
+                                game_object,
+                                frame: data.frame,
+                                state: data.state,
+                            };
+
+                            script.inspect(script_inspect_data)?;
+                        },
+                        ecs_type_id => return ris_error::new_result!("{:?} is not a component", ecs_type_id),
+                    }
+                }
+
                 data.ui.separator();
             }
         }
@@ -440,12 +484,3 @@ impl InspectorModule {
     }
 }
 
-fn purge_negative_0(value: &mut [f32]) {
-    let tolerance = 0.000_01;
-
-    for item in value.iter_mut() {
-        if item.abs() < tolerance {
-            *item = 0.0;
-        }
-    }
-}
