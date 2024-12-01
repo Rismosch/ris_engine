@@ -12,12 +12,7 @@ use ris_util::testing::miri_choose;
 fn should_normalize_quaternion() {
     let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
-        let w = rng.borrow_mut().next_f();
-        let x = rng.borrow_mut().next_f();
-        let y = rng.borrow_mut().next_f();
-        let z = rng.borrow_mut().next_f();
-
-        let quaternion = Quat(x, y, z, w);
+        let quaternion = rng.borrow_mut().next_rot();
 
         let normalized_quaternion = quaternion.normalize();
         let expected_magnitude = 1.;
@@ -30,11 +25,8 @@ fn should_normalize_quaternion() {
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_0() {
     let mut rng = Rng::new(Seed::new().unwrap());
-    let angle = 0.;
-    let x = rng.next_f();
-    let y = rng.next_f();
-    let z = rng.next_f();
-    let axis = Vec3(x, y, z).normalize();
+    let angle = 0.0;
+    let axis = rng.next_dir_3();
 
     let quaternion = Quat::from((angle, axis));
     let (angle_copy, axis_copy) = quaternion.into();
@@ -48,11 +40,8 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
     let mut rng = Rng::new(Seed::new().unwrap());
-    let angle = 2. * PI;
-    let x = rng.next_f();
-    let y = rng.next_f();
-    let z = rng.next_f();
-    let axis = Vec3(x, y, z).normalize();
+    let angle = 2.0 * PI;
+    let axis = rng.next_dir_3();
 
     let quaternion = Quat::from((angle, axis));
     let (angle_copy, axis_copy) = quaternion.into();

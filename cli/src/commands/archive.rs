@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::ExplanationLevel;
@@ -107,15 +106,15 @@ impl ICommand for Archive {
 
         if clean != Clean::Nothing {
             eprintln!("cleaning workspace...");
-            crate::cmd::run("git reset .", None)?;
-            crate::cmd::run("git restore .", None)?;
+            crate::cmd::run("git reset .")?;
+            crate::cmd::run("git restore .")?;
 
             match clean {
                 Clean::Everything => {
-                    crate::cmd::run("git clean -dxf -e target", None)?;
+                    crate::cmd::run("git clean -dxf -e target")?;
                 }
                 Clean::ExceptVendor => {
-                    crate::cmd::run("git clean -dxf -e target -e vendor -e .cargo", None)?;
+                    crate::cmd::run("git clean -dxf -e target -e vendor -e .cargo")?;
                 }
                 Clean::Nothing => (),
             }
@@ -124,24 +123,24 @@ impl ICommand for Archive {
         if vendor {
             let vendor_dir = root_dir.join(VENDOR);
             if vendor_dir.exists() {
-                ris_file::util::clean_or_create_dir(&vendor_dir)?;
+                ris_io::util::clean_or_create_dir(&vendor_dir)?;
             }
 
             let cargo_vendor = "cargo vendor";
             let mut vendor_output = String::new();
-            let exit_status = crate::cmd::run(cargo_vendor, Some(&mut vendor_output))?;
+            let exit_status = crate::cmd::run_with_stdout(cargo_vendor, &mut vendor_output)?;
             if !crate::cmd::has_exit_code(&exit_status, 0) {
                 return ris_error::new_result!("failed to run `{}`", cargo_vendor);
             }
 
             let cargo_dir = crate::util::get_root_dir()?.join(CARGO_DIR_NAME);
-            ris_file::util::clean_or_create_dir(&cargo_dir)?;
+            ris_io::util::clean_or_create_dir(&cargo_dir)?;
             let config_toml_path = cargo_dir.join(CONFIG_TOML_NAME);
 
             eprintln!("writing {:?}...", config_toml_path);
             let bytes = vendor_output.as_bytes();
             let mut file = std::fs::File::create(config_toml_path)?;
-            ris_file::io::write_checked(&mut file, bytes)?;
+            ris_io::write(&mut file, bytes)?;
         }
 
         if !compress {
@@ -150,29 +149,23 @@ impl ICommand for Archive {
         } else {
             let archive_date = chrono::Local::now().format("%Y_%m_%d").to_string();
 
-            let src_dir = root_dir.to_str().unroll()?.replace('\\', "/");
+            let src_dir = ris_io::path::to_str(root_dir);
             let dst_file_path = target_dir.join(format!("{}_{}", RIS_ENGINE, archive_date));
-            let dst_file_path = dst_file_path.to_str().unroll()?.replace('\\', "/");
+            let dst_file_path = ris_io::path::to_str(dst_file_path);
 
-            ris_file::util::clean_or_create_dir(&target_dir)?;
+            ris_io::util::clean_or_create_dir(&target_dir)?;
 
             eprintln!("compressing...");
-            crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!cli_out", dst_file_path, src_dir), None)?;
-            crate::cmd::run(
-                &format!(
-                    "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!cli_out",
-                    dst_file_path, src_dir
-                ),
-                None,
-            )?;
+            crate::cmd::run(&format!("7z a {}.7z {}/* -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -xr!*.git -xr!target -xr!cli_out", dst_file_path, src_dir))?;
+            crate::cmd::run(&format!(
+                "7z a {}.zip {} -tzip -mx9 -mfb=258 -mpass=15 -xr!*.git -xr!target -xr!cli_out",
+                dst_file_path, src_dir
+            ))?;
 
-            crate::cmd::run(
-                &format!(
-                    "tar --exclude=.git --exclude=target --exclude=cli_out -czf {}.tgz -C {} .",
-                    dst_file_path, src_dir
-                ),
-                None,
-            )?;
+            crate::cmd::run(&format!(
+                "tar --exclude=.git --exclude=target --exclude=cli_out -czf {}.tgz -C {} .",
+                dst_file_path, src_dir
+            ))?;
 
             eprintln!("done! archive can be found in {:?}", target_dir);
             Ok(())

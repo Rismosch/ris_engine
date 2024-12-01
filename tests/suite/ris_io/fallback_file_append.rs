@@ -8,7 +8,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Local;
 
-use ris_file::fallback_file::FallbackFileAppend;
+use ris_io::fallback_file::FallbackFileAppend;
 
 #[test]
 fn should_create_directories() {

@@ -6,8 +6,11 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
+use super::components::script::DynScriptComponent;
+use super::components::script::Script;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
+use super::decl::ScriptComponentHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::handle::ComponentHandle;
@@ -18,9 +21,19 @@ use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
 use super::id::SceneKind;
 use super::scene::Scene;
-use super::script::DynScriptComponent;
-use super::script::Script;
-use super::script::ScriptComponentHandle;
+
+const GET_FROM_THIS: isize = 0b001;
+const GET_FROM_CHILDREN: isize = 0b010;
+const GET_FROM_PARENTS: isize = 0b100;
+
+pub enum GetFrom {
+    This = GET_FROM_THIS,
+    Children = GET_FROM_CHILDREN,
+    Parents = GET_FROM_PARENTS,
+    ThisAndChildren = GET_FROM_THIS | GET_FROM_CHILDREN,
+    ThisAndParents = GET_FROM_THIS | GET_FROM_PARENTS,
+    All = GET_FROM_THIS | GET_FROM_CHILDREN | GET_FROM_PARENTS,
+}
 
 #[derive(Debug)]
 pub struct GameObject {
@@ -54,25 +67,6 @@ impl Default for GameObject {
     }
 }
 
-pub struct ChildIter<'a> {
-    handle: GameObjectHandle,
-    scene: &'a Scene,
-    index: usize,
-}
-
-const GET_FROM_THIS: isize = 0b001;
-const GET_FROM_CHILDREN: isize = 0b010;
-const GET_FROM_PARENTS: isize = 0b100;
-
-pub enum GetFrom {
-    This = GET_FROM_THIS,
-    Children = GET_FROM_CHILDREN,
-    Parents = GET_FROM_PARENTS,
-    ThisAndChildren = GET_FROM_THIS | GET_FROM_CHILDREN,
-    ThisAndParents = GET_FROM_THIS | GET_FROM_PARENTS,
-    All = GET_FROM_THIS | GET_FROM_CHILDREN | GET_FROM_PARENTS,
-}
-
 impl Default for GameObjectHandle {
     fn default() -> Self {
         Self::null()
@@ -96,8 +90,8 @@ impl GameObjectHandle {
             self.remove_and_destroy_component(scene, component);
         }
 
-        if let Ok(child_iter) = self.child_iter(scene) {
-            for child in child_iter {
+        if let Ok(children) = self.children(scene) {
+            for child in children {
                 child.destroy(scene);
             }
         };
@@ -266,7 +260,7 @@ impl GameObjectHandle {
         Ok(component_handle)
     }
 
-    pub fn add_script<T: Script + 'static>(
+    pub fn add_script<T: Script + Default + 'static>(
         self,
         scene: &Scene,
     ) -> RisResult<ScriptComponentHandle<T>> {
@@ -317,7 +311,7 @@ impl GameObjectHandle {
         }
 
         if search_children {
-            for child in self.child_iter(scene)? {
+            for child in self.children(scene)? {
                 let mut child_components = child.get_components(scene, GetFrom::ThisAndChildren)?;
                 result.append(&mut child_components);
             }
@@ -348,6 +342,12 @@ impl GameObjectHandle {
             })
             .collect::<Vec<_>>();
 
+        Ok(components)
+    }
+
+    pub fn components(self, scene: &Scene) -> EcsResult<Vec<DynComponentHandle>> {
+        let ptr = scene.deref(self.into())?;
+        let components = ptr.borrow().components.clone();
         Ok(components)
     }
 
@@ -486,32 +486,10 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn child_iter(self, scene: &Scene) -> EcsResult<ChildIter> {
-        if !self.is_alive(scene) {
-            return Err(EcsError::ObjectIsDestroyed);
-        }
-
-        Ok(ChildIter {
-            handle: self,
-            scene,
-            index: 0,
-        })
-    }
-
-    pub fn child_len(self, scene: &Scene) -> EcsResult<usize> {
+    pub fn children(self, scene: &Scene) -> EcsResult<Vec<GameObjectHandle>> {
         let ptr = self.clear_destroyed_children(scene)?;
-        Ok(ptr.borrow().children.len())
-    }
-
-    pub fn child(self, scene: &Scene, index: usize) -> EcsResult<Option<GameObjectHandle>> {
-        let ptr = self.clear_destroyed_children(scene)?;
-        let aref = ptr.borrow();
-
-        if index < aref.children.len() {
-            Ok(Some(aref.children[index]))
-        } else {
-            Ok(None)
-        }
+        let children = ptr.borrow().children.clone();
+        Ok(children)
     }
 
     pub fn sibling_index(self, scene: &Scene) -> EcsResult<usize> {
@@ -519,9 +497,9 @@ impl GameObjectHandle {
             return Ok(0);
         };
 
-        let position = parent.child_iter(scene)?.position(|x| x == self);
+        let position = parent.children(scene)?.into_iter().position(|x| x == self);
         let index = ris_error::unwrap!(
-            position.unroll(),
+            position.into_ris_error(),
             "failed to find sibling index, despite having a parent. this error should never occur and hints at a serious issue"
         );
 
@@ -555,27 +533,5 @@ impl GameObjectHandle {
         }
 
         Ok(ptr)
-    }
-}
-
-impl<'a> Iterator for ChildIter<'a> {
-    type Item = GameObjectHandle;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let Ok(ptr) = self.scene.deref(self.handle.into()) else {
-            return None;
-        };
-
-        let aref = ptr.borrow();
-
-        while let Some(&child_handle) = aref.children.get(self.index) {
-            self.index += 1;
-
-            if child_handle.is_alive(self.scene) {
-                return Some(child_handle);
-            }
-        }
-
-        None
     }
 }

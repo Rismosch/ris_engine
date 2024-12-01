@@ -489,7 +489,7 @@ impl GizmoTextRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().unroll()?;
+        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
         unsafe { device.destroy_shader_module(gs_module, None) };
@@ -623,7 +623,7 @@ impl GizmoTextRenderer {
                 None => {
                     let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
                     *mesh = Some(new_mesh);
-                    mesh.as_mut().unroll()?
+                    mesh.as_mut().into_ris_error()?
                 }
             };
 

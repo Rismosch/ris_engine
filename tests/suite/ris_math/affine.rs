@@ -75,7 +75,7 @@ fn should_convert_trs() {
 
         let t = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.range_f(0.000_001, 1.0);
+        let s = rng.next_f32_between(0.000_001, 1.0);
 
         let m = affine::trs_compose(t, r, s);
         let (t_, r_, s_) = affine::trs_decompose(m);

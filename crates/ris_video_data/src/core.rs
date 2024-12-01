@@ -124,7 +124,7 @@ impl VulkanCore {
         let instance_handle = vk::Handle::as_raw(instance.handle());
         let surface_raw = window
             .vulkan_create_surface(instance_handle as usize)
-            .unroll()?;
+            .into_ris_error()?;
         let surface: vk::SurfaceKHR = vk::Handle::from_raw(surface_raw);
         let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
 

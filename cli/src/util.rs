@@ -31,7 +31,7 @@ pub fn get_root_dir() -> RisResult<PathBuf> {
         .stdout;
     let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
 
-    let root_dir = cargo_path.parent().unroll()?.to_path_buf();
+    let root_dir = cargo_path.parent().into_ris_error()?.to_path_buf();
 
     Ok(root_dir)
 }

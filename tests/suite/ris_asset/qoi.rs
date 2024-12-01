@@ -15,10 +15,10 @@ fn should_encode_and_decode_fuzzed() {
     testing::repeat(10, move |_| {
         let mut rng = rng.borrow_mut();
 
-        let width = rng.range_i(1, miri_choose(1000, 10)) as u32;
-        let height = rng.range_i(1, miri_choose(1000, 10)) as u32;
-        let channels = rng.range_i(3, 4) as u8;
-        let color_space = rng.range_i(0, 1) as u8;
+        let width = rng.next_i32_between(1, miri_choose(1000, 10)) as u32;
+        let height = rng.next_i32_between(1, miri_choose(1000, 10)) as u32;
+        let channels = rng.next_i32_between(3, 4) as u8;
+        let color_space = rng.next_i32_between(0, 1) as u8;
 
         let data = rng.next_bytes(width as usize * height as usize * channels as usize);
 

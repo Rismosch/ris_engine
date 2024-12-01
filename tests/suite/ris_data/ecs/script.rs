@@ -3,7 +3,7 @@ use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
-use ris_data::ecs::script::prelude::*;
+use ris_data::ecs::script_prelude::*;
 
 fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
@@ -12,14 +12,24 @@ fn scene_create_info() -> SceneCreateInfo {
     info
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TestScriptString {
     value: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TestScriptISize {
     value: isize,
+}
+
+impl ISerializable for TestScriptString {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        panic!("not implemented")
+    }
+
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
+        panic!("not implemented")
+    }
 }
 
 impl Script for TestScriptString {
@@ -27,10 +37,12 @@ impl Script for TestScriptString {
         ris_debug::fsid!()
     }
 
-    fn start(_data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self {
-            value: String::new(),
-        })
+    fn name(&self) -> &'static str {
+        "TestScriptString"
+    }
+
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
     }
 
     fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
@@ -38,9 +50,23 @@ impl Script for TestScriptString {
         Ok(())
     }
 
-    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         self.value.push_str("\nend");
         Ok(())
+    }
+
+    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        ris_error::new_result!("not implementd")
+    }
+}
+
+impl ISerializable for TestScriptISize {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        panic!("not implemented")
+    }
+
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
+        panic!("not implemented")
     }
 }
 
@@ -49,8 +75,12 @@ impl Script for TestScriptISize {
         ris_debug::fsid!()
     }
 
-    fn start(_data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self { value: 0 })
+    fn name(&self) -> &'static str {
+        "TestScriptISize"
+    }
+
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
     }
 
     fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
@@ -58,9 +88,13 @@ impl Script for TestScriptISize {
         Ok(())
     }
 
-    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         self.value *= -1;
         Ok(())
+    }
+
+    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        ris_error::new_result!("not implementd")
     }
 }
 

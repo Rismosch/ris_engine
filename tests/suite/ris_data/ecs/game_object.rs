@@ -140,14 +140,17 @@ fn should_set_parent() {
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
 
-    assert_eq!(parent.child_len(&scene).unwrap(), 1);
-    let actual_child = parent.child(&scene, 0).unwrap().unwrap();
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 1);
+    let actual_child = children[0];
     assert_eq!(child, actual_child);
 
     // remove parent
     child.set_parent(&scene, None, 0, false).unwrap();
+
+    let children = parent.children(&scene).unwrap();
     assert!(child.parent(&scene).unwrap().is_none());
-    assert_eq!(parent.child_len(&scene).unwrap(), 0);
+    assert_eq!(children.len(), 0);
 }
 
 #[test]
@@ -225,8 +228,9 @@ fn should_not_assign_child_more_than_once() {
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
 
-    assert_eq!(parent.child_len(&scene).unwrap(), 1);
-    let actual_child = parent.child(&scene, 0).unwrap().unwrap();
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 1);
+    let actual_child = children[0];
     assert_eq!(child, actual_child);
 }
 
@@ -240,7 +244,8 @@ fn should_not_assign_destroyed_child() {
 
     assert!(child.set_parent(&scene, Some(parent), 0, false).is_err());
 
-    assert_eq!(parent.child_len(&scene).unwrap(), 0);
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 0);
 }
 
 #[test]
@@ -287,18 +292,18 @@ fn should_set_sibling_index() {
     g4.set_parent(&scene, Some(parent), usize::MAX, false)
         .unwrap();
 
-    assert_eq!(parent.child_len(&scene).unwrap(), 4);
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 4);
 
     assert_eq!(g1.sibling_index(&scene).unwrap(), 2);
     assert_eq!(g2.sibling_index(&scene).unwrap(), 0);
     assert_eq!(g3.sibling_index(&scene).unwrap(), 1);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 3);
 
-    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g2);
-    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g3);
-    assert_eq!(parent.child(&scene, 2).unwrap().unwrap(), g1);
-    assert_eq!(parent.child(&scene, 3).unwrap().unwrap(), g4);
-    assert!(parent.child(&scene, 4).unwrap().is_none());
+    assert_eq!(children[0], g2);
+    assert_eq!(children[1], g3);
+    assert_eq!(children[2], g1);
+    assert_eq!(children[3], g4);
 
     // set via method
     g2.set_sibling_index(&scene, 4).unwrap();
@@ -311,11 +316,12 @@ fn should_set_sibling_index() {
     assert_eq!(g3.sibling_index(&scene).unwrap(), 2);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 1);
 
-    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g1);
-    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g4);
-    assert_eq!(parent.child(&scene, 2).unwrap().unwrap(), g3);
-    assert_eq!(parent.child(&scene, 3).unwrap().unwrap(), g2);
-    assert!(parent.child(&scene, 4).unwrap().is_none());
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 4);
+    assert_eq!(children[0], g1);
+    assert_eq!(children[1], g4);
+    assert_eq!(children[2], g3);
+    assert_eq!(children[3], g2);
 }
 
 #[test]
@@ -336,16 +342,16 @@ fn should_destroy_child() {
     g1.destroy(&scene);
     g2.destroy(&scene);
 
-    assert_eq!(parent.child_len(&scene).unwrap(), 2);
+    let children = parent.children(&scene).unwrap();
+    assert_eq!(children.len(), 2);
 
     assert!(g1.sibling_index(&scene).is_err());
     assert!(g2.sibling_index(&scene).is_err());
     assert_eq!(g3.sibling_index(&scene).unwrap(), 0);
     assert_eq!(g4.sibling_index(&scene).unwrap(), 1);
 
-    assert_eq!(parent.child(&scene, 0).unwrap().unwrap(), g3);
-    assert_eq!(parent.child(&scene, 1).unwrap().unwrap(), g4);
-    assert!(parent.child(&scene, 2).unwrap().is_none());
+    assert_eq!(children[0], g3);
+    assert_eq!(children[1], g4);
 }
 
 #[test]
@@ -373,7 +379,7 @@ fn should_destroy_parent() {
 }
 
 #[test]
-fn should_iter_children() {
+fn should_not_return_destroyed_children() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
     let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
@@ -387,60 +393,14 @@ fn should_iter_children() {
     g4.set_parent(&scene, Some(parent), usize::MAX, false)
         .unwrap();
 
-    let result = parent.child_iter(&scene).unwrap().collect::<Vec<_>>();
-
-    assert_eq!(result.len(), 4);
-    assert_eq!(result[0], g2);
-    assert_eq!(result[1], g3);
-    assert_eq!(result[2], g1);
-    assert_eq!(result[3], g4);
-}
-
-#[test]
-fn should_skip_destroyed_children_on_iter_children() {
-    let scene = Scene::new(scene_create_info()).unwrap();
-    let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g3 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g4 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
-
-    let iter = parent.child_iter(&scene).unwrap();
     g1.destroy(&scene);
     g2.destroy(&scene);
-    let result = iter.collect::<Vec<_>>();
 
-    assert_eq!(result.len(), 2);
-    assert_eq!(result[0], g3);
-    assert_eq!(result[1], g4);
-}
+    let children = parent.children(&scene).unwrap();
 
-#[test]
-fn should_stop_iter_children_when_parent_is_destroyed() {
-    let scene = Scene::new(scene_create_info()).unwrap();
-    let parent = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g1 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g2 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g3 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-    let g4 = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
-
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
-
-    let iter = parent.child_iter(&scene).unwrap();
-    parent.destroy(&scene);
-    let result = iter.collect::<Vec<_>>();
-
-    assert!(result.is_empty());
+    assert_eq!(children.len(), 2);
+    assert_eq!(children[0], g3);
+    assert_eq!(children[1], g4);
 }
 
 #[test]
@@ -497,7 +457,7 @@ fn should_get_and_set_world_transform() {
 
         let p = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.range_f(0.000_001, 1.0);
+        let s = rng.next_f32_between(0.000_001, 1.0);
         g4.set_world_position(&scene, p).unwrap();
         g4.set_world_rotation(&scene, r).unwrap();
         g4.set_world_scale(&scene, s).unwrap();
@@ -514,7 +474,7 @@ fn should_get_and_set_world_transform() {
 fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
     let p = rng.next_pos_3();
     let r = rng.next_rot();
-    let s = rng.range_f(0.000_001, 1.0);
+    let s = rng.next_f32_between(0.000_001, 1.0);
     g.set_local_position(scene, p).unwrap();
     g.set_local_rotation(scene, r).unwrap();
     g.set_local_scale(scene, s).unwrap();

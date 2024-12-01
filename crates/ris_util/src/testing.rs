@@ -210,7 +210,7 @@ macro_rules! prep_test_dir {
     () => {{
         let mut test_name = String::from(ris_util::function!());
         let test_path = test_name.replace("::", "/");
-        let sanitized_test_path = ris_file::path::sanitize(&test_path, false);
+        let sanitized_test_path = ris_io::path::sanitize(&test_path, false);
 
         let executable_string = std::env::args().next().expect("no cli args");
         let executable_path = std::path::PathBuf::from(executable_string);

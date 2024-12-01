@@ -59,7 +59,7 @@ impl<'a> TransientCommand<'a> {
 
         let command_buffers =
             unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
-        let command_buffer = command_buffers.first().unroll()?;
+        let command_buffer = command_buffers.first().into_ris_error()?;
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,

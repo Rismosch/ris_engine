@@ -46,37 +46,55 @@ impl Rng {
     }
 
     /// returns a random u32
-    pub fn next_u(&mut self) -> u32 {
+    pub fn next_u32(&mut self) -> u32 {
         self.pcg.next()
+    }
+
+    /// returns a random i32
+    pub fn next_i32(&mut self) -> i32 {
+        i32::from_ne_bytes(self.next_u32().to_ne_bytes())
+    }
+
+    /// returns a random usize
+    pub fn next_usize(&mut self) -> usize {
+        const SIZE: usize = std::mem::size_of::<usize>();
+        let byte_vec = self.next_bytes(SIZE);
+        let byte_array: [u8; SIZE] = byte_vec.try_into().expect("if this panics, i'll eat a hat");
+        usize::from_ne_bytes(byte_array)
+    }
+
+    /// returns a random isize
+    pub fn next_isize(&mut self) -> isize {
+        isize::from_ne_bytes(self.next_usize().to_ne_bytes())
     }
 
     /// returns a random bool
     pub fn next_bool(&mut self) -> bool {
-        (self.next_u() & 1) == 1
+        (self.next_u32() & 1) == 1
     }
 
     /// returns a random u8
-    pub fn next_byte(&mut self) -> u8 {
-        (0xFF & self.next_u()) as u8
+    pub fn next_u8(&mut self) -> u8 {
+        (self.next_u32() & 0xFF) as u8
     }
 
     /// returns a Vec initialized with random u8s
     pub fn next_bytes(&mut self, buf_len: usize) -> Vec<u8> {
         let mut buf = vec![0; buf_len];
         for item in buf.iter_mut().take(buf_len) {
-            *item = self.next_byte();
+            *item = self.next_u8();
         }
 
         buf
     }
 
     /// returns a random f32 between 0.0 and 1.0
-    pub fn next_f(&mut self) -> f32 {
-        f32::from_bits(0x3F80_0000 | (self.next_u() & 0x7F_FFFF)) - 1.
+    pub fn next_f32(&mut self) -> f32 {
+        f32::from_bits(0x3F80_0000 | (self.next_u32() & 0x7F_FFFF)) - 1.
     }
 
     /// returns a random f32 between min and max
-    pub fn range_f(&mut self, min: f32, max: f32) -> f32 {
+    pub fn next_f32_between(&mut self, min: f32, max: f32) -> f32 {
         if max <= min {
             if max == min {
                 return min;
@@ -85,7 +103,7 @@ impl Rng {
             }
         }
 
-        let r = (max - min) * self.next_f() + min;
+        let r = (max - min) * self.next_f32() + min;
 
         if r > max {
             max
@@ -95,7 +113,7 @@ impl Rng {
     }
 
     /// min and max are inclusive
-    pub fn range_i(&mut self, min: i32, max: i32) -> i32 {
+    pub fn next_i32_between(&mut self, min: i32, max: i32) -> i32 {
         let max = max + 1;
         if max <= min {
             if max == min {
@@ -105,7 +123,7 @@ impl Rng {
             }
         }
 
-        let r = (((max - min) as f32) * self.next_f()) as i32 + min;
+        let r = (((max - min) as f32) * self.next_f32()) as i32 + min;
 
         if r > max {
             max
@@ -115,25 +133,25 @@ impl Rng {
     }
 
     pub fn next_pos_2(&mut self) -> Vec2 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
 
         Vec2(x, y)
     }
 
     pub fn next_pos_3(&mut self) -> Vec3 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
-        let z = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
+        let z = self.next_f32_between(-1.0, 1.0);
 
         Vec3(x, y, z)
     }
 
     pub fn next_pos_4(&mut self) -> Vec4 {
-        let x = self.range_f(-1.0, 1.0);
-        let y = self.range_f(-1.0, 1.0);
-        let z = self.range_f(-1.0, 1.0);
-        let w = self.range_f(-1.0, 1.0);
+        let x = self.next_f32_between(-1.0, 1.0);
+        let y = self.next_f32_between(-1.0, 1.0);
+        let z = self.next_f32_between(-1.0, 1.0);
+        let w = self.next_f32_between(-1.0, 1.0);
 
         Vec4(x, y, z, w)
     }

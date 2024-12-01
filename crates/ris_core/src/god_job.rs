@@ -3,7 +3,7 @@ use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
-use ris_data::ecs::script::prelude::*;
+use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
 use ris_math::quaternion::Quat;
@@ -16,9 +16,19 @@ pub enum WantsTo {
     Restart,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TestRotation {
     rotation_axis: Vec3,
+}
+
+impl ISerializable for TestRotation {
+    fn serialize(&self) -> RisResult<Vec<u8>> {
+        ris_error::new_result!("not implemented")
+    }
+
+    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
+        ris_error::new_result!("not implemented")
+    }
 }
 
 impl Script for TestRotation {
@@ -26,10 +36,12 @@ impl Script for TestRotation {
         ris_debug::fsid!()
     }
 
-    fn start(_data: ScriptStartData) -> RisResult<Self> {
-        Ok(Self {
-            rotation_axis: Vec3::forward(),
-        })
+    fn name(&self) -> &'static str {
+        "TestRotation"
+    }
+
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
     }
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
@@ -48,7 +60,17 @@ impl Script for TestRotation {
         Ok(())
     }
 
-    fn end(&mut self, _data: ScriptEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
+        let ScriptInspectData { ui, .. } = data;
+
+        ui.label_text("this is the script inspector", "label");
+
+        crate::ui_helper::util::drag_vec3("rotation axis", &mut self.rotation_axis)?;
+
         Ok(())
     }
 }
@@ -70,10 +92,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         )?;
         let position = rng.next_pos_3() * scale;
         let rotation = rng.next_rot();
+        let rotation_axis = rng.next_dir_3();
         game_object.set_local_position(&god_object.state.scene, position)?;
         game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
-        game_object.add_script::<TestRotation>(&god_object.state.scene)?;
+        let test_rotation = game_object.add_script::<TestRotation>(&god_object.state.scene)?;
+        test_rotation
+            .script_mut(&god_object.state.scene)?
+            .rotation_axis = rotation_axis;
 
         let physical_device_memory_properties = unsafe {
             god_object

@@ -409,7 +409,7 @@ impl ImguiRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().unroll()?;
+        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
         unsafe { device.destroy_shader_module(vs_shader_module, None) };
         unsafe { device.destroy_shader_module(fs_shader_module, None) };
@@ -469,7 +469,7 @@ impl ImguiRenderer {
 
         let descriptor_sets =
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
-        let descriptor_set = descriptor_sets.into_iter().next().unroll()?;
+        let descriptor_set = descriptor_sets.into_iter().next().into_ris_error()?;
 
         let image_infos = [vk::DescriptorImageInfo {
             sampler: font_texture.sampler,
@@ -560,7 +560,7 @@ impl ImguiRenderer {
                 let new_mesh =
                     unsafe { Mesh::alloc(device, physical_device_memory_properties, draw_data) }?;
                 *mesh = Some(new_mesh);
-                mesh.as_mut().unroll()?
+                mesh.as_mut().into_ris_error()?
             }
         };
 

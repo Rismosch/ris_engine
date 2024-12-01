@@ -22,7 +22,7 @@ pub struct RisGodAsset {
 
 impl RisGodAsset {
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
-        let header = RisHeader::load(bytes)?.unroll()?;
+        let header = RisHeader::load(bytes)?.into_ris_error()?;
 
         let default_vert_spv = header.references[0].clone();
         let default_frag_spv = header.references[1].clone();
@@ -38,7 +38,7 @@ impl RisGodAsset {
         let texture = header.references[11].clone();
 
         let mut cursor = std::io::Cursor::new(bytes);
-        let data = ris_file::io::read_unsized(&mut cursor, header.p_content)?;
+        let data = ris_io::read_at(&mut cursor, header.p_content)?;
         let data_message = String::from_utf8(data)?;
         ris_log::debug!("god asset content: {}", data_message);
 

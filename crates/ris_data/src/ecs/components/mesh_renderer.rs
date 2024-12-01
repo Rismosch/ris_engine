@@ -8,8 +8,18 @@ use crate::ecs::scene::Scene;
 
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {
-    pub game_object: GameObjectHandle,
-    pub video_mesh: Option<VideoMeshHandle>,
+    game_object: GameObjectHandle,
+    video_mesh: Option<VideoMeshHandle>,
+}
+
+impl MeshRendererComponent {
+    pub fn game_object(&self) -> GameObjectHandle {
+        self.game_object
+    }
+
+    pub fn video_mesh(&self) -> Option<VideoMeshHandle> {
+        self.video_mesh
+    }
 }
 
 impl Component for MeshRendererComponent {
