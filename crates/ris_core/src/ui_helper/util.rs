@@ -3,9 +3,7 @@ use std::ffi::CString;
 use imgui::Ui;
 
 use ris_error::RisResult;
-use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-use ris_math::vector::Vec4;
 
 pub fn help_marker(ui: &Ui, text: &str) {
     ui.text_disabled("(?)");

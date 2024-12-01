@@ -413,8 +413,7 @@ impl IUiHelperModule for InspectorModule {
                             let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
                             let aref_mut = ptr.borrow_mut();
 
-                            let mut header_label = format!("mesh##{:?}", aref_mut.game_object());
-
+                            let header_label = format!("mesh##{:?}", aref_mut.game_object());
                             let mut header_flags = imgui::TreeNodeFlags::empty();
                             header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
                             if !data.ui.collapsing_header(header_label, header_flags) {
