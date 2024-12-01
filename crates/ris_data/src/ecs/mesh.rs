@@ -18,13 +18,12 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 
-pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 1] = [
-    vk::VertexInputBindingDescription {
+pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 1] =
+    [vk::VertexInputBindingDescription {
         binding: 0,
         stride: std::mem::size_of::<Vertex>() as u32,
         input_rate: vk::VertexInputRate::VERTEX,
-    }
-];
+    }];
 
 pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3] = [
     vk::VertexInputAttributeDescription {

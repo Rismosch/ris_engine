@@ -55,8 +55,8 @@ impl Script for TestScriptString {
         Ok(())
     }
 
-    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
-       ris_error::new_result!("not implementd")
+    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        ris_error::new_result!("not implementd")
     }
 }
 
@@ -93,8 +93,8 @@ impl Script for TestScriptISize {
         Ok(())
     }
 
-    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
-       ris_error::new_result!("not implementd")
+    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        ris_error::new_result!("not implementd")
     }
 }
 

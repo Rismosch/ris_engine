@@ -11,10 +11,10 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::ui_helper::selection::Selection;
+use crate::ui_helper::util;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
-use crate::ui_helper::util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -123,10 +123,7 @@ impl IUiHelperModule for InspectorModule {
 
                 let mut position = get_position(handle, &data.state.scene)?;
 
-                let changed = util::drag_vec3(
-                    "position",
-                    &mut position,
-                )?;
+                let changed = util::drag_vec3("position", &mut position)?;
                 if changed {
                     set_position(handle, &data.state.scene, position)?;
                 }
@@ -421,18 +418,15 @@ impl IUiHelperModule for InspectorModule {
                             }
 
                             data.ui.label_text("label", "im a mesh :)");
-                        },
+                        }
                         EcsTypeId::ScriptComponent => {
                             let ptr = data.state.scene.script_components[index].to_weak();
                             let mut aref_mut = ptr.borrow_mut();
                             let game_object = aref_mut.game_object();
                             let script = aref_mut.script_mut().unroll()?;
 
-                            let header_label = format!(
-                                "{} (script)##{:?}",
-                                script.name(),
-                                game_object,
-                            );
+                            let header_label =
+                                format!("{} (script)##{:?}", script.name(), game_object,);
                             let mut header_flags = imgui::TreeNodeFlags::empty();
                             header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
                             if !data.ui.collapsing_header(header_label, header_flags) {
@@ -447,8 +441,10 @@ impl IUiHelperModule for InspectorModule {
                             };
 
                             script.inspect(script_inspect_data)?;
-                        },
-                        ecs_type_id => return ris_error::new_result!("{:?} is not a component", ecs_type_id),
+                        }
+                        ecs_type_id => {
+                            return ris_error::new_result!("{:?} is not a component", ecs_type_id)
+                        }
                     }
                 }
 
@@ -482,4 +478,3 @@ impl InspectorModule {
         }
     }
 }
-

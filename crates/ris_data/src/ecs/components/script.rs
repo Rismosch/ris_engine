@@ -41,7 +41,9 @@ pub struct ScriptInspectData<'a> {
 }
 
 pub trait Script: Debug + Send + Sync + ISerializable {
-    fn id() -> Sid where Self: Sized;
+    fn id() -> Sid
+    where
+        Self: Sized;
     fn name(&self) -> &'static str;
     fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;

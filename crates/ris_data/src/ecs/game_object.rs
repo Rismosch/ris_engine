@@ -535,4 +535,3 @@ impl GameObjectHandle {
         Ok(ptr)
     }
 }
-

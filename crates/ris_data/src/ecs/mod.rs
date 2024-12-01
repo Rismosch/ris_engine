@@ -14,7 +14,7 @@ pub mod script_prelude {
     pub use ris_io::serializable::ISerializable;
 
     pub use crate::ecs::components::script::Script;
+    pub use crate::ecs::components::script::ScriptInspectData;
     pub use crate::ecs::components::script::ScriptStartEndData;
     pub use crate::ecs::components::script::ScriptUpdateData;
-    pub use crate::ecs::components::script::ScriptInspectData;
 }

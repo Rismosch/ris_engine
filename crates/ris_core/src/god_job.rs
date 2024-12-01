@@ -36,7 +36,7 @@ impl Script for TestRotation {
         ris_debug::fsid!()
     }
 
-    fn name(&self) -> &'static str { 
+    fn name(&self) -> &'static str {
         "TestRotation"
     }
 
@@ -65,17 +65,11 @@ impl Script for TestRotation {
     }
 
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
-        let ScriptInspectData {
-            ui,
-            ..
-        } = data;
+        let ScriptInspectData { ui, .. } = data;
 
         ui.label_text("this is the script inspector", "label");
 
-        crate::ui_helper::util::drag_vec3(
-            "rotation axis",
-            &mut self.rotation_axis,
-        )?;
+        crate::ui_helper::util::drag_vec3("rotation axis", &mut self.rotation_axis)?;
 
         Ok(())
     }

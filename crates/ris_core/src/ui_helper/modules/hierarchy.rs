@@ -106,7 +106,7 @@ impl HierarchyModule {
         let name = handle.name(scene)?;
         let id = CString::new(format!("{}##{:?}", name, handle))?;
 
-        let has_children = handle.children(scene)?.len() > 0;
+        let has_children = !handle.children(scene)?.is_empty();
         let is_selected = {
             let aref = self.shared_state.borrow();
             let selected = aref.selector.get_selection();

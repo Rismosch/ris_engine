@@ -4,8 +4,8 @@ use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
