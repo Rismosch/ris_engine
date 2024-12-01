@@ -55,6 +55,19 @@ impl Rng {
         i32::from_ne_bytes(self.next_u32().to_ne_bytes())
     }
 
+    /// returns a random usize
+    pub fn next_usize(&mut self) -> usize {
+        const SIZE: usize = std::mem::size_of::<usize>();
+        let byte_vec = self.next_bytes(SIZE);
+        let byte_array: [u8; SIZE] = byte_vec.try_into().expect("if this panics, i'll eat a hat");
+        usize::from_ne_bytes(byte_array)
+    }
+
+    /// returns a random isize
+    pub fn next_isize(&mut self) -> isize {
+        isize::from_ne_bytes(self.next_usize().to_ne_bytes())
+    }
+
     /// returns a random bool
     pub fn next_bool(&mut self) -> bool {
         (self.next_u32() & 1) == 1
@@ -62,7 +75,7 @@ impl Rng {
 
     /// returns a random u8
     pub fn next_u8(&mut self) -> u8 {
-        (0xFF & self.next_u32()) as u8
+        (self.next_u32() & 0xFF) as u8
     }
 
     /// returns a Vec initialized with random u8s
