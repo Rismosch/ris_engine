@@ -499,7 +499,7 @@ impl GameObjectHandle {
 
         let position = parent.children(scene)?.into_iter().position(|x| x == self);
         let index = ris_error::unwrap!(
-            position.unroll(),
+            position.into_ris_error(),
             "failed to find sibling index, despite having a parent. this error should never occur and hints at a serious issue"
         );
 

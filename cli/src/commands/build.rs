@@ -171,7 +171,7 @@ impl ICommand for Build {
 
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
-            let src_sdl2_path = where_sdl2.first().unroll()?;
+            let src_sdl2_path = where_sdl2.first().into_ris_error()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!(
                 "attempting to copy {} from: \"{}\"",

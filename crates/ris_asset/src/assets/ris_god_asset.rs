@@ -22,7 +22,7 @@ pub struct RisGodAsset {
 
 impl RisGodAsset {
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
-        let header = RisHeader::load(bytes)?.unroll()?;
+        let header = RisHeader::load(bytes)?.into_ris_error()?;
 
         let default_vert_spv = header.references[0].clone();
         let default_frag_spv = header.references[1].clone();

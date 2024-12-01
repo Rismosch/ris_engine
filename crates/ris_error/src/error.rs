@@ -69,11 +69,11 @@ impl<E: Error + 'static> From<E> for RisError {
 }
 
 pub trait Extensions<T> {
-    fn unroll(self) -> Result<T, RisError>;
+    fn into_ris_error(self) -> Result<T, RisError>;
 }
 
 impl<T> Extensions<T> for Option<T> {
-    fn unroll(self) -> Result<T, RisError> {
+    fn into_ris_error(self) -> Result<T, RisError> {
         match self {
             Some(value) => Ok(value),
             None => Err(RisError::from(OptionError)),
@@ -82,7 +82,7 @@ impl<T> Extensions<T> for Option<T> {
 }
 
 impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn unroll(self) -> Result<T, RisError> {
+    fn into_ris_error(self) -> Result<T, RisError> {
         match self {
             Ok(value) => Ok(value),
             Err(e) => crate::new_result!("{}", e),

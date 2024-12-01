@@ -423,7 +423,7 @@ impl IUiHelperModule for InspectorModule {
                             let ptr = data.state.scene.script_components[index].to_weak();
                             let mut aref_mut = ptr.borrow_mut();
                             let game_object = aref_mut.game_object();
-                            let script = aref_mut.script_mut().unroll()?;
+                            let script = aref_mut.script_mut().into_ris_error()?;
 
                             let header_label =
                                 format!("{} (script)##{:?}", script.name(), game_object,);

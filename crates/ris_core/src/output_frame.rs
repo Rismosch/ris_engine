@@ -92,7 +92,7 @@ impl OutputFrame {
             ..
         } = &self.core;
 
-        let frames_in_flight = swapchain.frames_in_flight.as_ref().unroll()?;
+        let frames_in_flight = swapchain.frames_in_flight.as_ref().into_ris_error()?;
         let FrameInFlight {
             image_available,
             render_finished,

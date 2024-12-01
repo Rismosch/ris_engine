@@ -234,7 +234,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().unroll(),
+            self.reference.script.as_ref().into_ris_error(),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -246,7 +246,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -257,7 +257,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().unroll(),
+            self.reference.script.as_ref().into_ris_error(),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -269,7 +269,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -278,7 +278,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_mut().unroll(),
+            self.reference.script.as_mut().into_ris_error(),
             "script component did not store a script",
         );
         let deref = script.boxed.deref_mut();
@@ -290,7 +290,7 @@ impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_mut() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }

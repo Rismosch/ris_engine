@@ -66,7 +66,7 @@ where
 
     let mut process = command.spawn()?;
     if let Some(stdout_string) = stdout {
-        let process_stdout = process.stdout.as_mut().unroll()?;
+        let process_stdout = process.stdout.as_mut().into_ris_error()?;
         process_stdout.read_to_string(stdout_string)?;
     }
     let exit_status = process.wait()?;

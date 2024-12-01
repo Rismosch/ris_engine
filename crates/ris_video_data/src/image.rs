@@ -82,7 +82,7 @@ impl Image {
             memory_property_flags,
             physical_device_memory_properties,
         )?
-        .unroll()?;
+        .into_ris_error()?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,

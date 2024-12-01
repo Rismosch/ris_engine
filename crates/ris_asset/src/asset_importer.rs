@@ -69,7 +69,7 @@ pub fn import_all(
                     target_directory.push('/');
                 }
 
-                let source_path = entry_path.to_str().unroll()?;
+                let source_path = entry_path.to_str().into_ris_error()?;
                 let mut target_path_part = source_path.replace('\\', "/");
                 target_path_part.replace_range(0..source_directory.len(), "");
 
@@ -129,8 +129,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_path = info.source_file_path;
             let target_directory = info.target_directory;
 
-            let source_extension = source_path.extension().unroll()?;
-            let source_extension = source_extension.to_str().unroll()?;
+            let source_extension = source_path.extension().into_ris_error()?;
+            let source_extension = source_extension.to_str().into_ris_error()?;
             let source_extension = source_extension.to_lowercase();
 
             let (importer, target_extensions) = match source_extension.as_str() {
@@ -152,8 +152,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 }
             };
 
-            let source_stem = source_path.file_stem().unroll()?;
-            let source_stem = source_stem.to_str().unroll()?;
+            let source_stem = source_path.file_stem().into_ris_error()?;
+            let source_stem = source_stem.to_str().into_ris_error()?;
             let source_stem = String::from(source_stem);
 
             let mut target_paths = Vec::new();

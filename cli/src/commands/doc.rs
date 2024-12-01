@@ -30,7 +30,7 @@ impl ICommand for Doc {
 
         let doc_dir = PathBuf::from(&args[0])
             .parent()
-            .unroll()?
+            .into_ris_error()?
             .to_path_buf()
             .join("..")
             .join("doc");

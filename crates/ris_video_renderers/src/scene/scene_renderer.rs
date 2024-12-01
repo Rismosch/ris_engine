@@ -497,7 +497,7 @@ impl SceneRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().unroll()?;
+        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
