@@ -10,6 +10,8 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::god_object::GodObject;
+use crate::registry::ScriptRegistry;
+use crate::registry::ScriptRegistryEntry;
 
 pub enum WantsTo {
     Quit,
@@ -79,6 +81,16 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     // TESTING
+    let script_registry = ScriptRegistry{
+        entries: vec![
+            Box::new(ScriptRegistryEntry::<TestRotation>::default()),
+        ]
+    };
+
+    let entry = &script_registry.entries[0];
+    let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+    game_object.set_name(&god_object.state.scene, "my go")?;
+    let test = entry.make_and_attach(&god_object.state.scene, game_object)?;
 
     let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
 
