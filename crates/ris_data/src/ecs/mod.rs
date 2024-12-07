@@ -7,6 +7,7 @@ pub mod handle;
 pub mod id;
 pub mod mesh;
 pub mod scene;
+pub mod script_registry;
 
 pub mod script_prelude {
     pub use ris_debug::sid::Sid;

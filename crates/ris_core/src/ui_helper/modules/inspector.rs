@@ -400,6 +400,9 @@ impl IUiHelperModule for InspectorModule {
                     ris_math::color::Rgb::white(),
                 )?;
 
+                data.ui.separator();
+                data.ui.separator();
+
                 for component in handle.components(&data.state.scene)? {
                     data.ui.separator();
 
@@ -412,7 +415,6 @@ impl IUiHelperModule for InspectorModule {
 
                             let header_label = format!("mesh##{:?}", aref_mut.game_object());
                             let mut header_flags = imgui::TreeNodeFlags::empty();
-                            header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
                             if !data.ui.collapsing_header(header_label, header_flags) {
                                 continue;
                             }
@@ -426,9 +428,8 @@ impl IUiHelperModule for InspectorModule {
                             let script = aref_mut.script_mut().into_ris_error()?;
 
                             let header_label =
-                                format!("{} (script)##{:?}", script.name(), game_object,);
+                                format!("script {}##{:?}", script.name(), game_object,);
                             let mut header_flags = imgui::TreeNodeFlags::empty();
-                            header_flags.set(imgui::TreeNodeFlags::DEFAULT_OPEN, true);
                             if !data.ui.collapsing_header(header_label, header_flags) {
                                 continue;
                             }

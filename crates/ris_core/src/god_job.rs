@@ -3,6 +3,7 @@ use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
+use ris_data::ecs::script_registry::ScriptRegistry;
 use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
@@ -10,8 +11,6 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::god_object::GodObject;
-use crate::registry::ScriptRegistry;
-use crate::registry::ScriptRegistryEntry;
 
 pub enum WantsTo {
     Quit,
@@ -81,16 +80,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     // TESTING
-    let script_registry = ScriptRegistry{
-        entries: vec![
-            Box::new(ScriptRegistryEntry::<TestRotation>::default()),
-        ]
-    };
+    let script_registry = ScriptRegistry::new(vec![
+        ScriptRegistry::add::<TestRotation>(),
+    ])?;
 
-    let entry = &script_registry.entries[0];
+    let entry = &script_registry.factories()[0];
     let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
     game_object.set_name(&god_object.state.scene, "my go")?;
-    let test = entry.make_and_attach(&god_object.state.scene, game_object)?;
+    let test = entry.make(&god_object.state.scene, game_object)?;
 
     let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
 
