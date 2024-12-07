@@ -32,6 +32,7 @@ use selection::Selector;
 use modules::gizmo::GizmoModule;
 use modules::hierarchy::HierarchyModule;
 use modules::inspector::InspectorModule;
+use modules::log::LogModule;
 use modules::metrics::MetricsModule;
 use modules::settings::SettingsModule;
 
@@ -79,6 +80,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
         GizmoModule,
         HierarchyModule,
         InspectorModule,
+        LogModule,
         MetricsModule,
         SettingsModule,
         // add new modules here

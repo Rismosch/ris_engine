@@ -5,6 +5,7 @@ use crate::color_string::Color;
 use crate::color_string::ColorString;
 use crate::log_level::LogLevel;
 
+#[derive(Clone)]
 pub struct ConstructedLogMessage {
     pub package: String,
     pub file: String,

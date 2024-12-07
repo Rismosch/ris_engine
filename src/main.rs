@@ -6,6 +6,7 @@ use ris_core::god_job;
 use ris_core::god_object::GodObject;
 use ris_core::log_appenders::console_appender::ConsoleAppender;
 use ris_core::log_appenders::file_appender::FileAppender;
+use ris_core::log_appenders::ui_helper_appender::UiHelperAppender;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -76,7 +77,12 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
 
     let console_appender = Box::new(ConsoleAppender);
     let file_appender = Box::new(FileAppender::new(&logs_dir)?);
-    let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender, file_appender];
+    let ui_helper_appender = Box::new(UiHelperAppender::new()?);
+    let appenders: Vec<Box<dyn IAppender + Send>> = vec![
+        console_appender,
+        file_appender,
+        ui_helper_appender,
+    ];
 
     let log_guard = log::init(LOG_LEVEL, appenders);
 

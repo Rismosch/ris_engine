@@ -1,7 +1,7 @@
 use crate::color_string::Color;
 use crate::color_string::ColorString;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
     Trace = 0,
     Debug = 1,
@@ -22,7 +22,21 @@ impl From<usize> for LogLevel {
             4 => LogLevel::Error,
             5 => LogLevel::Fatal,
             6 => LogLevel::None,
-            _ => unreachable!(),
+            _ => panic!("{} cannot be mapped to a log level", value),
+        }
+    }
+}
+
+impl From<LogLevel> for usize {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::Trace => 0,
+            LogLevel::Debug => 1,
+            LogLevel::Info => 2,
+            LogLevel::Warning => 3,
+            LogLevel::Error => 4,
+            LogLevel::Fatal => 5,
+            LogLevel::None => 6,
         }
     }
 }
