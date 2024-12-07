@@ -116,9 +116,11 @@ impl GodObject {
         let video_subsystem = sdl_context
             .video()
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
+
         let window = video_subsystem
             .window("ris_engine", 640, 480)
             .resizable()
+            .maximized()
             .position_centered()
             .vulkan()
             .build()?;

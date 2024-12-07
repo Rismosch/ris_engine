@@ -1,5 +1,7 @@
 use std::ffi::CString;
 
+use imgui::Ui;
+
 use ris_data::ecs::components::script::ScriptInspectData;
 use ris_data::ecs::decl::EcsTypeId;
 use ris_data::ecs::decl::GameObjectHandle;
@@ -409,21 +411,23 @@ impl IUiHelperModule for InspectorModule {
                 let components = game_object.components(&data.state.scene)?;
                 //data.ui.text(format!("{} components", components.len()));
 
-                for (i, component) in components.iter().enumerate() {
+                for component in components {
                     let index = component.scene_id().index;
+
+                    let delete_requested;
 
                     match component.ecs_type_id() {
                         EcsTypeId::MeshRendererComponent => {
                             //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
                             //let aref_mut = ptr.borrow_mut();
 
-                            let header_label = format!("mesh##{:?}", component);
-                            let header_flags = imgui::TreeNodeFlags::empty();
-                            if !data.ui.collapsing_header(header_label, header_flags) {
+                            let header = ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
+                            delete_requested = header.delete_requested;
+                            if !header.is_open {
                                 continue;
                             }
 
-                            data.ui.label_text("label", "im a mesh :)");
+                            data.ui.text("im a mesh :)");
                         }
                         EcsTypeId::ScriptComponent => {
                             let ptr = data.state.scene.script_components[index].to_weak();
@@ -431,10 +435,9 @@ impl IUiHelperModule for InspectorModule {
                             let game_object = aref_mut.game_object();
                             let script = aref_mut.script_mut().into_ris_error()?;
 
-                            let header_label =
-                                format!("script {}##{:?}", script.name(), component);
-                            let header_flags = imgui::TreeNodeFlags::empty();
-                            if !data.ui.collapsing_header(header_label, header_flags) {
+                            let header = ComponentHeader::draw(data.ui, format!("script {}##{:?}", script.name(), component));
+                            delete_requested = header.delete_requested;
+                            if !header.is_open {
                                 continue;
                             }
 
@@ -449,8 +452,13 @@ impl IUiHelperModule for InspectorModule {
                             script.inspect(script_inspect_data)?;
                         }
                         ecs_type_id => {
-                            return ris_error::new_result!("{:?} is not a component", ecs_type_id)
+                            let header = ComponentHeader::draw(data.ui, format!("{:?}##{:?}", ecs_type_id, component));
+                            delete_requested = header.delete_requested;
                         }
+                    }
+
+                    if delete_requested {
+                        game_object.remove_and_destroy_component(&data.state.scene, component);
                     }
                 }
 
@@ -517,3 +525,40 @@ impl InspectorModule {
         }
     }
 }
+
+struct ComponentHeader {
+    is_open: bool,
+    delete_requested: bool,
+}
+
+impl ComponentHeader {
+    fn draw(
+        ui: &Ui,
+        label: impl AsRef<str>,
+    ) -> Self {
+        let header_flags = imgui::TreeNodeFlags::empty();
+        let is_open = ui.collapsing_header(label, header_flags);
+
+        let context_is_open = unsafe {imgui::sys::igBeginPopupContextItem(
+            std::ptr::null(),
+            1,
+        )};
+
+        let mut delete_requested = false;
+
+        if context_is_open {
+            if ui.button("delete") {
+                delete_requested = true;
+                unsafe {imgui::sys::igCloseCurrentPopup()};
+            }
+
+            unsafe{imgui::sys::igEndPopup()};
+        }
+
+        Self{
+            is_open,
+            delete_requested,
+        }
+    }
+}
+
