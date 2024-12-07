@@ -4,6 +4,7 @@ use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::SceneCreateInfo;
+use ris_data::ecs::script_registry::ScriptRegistry;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -54,6 +55,7 @@ pub struct GodObject {
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
+    pub script_registry: ScriptRegistry,
 
     pub state: GodState,
 
@@ -66,7 +68,7 @@ pub struct GodObject {
 }
 
 impl GodObject {
-    pub fn new(app_info: AppInfo) -> RisResult<Self> {
+    pub fn new(app_info: AppInfo, script_registry: ScriptRegistry) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {
@@ -189,6 +191,7 @@ impl GodObject {
             logic_frame,
             output_frame,
             god_asset,
+            script_registry,
 
             state,
 

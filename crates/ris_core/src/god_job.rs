@@ -1,14 +1,6 @@
-use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::decl::MeshRendererComponentHandle;
-use ris_data::ecs::decl::VideoMeshHandle;
-use ris_data::ecs::id::GameObjectKind;
-use ris_data::ecs::mesh::Mesh;
-use ris_data::ecs::script_registry::ScriptRegistry;
 use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
-use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
 
 use crate::god_object::GodObject;
 
@@ -17,123 +9,8 @@ pub enum WantsTo {
     Restart,
 }
 
-#[derive(Debug, Default)]
-pub struct TestRotation {
-    rotation_axis: Vec3,
-}
-
-impl ISerializable for TestRotation {
-    fn serialize(&self) -> RisResult<Vec<u8>> {
-        ris_error::new_result!("not implemented")
-    }
-
-    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        ris_error::new_result!("not implemented")
-    }
-}
-
-impl Script for TestRotation {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestRotation"
-    }
-
-    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
-        Ok(())
-    }
-
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
-        let ScriptUpdateData {
-            game_object,
-            frame,
-            state: ris_data::god_state::GodState { scene, .. },
-        } = data;
-
-        let rotation = game_object.local_rotation(scene)?;
-        let angle = frame.average_seconds();
-        let q = Quat::angle_axis(angle, self.rotation_axis);
-        let new_rotation = q * rotation;
-        game_object.set_local_rotation(scene, new_rotation)?;
-
-        Ok(())
-    }
-
-    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
-        Ok(())
-    }
-
-    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
-        let ScriptInspectData { ui, .. } = data;
-
-        ui.label_text("this is the script inspector", "label");
-
-        crate::ui_helper::util::drag_vec3("rotation axis", &mut self.rotation_axis)?;
-
-        Ok(())
-    }
-}
-
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
-
-    // TESTING
-    let script_registry = ScriptRegistry::new(vec![
-        ScriptRegistry::add::<TestRotation>(),
-    ])?;
-
-    let entry = &script_registry.factories()[0];
-    let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-    game_object.set_name(&god_object.state.scene, "my go")?;
-    let test = entry.make(&god_object.state.scene, game_object)?;
-
-    let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
-
-    let count = 1000;
-    let scale = 10.0;
-    for i in 0..count {
-        let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
-        game_object.set_name(
-            &god_object.state.scene,
-            format!("game_object with mesh {}", i),
-        )?;
-        let position = rng.next_pos_3() * scale;
-        let rotation = rng.next_rot();
-        let rotation_axis = rng.next_dir_3();
-        game_object.set_local_position(&god_object.state.scene, position)?;
-        game_object.set_local_rotation(&god_object.state.scene, rotation)?;
-
-        let test_rotation = game_object.add_script::<TestRotation>(&god_object.state.scene)?;
-        test_rotation
-            .script_mut(&god_object.state.scene)?
-            .rotation_axis = rotation_axis;
-
-        let physical_device_memory_properties = unsafe {
-            god_object
-                .output_frame
-                .core
-                .instance
-                .get_physical_device_memory_properties(
-                    god_object.output_frame.core.suitable_device.physical_device,
-                )
-        };
-
-        let mesh = Mesh::primitive_cube();
-        let video_mesh = VideoMeshHandle::new(&god_object.state.scene)?;
-        video_mesh.upload(
-            &god_object.state.scene,
-            &god_object.output_frame.core.device,
-            physical_device_memory_properties,
-            mesh,
-        )?;
-        let mesh_renderer: MeshRendererComponentHandle =
-            game_object.add_component(&god_object.state.scene)?.into();
-        mesh_renderer.set_video_mesh(&god_object.state.scene, video_mesh)?;
-    }
-
-    // TESTING END
 
     loop {
         ris_debug::profiler::new_frame()?;

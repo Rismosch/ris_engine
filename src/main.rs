@@ -20,6 +20,8 @@ use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
+pub mod scripts;
+
 pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;
 
@@ -85,13 +87,17 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let _log_guard = setup_logging(&app_info)?;
     ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
-    let god_object = match GodObject::new(app_info) {
+    let script_registry = scripts::registry()?;
+
+    let god_object = match GodObject::new(app_info, script_registry) {
         Ok(god_object) => god_object,
         Err(e) => {
             ris_log::fatal!("failed to create god object: {:?}", e,);
             return Err(e);
         }
     };
+
+    scripts::spawn_many_objects(&god_object)?;
 
     let result = match god_job::run(god_object) {
         Ok(result) => result,
