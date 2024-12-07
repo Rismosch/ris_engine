@@ -4,14 +4,14 @@ use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::decl::VideoMeshHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
-use ris_data::ecs::script_registry::ScriptRegistry;
+use ris_data::ecs::registry::Registry;
 use ris_error::RisResult;
 
 pub mod test;
 
-pub fn registry() -> RisResult<ScriptRegistry> {
-    ScriptRegistry::new(vec![
-        ScriptRegistry::add::<test::Rotation>(),
+pub fn registry() -> RisResult<Registry> {
+    Registry::new(vec![
+        Registry::script::<test::Rotation>()?,
     ])
 }
 

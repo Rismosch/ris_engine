@@ -34,6 +34,7 @@ pub struct ScriptUpdateData<'a> {
 }
 
 pub struct ScriptInspectData<'a> {
+    pub id: String,
     pub ui: &'a Ui,
     pub game_object: GameObjectHandle,
     pub frame: Frame,

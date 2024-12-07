@@ -11,6 +11,7 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_data::ecs::registry::Registry;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
@@ -130,6 +131,7 @@ pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
+    pub registry: &'a Registry,
     pub window_drawable_size: (u32, u32),
 }
 
