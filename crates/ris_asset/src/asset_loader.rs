@@ -68,27 +68,8 @@ impl Drop for AssetLoaderGuard {
 }
 
 pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
-    let asset_path;
-
-    // search for assets relative
-    let mut path_buf = PathBuf::new();
-    path_buf.push(&app_info.file.base_path);
-    path_buf.push(String::from(&app_info.args.assets));
-    let path = Path::new(&path_buf);
-    if path.exists() {
-        asset_path = path;
-    } else {
-        // relative assets not found
-        // search for assets absolute
-        path_buf = PathBuf::new();
-        path_buf.push(String::from(&app_info.args.assets));
-        let path = Path::new(&path_buf);
-        if path.exists() {
-            asset_path = path;
-        } else {
-            return ris_error::new_result!("failed to find assets \"{}\"", &app_info.args.assets);
-        }
-    }
+    let asset_path = app_info.asset_path()?;
+    let asset_path = Path::new(&asset_path);
 
     // create internal loader
     let metadata = asset_path.metadata()?;

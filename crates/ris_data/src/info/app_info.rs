@@ -1,4 +1,7 @@
 use std::fmt;
+use std::path::PathBuf;
+
+use ris_error::RisResult;
 
 use super::args_info::ArgsInfo;
 use super::build_info::BuildInfo;
@@ -33,6 +36,28 @@ impl AppInfo {
             file,
             package,
             sdl,
+        }
+    }
+
+    pub fn asset_path(&self) -> RisResult<PathBuf> {
+        let mut path_buf = PathBuf::new();
+        path_buf.push(&self.file.base_path);
+        path_buf.push(String::from(&self.args.assets));
+        if path_buf.exists() {
+            Ok(path_buf)
+        } else {
+            // relative assets not found
+            // search for assets absolute
+            path_buf = PathBuf::new();
+            path_buf.push(String::from(&self.args.assets));
+            if path_buf.exists() {
+                Ok(path_buf)
+            } else {
+                return ris_error::new_result!(
+                    "failed to find assets \"{}\"",
+                    &self.args.assets,
+                );
+            }
         }
     }
 }
