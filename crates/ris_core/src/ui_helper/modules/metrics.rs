@@ -147,7 +147,10 @@ impl IUiHelperModule for MetricsModule {
                 let mut file = std::fs::File::create(&filepath)?;
 
                 ris_io::write(&mut file, csv.as_bytes())?;
-                ris_log::info!("successfully written profiler result to {:?}", filepath);
+                ris_log::info!(
+                    "successfully written profiler result to \"{}\"",
+                    ris_io::path::to_str(filepath),
+                );
             }
 
             {

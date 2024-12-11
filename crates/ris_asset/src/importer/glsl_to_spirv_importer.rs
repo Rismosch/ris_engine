@@ -141,7 +141,10 @@ impl ShaderStage {
             let mut temp_file = std::fs::File::create(&temp_file_path)?;
             ris_io::write(&mut temp_file, source.as_bytes())?;
 
-            ris_log::trace!("saved transpiled shader to: {:?}", temp_file_path);
+            ris_log::trace!(
+                "saved transpiled shader to: \"{}\"",
+                ris_io::path::to_str(temp_file_path),
+            );
         }
 
         let artifact = compiler
