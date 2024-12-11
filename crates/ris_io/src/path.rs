@@ -20,11 +20,11 @@ pub fn sanitize(value: &str, sanitize_slashes: bool) -> String {
 
 pub fn to_str(path: impl AsRef<Path>) -> String {
     let debug = format!("{:?}", path.as_ref());
+    let without_quotes = debug.trim_matches('"');
 
     #[cfg(target_os = "windows")]
     {
-        let display = debug
-            .trim_matches('"')
+        let display = without_quotes
             .replace("\\\\", "\\")
             .replace('/', "\\");
 
