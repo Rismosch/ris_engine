@@ -33,6 +33,6 @@ pub fn to_str(path: impl AsRef<Path>) -> String {
 
     #[cfg(not(target_os = "windows"))]
     {
-        debug
+        without_quotes.to_string()
     }
 }
