@@ -11,11 +11,13 @@ macro_rules! trace {
 }
 
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
+    let display_dir = crate::path::to_str(dir);
+
     if !dir.exists() {
-        trace!("creating dir... {:?}", dir);
+        trace!("creating dir... \"{}\"", display_dir);
         std::fs::create_dir_all(dir)?;
     } else {
-        trace!("cleaning dir... {:?}", dir);
+        trace!("cleaning dir... \"{}\"", display_dir);
         for entry in dir.read_dir()? {
             let entry = entry?;
             let path = entry.path();
@@ -29,7 +31,7 @@ pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
             }
         }
 
-        trace!("finished cleaning {:?}!", dir);
+        trace!("finished cleaning \"{}\"!", display_dir);
     }
 
     Ok(())

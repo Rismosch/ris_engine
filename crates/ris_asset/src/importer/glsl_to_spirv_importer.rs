@@ -111,10 +111,10 @@ impl ShaderStage {
         };
 
         let file_path = PathBuf::from(file);
-        let file_stem = file_path.file_stem().unroll()?;
-        let file_stem = file_stem.to_str().unroll()?;
-        let file_extension = file_path.extension().unroll()?;
-        let file_extension = file_extension.to_str().unroll()?;
+        let file_stem = file_path.file_stem().into_ris_error()?;
+        let file_stem = file_stem.to_str().into_ris_error()?;
+        let file_extension = file_path.extension().into_ris_error()?;
+        let file_extension = file_extension.to_str().into_ris_error()?;
 
         let shader_extension = match self.kind {
             ShaderKind::Vertex => VERT,
@@ -125,8 +125,8 @@ impl ShaderStage {
         let file = format!("{}.{}.{}", file_stem, shader_extension, file_extension);
 
         if let Some(temp_dir) = temp_dir {
-            let parent = file_path.parent().unroll()?;
-            let parent = parent.to_str().unroll()?;
+            let parent = file_path.parent().into_ris_error()?;
+            let parent = parent.to_str().into_ris_error()?;
             let parent = parent.replace('\\', "/");
             let parent = match parent.strip_prefix(PATH_PREFIX) {
                 Some(parent) => parent.to_string(),
@@ -139,9 +139,12 @@ impl ShaderStage {
 
             std::fs::create_dir_all(dir)?;
             let mut temp_file = std::fs::File::create(&temp_file_path)?;
-            ris_file::io::write_checked(&mut temp_file, source.as_bytes())?;
+            ris_io::write(&mut temp_file, source.as_bytes())?;
 
-            ris_log::trace!("saved transpiled shader to: {:?}", temp_file_path);
+            ris_log::trace!(
+                "saved transpiled shader to: \"{}\"",
+                ris_io::path::to_str(temp_file_path),
+            );
         }
 
         let artifact = compiler
@@ -171,20 +174,20 @@ impl ShaderStage {
 
 pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -> RisResult<()> {
     // read file
-    let file = source.to_str().unroll()?;
+    let file = source.to_str().into_ris_error()?;
 
     let mut source = File::open(file)?;
     let f = &mut source;
 
-    let file_size = ris_file::io::seek(f, SeekFrom::End(0))?;
+    let file_size = ris_io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
-    ris_file::io::seek(f, SeekFrom::Start(0))?;
-    ris_file::io::read_checked(f, &mut file_content)?;
+    ris_io::seek(f, SeekFrom::Start(0))?;
+    ris_io::read(f, &mut file_content)?;
     let source_text = String::from_utf8(file_content)?;
 
     // pre processor
     // init shaders
-    let first_line = source_text.lines().next().unroll()?;
+    let first_line = source_text.lines().next().into_ris_error()?;
 
     preproc_assert(
         first_line.starts_with(MAGIC),
@@ -254,7 +257,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
             }
             MACRO_INCLUDE => {
                 let file_path = PathBuf::from(file);
-                let root_dir = file_path.parent().unroll()?;
+                let root_dir = file_path.parent().into_ris_error()?;
 
                 let mut dependency_history = Vec::new();
                 dependency_history.push(file_path.clone());
@@ -292,8 +295,8 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
     }
 
     // compile to spirv
-    let compiler = shaderc::Compiler::new().unroll()?;
-    let mut options = shaderc::CompileOptions::new().unroll()?;
+    let compiler = shaderc::Compiler::new().into_ris_error()?;
+    let mut options = shaderc::CompileOptions::new().into_ris_error()?;
     options.set_warnings_as_errors();
     options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
@@ -318,7 +321,7 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
             let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
-            ris_file::io::write_checked(&mut output, bytes)?;
+            ris_io::write(&mut output, bytes)?;
         }
     }
 
@@ -385,7 +388,7 @@ fn resolve_include(
 
     already_included.push(include_path.clone());
 
-    let file = include_path.to_str().unroll()?;
+    let file = include_path.to_str().into_ris_error()?;
 
     // check for circular dependency
     if dependency_history.iter().any(|x| *x == include_path) {
@@ -407,7 +410,7 @@ fn resolve_include(
     let mut file_content = String::new();
     include_file.read_to_string(&mut file_content)?;
 
-    let first_line = file_content.lines().next().unroll()?;
+    let first_line = file_content.lines().next().into_ris_error()?;
 
     let magic = "#ris_glsl header";
     preproc_assert(
@@ -418,7 +421,7 @@ fn resolve_include(
     )?;
 
     // parse content
-    let include_path_comment = include_path.to_str().unroll()?.replace('\\', "/");
+    let include_path_comment = include_path.to_str().into_ris_error()?.replace('\\', "/");
     let mut result = format!("//////// INCLUDE {}", include_path_comment);
 
     let mut line = 0;

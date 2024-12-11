@@ -1,5 +1,5 @@
-pub use ris_log::log::IAppender;
-pub use ris_log::log_message::LogMessage;
+use ris_log::log::IAppender;
+use ris_log::log_message::LogMessage;
 
 pub struct ConsoleAppender;
 

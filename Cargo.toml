@@ -26,8 +26,8 @@ members = [
     "crates/ris_data",
     "crates/ris_debug",
     "crates/ris_error",
-    "crates/ris_file",
     "crates/ris_input",
+    "crates/ris_io",
     "crates/ris_jobs",
     "crates/ris_log",
     "crates/ris_math",
@@ -45,8 +45,8 @@ ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
 ris_debug = { path = "crates/ris_debug" }
 ris_error = { path = "crates/ris_error" }
-ris_file = { path = "crates/ris_file" }
 ris_input = { path = "crates/ris_input" }
+ris_io = { path = "crates/ris_io" }
 ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }
 ris_math = { path = "crates/ris_math" }
@@ -65,9 +65,6 @@ png = "0.17.10"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 shaderc = "0.8"
-
-# development (not marked as [dev-dependencies], because `cargo doc` ignores dev dependencies)
-criterion = { version = "0.3", features = ["html_reports"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "^0.2.30"
@@ -97,19 +94,3 @@ panic = "abort"
 incremental = false
 codegen-units = 1
 rpath = false
-
-[[bench]]
-name = "map"
-harness = false
-
-[[bench]]
-name = "sincos"
-harness = false
-
-[[bench]]
-name = "math"
-harness = false
-
-[[bench]]
-name = "vec"
-harness = false

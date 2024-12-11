@@ -25,7 +25,7 @@ fn main() -> Result<(), String> {
 
     unsafe {
         ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
-        ris_file::util::TRACE = true;
+        ris_io::util::TRACE = true;
     }
 
     let mut raw_args = std::env::args().collect::<Vec<_>>();
@@ -224,7 +224,10 @@ fn is_verbose_arg(arg: &str) -> bool {
 fn get_target_dir(program: &str, command: &str) -> RisResult<PathBuf> {
     let parent = match crate::util::get_root_dir() {
         Ok(root_dir) => root_dir,
-        Err(_) => PathBuf::from(program).parent().unroll()?.to_path_buf(),
+        Err(_) => PathBuf::from(program)
+            .parent()
+            .into_ris_error()?
+            .to_path_buf(),
     };
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");

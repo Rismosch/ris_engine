@@ -72,7 +72,7 @@ pub fn as_float(x: i32) -> f32 {
     }
 }
 
-#[deprecated(note = "benchmarking proofed bitmagic is not faster than std")]
+#[deprecated(note = "benchmarking proved bitmagic is not faster than std")]
 /// returns abs(x)
 ///
 /// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201>
@@ -80,7 +80,7 @@ pub fn abs(x: f32) -> f32 {
     as_float(as_int(x) & 0x7FFF_FFFF)
 }
 
-#[deprecated(note = "benchmarking proofed bitmagic is not faster than std")]
+#[deprecated(note = "benchmarking proved bitmagic is not faster than std")]
 /// returns -x
 ///
 /// inspired by Creel: <https://youtu.be/ReTetN51r7A?si=hSNzsPFMN_Pe5kgj&t=201>
@@ -124,7 +124,7 @@ pub fn pow(x: f32, y: f32) -> f32 {
 }
 
 #[deprecated(
-    note = "benchmarking proofed that newton step makes this substentially slower than std. removing the newton step substentially decreased accuracy"
+    note = "benchmarking proved that newton step makes this substentially slower than std. removing the newton step substentially decreased accuracy"
 )]
 /// returns sqrt(x)
 ///

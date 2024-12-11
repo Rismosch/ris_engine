@@ -1,9 +1,12 @@
+#![windows_subsystem = "windows"]
+
 use std::path::PathBuf;
 
 use ris_core::god_job;
 use ris_core::god_object::GodObject;
 use ris_core::log_appenders::console_appender::ConsoleAppender;
 use ris_core::log_appenders::file_appender::FileAppender;
+use ris_core::log_appenders::ui_helper_appender::UiHelperAppender;
 use ris_data::info::app_info::AppInfo;
 use ris_data::info::args_info::ArgsInfo;
 use ris_data::info::build_info::BuildInfo;
@@ -17,6 +20,8 @@ use ris_log::log::IAppender;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
+
+pub mod scripts;
 
 pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;
@@ -72,7 +77,9 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
 
     let console_appender = Box::new(ConsoleAppender);
     let file_appender = Box::new(FileAppender::new(&logs_dir)?);
-    let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender, file_appender];
+    let ui_helper_appender = Box::new(UiHelperAppender::new()?);
+    let appenders: Vec<Box<dyn IAppender + Send>> =
+        vec![console_appender, file_appender, ui_helper_appender];
 
     let log_guard = log::init(LOG_LEVEL, appenders);
 
@@ -83,13 +90,17 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
     let _log_guard = setup_logging(&app_info)?;
     ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
-    let god_object = match GodObject::new(app_info) {
+    let script_registry = scripts::registry()?;
+
+    let god_object = match GodObject::new(app_info, script_registry) {
         Ok(god_object) => god_object,
         Err(e) => {
             ris_log::fatal!("failed to create god object: {:?}", e,);
             return Err(e);
         }
     };
+
+    scripts::spawn_many_objects(&god_object)?;
 
     let result = match god_job::run(god_object) {
         Ok(result) => result,

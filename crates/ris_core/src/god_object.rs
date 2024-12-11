@@ -3,6 +3,7 @@ use sdl2::keyboard::Scancode;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
+use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
@@ -54,6 +55,7 @@ pub struct GodObject {
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
+    pub registry: Registry,
 
     pub state: GodState,
 
@@ -66,7 +68,7 @@ pub struct GodObject {
 }
 
 impl GodObject {
-    pub fn new(app_info: AppInfo) -> RisResult<Self> {
+    pub fn new(app_info: AppInfo, registry: Registry) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {
@@ -114,9 +116,11 @@ impl GodObject {
         let video_subsystem = sdl_context
             .video()
             .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
+
         let window = video_subsystem
             .window("ris_engine", 640, 480)
             .resizable()
+            .maximized()
             .position_centered()
             .vulkan()
             .build()?;
@@ -189,6 +193,7 @@ impl GodObject {
             logic_frame,
             output_frame,
             god_asset,
+            registry,
 
             state,
 

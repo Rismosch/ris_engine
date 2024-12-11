@@ -11,6 +11,7 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_data::ecs::registry::Registry;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
@@ -31,6 +32,7 @@ use selection::Selector;
 use modules::gizmo::GizmoModule;
 use modules::hierarchy::HierarchyModule;
 use modules::inspector::InspectorModule;
+use modules::log::LogModule;
 use modules::metrics::MetricsModule;
 use modules::settings::SettingsModule;
 
@@ -78,6 +80,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
         GizmoModule,
         HierarchyModule,
         InspectorModule,
+        LogModule,
         MetricsModule,
         SettingsModule,
         // add new modules here
@@ -130,6 +133,7 @@ pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
+    pub registry: &'a Registry,
     pub window_drawable_size: (u32, u32),
 }
 
@@ -235,10 +239,10 @@ impl UiHelper {
     fn deserialize(config_filepath: &Path, app_info: &AppInfo) -> RisResult<Self> {
         // read file
         let mut file = std::fs::File::open(config_filepath)?;
-        let file_size = ris_file::io::seek(&mut file, SeekFrom::End(0))?;
-        ris_file::io::seek(&mut file, SeekFrom::Start(0))?;
+        let file_size = ris_io::seek(&mut file, SeekFrom::End(0))?;
+        ris_io::seek(&mut file, SeekFrom::Start(0))?;
         let mut bytes = vec![0; file_size as usize];
-        ris_file::io::read_checked(&mut file, &mut bytes)?;
+        ris_io::read(&mut file, &mut bytes)?;
         let file_content = String::from_utf8(bytes)?;
         let yaml = RisYaml::try_from(file_content.as_str())?;
 

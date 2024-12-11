@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use ris_error::RisResult;
-use ris_file::fallback_file::FallbackFileOverwrite;
+use ris_io::fallback_file::FallbackFileOverwrite;
 
 use crate::info::app_info::AppInfo;
 use crate::settings::key;

@@ -6,5 +6,16 @@ pub mod game_object;
 pub mod handle;
 pub mod id;
 pub mod mesh;
+pub mod registry;
 pub mod scene;
-pub mod script;
+
+pub mod script_prelude {
+    pub use ris_debug::sid::Sid;
+    pub use ris_error::RisResult;
+    pub use ris_io::serializable::ISerializable;
+
+    pub use crate::ecs::components::script::Script;
+    pub use crate::ecs::components::script::ScriptInspectData;
+    pub use crate::ecs::components::script::ScriptStartEndData;
+    pub use crate::ecs::components::script::ScriptUpdateData;
+}

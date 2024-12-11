@@ -1,13 +1,19 @@
 use std::ffi::CString;
 
+use imgui::Ui;
+
+use ris_data::ecs::components::script::ScriptInspectData;
+use ris_data::ecs::decl::EcsTypeId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
+use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::ui_helper::selection::Selection;
+use crate::ui_helper::util;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
@@ -26,6 +32,7 @@ pub struct InspectorModule {
     cached_xyw: Vec3,
     cached_xzw: Vec3,
     cached_yzw: Vec3,
+    component_filter: String,
 }
 
 impl IUiHelperModule for InspectorModule {
@@ -42,6 +49,7 @@ impl IUiHelperModule for InspectorModule {
             cached_xzw: Vec3(0.0, 0.0, 1.0),
             cached_xyw: Vec3(0.0, 0.0, 1.0),
             cached_xyz: Vec3(1.0, 0.0, 0.0),
+            component_filter: String::new(),
         })
     }
 
@@ -52,26 +60,26 @@ impl IUiHelperModule for InspectorModule {
         };
 
         match selected {
-            Selection::GameObject(handle) => {
-                if !handle.is_alive(&data.state.scene) {
+            Selection::GameObject(game_object) => {
+                if !game_object.is_alive(&data.state.scene) {
                     self.shared_state.borrow_mut().selector.set_selection(None);
                     return Ok(());
                 }
 
-                let mut name = handle.name(&data.state.scene)?;
+                let mut name = game_object.name(&data.state.scene)?;
                 if data.ui.input_text("name", &mut name).build() {
-                    handle.set_name(&data.state.scene, name)?;
+                    game_object.set_name(&data.state.scene, name)?;
                 }
 
-                let mut is_active = handle.is_active(&data.state.scene)?;
+                let mut is_active = game_object.is_active(&data.state.scene)?;
                 if data.ui.checkbox("is active", &mut is_active) {
-                    handle.set_active(&data.state.scene, is_active)?;
+                    game_object.set_active(&data.state.scene, is_active)?;
                 }
 
                 {
                     let _token = data.ui.begin_disabled(true);
                     let mut is_active_in_hierarchy =
-                        handle.is_active_in_hierarchy(&data.state.scene)?;
+                        game_object.is_active_in_hierarchy(&data.state.scene)?;
                     data.ui
                         .checkbox("is active in hierarchy", &mut is_active_in_hierarchy);
                 }
@@ -117,35 +125,22 @@ impl IUiHelperModule for InspectorModule {
                     }
                 };
 
-                let format = CString::new("%.3f")?;
+                let mut position = get_position(game_object, &data.state.scene)?;
 
-                let label = CString::new("position")?;
-                let position = get_position(handle, &data.state.scene)?;
-                let mut position: [f32; 3] = position.into();
-                purge_negative_0(&mut position);
-                let changed = unsafe {
-                    imgui::sys::igDragFloat3(
-                        label.as_ptr(),
-                        position.as_mut_ptr(),
-                        0.01,
-                        0.0,
-                        0.0,
-                        format.as_ptr(),
-                        0,
-                    )
-                };
+                let changed = util::drag_vec3("position", &mut position)?;
                 if changed {
-                    set_position(handle, &data.state.scene, position.into())?;
+                    set_position(game_object, &data.state.scene, position)?;
                 }
 
+                let format = CString::new("%.3f")?;
                 let label = CString::new("rotation")?;
                 if !data.ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    let rotation = get_rotation(handle, &data.state.scene)?;
+                    let rotation = get_rotation(game_object, &data.state.scene)?;
                     self.cached_rotation = rotation;
                     self.cache_rotation_axes(rotation);
                 }
                 let mut old_rotation: [f32; 4] = self.cached_rotation.into();
-                purge_negative_0(&mut old_rotation);
+                util::purge_negative_0(&mut old_rotation);
                 let mut new_rotation: [f32; 4] = old_rotation;
                 let changed = unsafe {
                     imgui::sys::igDragFloat4(
@@ -240,7 +235,7 @@ impl IUiHelperModule for InspectorModule {
                         Quat(x, y, z, w).normalize()
                     };
 
-                    set_rotation(handle, &data.state.scene, q)?;
+                    set_rotation(game_object, &data.state.scene, q)?;
                 }
 
                 data.ui.same_line();
@@ -359,14 +354,14 @@ impl IUiHelperModule for InspectorModule {
                     }
 
                     if let Some(rotation) = rotation {
-                        set_rotation(handle, &data.state.scene, rotation)?;
+                        set_rotation(game_object, &data.state.scene, rotation)?;
                         self.cache_rotation_axes(rotation);
                     }
                 }
 
                 let label = CString::new("scale")?;
                 let scale_min = 0.001;
-                let mut scale = get_scale(handle, &data.state.scene)?;
+                let mut scale = get_scale(game_object, &data.state.scene)?;
                 let changed = unsafe {
                     imgui::sys::igDragFloat(
                         label.as_ptr(),
@@ -380,18 +375,18 @@ impl IUiHelperModule for InspectorModule {
                 };
                 scale = f32::max(scale, scale_min);
                 if changed {
-                    set_scale(handle, &data.state.scene, scale)?;
+                    set_scale(game_object, &data.state.scene, scale)?;
                 }
 
-                let world_position = handle.world_position(&data.state.scene)?;
-                let world_rotation = handle.world_rotation(&data.state.scene)?;
+                let world_position = game_object.world_position(&data.state.scene)?;
+                let world_rotation = game_object.world_rotation(&data.state.scene)?;
 
                 let rotation_axis = match self.space {
                     Space::Local => {
-                        let axis_rotation = handle.local_rotation(&data.state.scene)?;
+                        let axis_rotation = game_object.local_rotation(&data.state.scene)?;
                         let (_, axis) = axis_rotation.into();
 
-                        match handle.parent(&data.state.scene)? {
+                        match game_object.parent(&data.state.scene)? {
                             Some(parent) => parent.world_rotation(&data.state.scene)?.rotate(axis),
                             None => axis,
                         }
@@ -410,6 +405,112 @@ impl IUiHelperModule for InspectorModule {
                 )?;
 
                 data.ui.separator();
+                data.ui.separator();
+                data.ui.separator();
+
+                let components = game_object.components(&data.state.scene)?;
+                //data.ui.text(format!("{} components", components.len()));
+
+                for component in components {
+                    let index = component.scene_id().index;
+
+                    let delete_requested;
+
+                    match component.ecs_type_id() {
+                        EcsTypeId::MeshRendererComponent => {
+                            //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
+                            //let aref_mut = ptr.borrow_mut();
+
+                            let header =
+                                ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
+                            delete_requested = header.delete_requested;
+                            if !header.is_open {
+                                continue;
+                            }
+
+                            data.ui.text("im a mesh :)");
+                        }
+                        EcsTypeId::ScriptComponent => {
+                            let ptr = data.state.scene.script_components[index].to_weak();
+                            let mut aref_mut = ptr.borrow_mut();
+                            let game_object = aref_mut.game_object();
+                            let script = aref_mut.script_mut().into_ris_error()?;
+
+                            let header = ComponentHeader::draw(
+                                data.ui,
+                                format!("script {}##{:?}", script.name(), component),
+                            );
+                            delete_requested = header.delete_requested;
+                            if !header.is_open {
+                                continue;
+                            }
+
+                            let script_inspect_data = ScriptInspectData {
+                                id: format!("{:?}", component),
+                                ui: data.ui,
+                                game_object,
+                                frame: data.frame,
+                                state: data.state,
+                            };
+
+                            script.inspect(script_inspect_data)?;
+                        }
+                        ecs_type_id => {
+                            let header = ComponentHeader::draw(
+                                data.ui,
+                                format!("{:?}##{:?}", ecs_type_id, component),
+                            );
+                            delete_requested = header.delete_requested;
+                        }
+                    }
+
+                    if delete_requested {
+                        game_object.remove_and_destroy_component(&data.state.scene, component);
+                    }
+                }
+
+                data.ui.separator();
+
+                let add_component_popup_id = "add_component_popup_id";
+                if data.ui.button("add component...") {
+                    data.ui.open_popup(add_component_popup_id);
+                }
+
+                if let Some(_token) = data.ui.begin_popup(add_component_popup_id) {
+                    data.ui
+                        .input_text("filter", &mut self.component_filter)
+                        .build();
+
+                    for factory in data.registry.component_factories() {
+                        let name = factory.name();
+                        if !name
+                            .to_lowercase()
+                            .contains(&self.component_filter.to_lowercase())
+                        {
+                            continue;
+                        }
+
+                        if data.ui.menu_item(name) {
+                            factory.make(&data.state.scene, game_object)?;
+                        }
+                    }
+
+                    data.ui.separator();
+
+                    for factory in data.registry.script_factories() {
+                        let name = factory.name();
+                        if !name
+                            .to_lowercase()
+                            .contains(&self.component_filter.to_lowercase())
+                        {
+                            continue;
+                        }
+
+                        if data.ui.menu_item(name) {
+                            factory.make(&data.state.scene, game_object)?;
+                        }
+                    }
+                }
             }
         }
 
@@ -440,12 +541,32 @@ impl InspectorModule {
     }
 }
 
-fn purge_negative_0(value: &mut [f32]) {
-    let tolerance = 0.000_01;
+struct ComponentHeader {
+    is_open: bool,
+    delete_requested: bool,
+}
 
-    for item in value.iter_mut() {
-        if item.abs() < tolerance {
-            *item = 0.0;
+impl ComponentHeader {
+    fn draw(ui: &Ui, label: impl AsRef<str>) -> Self {
+        let header_flags = imgui::TreeNodeFlags::empty();
+        let is_open = ui.collapsing_header(label, header_flags);
+
+        let context_is_open = unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) };
+
+        let mut delete_requested = false;
+
+        if context_is_open {
+            if ui.button("delete") {
+                delete_requested = true;
+                unsafe { imgui::sys::igCloseCurrentPopup() };
+            }
+
+            unsafe { imgui::sys::igEndPopup() };
+        }
+
+        Self {
+            is_open,
+            delete_requested,
         }
     }
 }

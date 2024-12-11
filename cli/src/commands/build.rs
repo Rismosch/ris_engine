@@ -60,11 +60,11 @@ impl ICommand for Build {
         let mut rustc_version = String::new();
         let mut rustup_toolchain = String::new();
 
-        crate::cmd::run("git config --get remote.origin.url", Some(&mut git_repo))?;
-        crate::cmd::run("git rev-parse HEAD", Some(&mut git_commit))?;
-        crate::cmd::run("git rev-parse --abbrev-ref HEAD", Some(&mut git_branch))?;
-        crate::cmd::run("rustc --version", Some(&mut rustc_version))?;
-        crate::cmd::run("rustup show active-toolchain", Some(&mut rustup_toolchain))?;
+        crate::cmd::run_with_stdout("git config --get remote.origin.url", &mut git_repo)?;
+        crate::cmd::run_with_stdout("git rev-parse HEAD", &mut git_commit)?;
+        crate::cmd::run_with_stdout("git rev-parse --abbrev-ref HEAD", &mut git_branch)?;
+        crate::cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
+        crate::cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
 
         let build_date = chrono::Local::now().to_rfc3339();
 
@@ -75,7 +75,10 @@ impl ICommand for Build {
         let rustup_toolchain = rustup_toolchain.trim();
         let build_date = build_date.trim();
 
-        eprintln!("read previous build info... {:?}", build_info_path);
+        eprintln!(
+            "read previous build info... \"{}\"",
+            ris_io::path::to_str(&build_info_path),
+        );
 
         let mut file_content = String::new();
         {
@@ -148,9 +151,9 @@ impl ICommand for Build {
         Asset::execute_command(AssetCommand::Compile, None)?;
 
         eprintln!("compiling workspace...");
-        crate::cmd::run("cargo build --release", None)?;
+        crate::cmd::run("cargo build --release")?;
 
-        ris_file::util::clean_or_create_dir(&target_dir)?;
+        ris_io::util::clean_or_create_dir(&target_dir)?;
 
         eprintln!("moving executable...");
         let src_exe_path = root_dir.join("target").join("release").join(EXE_NAME);
@@ -168,13 +171,19 @@ impl ICommand for Build {
 
             eprintln!("moving sdl2...");
             let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
-            let src_sdl2_path = where_sdl2.first().unroll()?;
+            let src_sdl2_path = where_sdl2.first().into_ris_error()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
-            eprintln!("attempting to copy {} from: {:?}", SDL2_NAME, src_sdl2_path);
+            eprintln!(
+                "attempting to copy {} from: \"{}\"",
+                SDL2_NAME, src_sdl2_path,
+            );
             std::fs::copy(src_sdl2_path, dst_sdl2_path)?;
         }
 
-        eprintln!("done! final build can be found under {:?}", target_dir);
+        eprintln!(
+            "done! final build can be found under \"{}\"",
+            ris_io::path::to_str(target_dir),
+        );
 
         Ok(())
     }

@@ -106,7 +106,7 @@ impl HierarchyModule {
         let name = handle.name(scene)?;
         let id = CString::new(format!("{}##{:?}", name, handle))?;
 
-        let has_children = handle.child_len(scene)? > 0;
+        let has_children = !handle.children(scene)?.is_empty();
         let is_selected = {
             let aref = self.shared_state.borrow();
             let selected = aref.selector.get_selection();
@@ -205,8 +205,7 @@ impl HierarchyModule {
 
         if open {
             if handle.is_alive(scene) {
-                let children = handle.child_iter(scene)?.collect::<Vec<_>>();
-                for child in children {
+                for child in handle.children(scene)? {
                     self.draw_node(child, data)?;
                 }
             }

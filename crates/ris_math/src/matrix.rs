@@ -11,39 +11,39 @@ const MIN_NORM: f32 = 0.000_001f32;
 // the first number in the type is the number of columns, the second is the number of rows. note
 // that the vecs are columns, not rows!
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat2(pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat2x3(pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat2x4(pub Vec4, pub Vec4);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat3x2(pub Vec2, pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat3(pub Vec3, pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat3x4(pub Vec4, pub Vec4, pub Vec4);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat4x2(pub Vec2, pub Vec2, pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat4x3(pub Vec3, pub Vec3, pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
 

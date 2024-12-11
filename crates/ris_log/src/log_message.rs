@@ -1,5 +1,6 @@
 use crate::constructed_log_message::ConstructedLogMessage;
 
+#[derive(Clone)]
 pub enum LogMessage {
     Constructed(ConstructedLogMessage),
     Plain(String),

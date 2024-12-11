@@ -1,14 +1,18 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
+use imgui::Ui;
+
 use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_io::serializable::ISerializable;
 use ris_ptr::Aref;
 use ris_ptr::ArefMut;
 
 use crate::ecs::decl::DynScriptComponentHandle;
 use crate::ecs::decl::GameObjectHandle;
+use crate::ecs::decl::ScriptComponentHandle;
 use crate::ecs::error::EcsError;
 use crate::ecs::error::EcsResult;
 use crate::ecs::handle::ComponentHandle;
@@ -18,17 +22,7 @@ use crate::ecs::scene::Scene;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
-pub mod prelude {
-    pub use ris_debug::sid::Sid;
-    pub use ris_error::RisResult;
-
-    pub use super::Script;
-    pub use super::ScriptEndData;
-    pub use super::ScriptStartData;
-    pub use super::ScriptUpdateData;
-}
-
-pub struct ScriptStartData<'a> {
+pub struct ScriptStartEndData<'a> {
     pub game_object: GameObjectHandle,
     pub scene: &'a Scene,
 }
@@ -39,25 +33,28 @@ pub struct ScriptUpdateData<'a> {
     pub state: &'a GodState,
 }
 
-pub struct ScriptEndData<'a> {
+pub struct ScriptInspectData<'a> {
+    pub id: String,
+    pub ui: &'a Ui,
     pub game_object: GameObjectHandle,
-    pub scene: &'a Scene,
+    pub frame: Frame,
+    pub state: &'a GodState,
 }
 
-pub trait Script: Debug + Send + Sync {
+pub trait Script: Debug + Send + Sync + ISerializable {
     fn id() -> Sid
     where
         Self: Sized;
-    fn start(data: ScriptStartData) -> RisResult<Self>
-    where
-        Self: Sized;
+    fn name(&self) -> &'static str;
+    fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
-    fn end(&mut self, data: ScriptEndData) -> RisResult<()>;
+    fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
+    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()>;
 }
 
 #[derive(Debug)]
 pub struct DynScript {
-    boxxed: Box<dyn Script>,
+    boxed: Box<dyn Script>,
     id: Sid,
 }
 
@@ -65,12 +62,6 @@ pub struct DynScript {
 pub struct DynScriptComponent {
     game_object: GameObjectHandle,
     script: Option<DynScript>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ScriptComponentHandle<T: Script> {
-    handle: DynScriptComponentHandle,
-    boo: PhantomData<T>,
 }
 
 pub struct ScriptComponentRef<T: Script> {
@@ -105,12 +96,12 @@ impl Component for DynScriptComponent {
             return;
         };
 
-        let data = ScriptEndData {
+        let data = ScriptStartEndData {
             game_object: self.game_object,
             scene,
         };
 
-        if let Err(e) = script.boxxed.end(data) {
+        if let Err(e) = script.boxed.end(data) {
             ris_log::error!("failed to end script {:?}: {}", script, e);
         }
     }
@@ -121,6 +112,14 @@ impl Component for DynScriptComponent {
 }
 
 impl DynScriptComponent {
+    pub fn game_object(&self) -> GameObjectHandle {
+        self.game_object
+    }
+
+    pub fn script_mut(&mut self) -> Option<&mut Box<dyn Script>> {
+        self.script.as_mut().map(|x| &mut x.boxed)
+    }
+
     pub fn update(&mut self, frame: Frame, state: &GodState) -> RisResult<()> {
         let data = ScriptUpdateData {
             game_object: self.game_object,
@@ -128,8 +127,8 @@ impl DynScriptComponent {
             state,
         };
 
-        match self.script.as_mut() {
-            Some(script) => script.boxxed.update(data),
+        match self.script_mut() {
+            Some(script) => script.update(data),
             None => ris_error::new_result!(
                 "attempted to call update on a script that hasn't been started yet"
             ),
@@ -137,13 +136,13 @@ impl DynScriptComponent {
     }
 
     pub fn end(&mut self, scene: &Scene) -> RisResult<()> {
-        let data = ScriptEndData {
+        let data = ScriptStartEndData {
             game_object: self.game_object,
             scene,
         };
 
-        match self.script.as_mut() {
-            Some(script) => script.boxxed.end(data),
+        match self.script_mut() {
+            Some(script) => script.end(data),
             None => ris_error::new_result!(
                 "attempted to call end on a script that hasn't been started yet"
             ),
@@ -151,16 +150,17 @@ impl DynScriptComponent {
     }
 }
 
-impl<T: Script + 'static> ScriptComponentHandle<T> {
+impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
-        let data = ScriptStartData { game_object, scene };
-        let script = T::start(data)?;
+        let data = ScriptStartEndData { game_object, scene };
+        let mut script = T::default();
+        script.start(data)?;
 
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(DynScript {
-            boxxed: Box::new(script),
+            boxed: Box::new(script),
             id: T::id(),
         });
 
@@ -171,7 +171,9 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
 
         Ok(generic_handle)
     }
+}
 
+impl<T: Script + 'static> ScriptComponentHandle<T> {
     pub fn try_from(handle: DynScriptComponentHandle, scene: &Scene) -> EcsResult<Self> {
         let ptr = scene.deref(handle.into())?;
         let aref = ptr.borrow();
@@ -228,23 +230,15 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
     }
 }
 
-impl<T: Script> Clone for ScriptComponentHandle<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<T: Script> Copy for ScriptComponentHandle<T> {}
-
 impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().unroll(),
+            self.reference.script.as_ref().into_ris_error(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref();
+        let deref = script.boxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -253,7 +247,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -264,10 +258,10 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().unroll(),
+            self.reference.script.as_ref().into_ris_error(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref();
+        let deref = script.boxed.deref();
 
         let dyn_ptr = deref as *const dyn Script;
         let t_ptr = dyn_ptr as *const T;
@@ -276,7 +270,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -285,10 +279,10 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_mut().unroll(),
+            self.reference.script.as_mut().into_ris_error(),
             "script component did not store a script",
         );
-        let deref = script.boxxed.deref_mut();
+        let deref = script.boxed.deref_mut();
 
         let dyn_ptr = deref as *mut dyn Script;
         let t_ptr = dyn_ptr as *mut T;
@@ -297,7 +291,7 @@ impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_mut() };
 
         ris_error::unwrap!(
-            reference.unroll(),
+            reference.into_ris_error(),
             "honestly, something is very wrong if reference manages to be none",
         )
     }

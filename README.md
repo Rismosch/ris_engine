@@ -59,7 +59,7 @@ You also require an internet connection, to download dependencies from [crates.i
 
 ## Installation
 
-This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Click to reveal the instructions of the given platform.
+This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Click to reveal the instructions for the given platform.
 
 <details>
   <summary>Windows</summary>
@@ -150,7 +150,7 @@ Alternatively, to run **much** more extensive tests, you can run the command bel
 cargo run -p cli pipeline all
 ```
 
-Using the command above, some tests run [miri](https://github.com/rust-lang/miri). If miri is not installed on your system, then the tests which require it will definitely fail.
+Using the command above, some tests run [miri](https://github.com/rust-lang/miri). If miri is not installed, then the according tests will fail.
 
 ## Cli
 
