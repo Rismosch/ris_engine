@@ -421,7 +421,8 @@ impl IUiHelperModule for InspectorModule {
                             //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
                             //let aref_mut = ptr.borrow_mut();
 
-                            let header = ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
+                            let header =
+                                ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
                             delete_requested = header.delete_requested;
                             if !header.is_open {
                                 continue;
@@ -435,7 +436,10 @@ impl IUiHelperModule for InspectorModule {
                             let game_object = aref_mut.game_object();
                             let script = aref_mut.script_mut().into_ris_error()?;
 
-                            let header = ComponentHeader::draw(data.ui, format!("script {}##{:?}", script.name(), component));
+                            let header = ComponentHeader::draw(
+                                data.ui,
+                                format!("script {}##{:?}", script.name(), component),
+                            );
                             delete_requested = header.delete_requested;
                             if !header.is_open {
                                 continue;
@@ -452,7 +456,10 @@ impl IUiHelperModule for InspectorModule {
                             script.inspect(script_inspect_data)?;
                         }
                         ecs_type_id => {
-                            let header = ComponentHeader::draw(data.ui, format!("{:?}##{:?}", ecs_type_id, component));
+                            let header = ComponentHeader::draw(
+                                data.ui,
+                                format!("{:?}##{:?}", ecs_type_id, component),
+                            );
                             delete_requested = header.delete_requested;
                         }
                     }
@@ -470,11 +477,16 @@ impl IUiHelperModule for InspectorModule {
                 }
 
                 if let Some(_token) = data.ui.begin_popup(add_component_popup_id) {
-                    data.ui.input_text("filter", &mut self.component_filter).build();
+                    data.ui
+                        .input_text("filter", &mut self.component_filter)
+                        .build();
 
                     for factory in data.registry.component_factories() {
                         let name = factory.name();
-                        if !name.to_lowercase().contains(&self.component_filter.to_lowercase()) {
+                        if !name
+                            .to_lowercase()
+                            .contains(&self.component_filter.to_lowercase())
+                        {
                             continue;
                         }
 
@@ -487,7 +499,10 @@ impl IUiHelperModule for InspectorModule {
 
                     for factory in data.registry.script_factories() {
                         let name = factory.name();
-                        if !name.to_lowercase().contains(&self.component_filter.to_lowercase()) {
+                        if !name
+                            .to_lowercase()
+                            .contains(&self.component_filter.to_lowercase())
+                        {
                             continue;
                         }
 
@@ -532,33 +547,26 @@ struct ComponentHeader {
 }
 
 impl ComponentHeader {
-    fn draw(
-        ui: &Ui,
-        label: impl AsRef<str>,
-    ) -> Self {
+    fn draw(ui: &Ui, label: impl AsRef<str>) -> Self {
         let header_flags = imgui::TreeNodeFlags::empty();
         let is_open = ui.collapsing_header(label, header_flags);
 
-        let context_is_open = unsafe {imgui::sys::igBeginPopupContextItem(
-            std::ptr::null(),
-            1,
-        )};
+        let context_is_open = unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) };
 
         let mut delete_requested = false;
 
         if context_is_open {
             if ui.button("delete") {
                 delete_requested = true;
-                unsafe {imgui::sys::igCloseCurrentPopup()};
+                unsafe { imgui::sys::igCloseCurrentPopup() };
             }
 
-            unsafe{imgui::sys::igEndPopup()};
+            unsafe { imgui::sys::igEndPopup() };
         }
 
-        Self{
+        Self {
             is_open,
             delete_requested,
         }
     }
 }
-

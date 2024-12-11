@@ -10,9 +10,7 @@ use ris_error::RisResult;
 pub mod test;
 
 pub fn registry() -> RisResult<Registry> {
-    Registry::new(vec![
-        Registry::script::<test::Rotation>()?,
-    ])
+    Registry::new(vec![Registry::script::<test::Rotation>()?])
 }
 
 pub fn spawn_many_objects(god_object: &GodObject) -> RisResult<()> {

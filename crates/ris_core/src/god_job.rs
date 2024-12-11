@@ -50,14 +50,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
 
         ris_debug::add_record!(r, "output frame")?;
-        let output_result = god_object
-            .output_frame
-            .run(
-                frame,
-                &mut god_object.state,
-                &god_object.registry,
-                &god_object.god_asset,
-            );
+        let output_result = god_object.output_frame.run(
+            frame,
+            &mut god_object.state,
+            &god_object.registry,
+            &god_object.god_asset,
+        );
 
         // wait for jobs
         ris_debug::add_record!(r, "wait for jobs")?;

@@ -16,7 +16,7 @@ impl UiHelperAppender {
         let mut messages = MESSAGES.lock()?;
         *messages = Some(Vec::new());
 
-        Ok(Self{_boo: ()})
+        Ok(Self { _boo: () })
     }
 }
 
@@ -33,10 +33,7 @@ impl Drop for UiHelperAppender {
 
 impl IAppender for UiHelperAppender {
     fn print(&mut self, message: &LogMessage) {
-        let mut mutex_guard = ris_error::unwrap!(
-            MESSAGES.lock(),
-            "failed to lock messages"
-        );
+        let mut mutex_guard = ris_error::unwrap!(MESSAGES.lock(), "failed to lock messages");
 
         let messages = ris_error::unwrap!(
             mutex_guard.as_mut().into_ris_error(),

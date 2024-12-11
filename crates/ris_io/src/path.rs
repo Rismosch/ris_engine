@@ -24,11 +24,7 @@ pub fn to_str(path: impl AsRef<Path>) -> String {
 
     #[cfg(target_os = "windows")]
     {
-        let display = without_quotes
-            .replace("\\\\", "\\")
-            .replace('/', "\\");
-
-        display
+        without_quotes.replace("\\\\", "\\").replace('/', "\\")
     }
 
     #[cfg(not(target_os = "windows"))]

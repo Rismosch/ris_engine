@@ -75,4 +75,3 @@ fn should_generate_numbers_between_float_range() {
         assert!(random <= max);
     }
 }
-

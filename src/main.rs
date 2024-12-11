@@ -78,11 +78,8 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
     let console_appender = Box::new(ConsoleAppender);
     let file_appender = Box::new(FileAppender::new(&logs_dir)?);
     let ui_helper_appender = Box::new(UiHelperAppender::new()?);
-    let appenders: Vec<Box<dyn IAppender + Send>> = vec![
-        console_appender,
-        file_appender,
-        ui_helper_appender,
-    ];
+    let appenders: Vec<Box<dyn IAppender + Send>> =
+        vec![console_appender, file_appender, ui_helper_appender];
 
     let log_guard = log::init(LOG_LEVEL, appenders);
 

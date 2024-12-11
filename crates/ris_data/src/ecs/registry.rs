@@ -4,11 +4,11 @@ use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::components::script::Script;
 use super::components::mesh_renderer::MeshRendererComponent;
-use super::handle::DynComponentHandle;
+use super::components::script::Script;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
+use super::handle::DynComponentHandle;
 use super::id::Component;
 use super::scene::Scene;
 
@@ -25,24 +25,28 @@ pub trait IComponentFactory: std::fmt::Debug {
 pub trait IScriptFactory: std::fmt::Debug {
     fn script_id(&self) -> Sid;
     fn name(&self) -> &str;
-    fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScriptComponentHandle>;
+    fn make(
+        &self,
+        scene: &Scene,
+        game_object: GameObjectHandle,
+    ) -> RisResult<DynScriptComponentHandle>;
 }
 
 #[derive(Debug)]
-pub struct ComponentFactory<T: Component>{
+pub struct ComponentFactory<T: Component> {
     name: String,
     boo: PhantomData<T>,
 }
 
 #[derive(Debug)]
-pub struct ScriptFactory<T: Script + Default>{
+pub struct ScriptFactory<T: Script + Default> {
     name: String,
     boo: PhantomData<T>,
 }
 
 impl Registry {
     fn component<T: Component>() -> RisResult<Box<ComponentFactory<T>>> {
-        let mut factory = ComponentFactory{
+        let mut factory = ComponentFactory {
             name: String::new(),
             boo: PhantomData::<T>,
         };
@@ -52,7 +56,7 @@ impl Registry {
     }
 
     pub fn script<T: Script + Default>() -> RisResult<Box<ScriptFactory<T>>> {
-        let mut factory = ScriptFactory{
+        let mut factory = ScriptFactory {
             name: String::new(),
             boo: PhantomData::<T>,
         };
@@ -62,9 +66,8 @@ impl Registry {
     }
 
     pub fn new(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<Self> {
-        let components: Vec<Box<dyn IComponentFactory>> = vec![
-            Self::component::<MeshRendererComponent>()?,
-        ];
+        let components: Vec<Box<dyn IComponentFactory>> =
+            vec![Self::component::<MeshRendererComponent>()?];
 
         // assert that all scripts have unique ids
         for (i, left) in scripts.iter().enumerate() {
@@ -86,7 +89,7 @@ impl Registry {
             }
         }
 
-        Ok(Self{
+        Ok(Self {
             components,
             scripts,
         })
@@ -121,8 +124,12 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
         &self.name
     }
 
-    fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScriptComponentHandle> {
-        let handle = game_object.add_script::<T>(&scene)?;
+    fn make(
+        &self,
+        scene: &Scene,
+        game_object: GameObjectHandle,
+    ) -> RisResult<DynScriptComponentHandle> {
+        let handle = game_object.add_script::<T>(scene)?;
         let dyn_handle = handle.dyn_handle();
         Ok(dyn_handle)
     }
@@ -131,11 +138,14 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
 fn get_name(factory: &impl std::fmt::Debug) -> RisResult<String> {
     let name = format!("{:?}", factory)
         .split('>')
-        .next().into_ris_error()?
+        .next()
+        .into_ris_error()?
         .split('<')
-        .last().into_ris_error()?
+        .last()
+        .into_ris_error()?
         .split("::")
-        .last().into_ris_error()?
+        .last()
+        .into_ris_error()?
         .to_string();
     Ok(name)
 }

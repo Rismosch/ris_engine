@@ -1,14 +1,9 @@
 use std::ffi::CString;
 
-use std::f32::consts::PI;
-
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
-use ris_math::color::Rgb;
-use ris_math::quaternion::Quat;
-use ris_math::vector::Vec3;
 
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
@@ -26,7 +21,7 @@ impl IUiHelperModule for LogModule {
     }
 
     fn build(_shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
-        Box::new(Self{
+        Box::new(Self {
             log_level: LogLevel::Info,
             filter: String::new(),
             log_plain: false,
@@ -34,7 +29,6 @@ impl IUiHelperModule for LogModule {
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
-
         if data.ui.button("clear") {
             let mutex = &crate::log_appenders::ui_helper_appender::MESSAGES;
             let mut mutex_guard = mutex.lock()?;
@@ -45,7 +39,7 @@ impl IUiHelperModule for LogModule {
         let label = CString::new("##log_level")?;
         let label_ptr = label.as_ptr();
         let mut current_item = usize::from(self.log_level) as i32;
-        let items = vec![
+        let items = [
             CString::new(format!("{:?}", LogLevel::Trace))?,
             CString::new(format!("{:?}", LogLevel::Debug))?,
             CString::new(format!("{:?}", LogLevel::Info))?,
@@ -54,10 +48,7 @@ impl IUiHelperModule for LogModule {
             CString::new(format!("{:?}", LogLevel::Fatal))?,
             CString::new(format!("{:?}", LogLevel::None))?,
         ];
-        let item_ptrs = items
-            .iter()
-            .map(|x| x.as_ptr())
-            .collect::<Vec<_>>();
+        let item_ptrs = items.iter().map(|x| x.as_ptr()).collect::<Vec<_>>();
         let items_ptrs_ptr = item_ptrs.as_ptr();
 
         data.ui.same_line();
@@ -73,7 +64,7 @@ impl IUiHelperModule for LogModule {
                 -1,
             )
         };
-        self.log_level = LogLevel::from(current_item as usize).into();
+        self.log_level = LogLevel::from(current_item as usize);
 
         data.ui.same_line();
         data.ui.checkbox("log plain", &mut self.log_plain);
@@ -83,9 +74,10 @@ impl IUiHelperModule for LogModule {
 
         data.ui.separator();
 
-        let result = data.ui.child_window("log_scrolling").build(|| {
-            self.draw_child(data)
-        });
+        let result = data
+            .ui
+            .child_window("log_scrolling")
+            .build(|| self.draw_child(data));
 
         match result {
             Some(Err(e)) => Err(e),
@@ -99,23 +91,26 @@ impl LogModule {
         let mutex = &crate::log_appenders::ui_helper_appender::MESSAGES;
         let mut mutex_guard = mutex.lock()?;
         let messages = mutex_guard.as_mut().into_ris_error()?;
-        
+
         for message in messages.iter() {
             match message {
                 LogMessage::Plain(_plain) => {
                     if !self.log_plain {
                         continue;
                     }
-                },
+                }
                 LogMessage::Constructed(constructed) => {
                     if constructed.priority < self.log_level {
                         continue;
                     }
-                },
+                }
             };
 
             let formatted_message = message.fmt(false);
-            if !formatted_message.to_lowercase().contains(&self.filter.to_lowercase()) {
+            if !formatted_message
+                .to_lowercase()
+                .contains(&self.filter.to_lowercase())
+            {
                 continue;
             }
 
@@ -125,7 +120,7 @@ impl LogModule {
         }
 
         if data.ui.scroll_y() >= data.ui.scroll_max_y() {
-            unsafe{imgui::sys::igSetScrollHereY(1.0)};
+            unsafe { imgui::sys::igSetScrollHereY(1.0) };
         }
 
         Ok(())
