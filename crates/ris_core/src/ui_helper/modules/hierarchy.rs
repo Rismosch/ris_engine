@@ -48,6 +48,21 @@ impl IUiHelperModule for HierarchyModule {
 
         ui.combo_simple_string("chunk", &mut self.selected_chunk, &choices);
 
+        if ui.button("clear") {
+            let test = sdl2::messagebox::show_simple_message_box(
+                sdl2::messagebox::MessageBoxFlag::empty(),
+                "hello",
+                "world",
+                None,
+            );
+            ris_log::debug!("hello");
+        }
+
+        ui.same_line();
+        if ui.button("save") {
+            ris_log::debug!("save");
+        }
+
         let (chunk, kind) = if self.selected_chunk == 0 {
             (&scene.movable_game_objects, GameObjectKind::Movable)
         } else {

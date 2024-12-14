@@ -7,16 +7,6 @@ pub struct Rotation {
     pub rotation_axis: Vec3,
 }
 
-impl ISerializable for Rotation {
-    fn serialize(&self) -> RisResult<Vec<u8>> {
-        ris_error::new_result!("not implemented")
-    }
-
-    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        ris_error::new_result!("not implemented")
-    }
-}
-
 impl Script for Rotation {
     fn id() -> Sid {
         ris_debug::fsid!()
