@@ -2,7 +2,6 @@ use ris_core::god_object::GodObject;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::decl::VideoMeshHandle;
-use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::mesh::Mesh;
 use ris_data::ecs::registry::Registry;
 use ris_error::RisResult;
@@ -19,7 +18,7 @@ pub fn spawn_many_objects(god_object: &GodObject) -> RisResult<()> {
     let count = 1000;
     let scale = 10.0;
     for i in 0..count {
-        let game_object = GameObjectHandle::new(&god_object.state.scene, GameObjectKind::Movable)?;
+        let game_object = GameObjectHandle::new(&god_object.state.scene)?;
         game_object.set_name(
             &god_object.state.scene,
             format!("game_object with mesh {}", i),

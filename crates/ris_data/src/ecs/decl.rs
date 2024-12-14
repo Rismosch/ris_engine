@@ -31,7 +31,7 @@ impl EcsTypeId {
         matches!(
             (self, scene_kind),
             (_, SceneKind::Null)
-                | (Self::GameObject, SceneKind::MovableGameObject)
+                | (Self::GameObject, SceneKind::DynamicGameObject)
                 | (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ })
                 | (Self::MeshRendererComponent, SceneKind::Component)
                 | (Self::ScriptComponent, SceneKind::Component)

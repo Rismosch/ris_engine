@@ -40,7 +40,7 @@ impl IUiHelperModule for HierarchyModule {
         } = data;
 
         let mut choices = Vec::with_capacity(scene.static_game_objects.len() + 1);
-        choices.push("movables".to_string());
+        choices.push("dynamics".to_string());
 
         for i in 0..(choices.capacity() - 1) {
             choices.push(format!("statics {}", i));
@@ -64,7 +64,7 @@ impl IUiHelperModule for HierarchyModule {
         }
 
         let (chunk, kind) = if self.selected_chunk == 0 {
-            (&scene.movable_game_objects, GameObjectKind::Movable)
+            (&scene.dynamic_game_objects, GameObjectKind::Dynamic)
         } else {
             let chunk = self.selected_chunk - 1;
 
@@ -79,7 +79,7 @@ impl IUiHelperModule for HierarchyModule {
 
         if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
             if ui.menu_item("new") {
-                GameObjectHandle::new(scene, kind)?;
+                GameObjectHandle::new_with_kind(scene, kind)?;
             }
 
             unsafe { imgui::sys::igEndPopup() }
@@ -153,13 +153,13 @@ impl HierarchyModule {
                 let kind = handle.scene_id().kind;
                 let is_game_object = matches!(
                     kind,
-                    SceneKind::MovableGameObject | SceneKind::StaticGameObjct { .. }
+                    SceneKind::DynamicGameObject | SceneKind::StaticGameObjct { .. }
                 );
 
                 if !is_game_object {
                     return ris_error::new_result!("handle id was not a gameobject");
                 }
-                let child = GameObjectHandle::new(scene, kind.try_into()?)?;
+                let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
                 child.set_parent(scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }

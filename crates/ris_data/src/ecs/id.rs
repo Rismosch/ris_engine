@@ -16,14 +16,14 @@ use super::scene::Scene;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameObjectKind {
-    Movable,
+    Dynamic,
     Static { chunk: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneKind {
     Null,
-    MovableGameObject,
+    DynamicGameObject,
     StaticGameObjct { chunk: usize },
     Component,
     Other,
@@ -38,7 +38,7 @@ pub struct SceneId {
 impl From<GameObjectKind> for SceneKind {
     fn from(value: GameObjectKind) -> Self {
         match value {
-            GameObjectKind::Movable => Self::MovableGameObject,
+            GameObjectKind::Dynamic => Self::DynamicGameObject,
             GameObjectKind::Static { chunk } => Self::StaticGameObjct { chunk },
         }
     }
@@ -50,7 +50,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
     fn try_from(value: SceneKind) -> Result<Self, Self::Error> {
         match value {
             SceneKind::Null => Err(EcsError::IsNull),
-            SceneKind::MovableGameObject => Ok(Self::Movable),
+            SceneKind::DynamicGameObject => Ok(Self::Dynamic),
             SceneKind::StaticGameObjct { chunk } => Ok(Self::Static { chunk }),
             _ => Err(EcsError::InvalidCast),
         }
