@@ -128,6 +128,7 @@ impl HierarchyModule {
             selected
                 .map(|x| match x {
                     Selection::GameObject(x) => x.is_alive(scene) && x == handle,
+                    _ => false,
                 })
                 .unwrap_or(false)
         };

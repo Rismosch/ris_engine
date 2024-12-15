@@ -4,6 +4,9 @@ use ris_error::RisResult;
 use crate::AssetId;
 use crate::RisHeader;
 
+// ris_god_asset\0\0\0
+pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x67,0x6f,0x64,0x5f,0x61,0x73,0x73,0x65,0x74,0x00,0x00,0x00]; 
+
 #[derive(Clone)]
 pub struct RisGodAsset {
     pub default_vert_spv: AssetId,
@@ -23,6 +26,7 @@ pub struct RisGodAsset {
 impl RisGodAsset {
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
         let header = RisHeader::load(bytes)?.into_ris_error()?;
+        header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();
         let default_frag_spv = header.references[1].clone();

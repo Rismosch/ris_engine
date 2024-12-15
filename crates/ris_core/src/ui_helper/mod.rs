@@ -338,6 +338,7 @@ impl UiHelper {
         ];
 
         let result = if !self.show_ui {
+            data.state.debug_ui_is_focused = false;
             None
         } else {
             data.ui
