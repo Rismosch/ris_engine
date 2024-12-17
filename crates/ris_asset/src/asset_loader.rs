@@ -15,9 +15,7 @@ use ris_jobs::job_system;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 use crate::AssetId;
-
-const GOD_ASSET_PATH: &str = "god_asset.ris_god_asset";
-const UNNAMED_GOD_ASSET_PATH: &str = "asset_0";
+use crate::assets::ris_god_asset;
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
@@ -86,13 +84,13 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
         let loader = AssetLoaderDirectory::new(asset_path);
         let internal_loader = InternalLoader::Directory(loader);
 
-        let god_asset_path = if PathBuf::from(asset_path).join(GOD_ASSET_PATH).exists() {
-            GOD_ASSET_PATH
+        let god_asset_path = if PathBuf::from(asset_path).join(ris_god_asset::PATH).exists() {
+            ris_god_asset::PATH
         } else if PathBuf::from(asset_path)
-            .join(UNNAMED_GOD_ASSET_PATH)
+            .join(ris_god_asset::UNNAMED_PATH)
             .exists()
         {
-            UNNAMED_GOD_ASSET_PATH
+            ris_god_asset::UNNAMED_PATH
         } else {
             return ris_error::new_result!("failed to locate god asset");
         };
