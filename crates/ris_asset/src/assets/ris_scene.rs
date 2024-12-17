@@ -10,6 +10,8 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
+use super::ris_header::RisHeader;
+
 // ris_scene\0\0\0\0\0\0\0
 pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00]; 
 pub const EXTENSION: &str = "ris_scene";
@@ -69,8 +71,6 @@ impl SceneLoader {
             inner: Cursor::new(Vec::new()),
         };
         let f = &mut stream;
-
-        ris_io::write(f, &MAGIC)?;
 
         let mut placeholders = Vec::new();
 
@@ -142,7 +142,23 @@ impl SceneLoader {
 
         // retreive bytes from stream
         let bytes = stream.inner.into_inner();
-        Ok(bytes)
+        let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, 6);
+        ris_log::trace!(
+            "compressed {} to {}. percentage: {}",
+            bytes.len(),
+            compressed.len(),
+            compressed.len() as f32 / bytes.len() as f32,
+        );
+
+        // add header
+        let mut stream = Cursor::new(Vec::new());
+        let f = &mut stream;
+        ris_io::write(f, &MAGIC)?;
+        // todo write asset references
+        ris_io::write(f, &compressed)?;
+
+        let result = stream.into_inner();
+        Ok(result)
     }
 
     pub fn load(&mut self, bytes: &[u8], scene: &Scene) -> RisResult<usize> {
@@ -155,6 +171,8 @@ impl SceneLoader {
         };
 
         // todo: deserialize
+        //decompress:
+        //miniz_oxide::inflate::decompress_to_vec();
 
         self.chunk_states[chunk_index] = ChunkState::Loaded;
         Ok(chunk_index)
