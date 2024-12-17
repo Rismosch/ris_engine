@@ -1,30 +1,35 @@
+use std::path::PathBuf;
+
 use ris_data::ecs::decl::GameObjectHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
     GameObject(GameObjectHandle),
+    AssetPath(PathBuf),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Selector {
-    previous_selection: Option<Selection>,
-    current_selection: Option<Selection>,
+    changed: bool,
+    previous: Option<Selection>,
+    current: Option<Selection>,
 }
 
 impl Selector {
     pub fn update(&mut self) {
-        self.previous_selection = self.current_selection.clone();
+        self.changed = self.current != self.previous;
+        self.previous = self.current.clone();
     }
 
     pub fn selection_changed(&self) -> bool {
-        self.current_selection != self.previous_selection
+        self.changed
     }
 
     pub fn get_selection(&self) -> Option<Selection> {
-        self.current_selection.clone()
+        self.current.clone()
     }
 
     pub fn set_selection(&mut self, value: Option<Selection>) {
-        self.current_selection = value;
+        self.current = value;
     }
 }

@@ -29,6 +29,7 @@ pub mod util;
 
 use selection::Selector;
 
+use modules::asset_browser::AssetBrowser;
 use modules::gizmo::GizmoModule;
 use modules::hierarchy::HierarchyModule;
 use modules::inspector::InspectorModule;
@@ -77,6 +78,7 @@ macro_rules! module_vec {
 
 fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     let modules = module_vec![
+        AssetBrowser,
         GizmoModule,
         HierarchyModule,
         InspectorModule,
@@ -336,6 +338,7 @@ impl UiHelper {
         ];
 
         let result = if !self.show_ui {
+            data.state.debug_ui_is_focused = false;
             None
         } else {
             data.ui

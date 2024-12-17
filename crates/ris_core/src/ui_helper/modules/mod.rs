@@ -1,3 +1,4 @@
+pub mod asset_browser;
 pub mod gizmo;
 pub mod hierarchy;
 pub mod inspector;

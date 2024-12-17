@@ -79,4 +79,29 @@ impl RisHeader {
             p_content,
         }))
     }
+
+    pub fn assert_magic(&self, magic: [u8; 16]) -> RisResult<()> {
+        let left = magic;
+        let right = self.magic;
+        if left == right {
+            Ok(())
+        } else {
+            let left_formatted = Self::format_magic(left);
+            let right_formatted = Self::format_magic(right);
+            ris_error::new_result!(
+                "magic assert failed:\nexpected {}\nbut was  {}",
+                left_formatted,
+                right_formatted,
+            )
+        }
+    }
+
+    pub fn format_magic(magic: [u8; 16]) -> String {
+        let result = magic.iter()
+            .map(|&x| format!("0x{:02X}", x))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!("[{}]", result)
+    }
 }

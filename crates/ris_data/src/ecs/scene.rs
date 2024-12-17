@@ -19,7 +19,7 @@ use super::id::SceneId;
 use super::id::SceneKind;
 use super::mesh::VideoMesh;
 
-const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
+const DEFAULT_DYNAMIC_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
 const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
 const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
@@ -29,7 +29,7 @@ const DEFAULT_VIDEO_MESHES: usize = 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SceneCreateInfo {
     // game objects
-    pub movable_game_objects: usize,
+    pub dynamic_game_objects: usize,
     pub static_chunks: usize,
     pub static_game_objects_per_chunk: usize,
 
@@ -42,7 +42,7 @@ pub struct SceneCreateInfo {
 }
 
 pub struct Scene {
-    pub movable_game_objects: Vec<EcsPtr<GameObject>>,
+    pub dynamic_game_objects: Vec<EcsPtr<GameObject>>,
     pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
     pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
@@ -52,7 +52,7 @@ pub struct Scene {
 impl Default for SceneCreateInfo {
     fn default() -> Self {
         Self {
-            movable_game_objects: DEFAULT_MOVABLE_GAME_OBJECTS,
+            dynamic_game_objects: DEFAULT_DYNAMIC_GAME_OBJECTS,
             static_chunks: DEFAULT_STATIC_CHUNKS,
             static_game_objects_per_chunk: DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK,
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
@@ -65,7 +65,7 @@ impl Default for SceneCreateInfo {
 impl SceneCreateInfo {
     pub fn empty() -> Self {
         Self {
-            movable_game_objects: 0,
+            dynamic_game_objects: 0,
             static_chunks: 0,
             static_game_objects_per_chunk: 0,
             mesh_renderer_components: 0,
@@ -84,8 +84,8 @@ impl Scene {
     }
 
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
-        let movable_game_objects =
-            create_chunk(SceneKind::MovableGameObject, info.movable_game_objects)?;
+        let dynamic_game_objects =
+            create_chunk(SceneKind::DynamicGameObject, info.dynamic_game_objects)?;
 
         let mut static_game_objects = Vec::with_capacity(info.static_chunks);
         for i in 0..info.static_chunks {
@@ -101,7 +101,7 @@ impl Scene {
         let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
 
         Ok(Self {
-            movable_game_objects,
+            dynamic_game_objects,
             static_game_objects,
             mesh_renderer_components,
             script_components,
@@ -231,7 +231,7 @@ impl Scene {
     fn find_chunk<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
         match kind {
             SceneKind::Null => Err(EcsError::IsNull),
-            SceneKind::MovableGameObject => cast(&self.movable_game_objects),
+            SceneKind::DynamicGameObject => cast(&self.dynamic_game_objects),
             SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
             SceneKind::Component => match T::ecs_type_id() {
                 EcsTypeId::MeshRendererComponent => cast(&self.mesh_renderer_components),
