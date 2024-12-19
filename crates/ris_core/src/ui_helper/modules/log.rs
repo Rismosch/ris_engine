@@ -22,7 +22,7 @@ impl IUiHelperModule for LogModule {
 
     fn build(_shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
-            log_level: LogLevel::Info,
+            log_level: LogLevel::Debug,
             filter: String::new(),
             log_plain: false,
         })
@@ -67,7 +67,7 @@ impl IUiHelperModule for LogModule {
         self.log_level = LogLevel::from(current_item as usize);
 
         data.ui.same_line();
-        data.ui.checkbox("log plain", &mut self.log_plain);
+        data.ui.checkbox("plain logs", &mut self.log_plain);
 
         data.ui.same_line();
         data.ui.input_text("filter", &mut self.filter).build();

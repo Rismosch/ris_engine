@@ -74,7 +74,17 @@ impl Default for GameObjectHandle {
 }
 
 impl GameObjectHandle {
-    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
+    pub fn new(scene: &Scene) -> EcsResult<Self> {
+        let kind = GameObjectKind::Dynamic;
+        Self::new_with_kind(scene, kind)
+    }
+
+    pub fn new_static(scene: &Scene, chunk: usize) -> EcsResult<Self> {
+        let kind = GameObjectKind::Static{chunk};
+        Self::new_with_kind(scene, kind)
+    }
+
+    pub fn new_with_kind(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
         let ptr = scene.create_new(kind.into())?;
         Ok(ptr.borrow().handle.into())
     }

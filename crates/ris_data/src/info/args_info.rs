@@ -2,9 +2,11 @@ use std::env;
 
 use ris_error::RisResult;
 
-const NO_RESTART_ARG: &str = "--no-restart";
-const WORKERS_ARG: &str = "--workers";
-const ASSETS_ARG: &str = "--assets";
+pub const NO_RESTART_ARG: &str = "--no-restart";
+pub const WORKERS_ARG: &str = "--workers";
+pub const ASSETS_ARG: &str = "--assets";
+
+pub const DEFAULT_ASSETS_VALUE: &str = "assets";
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct ArgsInfo {
@@ -22,7 +24,7 @@ fn create_with_default_values(raw_args: Vec<String>, executable_path: String) ->
         executable_path,
         no_restart: false,
         workers: None,
-        assets: String::from("assets"),
+        assets: String::from(DEFAULT_ASSETS_VALUE),
     }
 }
 

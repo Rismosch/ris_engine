@@ -38,29 +38,39 @@ impl FrameCalculator {
     pub fn bump_and_create_frame(&mut self) -> Frame {
         let current_index = self.number % FRAME_COUNT;
         let prev_index = self.number.wrapping_sub(1) % FRAME_COUNT;
-        let last_index = self.number.wrapping_add(1) % FRAME_COUNT;
 
         self.instants[current_index] = Instant::now();
         self.number = self.number.wrapping_add(1);
 
         let current_instant = self.instants[current_index];
         let prev_instant = self.instants[prev_index];
-        let last_instant = self.instants[last_index];
 
         let previous = current_instant - prev_instant;
-        let average = (current_instant - last_instant).div_f32(FRAME_COUNT as f32);
-
         let previous = if previous > MAX_DURATION {
             IDEAL_DURATION
         } else {
             previous
         };
 
-        let average = if average > MAX_DURATION {
-            IDEAL_DURATION
-        } else {
-            average
-        };
+        let mut sum = Duration::ZERO;
+        for i in 0..FRAME_COUNT - 1 {
+            let start_index = (i + current_index) % FRAME_COUNT;
+            let end_index = (i + current_index + 1) % FRAME_COUNT;
+
+            let start = self.instants[start_index];
+            let end = self.instants[end_index];
+
+            let duration = end - start;
+            let duration = if duration > MAX_DURATION {
+                IDEAL_DURATION
+            } else {
+                duration
+            };
+
+            sum += duration;
+        }
+
+        let average = sum.div_f32((FRAME_COUNT - 1) as f32);
 
         let number = self.number;
         Frame {

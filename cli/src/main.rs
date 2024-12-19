@@ -16,6 +16,7 @@ pub use commands::asset::Asset;
 pub use commands::asset::AssetCommand;
 pub use commands::build::Build;
 pub use commands::doc::Doc;
+pub use commands::god_asset::GodAsset;
 pub use commands::pipeline::Pipeline;
 pub use commands::profiler_html::ProfilerHtml;
 pub use commands::repeat::Repeat;
@@ -37,7 +38,16 @@ fn main() -> Result<(), String> {
         false
     };
 
-    let commands = command_vec!(Archive, Asset, Build, Doc, Pipeline, ProfilerHtml, Repeat,);
+    let commands = command_vec!(
+        Archive,
+        Asset,
+        Build,
+        Doc,
+        GodAsset,
+        Pipeline,
+        ProfilerHtml,
+        Repeat,
+    );
 
     // check if no arguments provided
     if raw_args.len() < 2 {

@@ -6,7 +6,6 @@ use imgui::Ui;
 use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_io::serializable::ISerializable;
 use ris_ptr::Aref;
 use ris_ptr::ArefMut;
 
@@ -41,7 +40,7 @@ pub struct ScriptInspectData<'a> {
     pub state: &'a GodState,
 }
 
-pub trait Script: Debug + Send + Sync + ISerializable {
+pub trait Script: Debug + Send + Sync {
     fn id() -> Sid
     where
         Self: Sized;

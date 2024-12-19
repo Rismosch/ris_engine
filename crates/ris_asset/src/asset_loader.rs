@@ -15,9 +15,7 @@ use ris_jobs::job_system;
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 use crate::AssetId;
-
-const GOD_ASSET_PATH: &str = "god_asset.ris_god_asset";
-const UNNAMED_GOD_ASSET_PATH: &str = "asset_0";
+use crate::assets::ris_god_asset;
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
@@ -68,27 +66,8 @@ impl Drop for AssetLoaderGuard {
 }
 
 pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
-    let asset_path;
-
-    // search for assets relative
-    let mut path_buf = PathBuf::new();
-    path_buf.push(&app_info.file.base_path);
-    path_buf.push(String::from(&app_info.args.assets));
-    let path = Path::new(&path_buf);
-    if path.exists() {
-        asset_path = path;
-    } else {
-        // relative assets not found
-        // search for assets absolute
-        path_buf = PathBuf::new();
-        path_buf.push(String::from(&app_info.args.assets));
-        let path = Path::new(&path_buf);
-        if path.exists() {
-            asset_path = path;
-        } else {
-            return ris_error::new_result!("failed to find assets \"{}\"", &app_info.args.assets);
-        }
-    }
+    let asset_path = app_info.asset_path()?;
+    let asset_path = Path::new(&asset_path);
 
     // create internal loader
     let metadata = asset_path.metadata()?;
@@ -105,13 +84,13 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
         let loader = AssetLoaderDirectory::new(asset_path);
         let internal_loader = InternalLoader::Directory(loader);
 
-        let god_asset_path = if PathBuf::from(asset_path).join(GOD_ASSET_PATH).exists() {
-            GOD_ASSET_PATH
+        let god_asset_path = if PathBuf::from(asset_path).join(ris_god_asset::PATH).exists() {
+            ris_god_asset::PATH
         } else if PathBuf::from(asset_path)
-            .join(UNNAMED_GOD_ASSET_PATH)
+            .join(ris_god_asset::UNNAMED_PATH)
             .exists()
         {
-            UNNAMED_GOD_ASSET_PATH
+            ris_god_asset::UNNAMED_PATH
         } else {
             return ris_error::new_result!("failed to locate god asset");
         };

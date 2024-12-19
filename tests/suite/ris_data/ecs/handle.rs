@@ -8,7 +8,7 @@ use ris_data::ecs::id::SceneKind;
 #[test]
 fn should_cast_handles() {
     let id = SceneId {
-        kind: SceneKind::MovableGameObject,
+        kind: SceneKind::DynamicGameObject,
         index: 42,
     };
     let generic_handle = GenericHandle::<GameObject>::new(id, 0).unwrap();
