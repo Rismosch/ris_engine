@@ -2,7 +2,6 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::assets::ris_scene::SceneLoader;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;

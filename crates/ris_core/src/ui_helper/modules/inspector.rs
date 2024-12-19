@@ -530,6 +530,7 @@ impl IUiHelperModule for InspectorModule {
             Selection::AssetPath(path_buf) => {
                 let path_string = ris_io::path::to_str(&path_buf);
                 data.ui.text(&path_string);
+                let id = AssetId::Directory(path_string.clone());
 
                 let selection_changed = self.shared_state.borrow().selector.selection_changed();
 
@@ -537,8 +538,7 @@ impl IUiHelperModule for InspectorModule {
                     let mut actual_path = self.shared_state.borrow().app_info.asset_path()?;
                     actual_path.push(path_buf);
                     if !actual_path.is_dir() {
-                        let id = AssetId::Directory(path_string.clone());
-                        let job = ris_asset::load_async(id);
+                        let job = ris_asset::load_async(id.clone());
                         self.load_asset_jobs.push(job);
                     }
 
@@ -559,7 +559,14 @@ impl IUiHelperModule for InspectorModule {
 
                 if path_string.ends_with(ris_asset::assets::ris_scene::EXTENSION) {
                     if data.ui.button("load") {
-                        ris_log::debug!("load data");
+                        let reserved = ris_asset::assets::ris_scene::load(
+                            &data.state.scene,
+                            &self.loaded_asset,
+                        )?;
+                        if let Some(chunk_index) = reserved {
+                            *self.shared_state.borrow_mut().chunk(chunk_index) = Some(id);
+                            ris_log::info!("loaded asset into chunk {}", chunk_index);
+                        }
                     }
                 }
             }

@@ -11,6 +11,7 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_asset::AssetId;
 use ris_data::ecs::registry::Registry;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
@@ -117,6 +118,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
 pub struct SharedState {
     app_info: AppInfo,
     selector: Selector,
+    loaded_chunks: Vec<Option<AssetId>>,
 }
 
 impl SharedState {
@@ -124,7 +126,19 @@ impl SharedState {
         StrongPtr::new(ArefCell::new(Self {
             app_info,
             selector: Selector::default(),
+            loaded_chunks: Vec::new(),
         }))
+    }
+
+    fn chunk(&mut self, index: usize) -> &mut Option<AssetId> {
+        let total_chunks = self.loaded_chunks.len() as isize;
+        let iindex = index as isize;
+        let chunks_to_add = iindex - total_chunks + 1;
+        for _ in 0..chunks_to_add {
+            self.loaded_chunks.push(None);
+        }
+        
+        &mut self.loaded_chunks[index]
     }
 }
 

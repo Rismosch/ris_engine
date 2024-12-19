@@ -41,9 +41,14 @@ pub struct SceneCreateInfo {
     pub video_meshes: usize,
 }
 
+pub struct StaticChunk {
+    is_reserved: ArefCell<bool>,
+    pub game_objects: Vec<EcsPtr<GameObject>>,
+}
+
 pub struct Scene {
     pub dynamic_game_objects: Vec<EcsPtr<GameObject>>,
-    pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
+    pub static_chunks: Vec<StaticChunk>,
     pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
     pub video_meshes: Vec<EcsPtr<VideoMesh>>,
@@ -83,15 +88,53 @@ impl Scene {
         }
     }
 
+    pub fn reserve_chunk(&self) -> Option<usize> {
+        let position = self
+            .static_chunks
+            .iter()
+            .position(|x| !*x.is_reserved.borrow());
+
+        if let Some(index) = position {
+            let chunk = &self.static_chunks[index];
+            *chunk.is_reserved.borrow_mut() = true;
+        }
+
+        position
+    }
+
+    pub fn clear_chunk(&self, index: usize) {
+        ris_error::throw_debug_assert!(
+            index < self.static_chunks.len(),
+            "index was out of bounds",
+        );
+        let chunk = &self.static_chunks[index];
+        if !*chunk.is_reserved.borrow() {
+            ris_log::info!("chunk {} was already cleared and isn't reserved anymore", index);
+            return;
+        }
+
+        for ptr in chunk.game_objects.iter() {
+            let generic_handle = ptr.borrow().handle;
+            let game_object_handle = GameObjectHandle::from(generic_handle);
+            game_object_handle.destroy(self);
+        }
+
+        *chunk.is_reserved.borrow_mut() = false;
+    }
+
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let dynamic_game_objects =
             create_chunk(SceneKind::DynamicGameObject, info.dynamic_game_objects)?;
 
-        let mut static_game_objects = Vec::with_capacity(info.static_chunks);
+        let mut static_chunks = Vec::with_capacity(info.static_chunks);
         for i in 0..info.static_chunks {
             let kind = SceneKind::StaticGameObjct { chunk: i };
-            let chunk = create_chunk(kind, info.static_game_objects_per_chunk)?;
-            static_game_objects.push(chunk);
+            let game_objects = create_chunk(kind, info.static_game_objects_per_chunk)?;
+            let chunk = StaticChunk {
+                is_reserved: ArefCell::new(false),
+                game_objects,
+            };
+            static_chunks.push(chunk);
         }
 
         let mesh_renderer_components =
@@ -102,7 +145,7 @@ impl Scene {
 
         Ok(Self {
             dynamic_game_objects,
-            static_game_objects,
+            static_chunks,
             mesh_renderer_components,
             script_components,
             video_meshes,
@@ -124,10 +167,6 @@ impl Scene {
             Err(EcsError::ObjectIsDestroyed)
         }
     }
-
-    //pub fn deref_dyn_component(&self, handle: DynComponentHandle) -> EcsResult<EcsWeakPtr<dyn Component>> {
-    //    panic!();
-    //}
 
     pub fn create_new<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(kind)?;
@@ -232,7 +271,7 @@ impl Scene {
         match kind {
             SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::DynamicGameObject => cast(&self.dynamic_game_objects),
-            SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
+            SceneKind::StaticGameObjct { chunk } => cast(&self.static_chunks[chunk].game_objects),
             SceneKind::Component => match T::ecs_type_id() {
                 EcsTypeId::MeshRendererComponent => cast(&self.mesh_renderer_components),
                 EcsTypeId::ScriptComponent => cast(&self.script_components),
