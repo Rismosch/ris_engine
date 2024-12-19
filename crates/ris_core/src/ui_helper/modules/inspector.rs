@@ -537,7 +537,7 @@ impl IUiHelperModule for InspectorModule {
                     let mut actual_path = self.shared_state.borrow().app_info.asset_path()?;
                     actual_path.push(path_buf);
                     if !actual_path.is_dir() {
-                        let id = AssetId::Directory(path_string);
+                        let id = AssetId::Directory(path_string.clone());
                         let job = ris_asset::load_async(id);
                         self.load_asset_jobs.push(job);
                     }
@@ -553,8 +553,15 @@ impl IUiHelperModule for InspectorModule {
                     }
                 }
 
-                let test = format!("{:?}", self.loaded_asset.len());
-                data.ui.text(test);
+                let size = self.loaded_asset.len();
+                data.ui.text(format!("size: {:?}", size));
+                let _disabled_token = data.ui.begin_disabled(size == 0);
+
+                if path_string.ends_with(ris_asset::assets::ris_scene::EXTENSION) {
+                    if data.ui.button("load") {
+                        ris_log::debug!("load data");
+                    }
+                }
             }
         }
 

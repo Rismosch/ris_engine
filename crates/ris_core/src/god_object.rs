@@ -2,6 +2,7 @@ use sdl2::keyboard::Scancode;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
+use ris_asset::assets::ris_scene::SceneLoader;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
@@ -56,7 +57,6 @@ pub struct GodObject {
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub registry: Registry,
-
     pub state: GodState,
 
     // guards, must be dropped last.
@@ -194,7 +194,6 @@ impl GodObject {
             output_frame,
             god_asset,
             registry,
-
             state,
 
             // guards
