@@ -1,5 +1,8 @@
+use std::io::Cursor;
+
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_io::FatPtr;
 
 use crate::AssetId;
 use crate::RisHeader;
@@ -26,6 +29,34 @@ pub struct RisGodAsset {
 }
 
 impl RisGodAsset {
+    pub fn serialize(&self) -> RisResult<Vec<u8>> {
+        let header = RisHeader {
+            magic: MAGIC,
+            references: vec![
+                self.default_vert_spv.clone(),
+                self.default_frag_spv.clone(),
+                self.imgui_vert_spv.clone(),
+                self.imgui_frag_spv.clone(),
+                self.gizmo_segment_vert_spv.clone(),
+                self.gizmo_segment_geom_spv.clone(),
+                self.gizmo_segment_frag_spv.clone(),
+                self.gizmo_text_vert_spv.clone(),
+                self.gizmo_text_geom_spv.clone(),
+                self.gizmo_text_frag_spv.clone(),
+                self.debug_font_texture.clone(),
+                self.texture.clone(),
+            ],
+            p_content: FatPtr::null(),
+        };
+        let header_bytes = header.serialize()?;
+
+        let mut stream = Cursor::new(Vec::new());
+        ris_io::write(&mut stream, &header_bytes)?;
+        let bytes = stream.into_inner();
+
+        Ok(bytes)
+    }
+
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
         let header = RisHeader::load(bytes)?.into_ris_error()?;
         header.assert_magic(MAGIC)?;

@@ -75,7 +75,7 @@ pub fn write(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
     let written_bytes = stream.write(buf)?;
     let buf_len = buf.len();
     if written_bytes != buf_len {
-        return Err(Error::from(ErrorKind::Other));
+        return Err(Error::from(ErrorKind::InvalidData));
     }
 
     let len = buf
@@ -166,7 +166,7 @@ pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
     if read_bytes == buf_len {
         Ok(())
     } else {
-        Err(Error::from(ErrorKind::Other))
+        Err(Error::from(ErrorKind::InvalidData))
     }
 }
 
