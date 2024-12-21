@@ -20,11 +20,13 @@ pub struct SceneStream {
     inner: Cursor<Vec<u8>>,
 }
 
+#[derive(Debug)]
 struct Placeholder {
     id: usize,
     references: Vec<PlaceholderReference>,
 }
 
+#[derive(Debug)]
 struct PlaceholderReference {
     id: usize,
     fat_ptr: FatPtr,
@@ -59,14 +61,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     let handles = chunk
         .game_objects
         .iter()
-        .filter(|x| {
-            let handle: GameObjectHandle = x.borrow().handle.into();
-            let parent_handle = handle.parent(scene).unwrap_or(None);
-            let is_root = parent_handle.is_none();
-            let is_alive = x.borrow().is_alive;
-
-            is_alive && is_root
-        })
+        .filter(|x| x.borrow().is_alive)
         .map(|x| x.borrow().handle)
         .collect::<Vec<_>>();
 
@@ -110,22 +105,22 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
             },
         };
 
-        let children = handle.children(scene)?;
-        let child_count = children.len();
-        ris_io::write_uint(f, child_count)?;
-        for child in children {
-            let id = child.0.scene_id().index;
-            let fat_ptr = ris_io::write_uint(f, id)?;
-            placeholder.references.push(PlaceholderReference{
-                id,
-                fat_ptr,
-            });
-        }
+        //let children = handle.children(scene)?;
+        //let child_count = children.len();
+        //ris_io::write_uint(f, child_count)?;
+        //for child in children {
+        //    let id = child.0.scene_id().index;
+        //    let fat_ptr = ris_io::write_uint(f, id)?;
+        //    placeholder.references.push(PlaceholderReference{
+        //        id,
+        //        fat_ptr,
+        //    });
+        //}
 
         // add to lookup
         placeholders.push(placeholder);
     } // serialize game objects END
-
+    
     // resolve placeholder references
     for placeholder in placeholders.iter() {
         for reference in placeholder.references.iter() {
@@ -143,8 +138,10 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         }
     }
 
-    // retreive bytes from stream
+
+    // compress
     let bytes = stream.inner.into_inner();
+
     let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, 6);
     ris_log::trace!(
         "compressed {} to {}. percentage: {}",
@@ -156,8 +153,10 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     // add header
     let mut stream = Cursor::new(Vec::new());
     let f = &mut stream;
-    ris_io::write(f, &MAGIC)?;
-    // todo write asset references
+
+    let header = RisHeader::new(MAGIC, Vec::new());
+    let header_bytes = header.serialize()?;
+    ris_io::write(f, &header_bytes)?;
     ris_io::write(f, &compressed)?;
 
     let result = stream.into_inner();
@@ -171,6 +170,38 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     };
 
     let chunk = &scene.static_chunks[index];
+
+    let header = RisHeader::load(bytes)?.into_ris_error()?;
+    header.assert_magic(MAGIC)?;
+
+    let content = header.content(bytes)?;
+    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content).map_err(|e| {
+        ris_error::new!("failed to decompress: {:?}", e)
+    })?;
+
+    let mut stream = Cursor::new(uncompressed);
+    let f = &mut stream;
+
+    let game_object_count = ris_io::read_int(f)?;
+    for i in 0..game_object_count {
+        let name = ris_io::read_string(f)?;
+        let is_active = ris_io::read_bool(f)?;
+        let local_position = ris_io::read_vec3(f)?;
+        let local_rotation = ris_io::read_quat(f)?;
+        let local_scale = ris_io::read_f32(f)?;
+        let parent_id = ris_io::read_int(f)?;
+
+        println!(
+            "{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n",
+            i,
+            name,
+            is_active,
+            local_position,
+            local_rotation,
+            local_scale,
+            parent_id,
+        );
+    }
 
     // todo: deserialize
     //decompress:

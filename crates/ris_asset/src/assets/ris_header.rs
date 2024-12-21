@@ -23,10 +23,18 @@ use crate::AssetId;
 pub struct RisHeader {
     pub magic: [u8; 16],
     pub references: Vec<AssetId>,
-    pub p_content: FatPtr,
+    p_content: FatPtr,
 }
 
 impl RisHeader {
+    pub fn new(magic: [u8; 16], references: Vec<AssetId>) -> Self {
+        Self {
+            magic,
+            references,
+            p_content: FatPtr::null(),
+        }
+    }
+
     pub fn serialize(&self) -> RisResult<Vec<u8>> {
         let Self{
             magic,
@@ -105,6 +113,17 @@ impl RisHeader {
             references,
             p_content,
         }))
+    }
+
+    pub fn p_content(&self) -> FatPtr {
+        self.p_content
+    }
+
+    pub fn content<'a>(&'a self, bytes: &'a [u8]) -> RisResult<&'a [u8]> {
+        let start: usize = self.p_content.addr.try_into()?;
+        let end: usize = self.p_content.end().try_into()?;
+        let slice = &bytes[start..end];
+        Ok(slice)
     }
 
     pub fn assert_magic(&self, magic: [u8; 16]) -> RisResult<()> {

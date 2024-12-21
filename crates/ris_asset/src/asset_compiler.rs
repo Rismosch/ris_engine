@@ -130,7 +130,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             // asset is ris_asset, change directory id to compiled id
             Some(ris_header) => {
                 let mut references = Vec::with_capacity(ris_header.references.len());
-                for reference in ris_header.references {
+                for reference in &ris_header.references {
                     match reference {
                         AssetId::Compiled(id) => {
                             return ris_error::new_result!(
@@ -150,7 +150,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content())?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
@@ -301,7 +301,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
             // asset is ris_asset, change compiled id to directory id
             Some(ris_header) => {
                 let mut references = Vec::with_capacity(ris_header.references.len());
-                for reference in ris_header.references {
+                for reference in &ris_header.references {
                     match reference {
                         AssetId::Directory(id) => {
                             return ris_error::new_result!(
@@ -310,14 +310,14 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                             );
                         }
                         AssetId::Compiled(id) => {
-                            let reference = &original_paths[id];
+                            let reference = &original_paths[*id];
                             references.push(reference.as_str());
                         }
                     }
                 }
 
                 let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content)?;
+                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content())?;
 
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;

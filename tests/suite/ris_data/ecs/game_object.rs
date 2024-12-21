@@ -278,6 +278,7 @@ fn should_not_assign_destroyed_parent() {
 
 #[test]
 fn should_not_set_parent_from_another_chunk() {
+
     panic!();
 }
 

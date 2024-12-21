@@ -170,6 +170,23 @@ pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
     }
 }
 
+pub fn read_to_end(stream: &mut (impl Read + Seek)) -> Result<Vec<u8>> {
+    let current = seek(stream, SeekFrom::Current(0))?;
+    let end = seek(stream, SeekFrom::End(0))?;
+    seek(stream, SeekFrom::Start(current))?;
+
+    match usize::try_from(end - current) {
+        Ok(len) => {
+            let mut buf = vec![0; len];
+            read(stream, &mut buf)?;
+            Ok(buf)
+        },
+        Err(_) => {
+            Err(Error::from(ErrorKind::InvalidData))
+        },
+    }
+}
+
 /// seeks to, reads the bytes at `ptr` and advances the stream.
 pub fn read_at(stream: &mut (impl Read + Seek), ptr: FatPtr) -> Result<Vec<u8>> {
     let capacity = ptr

@@ -30,9 +30,9 @@ pub struct RisGodAsset {
 
 impl RisGodAsset {
     pub fn serialize(&self) -> RisResult<Vec<u8>> {
-        let header = RisHeader {
-            magic: MAGIC,
-            references: vec![
+        let header = RisHeader::new(
+            MAGIC,
+            vec![
                 self.default_vert_spv.clone(),
                 self.default_frag_spv.clone(),
                 self.imgui_vert_spv.clone(),
@@ -46,8 +46,7 @@ impl RisGodAsset {
                 self.debug_font_texture.clone(),
                 self.texture.clone(),
             ],
-            p_content: FatPtr::null(),
-        };
+        );
         let header_bytes = header.serialize()?;
 
         let mut stream = Cursor::new(Vec::new());
@@ -75,9 +74,6 @@ impl RisGodAsset {
         let texture = header.references[11].clone();
 
         let mut cursor = std::io::Cursor::new(bytes);
-        let data = ris_io::read_at(&mut cursor, header.p_content)?;
-        let data_message = String::from_utf8(data)?;
-        ris_log::debug!("god asset content: {}", data_message);
 
         let god_asset = Self {
             default_vert_spv,
