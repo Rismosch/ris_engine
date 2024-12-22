@@ -5,7 +5,6 @@ use std::io::Read;
 use std::io::Write;
 
 use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::handle::GenericHandle;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -14,7 +13,7 @@ use ris_io::FatPtr;
 use super::ris_header::RisHeader;
 
 // ris_scene\0\0\0\0\0\0\0
-pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00]; 
+pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
 pub const EXTENSION: &str = "ris_scene";
 
 pub struct SceneStream {
@@ -75,7 +74,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
 
     // serialize game objects
     ris_io::write_uint(f, handles.len())?;
-    for (i, generic_handle) in handles.into_iter().enumerate() {
+    for generic_handle in handles.into_iter() {
         let mut placeholder = Placeholder {
             id: generic_handle.scene_id().index,
             references: Vec::new(),
@@ -91,32 +90,17 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
          
         // todo: components
 
-        match handle.parent(scene)? {
-            Some(parent_handle) => {
-                let id = parent_handle.0.scene_id().index;
-                let fat_ptr = ris_io::write_uint(f, id)?;
-                placeholder.references.push(PlaceholderReference{
-                    id,
-                    fat_ptr,
-                });
-            },
-            None => {
-                // its own id (i) represents no parent
-                ris_io::write_uint(f, i)?;
-            },
-        };
-
-        //let children = handle.children(scene)?;
-        //let child_count = children.len();
-        //ris_io::write_uint(f, child_count)?;
-        //for child in children {
-        //    let id = child.0.scene_id().index;
-        //    let fat_ptr = ris_io::write_uint(f, id)?;
-        //    placeholder.references.push(PlaceholderReference{
-        //        id,
-        //        fat_ptr,
-        //    });
-        //}
+        let children = handle.children(scene)?;
+        let child_count = children.len();
+        ris_io::write_uint(f, child_count)?;
+        for child in children {
+            let id = child.0.scene_id().index;
+            let fat_ptr = ris_io::write_uint(f, id)?;
+            placeholder.references.push(PlaceholderReference{
+                id,
+                fat_ptr,
+            });
+        }
 
         // add to lookup
         placeholders.push(placeholder);
@@ -185,16 +169,21 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
     let game_object_count = ris_io::read_uint(f)?;
     let mut lookup = Vec::with_capacity(game_object_count);
-    let mut parents_to_assign = Vec::with_capacity(game_object_count);
+    let mut children_to_assign = Vec::with_capacity(game_object_count);
 
     // deserialize game objects
-    for i in 0..game_object_count {
+    for _ in 0..game_object_count {
         let name = ris_io::read_string(f)?;
         let is_active = ris_io::read_bool(f)?;
         let local_position = ris_io::read_vec3(f)?;
         let local_rotation = ris_io::read_quat(f)?;
         let local_scale = ris_io::read_f32(f)?;
-        let parent_id = ris_io::read_uint(f)?;
+        let child_count = ris_io::read_uint(f)?;
+        let mut child_ids = Vec::with_capacity(child_count);
+        for _ in 0..child_count {
+            let child_id = ris_io::read_uint(f)?;
+            child_ids.push(child_id);
+        }
 
         let game_object = GameObjectHandle::new_static(scene, index)?;
         let id = game_object.0.scene_id().index;
@@ -206,23 +195,23 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         game_object.set_local_rotation(scene, local_rotation)?;
         game_object.set_local_scale(scene, local_scale)?;
 
-        if i != parent_id {
-            let parent_to_assign = (game_object, parent_id);
-            parents_to_assign.push(parent_to_assign);
-        }
+        children_to_assign.push((game_object, child_ids));
     } // deserialize game objects End
 
     // assign parents
-    for (game_object, parent_id) in parents_to_assign {
-        let actual_parent_id = *lookup.get(parent_id).into_ris_error()?;
-        let parent: GameObjectHandle = chunk.game_objects.iter()
-            .find(|x| x.borrow().handle.scene_id().index == actual_parent_id)
-            .into_ris_error()?
-            .borrow()
-            .handle
-            .into();
+    for (game_object, child_ids) in children_to_assign {
+        for (i, &child_id) in child_ids.iter().enumerate() {
+            let actual_id = *lookup.get(child_id).into_ris_error()?;
 
-        game_object.set_parent(scene, Some(parent), 0, false)?;
+            let child: GameObjectHandle = chunk.game_objects.iter()
+                .find(|x| x.borrow().handle.scene_id().index == actual_id)
+                .into_ris_error()?
+                .borrow()
+                .handle
+                .into();
+
+            child.set_parent(scene, Some(game_object), i, false)?;
+        }
     }
 
     Ok(Some(index))

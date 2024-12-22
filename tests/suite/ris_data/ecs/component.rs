@@ -2,7 +2,6 @@ use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::handle::ComponentHandle;
-use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 

@@ -2,7 +2,6 @@ use std::io::Cursor;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_io::FatPtr;
 
 use crate::AssetId;
 use crate::RisHeader;
@@ -72,8 +71,6 @@ impl RisGodAsset {
         let gizmo_text_frag_spv = header.references[9].clone();
         let debug_font_texture = header.references[10].clone();
         let texture = header.references[11].clone();
-
-        let mut cursor = std::io::Cursor::new(bytes);
 
         let god_asset = Self {
             default_vert_spv,
