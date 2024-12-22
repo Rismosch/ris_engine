@@ -14,6 +14,10 @@ fn should_serialize() {
     scene_create_info.static_chunks = 2;
     scene_create_info.static_game_objects_per_chunk = 10;
     let scene = Scene::new(scene_create_info).unwrap();
+
+    // reserve chunk 0, such that the scene loader doesn't attempt to create game objects there
+    assert_eq!(scene.reserve_chunk().unwrap(), 0);
+
     let g0 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g1 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g2 = GameObjectHandle::new_static(&scene, 0).unwrap();
@@ -63,6 +67,8 @@ fn should_serialize() {
     for i in 0..scene_create_info.static_game_objects_per_chunk {
         let left: GameObjectHandle = scene.static_chunks[0].game_objects[i].borrow().handle.into();
         let right: GameObjectHandle = scene.static_chunks[1].game_objects[i].borrow().handle.into();
+        let left_children = left.children(&scene).unwrap();
+        let right_children = right.children(&scene).unwrap();
 
         assert_eq!(
             left.name(&scene).unwrap(),
@@ -84,6 +90,13 @@ fn should_serialize() {
             left.local_scale(&scene).unwrap(),
             right.local_scale(&scene).unwrap(),
         );
+
+        assert_eq!(left_children.len(), right_children.len());
+        for i in 0..left_children.len() {
+            let left_index = left_children[i].0.scene_id().index;
+            let right_index = right_children[i].0.scene_id().index;
+            assert_eq!(left_index, right_index);
+        }
     }
 
     panic!("reached end");

@@ -5,6 +5,7 @@ use std::io::Read;
 use std::io::Write;
 
 use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::handle::GenericHandle;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -182,30 +183,47 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     let mut stream = Cursor::new(uncompressed);
     let f = &mut stream;
 
-    let game_object_count = ris_io::read_int(f)?;
+    let game_object_count = ris_io::read_uint(f)?;
+    let mut lookup = Vec::with_capacity(game_object_count);
+    let mut parents_to_assign = Vec::with_capacity(game_object_count);
+
+    // deserialize game objects
     for i in 0..game_object_count {
         let name = ris_io::read_string(f)?;
         let is_active = ris_io::read_bool(f)?;
         let local_position = ris_io::read_vec3(f)?;
         let local_rotation = ris_io::read_quat(f)?;
         let local_scale = ris_io::read_f32(f)?;
-        let parent_id = ris_io::read_int(f)?;
+        let parent_id = ris_io::read_uint(f)?;
 
-        println!(
-            "{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n",
-            i,
-            name,
-            is_active,
-            local_position,
-            local_rotation,
-            local_scale,
-            parent_id,
-        );
+        let game_object = GameObjectHandle::new_static(scene, index)?;
+        let id = game_object.0.scene_id().index;
+        lookup.push(id);
+
+        game_object.set_name(scene, &name)?;
+        game_object.set_active(scene, is_active)?;
+        game_object.set_local_position(scene, local_position)?;
+        game_object.set_local_rotation(scene, local_rotation)?;
+        game_object.set_local_scale(scene, local_scale)?;
+
+        if i != parent_id {
+            let parent_to_assign = (game_object, parent_id);
+            parents_to_assign.push(parent_to_assign);
+        }
+    } // deserialize game objects End
+
+    // assign parents
+    for (game_object, parent_id) in parents_to_assign {
+        let actual_parent_id = *lookup.get(parent_id).into_ris_error()?;
+        let parent: GameObjectHandle = chunk.game_objects.iter()
+            .find(|x| x.borrow().handle.scene_id().index == actual_parent_id)
+            .into_ris_error()?
+            .borrow()
+            .handle
+            .into();
+
+        game_object.set_parent(scene, Some(parent), 0, false)?;
     }
-
-    // todo: deserialize
-    //decompress:
-    //miniz_oxide::inflate::decompress_to_vec();
 
     Ok(Some(index))
 }
