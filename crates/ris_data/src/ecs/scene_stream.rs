@@ -29,6 +29,10 @@ pub struct SceneWriter {
     placeholders: Vec<FatPtr>,
 }
 
+pub struct SceneReader {
+    stream: Cursor<Vec<u8>>,
+}
+
 impl SceneWriter {
     pub fn new(chunk: usize) -> Self {
         Self {
@@ -83,15 +87,13 @@ impl SceneWriter {
     //}
 }
 
+impl SceneReader {
+
+}
+
 impl Seek for SceneWriter {
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         self.stream.seek(pos)
-    }
-}
-
-impl Read for SceneWriter {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.stream.read(buf)
     }
 }
 
@@ -102,5 +104,17 @@ impl Write for SceneWriter {
 
     fn flush(&mut self) -> std::io::Result<()> {
         self.stream.flush()
+    }
+}
+
+impl Seek for SceneReader {
+    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+        self.stream.seek(pos)
+    }
+}
+
+impl Read for SceneReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.stream.read(buf)
     }
 }

@@ -1,12 +1,10 @@
 use std::io::Cursor;
-use std::io::SeekFrom;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene_stream::SceneWriter;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_io::FatPtr;
 
 use super::ris_header::RisHeader;
 
