@@ -1,11 +1,9 @@
 use std::io::Cursor;
-use std::io::Seek;
 use std::io::SeekFrom;
-use std::io::Read;
-use std::io::Write;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
+use ris_data::ecs::scene_stream::SceneWriter;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
@@ -15,44 +13,6 @@ use super::ris_header::RisHeader;
 // ris_scene\0\0\0\0\0\0\0
 pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
 pub const EXTENSION: &str = "ris_scene";
-
-pub struct SceneStream {
-    inner: Cursor<Vec<u8>>,
-}
-
-#[derive(Debug)]
-struct Placeholder {
-    id: usize,
-    references: Vec<PlaceholderReference>,
-}
-
-#[derive(Debug)]
-struct PlaceholderReference {
-    id: usize,
-    fat_ptr: FatPtr,
-}
-
-impl Seek for SceneStream {
-    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
-        self.inner.seek(pos)
-    }
-}
-
-impl Read for SceneStream {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.inner.read(buf)
-    }
-}
-
-impl Write for SceneStream {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.inner.write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.inner.flush()
-    }
-}
 
 pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
@@ -65,22 +25,17 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         .map(|x| x.borrow().handle)
         .collect::<Vec<_>>();
 
-    let mut stream = SceneStream{
-        inner: Cursor::new(Vec::new()),
-    };
+    let mut stream = SceneWriter::new(chunk_index);
     let f = &mut stream;
 
-    let mut placeholders = Vec::new();
+    let mut lookup = Vec::new();
 
     // serialize game objects
     ris_io::write_uint(f, handles.len())?;
     for generic_handle in handles.into_iter() {
-        let mut placeholder = Placeholder {
-            id: generic_handle.scene_id().index,
-            references: Vec::new(),
-        };
-
         let handle: GameObjectHandle = generic_handle.into();
+        let scene_index = handle.0.scene_id().index;
+        lookup.push(scene_index);
 
         ris_io::write_string(f, handle.name(scene)?)?;
         ris_io::write_bool(f, handle.is_active(scene)?)?;
@@ -94,39 +49,14 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         let child_count = children.len();
         ris_io::write_uint(f, child_count)?;
         for child in children {
-            let id = child.0.scene_id().index;
-            let fat_ptr = ris_io::write_uint(f, id)?;
-            placeholder.references.push(PlaceholderReference{
-                id,
-                fat_ptr,
-            });
+            f.write_game_object(child)?;
         }
-
-        // add to lookup
-        placeholders.push(placeholder);
     } // serialize game objects END
     
-    // resolve placeholder references
-    for placeholder in placeholders.iter() {
-        for reference in placeholder.references.iter() {
-            let actual_id = placeholders
-                .iter()
-                .position(|x| reference.id == x.id)
-                .into_ris_error()
-                .map_err(|e| {
-                    ris_log::error!("failed to find reference. make sure that a scene only references game objects in it's own chunk");
-                    e
-                })?;
-
-            ris_io::seek(f, SeekFrom::Start(reference.fat_ptr.addr))?;
-            ris_io::write_uint(f, actual_id)?;
-        }
-    }
-
+    // resolve
+    let bytes = stream.resolve(lookup)?;
 
     // compress
-    let bytes = stream.inner.into_inner();
-
     let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, 6);
     ris_log::trace!(
         "compressed {} to {}. percentage: {}",

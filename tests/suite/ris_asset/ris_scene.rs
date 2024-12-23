@@ -12,11 +12,23 @@ fn should_serialize() {
 
     let mut scene_create_info = SceneCreateInfo::default();
     scene_create_info.static_chunks = 2;
-    scene_create_info.static_game_objects_per_chunk = 10;
+    scene_create_info.static_game_objects_per_chunk = 20;
     let scene = Scene::new(scene_create_info).unwrap();
 
-    // reserve chunk 0, such that the scene loader doesn't attempt to create game objects there
+    // prepare chunk 0
+    // we reserve it, such that the loader doesn't attempt to load into it. we also mark a few game
+    // objects as alive, as to randomize which index each gameobject uses
     assert_eq!(scene.reserve_chunk().unwrap(), 0);
+
+    let mut marked = Vec::new();
+    let count = scene_create_info.static_game_objects_per_chunk;
+    for _ in 0..(count / 2) {
+        let index = rng.next_i32_between(0, count as i32 - 1) as usize;
+        marked.push(index);
+
+        let mut aref = scene.static_chunks[0].game_objects[index].borrow_mut();
+        aref.is_alive = true;
+    }
 
     let g0 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g1 = GameObjectHandle::new_static(&scene, 0).unwrap();
@@ -28,6 +40,11 @@ fn should_serialize() {
     let g7 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g8 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g9 = GameObjectHandle::new_static(&scene, 0).unwrap();
+
+    for index in marked {
+        let mut aref = scene.static_chunks[0].game_objects[index].borrow_mut();
+        aref.is_alive = false;
+    }
 
     // -g0
     //   -g1
@@ -64,11 +81,34 @@ fn should_serialize() {
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
 
+    // assert that each chunk has the same amount of alive game objects
+    let left_count = scene.static_chunks[0].game_objects
+        .iter()
+        .filter(|x| x.borrow().is_alive)
+        .count();
+    let right_count = scene.static_chunks[1].game_objects
+        .iter()
+        .filter(|x| x.borrow().is_alive)
+        .count();
+    assert_eq!(left_count, right_count);
+
     for i in 0..scene_create_info.static_game_objects_per_chunk {
         let left: GameObjectHandle = scene.static_chunks[0].game_objects[i].borrow().handle.into();
-        let right: GameObjectHandle = scene.static_chunks[1].game_objects[i].borrow().handle.into();
-        let left_children = left.children(&scene).unwrap();
-        let right_children = right.children(&scene).unwrap();
+
+        if !left.is_alive(&scene) {
+            continue;
+        }
+
+        let right: GameObjectHandle = scene.static_chunks[1].game_objects
+            .iter()
+            .find(|x| {
+                let g: GameObjectHandle = x.borrow().handle.into();
+                g.name(&scene) == left.name(&scene)
+            })
+            .unwrap()
+            .borrow()
+            .handle
+            .into();
 
         assert_eq!(
             left.name(&scene).unwrap(),
@@ -91,11 +131,18 @@ fn should_serialize() {
             right.local_scale(&scene).unwrap(),
         );
 
+        let left_children = left.children(&scene).unwrap();
+        let right_children = right.children(&scene).unwrap();
+
         assert_eq!(left_children.len(), right_children.len());
         for i in 0..left_children.len() {
-            let left_index = left_children[i].0.scene_id().index;
-            let right_index = right_children[i].0.scene_id().index;
-            assert_eq!(left_index, right_index);
+            let left_child = left_children[i];
+            let right_child = right_children[i];
+
+            assert_eq!(
+                left_child.name(&scene).unwrap(),
+                right_child.name(&scene).unwrap(),
+            );
         }
     }
 

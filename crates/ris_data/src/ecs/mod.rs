@@ -8,6 +8,7 @@ pub mod id;
 pub mod mesh;
 pub mod registry;
 pub mod scene;
+pub mod scene_stream;
 
 pub mod script_prelude {
     pub use ris_debug::sid::Sid;
