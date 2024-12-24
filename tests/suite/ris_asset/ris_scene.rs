@@ -2,9 +2,41 @@ use ris_asset::assets::ris_scene;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
+use ris_data::ecs::script_prelude::*;
 use ris_error::RisResult;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
+
+#[derive(Debug)]
+struct TestScript {
+
+}
+
+impl Script for TestScript {
+    fn name(&self) -> &'static str {
+        "TestScript"
+    }
+
+    fn id() -> Sid {
+        ris_debug::fsid!()
+    }
+
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        Ok(())
+    }
+
+    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        Ok(())
+    }
+}
 
 #[test]
 fn should_serialize() {
@@ -15,19 +47,27 @@ fn should_serialize() {
     scene_create_info.static_game_objects_per_chunk = 20;
     let scene = Scene::new(scene_create_info).unwrap();
 
-    // prepare chunk 0
-    // we reserve it, such that the loader doesn't attempt to load into it. we also mark a few game
-    // objects as alive, as to randomize which index each gameobject uses
+    // the first chunk will be reserved, such that the serializer doesn't to choose to create game
+    // objects there
     assert_eq!(scene.reserve_chunk().unwrap(), 0);
 
-    let mut marked = Vec::new();
+    // mark some game objects as alive. this is the worst possible case, where game objects are not
+    // orderered and chunk to be loaded into already has some game objects
+    let mut to_unmark_0 = Vec::new();
+    let mut to_unmark_1 = Vec::new();
     let count = scene_create_info.static_game_objects_per_chunk;
     for _ in 0..(count / 2) {
         let index = rng.next_i32_between(0, count as i32 - 1) as usize;
-        marked.push(index);
-
         let mut aref = scene.static_chunks[0].game_objects[index].borrow_mut();
         aref.is_alive = true;
+        to_unmark_0.push(index);
+    }
+
+    for _ in 0..(count / 2) {
+        let index = rng.next_i32_between(0, count as i32 - 1) as usize;
+        let mut aref = scene.static_chunks[1].game_objects[index].borrow_mut();
+        aref.is_alive = true;
+        to_unmark_1.push(index);
     }
 
     let g0 = GameObjectHandle::new_static(&scene, 0).unwrap();
@@ -41,7 +81,7 @@ fn should_serialize() {
     let g8 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g9 = GameObjectHandle::new_static(&scene, 0).unwrap();
 
-    for index in marked {
+    for index in to_unmark_0 {
         let mut aref = scene.static_chunks[0].game_objects[index].borrow_mut();
         aref.is_alive = false;
     }
@@ -80,6 +120,11 @@ fn should_serialize() {
 
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
+
+    for index in to_unmark_1 {
+        let mut aref = scene.static_chunks[1].game_objects[index].borrow_mut();
+        aref.is_alive = false;
+    }
 
     // assert that each chunk has the same amount of alive game objects
     let left_count = scene.static_chunks[0].game_objects

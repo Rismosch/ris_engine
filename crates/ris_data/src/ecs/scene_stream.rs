@@ -10,18 +10,7 @@ use ris_io::FatPtr;
 
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::id::SceneKind;
-
-//#[derive(Debug)]
-//struct Placeholder {
-//    id: usize,
-//    references: Vec<PlaceholderReference>,
-//}
-//
-//#[derive(Debug)]
-//struct PlaceholderReference {
-//    id: usize,
-//    fat_ptr: FatPtr,
-//}
+use crate::ecs::scene::Scene;
 
 pub struct SceneWriter {
     stream: Cursor<Vec<u8>>,
@@ -29,8 +18,11 @@ pub struct SceneWriter {
     placeholders: Vec<FatPtr>,
 }
 
-pub struct SceneReader {
+pub struct SceneReader<'a> {
     stream: Cursor<Vec<u8>>,
+    chunk: usize,
+    scene: &'a Scene,
+    pub lookup: Vec<usize>,
 }
 
 impl SceneWriter {
@@ -87,8 +79,23 @@ impl SceneWriter {
     //}
 }
 
-impl SceneReader {
+impl<'a> SceneReader<'a> {
+    pub fn new(chunk: usize, scene: &'a Scene, data: Vec<u8>) -> Self {
+        Self {
+            stream: Cursor::new(data),
+            chunk,
+            scene,
+            lookup: Vec::new(),
+        }
+    }
 
+    pub fn read_game_object(&mut self) -> RisResult<GameObjectHandle> {
+        let index = ris_io::read_uint(self)?;
+        let scene_index = self.lookup.get(index).into_ris_error()?;
+        let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk].game_objects[*scene_index].borrow().handle.into();
+
+        Ok(game_object)
+    }
 }
 
 impl Seek for SceneWriter {
@@ -107,13 +114,13 @@ impl Write for SceneWriter {
     }
 }
 
-impl Seek for SceneReader {
+impl<'a> Seek for SceneReader<'a> {
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         self.stream.seek(pos)
     }
 }
 
-impl Read for SceneReader {
+impl<'a> Read for SceneReader<'a> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.stream.read(buf)
     }

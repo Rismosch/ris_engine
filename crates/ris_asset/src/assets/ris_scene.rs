@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
+use ris_data::ecs::scene_stream::SceneReader;
 use ris_data::ecs::scene_stream::SceneWriter;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -41,7 +42,11 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         ris_io::write_quat(f, handle.local_rotation(scene)?)?;
         ris_io::write_f32(f, handle.local_scale(scene)?)?;
          
-        // todo: components
+        let components = handle.components(scene)?;
+        ris_io::write_uint(f, components.len())?;
+        for component in components {
+
+        }
 
         let children = handle.children(scene)?;
         let child_count = children.len();
@@ -49,7 +54,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         for child in children {
             f.write_game_object(child)?;
         }
-    } // serialize game objects END
+    }
     
     // resolve
     let bytes = stream.resolve(lookup)?;
@@ -92,11 +97,12 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         ris_error::new!("failed to decompress: {:?}", e)
     })?;
 
-    let mut stream = Cursor::new(uncompressed);
+    let mut stream = SceneReader::new(index, scene, uncompressed);
     let f = &mut stream;
 
     let game_object_count = ris_io::read_uint(f)?;
-    let mut lookup = Vec::with_capacity(game_object_count);
+    
+    f.lookup = Vec::with_capacity(game_object_count);
     let mut children_to_assign = Vec::with_capacity(game_object_count);
 
     // deserialize game objects
@@ -115,7 +121,7 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
         let game_object = GameObjectHandle::new_static(scene, index)?;
         let id = game_object.0.scene_id().index;
-        lookup.push(id);
+        f.lookup.push(id);
 
         game_object.set_name(scene, &name)?;
         game_object.set_active(scene, is_active)?;
@@ -124,15 +130,15 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         game_object.set_local_scale(scene, local_scale)?;
 
         children_to_assign.push((game_object, child_ids));
-    } // deserialize game objects End
+    }
 
     // assign parents
     for (game_object, child_ids) in children_to_assign {
         for (i, &child_id) in child_ids.iter().enumerate() {
-            let actual_id = *lookup.get(child_id).into_ris_error()?;
+            let actual_id = stream.lookup.get(child_id).into_ris_error()?;
 
             let child: GameObjectHandle = chunk.game_objects.iter()
-                .find(|x| x.borrow().handle.scene_id().index == actual_id)
+                .find(|x| x.borrow().handle.scene_id().index == *actual_id)
                 .into_ris_error()?
                 .borrow()
                 .handle
@@ -141,6 +147,8 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
             child.set_parent(scene, Some(game_object), i, false)?;
         }
     }
+
+    // todo: components
 
     Ok(Some(index))
 }

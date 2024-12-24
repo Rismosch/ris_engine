@@ -199,6 +199,32 @@ impl Scene {
         ptr.borrow_mut().is_alive = false;
     }
 
+    pub fn deref_component(
+        &self,
+        handle: DynComponentHandle,
+    ) -> EcsResult<()> {
+        let SceneId { kind, index } = handle.scene_id();
+        let ecs_type_id = handle.ecs_type_id();
+
+        if kind != SceneKind::Component {
+            return Err(EcsError::InvalidCast);
+        }
+
+        match ecs_type_id {
+            EcsTypeId::MeshRendererComponent => {
+                let chunk = &self.mesh_renderer_components;
+                let aref = &chunk[index].borrow();
+
+            }
+            ecs_type_id => ris_error::throw!(
+                "ecs type {:?} is not a component, and thus is not assigned to a game object",
+                ecs_type_id
+            ),
+        }
+
+        panic!()
+    }
+
     pub fn find_game_object_of_component(
         &self,
         handle: DynComponentHandle,
