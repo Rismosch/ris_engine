@@ -277,7 +277,7 @@ impl GameObjectHandle {
         ScriptComponentHandle::<T>::new(scene, self)
     }
 
-    pub fn get_component<T: Component>(
+    pub fn get_component<T: Component + 'static>(
         self,
         scene: &Scene,
         get_from: GetFrom,
@@ -297,7 +297,7 @@ impl GameObjectHandle {
         Ok(first)
     }
 
-    pub fn get_components<T: Component>(
+    pub fn get_components<T: Component + 'static>(
         self,
         scene: &Scene,
         get_from: GetFrom,

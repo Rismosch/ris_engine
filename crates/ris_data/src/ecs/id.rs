@@ -1,10 +1,10 @@
+use std::any::TypeId;
 use std::fmt::Debug;
 
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 use ris_ptr::WeakPtr;
 
-use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::handle::GenericHandle;
@@ -26,7 +26,7 @@ pub enum SceneKind {
     DynamicGameObject,
     StaticGameObjct { chunk: usize },
     Component,
-    Other,
+Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,7 +62,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
 //
 
 pub trait EcsObject: Debug + Default {
-    fn ecs_type_id() -> EcsTypeId;
+    //fn ecs_type_id() -> EcsTypeId;
 }
 
 pub trait Component: EcsObject {

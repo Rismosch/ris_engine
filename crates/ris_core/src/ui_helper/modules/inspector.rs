@@ -5,7 +5,7 @@ use imgui::Ui;
 use ris_asset::AssetId;
 use ris_asset::asset_loader::LoadError;
 use ris_data::ecs::components::script::ScriptInspectData;
-use ris_data::ecs::decl::EcsTypeId;
+//use ris_data::ecs::decl::EcsTypeId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
@@ -429,59 +429,59 @@ impl IUiHelperModule for InspectorModule {
                 for component in components {
                     let index = component.scene_id().index;
 
-                    let delete_requested;
+                    //let delete_requested;
 
-                    match component.ecs_type_id() {
-                        EcsTypeId::MeshRendererComponent => {
-                            //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
-                            //let aref_mut = ptr.borrow_mut();
+                    //match component.ecs_type_id() {
+                    //    EcsTypeId::MeshRendererComponent => {
+                    //        //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
+                    //        //let aref_mut = ptr.borrow_mut();
 
-                            let header =
-                                ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
-                            delete_requested = header.delete_requested;
-                            if !header.is_open {
-                                continue;
-                            }
+                    //        let header =
+                    //            ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
+                    //        delete_requested = header.delete_requested;
+                    //        if !header.is_open {
+                    //            continue;
+                    //        }
 
-                            data.ui.text("im a mesh :)");
-                        }
-                        EcsTypeId::ScriptComponent => {
-                            let ptr = data.state.scene.script_components[index].to_weak();
-                            let mut aref_mut = ptr.borrow_mut();
-                            let game_object = aref_mut.game_object();
-                            let script = aref_mut.script_mut().into_ris_error()?;
+                    //        data.ui.text("im a mesh :)");
+                    //    }
+                    //    EcsTypeId::ScriptComponent => {
+                    //        let ptr = data.state.scene.script_components[index].to_weak();
+                    //        let mut aref_mut = ptr.borrow_mut();
+                    //        let game_object = aref_mut.game_object();
+                    //        let script = aref_mut.script_mut().into_ris_error()?;
 
-                            let header = ComponentHeader::draw(
-                                data.ui,
-                                format!("script {}##{:?}", script.name(), component),
-                            );
-                            delete_requested = header.delete_requested;
-                            if !header.is_open {
-                                continue;
-                            }
+                    //        let header = ComponentHeader::draw(
+                    //            data.ui,
+                    //            format!("script {}##{:?}", script.name(), component),
+                    //        );
+                    //        delete_requested = header.delete_requested;
+                    //        if !header.is_open {
+                    //            continue;
+                    //        }
 
-                            let script_inspect_data = ScriptInspectData {
-                                id: format!("{:?}", component),
-                                ui: data.ui,
-                                game_object,
-                                frame: data.frame,
-                                state: data.state,
-                            };
+                    //        let script_inspect_data = ScriptInspectData {
+                    //            id: format!("{:?}", component),
+                    //            ui: data.ui,
+                    //            game_object,
+                    //            frame: data.frame,
+                    //            state: data.state,
+                    //        };
 
-                            script.inspect(script_inspect_data)?;
-                        }
-                        ecs_type_id => {
-                            let header = ComponentHeader::draw(
-                                data.ui,
-                                format!("{:?}##{:?}", ecs_type_id, component),
-                            );
-                            delete_requested = header.delete_requested;
-                        }
-                    }
+                    //        script.inspect(script_inspect_data)?;
+                    //    }
+                    //    ecs_type_id => {
+                    //        let header = ComponentHeader::draw(
+                    //            data.ui,
+                    //            format!("{:?}##{:?}", ecs_type_id, component),
+                    //        );
+                    //        delete_requested = header.delete_requested;
+                    //    }
+                    //}
 
-                    if delete_requested {
-                        game_object.remove_and_destroy_component(&data.state.scene, component);
-                    }
+                    //if delete_requested {
+                    //    game_object.remove_and_destroy_component(&data.state.scene, component);
+                    //}
                 }
 
                 data.ui.separator();

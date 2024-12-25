@@ -1,14 +1,18 @@
+use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use super::decl::EcsTypeId;
+use super::components::mesh_renderer::MeshRendererComponent;
+use super::components::script::DynScriptComponent;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
+use super::game_object::GameObject;
 use super::id::Component;
 use super::id::EcsObject;
 use super::id::SceneId;
 use super::id::SceneKind;
+use super::mesh::VideoMesh;
 use super::scene::Scene;
 
 //
@@ -17,7 +21,7 @@ use super::scene::Scene;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynHandle {
-    ecs_type_id: EcsTypeId,
+    type_id: TypeId,
     scene_id: SceneId,
     generation: usize,
 }
@@ -34,7 +38,7 @@ pub struct GenericHandle<T: EcsObject + ?Sized> {
 }
 
 pub trait Handle: Debug + Clone + Copy {
-    fn ecs_type_id() -> EcsTypeId
+    fn type_id() -> TypeId
     where
         Self: Sized;
     fn to_dyn(self) -> DynHandle;
@@ -64,10 +68,21 @@ pub trait ComponentHandle: Handle {
 //
 
 impl DynHandle {
-    pub fn new(ecs_type_id: EcsTypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
-        if ecs_type_id.matches(scene_id.kind) {
+    pub fn new(type_id: TypeId, scene_id: SceneId, generation: usize) -> EcsResult<Self> {
+        let scene_kind = scene_id.kind;
+        let matches = match scene_kind {
+            SceneKind::Null => true,
+            SceneKind::DynamicGameObject if type_id == TypeId::of::<GameObject>() => true,
+            SceneKind::StaticGameObjct { chunk: _ } if type_id == TypeId::of::<GameObject>() => true,
+            SceneKind::Component if type_id == TypeId::of::<MeshRendererComponent>() => true,
+            SceneKind::Component if type_id == TypeId::of::<DynScriptComponent>() => true,
+            SceneKind::Other if type_id == TypeId::of::<VideoMesh>() => true,
+            _ => false,
+        };
+
+        if matches {
             Ok(Self {
-                ecs_type_id,
+                type_id,
                 scene_id,
                 generation,
             })
@@ -76,9 +91,9 @@ impl DynHandle {
         }
     }
 
-    pub fn null(ecs_type_id: EcsTypeId) -> Self {
+    pub fn null(type_id: TypeId) -> Self {
         Self {
-            ecs_type_id,
+            type_id,
             scene_id: SceneId {
                 kind: SceneKind::Null,
                 index: 0,
@@ -100,7 +115,7 @@ impl From<DynComponentHandle> for DynHandle {
     }
 }
 
-impl<T: Component> From<GenericHandle<T>> for DynComponentHandle {
+impl<T: Component + 'static> From<GenericHandle<T>> for DynComponentHandle {
     fn from(value: GenericHandle<T>) -> Self {
         Self {
             inner: value.to_dyn(),
@@ -108,9 +123,9 @@ impl<T: Component> From<GenericHandle<T>> for DynComponentHandle {
     }
 }
 
-impl<T: EcsObject + ?Sized> GenericHandle<T> {
+impl<T: EcsObject + ?Sized + 'static> GenericHandle<T> {
     pub fn new(scene_id: SceneId, generation: usize) -> EcsResult<Self> {
-        let inner = DynHandle::new(T::ecs_type_id(), scene_id, generation)?;
+        let inner = DynHandle::new(TypeId::of::<T>(), scene_id, generation)?;
         Ok(Self {
             inner,
             boo: PhantomData,
@@ -118,7 +133,7 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
     }
 
     pub fn null() -> Self {
-        let inner = DynHandle::null(T::ecs_type_id());
+        let inner = DynHandle::null(TypeId::of::<T>());
         Self {
             inner,
             boo: PhantomData,
@@ -126,9 +141,9 @@ impl<T: EcsObject + ?Sized> GenericHandle<T> {
     }
 }
 
-impl<T: EcsObject> GenericHandle<T> {
+impl<T: EcsObject + 'static> GenericHandle<T> {
     pub fn from_dyn(value: DynHandle) -> EcsResult<Self> {
-        if T::ecs_type_id() == value.ecs_type_id {
+        if TypeId::of::<T>() == value.type_id {
             Ok(GenericHandle {
                 inner: value,
                 boo: PhantomData,
@@ -149,8 +164,8 @@ impl<T: EcsObject> GenericHandle<T> {
 //
 
 impl DynHandle {
-    pub fn ecs_type_id(self) -> EcsTypeId {
-        self.ecs_type_id
+    pub fn type_id(self) -> TypeId {
+        self.type_id
     }
 
     pub fn scene_id(self) -> SceneId {
@@ -163,8 +178,8 @@ impl DynHandle {
 }
 
 impl<T: EcsObject + ?Sized> GenericHandle<T> {
-    pub fn ecs_type_id(self) -> EcsTypeId {
-        self.inner.ecs_type_id()
+    pub fn type_id(self) -> TypeId {
+        self.inner.type_id()
     }
 }
 
@@ -202,9 +217,9 @@ impl<T: EcsObject> PartialEq for GenericHandle<T> {
 
 impl<T: EcsObject> Eq for GenericHandle<T> {}
 
-impl<T: EcsObject> Handle for GenericHandle<T> {
-    fn ecs_type_id() -> EcsTypeId {
-        T::ecs_type_id()
+impl<T: EcsObject + 'static> Handle for GenericHandle<T> {
+    fn type_id() -> TypeId {
+        TypeId::of::<T>()
     }
 
     fn to_dyn(self) -> DynHandle {
@@ -212,7 +227,7 @@ impl<T: EcsObject> Handle for GenericHandle<T> {
     }
 }
 
-impl<T: Component> ComponentHandle for GenericHandle<T> {
+impl<T: Component + 'static> ComponentHandle for GenericHandle<T> {
     fn to_dyn_component(self) -> DynComponentHandle {
         self.into()
     }
@@ -222,7 +237,7 @@ impl<T: Component> ComponentHandle for GenericHandle<T> {
 // common functions
 //
 
-impl<T: EcsObject> GenericHandle<T> {
+impl<T: EcsObject + 'static> GenericHandle<T> {
     pub fn is_alive(self, scene: &Scene) -> bool {
         scene.deref(self).is_ok()
     }
