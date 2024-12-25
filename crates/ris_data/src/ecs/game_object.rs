@@ -16,6 +16,7 @@ use super::error::EcsResult;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
+use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
@@ -106,7 +107,7 @@ impl GameObjectHandle {
             }
         };
 
-        scene.mark_as_destroyed(self.into());
+        scene.mark_as_destroyed(self.to_dyn());
     }
 
     pub fn name(self, scene: &Scene) -> EcsResult<String> {
@@ -374,7 +375,15 @@ impl GameObjectHandle {
         };
 
         aref_mut.components.remove(position);
-        scene.destroy_component(component);
+        //scene.destroy_component(component);
+        let result = scene.deref_mut_component(
+            component,
+            |c| c.destroy(scene),
+        );
+
+        if result.is_ok() {
+            scene.mark_as_destroyed(*component);
+        }
     }
 
     pub fn is_active_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {

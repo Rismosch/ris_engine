@@ -48,8 +48,10 @@ pub trait ComponentHandle: Handle {
     fn to_dyn_component(self) -> DynComponentHandle;
 
     fn game_object(self, scene: &Scene) -> EcsResult<GameObjectHandle> {
-        let dyn_component = self.to_dyn_component();
-        scene.find_game_object_of_component(dyn_component)
+        scene.deref_component(
+            self.to_dyn_component(),
+            |component| component.game_object(),
+        )
     }
 
     fn destroy(self, scene: &Scene) {

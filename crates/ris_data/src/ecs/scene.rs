@@ -10,6 +10,7 @@ use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
 use super::handle::DynComponentHandle;
+use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsInstance;
@@ -190,20 +191,40 @@ impl Scene {
         Ok(ptr.to_weak())
     }
 
-    pub fn mark_as_destroyed<T: EcsObject + 'static>(&self, handle: GenericHandle<T>) {
+    pub fn mark_as_destroyed(&self, handle: DynHandle) -> EcsResult<()> {
         let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
-        let Ok(chunk) = self.find_chunk::<T>(kind) else {
-            return;
-        };
-        let ptr = &chunk[index];
-        ptr.borrow_mut().is_alive = false;
+        if type_id == TypeId::of::<GameObject>() {
+            let chunk = self.find_chunk::<GameObject>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<MeshRendererComponent>() {
+            let chunk = self.find_chunk::<MeshRendererComponent>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let chunk = self.find_chunk::<DynScriptComponent>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<VideoMesh>() {
+            let chunk = self.find_chunk::<VideoMesh>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else {
+            return Err(EcsError::InvalidCast)
+        }
+
+        Ok(())
+
+        //let Ok(chunk) = self.find_chunk::<T>(kind) else {
+        //    return;
+        //};
+        //let ptr = &chunk[index];
+        //ptr.borrow_mut().is_alive = false;
     }
 
-    pub fn deref_component(
+    pub fn deref_component<T>(
         &self,
         handle: DynComponentHandle,
-    ) -> EcsResult<()> {
+        callback: impl FnOnce(&dyn Component) -> T
+    ) -> EcsResult<T> {
         let SceneId { kind, index } = handle.scene_id();
         let type_id = handle.type_id();
 
@@ -211,109 +232,55 @@ impl Scene {
             return Err(EcsError::InvalidCast);
         }
 
-        let component = if type_id == TypeId::of::<MeshRendererComponent>() {
-            let aref = &self.mesh_renderer_components[index].borrow();
-            let test = &aref.value as &dyn Component;
+        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+            let aref = self.mesh_renderer_components[index].borrow();
+            callback(&aref.value)
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let aref = self.script_components[index].borrow();
+            callback(&aref.value)
         } else {
-            panic!();
+            return Err(EcsError::InvalidCast);
         };
 
-        //match ecs_type_id {
-        //    EcsTypeId::MeshRendererComponent => {
-        //        let chunk = &self.mesh_renderer_components;
-        //        let aref = &chunk[index].borrow();
-
-        //    }
-        //    ecs_type_id => ris_error::throw!(
-        //        "ecs type {:?} is not a component, and thus is not assigned to a game object",
-        //        ecs_type_id
-        //    ),
-        //}
-
-        panic!()
+        Ok(retval)
     }
 
-    pub fn find_game_object_of_component(
+    pub fn deref_mut_component<T>(
         &self,
         handle: DynComponentHandle,
-    ) -> EcsResult<GameObjectHandle> {
-        //let kind = handle.scene_id().kind;
-        //let ecs_type_id = handle.ecs_type_id();
+        callback: impl FnOnce(&mut dyn Component) -> T
+    ) -> EcsResult<T> {
+        let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
-        //if kind != SceneKind::Component {
-        //    return Err(EcsError::InvalidCast);
-        //}
+        if kind != SceneKind::Component {
+            return Err(EcsError::InvalidCast);
+        }
 
-        //let game_object = match ecs_type_id {
-        //    EcsTypeId::MeshRendererComponent => {
-        //        let generic_handle =
-        //            GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
-        //        let generic =
-        //            ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
+        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+            let mut aref = self.mesh_renderer_components[index].borrow_mut();
+            callback(&mut aref.value)
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let mut aref = self.script_components[index].borrow_mut();
+            callback(&mut aref.value)
+        } else {
+            return Err(EcsError::InvalidCast);
+        };
 
-        //        let ptr = self.deref(generic)?;
-        //        let aref = ptr.borrow();
-        //        aref.game_object()
-        //    }
-        //    EcsTypeId::ScriptComponent => {
-        //        let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
-        //        let generic =
-        //            ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
-
-        //        let ptr = self.deref(generic)?;
-        //        let aref = ptr.borrow();
-        //        aref.game_object()
-        //    }
-        //    ecs_type_id => ris_error::throw!(
-        //        "ecs type {:?} is not a component, and thus is not assigned to a game object",
-        //        ecs_type_id
-        //    ),
-        //};
-
-        //Ok(game_object)
-        panic!("will be removed, if deref component works")
-    }
-
-    pub fn destroy_component(&self, handle: DynComponentHandle) {
-        //let kind = handle.scene_id().kind;
-        //let ecs_type_id = handle.ecs_type_id();
-
-        //if kind != SceneKind::Component {
-        //    return;
-        //}
-
-        //match ecs_type_id {
-        //    EcsTypeId::MeshRendererComponent => {
-        //        let generic_handle =
-        //            GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
-        //        let generic =
-        //            ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
-
-        //        self.destroy_component_inner(generic);
-        //    }
-        //    EcsTypeId::ScriptComponent => {
-        //        let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
-        //        let generic =
-        //            ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
-
-        //        self.destroy_component_inner(generic);
-        //    }
-        //    ecs_type_id => ris_error::throw!("ecs type {:?} is not a component", ecs_type_id),
-        //}
-        panic!("will be removed, if deref component works")
+        Ok(retval)
     }
 
     fn find_chunk<T: EcsObject + 'static>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
         match kind {
             SceneKind::Null => Err(EcsError::IsNull),
-            SceneKind::DynamicGameObject => cast(&self.dynamic_game_objects),
-            SceneKind::StaticGameObjct { chunk } => cast(&self.static_chunks[chunk].game_objects),
+            SceneKind::DynamicGameObject => cast_chunk(&self.dynamic_game_objects),
+            SceneKind::StaticGameObjct { chunk } => cast_chunk(&self.static_chunks[chunk].game_objects),
             SceneKind::Component => {
                 let type_id = TypeId::of::<T>();
                 if type_id == TypeId::of::<MeshRendererComponent>() {
-                    cast(&self.mesh_renderer_components)
+                    cast_chunk(&self.mesh_renderer_components)
                 } else if type_id == TypeId::of::<DynScriptComponent>() {
-                    cast(&self.script_components)
+                    cast_chunk(&self.script_components)
                 } else {
                     Err(EcsError::TypeDoesNotMatchSceneKind)
                 }
@@ -321,24 +288,12 @@ impl Scene {
             SceneKind::Other => {
                 let type_id = TypeId::of::<T>();
                 if type_id == TypeId::of::<VideoMesh>() {
-                    cast(&self.video_meshes)
+                    cast_chunk(&self.video_meshes)
                 } else {
                     Err(EcsError::TypeDoesNotMatchSceneKind)
                 }
             },
         }
-    }
-
-    fn destroy_component_inner<T: Component + 'static>(&self, handle: GenericHandle<T>) {
-        let SceneId { kind, index } = handle.scene_id();
-
-        let Ok(chunk) = self.find_chunk::<T>(kind) else {
-            return;
-        };
-        let ptr = &chunk[index];
-        let mut aref_mut = ptr.borrow_mut();
-        aref_mut.destroy(self);
-        aref_mut.is_alive = false;
     }
 }
 
@@ -355,7 +310,7 @@ fn create_chunk<T: EcsObject + Default + 'static>(kind: SceneKind, capacity: usi
     Ok(result)
 }
 
-fn cast<T: EcsObject + 'static, U: EcsObject + 'static>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> {
+fn cast_chunk<T: EcsObject + 'static, U: EcsObject + 'static>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> {
     if TypeId::of::<T>() != TypeId::of::<U>() {
         return Err(EcsError::InvalidCast);
     }
