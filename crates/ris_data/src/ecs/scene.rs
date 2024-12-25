@@ -212,12 +212,6 @@ impl Scene {
         }
 
         Ok(())
-
-        //let Ok(chunk) = self.find_chunk::<T>(kind) else {
-        //    return;
-        //};
-        //let ptr = &chunk[index];
-        //ptr.borrow_mut().is_alive = false;
     }
 
     pub fn deref_component<T>(

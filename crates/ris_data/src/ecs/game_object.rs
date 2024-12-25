@@ -107,7 +107,10 @@ impl GameObjectHandle {
             }
         };
 
-        scene.mark_as_destroyed(self.to_dyn());
+        let result = scene.mark_as_destroyed(self.to_dyn());
+        if let Err(e) = result {
+            ris_log::warning!("failed to mark game object as destroyed: {}", e);
+        }
     }
 
     pub fn name(self, scene: &Scene) -> EcsResult<String> {
@@ -375,14 +378,16 @@ impl GameObjectHandle {
         };
 
         aref_mut.components.remove(position);
-        //scene.destroy_component(component);
         let result = scene.deref_mut_component(
             component,
             |c| c.destroy(scene),
         );
 
         if result.is_ok() {
-            scene.mark_as_destroyed(*component);
+            let result = scene.mark_as_destroyed(*component);
+            if let Err(e) = result {
+                ris_log::warning!("failed to mark component as destroyed: {}", e)
+            }
         }
     }
 

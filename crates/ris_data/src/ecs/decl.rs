@@ -11,35 +11,8 @@ use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
-use super::id::SceneKind;
 use super::mesh::VideoMesh;
 use super::scene::Scene;
-
-//#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-//pub enum EcsTypeId {
-//    GameObject,
-//    MeshRendererComponent,
-//    ScriptComponent,
-//    VideoMesh,
-//}
-
-//impl EcsTypeId {
-//    pub fn matches(self, scene_kind: SceneKind) -> bool {
-//        if scene_kind == SceneKind::Null {
-//            return true;
-//        }
-//
-//        matches!(
-//            (self, scene_kind),
-//            (_, SceneKind::Null)
-//                | (Self::GameObject, SceneKind::DynamicGameObject)
-//                | (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ })
-//                | (Self::MeshRendererComponent, SceneKind::Component)
-//                | (Self::ScriptComponent, SceneKind::Component)
-//                | (Self::VideoMesh, SceneKind::Other)
-//        )
-//    }
-//}
 
 declare::object!(GameObjectHandle, GameObject);
 declare::component!(MeshRendererComponentHandle, MeshRendererComponent);
@@ -104,11 +77,7 @@ mod declare {
                 }
             }
 
-            impl EcsObject for $handle_type {
-                //fn ecs_type_id() -> EcsTypeId {
-                //    $ecs_type_id
-                //}
-            }
+            impl EcsObject for $handle_type { }
 
             impl $handle_name {
                 pub fn null() -> Self {
