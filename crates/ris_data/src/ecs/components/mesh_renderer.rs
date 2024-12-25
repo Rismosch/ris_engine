@@ -23,17 +23,23 @@ impl MeshRendererComponent {
 }
 
 impl Component for MeshRendererComponent {
-    fn create(game_object: GameObjectHandle) -> Self {
-        Self {
-            game_object,
-            ..Default::default()
-        }
-    }
-
     fn destroy(&mut self, _scene: &Scene) {}
 
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
+    }
+
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle {
+        &mut self.game_object
+    }
+}
+
+impl MeshRendererComponent {
+    pub fn create(game_object: GameObjectHandle) -> Self {
+        Self {
+            game_object,
+            ..Default::default()
+        }
     }
 }
 

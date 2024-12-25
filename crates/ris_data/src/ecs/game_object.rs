@@ -253,7 +253,7 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn add_component<T: Component + 'static>(
+    pub fn add_component<T: Component + Default + 'static>(
         self,
         scene: &Scene,
     ) -> EcsResult<GenericHandle<T>> {
@@ -264,7 +264,8 @@ impl GameObjectHandle {
         let component_dyn = component_handle.to_dyn_component();
 
         ptr.borrow_mut().components.push(component_dyn);
-        let component = T::create(self);
+        let mut component = T::default();
+        *component.game_object_mut() = self;
         component_ptr.borrow_mut().value = component;
 
         Ok(component_handle)

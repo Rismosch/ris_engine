@@ -83,13 +83,6 @@ impl Default for DynScriptComponent {
 }
 
 impl Component for DynScriptComponent {
-    fn create(game_object: GameObjectHandle) -> Self {
-        Self {
-            game_object,
-            ..Default::default()
-        }
-    }
-
     fn destroy(&mut self, scene: &Scene) {
         let Some(mut script) = self.script.take() else {
             return;
@@ -108,9 +101,20 @@ impl Component for DynScriptComponent {
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
     }
+    
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle {
+        &mut self.game_object
+    }
 }
 
 impl DynScriptComponent {
+    pub fn create(game_object: GameObjectHandle) -> Self {
+        Self {
+            game_object,
+            ..Default::default()
+        }
+    }
+
     pub fn game_object(&self) -> GameObjectHandle {
         self.game_object
     }

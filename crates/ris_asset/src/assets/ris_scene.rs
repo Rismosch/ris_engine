@@ -43,10 +43,10 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         ris_io::write_f32(f, handle.local_scale(scene)?)?;
          
         let components = handle.components(scene)?;
-        ris_io::write_uint(f, components.len())?;
-        for component in components {
+        //ris_io::write_uint(f, components.len())?;
+        //for component in components {
 
-        }
+        //}
 
         let children = handle.children(scene)?;
         let child_count = children.len();

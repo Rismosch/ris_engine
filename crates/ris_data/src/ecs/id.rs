@@ -61,14 +61,15 @@ impl TryFrom<SceneKind> for GameObjectKind {
 // ecs traits and objects
 //
 
-pub trait EcsObject: Debug + Default {
+pub trait EcsObject: Debug {
     //fn ecs_type_id() -> EcsTypeId;
 }
 
 pub trait Component: EcsObject {
-    fn create(game_object: GameObjectHandle) -> Self;
+    //fn create(game_object: GameObjectHandle) -> Self;
     fn destroy(&mut self, scene: &Scene);
     fn game_object(&self) -> GameObjectHandle;
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle;
 }
 
 pub struct EcsInstance<T: EcsObject> {
@@ -80,7 +81,7 @@ pub struct EcsInstance<T: EcsObject> {
 pub type EcsPtr<T> = StrongPtr<ArefCell<EcsInstance<T>>>;
 pub type EcsWeakPtr<T> = WeakPtr<ArefCell<EcsInstance<T>>>;
 
-impl<T: EcsObject> EcsInstance<T> {
+impl<T: EcsObject + Default> EcsInstance<T> {
     pub fn new(handle: GenericHandle<T>) -> Self {
         Self {
             value: T::default(),

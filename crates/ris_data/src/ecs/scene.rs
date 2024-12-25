@@ -169,7 +169,7 @@ impl Scene {
         }
     }
 
-    pub fn create_new<T: EcsObject + 'static>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
+    pub fn create_new<T: EcsObject + Default + 'static>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(kind)?;
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
@@ -204,12 +204,19 @@ impl Scene {
         &self,
         handle: DynComponentHandle,
     ) -> EcsResult<()> {
-        //let SceneId { kind, index } = handle.scene_id();
-        //let type_id = handle.type_id();
+        let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
-        //if kind != SceneKind::Component {
-        //    return Err(EcsError::InvalidCast);
-        //}
+        if kind != SceneKind::Component {
+            return Err(EcsError::InvalidCast);
+        }
+
+        let component = if type_id == TypeId::of::<MeshRendererComponent>() {
+            let aref = &self.mesh_renderer_components[index].borrow();
+            let test = &aref.value as &dyn Component;
+        } else {
+            panic!();
+        };
 
         //match ecs_type_id {
         //    EcsTypeId::MeshRendererComponent => {
@@ -335,7 +342,7 @@ impl Scene {
     }
 }
 
-fn create_chunk<T: EcsObject + 'static>(kind: SceneKind, capacity: usize) -> EcsResult<Vec<EcsPtr<T>>> {
+fn create_chunk<T: EcsObject + Default + 'static>(kind: SceneKind, capacity: usize) -> EcsResult<Vec<EcsPtr<T>>> {
     let mut result = Vec::with_capacity(capacity);
     for i in 0..capacity {
         let id = SceneId { kind, index: i };

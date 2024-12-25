@@ -104,7 +104,7 @@ impl Registry {
     }
 }
 
-impl<T: Component + 'static> IComponentFactory for ComponentFactory<T> {
+impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T> {
     fn name(&self) -> &str {
         &self.name
     }
