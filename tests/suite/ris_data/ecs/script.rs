@@ -1,5 +1,6 @@
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::game_object::GetFrom;
+use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::script_prelude::*;
@@ -8,6 +9,10 @@ fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
     info.dynamic_game_objects = 5;
     info.script_components = 5;
+    info.registry = Some(Registry::new(vec![
+        Registry::script::<TestScriptString>().unwrap(),
+        Registry::script::<TestScriptISize>().unwrap(),
+    ]).unwrap());
     info
 }
 
@@ -22,14 +27,6 @@ struct TestScriptISize {
 }
 
 impl Script for TestScriptString {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestScriptString"
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
@@ -50,14 +47,6 @@ impl Script for TestScriptString {
 }
 
 impl Script for TestScriptISize {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestScriptISize"
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }

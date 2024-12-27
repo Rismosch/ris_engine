@@ -1,6 +1,7 @@
+use std::any::TypeId;
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -12,18 +13,21 @@ use super::handle::DynComponentHandle;
 use super::id::Component;
 use super::scene::Scene;
 
+static mut REGISTRY: Option<Registry> = None;
+
+#[derive(Debug)]
 pub struct Registry {
     components: Vec<Box<dyn IComponentFactory>>,
     scripts: Vec<Box<dyn IScriptFactory>>,
 }
 
-pub trait IComponentFactory: std::fmt::Debug {
+pub trait IComponentFactory: Debug {
     fn name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
 }
 
-pub trait IScriptFactory: std::fmt::Debug {
-    fn script_id(&self) -> Sid;
+pub trait IScriptFactory: Debug {
+    fn script_id(&self) -> TypeId;
     fn name(&self) -> &str;
     fn make(
         &self,
@@ -77,7 +81,7 @@ impl Registry {
 
                 if left_id == right_id {
                     return ris_error::new_result!(
-                        "script id collision detected!\n[{}]: {:?} -> {}\n[{}]: {:?} -> {}\n",
+                        "script id collision detected!\n[{}]: {:?} -> {:?}\n[{}]: {:?} -> {:?}\n",
                         i,
                         left,
                         left_id,
@@ -116,8 +120,8 @@ impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T>
 }
 
 impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
-    fn script_id(&self) -> Sid {
-        T::id()
+    fn script_id(&self) -> TypeId {
+        TypeId::of::<T>()
     }
 
     fn name(&self) -> &str {
@@ -132,6 +136,22 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
         let handle = game_object.add_script::<T>(scene)?;
         let dyn_handle = handle.dyn_handle();
         Ok(dyn_handle)
+    }
+}
+
+pub fn init(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<()> {
+    let new_registry = Registry::new(scripts)?;
+    unsafe {REGISTRY = Some(new_registry)};
+
+    Ok(())
+}
+
+pub fn get() -> &'static Registry {
+    unsafe {
+        match REGISTRY.as_ref() {
+            Some(registry) => registry,
+            None => ris_error::throw!("registry is not initialized"),
+        }
     }
 }
 

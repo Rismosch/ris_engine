@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::rc::Rc;
 
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
@@ -20,6 +21,7 @@ use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
 use super::mesh::VideoMesh;
+use super::registry::Registry;
 
 const DEFAULT_DYNAMIC_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
@@ -28,7 +30,7 @@ const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
 const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
 const DEFAULT_VIDEO_MESHES: usize = 1024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct SceneCreateInfo {
     // game objects
     pub dynamic_game_objects: usize,
@@ -41,6 +43,7 @@ pub struct SceneCreateInfo {
 
     // other
     pub video_meshes: usize,
+    pub registry: Option<Registry>,
 }
 
 pub struct StaticChunk {
@@ -49,11 +52,17 @@ pub struct StaticChunk {
 }
 
 pub struct Scene {
+    // game objects
     pub dynamic_game_objects: Vec<EcsPtr<GameObject>>,
     pub static_chunks: Vec<StaticChunk>,
+
+    // compontents
     pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
+
+    // other
     pub video_meshes: Vec<EcsPtr<VideoMesh>>,
+    pub registry: Registry,
 }
 
 impl Default for SceneCreateInfo {
@@ -65,6 +74,7 @@ impl Default for SceneCreateInfo {
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
             video_meshes: DEFAULT_VIDEO_MESHES,
+            registry: None,
         }
     }
 }
@@ -78,6 +88,7 @@ impl SceneCreateInfo {
             mesh_renderer_components: 0,
             script_components: 0,
             video_meshes: 0,
+            registry: None,
         }
     }
 }
@@ -88,6 +99,41 @@ impl Scene {
             let mut aref_mut = video_mesh.borrow_mut();
             aref_mut.free(device);
         }
+    }
+
+    pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
+        let Some(registry) = info.registry else {
+            return Err(EcsError::InvalidOperation("registry was none".to_string()));
+        };
+
+        let dynamic_game_objects =
+            create_chunk(SceneKind::DynamicGameObject, info.dynamic_game_objects)?;
+
+        let mut static_chunks = Vec::with_capacity(info.static_chunks);
+        for i in 0..info.static_chunks {
+            let kind = SceneKind::StaticGameObjct { chunk: i };
+            let game_objects = create_chunk(kind, info.static_game_objects_per_chunk)?;
+            let chunk = StaticChunk {
+                is_reserved: ArefCell::new(false),
+                game_objects,
+            };
+            static_chunks.push(chunk);
+        }
+
+        let mesh_renderer_components =
+            create_chunk(SceneKind::Component, info.mesh_renderer_components)?;
+        let script_components = create_chunk(SceneKind::Component, info.script_components)?;
+
+        let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
+
+        Ok(Self {
+            dynamic_game_objects,
+            static_chunks,
+            mesh_renderer_components,
+            script_components,
+            video_meshes,
+            registry,
+        })
     }
 
     pub fn reserve_chunk(&self) -> Option<usize> {
@@ -122,36 +168,6 @@ impl Scene {
         }
 
         *chunk.is_reserved.borrow_mut() = false;
-    }
-
-    pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
-        let dynamic_game_objects =
-            create_chunk(SceneKind::DynamicGameObject, info.dynamic_game_objects)?;
-
-        let mut static_chunks = Vec::with_capacity(info.static_chunks);
-        for i in 0..info.static_chunks {
-            let kind = SceneKind::StaticGameObjct { chunk: i };
-            let game_objects = create_chunk(kind, info.static_game_objects_per_chunk)?;
-            let chunk = StaticChunk {
-                is_reserved: ArefCell::new(false),
-                game_objects,
-            };
-            static_chunks.push(chunk);
-        }
-
-        let mesh_renderer_components =
-            create_chunk(SceneKind::Component, info.mesh_renderer_components)?;
-        let script_components = create_chunk(SceneKind::Component, info.script_components)?;
-
-        let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
-
-        Ok(Self {
-            dynamic_game_objects,
-            static_chunks,
-            mesh_renderer_components,
-            script_components,
-            video_meshes,
-        })
     }
 
     pub fn deref<T: EcsObject + 'static>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {

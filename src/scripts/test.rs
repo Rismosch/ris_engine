@@ -8,14 +8,6 @@ pub struct Rotation {
 }
 
 impl Script for Rotation {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestRotation"
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }

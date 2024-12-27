@@ -1,9 +1,9 @@
+use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use imgui::Ui;
 
-use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_ptr::Aref;
@@ -41,10 +41,6 @@ pub struct ScriptInspectData<'a> {
 }
 
 pub trait Script: Debug + Send + Sync {
-    fn id() -> Sid
-    where
-        Self: Sized;
-    fn name(&self) -> &'static str;
     fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
@@ -54,7 +50,7 @@ pub trait Script: Debug + Send + Sync {
 #[derive(Debug)]
 pub struct DynScript {
     boxed: Box<dyn Script>,
-    id: Sid,
+    id: TypeId,
 }
 
 #[derive(Debug)]
@@ -164,7 +160,7 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(DynScript {
             boxed: Box::new(script),
-            id: T::id(),
+            id: TypeId::of::<T>(),
         });
 
         let generic_handle = Self {
@@ -186,7 +182,7 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
             ));
         };
 
-        if T::id() != script.id {
+        if TypeId::of::<T>() != script.id {
             return Err(EcsError::InvalidCast);
         }
 

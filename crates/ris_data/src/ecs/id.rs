@@ -61,9 +61,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
 // ecs traits and objects
 //
 
-pub trait EcsObject: Debug {
-    //fn ecs_type_id() -> EcsTypeId;
-}
+pub trait EcsObject: Debug {}
 
 pub trait Component: EcsObject {
     //fn create(game_object: GameObjectHandle) -> Self;

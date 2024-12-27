@@ -75,7 +75,6 @@ impl OutputFrame {
         &mut self,
         frame: Frame,
         state: &mut GodState,
-        registry: &Registry,
         god_asset: &RisGodAsset,
     ) -> RisResult<GameloopState> {
         let window_flags = self.window.window_flags();
@@ -128,7 +127,6 @@ impl OutputFrame {
             ui: imgui_ui,
             frame,
             state,
-            registry,
             window_drawable_size,
         })?;
 

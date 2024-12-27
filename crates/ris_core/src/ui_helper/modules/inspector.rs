@@ -456,7 +456,8 @@ impl IUiHelperModule for InspectorModule {
 
                         let header = ComponentHeader::draw(
                             data.ui,
-                            format!("script {}##{:?}", script.name(), component),
+                            //format!("script {}##{:?}", script.name(), component),
+                            format!("script todo##{:?}", component),
                         );
                         delete_requested = header.delete_requested;
                         if !header.is_open {
@@ -500,7 +501,7 @@ impl IUiHelperModule for InspectorModule {
                         .input_text("filter", &mut self.component_filter)
                         .build();
 
-                    for factory in data.registry.component_factories() {
+                    for factory in data.state.scene.registry.component_factories() {
                         let name = factory.name();
                         if !name
                             .to_lowercase()
@@ -516,7 +517,7 @@ impl IUiHelperModule for InspectorModule {
 
                     data.ui.separator();
 
-                    for factory in data.registry.script_factories() {
+                    for factory in data.state.scene.registry.script_factories() {
                         let name = factory.name();
                         if !name
                             .to_lowercase()

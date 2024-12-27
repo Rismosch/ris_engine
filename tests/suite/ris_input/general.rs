@@ -1,3 +1,4 @@
+use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::god_state::GodState;
 use ris_data::input::rebind_matrix::RebindMatrix;
@@ -16,7 +17,9 @@ impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new().unwrap());
 
-        let scene_create_info = miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
+        let mut scene_create_info = miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
+        scene_create_info.registry = Some(Registry::new(Vec::new()).unwrap());
+
 
         let state = GodState::new(Settings::default(), scene_create_info).unwrap();
 

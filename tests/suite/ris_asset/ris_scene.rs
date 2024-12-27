@@ -13,14 +13,6 @@ struct TestScript {
 }
 
 impl Script for TestScript {
-    fn name(&self) -> &'static str {
-        "TestScript"
-    }
-
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
@@ -42,9 +34,10 @@ impl Script for TestScript {
 fn should_serialize() {
     let mut rng = Rng::new(Seed::new().unwrap());
 
+    let count = 20;
     let mut scene_create_info = SceneCreateInfo::default();
     scene_create_info.static_chunks = 2;
-    scene_create_info.static_game_objects_per_chunk = 20;
+    scene_create_info.static_game_objects_per_chunk = count;
     let scene = Scene::new(scene_create_info).unwrap();
 
     // the first chunk will be reserved, such that the serializer doesn't to choose to create game
@@ -55,7 +48,6 @@ fn should_serialize() {
     // orderered and chunk to be loaded into already has some game objects
     let mut to_unmark_0 = Vec::new();
     let mut to_unmark_1 = Vec::new();
-    let count = scene_create_info.static_game_objects_per_chunk;
     for _ in 0..(count / 2) {
         let index = rng.next_i32_between(0, count as i32 - 1) as usize;
         let mut aref = scene.static_chunks[0].game_objects[index].borrow_mut();
@@ -137,7 +129,7 @@ fn should_serialize() {
         .count();
     assert_eq!(left_count, right_count);
 
-    for i in 0..scene_create_info.static_game_objects_per_chunk {
+    for i in 0..count {
         let left: GameObjectHandle = scene.static_chunks[0].game_objects[i].borrow().handle.into();
 
         if !left.is_alive(&scene) {

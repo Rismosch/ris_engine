@@ -53,7 +53,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let output_result = god_object.output_frame.run(
             frame,
             &mut god_object.state,
-            &god_object.registry,
             &god_object.god_asset,
         );
 

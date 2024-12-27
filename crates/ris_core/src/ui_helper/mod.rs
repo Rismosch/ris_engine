@@ -149,7 +149,6 @@ pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
-    pub registry: &'a Registry,
     pub window_drawable_size: (u32, u32),
 }
 
