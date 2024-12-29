@@ -6,6 +6,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::components::mesh_renderer::MeshRendererComponent;
+use super::components::script::DynScript;
 use super::components::script::DynScriptComponent;
 use super::components::script::Script;
 use super::decl::DynScriptComponentHandle;
@@ -26,6 +27,7 @@ pub trait IComponentFactory: Debug {
     fn component_id(&self) -> TypeId;
     fn component_name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
+    fn make_dyn_script(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScript>;
 }
 
 pub trait IScriptFactory: Debug {
@@ -119,6 +121,10 @@ impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T>
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle> {
         let handle = game_object.add_component::<T>(scene)?;
         Ok(handle.into())
+    }
+
+    fn make_dyn_script(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScript> {
+        ris_error::new_result!("not implemented")
     }
 }
 

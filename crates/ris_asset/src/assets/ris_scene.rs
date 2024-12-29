@@ -1,4 +1,5 @@
 use std::io::Cursor;
+use std::io::SeekFrom;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
@@ -6,6 +7,7 @@ use ris_data::ecs::scene_stream::SceneReader;
 use ris_data::ecs::scene_stream::SceneWriter;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_io::FatPtr;
 
 use super::ris_header::RisHeader;
 
@@ -45,15 +47,25 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         let components = handle.components(scene)?;
         ris_io::write_uint(f, components.len())?;
         for component in components {
+            let ptr_addr = ris_io::write_fat_ptr(f, FatPtr::null())?.addr; // placeholder ptr
+            let addr = ris_io::seek(f, SeekFrom::Current(0))?;
+
             let position = scene.registry.component_factories()
                 .iter()
                 .position(|x| x.component_id() == component.type_id())
                 .into_ris_error()?;
 
-            println!("write position: {}", position);
-
             ris_io::write_uint(f, position)?;
             scene.deref_component(component, |x| x.serialize(f))??;
+
+            println!("i wrote position {}", position);
+
+            // fill placeholder ptr
+            let end = ris_io::seek(f, SeekFrom::Current(0))?;
+            let ptr = FatPtr::begin_end(addr, end)?;
+            ris_io::seek(f, SeekFrom::Start(ptr_addr))?;
+            ris_io::write_fat_ptr(f, ptr)?;
+            ris_io::seek(f, SeekFrom::Start(end))?;
         }
 
         let children = handle.children(scene)?;
@@ -112,6 +124,7 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     
     f.lookup = Vec::with_capacity(game_object_count);
     let mut children_to_assign = Vec::with_capacity(game_object_count);
+    let mut components_to_deserialize = Vec::with_capacity(game_object_count);
 
     // deserialize game objects
     for _ in 0..game_object_count {
@@ -122,19 +135,21 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         let local_scale = ris_io::read_f32(f)?;
 
         let component_count = ris_io::read_uint(f)?;
+        let mut component_ptrs = Vec::with_capacity(component_count);
         for _ in 0..component_count {
-            let position = ris_io::read_uint(f)?;
+            let ptr = ris_io::read_fat_ptr(f)?;
+            component_ptrs.push(ptr);
 
-            println!("what are these scripts: {:#?}", scene.registry);
-            println!("read position: {:#?}", position);
+            ris_io::seek(f, SeekFrom::Current(ptr.len.try_into()?))?;
+            //let position = ris_io::read_uint(f)?;
 
-            let factory = scene.registry
-                .component_factories()
-                .get(position)
-                .into_ris_error()?;
-
-            panic!("read bytes, but deserialize after gameobjects are done, then just make the dyn component and deserialize it")
+            //let factory = scene.registry
+            //    .component_factories()
+            //    .get(position)
+            //    .into_ris_error()?;
         }
+
+        println!("some ptrs: {:?}", component_ptrs);
 
         let child_count = ris_io::read_uint(f)?;
         let mut child_ids = Vec::with_capacity(child_count);
@@ -154,12 +169,13 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         game_object.set_local_scale(scene, local_scale)?;
 
         children_to_assign.push((game_object, child_ids));
+        components_to_deserialize.push((game_object, component_ptrs));
     }
 
-    // assign parents
+    // assign children
     for (game_object, child_ids) in children_to_assign {
         for (i, &child_id) in child_ids.iter().enumerate() {
-            let actual_id = stream.lookup.get(child_id).into_ris_error()?;
+            let actual_id = f.lookup.get(child_id).into_ris_error()?;
 
             let child: GameObjectHandle = chunk.game_objects.iter()
                 .find(|x| x.borrow().handle.scene_id().index == *actual_id)
@@ -172,7 +188,21 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         }
     }
 
-    // todo: components
+    // deserialize components
+    for (game_object, component_ptrs) in components_to_deserialize {
+        for FatPtr { addr, len: _ } in component_ptrs {
+            ris_io::seek(f, SeekFrom::Start(addr))?;
+
+            let position = ris_io::read_uint(f)?;
+            let factory = scene.registry
+                .component_factories()
+                .get(position)
+                .into_ris_error()?;
+
+            let component = factory.make(scene, game_object)?;
+            scene.deref_mut_component(component, |x| x.deserialize(f))??;
+        }
+    }
 
     Ok(Some(index))
 }

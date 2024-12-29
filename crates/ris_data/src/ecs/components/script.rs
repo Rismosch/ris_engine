@@ -74,6 +74,22 @@ pub struct ScriptComponentRefMut<T: Script> {
     boo: PhantomData<T>,
 }
 
+impl DynScript {
+    pub fn new<T: Script + Default>() -> Self {
+        let script = T::default();
+        let boxed = Box::new(script);
+        let id = TypeId::of::<T>();
+        let type_name = std::any::type_name::<T>();
+        let name = ris_util::reflection::trim_type_name(type_name);
+
+        Self {
+            boxed,
+            id,
+            name,
+        }
+    }
+}
+
 impl Default for DynScriptComponent {
     fn default() -> Self {
         Self {
@@ -129,6 +145,8 @@ impl Component for DynScriptComponent {
                 let factory = stream.scene.registry.script_factories()
                     .get(position)
                     .into_ris_error()?;
+
+                factory.make
 
                 ris_error::new_result!("not implemented")
             },
@@ -193,6 +211,8 @@ impl DynScriptComponent {
 impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
+
+        let script = DynScript::new::<T>();
 
         let data = ScriptStartEndData { game_object, scene };
         let mut script = T::default();
