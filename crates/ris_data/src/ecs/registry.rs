@@ -27,17 +27,17 @@ pub trait IComponentFactory: Debug {
     fn component_id(&self) -> TypeId;
     fn component_name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
-    fn make_dyn_script(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScript>;
 }
 
 pub trait IScriptFactory: Debug {
     fn script_id(&self) -> TypeId;
     fn script_name(&self) -> &str;
-    fn make(
+    fn make_and_attach(
         &self,
         scene: &Scene,
         game_object: GameObjectHandle,
     ) -> RisResult<DynScriptComponentHandle>;
+    fn make(&self) -> DynScript;
 }
 
 #[derive(Debug)]
@@ -122,10 +122,6 @@ impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T>
         let handle = game_object.add_component::<T>(scene)?;
         Ok(handle.into())
     }
-
-    fn make_dyn_script(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynScript> {
-        ris_error::new_result!("not implemented")
-    }
 }
 
 impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
@@ -138,7 +134,7 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
         ris_util::reflection::trim_type_name(type_name)
     }
 
-    fn make(
+    fn make_and_attach(
         &self,
         scene: &Scene,
         game_object: GameObjectHandle,
@@ -146,6 +142,10 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
         let handle = game_object.add_script::<T>(scene)?;
         let dyn_handle = handle.dyn_handle();
         Ok(dyn_handle)
+    }
+
+    fn make(&self) -> DynScript {
+        DynScript::new::<T>()
     }
 }
 

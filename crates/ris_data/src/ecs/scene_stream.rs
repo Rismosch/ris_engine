@@ -94,7 +94,11 @@ impl<'a> SceneReader<'a> {
     pub fn read_game_object(&mut self) -> RisResult<GameObjectHandle> {
         let index = ris_io::read_uint(self)?;
         let scene_index = self.lookup.get(index).into_ris_error()?;
-        let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk].game_objects[*scene_index].borrow().handle.into();
+        let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk]
+            .game_objects[*scene_index]
+            .borrow()
+            .handle
+            .into();
 
         Ok(game_object)
     }

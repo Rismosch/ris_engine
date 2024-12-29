@@ -41,11 +41,11 @@ impl Script for TestScriptString {
         Ok(())
     }
 
-    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
         ris_error::new_result!("not implemented")
     }
 
-    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
         ris_error::new_result!("not implemented")
     }
 
@@ -69,11 +69,11 @@ impl Script for TestScriptISize {
         Ok(())
     }
 
-    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
         ris_error::new_result!("not implemented")
     }
 
-    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
         ris_error::new_result!("not implemented")
     }
 

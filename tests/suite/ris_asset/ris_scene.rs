@@ -1,5 +1,10 @@
+use std::any::TypeId;
+
 use ris_asset::assets::ris_scene;
+use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::handle::DynComponentHandle;
+use ris_data::ecs::id::Component;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
@@ -8,38 +13,77 @@ use ris_error::RisResult;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
-#[derive(Default, Debug)]
-struct TestScript {
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Call {
+    Default,
+    Start,
+    Update,
+    End,
+    Serialize,
+    Deserialize,
+    Inspect,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TestInner {
     payload: Vec<u8>,
+    game_object: GameObjectHandle,
+    calls: Vec<Call>,
+}
+
+#[derive(Debug)]
+struct TestScript {
+    inner: TestInner,
+}
+
+impl Default for TestScript {
+    fn default() -> Self {
+        Self {
+            inner: TestInner{
+                payload: Vec::new(),
+                game_object: GameObjectHandle::null(),
+                calls: vec![Call::Default],
+            }
+        }
+    }
 }
 
 impl Script for TestScript {
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        self.inner.calls.push(Call::Start);
         Ok(())
     }
 
     fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
+        self.inner.calls.push(Call::Update);
         Ok(())
     }
 
     fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
+        self.inner.calls.push(Call::End);
         Ok(())
     }
 
-    fn serialize(&self, f: &mut SceneWriter) -> RisResult<()> {
-        //ris_io::write_uint(f, self.payload.len())?;
-        //ris_io::write(f, &self.payload)?;
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
+        self.inner.calls.push(Call::Serialize);
+        ris_io::write_uint(stream, self.inner.payload.len())?;
+        ris_io::write(stream, &self.inner.payload)?;
+        stream.write_game_object(self.inner.game_object)?;
         Ok(())
     }
 
-    fn deserialize(&mut self, f: &mut SceneReader) -> RisResult<()> {
-        //let payload_len = ris_io::read_uint(f)?;
-        //self.payload = vec![0; payload_len];
-        //ris_io::read(f, &mut self.payload)?;
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+        self.inner.calls.push(Call::Deserialize);
+        let payload_len = ris_io::read_uint(stream)?;
+        self.inner.payload = vec![0; payload_len];
+        ris_io::read(stream, &mut self.inner.payload)?;
+        self.inner.game_object = stream.read_game_object()?;
         Ok(())
     }
 
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+        self.inner.calls.push(Call::Inspect);
         Ok(())
     }
 }
@@ -118,16 +162,17 @@ fn should_serialize() {
     g8.set_parent(&scene, Some(g7), 0, false).unwrap();
     g9.set_parent(&scene, Some(g8), 0, false).unwrap();
 
-    fill_data(&scene, g0, &mut rng, "zero").unwrap();
-    fill_data(&scene, g1, &mut rng, "one").unwrap();
-    fill_data(&scene, g2, &mut rng, "two").unwrap();
-    fill_data(&scene, g3, &mut rng, "three").unwrap();
-    fill_data(&scene, g4, &mut rng, "four").unwrap();
-    fill_data(&scene, g5, &mut rng, "five").unwrap();
-    fill_data(&scene, g6, &mut rng, "six").unwrap();
-    fill_data(&scene, g7, &mut rng, "seven").unwrap();
-    fill_data(&scene, g8, &mut rng, "eight").unwrap();
-    fill_data(&scene, g9, &mut rng, "nine").unwrap();
+    let gs = [g0, g1, g2, g3, g4, g5, g6, g7, g8, g9];
+    fill_data(&scene, g0, &mut rng, "zero", &gs).unwrap();
+    fill_data(&scene, g1, &mut rng, "one", &gs).unwrap();
+    fill_data(&scene, g2, &mut rng, "two", &gs).unwrap();
+    fill_data(&scene, g3, &mut rng, "three", &gs).unwrap();
+    fill_data(&scene, g4, &mut rng, "four", &gs).unwrap();
+    fill_data(&scene, g5, &mut rng, "five", &gs).unwrap();
+    fill_data(&scene, g6, &mut rng, "six", &gs).unwrap();
+    fill_data(&scene, g7, &mut rng, "seven", &gs).unwrap();
+    fill_data(&scene, g8, &mut rng, "eight", &gs).unwrap();
+    fill_data(&scene, g9, &mut rng, "nine", &gs).unwrap();
 
     // actual code to be tested
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
@@ -204,6 +249,34 @@ fn should_serialize() {
                 right_child.name(&scene).unwrap(),
             );
         }
+
+        let left_components = left.components(&scene).unwrap();
+        let right_components = right.components(&scene).unwrap();
+        assert_eq!(left_components.len(), right_components.len());
+
+        for i in 0..left_components.len() {
+            let left_inner = get_inner(&scene, left_components[i]).unwrap();
+            let right_inner = get_inner(&scene, right_components[i]).unwrap();
+
+            assert_eq!(left_inner.payload, right_inner.payload);
+
+            assert_eq!(left_inner.calls, vec![
+                Call::Default,
+                Call::Start,
+                Call::Serialize,
+            ]);
+
+            assert_eq!(right_inner.calls, vec![
+                Call::Default,
+                Call::Deserialize,
+                Call::Start,
+            ]);
+
+            assert_eq!(
+                left_inner.game_object.name(&scene).unwrap(),
+                right_inner.game_object.name(&scene).unwrap(),
+            )
+        }
     }
 
     panic!("reached end");
@@ -214,6 +287,7 @@ fn fill_data(
     game_object: GameObjectHandle,
     rng: &mut Rng,
     name: impl AsRef<str>,
+    game_objects: &[GameObjectHandle]
 ) -> RisResult<()> {
     let is_active = rng.next_bool();
     let position = rng.next_pos_3();
@@ -230,8 +304,28 @@ fn fill_data(
         let script = game_object.add_script::<TestScript>(scene)?;
         let byte_count = rng.next_i32_between(0, 100) as usize;
         let bytes = rng.next_bytes(byte_count);
-        script.script_mut(scene).unwrap().payload = bytes;
+        let mut ref_mut = script.script_mut(scene).unwrap();
+        ref_mut.inner.payload = bytes;
+        ref_mut.inner.game_object = *rng.next_in(game_objects);
     }
 
     Ok(())
+}
+
+fn get_inner(scene: &Scene, handle: DynComponentHandle) -> RisResult<TestInner> {
+    assert_eq!(handle.type_id(), TypeId::of::<DynScriptComponent>());
+
+    let inner = scene.deref_mut_component(handle, |x| {
+        let dyn_script_component: &mut DynScriptComponent = unsafe {&mut *(x as *mut dyn Component as *mut DynScriptComponent)};
+
+        let script_type_id = dyn_script_component.type_id().unwrap();
+        assert_eq!(script_type_id, TypeId::of::<TestScript>());
+
+        let boxed = dyn_script_component.script_mut().unwrap();
+        let script = boxed.as_ref();
+        let test: &TestScript = unsafe {&*(script as *const dyn Script as *const TestScript)};
+        test.inner.clone()
+    }).unwrap();
+
+    Ok(inner)
 }

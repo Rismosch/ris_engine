@@ -45,7 +45,7 @@ impl Script for Rotation {
         Ok(())
     }
 
-    fn serialize(&self, f: &mut SceneWriter) -> RisResult<()> {
+    fn serialize(&mut self, f: &mut SceneWriter) -> RisResult<()> {
         ris_io::write_vec3(f, self.rotation_axis)?;
         Ok(())
     }

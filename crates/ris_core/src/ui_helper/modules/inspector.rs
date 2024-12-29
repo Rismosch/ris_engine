@@ -528,7 +528,7 @@ impl IUiHelperModule for InspectorModule {
                         }
 
                         if data.ui.menu_item(name) {
-                            factory.make(&data.state.scene, game_object)?;
+                            factory.make_and_attach(&data.state.scene, game_object)?;
                         }
                     }
                 }

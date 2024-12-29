@@ -46,7 +46,7 @@ pub trait Script: Debug + Send + Sync {
     fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
-    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()>;
     fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()>;
 }
@@ -75,7 +75,7 @@ pub struct ScriptComponentRefMut<T: Script> {
 }
 
 impl DynScript {
-    pub fn new<T: Script + Default>() -> Self {
+    pub fn new<T: Script + Default + 'static>() -> Self {
         let script = T::default();
         let boxed = Box::new(script);
         let id = TypeId::of::<T>();
@@ -123,8 +123,8 @@ impl Component for DynScriptComponent {
         &mut self.game_object
     }
 
-    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
-        match self.script.as_ref() {
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
+        match self.script.as_mut() {
             Some(script) => {
                 let position = stream.scene.registry.script_factories()
                     .iter()
@@ -146,9 +146,16 @@ impl Component for DynScriptComponent {
                     .get(position)
                     .into_ris_error()?;
 
-                factory.make
+                let mut script = factory.make();
+                script.boxed.deserialize(stream)?;
+                let data = ScriptStartEndData {
+                    game_object: self.game_object(),
+                    scene: stream.scene,
+                };
+                script.boxed.start(data)?;
+                self.script = Some(script);
 
-                ris_error::new_result!("not implemented")
+                Ok(())
             },
         }
     }
@@ -212,22 +219,12 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
-        let script = DynScript::new::<T>();
-
+        let mut script = DynScript::new::<T>();
         let data = ScriptStartEndData { game_object, scene };
-        let mut script = T::default();
-        script.start(data)?;
-
-        let id = TypeId::of::<T>();
-        let type_name = std::any::type_name::<T>();
-        let name = ris_util::reflection::trim_type_name(type_name);
+        script.boxed.start(data)?;
 
         let ptr = scene.deref(handle.into())?;
-        ptr.borrow_mut().script = Some(DynScript {
-            boxed: Box::new(script),
-            id,
-            name,
-        });
+        ptr.borrow_mut().script = Some(script);
 
         let generic_handle = Self {
             handle,

@@ -15,6 +15,8 @@ use super::ris_header::RisHeader;
 pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
 pub const EXTENSION: &str = "ris_scene";
 
+pub const COMPRESSION_LEVEL: u8 = 6;
+
 pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
     let chunk = &scene.static_chunks[chunk_index];
@@ -56,7 +58,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
                 .into_ris_error()?;
 
             ris_io::write_uint(f, position)?;
-            scene.deref_component(component, |x| x.serialize(f))??;
+            scene.deref_mut_component(component, |x| x.serialize(f))??;
 
             println!("i wrote position {}", position);
 
@@ -80,7 +82,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     let bytes = stream.resolve(lookup)?;
 
     // compress
-    let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, 6);
+    let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, COMPRESSION_LEVEL);
     ris_log::trace!(
         "compressed {} to {}. percentage: {}",
         bytes.len(),

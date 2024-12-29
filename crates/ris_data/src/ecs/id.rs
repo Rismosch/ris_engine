@@ -69,7 +69,7 @@ pub trait Component: EcsObject {
     fn destroy(&mut self, scene: &Scene);
     fn game_object(&self) -> GameObjectHandle;
     fn game_object_mut(&mut self) -> &mut GameObjectHandle;
-    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()>;
     fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
 }
 
