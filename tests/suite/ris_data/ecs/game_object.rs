@@ -435,8 +435,8 @@ fn should_get_is_active_in_hierarchy() {
 
 #[test]
 fn should_get_and_set_world_transform() {
-    let seed = Seed::new().unwrap();
-    //let seed = Seed([182, 38, 169, 241, 146, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    //let seed = Seed::new().unwrap();
+    let seed = Seed([220, 220, 101, 14, 148, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 

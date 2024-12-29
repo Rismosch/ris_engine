@@ -22,13 +22,13 @@ pub struct Registry {
 }
 
 pub trait IComponentFactory: Debug {
-    fn name(&self) -> &str;
+    fn component_name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
 }
 
 pub trait IScriptFactory: Debug {
     fn script_id(&self) -> TypeId;
-    fn name(&self) -> &str;
+    fn script_name(&self) -> &str;
     fn make(
         &self,
         scene: &Scene,
@@ -38,33 +38,27 @@ pub trait IScriptFactory: Debug {
 
 #[derive(Debug)]
 pub struct ComponentFactory<T: Component> {
-    name: String,
     boo: PhantomData<T>,
 }
 
 #[derive(Debug)]
 pub struct ScriptFactory<T: Script + Default> {
-    name: String,
     boo: PhantomData<T>,
 }
 
 impl Registry {
     fn component<T: Component>() -> RisResult<Box<ComponentFactory<T>>> {
-        let mut factory = ComponentFactory {
-            name: String::new(),
+        let factory = ComponentFactory {
             boo: PhantomData::<T>,
         };
-        factory.name = get_name(&factory)?;
 
         Ok(Box::new(factory))
     }
 
     pub fn script<T: Script + Default>() -> RisResult<Box<ScriptFactory<T>>> {
-        let mut factory = ScriptFactory {
-            name: String::new(),
+        let factory = ScriptFactory {
             boo: PhantomData::<T>,
         };
-        factory.name = get_name(&factory)?;
 
         Ok(Box::new(factory))
     }
@@ -109,8 +103,9 @@ impl Registry {
 }
 
 impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T> {
-    fn name(&self) -> &str {
-        &self.name
+    fn component_name(&self) -> &str {
+        let type_name = std::any::type_name::<T>();
+        ris_util::reflection::trim_type_name(type_name)
     }
 
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle> {
@@ -124,8 +119,9 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
         TypeId::of::<T>()
     }
 
-    fn name(&self) -> &str {
-        &self.name
+    fn script_name(&self) -> &str {
+        let type_name = std::any::type_name::<T>();
+        ris_util::reflection::trim_type_name(type_name)
     }
 
     fn make(
@@ -153,19 +149,4 @@ pub fn get() -> &'static Registry {
             None => ris_error::throw!("registry is not initialized"),
         }
     }
-}
-
-fn get_name(factory: &impl std::fmt::Debug) -> RisResult<String> {
-    let name = format!("{:?}", factory)
-        .split('>')
-        .next()
-        .into_ris_error()?
-        .split('<')
-        .last()
-        .into_ris_error()?
-        .split("::")
-        .last()
-        .into_ris_error()?
-        .to_string();
-    Ok(name)
 }

@@ -451,13 +451,14 @@ impl IUiHelperModule for InspectorModule {
 
                         let ptr = data.state.scene.script_components[index].to_weak();
                         let mut aref_mut = ptr.borrow_mut();
+                        let script_name = aref_mut.type_name().into_ris_error()?;
+
                         let game_object = aref_mut.game_object();
                         let script = aref_mut.script_mut().into_ris_error()?;
 
                         let header = ComponentHeader::draw(
                             data.ui,
-                            //format!("script {}##{:?}", script.name(), component),
-                            format!("script todo##{:?}", component),
+                            format!("{} (script)##{:?}", script_name, component),
                         );
                         delete_requested = header.delete_requested;
                         if !header.is_open {
@@ -502,7 +503,7 @@ impl IUiHelperModule for InspectorModule {
                         .build();
 
                     for factory in data.state.scene.registry.component_factories() {
-                        let name = factory.name();
+                        let name = factory.component_name();
                         if !name
                             .to_lowercase()
                             .contains(&self.component_filter.to_lowercase())
@@ -518,7 +519,7 @@ impl IUiHelperModule for InspectorModule {
                     data.ui.separator();
 
                     for factory in data.state.scene.registry.script_factories() {
-                        let name = factory.name();
+                        let name = factory.script_name();
                         if !name
                             .to_lowercase()
                             .contains(&self.component_filter.to_lowercase())

@@ -51,6 +51,7 @@ pub trait Script: Debug + Send + Sync {
 pub struct DynScript {
     boxed: Box<dyn Script>,
     id: TypeId,
+    name: &'static str,
 }
 
 #[derive(Debug)]
@@ -115,6 +116,14 @@ impl DynScriptComponent {
         self.game_object
     }
 
+    pub fn type_id(&self) -> Option<TypeId> {
+        self.script.as_ref().map(|x| x.id)
+    }
+
+    pub fn type_name(&self) -> Option<&'static str> {
+        self.script.as_ref().map(|x| x.name)
+    }
+
     pub fn script_mut(&mut self) -> Option<&mut Box<dyn Script>> {
         self.script.as_mut().map(|x| &mut x.boxed)
     }
@@ -157,10 +166,15 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
         let mut script = T::default();
         script.start(data)?;
 
+        let id = TypeId::of::<T>();
+        let type_name = std::any::type_name::<T>();
+        let name = ris_util::reflection::trim_type_name(type_name);
+
         let ptr = scene.deref(handle.into())?;
         ptr.borrow_mut().script = Some(DynScript {
             boxed: Box::new(script),
-            id: TypeId::of::<T>(),
+            id,
+            name,
         });
 
         let generic_handle = Self {
