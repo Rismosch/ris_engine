@@ -1,6 +1,6 @@
-use std::any::TypeId;
 use std::fmt::Debug;
 
+use ris_error::RisResult;
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 use ris_ptr::WeakPtr;
@@ -9,6 +9,8 @@ use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::handle::GenericHandle;
 use super::scene::Scene;
+use super::scene_stream::SceneReader;
+use super::scene_stream::SceneWriter;
 
 //
 // ids
@@ -64,10 +66,11 @@ impl TryFrom<SceneKind> for GameObjectKind {
 pub trait EcsObject: Debug {}
 
 pub trait Component: EcsObject {
-    //fn create(game_object: GameObjectHandle) -> Self;
     fn destroy(&mut self, scene: &Scene);
     fn game_object(&self) -> GameObjectHandle;
     fn game_object_mut(&mut self) -> &mut GameObjectHandle;
+    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
 }
 
 pub struct EcsInstance<T: EcsObject> {

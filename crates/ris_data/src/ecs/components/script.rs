@@ -18,6 +18,8 @@ use crate::ecs::handle::ComponentHandle;
 use crate::ecs::id::Component;
 use crate::ecs::id::EcsInstance;
 use crate::ecs::scene::Scene;
+use crate::ecs::scene_stream::SceneReader;
+use crate::ecs::scene_stream::SceneWriter;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
@@ -44,6 +46,8 @@ pub trait Script: Debug + Send + Sync {
     fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
+    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()>;
 }
 
@@ -102,6 +106,34 @@ impl Component for DynScriptComponent {
     fn game_object_mut(&mut self) -> &mut GameObjectHandle {
         &mut self.game_object
     }
+
+    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
+        match self.script.as_ref() {
+            Some(script) => {
+                let position = stream.scene.registry.script_factories()
+                    .iter()
+                    .position(|x| x.script_id() == script.id)
+                    .into_ris_error()?;
+                ris_io::write_uint(stream, position)?;
+                script.boxed.serialize(stream)
+            },
+            None => ris_error::new_result!("script was none. make sure to start a script before serializing it"),
+        }
+    }
+
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+        match self.script.as_mut() {
+            Some(script) => ris_error::new_result!("script was Some({:?}). make sure that the script is not started before deserializing", script),
+            None => {
+                let position = ris_io::read_uint(stream)?;
+                let factory = stream.scene.registry.script_factories()
+                    .get(position)
+                    .into_ris_error()?;
+
+                ris_error::new_result!("not implemented")
+            },
+        }
+    }
 }
 
 impl DynScriptComponent {
@@ -138,7 +170,7 @@ impl DynScriptComponent {
         match self.script_mut() {
             Some(script) => script.update(data),
             None => ris_error::new_result!(
-                "attempted to call update on a script that hasn't been started yet"
+                "script was none. make sure to start the script before calling update"
             ),
         }
     }
@@ -152,7 +184,7 @@ impl DynScriptComponent {
         match self.script_mut() {
             Some(script) => script.end(data),
             None => ris_error::new_result!(
-                "attempted to call end on a script that hasn't been started yet"
+                "script was none. make sure to start the script before calling end"
             ),
         }
     }
@@ -192,7 +224,7 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         let aref = ptr.borrow();
         let Some(script) = &aref.script else {
             return Err(EcsError::InvalidOperation(
-                "script component was not started".to_string(),
+                "script was none. make sure to start the script before trying to create the generic handle to it".to_string(),
             ));
         };
 

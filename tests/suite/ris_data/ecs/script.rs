@@ -41,6 +41,14 @@ impl Script for TestScriptString {
         Ok(())
     }
 
+    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
         ris_error::new_result!("not implementd")
     }
@@ -59,6 +67,14 @@ impl Script for TestScriptISize {
     fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         self.value *= -1;
         Ok(())
+    }
+
+    fn serialize(&self, stream: &mut SceneWriter) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
     }
 
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {

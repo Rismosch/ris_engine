@@ -1,5 +1,6 @@
 use ris_asset::assets::ris_scene;
 use ris_data::ecs::decl::GameObjectHandle;
+use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::script_prelude::*;
@@ -7,9 +8,9 @@ use ris_error::RisResult;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 struct TestScript {
-
+    payload: Vec<u8>,
 }
 
 impl Script for TestScript {
@@ -25,6 +26,19 @@ impl Script for TestScript {
         Ok(())
     }
 
+    fn serialize(&self, f: &mut SceneWriter) -> RisResult<()> {
+        //ris_io::write_uint(f, self.payload.len())?;
+        //ris_io::write(f, &self.payload)?;
+        Ok(())
+    }
+
+    fn deserialize(&mut self, f: &mut SceneReader) -> RisResult<()> {
+        //let payload_len = ris_io::read_uint(f)?;
+        //self.payload = vec![0; payload_len];
+        //ris_io::read(f, &mut self.payload)?;
+        Ok(())
+    }
+
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
         Ok(())
     }
@@ -34,10 +48,15 @@ impl Script for TestScript {
 fn should_serialize() {
     let mut rng = Rng::new(Seed::new().unwrap());
 
+    let registry = Registry::new(vec![
+        Registry::script::<TestScript>().unwrap()
+    ]).unwrap();
+
     let count = 20;
     let mut scene_create_info = SceneCreateInfo::default();
     scene_create_info.static_chunks = 2;
     scene_create_info.static_game_objects_per_chunk = count;
+    scene_create_info.registry = Some(registry);
     let scene = Scene::new(scene_create_info).unwrap();
 
     // the first chunk will be reserved, such that the serializer doesn't to choose to create game
@@ -62,6 +81,7 @@ fn should_serialize() {
         to_unmark_1.push(index);
     }
 
+    // setup
     let g0 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g1 = GameObjectHandle::new_static(&scene, 0).unwrap();
     let g2 = GameObjectHandle::new_static(&scene, 0).unwrap();
@@ -88,7 +108,6 @@ fn should_serialize() {
     //   -g7
     //     -g8
     //       -g9
-    //
 
     g1.set_parent(&scene, Some(g0), 0, false).unwrap();
     g2.set_parent(&scene, Some(g1), 0, false).unwrap();
@@ -110,13 +129,17 @@ fn should_serialize() {
     fill_data(&scene, g8, &mut rng, "eight").unwrap();
     fill_data(&scene, g9, &mut rng, "nine").unwrap();
 
+    // actual code to be tested
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
 
+    // cleanup
     for index in to_unmark_1 {
         let mut aref = scene.static_chunks[1].game_objects[index].borrow_mut();
         aref.is_alive = false;
     }
+
+    // asserts
 
     // assert that each chunk has the same amount of alive game objects
     let left_count = scene.static_chunks[0].game_objects
@@ -202,6 +225,13 @@ fn fill_data(
     game_object.set_local_position(scene, position).unwrap();
     game_object.set_local_rotation(scene, rotation).unwrap();
     game_object.set_local_scale(scene, scale).unwrap();
+
+    if rng.next_bool() {
+        let script = game_object.add_script::<TestScript>(scene)?;
+        let byte_count = rng.next_i32_between(0, 100) as usize;
+        let bytes = rng.next_bytes(byte_count);
+        script.script_mut(scene).unwrap().payload = bytes;
+    }
 
     Ok(())
 }

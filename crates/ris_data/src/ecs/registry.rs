@@ -6,6 +6,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::components::mesh_renderer::MeshRendererComponent;
+use super::components::script::DynScriptComponent;
 use super::components::script::Script;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
@@ -22,6 +23,7 @@ pub struct Registry {
 }
 
 pub trait IComponentFactory: Debug {
+    fn component_id(&self) -> TypeId;
     fn component_name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
 }
@@ -64,8 +66,10 @@ impl Registry {
     }
 
     pub fn new(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<Self> {
-        let components: Vec<Box<dyn IComponentFactory>> =
-            vec![Self::component::<MeshRendererComponent>()?];
+        let components: Vec<Box<dyn IComponentFactory>> = vec![
+            Self::component::<DynScriptComponent>()?,
+            Self::component::<MeshRendererComponent>()?,
+        ];
 
         // assert that all scripts have unique ids
         for (i, left) in scripts.iter().enumerate() {
@@ -103,6 +107,10 @@ impl Registry {
 }
 
 impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T> {
+    fn component_id(&self) -> TypeId {
+        TypeId::of::<T>()
+    }
+
     fn component_name(&self) -> &str {
         let type_name = std::any::type_name::<T>();
         ris_util::reflection::trim_type_name(type_name)

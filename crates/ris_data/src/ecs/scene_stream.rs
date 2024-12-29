@@ -12,24 +12,26 @@ use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::id::SceneKind;
 use crate::ecs::scene::Scene;
 
-pub struct SceneWriter {
+pub struct SceneWriter<'a> {
     stream: Cursor<Vec<u8>>,
     chunk: usize,
+    pub scene: &'a Scene,
     placeholders: Vec<FatPtr>,
 }
 
 pub struct SceneReader<'a> {
     stream: Cursor<Vec<u8>>,
     chunk: usize,
-    scene: &'a Scene,
+    pub scene: &'a Scene,
     pub lookup: Vec<usize>,
 }
 
-impl SceneWriter {
-    pub fn new(chunk: usize) -> Self {
+impl<'a> SceneWriter<'a> {
+    pub fn new(chunk: usize, scene: &'a Scene) -> Self {
         Self {
             stream: Cursor::new(Vec::new()),
             chunk,
+            scene,
             placeholders: Vec::new(),
         }
     }
@@ -98,13 +100,13 @@ impl<'a> SceneReader<'a> {
     }
 }
 
-impl Seek for SceneWriter {
+impl<'a> Seek for SceneWriter<'a> {
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         self.stream.seek(pos)
     }
 }
 
-impl Write for SceneWriter {
+impl<'a> Write for SceneWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.stream.write(buf)
     }

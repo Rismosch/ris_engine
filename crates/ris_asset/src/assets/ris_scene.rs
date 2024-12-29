@@ -24,7 +24,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         .map(|x| x.borrow().handle)
         .collect::<Vec<_>>();
 
-    let mut stream = SceneWriter::new(chunk_index);
+    let mut stream = SceneWriter::new(chunk_index, scene);
     let f = &mut stream;
 
     let mut lookup = Vec::new();
@@ -43,10 +43,18 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         ris_io::write_f32(f, handle.local_scale(scene)?)?;
          
         let components = handle.components(scene)?;
-        //ris_io::write_uint(f, components.len())?;
-        //for component in components {
+        ris_io::write_uint(f, components.len())?;
+        for component in components {
+            let position = scene.registry.component_factories()
+                .iter()
+                .position(|x| x.component_id() == component.type_id())
+                .into_ris_error()?;
 
-        //}
+            println!("write position: {}", position);
+
+            ris_io::write_uint(f, position)?;
+            scene.deref_component(component, |x| x.serialize(f))??;
+        }
 
         let children = handle.children(scene)?;
         let child_count = children.len();
@@ -112,6 +120,22 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         let local_position = ris_io::read_vec3(f)?;
         let local_rotation = ris_io::read_quat(f)?;
         let local_scale = ris_io::read_f32(f)?;
+
+        let component_count = ris_io::read_uint(f)?;
+        for _ in 0..component_count {
+            let position = ris_io::read_uint(f)?;
+
+            println!("what are these scripts: {:#?}", scene.registry);
+            println!("read position: {:#?}", position);
+
+            let factory = scene.registry
+                .component_factories()
+                .get(position)
+                .into_ris_error()?;
+
+            panic!("read bytes, but deserialize after gameobjects are done, then just make the dyn component and deserialize it")
+        }
+
         let child_count = ris_io::read_uint(f)?;
         let mut child_ids = Vec::with_capacity(child_count);
         for _ in 0..child_count {
