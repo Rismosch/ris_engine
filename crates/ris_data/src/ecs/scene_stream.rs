@@ -49,8 +49,6 @@ impl<'a> SceneWriter<'a> {
 
             ris_io::seek(f, SeekFrom::Start(placeholder.addr))?;
             ris_io::write_uint(f, actual_index)?;
-
-            println!("replaced {} with {}", scene_index, actual_index);
         }
 
         let bytes = self.stream.into_inner();

@@ -2,7 +2,6 @@ use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use ris_error::Extensions;
 use ris_error::RisResult;
 
 use super::components::mesh_renderer::MeshRendererComponent;

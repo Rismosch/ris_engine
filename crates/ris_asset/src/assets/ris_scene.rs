@@ -60,8 +60,6 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
             ris_io::write_uint(f, position)?;
             scene.deref_mut_component(component, |x| x.serialize(f))??;
 
-            println!("i wrote position {}", position);
-
             // fill placeholder ptr
             let end = ris_io::seek(f, SeekFrom::Current(0))?;
             let ptr = FatPtr::begin_end(addr, end)?;
@@ -143,15 +141,7 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
             component_ptrs.push(ptr);
 
             ris_io::seek(f, SeekFrom::Current(ptr.len.try_into()?))?;
-            //let position = ris_io::read_uint(f)?;
-
-            //let factory = scene.registry
-            //    .component_factories()
-            //    .get(position)
-            //    .into_ris_error()?;
         }
-
-        println!("some ptrs: {:?}", component_ptrs);
 
         let child_count = ris_io::read_uint(f)?;
         let mut child_ids = Vec::with_capacity(child_count);
