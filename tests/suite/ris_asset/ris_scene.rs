@@ -199,8 +199,6 @@ fn should_serialize() {
     }
 
     // asserts
-
-    // assert that each chunk has the same amount of alive game objects
     let left_count = scene.static_chunks[0].game_objects
         .iter()
         .filter(|x| x.borrow().is_alive)
