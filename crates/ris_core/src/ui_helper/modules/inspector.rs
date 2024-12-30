@@ -3,7 +3,7 @@ use std::ffi::CString;
 
 use imgui::Ui;
 
-use ris_asset::AssetId;
+use ris_data::asset_id::AssetId;
 use ris_asset::asset_loader::LoadError;
 use ris_data::ecs::components::script::ScriptInspectData;
 use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
@@ -536,7 +536,7 @@ impl IUiHelperModule for InspectorModule {
             Selection::AssetPath(path_buf) => {
                 let path_string = ris_io::path::to_str(&path_buf);
                 data.ui.text(&path_string);
-                let id = AssetId::Directory(path_string.clone());
+                let id = AssetId::Path(path_string.clone());
 
                 let selection_changed = self.shared_state.borrow().selector.selection_changed();
 

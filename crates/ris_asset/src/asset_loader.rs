@@ -6,6 +6,7 @@ use std::sync::mpsc::SendError;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
+use ris_data::asset_id::AssetId;
 use ris_data::info::app_info::AppInfo;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
@@ -14,7 +15,6 @@ use ris_jobs::job_system;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
-use crate::AssetId;
 use crate::assets::ris_god_asset;
 
 enum InternalLoader {
@@ -75,7 +75,7 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
         // compiled
         let loader = AssetLoaderCompiled::new(asset_path)?;
         let internal_loader = InternalLoader::Compiled(loader);
-        let god_asset_id = AssetId::Compiled(0);
+        let god_asset_id = AssetId::Index(0);
         ris_log::debug!("compiled asset loader was created");
 
         (internal_loader, god_asset_id)
@@ -95,7 +95,7 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
             return ris_error::new_result!("failed to locate god asset");
         };
 
-        let god_asset_id = AssetId::Directory(god_asset_path.to_string());
+        let god_asset_id = AssetId::Path(god_asset_path.to_string());
         ris_log::debug!("directory asset loader was created");
 
         (internal_loader, god_asset_id)
@@ -145,11 +145,11 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
 
         let result = match &mut loader {
             InternalLoader::Compiled(loader) => match &request.id {
-                AssetId::Compiled(id) => loader.load(*id).map_err(|e| {
+                AssetId::Index(id) => loader.load(*id).map_err(|e| {
                     ris_log::error!("failed loading {:?}: {}", id, e);
                     LoadError::LoadFailed
                 }),
-                AssetId::Directory(id) => {
+                AssetId::Path(id) => {
                     ris_log::error!(
                         "invalid id. expected compiled but was directory. id: {:?}",
                         id
@@ -158,14 +158,14 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
                 }
             },
             InternalLoader::Directory(loader) => match request.id {
-                AssetId::Compiled(id) => {
+                AssetId::Index(id) => {
                     ris_log::error!(
                         "invalid id. expected directory but was compiled. id: {:?}",
                         id
                     );
                     Err(LoadError::InvalidId)
                 }
-                AssetId::Directory(id) => loader.load(id.clone()).map_err(|e| {
+                AssetId::Path(id) => loader.load(id.clone()).map_err(|e| {
                     ris_log::error!("failed loading {:?}: {}", id, e);
                     LoadError::LoadFailed
                 }),

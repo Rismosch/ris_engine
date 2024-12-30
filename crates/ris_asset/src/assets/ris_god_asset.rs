@@ -1,9 +1,9 @@
 use std::io::Cursor;
 
+use ris_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::AssetId;
 use crate::RisHeader;
 
 // ris_god_asset\0\0\0

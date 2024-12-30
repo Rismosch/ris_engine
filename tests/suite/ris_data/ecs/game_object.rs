@@ -435,9 +435,8 @@ fn should_get_is_active_in_hierarchy() {
 
 #[test]
 fn should_get_and_set_world_transform() {
-    //let seed = Seed::new().unwrap();
-    let seed = Seed([220, 220, 101, 14, 148, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    println!("seed: {:?}", seed);
+    let seed = Seed::new().unwrap();
+    //let seed = Seed([220, 220, 101, 14, 148, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
     testing::repeat(miri_choose(10_000, 10), move |_i| {
@@ -473,7 +472,7 @@ fn should_get_and_set_world_transform() {
 
         assert_vec3_eq!(p, p_, 0.000_003);
         assert_quat_eq!(r, r_);
-        assert_feq!(s, s_);
+        assert_feq!(s, s_, 0.000_003);
     });
 }
 

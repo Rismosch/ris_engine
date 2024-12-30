@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
-use ris_asset::AssetId;
+use ris_data::asset_id::AssetId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::SceneKind;
@@ -45,8 +45,8 @@ impl IUiHelperModule for HierarchyModule {
 
         for i in 0..(choices.capacity() - 1) {
             let loaded = match self.shared_state.borrow_mut().chunk(i) {
-                Some(AssetId::Compiled(id)) => id.to_string(),
-                Some(AssetId::Directory(id)) => id.clone(),
+                Some(AssetId::Index(id)) => id.to_string(),
+                Some(AssetId::Path(id)) => id.clone(),
                 None => "".to_string(),
             };
 
@@ -74,7 +74,7 @@ impl IUiHelperModule for HierarchyModule {
                 ris_log::debug!("save");
             }
 
-            if let Some(AssetId::Directory(path)) = chunk {
+            if let Some(AssetId::Path(path)) = chunk {
                 ui.same_line();
                 ui.text(path)
             }

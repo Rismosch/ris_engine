@@ -77,7 +77,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     }
     
     // resolve
-    let bytes = stream.resolve(lookup)?;
+    let (bytes, references) = stream.resolve(lookup)?;
 
     // compress
     let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, COMPRESSION_LEVEL);
@@ -92,7 +92,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     let mut stream = Cursor::new(Vec::new());
     let f = &mut stream;
 
-    let header = RisHeader::new(MAGIC, Vec::new());
+    let header = RisHeader::new(MAGIC, references);
     let header_bytes = header.serialize()?;
     ris_io::write(f, &header_bytes)?;
     ris_io::write(f, &compressed)?;
@@ -117,7 +117,7 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         ris_error::new!("failed to decompress: {:?}", e)
     })?;
 
-    let mut stream = SceneReader::new(index, scene, uncompressed);
+    let mut stream = SceneReader::new(index, scene, uncompressed, header.references);
     let f = &mut stream;
 
     let game_object_count = ris_io::read_uint(f)?;

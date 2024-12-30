@@ -1,6 +1,7 @@
 use std::any::TypeId;
 
 use ris_asset::assets::ris_scene;
+use ris_data::asset_id::AssetId;
 use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::handle::DynComponentHandle;
@@ -29,6 +30,7 @@ enum Call {
 struct TestInner {
     payload: Vec<u8>,
     game_object: GameObjectHandle,
+    asset_id: AssetId,
     calls: Vec<Call>,
 }
 
@@ -43,6 +45,7 @@ impl Default for TestScript {
             inner: TestInner{
                 payload: Vec::new(),
                 game_object: GameObjectHandle::null(),
+                asset_id: AssetId::Index(0),
                 calls: vec![Call::Default],
             }
         }
@@ -70,6 +73,7 @@ impl Script for TestScript {
         ris_io::write_uint(stream, self.inner.payload.len())?;
         ris_io::write(stream, &self.inner.payload)?;
         stream.write_game_object(self.inner.game_object)?;
+        stream.write_asset_id(self.inner.asset_id.clone())?;
         Ok(())
     }
 
@@ -79,6 +83,7 @@ impl Script for TestScript {
         self.inner.payload = vec![0; payload_len];
         ris_io::read(stream, &mut self.inner.payload)?;
         self.inner.game_object = stream.read_game_object()?;
+        self.inner.asset_id = stream.read_asset_id()?;
         Ok(())
     }
 
@@ -178,6 +183,15 @@ fn should_serialize() {
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
 
+    // debugging
+    {
+        let test_dir = ris_util::prep_test_dir!();
+        let path = std::path::PathBuf::from(test_dir).join("test.ris_scene");
+        println!("path {:?}", path);
+        let mut file = std::fs::File::create(path).unwrap();
+        ris_io::write(&mut file, &serialized).unwrap();
+    }
+
     // cleanup
     for index in to_unmark_1 {
         let mut aref = scene.static_chunks[1].game_objects[index].borrow_mut();
@@ -275,11 +289,14 @@ fn should_serialize() {
             assert_eq!(
                 left_inner.game_object.name(&scene).unwrap(),
                 right_inner.game_object.name(&scene).unwrap(),
-            )
+            );
+
+            assert_eq!(
+                left_inner.asset_id,
+                right_inner.asset_id,
+            );
         }
     }
-
-    panic!("reached end");
 }
 
 fn fill_data(
@@ -294,7 +311,7 @@ fn fill_data(
     let rotation = rng.next_rot();
     let scale = rng.next_f32();
 
-    game_object.set_name(scene, name).unwrap();
+    game_object.set_name(scene, name.as_ref()).unwrap();
     game_object.set_active(scene, is_active).unwrap();
     game_object.set_local_position(scene, position).unwrap();
     game_object.set_local_rotation(scene, rotation).unwrap();
@@ -307,6 +324,7 @@ fn fill_data(
         let mut ref_mut = script.script_mut(scene).unwrap();
         ref_mut.inner.payload = bytes;
         ref_mut.inner.game_object = *rng.next_in(game_objects);
+        ref_mut.inner.asset_id = AssetId::Path(format!("some path for {}", name.as_ref()));
     }
 
     Ok(())

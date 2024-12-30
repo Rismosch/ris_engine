@@ -1,10 +1,9 @@
 use std::io::Cursor;
 use std::io::SeekFrom;
 
+use ris_data::asset_id::AssetId;
 use ris_error::RisResult;
 use ris_io::FatPtr;
-
-use crate::AssetId;
 
 // # File Format
 //
@@ -57,7 +56,7 @@ impl RisHeader {
         ris_io::write(f, magic)?;
 
         let is_compiled = match references.iter().next() {
-            Some(AssetId::Compiled(_)) => true,
+            Some(AssetId::Index(_)) => true,
             _ => false,
         };
 
@@ -65,8 +64,8 @@ impl RisHeader {
         ris_io::write_uint(f, references.len())?;
         for reference in references.iter() {
             match reference {
-                AssetId::Compiled(id) if is_compiled => ris_io::write_uint(f, *id)?,
-                AssetId::Directory(id) if !is_compiled => ris_io::write_string(f, id)?,
+                AssetId::Index(id) if is_compiled => ris_io::write_uint(f, *id)?,
+                AssetId::Path(id) if !is_compiled => ris_io::write_string(f, id)?,
                 _ => return ris_error::new_result!("all references must be the same enum variant. is_compiled: {}", is_compiled),
             };
         }
@@ -95,10 +94,10 @@ impl RisHeader {
         for _ in 0..reference_count {
             let reference = if is_compiled {
                 let id = ris_io::read_uint(f)?;
-                AssetId::Compiled(id)
+                AssetId::Index(id)
             } else {
                 let id = ris_io::read_string(f)?;
-                AssetId::Directory(id)
+                AssetId::Path(id)
             };
 
             references.push(reference);

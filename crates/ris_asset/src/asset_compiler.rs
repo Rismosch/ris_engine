@@ -5,11 +5,11 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
-use crate::AssetId;
 use crate::RisHeader;
 
 // # File Format
@@ -132,13 +132,13 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 let mut references = Vec::with_capacity(ris_header.references.len());
                 for reference in &ris_header.references {
                     match reference {
-                        AssetId::Compiled(id) => {
+                        AssetId::Index(id) => {
                             return ris_error::new_result!(
                                 "attempted to compile an already compiled asset: {}",
                                 id,
                             );
                         }
-                        AssetId::Directory(id) => {
+                        AssetId::Path(id) => {
                             let mut id_path = PathBuf::from(&source_path);
                             id_path.push(id);
                             let lookup_value = asset_lookup_hashmap.get(&id_path);
@@ -303,13 +303,13 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                 let mut references = Vec::with_capacity(ris_header.references.len());
                 for reference in &ris_header.references {
                     match reference {
-                        AssetId::Directory(id) => {
+                        AssetId::Path(id) => {
                             return ris_error::new_result!(
                                 "attempted to decompile an already decompiled asset: {}",
                                 id,
                             );
                         }
-                        AssetId::Compiled(id) => {
+                        AssetId::Index(id) => {
                             let reference = &original_paths[*id];
                             references.push(reference.as_str());
                         }
