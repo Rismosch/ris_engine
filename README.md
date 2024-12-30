@@ -66,27 +66,80 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
   ### Windows
   
-  In this repo you will find the `./external/` directory. It contains all required libraries. If you don't want to use the binaries in this repo, you can install the [Vulkan SDK](https://vulkan.lunarg.com/), which provides binaries for `SDL2` and `shaderc`.
+  In this repo you will find the `./external/` directory. It contains all required binaries. To install them, simply run `./INSTALL.ps1`.
   
-  #### 1. Copy _EVERY_ `*.dll` in `./external/bin/` to the root of this repo.
-  
-  These DLLs need to be available in your environment. So either assign it to your environment variables or move them to the root of the directory.
-  
-  #### 2. Set the environment variable `SHADERC_LIB_DIR`
-  
-  [shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. `shaderc` allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but `shaderc` requires this dependency nonetheless. It searches the DLL in `SHADERC_LIB_DIR`.
-  
-  For more info, check this link: https://docs.rs/shaderc/0.8.3/shaderc/index.html
-  
-  So, if `shaderc_shared.dll` sits inside directory `/path/to/shaderc/`, then set `SHADERC_LIB_DIR` to `/path/to/shaderc/`. If you don't want to move the DLL, you can simply set `SHADERC_LIB_DIR` to `<path of this repo>/external/bin/`.
-  
-  #### 3. Copy _EVERY_ `*.lib` in `./external/lib/` to
-  
+  If you don't trust the prebuild binaries, which is understandable, the steps below instruct you on how to manually set up your environment manually. If you use the `./INSTALL.ps1` script, you can skip this rest of this section.
+
+  #### 1. Download the necessary dependencies
+
+  You need DLLs and LIBs for [SDL2](https://www.libsdl.org/) and [Shaderc](https://github.com/google/shaderc). I recommend getting them by installing the [Vulkan SDK](https://vulkan.lunarg.com/).
+
+  #### 2. Make the LIBs available for your linker
+
+  Rust still needs to link. The four LIBs you need are:
+   - `SDL2.lib`
+   - `SDL2_test.lib`
+   - `SDL2main.lib`
+   - `shaderc_shared.lib`
+
+  If you are using `rustup`, the linker will search for LIBs in the directory below. Copy the required LIBs into this directory.
+
   ```powershell
   C:\Users\<your username>\.rustup\toolchains\<current toolchain>\lib\rustlib\<current toolchain>\lib
   ```
+
+  If you are not using `rustup`, you need to figure out how to link the required LIBs.
+
+  #### 3. Make the DLLs available in your environment
+
+  The two DLLs you need are
+  - `SDL2.dll`
+  - `shaderc_shared.dll`.
   
-  Rust still needs to link. If you are using `rustup`, the linker will search for LIBs in the directory above. If you are not using `rustup`, you must figure out how to link against the required LIBs.
+  The easiest way to make them available in your environment is to copy them to the root of this repo. This isn't recommended however, because it doesn't help for installation step 4. Also they aren't tracked by git and thus are deleted when running `git clean` or any command to restore this repo to its initial state.
+  
+  I recommend adding required directories to the `PATH` environment variable. The commands below may take a few seconds to execute.
+  
+  If you have installed the Vulkan SDK, you can copy and paste the following commands:
+
+  ```powershell
+  $oldPath = [Environment]::GetEnvironmentVariable("PATH", "User"); `
+  $newPath = $oldPath + ";$env:VK_SDK_PATH\Bin"; `
+  [Environment]::SetEnvironmentVariable("PATH", $newPath, "User");
+  ```
+
+  If you have not installed the Vulkan SDK, or downloaded the DLLs seperately, you can modify the commands like below. Make sure to use the actual paths to your directories.
+
+  ```powershell
+  $oldPath = [Environment]::GetEnvironmentVariable("PATH", "User"); `
+  $newPath = $oldPath + ";C:\path\to\SDL2\bin"; `
+  $newPath = $newPath + ";C:\path\to\shaderc\bin"; `
+  [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+  ```
+
+  #### 4. Assign `SHADERC_LIB_DIR`
+
+  [Shaderc](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. shaderc allows to store and compile shader code inside Rust source files. `ris_engine` does not use this feature, but Shaderc requires this dependency regardless. It searches the DLL in `SHADERC_LIB_DIR`. If this variable is not set, Shaderc will try to compile from source, which is quite slow requires you to have a C++ build tools available in your environment.
+  
+  For more info, check this link: https://docs.rs/shaderc/0.8.3/shaderc/index.html
+  
+  I recommend just setting the environment variable. To create it, run one of the the following powershell commands below. Again, these may take a few seconds to execute.
+  
+  If you have the Vulkan SDK installed:
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable("SHADERC_LIB_DIR", "$env:VK_SDK_PATH\Lib", "User")
+  ```
+
+  If you have not the Vulkan SDK installed, make sure to use the actual path to your directory:
+  
+  ```powershell
+  [Environment]::SetEnvironmentVariable("SHADERC_LIB_DIR", "C:\path\to\shaderc\bin", "User")
+  ```
+  
+  #### 5. Restart your terminal
+
+  Make sure to restart your terminals, such that the changes to your environment variables take effect.
 </details>
 
 <details>
