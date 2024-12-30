@@ -61,10 +61,10 @@ You also require an internet connection, to download dependencies from [crates.i
 
 This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Click to reveal the instructions for the given platform.
 
-<details>
-  <summary>Windows</summary>
+### Windows
 
-  ### Windows
+<details>
+  <summary>click to reveal</summary>
 
   The two required dependencies are [SDL2](https://www.libsdl.org/) and [Shaderc](https://github.com/google/shaderc). The easiest way install them is to install the [Vulkan SDK](https://vulkan.lunarg.com/). Installing the Vulkan SDK should also set up your environment correctly.
 
@@ -116,10 +116,11 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
   Make sure to restart your terminals, such that changes to your environment variables can take effect.
 </details>
+
+### Arch Linux
+
 <details>
-  <summary>Arch Linux</summary>
-  
-  ### Arch Linux
+  <summary>click to reveal</summary>
   
   #### 1. Install [SDL2](https://archlinux.org/packages/extra/x86_64/sdl2/)
   
