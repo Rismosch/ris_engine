@@ -115,7 +115,7 @@ This engine is using various 3rd party libraries. Trying to build without these 
   #### 5. Restart your terminal
 
   Make sure to restart your terminals, such that changes to your environment variables can take effect.
-
+</details>
 <details>
   <summary>Arch Linux</summary>
   
