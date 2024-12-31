@@ -27,6 +27,11 @@ impl IUiHelperModule for AssetBrowser {
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
         let root = self.shared_state.borrow().app_info.asset_path()?;
 
+        if !root.is_dir() {
+            data.ui.text("not available");
+            return Ok(());
+        }
+
         let entries = get_sorted_children(root)?;
         for entry in entries {
             self.draw_asset_recursive(entry, data)?;

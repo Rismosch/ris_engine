@@ -176,10 +176,15 @@ pub struct UiHelper {
     close_window_timestamp: Instant,
 }
 
+pub struct ModuleInstance {
+    boxed: Box<dyn IUiHelperModule>,
+    error_count: usize,
+}
+
 pub struct UiHelperWindow {
     id: usize,
     name: String,
-    module: Option<Box<dyn IUiHelperModule>>,
+    module: Option<ModuleInstance>,
 }
 
 impl Drop for UiHelper {
@@ -308,7 +313,11 @@ impl UiHelper {
             max_window_id = usize::max(max_window_id, id);
 
             let builder = &builders[builder_index];
-            let module = (builder.build)(shared_state.to_weak());
+            let boxed = (builder.build)(shared_state.to_weak());
+            let module = ModuleInstance {
+                boxed,
+                error_count: 0,
+            };
 
             let window = UiHelperWindow {
                 id,
@@ -503,7 +512,11 @@ impl UiHelper {
                     for builder in self.builders.iter() {
                         if data.ui.menu_item(&builder.name) {
                             let shared_state = self.shared_state.to_weak();
-                            let module = (builder.build)(shared_state);
+                            let boxed = (builder.build)(shared_state);
+                            let module = ModuleInstance {
+                                boxed,
+                                error_count: 0,
+                            };
 
                             let window = UiHelperWindow {
                                 id: self.window_id,
@@ -549,7 +562,7 @@ impl UiHelper {
             let window_name =
                 CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
             if unsafe { imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0) } {
-                self.window_callback(i, data)?;
+                self.window_callback(i, data);
             }
 
             unsafe { imgui::sys::igEnd() };
@@ -568,7 +581,7 @@ impl UiHelper {
         &mut self,
         window_index: usize,
         data: &mut UiHelperDrawData,
-    ) -> RisResult<()> {
+    ) {
         let UiHelperDrawData { ui, .. } = data;
 
         let window = &mut self.windows[window_index];
@@ -587,27 +600,36 @@ impl UiHelper {
             if index > 0 {
                 let builder = &self.builders[index - 1];
                 let shared_state = self.shared_state.to_weak();
-                let module = (builder.build)(shared_state);
+                let boxed = (builder.build)(shared_state);
+                let module = ModuleInstance {
+                    boxed,
+                    error_count: 0,
+                };
+
                 window.module = Some(module);
                 window.name = builder.name.clone();
             }
         }
 
         if let Some(module) = &mut window.module {
-            let result = module.draw(data);
+            let result = module.boxed.draw(data);
 
             // returning an error may cause imgui to fail, because some end method may not be
             // called. this is bad, because this causes imgui to panic, which suppresses the
             // original error. thus we manually log the error, to avoid this suppression. this
             // may cause the error to be logged twice, but twice is better than not at all.
             if let Err(e) = &result {
+                module.error_count = module.error_count.saturating_add(1);
                 ris_log::error!("failed to draw module: {:?}", e);
+            } else {
+                module.error_count += 0;
             }
 
-            result?;
+            if module.error_count > 5 {
+                window.module.take();
+                ris_log::error!("removed erroneous ui helper module");
+            }
         }
-
-        Ok(())
     }
 }
 
