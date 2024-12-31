@@ -6,12 +6,12 @@ use ris_asset::assets::ris_scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::selection::Selection;
+use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
-pub struct AssetBrowser{
+pub struct AssetBrowser {
     shared_state: SharedStateWeakPtr,
 }
 
@@ -21,9 +21,7 @@ impl IUiHelperModule for AssetBrowser {
     }
 
     fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
-        Box::new(Self{
-            shared_state,
-        })
+        Box::new(Self { shared_state })
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
@@ -53,7 +51,8 @@ impl AssetBrowser {
             .map(|x| match x {
                 Selection::AssetPath(selected_path) => selected_path == path_without_root,
                 _ => false,
-            }).unwrap_or(false);
+            })
+            .unwrap_or(false);
 
         let file_name = path
             .file_name()
@@ -71,7 +70,7 @@ impl AssetBrowser {
         let id = CString::new(format!("{}##{}", file_name, parent_path))?;
 
         let mut flags = 0;
-        
+
         if path.is_dir() {
             flags |= 1 << 7; // ImGuiTreeNodeFlags_OpenOnArrow
             flags |= 1 << 6; // ImGuiTreeNodeFlags_OpenOnDoubleClick
@@ -91,26 +90,28 @@ impl AssetBrowser {
 
         if path.is_dir() && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
             if data.ui.menu_item("new scene") {
-                let mut new_path = PathBuf::from(path)
-                    .join(format!("new.{}", ris_scene::EXTENSION));
+                let mut new_path =
+                    PathBuf::from(path).join(format!("new.{}", ris_scene::EXTENSION));
                 let mut counter = 0;
                 while new_path.exists() {
                     counter += 1;
-                    new_path = PathBuf::from(path)
-                        .join(format!("new({}).{}", counter, ris_scene::EXTENSION));
+                    new_path = PathBuf::from(path).join(format!(
+                        "new({}).{}",
+                        counter,
+                        ris_scene::EXTENSION
+                    ));
                 }
 
-                let empty_scene = ris_scene::serialize(
-                    &data.state.scene,
-                    None,
-                )?;
+                let empty_scene = ris_scene::serialize(&data.state.scene, None)?;
 
                 let mut file = std::fs::File::create_new(new_path)?;
                 ris_io::write(&mut file, &empty_scene)?;
             }
 
             unsafe { imgui::sys::igEndPopup() };
-        } else if path.is_file() && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
+        } else if path.is_file()
+            && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) }
+        {
             if data.ui.menu_item("delete") {
                 if let Err(e) = std::fs::remove_file(path) {
                     ris_log::error!("failed to delete file: {}", e)
@@ -120,7 +121,7 @@ impl AssetBrowser {
             unsafe { imgui::sys::igEndPopup() };
         }
 
-        if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
+        if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
             let selection = Some(Selection::AssetPath(path_without_root));
             self.shared_state
                 .borrow_mut()
@@ -133,7 +134,7 @@ impl AssetBrowser {
         }
 
         if !path.is_dir() {
-            unsafe {imgui::sys::igTreePop()};
+            unsafe { imgui::sys::igTreePop() };
             return Ok(());
         }
 
@@ -142,7 +143,7 @@ impl AssetBrowser {
             self.draw_asset_recursive(entry_path, data)?;
         }
 
-        unsafe {imgui::sys::igTreePop()};
+        unsafe { imgui::sys::igTreePop() };
 
         Ok(())
     }
@@ -154,14 +155,12 @@ fn get_sorted_children(path: impl AsRef<Path>) -> RisResult<Vec<PathBuf>> {
     let entries = std::fs::read_dir(path)?;
     let mut mapped_entries = entries
         .into_iter()
-        .filter_map(|x| {
-            match x {
-                Ok(dir_entry) => match dir_entry.metadata() {
-                    Ok(metadata) => Some((dir_entry.path(), metadata)),
-                    Err(_) => None,
-                },
+        .filter_map(|x| match x {
+            Ok(dir_entry) => match dir_entry.metadata() {
+                Ok(metadata) => Some((dir_entry.path(), metadata)),
                 Err(_) => None,
-            }
+            },
+            Err(_) => None,
         })
         .collect::<Vec<_>>();
 
@@ -174,7 +173,7 @@ fn get_sorted_children(path: impl AsRef<Path>) -> RisResult<Vec<PathBuf>> {
         } else if !left_metadata.is_dir() && right_metadata.is_dir() {
             std::cmp::Ordering::Greater
         } else {
-            left_path.cmp(&right_path)
+            left_path.cmp(right_path)
         }
     });
 
@@ -182,7 +181,6 @@ fn get_sorted_children(path: impl AsRef<Path>) -> RisResult<Vec<PathBuf>> {
         .into_iter()
         .map(|(path, _metadata)| path)
         .collect::<Vec<_>>();
-
 
     Ok(sorted_entries)
 }

@@ -163,8 +163,10 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let mut scene_create_info = SceneCreateInfo::default();
-        scene_create_info.registry = Some(registry);
+        let scene_create_info = SceneCreateInfo {
+            registry: Some(registry),
+            ..Default::default()
+        };
         let mut state = GodState::new(settings, scene_create_info)?;
 
         {

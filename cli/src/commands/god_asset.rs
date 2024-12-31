@@ -2,10 +2,9 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_asset::AssetId;
-use ris_asset::assets::ris_header::RisHeader;
 use ris_asset::assets::ris_god_asset;
 use ris_asset::assets::ris_god_asset::RisGodAsset;
+use ris_data::asset_id::AssetId;
 use ris_data::info::args_info::DEFAULT_ASSETS_VALUE;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -34,7 +33,7 @@ impl ICommand for GodAsset {
         match level {
             ExplanationLevel::Short => {
                 String::from("Modifies the god asset, the entry point of all assets.")
-            },
+            }
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
                 explanation.push_str(&format!("Modifies the god asset, the entry point of all assets. It does so by locating it inside <{}>, deserializing it and presenting the user with a stdin command interface. Commands wont be committed, until the user explicitly writes their changes.\n", ASSETS_PATH));
@@ -46,7 +45,7 @@ impl ICommand for GodAsset {
                 explanation.push_str(&format!("default: {}\n", DEFAULT_ASSETS_VALUE));
 
                 explanation
-            },
+            }
         }
     }
 
@@ -73,18 +72,18 @@ impl ICommand for GodAsset {
                 eprintln!("failed to read god asset: {}", e);
 
                 let new_god_asset = RisGodAsset {
-                    default_vert_spv: AssetId::Directory(String::new()),
-                    default_frag_spv: AssetId::Directory(String::new()),
-                    imgui_vert_spv: AssetId::Directory(String::new()),
-                    imgui_frag_spv: AssetId::Directory(String::new()),
-                    gizmo_segment_vert_spv: AssetId::Directory(String::new()),
-                    gizmo_segment_geom_spv: AssetId::Directory(String::new()),
-                    gizmo_segment_frag_spv: AssetId::Directory(String::new()),
-                    gizmo_text_vert_spv: AssetId::Directory(String::new()),
-                    gizmo_text_geom_spv: AssetId::Directory(String::new()),
-                    gizmo_text_frag_spv: AssetId::Directory(String::new()),
-                    debug_font_texture: AssetId::Directory(String::new()),
-                    texture: AssetId::Directory(String::new()),
+                    default_vert_spv: AssetId::Path(String::new()),
+                    default_frag_spv: AssetId::Path(String::new()),
+                    imgui_vert_spv: AssetId::Path(String::new()),
+                    imgui_frag_spv: AssetId::Path(String::new()),
+                    gizmo_segment_vert_spv: AssetId::Path(String::new()),
+                    gizmo_segment_geom_spv: AssetId::Path(String::new()),
+                    gizmo_segment_frag_spv: AssetId::Path(String::new()),
+                    gizmo_text_vert_spv: AssetId::Path(String::new()),
+                    gizmo_text_geom_spv: AssetId::Path(String::new()),
+                    gizmo_text_frag_spv: AssetId::Path(String::new()),
+                    debug_font_texture: AssetId::Path(String::new()),
+                    texture: AssetId::Path(String::new()),
                 };
 
                 eprintln!();
@@ -106,37 +105,32 @@ impl ICommand for GodAsset {
             std::io::stdin().read_line(&mut input)?;
 
             let trimmed = input.trim().to_lowercase();
-            let cmd = trimmed
-                .split(' ')
-                .collect::<Vec<_>>();
+            let cmd = trimmed.split(' ').collect::<Vec<_>>();
 
-            match cmd.as_slice() {
-                &[CMD_CD, dir] => {
-                    match dir {
-                        "." => continue,
-                        ".." => {
-                            if let Some(new_dir) = current_dir.clone().parent() {
-                                if !new_dir.exists() {
-                                    eprintln!("directory does not exist");
-                                    continue;
-                                }
-
-                                current_dir = new_dir.to_path_buf();
-                            };
-                        },
-                        dir => {
-                            let new_dir = current_dir.clone().join(dir);
-                            if !new_dir.is_dir() {
-                                eprintln!("not a directory or does not exist");
+            match *cmd.as_slice() {
+                [CMD_CD, dir] => match dir {
+                    "." => continue,
+                    ".." => {
+                        if let Some(new_dir) = current_dir.clone().parent() {
+                            if !new_dir.exists() {
+                                eprintln!("directory does not exist");
                                 continue;
                             }
 
-                            current_dir = new_dir;
-                        }
+                            current_dir = new_dir.to_path_buf();
+                        };
                     }
+                    dir => {
+                        let new_dir = current_dir.clone().join(dir);
+                        if !new_dir.is_dir() {
+                            eprintln!("not a directory or does not exist");
+                            continue;
+                        }
 
+                        current_dir = new_dir;
+                    }
                 },
-                &[CMD_EXIT] => {
+                [CMD_EXIT] => {
                     eprintln!();
                     eprintln!("your changes will be lost.");
                     eprintln!("do you to exit anyway? [y/N]");
@@ -147,18 +141,36 @@ impl ICommand for GodAsset {
                     if input.trim().to_lowercase().as_str() == "y" {
                         return Ok(());
                     }
-                },
-                &[CMD_HELP] => {
+                }
+                [CMD_HELP] => {
                     eprintln!();
-                    eprintln!("{} <dir>               changes the directory to <dir>", CMD_CD);
-                    eprintln!("{}                   exits this program without writing", CMD_EXIT);
+                    eprintln!(
+                        "{} <dir>               changes the directory to <dir>",
+                        CMD_CD
+                    );
+                    eprintln!(
+                        "{}                   exits this program without writing",
+                        CMD_EXIT
+                    );
                     eprintln!("{}                   prints this menu", CMD_HELP);
-                    eprintln!("{}                     lists the entries in the current directory", CMD_LS);
-                    eprintln!("{}                  prints the current state of the god asset", CMD_PRINT);
-                    eprintln!("{} <field> <value>    sets the <field> to <value> of the god asset", CMD_SET);
-                    eprintln!("{}                  writes changes to the god asset", CMD_WRITE);
-                },
-                &[CMD_LS] => {
+                    eprintln!(
+                        "{}                     lists the entries in the current directory",
+                        CMD_LS
+                    );
+                    eprintln!(
+                        "{}                  prints the current state of the god asset",
+                        CMD_PRINT
+                    );
+                    eprintln!(
+                        "{} <field> <value>    sets the <field> to <value> of the god asset",
+                        CMD_SET
+                    );
+                    eprintln!(
+                        "{}                  writes changes to the god asset",
+                        CMD_WRITE
+                    );
+                }
+                [CMD_LS] => {
                     let entries = std::fs::read_dir(&current_dir)?;
                     for entry in entries {
                         let entry = entry?;
@@ -176,25 +188,46 @@ impl ICommand for GodAsset {
                             eprintln!("unkown  {}", file_name);
                         }
                     }
-                },
-                &[CMD_PRINT] => {
+                }
+                [CMD_PRINT] => {
                     eprintln!();
                     eprintln!("RisGodAsset {{");
                     eprintln!("    default_vert_spv: {:?},", god_asset.default_vert_spv);
                     eprintln!("    default_frag_spv: {:?},", god_asset.default_frag_spv);
                     eprintln!("    imgui_vert_spv: {:?},", god_asset.imgui_vert_spv);
                     eprintln!("    imgui_frag_spv: {:?},", god_asset.imgui_frag_spv);
-                    eprintln!("    gizmo_segment_vert_spv: {:?},", god_asset.gizmo_segment_vert_spv);
-                    eprintln!("    gizmo_segment_geom_spv: {:?},", god_asset.gizmo_segment_geom_spv);
-                    eprintln!("    gizmo_segment_frag_spv: {:?},", god_asset.gizmo_segment_frag_spv);
-                    eprintln!("    gizmo_test_vert_spv: {:?},", god_asset.gizmo_text_vert_spv);
-                    eprintln!("    gizmo_test_geom_spv: {:?},", god_asset.gizmo_text_geom_spv);
-                    eprintln!("    gizmo_test_frag_spv: {:?},", god_asset.gizmo_text_frag_spv);
-                    eprintln!("    debug_font_texture: {:?},", god_asset.debug_font_texture);
+                    eprintln!(
+                        "    gizmo_segment_vert_spv: {:?},",
+                        god_asset.gizmo_segment_vert_spv
+                    );
+                    eprintln!(
+                        "    gizmo_segment_geom_spv: {:?},",
+                        god_asset.gizmo_segment_geom_spv
+                    );
+                    eprintln!(
+                        "    gizmo_segment_frag_spv: {:?},",
+                        god_asset.gizmo_segment_frag_spv
+                    );
+                    eprintln!(
+                        "    gizmo_test_vert_spv: {:?},",
+                        god_asset.gizmo_text_vert_spv
+                    );
+                    eprintln!(
+                        "    gizmo_test_geom_spv: {:?},",
+                        god_asset.gizmo_text_geom_spv
+                    );
+                    eprintln!(
+                        "    gizmo_test_frag_spv: {:?},",
+                        god_asset.gizmo_text_frag_spv
+                    );
+                    eprintln!(
+                        "    debug_font_texture: {:?},",
+                        god_asset.debug_font_texture
+                    );
                     eprintln!("    texture: {:?},", god_asset.texture);
                     eprintln!("}}");
-                },
-                &[CMD_SET, field, value] => {
+                }
+                [CMD_SET, field, value] => {
                     let path = current_dir.clone().join(value);
                     if !path.is_file() {
                         eprintln!("value is not a file or doesn't exist");
@@ -205,29 +238,43 @@ impl ICommand for GodAsset {
                     let to_set = ris_io::path::to_str(path_without_root).replace('\\', "/");
 
                     match field.trim().to_lowercase().as_str() {
-                        "default_vert_spv" => god_asset.default_vert_spv = AssetId::Directory(to_set),
-                        "default_frag_spv" => god_asset.default_frag_spv = AssetId::Directory(to_set),
-                        "imgui_vert_spv" => god_asset.imgui_vert_spv = AssetId::Directory(to_set),
-                        "imgui_frag_spv" => god_asset.imgui_frag_spv = AssetId::Directory(to_set),
-                        "gizmo_segment_vert_spv" => god_asset.gizmo_segment_vert_spv = AssetId::Directory(to_set),
-                        "gizmo_segment_geom_spv" => god_asset.gizmo_segment_geom_spv = AssetId::Directory(to_set),
-                        "gizmo_segment_frag_spv" => god_asset.gizmo_segment_frag_spv = AssetId::Directory(to_set),
-                        "gizmo_text_vert_spv" => god_asset.gizmo_text_vert_spv = AssetId::Directory(to_set),
-                        "gizmo_text_geom_spv" => god_asset.gizmo_text_geom_spv = AssetId::Directory(to_set),
-                        "gizmo_text_frag_spv" => god_asset.gizmo_text_frag_spv = AssetId::Directory(to_set),
-                        "debug_font_texture" => god_asset.debug_font_texture = AssetId::Directory(to_set),
-                        "texture" => god_asset.texture = AssetId::Directory(to_set),
+                        "default_vert_spv" => god_asset.default_vert_spv = AssetId::Path(to_set),
+                        "default_frag_spv" => god_asset.default_frag_spv = AssetId::Path(to_set),
+                        "imgui_vert_spv" => god_asset.imgui_vert_spv = AssetId::Path(to_set),
+                        "imgui_frag_spv" => god_asset.imgui_frag_spv = AssetId::Path(to_set),
+                        "gizmo_segment_vert_spv" => {
+                            god_asset.gizmo_segment_vert_spv = AssetId::Path(to_set)
+                        }
+                        "gizmo_segment_geom_spv" => {
+                            god_asset.gizmo_segment_geom_spv = AssetId::Path(to_set)
+                        }
+                        "gizmo_segment_frag_spv" => {
+                            god_asset.gizmo_segment_frag_spv = AssetId::Path(to_set)
+                        }
+                        "gizmo_text_vert_spv" => {
+                            god_asset.gizmo_text_vert_spv = AssetId::Path(to_set)
+                        }
+                        "gizmo_text_geom_spv" => {
+                            god_asset.gizmo_text_geom_spv = AssetId::Path(to_set)
+                        }
+                        "gizmo_text_frag_spv" => {
+                            god_asset.gizmo_text_frag_spv = AssetId::Path(to_set)
+                        }
+                        "debug_font_texture" => {
+                            god_asset.debug_font_texture = AssetId::Path(to_set)
+                        }
+                        "texture" => god_asset.texture = AssetId::Path(to_set),
                         _ => eprintln!("unkown field"),
                     }
-                },
-                &[CMD_WRITE] => {
+                }
+                [CMD_WRITE] => {
                     if let Err(e) = write_god_asset(&god_asset, &god_asset_path) {
                         eprintln!("failed to write god asset: {}", e);
                     }
-                },
+                }
                 _ => {
                     eprintln!("invalid command")
-                },
+                }
             }
         }
     }
@@ -252,10 +299,9 @@ fn write_god_asset(god_asset: &RisGodAsset, path: impl AsRef<Path>) -> RisResult
     match god_asset.serialize() {
         Ok(bytes) => {
             let mut file = std::fs::File::create(path)?;
-            let bytes = god_asset.serialize()?;
             ris_io::write(&mut file, &bytes)?;
             Ok(())
-        },
+        }
         Err(e) => Err(e),
     }
 }

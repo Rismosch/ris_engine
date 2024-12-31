@@ -48,10 +48,7 @@ pub trait ComponentHandle: Handle {
     fn to_dyn_component(self) -> DynComponentHandle;
 
     fn game_object(self, scene: &Scene) -> EcsResult<GameObjectHandle> {
-        scene.deref_component(
-            self.to_dyn_component(),
-            |component| component.game_object(),
-        )
+        scene.deref_component(self.to_dyn_component(), |component| component.game_object())
     }
 
     fn destroy(self, scene: &Scene) {
@@ -75,7 +72,9 @@ impl DynHandle {
         let matches = match scene_kind {
             SceneKind::Null => true,
             SceneKind::DynamicGameObject if type_id == TypeId::of::<GameObject>() => true,
-            SceneKind::StaticGameObjct { chunk: _ } if type_id == TypeId::of::<GameObject>() => true,
+            SceneKind::StaticGameObjct { chunk: _ } if type_id == TypeId::of::<GameObject>() => {
+                true
+            }
             SceneKind::Component if type_id == TypeId::of::<MeshRendererComponent>() => true,
             SceneKind::Component if type_id == TypeId::of::<DynScriptComponent>() => true,
             SceneKind::Other if type_id == TypeId::of::<VideoMesh>() => true,

@@ -77,7 +77,7 @@ mod declare {
                 }
             }
 
-            impl EcsObject for $handle_type { }
+            impl EcsObject for $handle_type {}
 
             impl $handle_name {
                 pub fn null() -> Self {

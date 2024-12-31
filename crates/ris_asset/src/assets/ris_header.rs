@@ -35,10 +35,8 @@ impl RisHeader {
     }
 
     pub fn serialize(&self) -> RisResult<Vec<u8>> {
-        let Self{
-            magic,
-            references,
-            ..
+        let Self {
+            magic, references, ..
         } = self;
 
         if magic[0] != 0x72 || // `r`
@@ -55,10 +53,7 @@ impl RisHeader {
 
         ris_io::write(f, magic)?;
 
-        let is_compiled = match references.iter().next() {
-            Some(AssetId::Index(_)) => true,
-            _ => false,
-        };
+        let is_compiled = matches!(references.iter().next(), Some(AssetId::Index(_)));
 
         ris_io::write_bool(f, is_compiled)?;
         ris_io::write_uint(f, references.len())?;
@@ -66,7 +61,12 @@ impl RisHeader {
             match reference {
                 AssetId::Index(id) if is_compiled => ris_io::write_uint(f, *id)?,
                 AssetId::Path(id) if !is_compiled => ris_io::write_string(f, id)?,
-                _ => return ris_error::new_result!("all references must be the same enum variant. is_compiled: {}", is_compiled),
+                _ => {
+                    return ris_error::new_result!(
+                        "all references must be the same enum variant. is_compiled: {}",
+                        is_compiled
+                    )
+                }
             };
         }
 
@@ -103,7 +103,7 @@ impl RisHeader {
             references.push(reference);
         }
 
-        let content_begin = ris_io::seek(f , SeekFrom::Current(0))?;
+        let content_begin = ris_io::seek(f, SeekFrom::Current(0))?;
         let content_end = ris_io::seek(f, SeekFrom::End(0))?;
         let p_content = FatPtr::begin_end(content_begin, content_end)?;
 
@@ -142,7 +142,8 @@ impl RisHeader {
     }
 
     pub fn format_magic(magic: [u8; 16]) -> String {
-        let result = magic.iter()
+        let result = magic
+            .iter()
             .map(|&x| format!("0x{:02X}", x))
             .collect::<Vec<_>>()
             .join(", ");

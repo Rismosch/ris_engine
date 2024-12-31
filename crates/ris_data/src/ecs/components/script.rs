@@ -82,11 +82,7 @@ impl DynScript {
         let type_name = std::any::type_name::<T>();
         let name = ris_util::reflection::trim_type_name(type_name);
 
-        Self {
-            boxed,
-            id,
-            name,
-        }
+        Self { boxed, id, name }
     }
 }
 
@@ -118,7 +114,7 @@ impl Component for DynScriptComponent {
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
     }
-    
+
     fn game_object_mut(&mut self) -> &mut GameObjectHandle {
         &mut self.game_object
     }
@@ -126,14 +122,19 @@ impl Component for DynScriptComponent {
     fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
         match self.script.as_mut() {
             Some(script) => {
-                let position = stream.scene.registry.script_factories()
+                let position = stream
+                    .scene
+                    .registry
+                    .script_factories()
                     .iter()
                     .position(|x| x.script_id() == script.id)
                     .into_ris_error()?;
                 ris_io::write_uint(stream, position)?;
                 script.boxed.serialize(stream)
-            },
-            None => ris_error::new_result!("script was none. make sure to start a script before serializing it"),
+            }
+            None => ris_error::new_result!(
+                "script was none. make sure to start a script before serializing it"
+            ),
         }
     }
 

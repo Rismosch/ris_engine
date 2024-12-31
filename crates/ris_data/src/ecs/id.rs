@@ -28,7 +28,7 @@ pub enum SceneKind {
     DynamicGameObject,
     StaticGameObjct { chunk: usize },
     Component,
-Other,
+    Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

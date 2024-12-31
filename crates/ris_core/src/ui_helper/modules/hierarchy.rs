@@ -70,14 +70,10 @@ impl IUiHelperModule for HierarchyModule {
             }
 
             ui.same_line();
-            if ui.button("save"){
+            if ui.button("save") {
                 if let Some(AssetId::Path(path)) = chunk.clone() {
-                    ris_log::debug!(
-                        "saving scene... chunk: {} path: {}",
-                        chunk_index,
-                        path,
-                    );
-                    let bytes = ris_scene::serialize(&scene, Some(chunk_index))?;
+                    ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
+                    let bytes = ris_scene::serialize(scene, Some(chunk_index))?;
 
                     let asset_path = self.shared_state.borrow().app_info.asset_path()?;
                     let path = asset_path.join(path);
@@ -105,7 +101,6 @@ impl IUiHelperModule for HierarchyModule {
 
         let child_token = ui.child_window("hierarchy child window").begin();
         if child_token.is_some() {
-
             let alive = chunk.iter().filter(|x| x.borrow().is_alive).count();
             ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
 

@@ -22,13 +22,13 @@ pub struct Registry {
     scripts: Vec<Box<dyn IScriptFactory>>,
 }
 
-pub trait IComponentFactory: Debug {
+pub trait IComponentFactory: Debug + Send + Sync {
     fn component_id(&self) -> TypeId;
     fn component_name(&self) -> &str;
     fn make(&self, scene: &Scene, game_object: GameObjectHandle) -> RisResult<DynComponentHandle>;
 }
 
-pub trait IScriptFactory: Debug {
+pub trait IScriptFactory: Debug + Send + Sync {
     fn script_id(&self) -> TypeId;
     fn script_name(&self) -> &str;
     fn make_and_attach(
@@ -107,7 +107,7 @@ impl Registry {
     }
 }
 
-impl<T: Component + Default + 'static> IComponentFactory for ComponentFactory<T> {
+impl<T: Component + Default + Send + Sync + 'static> IComponentFactory for ComponentFactory<T> {
     fn component_id(&self) -> TypeId {
         TypeId::of::<T>()
     }
@@ -150,7 +150,7 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
 
 pub fn init(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<()> {
     let new_registry = Registry::new(scripts)?;
-    unsafe {REGISTRY = Some(new_registry)};
+    unsafe { REGISTRY = Some(new_registry) };
 
     Ok(())
 }

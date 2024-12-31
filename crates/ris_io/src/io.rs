@@ -180,10 +180,8 @@ pub fn read_to_end(stream: &mut (impl Read + Seek)) -> Result<Vec<u8>> {
             let mut buf = vec![0; len];
             read(stream, &mut buf)?;
             Ok(buf)
-        },
-        Err(_) => {
-            Err(Error::from(ErrorKind::InvalidData))
-        },
+        }
+        Err(_) => Err(Error::from(ErrorKind::InvalidData)),
     }
 }
 

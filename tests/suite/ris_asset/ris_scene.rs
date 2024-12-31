@@ -14,7 +14,6 @@ use ris_error::RisResult;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Call {
     Default,
@@ -42,12 +41,12 @@ struct TestScript {
 impl Default for TestScript {
     fn default() -> Self {
         Self {
-            inner: TestInner{
+            inner: TestInner {
                 payload: Vec::new(),
                 game_object: GameObjectHandle::null(),
                 asset_id: AssetId::Index(0),
                 calls: vec![Call::Default],
-            }
+            },
         }
     }
 }
@@ -97,15 +96,15 @@ impl Script for TestScript {
 fn should_serialize() {
     let mut rng = Rng::new(Seed::new().unwrap());
 
-    let registry = Registry::new(vec![
-        Registry::script::<TestScript>().unwrap()
-    ]).unwrap();
+    let registry = Registry::new(vec![Registry::script::<TestScript>().unwrap()]).unwrap();
 
     let count = 20;
-    let mut scene_create_info = SceneCreateInfo::default();
-    scene_create_info.static_chunks = 2;
-    scene_create_info.static_game_objects_per_chunk = count;
-    scene_create_info.registry = Some(registry);
+    let scene_create_info = SceneCreateInfo {
+        static_chunks: 2,
+        game_objects_per_static_chunk: count,
+        registry: Some(registry),
+        ..Default::default()
+    };
     let scene = Scene::new(scene_create_info).unwrap();
 
     // the first chunk will be reserved, such that the serializer doesn't to choose to create game
@@ -199,24 +198,30 @@ fn should_serialize() {
     }
 
     // asserts
-    let left_count = scene.static_chunks[0].game_objects
+    let left_count = scene.static_chunks[0]
+        .game_objects
         .iter()
         .filter(|x| x.borrow().is_alive)
         .count();
-    let right_count = scene.static_chunks[1].game_objects
+    let right_count = scene.static_chunks[1]
+        .game_objects
         .iter()
         .filter(|x| x.borrow().is_alive)
         .count();
     assert_eq!(left_count, right_count);
 
     for i in 0..count {
-        let left: GameObjectHandle = scene.static_chunks[0].game_objects[i].borrow().handle.into();
+        let left: GameObjectHandle = scene.static_chunks[0].game_objects[i]
+            .borrow()
+            .handle
+            .into();
 
         if !left.is_alive(&scene) {
             continue;
         }
 
-        let right: GameObjectHandle = scene.static_chunks[1].game_objects
+        let right: GameObjectHandle = scene.static_chunks[1]
+            .game_objects
             .iter()
             .find(|x| {
                 let g: GameObjectHandle = x.borrow().handle.into();
@@ -227,10 +232,7 @@ fn should_serialize() {
             .handle
             .into();
 
-        assert_eq!(
-            left.name(&scene).unwrap(),
-            right.name(&scene).unwrap(),
-        );
+        assert_eq!(left.name(&scene).unwrap(), right.name(&scene).unwrap(),);
         assert_eq!(
             left.is_active(&scene).unwrap(),
             right.is_active(&scene).unwrap(),
@@ -272,27 +274,22 @@ fn should_serialize() {
 
             assert_eq!(left_inner.payload, right_inner.payload);
 
-            assert_eq!(left_inner.calls, vec![
-                Call::Default,
-                Call::Start,
-                Call::Serialize,
-            ]);
+            assert_eq!(
+                left_inner.calls,
+                vec![Call::Default, Call::Start, Call::Serialize,]
+            );
 
-            assert_eq!(right_inner.calls, vec![
-                Call::Default,
-                Call::Deserialize,
-                Call::Start,
-            ]);
+            assert_eq!(
+                right_inner.calls,
+                vec![Call::Default, Call::Deserialize, Call::Start,]
+            );
 
             assert_eq!(
                 left_inner.game_object.name(&scene).unwrap(),
                 right_inner.game_object.name(&scene).unwrap(),
             );
 
-            assert_eq!(
-                left_inner.asset_id,
-                right_inner.asset_id,
-            );
+            assert_eq!(left_inner.asset_id, right_inner.asset_id,);
         }
     }
 }
@@ -302,7 +299,7 @@ fn fill_data(
     game_object: GameObjectHandle,
     rng: &mut Rng,
     name: impl AsRef<str>,
-    game_objects: &[GameObjectHandle]
+    game_objects: &[GameObjectHandle],
 ) -> RisResult<()> {
     let is_active = rng.next_bool();
     let position = rng.next_pos_3();
@@ -331,17 +328,20 @@ fn fill_data(
 fn get_inner(scene: &Scene, handle: DynComponentHandle) -> RisResult<TestInner> {
     assert_eq!(handle.type_id(), TypeId::of::<DynScriptComponent>());
 
-    let inner = scene.deref_mut_component(handle, |x| {
-        let dyn_script_component: &mut DynScriptComponent = unsafe {&mut *(x as *mut dyn Component as *mut DynScriptComponent)};
+    let inner = scene
+        .deref_mut_component(handle, |x| {
+            let dyn_script_component: &mut DynScriptComponent =
+                unsafe { &mut *(x as *mut dyn Component as *mut DynScriptComponent) };
 
-        let script_type_id = dyn_script_component.type_id().unwrap();
-        assert_eq!(script_type_id, TypeId::of::<TestScript>());
+            let script_type_id = dyn_script_component.type_id().unwrap();
+            assert_eq!(script_type_id, TypeId::of::<TestScript>());
 
-        let boxed = dyn_script_component.script_mut().unwrap();
-        let script = boxed.as_ref();
-        let test: &TestScript = unsafe {&*(script as *const dyn Script as *const TestScript)};
-        test.inner.clone()
-    }).unwrap();
+            let boxed = dyn_script_component.script_mut().unwrap();
+            let script = boxed.as_ref();
+            let test: &TestScript = unsafe { &*(script as *const dyn Script as *const TestScript) };
+            test.inner.clone()
+        })
+        .unwrap();
 
     Ok(inner)
 }

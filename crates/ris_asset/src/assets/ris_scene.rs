@@ -12,7 +12,9 @@ use ris_io::FatPtr;
 use super::ris_header::RisHeader;
 
 // ris_scene\0\0\0\0\0\0\0
-pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5f,0x73,0x63,0x65,0x6e,0x65,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
+pub const MAGIC: [u8; 16] = [
+    0x72, 0x69, 0x73, 0x5f, 0x73, 0x63, 0x65, 0x6e, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
 pub const EXTENSION: &str = "ris_scene";
 
 pub const COMPRESSION_LEVEL: u8 = 6;
@@ -31,10 +33,8 @@ pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>
                 .collect::<Vec<_>>();
 
             (handles, chunk_index)
-        },
-        None => {
-            (Vec::with_capacity(0), 0)
-        },
+        }
+        None => (Vec::with_capacity(0), 0),
     };
 
     let mut stream = SceneWriter::new(chunk_index, scene);
@@ -54,14 +54,16 @@ pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>
         ris_io::write_vec3(f, handle.local_position(scene)?)?;
         ris_io::write_quat(f, handle.local_rotation(scene)?)?;
         ris_io::write_f32(f, handle.local_scale(scene)?)?;
-         
+
         let components = handle.components(scene)?;
         ris_io::write_uint(f, components.len())?;
         for component in components {
             let ptr_addr = ris_io::write_fat_ptr(f, FatPtr::null())?.addr; // placeholder ptr
             let addr = ris_io::seek(f, SeekFrom::Current(0))?;
 
-            let position = scene.registry.component_factories()
+            let position = scene
+                .registry
+                .component_factories()
                 .iter()
                 .position(|x| x.component_id() == component.type_id())
                 .into_ris_error()?;
@@ -84,7 +86,7 @@ pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>
             f.write_game_object(child)?;
         }
     }
-    
+
     // resolve
     let (bytes, references) = stream.resolve(lookup)?;
 
@@ -122,15 +124,14 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     header.assert_magic(MAGIC)?;
 
     let content = header.content(bytes)?;
-    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content).map_err(|e| {
-        ris_error::new!("failed to decompress: {:?}", e)
-    })?;
+    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
+        .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
 
     let mut stream = SceneReader::new(index, scene, uncompressed, header.references);
     let f = &mut stream;
 
     let game_object_count = ris_io::read_uint(f)?;
-    
+
     f.lookup = Vec::with_capacity(game_object_count);
     let mut children_to_assign = Vec::with_capacity(game_object_count);
     let mut components_to_deserialize = Vec::with_capacity(game_object_count);
@@ -178,7 +179,9 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         for (i, &child_id) in child_ids.iter().enumerate() {
             let actual_id = f.lookup.get(child_id).into_ris_error()?;
 
-            let child: GameObjectHandle = chunk.game_objects.iter()
+            let child: GameObjectHandle = chunk
+                .game_objects
+                .iter()
                 .find(|x| x.borrow().handle.scene_id().index == *actual_id)
                 .into_ris_error()?
                 .borrow()
@@ -195,7 +198,8 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
             ris_io::seek(f, SeekFrom::Start(addr))?;
 
             let position = ris_io::read_uint(f)?;
-            let factory = scene.registry
+            let factory = scene
+                .registry
                 .component_factories()
                 .get(position)
                 .into_ris_error()?;
@@ -207,4 +211,3 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
     Ok(Some(index))
 }
-

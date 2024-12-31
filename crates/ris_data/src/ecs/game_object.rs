@@ -81,7 +81,7 @@ impl GameObjectHandle {
     }
 
     pub fn new_static(scene: &Scene, chunk: usize) -> EcsResult<Self> {
-        let kind = GameObjectKind::Static{chunk};
+        let kind = GameObjectKind::Static { chunk };
         Self::new_with_kind(scene, kind)
     }
 
@@ -378,10 +378,7 @@ impl GameObjectHandle {
         };
 
         aref_mut.components.remove(position);
-        let result = scene.deref_mut_component(
-            component,
-            |c| c.destroy(scene),
-        );
+        let result = scene.deref_mut_component(component, |c| c.destroy(scene));
 
         if result.is_ok() {
             let result = scene.mark_as_destroyed(*component);

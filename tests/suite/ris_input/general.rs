@@ -17,9 +17,9 @@ impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new().unwrap());
 
-        let mut scene_create_info = miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
+        let mut scene_create_info =
+            miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
         scene_create_info.registry = Some(Registry::new(Vec::new()).unwrap());
-
 
         let state = GodState::new(Settings::default(), scene_create_info).unwrap();
 

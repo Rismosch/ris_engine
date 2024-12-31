@@ -24,7 +24,7 @@ use super::registry::Registry;
 
 const DEFAULT_DYNAMIC_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
-const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
+const DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK: usize = 1024;
 const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
 const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
 const DEFAULT_VIDEO_MESHES: usize = 1024;
@@ -34,7 +34,7 @@ pub struct SceneCreateInfo {
     // game objects
     pub dynamic_game_objects: usize,
     pub static_chunks: usize,
-    pub static_game_objects_per_chunk: usize,
+    pub game_objects_per_static_chunk: usize,
 
     // components
     pub mesh_renderer_components: usize,
@@ -69,7 +69,7 @@ impl Default for SceneCreateInfo {
         Self {
             dynamic_game_objects: DEFAULT_DYNAMIC_GAME_OBJECTS,
             static_chunks: DEFAULT_STATIC_CHUNKS,
-            static_game_objects_per_chunk: DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK,
+            game_objects_per_static_chunk: DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK,
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
             video_meshes: DEFAULT_VIDEO_MESHES,
@@ -83,7 +83,7 @@ impl SceneCreateInfo {
         Self {
             dynamic_game_objects: 0,
             static_chunks: 0,
-            static_game_objects_per_chunk: 0,
+            game_objects_per_static_chunk: 0,
             mesh_renderer_components: 0,
             script_components: 0,
             video_meshes: 0,
@@ -111,7 +111,7 @@ impl Scene {
         let mut static_chunks = Vec::with_capacity(info.static_chunks);
         for i in 0..info.static_chunks {
             let kind = SceneKind::StaticGameObjct { chunk: i };
-            let game_objects = create_chunk(kind, info.static_game_objects_per_chunk)?;
+            let game_objects = create_chunk(kind, info.game_objects_per_static_chunk)?;
             let chunk = StaticChunk {
                 is_reserved: ArefCell::new(false),
                 game_objects,
@@ -150,13 +150,13 @@ impl Scene {
     }
 
     pub fn clear_chunk(&self, index: usize) {
-        ris_error::throw_debug_assert!(
-            index < self.static_chunks.len(),
-            "index was out of bounds",
-        );
+        ris_error::throw_debug_assert!(index < self.static_chunks.len(), "index was out of bounds",);
         let chunk = &self.static_chunks[index];
         if !*chunk.is_reserved.borrow() {
-            ris_log::info!("chunk {} was already cleared and isn't reserved anymore", index);
+            ris_log::info!(
+                "chunk {} was already cleared and isn't reserved anymore",
+                index
+            );
             return;
         }
 
@@ -169,7 +169,10 @@ impl Scene {
         *chunk.is_reserved.borrow_mut() = false;
     }
 
-    pub fn deref<T: EcsObject + 'static>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {
+    pub fn deref<T: EcsObject + 'static>(
+        &self,
+        handle: GenericHandle<T>,
+    ) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(handle.scene_id().kind)?;
         let index = handle.scene_id().index;
         let ptr = &chunk[index];
@@ -185,7 +188,10 @@ impl Scene {
         }
     }
 
-    pub fn create_new<T: EcsObject + Default + 'static>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
+    pub fn create_new<T: EcsObject + Default + 'static>(
+        &self,
+        kind: SceneKind,
+    ) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(kind)?;
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
@@ -223,7 +229,7 @@ impl Scene {
             let chunk = self.find_chunk::<VideoMesh>(kind)?;
             chunk[index].borrow_mut().is_alive = false;
         } else {
-            return Err(EcsError::InvalidCast)
+            return Err(EcsError::InvalidCast);
         }
 
         Ok(())
@@ -232,7 +238,7 @@ impl Scene {
     pub fn deref_component<T>(
         &self,
         handle: DynComponentHandle,
-        callback: impl FnOnce(&dyn Component) -> T
+        callback: impl FnOnce(&dyn Component) -> T,
     ) -> EcsResult<T> {
         let SceneId { kind, index } = handle.scene_id();
         let type_id = handle.type_id();
@@ -257,7 +263,7 @@ impl Scene {
     pub fn deref_mut_component<T>(
         &self,
         handle: DynComponentHandle,
-        callback: impl FnOnce(&mut dyn Component) -> T
+        callback: impl FnOnce(&mut dyn Component) -> T,
     ) -> EcsResult<T> {
         let SceneId { kind, index } = handle.scene_id();
         let type_id = handle.type_id();
@@ -283,7 +289,9 @@ impl Scene {
         match kind {
             SceneKind::Null => Err(EcsError::IsNull),
             SceneKind::DynamicGameObject => cast_chunk(&self.dynamic_game_objects),
-            SceneKind::StaticGameObjct { chunk } => cast_chunk(&self.static_chunks[chunk].game_objects),
+            SceneKind::StaticGameObjct { chunk } => {
+                cast_chunk(&self.static_chunks[chunk].game_objects)
+            }
             SceneKind::Component => {
                 let type_id = TypeId::of::<T>();
                 if type_id == TypeId::of::<MeshRendererComponent>() {
@@ -293,7 +301,7 @@ impl Scene {
                 } else {
                     Err(EcsError::TypeDoesNotMatchSceneKind)
                 }
-            },
+            }
             SceneKind::Other => {
                 let type_id = TypeId::of::<T>();
                 if type_id == TypeId::of::<VideoMesh>() {
@@ -301,12 +309,15 @@ impl Scene {
                 } else {
                     Err(EcsError::TypeDoesNotMatchSceneKind)
                 }
-            },
+            }
         }
     }
 }
 
-fn create_chunk<T: EcsObject + Default + 'static>(kind: SceneKind, capacity: usize) -> EcsResult<Vec<EcsPtr<T>>> {
+fn create_chunk<T: EcsObject + Default + 'static>(
+    kind: SceneKind,
+    capacity: usize,
+) -> EcsResult<Vec<EcsPtr<T>>> {
     let mut result = Vec::with_capacity(capacity);
     for i in 0..capacity {
         let id = SceneId { kind, index: i };
@@ -319,7 +330,9 @@ fn create_chunk<T: EcsObject + Default + 'static>(kind: SceneKind, capacity: usi
     Ok(result)
 }
 
-fn cast_chunk<T: EcsObject + 'static, U: EcsObject + 'static>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> {
+fn cast_chunk<T: EcsObject + 'static, U: EcsObject + 'static>(
+    chunk: &[EcsPtr<T>],
+) -> EcsResult<&[EcsPtr<U>]> {
     if TypeId::of::<T>() != TypeId::of::<U>() {
         return Err(EcsError::InvalidCast);
     }

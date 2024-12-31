@@ -29,7 +29,8 @@ pub fn spawn_many_objects(god_object: &GodObject) -> RisResult<()> {
         game_object.set_local_position(&god_object.state.scene, position)?;
         game_object.set_local_rotation(&god_object.state.scene, rotation)?;
 
-        let test_rotation = game_object.add_script::<test::TestRotationScript>(&god_object.state.scene)?;
+        let test_rotation =
+            game_object.add_script::<test::TestRotationScript>(&god_object.state.scene)?;
         test_rotation
             .script_mut(&god_object.state.scene)?
             .rotation_axis = rotation_axis;

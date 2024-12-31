@@ -1,7 +1,7 @@
 use std::io::Cursor;
+use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
-use std::io::Read;
 use std::io::Write;
 
 use ris_error::Extensions;
@@ -60,13 +60,13 @@ impl<'a> SceneWriter<'a> {
         Ok((bytes, asset_ids))
     }
 
-    pub fn write_game_object(
-        &mut self,
-        game_object: GameObjectHandle,
-    ) -> RisResult<FatPtr> {
+    pub fn write_game_object(&mut self, game_object: GameObjectHandle) -> RisResult<FatPtr> {
         let scene_id = game_object.0.scene_id();
         let SceneKind::StaticGameObjct { chunk } = scene_id.kind else {
-            return ris_error::new_result!("can only serialize static game objects. kind was: {:?}", scene_id.kind);
+            return ris_error::new_result!(
+                "can only serialize static game objects. kind was: {:?}",
+                scene_id.kind
+            );
         };
 
         if self.chunk != chunk {
@@ -87,7 +87,7 @@ impl<'a> SceneWriter<'a> {
                 let position = self.assets_ids.len();
                 self.assets_ids.push(asset_id);
                 position
-            },
+            }
         };
 
         let ptr = ris_io::write_uint(self, to_write)?;
@@ -96,12 +96,7 @@ impl<'a> SceneWriter<'a> {
 }
 
 impl<'a> SceneReader<'a> {
-    pub fn new(
-        chunk: usize,
-        scene: &'a Scene,
-        data: Vec<u8>,
-        assets_ids: Vec<AssetId>,
-    ) -> Self {
+    pub fn new(chunk: usize, scene: &'a Scene, data: Vec<u8>, assets_ids: Vec<AssetId>) -> Self {
         Self {
             stream: Cursor::new(data),
             chunk,
@@ -114,8 +109,8 @@ impl<'a> SceneReader<'a> {
     pub fn read_game_object(&mut self) -> RisResult<GameObjectHandle> {
         let index = ris_io::read_uint(self)?;
         let scene_index = self.lookup.get(index).into_ris_error()?;
-        let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk]
-            .game_objects[*scene_index]
+        let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk].game_objects
+            [*scene_index]
             .borrow()
             .handle
             .into();

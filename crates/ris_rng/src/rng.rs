@@ -133,7 +133,7 @@ impl Rng {
     }
 
     pub fn next_in<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
-        assert!(slice.len() > 0);
+        assert!(!slice.is_empty());
         let min = 0;
         let max = (slice.len() - 1) as i32;
         let index = self.next_i32_between(min, max) as usize;

@@ -62,5 +62,4 @@ impl Script for TestRotationScript {
         self.rotation_axis = ris_io::read_vec3(f)?;
         Ok(())
     }
-
 }

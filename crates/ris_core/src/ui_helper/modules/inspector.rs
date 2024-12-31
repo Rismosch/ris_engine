@@ -3,11 +3,11 @@ use std::ffi::CString;
 
 use imgui::Ui;
 
-use ris_data::asset_id::AssetId;
 use ris_asset::asset_loader::LoadError;
-use ris_data::ecs::components::script::ScriptInspectData;
+use ris_data::asset_id::AssetId;
 use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
 use ris_data::ecs::components::script::DynScriptComponent;
+use ris_data::ecs::components::script::ScriptInspectData;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
@@ -434,7 +434,6 @@ impl IUiHelperModule for InspectorModule {
                     let delete_requested;
 
                     if component.type_id() == TypeId::of::<MeshRendererComponent>() {
-
                         //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
                         //let aref_mut = ptr.borrow_mut();
 
@@ -446,9 +445,7 @@ impl IUiHelperModule for InspectorModule {
                         }
 
                         data.ui.text("im a mesh :)");
-
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
-
                         let ptr = data.state.scene.script_components[index].to_weak();
                         let mut aref_mut = ptr.borrow_mut();
                         let script_name = aref_mut.type_name().into_ris_error()?;
@@ -474,10 +471,7 @@ impl IUiHelperModule for InspectorModule {
                         };
 
                         script.inspect(script_inspect_data)?;
-
-
                     } else {
-
                         let header = ComponentHeader::draw(
                             data.ui,
                             format!("{:?}##{:?}", component.type_id(), component),
@@ -563,16 +557,16 @@ impl IUiHelperModule for InspectorModule {
                 data.ui.text(format!("size: {:?}", size));
                 let _disabled_token = data.ui.begin_disabled(size == 0);
 
-                if path_string.ends_with(ris_asset::assets::ris_scene::EXTENSION) {
-                    if data.ui.button("load") {
-                        let reserved = ris_asset::assets::ris_scene::load(
-                            &data.state.scene,
-                            &self.loaded_asset,
-                        )?;
-                        if let Some(chunk_index) = reserved {
-                            self.shared_state.borrow_mut().set_chunk(chunk_index, Some(id));
-                            ris_log::info!("loaded asset into chunk {}", chunk_index);
-                        }
+                if path_string.ends_with(ris_asset::assets::ris_scene::EXTENSION)
+                    && data.ui.button("load")
+                {
+                    let reserved =
+                        ris_asset::assets::ris_scene::load(&data.state.scene, &self.loaded_asset)?;
+                    if let Some(chunk_index) = reserved {
+                        self.shared_state
+                            .borrow_mut()
+                            .set_chunk(chunk_index, Some(id));
+                        ris_log::info!("loaded asset into chunk {}", chunk_index);
                     }
                 }
             }
