@@ -1,5 +1,4 @@
 use std::any::TypeId;
-use std::rc::Rc;
 
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;

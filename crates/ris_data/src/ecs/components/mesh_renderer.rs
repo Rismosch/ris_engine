@@ -35,11 +35,11 @@ impl Component for MeshRendererComponent {
         &mut self.game_object
     }
 
-    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
         ris_error::new_result!("not implemeneted")
     }
 
-    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
         ris_error::new_result!("not implemented")
     }
 }

@@ -450,6 +450,18 @@ impl GameObjectHandle {
         let old_parent = old_handle.and_then(|x| scene.deref(*x).ok());
         let new_parent = new_handle.and_then(|x| scene.deref(*x).ok());
 
+        // don't assign, when parent sits in another chunk
+        if let Some(new_parent) = &new_parent {
+            let parent_scene_id = new_parent.borrow().handle.scene_id();
+            let child_scene_id = self.0.scene_id();
+
+            if parent_scene_id.kind != child_scene_id.kind {
+                return Err(EcsError::InvalidOperation(
+                    "parent isn't in the same chunk".to_string(),
+                ));
+            }
+        }
+
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;
         while let Some(parent_handle) = to_test {

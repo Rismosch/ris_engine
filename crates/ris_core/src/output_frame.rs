@@ -5,7 +5,6 @@ use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
 use ris_asset::RisGodAsset;
-use ris_data::ecs::registry::Registry;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;

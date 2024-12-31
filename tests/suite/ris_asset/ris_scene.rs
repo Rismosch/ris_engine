@@ -180,17 +180,17 @@ fn should_serialize() {
     fill_data(&scene, g9, &mut rng, "nine", &gs).unwrap();
 
     // actual code to be tested
-    let serialized = ris_scene::serialize(&scene, 0).unwrap();
+    let serialized = ris_scene::serialize(&scene, Some(0)).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
 
-    // debugging
-    {
-        let test_dir = ris_util::prep_test_dir!();
-        let path = std::path::PathBuf::from(test_dir).join("test.ris_scene");
-        println!("path {:?}", path);
-        let mut file = std::fs::File::create(path).unwrap();
-        ris_io::write(&mut file, &serialized).unwrap();
-    }
+    //// debugging
+    //{
+    //    let test_dir = ris_util::prep_test_dir!();
+    //    let path = std::path::PathBuf::from(test_dir).join("test.ris_scene");
+    //    println!("path {:?}", path);
+    //    let mut file = std::fs::File::create(path).unwrap();
+    //    ris_io::write(&mut file, &serialized).unwrap();
+    //}
 
     // cleanup
     for index in to_unmark_1 {
