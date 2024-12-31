@@ -2,12 +2,20 @@ use ris_data::ecs::script_prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
-#[derive(Debug, Default)]
-pub struct Rotation {
+#[derive(Debug)]
+pub struct TestRotationScript {
     pub rotation_axis: Vec3,
 }
 
-impl Script for Rotation {
+impl Default for TestRotationScript {
+    fn default() -> Self {
+        Self {
+            rotation_axis: Vec3::right(),
+        }
+    }
+}
+
+impl Script for TestRotationScript {
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
