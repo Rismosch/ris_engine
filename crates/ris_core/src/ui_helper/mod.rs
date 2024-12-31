@@ -129,15 +129,23 @@ impl SharedState {
         }))
     }
 
-    fn chunk(&mut self, index: usize) -> &mut Option<AssetId> {
+    fn chunk(&mut self, index: usize) -> Option<AssetId> {
+        self.reserve_chunks(index);
+        self.loaded_chunks[index].clone()
+    }
+
+    fn set_chunk(&mut self, index: usize, value: Option<AssetId>) {
+        self.reserve_chunks(index);
+        self.loaded_chunks[index] = value;
+    }
+
+    fn reserve_chunks(&mut self, index: usize) {
         let total_chunks = self.loaded_chunks.len() as isize;
         let iindex = index as isize;
         let chunks_to_add = iindex - total_chunks + 1;
         for _ in 0..chunks_to_add {
             self.loaded_chunks.push(None);
         }
-        
-        &mut self.loaded_chunks[index]
     }
 }
 

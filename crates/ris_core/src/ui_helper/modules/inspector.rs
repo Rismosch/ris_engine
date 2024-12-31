@@ -570,7 +570,7 @@ impl IUiHelperModule for InspectorModule {
                             &self.loaded_asset,
                         )?;
                         if let Some(chunk_index) = reserved {
-                            *self.shared_state.borrow_mut().chunk(chunk_index) = Some(id);
+                            self.shared_state.borrow_mut().set_chunk(chunk_index, Some(id));
                             ris_log::info!("loaded asset into chunk {}", chunk_index);
                         }
                     }

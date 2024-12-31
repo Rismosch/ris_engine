@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_asset::assets::ris_scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -87,6 +88,37 @@ impl AssetBrowser {
         }
 
         let is_open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
+
+        if path.is_dir() && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
+            if data.ui.menu_item("new scene") {
+                let mut new_path = PathBuf::from(path)
+                    .join(format!("new.{}", ris_scene::EXTENSION));
+                let mut counter = 0;
+                while new_path.exists() {
+                    counter += 1;
+                    new_path = PathBuf::from(path)
+                        .join(format!("new({}).{}", counter, ris_scene::EXTENSION));
+                }
+
+                let empty_scene = ris_scene::serialize(
+                    &data.state.scene,
+                    None,
+                )?;
+
+                let mut file = std::fs::File::create_new(new_path)?;
+                ris_io::write(&mut file, &empty_scene)?;
+            }
+
+            unsafe { imgui::sys::igEndPopup() };
+        } else if path.is_file() && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
+            if data.ui.menu_item("delete") {
+                if let Err(e) = std::fs::remove_file(path) {
+                    ris_log::error!("failed to delete file: {}", e)
+                }
+            }
+
+            unsafe { imgui::sys::igEndPopup() };
+        }
 
         if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
             let selection = Some(Selection::AssetPath(path_without_root));

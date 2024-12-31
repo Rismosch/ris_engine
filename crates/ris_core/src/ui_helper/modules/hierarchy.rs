@@ -1,12 +1,15 @@
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::path::PathBuf;
 use std::ptr;
 
+use ris_asset::assets::ris_scene;
 use ris_data::asset_id::AssetId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::SceneKind;
 use ris_data::god_state::GodState;
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::ui_helper::selection::Selection;
@@ -59,19 +62,30 @@ impl IUiHelperModule for HierarchyModule {
         if !dynamics_are_selected {
             let chunk_index = self.selected_chunk - 1;
 
-            let mut aref = self.shared_state.borrow_mut();
-            let chunk = aref.chunk(chunk_index);
+            let chunk = self.shared_state.borrow_mut().chunk(chunk_index);
 
             let _disabled_token = ui.begin_disabled(chunk.is_none());
 
             if ui.button("clear") {
                 scene.clear_chunk(chunk_index);
-                *chunk = None;
+                self.shared_state.borrow_mut().set_chunk(chunk_index, None);
             }
 
             ui.same_line();
-            if ui.button("save") {
-                ris_log::debug!("save");
+            if ui.button("save"){
+                if let Some(AssetId::Path(path)) = chunk.clone() {
+                    ris_log::debug!(
+                        "saving scene... chunk: {} path: {}",
+                        chunk_index,
+                        path,
+                    );
+                    let bytes = ris_scene::serialize(&scene, Some(chunk_index))?;
+
+                    let asset_path = self.shared_state.borrow().app_info.asset_path()?;
+                    let path = asset_path.join(path);
+                    let mut file = std::fs::File::create(path)?;
+                    ris_io::write(&mut file, &bytes)?;
+                }
             }
 
             if let Some(AssetId::Path(path)) = chunk {

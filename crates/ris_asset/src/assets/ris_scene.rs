@@ -17,16 +17,25 @@ pub const EXTENSION: &str = "ris_scene";
 
 pub const COMPRESSION_LEVEL: u8 = 6;
 
-pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
-    ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
-    let chunk = &scene.static_chunks[chunk_index];
+pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>> {
+    let (handles, chunk_index) = match chunk_index {
+        Some(chunk_index) => {
+            ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
+            let chunk = &scene.static_chunks[chunk_index];
 
-    let handles = chunk
-        .game_objects
-        .iter()
-        .filter(|x| x.borrow().is_alive)
-        .map(|x| x.borrow().handle)
-        .collect::<Vec<_>>();
+            let handles = chunk
+                .game_objects
+                .iter()
+                .filter(|x| x.borrow().is_alive)
+                .map(|x| x.borrow().handle)
+                .collect::<Vec<_>>();
+
+            (handles, chunk_index)
+        },
+        None => {
+            (Vec::with_capacity(0), 0)
+        },
+    };
 
     let mut stream = SceneWriter::new(chunk_index, scene);
     let f = &mut stream;
