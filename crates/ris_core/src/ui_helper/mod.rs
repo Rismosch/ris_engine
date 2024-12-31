@@ -577,11 +577,7 @@ impl UiHelper {
         Ok(GameloopState::WantsToContinue)
     }
 
-    fn window_callback(
-        &mut self,
-        window_index: usize,
-        data: &mut UiHelperDrawData,
-    ) {
+    fn window_callback(&mut self, window_index: usize, data: &mut UiHelperDrawData) {
         let UiHelperDrawData { ui, .. } = data;
 
         let window = &mut self.windows[window_index];
