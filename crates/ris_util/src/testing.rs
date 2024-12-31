@@ -27,7 +27,7 @@ pub const MIN_NORM: f32 = 0.000_001f32;
 
 #[macro_export]
 macro_rules! assert_feq {
-    ($left:expr, $right:expr) => {{
+    ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_feq!($left, $right, $crate::testing::MIN_NORM, "");
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
@@ -78,7 +78,7 @@ pub fn bytes_eq_detailed(left: &[u8], right: &[u8]) -> BytesEqualResult {
 
 #[macro_export]
 macro_rules! assert_bytes_eq {
-    ($left:expr, $right:expr) => {{
+    ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_bytes_eq!($left, $right, "");
     }};
     ($left:expr, $right:expr, $($arg:tt)*) => {{
@@ -147,7 +147,7 @@ macro_rules! assert_bytes_eq {
 
 #[macro_export]
 macro_rules! assert_vec2_eq {
-    ($left:expr, $right:expr) => {{
+    ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_feq!($left.0, $right.0);
         $crate::assert_feq!($left.1, $right.1);
     }};
@@ -155,7 +155,7 @@ macro_rules! assert_vec2_eq {
 
 #[macro_export]
 macro_rules! assert_vec3_eq {
-    ($left:expr, $right:expr) => {{
+    ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_vec3_eq!($left, $right, $crate::testing::MIN_NORM);
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
@@ -177,7 +177,7 @@ macro_rules! assert_vec4_eq {
 
 #[macro_export]
 macro_rules! assert_quat_eq {
-    ($left:expr, $right:expr) => {{
+    ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_quat_eq!($left, $right, $crate::testing::MIN_NORM);
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{

@@ -132,6 +132,14 @@ impl Rng {
         }
     }
 
+    pub fn next_in<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
+        assert!(!slice.is_empty());
+        let min = 0;
+        let max = (slice.len() - 1) as i32;
+        let index = self.next_i32_between(min, max) as usize;
+        &slice[index]
+    }
+
     pub fn next_pos_2(&mut self) -> Vec2 {
         let x = self.next_f32_between(-1.0, 1.0);
         let y = self.next_f32_between(-1.0, 1.0);

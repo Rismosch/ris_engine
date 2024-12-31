@@ -2,30 +2,20 @@ use ris_data::ecs::script_prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
-#[derive(Debug, Default)]
-pub struct Rotation {
+#[derive(Debug)]
+pub struct TestRotationScript {
     pub rotation_axis: Vec3,
 }
 
-impl ISerializable for Rotation {
-    fn serialize(&self) -> RisResult<Vec<u8>> {
-        ris_error::new_result!("not implemented")
-    }
-
-    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        ris_error::new_result!("not implemented")
+impl Default for TestRotationScript {
+    fn default() -> Self {
+        Self {
+            rotation_axis: Vec3::right(),
+        }
     }
 }
 
-impl Script for Rotation {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestRotation"
-    }
-
+impl Script for TestRotationScript {
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
@@ -60,6 +50,16 @@ impl Script for Rotation {
             &mut self.rotation_axis,
         )?;
 
+        Ok(())
+    }
+
+    fn serialize(&mut self, f: &mut SceneWriter) -> RisResult<()> {
+        ris_io::write_vec3(f, self.rotation_axis)?;
+        Ok(())
+    }
+
+    fn deserialize(&mut self, f: &mut SceneReader) -> RisResult<()> {
+        self.rotation_axis = ris_io::read_vec3(f)?;
         Ok(())
     }
 }

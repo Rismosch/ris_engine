@@ -1,14 +1,21 @@
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::game_object::GetFrom;
-use ris_data::ecs::id::GameObjectKind;
+use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::script_prelude::*;
 
 fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
-    info.movable_game_objects = 5;
+    info.dynamic_game_objects = 5;
     info.script_components = 5;
+    info.registry = Some(
+        Registry::new(vec![
+            Registry::script::<TestScriptString>().unwrap(),
+            Registry::script::<TestScriptISize>().unwrap(),
+        ])
+        .unwrap(),
+    );
     info
 }
 
@@ -22,25 +29,7 @@ struct TestScriptISize {
     value: isize,
 }
 
-impl ISerializable for TestScriptString {
-    fn serialize(&self) -> RisResult<Vec<u8>> {
-        panic!("not implemented")
-    }
-
-    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        panic!("not implemented")
-    }
-}
-
 impl Script for TestScriptString {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestScriptString"
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
@@ -55,30 +44,20 @@ impl Script for TestScriptString {
         Ok(())
     }
 
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
         ris_error::new_result!("not implementd")
     }
 }
 
-impl ISerializable for TestScriptISize {
-    fn serialize(&self) -> RisResult<Vec<u8>> {
-        panic!("not implemented")
-    }
-
-    fn deserialize(_bytes: &[u8]) -> RisResult<Self> {
-        panic!("not implemented")
-    }
-}
-
 impl Script for TestScriptISize {
-    fn id() -> Sid {
-        ris_debug::fsid!()
-    }
-
-    fn name(&self) -> &'static str {
-        "TestScriptISize"
-    }
-
     fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
@@ -93,6 +72,14 @@ impl Script for TestScriptISize {
         Ok(())
     }
 
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
         ris_error::new_result!("not implementd")
     }
@@ -101,7 +88,7 @@ impl Script for TestScriptISize {
 #[test]
 fn should_add_script() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let _script_string = g.add_script::<TestScriptString>(&scene).unwrap();
     let _script_isize = g.add_script::<TestScriptISize>(&scene).unwrap();
 }
@@ -109,7 +96,7 @@ fn should_add_script() {
 #[test]
 fn should_deref_handle() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
     let value_1 = script.script(&scene).unwrap().value;
@@ -124,7 +111,7 @@ fn should_deref_handle() {
 #[test]
 fn should_not_deref_handle_when_script_is_destroyed() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
     script.destroy(&scene);
@@ -138,7 +125,7 @@ fn should_not_deref_handle_when_script_is_destroyed() {
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_while_reference_exists() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
     let _reference1 = script.script(&scene);
@@ -148,7 +135,7 @@ fn should_panic_when_deref_while_reference_exists() {
 #[test]
 fn should_allow_multiple_references() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script = g.add_script::<TestScriptISize>(&scene).unwrap();
 
     let _reference1 = script.script(&scene);
@@ -159,7 +146,7 @@ fn should_allow_multiple_references() {
 #[test]
 fn should_get_scripts() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
     let script2 = g.add_script::<TestScriptString>(&scene).unwrap();
     let script3 = g.add_script::<TestScriptISize>(&scene).unwrap();
@@ -192,7 +179,7 @@ fn should_get_scripts() {
 #[test]
 fn should_get_first_script() {
     let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene, GameObjectKind::Movable).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
     let script1 = g.add_script::<TestScriptISize>(&scene).unwrap();
     let script2 = g.add_script::<TestScriptISize>(&scene).unwrap();
     let script3 = g.add_script::<TestScriptISize>(&scene).unwrap();

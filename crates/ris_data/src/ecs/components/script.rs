@@ -1,12 +1,11 @@
+use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use imgui::Ui;
 
-use ris_debug::sid::Sid;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_io::serializable::ISerializable;
 use ris_ptr::Aref;
 use ris_ptr::ArefMut;
 
@@ -19,6 +18,8 @@ use crate::ecs::handle::ComponentHandle;
 use crate::ecs::id::Component;
 use crate::ecs::id::EcsInstance;
 use crate::ecs::scene::Scene;
+use crate::ecs::scene_stream::SceneReader;
+use crate::ecs::scene_stream::SceneWriter;
 use crate::gameloop::frame::Frame;
 use crate::god_state::GodState;
 
@@ -41,21 +42,20 @@ pub struct ScriptInspectData<'a> {
     pub state: &'a GodState,
 }
 
-pub trait Script: Debug + Send + Sync + ISerializable {
-    fn id() -> Sid
-    where
-        Self: Sized;
-    fn name(&self) -> &'static str;
+pub trait Script: Debug + Send + Sync {
     fn start(&mut self, data: ScriptStartEndData) -> RisResult<()>;
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()>;
     fn end(&mut self, data: ScriptStartEndData) -> RisResult<()>;
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()>;
 }
 
 #[derive(Debug)]
 pub struct DynScript {
     boxed: Box<dyn Script>,
-    id: Sid,
+    id: TypeId,
+    name: &'static str,
 }
 
 #[derive(Debug)]
@@ -74,6 +74,18 @@ pub struct ScriptComponentRefMut<T: Script> {
     boo: PhantomData<T>,
 }
 
+impl DynScript {
+    pub fn new<T: Script + Default + 'static>() -> Self {
+        let script = T::default();
+        let boxed = Box::new(script);
+        let id = TypeId::of::<T>();
+        let type_name = std::any::type_name::<T>();
+        let name = ris_util::reflection::trim_type_name(type_name);
+
+        Self { boxed, id, name }
+    }
+}
+
 impl Default for DynScriptComponent {
     fn default() -> Self {
         Self {
@@ -84,13 +96,6 @@ impl Default for DynScriptComponent {
 }
 
 impl Component for DynScriptComponent {
-    fn create(game_object: GameObjectHandle) -> Self {
-        Self {
-            game_object,
-            ..Default::default()
-        }
-    }
-
     fn destroy(&mut self, scene: &Scene) {
         let Some(mut script) = self.script.take() else {
             return;
@@ -109,11 +114,72 @@ impl Component for DynScriptComponent {
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
     }
+
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle {
+        &mut self.game_object
+    }
+
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
+        match self.script.as_mut() {
+            Some(script) => {
+                let position = stream
+                    .scene
+                    .registry
+                    .script_factories()
+                    .iter()
+                    .position(|x| x.script_id() == script.id)
+                    .into_ris_error()?;
+                ris_io::write_uint(stream, position)?;
+                script.boxed.serialize(stream)
+            }
+            None => ris_error::new_result!(
+                "script was none. make sure to start a script before serializing it"
+            ),
+        }
+    }
+
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+        match self.script.as_mut() {
+            Some(script) => ris_error::new_result!("script was Some({:?}). make sure that the script is not started before deserializing", script),
+            None => {
+                let position = ris_io::read_uint(stream)?;
+                let factory = stream.scene.registry.script_factories()
+                    .get(position)
+                    .into_ris_error()?;
+
+                let mut script = factory.make();
+                script.boxed.deserialize(stream)?;
+                let data = ScriptStartEndData {
+                    game_object: self.game_object(),
+                    scene: stream.scene,
+                };
+                script.boxed.start(data)?;
+                self.script = Some(script);
+
+                Ok(())
+            },
+        }
+    }
 }
 
 impl DynScriptComponent {
+    pub fn create(game_object: GameObjectHandle) -> Self {
+        Self {
+            game_object,
+            ..Default::default()
+        }
+    }
+
     pub fn game_object(&self) -> GameObjectHandle {
         self.game_object
+    }
+
+    pub fn type_id(&self) -> Option<TypeId> {
+        self.script.as_ref().map(|x| x.id)
+    }
+
+    pub fn type_name(&self) -> Option<&'static str> {
+        self.script.as_ref().map(|x| x.name)
     }
 
     pub fn script_mut(&mut self) -> Option<&mut Box<dyn Script>> {
@@ -130,7 +196,7 @@ impl DynScriptComponent {
         match self.script_mut() {
             Some(script) => script.update(data),
             None => ris_error::new_result!(
-                "attempted to call update on a script that hasn't been started yet"
+                "script was none. make sure to start the script before calling update"
             ),
         }
     }
@@ -144,7 +210,7 @@ impl DynScriptComponent {
         match self.script_mut() {
             Some(script) => script.end(data),
             None => ris_error::new_result!(
-                "attempted to call end on a script that hasn't been started yet"
+                "script was none. make sure to start the script before calling end"
             ),
         }
     }
@@ -154,15 +220,12 @@ impl<T: Script + Default + 'static> ScriptComponentHandle<T> {
     pub fn new(scene: &Scene, game_object: GameObjectHandle) -> RisResult<Self> {
         let handle: DynScriptComponentHandle = game_object.add_component(scene)?.into();
 
+        let mut script = DynScript::new::<T>();
         let data = ScriptStartEndData { game_object, scene };
-        let mut script = T::default();
-        script.start(data)?;
+        script.boxed.start(data)?;
 
         let ptr = scene.deref(handle.into())?;
-        ptr.borrow_mut().script = Some(DynScript {
-            boxed: Box::new(script),
-            id: T::id(),
-        });
+        ptr.borrow_mut().script = Some(script);
 
         let generic_handle = Self {
             handle,
@@ -179,11 +242,11 @@ impl<T: Script + 'static> ScriptComponentHandle<T> {
         let aref = ptr.borrow();
         let Some(script) = &aref.script else {
             return Err(EcsError::InvalidOperation(
-                "script component was not started".to_string(),
+                "script was none. make sure to start the script before trying to create the generic handle to it".to_string(),
             ));
         };
 
-        if T::id() != script.id {
+        if TypeId::of::<T>() != script.id {
             return Err(EcsError::InvalidCast);
         }
 

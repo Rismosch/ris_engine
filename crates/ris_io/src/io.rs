@@ -75,7 +75,7 @@ pub fn write(stream: &mut (impl Write + Seek), buf: &[u8]) -> Result<FatPtr> {
     let written_bytes = stream.write(buf)?;
     let buf_len = buf.len();
     if written_bytes != buf_len {
-        return Err(Error::from(ErrorKind::Other));
+        return Err(Error::from(ErrorKind::InvalidData));
     }
 
     let len = buf
@@ -166,7 +166,22 @@ pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
     if read_bytes == buf_len {
         Ok(())
     } else {
-        Err(Error::from(ErrorKind::Other))
+        Err(Error::from(ErrorKind::InvalidData))
+    }
+}
+
+pub fn read_to_end(stream: &mut (impl Read + Seek)) -> Result<Vec<u8>> {
+    let current = seek(stream, SeekFrom::Current(0))?;
+    let end = seek(stream, SeekFrom::End(0))?;
+    seek(stream, SeekFrom::Start(current))?;
+
+    match usize::try_from(end - current) {
+        Ok(len) => {
+            let mut buf = vec![0; len];
+            read(stream, &mut buf)?;
+            Ok(buf)
+        }
+        Err(_) => Err(Error::from(ErrorKind::InvalidData)),
     }
 }
 

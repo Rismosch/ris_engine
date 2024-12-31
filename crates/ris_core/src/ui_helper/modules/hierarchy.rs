@@ -2,6 +2,8 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
+use ris_asset::assets::ris_scene;
+use ris_data::asset_id::AssetId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::SceneKind;
@@ -39,52 +41,93 @@ impl IUiHelperModule for HierarchyModule {
             ..
         } = data;
 
-        let mut choices = Vec::with_capacity(scene.static_game_objects.len() + 1);
-        choices.push("movables".to_string());
+        let mut choices = Vec::with_capacity(scene.static_chunks.len() + 1);
+        choices.push("dynamics".to_string());
 
         for i in 0..(choices.capacity() - 1) {
-            choices.push(format!("statics {}", i));
+            let loaded = match self.shared_state.borrow_mut().chunk(i) {
+                Some(AssetId::Index(id)) => id.to_string(),
+                Some(AssetId::Path(id)) => id.clone(),
+                None => "".to_string(),
+            };
+
+            choices.push(format!("statics {} {}", i, loaded));
         }
 
         ui.combo_simple_string("chunk", &mut self.selected_chunk, &choices);
 
-        let (chunk, kind) = if self.selected_chunk == 0 {
-            (&scene.movable_game_objects, GameObjectKind::Movable)
+        let dynamics_are_selected = self.selected_chunk == 0;
+        if !dynamics_are_selected {
+            let chunk_index = self.selected_chunk - 1;
+
+            let chunk = self.shared_state.borrow_mut().chunk(chunk_index);
+
+            let _disabled_token = ui.begin_disabled(chunk.is_none());
+
+            if ui.button("clear") {
+                scene.clear_chunk(chunk_index);
+                self.shared_state.borrow_mut().set_chunk(chunk_index, None);
+            }
+
+            ui.same_line();
+            if ui.button("save") {
+                if let Some(AssetId::Path(path)) = chunk.clone() {
+                    ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
+                    let bytes = ris_scene::serialize(scene, Some(chunk_index))?;
+
+                    let asset_path = self.shared_state.borrow().app_info.asset_path()?;
+                    let path = asset_path.join(path);
+                    let mut file = std::fs::File::create(path)?;
+                    ris_io::write(&mut file, &bytes)?;
+                }
+            }
+
+            if let Some(AssetId::Path(path)) = chunk {
+                ui.same_line();
+                ui.text(path)
+            }
+        }
+
+        let (chunk, kind) = if dynamics_are_selected {
+            (&scene.dynamic_game_objects, GameObjectKind::Dynamic)
         } else {
             let chunk = self.selected_chunk - 1;
 
             (
-                &scene.static_game_objects[chunk],
+                &scene.static_chunks[chunk].game_objects,
                 GameObjectKind::Static { chunk },
             )
         };
 
-        let alive = chunk.iter().filter(|x| x.borrow().is_alive).count();
-        ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
+        let child_token = ui.child_window("hierarchy child window").begin();
+        if child_token.is_some() {
+            let alive = chunk.iter().filter(|x| x.borrow().is_alive).count();
+            ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
 
-        if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
-            if ui.menu_item("new") {
-                GameObjectHandle::new(scene, kind)?;
+            if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
+                if ui.menu_item("new") {
+                    GameObjectHandle::new_with_kind(scene, kind)?;
+                }
+
+                unsafe { imgui::sys::igEndPopup() }
             }
 
-            unsafe { imgui::sys::igEndPopup() }
-        }
+            let handles = chunk
+                .iter()
+                .filter(|x| {
+                    let handle: GameObjectHandle = x.borrow().handle.into();
+                    let parent_handle = handle.parent(scene).unwrap_or(None);
+                    let is_root = parent_handle.is_none();
+                    let is_alive = x.borrow().is_alive;
 
-        let handles = chunk
-            .iter()
-            .filter(|x| {
-                let handle: GameObjectHandle = x.borrow().handle.into();
-                let parent_handle = handle.parent(scene).unwrap_or(None);
-                let is_root = parent_handle.is_none();
-                let is_alive = x.borrow().is_alive;
+                    is_alive && is_root
+                })
+                .map(|x| x.borrow().handle)
+                .collect::<Vec<_>>();
 
-                is_alive && is_root
-            })
-            .map(|x| x.borrow().handle)
-            .collect::<Vec<_>>();
-
-        for handle in handles {
-            self.draw_node(handle.into(), data)?;
+            for handle in handles {
+                self.draw_node(handle.into(), data)?;
+            }
         }
 
         Ok(())
@@ -113,6 +156,7 @@ impl HierarchyModule {
             selected
                 .map(|x| match x {
                     Selection::GameObject(x) => x.is_alive(scene) && x == handle,
+                    _ => false,
                 })
                 .unwrap_or(false)
         };
@@ -138,13 +182,13 @@ impl HierarchyModule {
                 let kind = handle.scene_id().kind;
                 let is_game_object = matches!(
                     kind,
-                    SceneKind::MovableGameObject | SceneKind::StaticGameObjct { .. }
+                    SceneKind::DynamicGameObject | SceneKind::StaticGameObjct { .. }
                 );
 
                 if !is_game_object {
                     return ris_error::new_result!("handle id was not a gameobject");
                 }
-                let child = GameObjectHandle::new(scene, kind.try_into()?)?;
+                let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
                 child.set_parent(scene, Some(handle), usize::MAX, false)?;
                 ris_log::debug!("parent: {:?}", handle);
             }

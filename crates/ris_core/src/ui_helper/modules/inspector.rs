@@ -1,14 +1,19 @@
+use std::any::TypeId;
 use std::ffi::CString;
 
 use imgui::Ui;
 
+use ris_asset::asset_loader::LoadError;
+use ris_data::asset_id::AssetId;
+use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
+use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::components::script::ScriptInspectData;
-use ris_data::ecs::decl::EcsTypeId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
@@ -26,6 +31,8 @@ enum Space {
 
 pub struct InspectorModule {
     shared_state: SharedStateWeakPtr,
+
+    // game object
     space: Space,
     cached_rotation: Quat,
     cached_xyz: Vec3,
@@ -33,6 +40,10 @@ pub struct InspectorModule {
     cached_xzw: Vec3,
     cached_yzw: Vec3,
     component_filter: String,
+
+    // asset
+    load_asset_jobs: Vec<JobFuture<Result<Vec<u8>, LoadError>>>,
+    loaded_asset: Vec<u8>,
 }
 
 impl IUiHelperModule for InspectorModule {
@@ -43,6 +54,8 @@ impl IUiHelperModule for InspectorModule {
     fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
         Box::new(Self {
             shared_state,
+
+            // game object
             space: Space::Local,
             cached_rotation: Quat::identity(),
             cached_yzw: Vec3(0.0, 0.0, 1.0),
@@ -50,16 +63,20 @@ impl IUiHelperModule for InspectorModule {
             cached_xyw: Vec3(0.0, 0.0, 1.0),
             cached_xyz: Vec3(1.0, 0.0, 0.0),
             component_filter: String::new(),
+
+            // asset
+            load_asset_jobs: Vec::new(),
+            loaded_asset: Vec::new(),
         })
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
-        let Some(selected) = self.shared_state.borrow().selector.get_selection() else {
+        let Some(selection) = self.shared_state.borrow().selector.get_selection() else {
             data.ui.label_text("##nothing_selected", "nothing selected");
             return Ok(());
         };
 
-        match selected {
+        match selection {
             Selection::GameObject(game_object) => {
                 if !game_object.is_alive(&data.state.scene) {
                     self.shared_state.borrow_mut().selector.set_selection(None);
@@ -416,52 +433,50 @@ impl IUiHelperModule for InspectorModule {
 
                     let delete_requested;
 
-                    match component.ecs_type_id() {
-                        EcsTypeId::MeshRendererComponent => {
-                            //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
-                            //let aref_mut = ptr.borrow_mut();
+                    if component.type_id() == TypeId::of::<MeshRendererComponent>() {
+                        //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
+                        //let aref_mut = ptr.borrow_mut();
 
-                            let header =
-                                ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
-                            delete_requested = header.delete_requested;
-                            if !header.is_open {
-                                continue;
-                            }
-
-                            data.ui.text("im a mesh :)");
+                        let header =
+                            ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
+                        delete_requested = header.delete_requested;
+                        if !header.is_open {
+                            continue;
                         }
-                        EcsTypeId::ScriptComponent => {
-                            let ptr = data.state.scene.script_components[index].to_weak();
-                            let mut aref_mut = ptr.borrow_mut();
-                            let game_object = aref_mut.game_object();
-                            let script = aref_mut.script_mut().into_ris_error()?;
 
-                            let header = ComponentHeader::draw(
-                                data.ui,
-                                format!("script {}##{:?}", script.name(), component),
-                            );
-                            delete_requested = header.delete_requested;
-                            if !header.is_open {
-                                continue;
-                            }
+                        data.ui.text("im a mesh :)");
+                    } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
+                        let ptr = data.state.scene.script_components[index].to_weak();
+                        let mut aref_mut = ptr.borrow_mut();
+                        let script_name = aref_mut.type_name().into_ris_error()?;
 
-                            let script_inspect_data = ScriptInspectData {
-                                id: format!("{:?}", component),
-                                ui: data.ui,
-                                game_object,
-                                frame: data.frame,
-                                state: data.state,
-                            };
+                        let game_object = aref_mut.game_object();
+                        let script = aref_mut.script_mut().into_ris_error()?;
 
-                            script.inspect(script_inspect_data)?;
+                        let header = ComponentHeader::draw(
+                            data.ui,
+                            format!("{} (script)##{:?}", script_name, component),
+                        );
+                        delete_requested = header.delete_requested;
+                        if !header.is_open {
+                            continue;
                         }
-                        ecs_type_id => {
-                            let header = ComponentHeader::draw(
-                                data.ui,
-                                format!("{:?}##{:?}", ecs_type_id, component),
-                            );
-                            delete_requested = header.delete_requested;
-                        }
+
+                        let script_inspect_data = ScriptInspectData {
+                            id: format!("{:?}", component),
+                            ui: data.ui,
+                            game_object,
+                            frame: data.frame,
+                            state: data.state,
+                        };
+
+                        script.inspect(script_inspect_data)?;
+                    } else {
+                        let header = ComponentHeader::draw(
+                            data.ui,
+                            format!("{:?}##{:?}", component.type_id(), component),
+                        );
+                        delete_requested = header.delete_requested;
                     }
 
                     if delete_requested {
@@ -481,8 +496,8 @@ impl IUiHelperModule for InspectorModule {
                         .input_text("filter", &mut self.component_filter)
                         .build();
 
-                    for factory in data.registry.component_factories() {
-                        let name = factory.name();
+                    for factory in data.state.scene.registry.component_factories() {
+                        let name = factory.component_name();
                         if !name
                             .to_lowercase()
                             .contains(&self.component_filter.to_lowercase())
@@ -497,8 +512,8 @@ impl IUiHelperModule for InspectorModule {
 
                     data.ui.separator();
 
-                    for factory in data.registry.script_factories() {
-                        let name = factory.name();
+                    for factory in data.state.scene.registry.script_factories() {
+                        let name = factory.script_name();
                         if !name
                             .to_lowercase()
                             .contains(&self.component_filter.to_lowercase())
@@ -507,8 +522,51 @@ impl IUiHelperModule for InspectorModule {
                         }
 
                         if data.ui.menu_item(name) {
-                            factory.make(&data.state.scene, game_object)?;
+                            factory.make_and_attach(&data.state.scene, game_object)?;
                         }
+                    }
+                }
+            }
+            Selection::AssetPath(path_buf) => {
+                let path_string = ris_io::path::to_str(&path_buf);
+                data.ui.text(&path_string);
+                let id = AssetId::Path(path_string.clone());
+
+                let selection_changed = self.shared_state.borrow().selector.selection_changed();
+
+                if selection_changed {
+                    let mut actual_path = self.shared_state.borrow().app_info.asset_path()?;
+                    actual_path.push(path_buf);
+                    if !actual_path.is_dir() {
+                        let job = ris_asset::load_async(id.clone());
+                        self.load_asset_jobs.push(job);
+                    }
+
+                    self.loaded_asset.clear();
+                }
+
+                if !self.load_asset_jobs.is_empty() {
+                    let job = self.load_asset_jobs.remove(0);
+                    match job.try_take() {
+                        Ok(data) => self.loaded_asset = data?,
+                        Err(job) => self.load_asset_jobs.insert(0, job),
+                    }
+                }
+
+                let size = self.loaded_asset.len();
+                data.ui.text(format!("size: {:?}", size));
+                let _disabled_token = data.ui.begin_disabled(size == 0);
+
+                if path_string.ends_with(ris_asset::assets::ris_scene::EXTENSION)
+                    && data.ui.button("load")
+                {
+                    let reserved =
+                        ris_asset::assets::ris_scene::load(&data.state.scene, &self.loaded_asset)?;
+                    if let Some(chunk_index) = reserved {
+                        self.shared_state
+                            .borrow_mut()
+                            .set_chunk(chunk_index, Some(id));
+                        ris_log::info!("loaded asset into chunk {}", chunk_index);
                     }
                 }
             }

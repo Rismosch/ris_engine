@@ -11,7 +11,7 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
-use ris_data::ecs::registry::Registry;
+use ris_data::asset_id::AssetId;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
@@ -29,6 +29,7 @@ pub mod util;
 
 use selection::Selector;
 
+use modules::asset_browser::AssetBrowser;
 use modules::gizmo::GizmoModule;
 use modules::hierarchy::HierarchyModule;
 use modules::inspector::InspectorModule;
@@ -77,6 +78,7 @@ macro_rules! module_vec {
 
 fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     let modules = module_vec![
+        AssetBrowser,
         GizmoModule,
         HierarchyModule,
         InspectorModule,
@@ -115,6 +117,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
 pub struct SharedState {
     app_info: AppInfo,
     selector: Selector,
+    loaded_chunks: Vec<Option<AssetId>>,
 }
 
 impl SharedState {
@@ -122,7 +125,27 @@ impl SharedState {
         StrongPtr::new(ArefCell::new(Self {
             app_info,
             selector: Selector::default(),
+            loaded_chunks: Vec::new(),
         }))
+    }
+
+    fn chunk(&mut self, index: usize) -> Option<AssetId> {
+        self.reserve_chunks(index);
+        self.loaded_chunks[index].clone()
+    }
+
+    fn set_chunk(&mut self, index: usize, value: Option<AssetId>) {
+        self.reserve_chunks(index);
+        self.loaded_chunks[index] = value;
+    }
+
+    fn reserve_chunks(&mut self, index: usize) {
+        let total_chunks = self.loaded_chunks.len() as isize;
+        let iindex = index as isize;
+        let chunks_to_add = iindex - total_chunks + 1;
+        for _ in 0..chunks_to_add {
+            self.loaded_chunks.push(None);
+        }
     }
 }
 
@@ -133,7 +156,6 @@ pub struct UiHelperDrawData<'a> {
     pub ui: &'a Ui,
     pub frame: Frame,
     pub state: &'a mut GodState,
-    pub registry: &'a Registry,
     pub window_drawable_size: (u32, u32),
 }
 
@@ -154,10 +176,15 @@ pub struct UiHelper {
     close_window_timestamp: Instant,
 }
 
+pub struct ModuleInstance {
+    boxed: Box<dyn IUiHelperModule>,
+    error_count: usize,
+}
+
 pub struct UiHelperWindow {
     id: usize,
     name: String,
-    module: Option<Box<dyn IUiHelperModule>>,
+    module: Option<ModuleInstance>,
 }
 
 impl Drop for UiHelper {
@@ -286,7 +313,11 @@ impl UiHelper {
             max_window_id = usize::max(max_window_id, id);
 
             let builder = &builders[builder_index];
-            let module = (builder.build)(shared_state.to_weak());
+            let boxed = (builder.build)(shared_state.to_weak());
+            let module = ModuleInstance {
+                boxed,
+                error_count: 0,
+            };
 
             let window = UiHelperWindow {
                 id,
@@ -336,6 +367,7 @@ impl UiHelper {
         ];
 
         let result = if !self.show_ui {
+            data.state.debug_ui_is_focused = false;
             None
         } else {
             data.ui
@@ -480,7 +512,11 @@ impl UiHelper {
                     for builder in self.builders.iter() {
                         if data.ui.menu_item(&builder.name) {
                             let shared_state = self.shared_state.to_weak();
-                            let module = (builder.build)(shared_state);
+                            let boxed = (builder.build)(shared_state);
+                            let module = ModuleInstance {
+                                boxed,
+                                error_count: 0,
+                            };
 
                             let window = UiHelperWindow {
                                 id: self.window_id,
@@ -526,7 +562,7 @@ impl UiHelper {
             let window_name =
                 CString::new(format!("{}##ui_helper_window_{}", window.name, window.id))?;
             if unsafe { imgui::sys::igBegin(window_name.as_ptr(), &mut opened, 0) } {
-                self.window_callback(i, data)?;
+                self.window_callback(i, data);
             }
 
             unsafe { imgui::sys::igEnd() };
@@ -541,11 +577,7 @@ impl UiHelper {
         Ok(GameloopState::WantsToContinue)
     }
 
-    fn window_callback(
-        &mut self,
-        window_index: usize,
-        data: &mut UiHelperDrawData,
-    ) -> RisResult<()> {
+    fn window_callback(&mut self, window_index: usize, data: &mut UiHelperDrawData) {
         let UiHelperDrawData { ui, .. } = data;
 
         let window = &mut self.windows[window_index];
@@ -564,27 +596,36 @@ impl UiHelper {
             if index > 0 {
                 let builder = &self.builders[index - 1];
                 let shared_state = self.shared_state.to_weak();
-                let module = (builder.build)(shared_state);
+                let boxed = (builder.build)(shared_state);
+                let module = ModuleInstance {
+                    boxed,
+                    error_count: 0,
+                };
+
                 window.module = Some(module);
                 window.name = builder.name.clone();
             }
         }
 
         if let Some(module) = &mut window.module {
-            let result = module.draw(data);
+            let result = module.boxed.draw(data);
 
             // returning an error may cause imgui to fail, because some end method may not be
             // called. this is bad, because this causes imgui to panic, which suppresses the
             // original error. thus we manually log the error, to avoid this suppression. this
             // may cause the error to be logged twice, but twice is better than not at all.
             if let Err(e) = &result {
+                module.error_count = module.error_count.saturating_add(1);
                 ris_log::error!("failed to draw module: {:?}", e);
+            } else {
+                module.error_count += 0;
             }
 
-            result?;
+            if module.error_count > 5 {
+                window.module.take();
+                ris_log::error!("removed erroneous ui helper module");
+            }
         }
-
-        Ok(())
     }
 }
 

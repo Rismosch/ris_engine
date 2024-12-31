@@ -16,6 +16,7 @@ use super::error::EcsResult;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
 use super::handle::GenericHandle;
+use super::handle::Handle;
 use super::id::Component;
 use super::id::EcsWeakPtr;
 use super::id::GameObjectKind;
@@ -74,7 +75,17 @@ impl Default for GameObjectHandle {
 }
 
 impl GameObjectHandle {
-    pub fn new(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
+    pub fn new(scene: &Scene) -> EcsResult<Self> {
+        let kind = GameObjectKind::Dynamic;
+        Self::new_with_kind(scene, kind)
+    }
+
+    pub fn new_static(scene: &Scene, chunk: usize) -> EcsResult<Self> {
+        let kind = GameObjectKind::Static { chunk };
+        Self::new_with_kind(scene, kind)
+    }
+
+    pub fn new_with_kind(scene: &Scene, kind: GameObjectKind) -> EcsResult<Self> {
         let ptr = scene.create_new(kind.into())?;
         Ok(ptr.borrow().handle.into())
     }
@@ -96,7 +107,10 @@ impl GameObjectHandle {
             }
         };
 
-        scene.mark_as_destroyed(self.into());
+        let result = scene.mark_as_destroyed(self.to_dyn());
+        if let Err(e) = result {
+            ris_log::warning!("failed to mark game object as destroyed: {}", e);
+        }
     }
 
     pub fn name(self, scene: &Scene) -> EcsResult<String> {
@@ -243,7 +257,7 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn add_component<T: Component + 'static>(
+    pub fn add_component<T: Component + Default + 'static>(
         self,
         scene: &Scene,
     ) -> EcsResult<GenericHandle<T>> {
@@ -254,7 +268,8 @@ impl GameObjectHandle {
         let component_dyn = component_handle.to_dyn_component();
 
         ptr.borrow_mut().components.push(component_dyn);
-        let component = T::create(self);
+        let mut component = T::default();
+        *component.game_object_mut() = self;
         component_ptr.borrow_mut().value = component;
 
         Ok(component_handle)
@@ -267,7 +282,7 @@ impl GameObjectHandle {
         ScriptComponentHandle::<T>::new(scene, self)
     }
 
-    pub fn get_component<T: Component>(
+    pub fn get_component<T: Component + 'static>(
         self,
         scene: &Scene,
         get_from: GetFrom,
@@ -287,7 +302,7 @@ impl GameObjectHandle {
         Ok(first)
     }
 
-    pub fn get_components<T: Component>(
+    pub fn get_components<T: Component + 'static>(
         self,
         scene: &Scene,
         get_from: GetFrom,
@@ -363,7 +378,14 @@ impl GameObjectHandle {
         };
 
         aref_mut.components.remove(position);
-        scene.destroy_component(component);
+        let result = scene.deref_mut_component(component, |c| c.destroy(scene));
+
+        if result.is_ok() {
+            let result = scene.mark_as_destroyed(*component);
+            if let Err(e) = result {
+                ris_log::warning!("failed to mark component as destroyed: {}", e)
+            }
+        }
     }
 
     pub fn is_active_in_hierarchy(self, scene: &Scene) -> EcsResult<bool> {
@@ -424,6 +446,18 @@ impl GameObjectHandle {
 
         let old_parent = old_handle.and_then(|x| scene.deref(*x).ok());
         let new_parent = new_handle.and_then(|x| scene.deref(*x).ok());
+
+        // don't assign, when parent sits in another chunk
+        if let Some(new_parent) = &new_parent {
+            let parent_scene_id = new_parent.borrow().handle.scene_id();
+            let child_scene_id = self.0.scene_id();
+
+            if parent_scene_id.kind != child_scene_id.kind {
+                return Err(EcsError::InvalidOperation(
+                    "parent isn't in the same chunk".to_string(),
+                ));
+            }
+        }
 
         // don't assign, if it would cause a circular hierarchy
         let mut to_test = new_handle;

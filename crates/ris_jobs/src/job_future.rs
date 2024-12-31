@@ -61,10 +61,22 @@ impl<T> JobFuture<T> {
             None => spinlock(self.is_ready.clone()),
         }
 
+        Ok(self.take())
+    }
+
+    pub fn try_take(self) -> Result<T, Self> {
+        if self.is_ready.load(Ordering::SeqCst) {
+            Ok(self.take())
+        } else {
+            Err(self)
+        }
+    }
+
+    fn take(self) -> T {
         let result = unsafe { (*self.data.get()).take() };
         match result {
-            Some(value) => Ok(value),
-            None => unreachable!(),
+            Some(value) => value,
+            None => ris_error::throw!("cannot take data, because it does not exist"),
         }
     }
 }

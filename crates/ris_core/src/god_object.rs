@@ -55,8 +55,6 @@ pub struct GodObject {
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
-    pub registry: Registry,
-
     pub state: GodState,
 
     // guards, must be dropped last.
@@ -165,7 +163,10 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let scene_create_info = SceneCreateInfo::default();
+        let scene_create_info = SceneCreateInfo {
+            registry: Some(registry),
+            ..Default::default()
+        };
         let mut state = GodState::new(settings, scene_create_info)?;
 
         {
@@ -193,8 +194,6 @@ impl GodObject {
             logic_frame,
             output_frame,
             god_asset,
-            registry,
-
             state,
 
             // guards

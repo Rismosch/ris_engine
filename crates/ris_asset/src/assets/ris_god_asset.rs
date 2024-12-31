@@ -1,8 +1,17 @@
+use std::io::Cursor;
+
+use ris_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::AssetId;
 use crate::RisHeader;
+
+// ris_god_asset\0\0\0
+pub const MAGIC: [u8; 16] = [
+    0x72, 0x69, 0x73, 0x5f, 0x67, 0x6f, 0x64, 0x5f, 0x61, 0x73, 0x73, 0x65, 0x74, 0x00, 0x00, 0x00,
+];
+pub const PATH: &str = "god_asset.ris_god_asset";
+pub const UNNAMED_PATH: &str = "asset_0";
 
 #[derive(Clone)]
 pub struct RisGodAsset {
@@ -21,8 +30,36 @@ pub struct RisGodAsset {
 }
 
 impl RisGodAsset {
+    pub fn serialize(&self) -> RisResult<Vec<u8>> {
+        let header = RisHeader::new(
+            MAGIC,
+            vec![
+                self.default_vert_spv.clone(),
+                self.default_frag_spv.clone(),
+                self.imgui_vert_spv.clone(),
+                self.imgui_frag_spv.clone(),
+                self.gizmo_segment_vert_spv.clone(),
+                self.gizmo_segment_geom_spv.clone(),
+                self.gizmo_segment_frag_spv.clone(),
+                self.gizmo_text_vert_spv.clone(),
+                self.gizmo_text_geom_spv.clone(),
+                self.gizmo_text_frag_spv.clone(),
+                self.debug_font_texture.clone(),
+                self.texture.clone(),
+            ],
+        );
+        let header_bytes = header.serialize()?;
+
+        let mut stream = Cursor::new(Vec::new());
+        ris_io::write(&mut stream, &header_bytes)?;
+        let bytes = stream.into_inner();
+
+        Ok(bytes)
+    }
+
     pub fn load(bytes: &[u8]) -> RisResult<Self> {
         let header = RisHeader::load(bytes)?.into_ris_error()?;
+        header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();
         let default_frag_spv = header.references[1].clone();
@@ -36,11 +73,6 @@ impl RisGodAsset {
         let gizmo_text_frag_spv = header.references[9].clone();
         let debug_font_texture = header.references[10].clone();
         let texture = header.references[11].clone();
-
-        let mut cursor = std::io::Cursor::new(bytes);
-        let data = ris_io::read_at(&mut cursor, header.p_content)?;
-        let data_message = String::from_utf8(data)?;
-        ris_log::debug!("god asset content: {}", data_message);
 
         let god_asset = Self {
             default_vert_spv,

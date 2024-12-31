@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::marker::PhantomData;
 
 use super::components::mesh_renderer::MeshRendererComponent;
@@ -10,48 +11,13 @@ use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
-use super::id::SceneKind;
 use super::mesh::VideoMesh;
 use super::scene::Scene;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EcsTypeId {
-    GameObject,
-    MeshRendererComponent,
-    ScriptComponent,
-    VideoMesh,
-}
-
-impl EcsTypeId {
-    pub fn matches(self, scene_kind: SceneKind) -> bool {
-        if scene_kind == SceneKind::Null {
-            return true;
-        }
-
-        matches!(
-            (self, scene_kind),
-            (_, SceneKind::Null)
-                | (Self::GameObject, SceneKind::MovableGameObject)
-                | (Self::GameObject, SceneKind::StaticGameObjct { chunk: _ })
-                | (Self::MeshRendererComponent, SceneKind::Component)
-                | (Self::ScriptComponent, SceneKind::Component)
-                | (Self::VideoMesh, SceneKind::Other)
-        )
-    }
-}
-
-declare::object!(GameObjectHandle, GameObject, EcsTypeId::GameObject,);
-declare::component!(
-    MeshRendererComponentHandle,
-    MeshRendererComponent,
-    EcsTypeId::MeshRendererComponent,
-);
-declare::component!(
-    DynScriptComponentHandle,
-    DynScriptComponent,
-    EcsTypeId::ScriptComponent,
-);
-declare::object!(VideoMeshHandle, VideoMesh, EcsTypeId::VideoMesh,);
+declare::object!(GameObjectHandle, GameObject);
+declare::component!(MeshRendererComponentHandle, MeshRendererComponent);
+declare::component!(DynScriptComponentHandle, DynScriptComponent);
+declare::object!(VideoMeshHandle, VideoMesh);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScriptComponentHandle<T: Script> {
@@ -71,8 +37,7 @@ mod declare {
     macro_rules! object {
         (
             $handle_name:ident,
-            $handle_type:ident,
-            $ecs_type_id:expr $(,)?
+            $handle_type:ident $(,)?
         ) => {
             #[derive(Debug, Clone, Copy, PartialEq, Eq)]
             pub struct $handle_name(pub GenericHandle<$handle_type>);
@@ -91,8 +56,8 @@ mod declare {
             }
 
             impl Handle for $handle_name {
-                fn ecs_type_id() -> EcsTypeId {
-                    $ecs_type_id
+                fn type_id() -> TypeId {
+                    TypeId::of::<$handle_type>()
                 }
 
                 fn to_dyn(self) -> DynHandle {
@@ -112,11 +77,7 @@ mod declare {
                 }
             }
 
-            impl EcsObject for $handle_type {
-                fn ecs_type_id() -> EcsTypeId {
-                    $ecs_type_id
-                }
-            }
+            impl EcsObject for $handle_type {}
 
             impl $handle_name {
                 pub fn null() -> Self {
@@ -134,10 +95,9 @@ mod declare {
     macro_rules! component {
         (
             $handle_name:ident,
-            $handle_type:ident,
-            $ecs_type_id:expr $(,)?
+            $handle_type:ident $(,)?
         ) => {
-            declare::object!($handle_name, $handle_type, $ecs_type_id);
+            declare::object!($handle_name, $handle_type);
 
             impl ComponentHandle for $handle_name {
                 fn to_dyn_component(self) -> DynComponentHandle {

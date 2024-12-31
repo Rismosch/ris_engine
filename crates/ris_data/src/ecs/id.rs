@@ -1,14 +1,16 @@
 use std::fmt::Debug;
 
+use ris_error::RisResult;
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 use ris_ptr::WeakPtr;
 
-use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::handle::GenericHandle;
 use super::scene::Scene;
+use super::scene_stream::SceneReader;
+use super::scene_stream::SceneWriter;
 
 //
 // ids
@@ -16,14 +18,14 @@ use super::scene::Scene;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameObjectKind {
-    Movable,
+    Dynamic,
     Static { chunk: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SceneKind {
     Null,
-    MovableGameObject,
+    DynamicGameObject,
     StaticGameObjct { chunk: usize },
     Component,
     Other,
@@ -38,7 +40,7 @@ pub struct SceneId {
 impl From<GameObjectKind> for SceneKind {
     fn from(value: GameObjectKind) -> Self {
         match value {
-            GameObjectKind::Movable => Self::MovableGameObject,
+            GameObjectKind::Dynamic => Self::DynamicGameObject,
             GameObjectKind::Static { chunk } => Self::StaticGameObjct { chunk },
         }
     }
@@ -50,7 +52,7 @@ impl TryFrom<SceneKind> for GameObjectKind {
     fn try_from(value: SceneKind) -> Result<Self, Self::Error> {
         match value {
             SceneKind::Null => Err(EcsError::IsNull),
-            SceneKind::MovableGameObject => Ok(Self::Movable),
+            SceneKind::DynamicGameObject => Ok(Self::Dynamic),
             SceneKind::StaticGameObjct { chunk } => Ok(Self::Static { chunk }),
             _ => Err(EcsError::InvalidCast),
         }
@@ -61,14 +63,14 @@ impl TryFrom<SceneKind> for GameObjectKind {
 // ecs traits and objects
 //
 
-pub trait EcsObject: Debug + Default {
-    fn ecs_type_id() -> EcsTypeId;
-}
+pub trait EcsObject: Debug {}
 
 pub trait Component: EcsObject {
-    fn create(game_object: GameObjectHandle) -> Self;
     fn destroy(&mut self, scene: &Scene);
     fn game_object(&self) -> GameObjectHandle;
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle;
+    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()>;
+    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()>;
 }
 
 pub struct EcsInstance<T: EcsObject> {
@@ -80,7 +82,7 @@ pub struct EcsInstance<T: EcsObject> {
 pub type EcsPtr<T> = StrongPtr<ArefCell<EcsInstance<T>>>;
 pub type EcsWeakPtr<T> = WeakPtr<ArefCell<EcsInstance<T>>>;
 
-impl<T: EcsObject> EcsInstance<T> {
+impl<T: EcsObject + Default> EcsInstance<T> {
     pub fn new(handle: GenericHandle<T>) -> Self {
         Self {
             value: T::default(),

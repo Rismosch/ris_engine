@@ -5,6 +5,8 @@ use crate::ecs::decl::MeshRendererComponentHandle;
 use crate::ecs::decl::VideoMeshHandle;
 use crate::ecs::id::Component;
 use crate::ecs::scene::Scene;
+use crate::ecs::scene_stream::SceneReader;
+use crate::ecs::scene_stream::SceneWriter;
 
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {
@@ -23,17 +25,31 @@ impl MeshRendererComponent {
 }
 
 impl Component for MeshRendererComponent {
-    fn create(game_object: GameObjectHandle) -> Self {
-        Self {
-            game_object,
-            ..Default::default()
-        }
-    }
-
     fn destroy(&mut self, _scene: &Scene) {}
 
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
+    }
+
+    fn game_object_mut(&mut self) -> &mut GameObjectHandle {
+        &mut self.game_object
+    }
+
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
+        ris_error::new_result!("not implemeneted")
+    }
+
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
+        ris_error::new_result!("not implemented")
+    }
+}
+
+impl MeshRendererComponent {
+    pub fn create(game_object: GameObjectHandle) -> Self {
+        Self {
+            game_object,
+            ..Default::default()
+        }
     }
 }
 

@@ -1,14 +1,16 @@
+use std::any::TypeId;
+
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 
 use super::components::mesh_renderer::MeshRendererComponent;
 use super::components::script::DynScriptComponent;
-use super::decl::EcsTypeId;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
 use super::game_object::GameObject;
 use super::handle::DynComponentHandle;
+use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::id::Component;
 use super::id::EcsInstance;
@@ -18,20 +20,21 @@ use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
 use super::mesh::VideoMesh;
+use super::registry::Registry;
 
-const DEFAULT_MOVABLE_GAME_OBJECTS: usize = 1024;
+const DEFAULT_DYNAMIC_GAME_OBJECTS: usize = 1024;
 const DEFAULT_STATIC_CHUNKS: usize = 8;
-const DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK: usize = 1024;
+const DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK: usize = 1024;
 const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
 const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
 const DEFAULT_VIDEO_MESHES: usize = 1024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct SceneCreateInfo {
     // game objects
-    pub movable_game_objects: usize,
+    pub dynamic_game_objects: usize,
     pub static_chunks: usize,
-    pub static_game_objects_per_chunk: usize,
+    pub game_objects_per_static_chunk: usize,
 
     // components
     pub mesh_renderer_components: usize,
@@ -39,25 +42,38 @@ pub struct SceneCreateInfo {
 
     // other
     pub video_meshes: usize,
+    pub registry: Option<Registry>,
+}
+
+pub struct StaticChunk {
+    is_reserved: ArefCell<bool>,
+    pub game_objects: Vec<EcsPtr<GameObject>>,
 }
 
 pub struct Scene {
-    pub movable_game_objects: Vec<EcsPtr<GameObject>>,
-    pub static_game_objects: Vec<Vec<EcsPtr<GameObject>>>,
+    // game objects
+    pub dynamic_game_objects: Vec<EcsPtr<GameObject>>,
+    pub static_chunks: Vec<StaticChunk>,
+
+    // compontents
     pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
+
+    // other
     pub video_meshes: Vec<EcsPtr<VideoMesh>>,
+    pub registry: Registry,
 }
 
 impl Default for SceneCreateInfo {
     fn default() -> Self {
         Self {
-            movable_game_objects: DEFAULT_MOVABLE_GAME_OBJECTS,
+            dynamic_game_objects: DEFAULT_DYNAMIC_GAME_OBJECTS,
             static_chunks: DEFAULT_STATIC_CHUNKS,
-            static_game_objects_per_chunk: DEFAULT_STATIC_GAME_OBJECTS_PER_CHUNK,
+            game_objects_per_static_chunk: DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK,
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
             video_meshes: DEFAULT_VIDEO_MESHES,
+            registry: None,
         }
     }
 }
@@ -65,12 +81,13 @@ impl Default for SceneCreateInfo {
 impl SceneCreateInfo {
     pub fn empty() -> Self {
         Self {
-            movable_game_objects: 0,
+            dynamic_game_objects: 0,
             static_chunks: 0,
-            static_game_objects_per_chunk: 0,
+            game_objects_per_static_chunk: 0,
             mesh_renderer_components: 0,
             script_components: 0,
             video_meshes: 0,
+            registry: None,
         }
     }
 }
@@ -84,14 +101,22 @@ impl Scene {
     }
 
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
-        let movable_game_objects =
-            create_chunk(SceneKind::MovableGameObject, info.movable_game_objects)?;
+        let Some(registry) = info.registry else {
+            return Err(EcsError::InvalidOperation("registry was none".to_string()));
+        };
 
-        let mut static_game_objects = Vec::with_capacity(info.static_chunks);
+        let dynamic_game_objects =
+            create_chunk(SceneKind::DynamicGameObject, info.dynamic_game_objects)?;
+
+        let mut static_chunks = Vec::with_capacity(info.static_chunks);
         for i in 0..info.static_chunks {
             let kind = SceneKind::StaticGameObjct { chunk: i };
-            let chunk = create_chunk(kind, info.static_game_objects_per_chunk)?;
-            static_game_objects.push(chunk);
+            let game_objects = create_chunk(kind, info.game_objects_per_static_chunk)?;
+            let chunk = StaticChunk {
+                is_reserved: ArefCell::new(false),
+                game_objects,
+            };
+            static_chunks.push(chunk);
         }
 
         let mesh_renderer_components =
@@ -101,15 +126,53 @@ impl Scene {
         let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
 
         Ok(Self {
-            movable_game_objects,
-            static_game_objects,
+            dynamic_game_objects,
+            static_chunks,
             mesh_renderer_components,
             script_components,
             video_meshes,
+            registry,
         })
     }
 
-    pub fn deref<T: EcsObject>(&self, handle: GenericHandle<T>) -> EcsResult<EcsWeakPtr<T>> {
+    pub fn reserve_chunk(&self) -> Option<usize> {
+        let position = self
+            .static_chunks
+            .iter()
+            .position(|x| !*x.is_reserved.borrow());
+
+        if let Some(index) = position {
+            let chunk = &self.static_chunks[index];
+            *chunk.is_reserved.borrow_mut() = true;
+        }
+
+        position
+    }
+
+    pub fn clear_chunk(&self, index: usize) {
+        ris_error::throw_debug_assert!(index < self.static_chunks.len(), "index was out of bounds",);
+        let chunk = &self.static_chunks[index];
+        if !*chunk.is_reserved.borrow() {
+            ris_log::info!(
+                "chunk {} was already cleared and isn't reserved anymore",
+                index
+            );
+            return;
+        }
+
+        for ptr in chunk.game_objects.iter() {
+            let generic_handle = ptr.borrow().handle;
+            let game_object_handle = GameObjectHandle::from(generic_handle);
+            game_object_handle.destroy(self);
+        }
+
+        *chunk.is_reserved.borrow_mut() = false;
+    }
+
+    pub fn deref<T: EcsObject + 'static>(
+        &self,
+        handle: GenericHandle<T>,
+    ) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(handle.scene_id().kind)?;
         let index = handle.scene_id().index;
         let ptr = &chunk[index];
@@ -125,11 +188,10 @@ impl Scene {
         }
     }
 
-    //pub fn deref_dyn_component(&self, handle: DynComponentHandle) -> EcsResult<EcsWeakPtr<dyn Component>> {
-    //    panic!();
-    //}
-
-    pub fn create_new<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<EcsWeakPtr<T>> {
+    pub fn create_new<T: EcsObject + Default + 'static>(
+        &self,
+        kind: SceneKind,
+    ) -> EcsResult<EcsWeakPtr<T>> {
         let chunk = self.find_chunk(kind)?;
 
         let Some(position) = chunk.iter().position(|x| !x.borrow().is_alive) else {
@@ -150,115 +212,112 @@ impl Scene {
         Ok(ptr.to_weak())
     }
 
-    pub fn mark_as_destroyed<T: EcsObject>(&self, handle: GenericHandle<T>) {
+    pub fn mark_as_destroyed(&self, handle: DynHandle) -> EcsResult<()> {
         let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
-        let Ok(chunk) = self.find_chunk::<T>(kind) else {
-            return;
-        };
-        let ptr = &chunk[index];
-        ptr.borrow_mut().is_alive = false;
+        if type_id == TypeId::of::<GameObject>() {
+            let chunk = self.find_chunk::<GameObject>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<MeshRendererComponent>() {
+            let chunk = self.find_chunk::<MeshRendererComponent>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let chunk = self.find_chunk::<DynScriptComponent>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else if type_id == TypeId::of::<VideoMesh>() {
+            let chunk = self.find_chunk::<VideoMesh>(kind)?;
+            chunk[index].borrow_mut().is_alive = false;
+        } else {
+            return Err(EcsError::InvalidCast);
+        }
+
+        Ok(())
     }
 
-    pub fn find_game_object_of_component(
+    pub fn deref_component<T>(
         &self,
         handle: DynComponentHandle,
-    ) -> EcsResult<GameObjectHandle> {
-        let kind = handle.scene_id().kind;
-        let ecs_type_id = handle.ecs_type_id();
+        callback: impl FnOnce(&dyn Component) -> T,
+    ) -> EcsResult<T> {
+        let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
         if kind != SceneKind::Component {
             return Err(EcsError::InvalidCast);
         }
 
-        let game_object = match ecs_type_id {
-            EcsTypeId::MeshRendererComponent => {
-                let generic_handle =
-                    GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
-                let generic =
-                    ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
-
-                let ptr = self.deref(generic)?;
-                let aref = ptr.borrow();
-                aref.game_object()
-            }
-            EcsTypeId::ScriptComponent => {
-                let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
-                let generic =
-                    ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
-
-                let ptr = self.deref(generic)?;
-                let aref = ptr.borrow();
-                aref.game_object()
-            }
-            ecs_type_id => ris_error::throw!(
-                "ecs type {:?} is not a component, and thus is not assigned to a game object",
-                ecs_type_id
-            ),
+        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+            let aref = self.mesh_renderer_components[index].borrow();
+            callback(&aref.value)
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let aref = self.script_components[index].borrow();
+            callback(&aref.value)
+        } else {
+            return Err(EcsError::InvalidCast);
         };
 
-        Ok(game_object)
+        Ok(retval)
     }
 
-    pub fn destroy_component(&self, handle: DynComponentHandle) {
-        let kind = handle.scene_id().kind;
-        let ecs_type_id = handle.ecs_type_id();
+    pub fn deref_mut_component<T>(
+        &self,
+        handle: DynComponentHandle,
+        callback: impl FnOnce(&mut dyn Component) -> T,
+    ) -> EcsResult<T> {
+        let SceneId { kind, index } = handle.scene_id();
+        let type_id = handle.type_id();
 
         if kind != SceneKind::Component {
-            return;
+            return Err(EcsError::InvalidCast);
         }
 
-        match ecs_type_id {
-            EcsTypeId::MeshRendererComponent => {
-                let generic_handle =
-                    GenericHandle::<MeshRendererComponent>::from_dyn(handle.into());
-                let generic =
-                    ris_error::unwrap!(generic_handle, "handle was not a mesh component",);
+        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+            let mut aref = self.mesh_renderer_components[index].borrow_mut();
+            callback(&mut aref.value)
+        } else if type_id == TypeId::of::<DynScriptComponent>() {
+            let mut aref = self.script_components[index].borrow_mut();
+            callback(&mut aref.value)
+        } else {
+            return Err(EcsError::InvalidCast);
+        };
 
-                self.destroy_component_inner(generic);
-            }
-            EcsTypeId::ScriptComponent => {
-                let generic_handle = GenericHandle::<DynScriptComponent>::from_dyn(handle.into());
-                let generic =
-                    ris_error::unwrap!(generic_handle, "handle was not a scrip component",);
-
-                self.destroy_component_inner(generic);
-            }
-            ecs_type_id => ris_error::throw!("ecs type {:?} is not a component", ecs_type_id),
-        }
+        Ok(retval)
     }
 
-    fn find_chunk<T: EcsObject>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
+    fn find_chunk<T: EcsObject + 'static>(&self, kind: SceneKind) -> EcsResult<&[EcsPtr<T>]> {
         match kind {
             SceneKind::Null => Err(EcsError::IsNull),
-            SceneKind::MovableGameObject => cast(&self.movable_game_objects),
-            SceneKind::StaticGameObjct { chunk } => cast(&self.static_game_objects[chunk]),
-            SceneKind::Component => match T::ecs_type_id() {
-                EcsTypeId::MeshRendererComponent => cast(&self.mesh_renderer_components),
-                EcsTypeId::ScriptComponent => cast(&self.script_components),
-                _ => Err(EcsError::TypeDoesNotMatchSceneKind),
-            },
-            SceneKind::Other => match T::ecs_type_id() {
-                EcsTypeId::VideoMesh => cast(&self.video_meshes),
-                _ => Err(EcsError::TypeDoesNotMatchSceneKind),
-            },
+            SceneKind::DynamicGameObject => cast_chunk(&self.dynamic_game_objects),
+            SceneKind::StaticGameObjct { chunk } => {
+                cast_chunk(&self.static_chunks[chunk].game_objects)
+            }
+            SceneKind::Component => {
+                let type_id = TypeId::of::<T>();
+                if type_id == TypeId::of::<MeshRendererComponent>() {
+                    cast_chunk(&self.mesh_renderer_components)
+                } else if type_id == TypeId::of::<DynScriptComponent>() {
+                    cast_chunk(&self.script_components)
+                } else {
+                    Err(EcsError::TypeDoesNotMatchSceneKind)
+                }
+            }
+            SceneKind::Other => {
+                let type_id = TypeId::of::<T>();
+                if type_id == TypeId::of::<VideoMesh>() {
+                    cast_chunk(&self.video_meshes)
+                } else {
+                    Err(EcsError::TypeDoesNotMatchSceneKind)
+                }
+            }
         }
-    }
-
-    fn destroy_component_inner<T: Component>(&self, handle: GenericHandle<T>) {
-        let SceneId { kind, index } = handle.scene_id();
-
-        let Ok(chunk) = self.find_chunk::<T>(kind) else {
-            return;
-        };
-        let ptr = &chunk[index];
-        let mut aref_mut = ptr.borrow_mut();
-        aref_mut.destroy(self);
-        aref_mut.is_alive = false;
     }
 }
 
-fn create_chunk<T: EcsObject>(kind: SceneKind, capacity: usize) -> EcsResult<Vec<EcsPtr<T>>> {
+fn create_chunk<T: EcsObject + Default + 'static>(
+    kind: SceneKind,
+    capacity: usize,
+) -> EcsResult<Vec<EcsPtr<T>>> {
     let mut result = Vec::with_capacity(capacity);
     for i in 0..capacity {
         let id = SceneId { kind, index: i };
@@ -271,8 +330,10 @@ fn create_chunk<T: EcsObject>(kind: SceneKind, capacity: usize) -> EcsResult<Vec
     Ok(result)
 }
 
-fn cast<T: EcsObject, U: EcsObject>(chunk: &[EcsPtr<T>]) -> EcsResult<&[EcsPtr<U>]> {
-    if T::ecs_type_id() != U::ecs_type_id() {
+fn cast_chunk<T: EcsObject + 'static, U: EcsObject + 'static>(
+    chunk: &[EcsPtr<T>],
+) -> EcsResult<&[EcsPtr<U>]> {
+    if TypeId::of::<T>() != TypeId::of::<U>() {
         return Err(EcsError::InvalidCast);
     }
 
