@@ -8,13 +8,11 @@ use crate::ICommand;
 
 pub struct Pipeline;
 
-const CHECK: &str = "check";
 const BUILD: &str = "build";
 const TEST: &str = "test";
 const MIRI: &str = "miri";
 const CLIPPY: &str = "clippy";
 const ALL: &str = "all";
-const NO_CHECK: &str = "no-check";
 const NO_BUILD: &str = "no-build";
 const NO_TEST: &str = "no-test";
 const NO_MIRI: &str = "no-miri";
@@ -40,8 +38,8 @@ impl From<bool> for TestResult {
 impl ICommand for Pipeline {
     fn args() -> String {
         format!(
-            "[{}] [{}] [{}] [{}] [{}] [{}]",
-            CHECK, BUILD, TEST, MIRI, CLIPPY, ALL,
+            "[{}] [{}] [{}] [{}] [{}]",
+            BUILD, TEST, MIRI, CLIPPY, ALL,
         )
     }
 
@@ -56,9 +54,6 @@ impl ICommand for Pipeline {
                 explanation.push_str(&format!("Runs various tests, to determine if the repo is in an acceptable state. Passing an arg runs the test of the according type. To exclude an arg, run `cli pipeline {} no-[arg]`\n", ALL));
                 explanation.push('\n');
                 explanation.push_str("args:\n");
-                explanation.push('\n');
-                explanation.push_str(&format!("{}\n", CHECK));
-                explanation.push_str("Checks the repo for errors: https://doc.rust-lang.org/cargo/commands/cargo-check.html\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", BUILD));
                 explanation.push_str(
@@ -98,7 +93,6 @@ impl ICommand for Pipeline {
         let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
         let ff = &mut fallback_file_append;
 
-        let mut run_check = false;
         let mut run_build = false;
         let mut run_test = false;
         let mut run_miri = false;
@@ -106,19 +100,16 @@ impl ICommand for Pipeline {
 
         for arg in &args[2..] {
             match arg.trim().to_lowercase().as_str() {
-                CHECK => run_check = true,
                 BUILD => run_build = true,
                 TEST => run_test = true,
                 MIRI => run_miri = true,
                 CLIPPY => run_clippy = true,
                 ALL => {
-                    run_check = true;
                     run_build = true;
                     run_test = true;
                     run_miri = true;
                     run_clippy = true;
                 }
-                NO_CHECK => run_check = false,
                 NO_BUILD => run_build = false,
                 NO_TEST => run_test = false,
                 NO_MIRI => run_miri = false,
@@ -137,8 +128,6 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
-            test(results, run_check, true, cargo("check"));
-            test(results, run_check, true, cargo("check -r"));
             test(results, run_build, true, cargo("build"));
             test(results, run_build, true, cargo("build -r"));
             test(results, run_test, true, cargo("test"));

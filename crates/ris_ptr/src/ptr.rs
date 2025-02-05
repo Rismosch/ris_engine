@@ -1,5 +1,5 @@
 use std::ptr::NonNull;
-#[cfg(debug_assertions)]
+#[cfg(feature = "validation_enabled")]
 use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 
 /// Threadsafe single owner, which allows non-owning copies. Dropping the StrongPtr invalidates all created WeakPtrs.
@@ -8,13 +8,13 @@ use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 ///
 /// This allows for very cheap copies and memory management without reference counting.
 pub struct StrongPtr<T> {
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "validation_enabled")]
     alive: Arc<AtomicBool>,
     value: NonNull<T>,
 }
 
 pub struct WeakPtr<T> {
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "validation_enabled")]
     alive: Arc<AtomicBool>,
     value: NonNull<T>,
 }
@@ -31,7 +31,7 @@ impl<T> StrongPtr<T> {
         let value = unsafe { NonNull::new_unchecked(ptr) };
 
         Self {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             alive: Arc::new(AtomicBool::new(true)),
             value,
         }
@@ -39,7 +39,7 @@ impl<T> StrongPtr<T> {
 
     pub fn to_weak(&self) -> WeakPtr<T> {
         WeakPtr {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             alive: self.alive.clone(),
             value: self.value,
         }
@@ -48,7 +48,7 @@ impl<T> StrongPtr<T> {
 
 impl<T> Drop for StrongPtr<T> {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             self.alive.store(false, Ordering::SeqCst);
         }
@@ -70,7 +70,7 @@ impl<T> std::ops::Deref for WeakPtr<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             ris_error::throw_assert!(
                 self.alive.load(Ordering::SeqCst),
@@ -85,7 +85,7 @@ impl<T> std::ops::Deref for WeakPtr<T> {
 impl<T> Clone for WeakPtr<T> {
     fn clone(&self) -> Self {
         Self {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             alive: self.alive.clone(),
             value: self.value,
         }

@@ -70,6 +70,11 @@ shaderc = "0.8"
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "^0.2.30"
 
+[features]
+default = [
+    "ris_ptr/validation_enabled",
+]
+
 [profile.dev]
 opt-level = 0
 debug = true
