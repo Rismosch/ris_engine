@@ -1,3 +1,4 @@
+#[cfg(feature = "gizmos_enabled")]
 use std::sync::Mutex;
 
 use ris_error::RisResult;
@@ -6,6 +7,7 @@ use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+#[cfg(feature = "gizmos_enabled")]
 // geometry shader outputs max 128 vertices. with 4 vertices per glyph, this puts a hard limit on
 // how long a text can be
 const MAX_TEXT_LEN: usize = 32;
@@ -41,6 +43,7 @@ pub fn init() -> RisResult<GizmoGuard> {
     Ok(GizmoGuard)
 }
 
+#[cfg(feature = "gizmos_enabled")]
 enum GizmoShape {
     Segment {
         start: Vec3,
@@ -69,11 +72,13 @@ enum GizmoShape {
     },
 }
 
+#[cfg(feature = "gizmos_enabled")]
 struct GizmoText {
     position: Vec3,
     bytes: Vec<u8>,
 }
 
+#[cfg(feature = "gizmos_enabled")]
 struct Gizmos {
     shapes: Vec<GizmoShape>,
     text: Vec<GizmoText>,
@@ -119,6 +124,13 @@ pub fn segment(start: Vec3, end: Vec3, color: Rgb) -> RisResult<()> {
         let shape = GizmoShape::Segment { start, end, color };
         gizmos.shapes.push(shape);
     }
+
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = start;
+        let _ = end;
+        let _ = color;
+    }
     Ok(())
 }
 
@@ -131,6 +143,11 @@ pub fn point(position: Vec3, color: Option<Rgb>) -> RisResult<()> {
 
         let shape = GizmoShape::Point { position, color };
         gizmos.shapes.push(shape);
+    }
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = position;
+        let _ = color;
     }
     Ok(())
 }
@@ -148,6 +165,12 @@ pub fn view_point(position: Vec3, rotation: Quat, color: Option<Rgb>) -> RisResu
             color,
         };
         gizmos.shapes.push(shape);
+    }
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = position;
+        let _ = rotation;
+        let _ = color;
     }
     Ok(())
 }
@@ -173,6 +196,12 @@ pub fn aabb(min: Vec3, max: Vec3, color: Option<Rgb>) -> RisResult<()> {
         let shape = GizmoShape::Aabb { min, max, color };
         gizmos.shapes.push(shape);
     }
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = min;
+        let _ = max;
+        let _ = color;
+    }
     Ok(())
 }
 
@@ -193,6 +222,14 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
         };
 
         gizmos.shapes.push(shape);
+    }
+
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = center;
+        let _ = half_scale;
+        let _ = rotation;
+        let _ = color;
     }
 
     Ok(())
@@ -217,6 +254,12 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
         };
 
         gizmos.text.push(gizmo_text);
+    }
+
+    #[cfg(not(feature = "gizmos_enabled"))]
+    {
+        let _ = position;
+        let _ = text;
     }
     Ok(())
 }
@@ -364,6 +407,7 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
 
     #[cfg(not(feature = "gizmos_enabled"))]
     {
+        let _ = camera;
         Ok(Vec::with_capacity(0))
     }
 }
@@ -409,6 +453,7 @@ pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
     }
 }
 
+#[cfg(feature = "gizmos_enabled")]
 fn add_segment(
     camera: &Camera,
     segments: &mut Vec<(f32, GizmoSegmentVertex, GizmoSegmentVertex)>,

@@ -1,8 +1,5 @@
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
-use std::sync::Mutex;
-use std::thread::JoinHandle;
+#[cfg(feature = "logging_enabled")]
+use std::{sync::{mpsc::{channel, Receiver, Sender}, Mutex}, thread::JoinHandle};
 
 use chrono::DateTime;
 use chrono::Local;
@@ -95,6 +92,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> L
     }
 }
 
+#[cfg(feature = "logging_enabled")] 
 fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {
     for log_message in receiver.iter() {
         for appender in appenders.iter_mut() {
@@ -153,6 +151,11 @@ pub fn forward_to_appenders(log_message: LogMessage) {
                 }
             }
         }
+    }
+
+    #[cfg(not(feature = "logging_enabled"))] 
+    {
+        let _ = log_message;
     }
 }
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(feature = "profiler_enabled")]
 use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
@@ -273,6 +274,12 @@ pub fn start_recording(frame_count: usize) -> RisResult<()> {
         profiler.start_recording(frame_count);
     }
 
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        let _ = frame_count;
+    }
+
     Ok(())
 }
 
@@ -309,6 +316,12 @@ pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
         };
 
         profiler.add_duration(id, duration);
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        let _ = id;
+        let _ = duration;
     }
     Ok(())
 }

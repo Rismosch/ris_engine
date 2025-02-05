@@ -17,8 +17,8 @@ use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+use crate::inspector_util;
 use crate::ui_helper::selection::Selection;
-use crate::ui_helper::util;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
@@ -144,7 +144,7 @@ impl IUiHelperModule for InspectorModule {
 
                 let mut position = get_position(game_object, &data.state.scene)?;
 
-                let changed = util::drag_vec3("position", &mut position)?;
+                let changed = inspector_util::drag_vec3("position", &mut position)?;
                 if changed {
                     set_position(game_object, &data.state.scene, position)?;
                 }
@@ -157,7 +157,7 @@ impl IUiHelperModule for InspectorModule {
                     self.cache_rotation_axes(rotation);
                 }
                 let mut old_rotation: [f32; 4] = self.cached_rotation.into();
-                util::purge_negative_0(&mut old_rotation);
+                inspector_util::purge_negative_0(&mut old_rotation);
                 let mut new_rotation: [f32; 4] = old_rotation;
                 let changed = unsafe {
                     imgui::sys::igDragFloat4(
