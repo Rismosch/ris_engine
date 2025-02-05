@@ -25,7 +25,6 @@ use ris_ptr::WeakPtr;
 
 pub mod modules;
 pub mod selection;
-pub mod util;
 
 use selection::Selector;
 

@@ -25,6 +25,7 @@ use ris_video_renderers::SceneRenderer;
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
+#[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelper;
 
 #[cfg(debug_assertions)]
@@ -135,26 +136,36 @@ impl GodObject {
         let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
 
         // imgui renderer
-        let mut imgui_backend = ImguiBackend::init(&app_info)?;
-        let context = imgui_backend.context();
-        let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+
+        #[cfg(feature = "ui_helper_enabled")]
+        let (imgui_backend, imgui_renderer) = {
+            let mut imgui_backend = ImguiBackend::init(&app_info)?;
+            let context = imgui_backend.context();
+            let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+            (imgui_backend, imgui_renderer)
+        };
 
         // logic frame
         let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
 
         // output frame
+        #[cfg(feature = "ui_helper_enabled")]
         let ui_helper = UiHelper::new(&app_info)?;
+
         let renderer = Renderer {
             scene: scene_renderer,
             gizmo_segment: gizmo_segment_renderer,
             gizmo_text: gizmo_text_renderer,
+            #[cfg(feature = "ui_helper_enabled")]
             imgui: imgui_renderer,
         };
 
         let output_frame = OutputFrame {
             current_frame: 0,
             renderer,
+            #[cfg(feature = "ui_helper_enabled")]
             imgui_backend,
+            #[cfg(feature = "ui_helper_enabled")]
             ui_helper,
             core: vulkan_core,
             window,
