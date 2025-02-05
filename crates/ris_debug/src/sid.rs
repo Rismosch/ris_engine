@@ -7,23 +7,17 @@ pub struct Sid {
 
 impl Sid {
     pub fn from(hash: u32, value: String) -> Self {
-        #[cfg(feature = "store_sid_values")] 
+        #[cfg(feature = "store_sid_values")]
         {
-            Self {
-                hash,
-                value,
-            }
+            Self { hash, value }
         }
 
-        #[cfg(not(feature = "store_sid_values"))] 
+        #[cfg(not(feature = "store_sid_values"))]
         {
             let _ = value;
 
-            Self {
-                hash,
-            }
+            Self { hash }
         }
-
     }
 }
 

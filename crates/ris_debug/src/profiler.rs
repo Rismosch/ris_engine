@@ -46,7 +46,6 @@ impl Drop for ProfilerGuard {
 }
 
 pub fn init() -> RisResult<ProfilerGuard> {
-
     #[cfg(feature = "profiler_enabled")]
     {
         let mut profiler = PROFILER.lock()?;
@@ -230,7 +229,6 @@ impl Profiler {
 }
 
 pub fn state() -> RisResult<ProfilerState> {
-
     #[cfg(feature = "profiler_enabled")]
     {
         let Some(ref mut profiler) = *PROFILER.lock()? else {
@@ -256,7 +254,6 @@ pub fn frames_to_record() -> RisResult<usize> {
         Ok(profiler.frames_to_record)
     }
 
-
     #[cfg(not(feature = "profiler_enabled"))]
     {
         Ok(0)
@@ -264,7 +261,6 @@ pub fn frames_to_record() -> RisResult<usize> {
 }
 
 pub fn start_recording(frame_count: usize) -> RisResult<()> {
-
     #[cfg(feature = "profiler_enabled")]
     {
         let Some(ref mut profiler) = *PROFILER.lock()? else {
@@ -273,7 +269,6 @@ pub fn start_recording(frame_count: usize) -> RisResult<()> {
 
         profiler.start_recording(frame_count);
     }
-
 
     #[cfg(not(feature = "profiler_enabled"))]
     {
@@ -284,7 +279,6 @@ pub fn start_recording(frame_count: usize) -> RisResult<()> {
 }
 
 pub fn stop_recording() -> RisResult<()> {
-
     #[cfg(feature = "profiler_enabled")]
     {
         let Some(ref mut profiler) = *PROFILER.lock()? else {
@@ -327,7 +321,6 @@ pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
 }
 
 pub fn evaluate() -> RisResult<Option<ProfilerEvaluations>> {
-
     #[cfg(feature = "profiler_enabled")]
     {
         let Some(ref mut profiler) = *PROFILER.lock()? else {
@@ -336,7 +329,6 @@ pub fn evaluate() -> RisResult<Option<ProfilerEvaluations>> {
 
         profiler.evaluate()
     }
-
 
     #[cfg(not(feature = "profiler_enabled"))]
     {

@@ -1,5 +1,11 @@
 #[cfg(feature = "logging_enabled")]
-use std::{sync::{mpsc::{channel, Receiver, Sender}, Mutex}, thread::JoinHandle};
+use std::{
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Mutex,
+    },
+    thread::JoinHandle,
+};
 
 use chrono::DateTime;
 use chrono::Local;
@@ -80,7 +86,6 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> L
         };
 
         LogGuard
-
     }
 
     #[cfg(not(feature = "logging_enabled"))]
@@ -92,7 +97,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> L
     }
 }
 
-#[cfg(feature = "logging_enabled")] 
+#[cfg(feature = "logging_enabled")]
 fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {
     for log_message in receiver.iter() {
         for appender in appenders.iter_mut() {
@@ -108,8 +113,7 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
 }
 
 pub fn log_level() -> LogLevel {
-
-    #[cfg(feature = "logging_enabled")] 
+    #[cfg(feature = "logging_enabled")]
     {
         match LOG.lock() {
             Err(e) => eprintln!("error while getting log_level: {}", e),
@@ -139,7 +143,7 @@ pub fn can_log(priority: LogLevel) -> bool {
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
-    #[cfg(feature = "logging_enabled")] 
+    #[cfg(feature = "logging_enabled")]
     {
         match LOG.lock() {
             Err(e) => eprintln!("error while forwarding to appenders: {}", e),
@@ -153,7 +157,7 @@ pub fn forward_to_appenders(log_message: LogMessage) {
         }
     }
 
-    #[cfg(not(feature = "logging_enabled"))] 
+    #[cfg(not(feature = "logging_enabled"))]
     {
         let _ = log_message;
     }

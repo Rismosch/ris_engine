@@ -38,15 +38,14 @@ struct AutoGenerateParseData<'a> {
 pub struct Build;
 impl ICommand for Build {
     fn args() -> String {
-        format!(
-            "[{}]",
-            ARG_RELEASE
-        )
+        format!("[{}]", ARG_RELEASE)
     }
 
     fn explanation(level: ExplanationLevel) -> String {
         match level {
-            ExplanationLevel::Short => String::from("Generates build info and compiles the workspace as a release ready package."),
+            ExplanationLevel::Short => String::from(
+                "Generates build info and compiles the workspace as a release ready package.",
+            ),
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
                 let short_explanation = Self::explanation(ExplanationLevel::Short);
@@ -76,7 +75,7 @@ impl ICommand for Build {
                         Self::args(),
                         Self::explanation(ExplanationLevel::Detailed),
                     );
-                },
+                }
             }
         }
 

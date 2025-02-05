@@ -15,9 +15,9 @@ use ris_video_data::frame_in_flight::FrameInFlight;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
+use ris_video_renderers::SceneRenderer;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
-use ris_video_renderers::SceneRenderer;
 
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelper;

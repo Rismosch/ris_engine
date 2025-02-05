@@ -37,10 +37,7 @@ impl From<bool> for TestResult {
 
 impl ICommand for Pipeline {
     fn args() -> String {
-        format!(
-            "[{}] [{}] [{}] [{}] [{}]",
-            BUILD, TEST, MIRI, CLIPPY, ALL,
-        )
+        format!("[{}] [{}] [{}] [{}] [{}]", BUILD, TEST, MIRI, CLIPPY, ALL,)
     }
 
     fn explanation(level: ExplanationLevel) -> String {
@@ -130,8 +127,18 @@ impl ICommand for Pipeline {
             let results = &mut results;
             test(results, run_build, true, cargo("build"));
             test(results, run_build, true, cargo("build -r"));
-            test(results, run_build, true, cargo("build --no-default-features"));
-            test(results, run_build, true, cargo("build -r --no-default-features"));
+            test(
+                results,
+                run_build,
+                true,
+                cargo("build --no-default-features"),
+            );
+            test(
+                results,
+                run_build,
+                true,
+                cargo("build -r --no-default-features"),
+            );
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
             test(results, run_miri, false, cargo_nightly("miri test"));

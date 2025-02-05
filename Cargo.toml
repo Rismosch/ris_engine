@@ -73,11 +73,15 @@ libc = "^0.2.30"
 [features]
 default = [
     "ris_core/ui_helper_enabled",
+    "ris_debug_enabled",
+    "ris_log/logging_enabled",
+    "ris_ptr/validation_enabled",
+]
+
+ris_debug_enabled = [
     "ris_debug/gizmos_enabled",
     "ris_debug/profiler_enabled",
     "ris_debug/store_sid_values",
-    "ris_log/logging_enabled",
-    "ris_ptr/validation_enabled",
 ]
 
 [profile.dev]

@@ -18,9 +18,9 @@ use ris_jobs::job_system::JobSystemGuard;
 use ris_video_data::core::VulkanCore;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
+use ris_video_renderers::SceneRenderer;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
-use ris_video_renderers::SceneRenderer;
 
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
@@ -141,7 +141,8 @@ impl GodObject {
         let (imgui_backend, imgui_renderer) = {
             let mut imgui_backend = ImguiBackend::init(&app_info)?;
             let context = imgui_backend.context();
-            let imgui_renderer = unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+            let imgui_renderer =
+                unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
             (imgui_backend, imgui_renderer)
         };
 

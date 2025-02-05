@@ -30,7 +30,6 @@ impl Drop for GizmoGuard {
 }
 
 pub fn init() -> RisResult<GizmoGuard> {
-
     #[cfg(feature = "gizmos_enabled")]
     {
         let mut gizmo = GIZMOS.lock()?;
@@ -100,7 +99,6 @@ pub struct GizmoTextVertex {
 }
 
 pub fn new_frame() -> RisResult<()> {
-
     #[cfg(feature = "gizmos_enabled")]
     {
         let Some(ref mut gizmos) = *GIZMOS.lock()? else {
@@ -236,7 +234,6 @@ pub fn obb(center: Vec3, half_scale: Vec3, rotation: Quat, color: Option<Rgb>) -
 }
 
 pub fn text(position: Vec3, text: &str) -> RisResult<()> {
-
     #[cfg(feature = "gizmos_enabled")]
     {
         let Some(ref mut gizmos) = *GIZMOS.lock()? else {
@@ -265,7 +262,6 @@ pub fn text(position: Vec3, text: &str) -> RisResult<()> {
 }
 
 pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
-
     #[cfg(feature = "gizmos_enabled")]
     {
         let Some(ref mut gizmos) = *GIZMOS.lock()? else {
@@ -404,7 +400,6 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
         Ok(vertices)
     }
 
-
     #[cfg(not(feature = "gizmos_enabled"))]
     {
         let _ = camera;
@@ -413,7 +408,6 @@ pub fn draw_segments(camera: &Camera) -> RisResult<Vec<GizmoSegmentVertex>> {
 }
 
 pub fn draw_text() -> RisResult<(Vec<GizmoTextVertex>, Vec<u8>)> {
-
     #[cfg(feature = "gizmos_enabled")]
     {
         let Some(ref mut gizmos) = *GIZMOS.lock()? else {
