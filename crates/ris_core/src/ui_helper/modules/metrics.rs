@@ -71,7 +71,7 @@ impl IUiHelperModule for MetricsModule {
             format!(
                 "{:.0} fps ({} ms)",
                 1.0 / self.last_average.as_secs_f32(),
-                self.last_average.as_millis()
+                self.last_average.as_millis(),
             ),
         );
 

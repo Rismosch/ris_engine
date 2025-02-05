@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 sdl2 = "0.34.5"
 chrono = "0.4"
+
+[features]
+logging_enabled = []

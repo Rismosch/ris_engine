@@ -72,6 +72,7 @@ libc = "^0.2.30"
 
 [features]
 default = [
+    "ris_log/logging_enabled" ,
     "ris_ptr/validation_enabled",
 ]
 
