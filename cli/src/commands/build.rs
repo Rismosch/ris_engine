@@ -53,7 +53,6 @@ impl ICommand for Build {
                 explanation.push_str(&format!("{}\n", short_explanation));
                 explanation.push('\n');
                 explanation.push_str(&format!("[{}]\n", ARG_RELEASE));
-                explanation.push('\n');
                 explanation.push_str(&format!("The build command always builds with the release profile. However, ris_engine uses various features to enable better debugging. By passing `{}`, all these features are disabled, to enable maximum performance.\n", ARG_RELEASE));
 
                 explanation

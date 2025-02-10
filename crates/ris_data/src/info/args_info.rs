@@ -6,7 +6,7 @@ pub const NO_RESTART_ARG: &str = "--no-restart";
 pub const WORKERS_ARG: &str = "--workers";
 pub const ASSETS_ARG: &str = "--assets";
 
-pub const DEFAULT_ASSETS_VALUE: &str = "assets";
+pub const DEFAULT_ASSETS_VALUE: &str = "assets/in_use";
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct ArgsInfo {
