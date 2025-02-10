@@ -57,4 +57,5 @@ To decompile a compiled asset file, you can run:
 
 In a debug build, `ris_engine` attempts to locate the assets in `./assets/in_use/`.  
 In a release build, `ris_engine` attempts to locate the assets in `./ris_assets`.  
-This can be overwritten by passing `--assets <filepath>` to `ris_engine`. `<filepath>` can either be a directory, as described in [3. In use](#3-In-use), or a compiled asset, as described in [4. Compiled](#4-Compiled).
+
+This can be overwritten by passing `--assets <filepath>` as cli args to `ris_engine`. `<filepath>` can either be a directory or a compiled asset. This means a debug build can read compiled assets, and a release build can read assets in a directory.

@@ -27,10 +27,9 @@ pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5F, 0x61, 0x73, 0x73, 0x65, 0x74, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
-pub const DEFAULT_ASSET_DIRECTORY: &str = "assets";
+pub const DEFAULT_ASSET_DIRECTORY: &str = "assets/in_use";
 pub const DEFAULT_COMPILED_FILE: &str = "ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
-pub const DEFAULT_IGNORE_DIRECTORY: &str = "assets/__raw";
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct CompileOptions {
@@ -56,12 +55,6 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             let entry = entry?;
             let metadata = entry.metadata()?;
             let entry_path = entry.path();
-
-            let to_ignore = PathBuf::from(DEFAULT_IGNORE_DIRECTORY);
-            if entry_path == to_ignore {
-                ris_log::debug!("ignoring \"{}\"", ris_io::path::to_str(entry_path),);
-                continue;
-            }
 
             if metadata.is_file() {
                 asset_lookup_hashmap.insert(entry_path.clone(), assets.len());
@@ -253,7 +246,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     }
 
     // read original paths
-    let mut original_paths = if p_original_asset_names.is_null() {
+    let mut original_paths = if p_original_asset_names.len == 0 {
         Vec::new()
     } else {
         ris_io::seek(source, SeekFrom::Start(p_original_asset_names.addr))?;
