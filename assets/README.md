@@ -17,7 +17,7 @@ To use an asset from a source file, it must be imported first. This can be achie
 
     cargo run -p cli asset import
 
-All imported assets are written in the `./assets/imported/` directory. If the directory doesn't exist, the import process will generate it.
+All imported assets are written to the `./assets/imported/` directory. If the directory doesn't exist, the import process will generate it.
 
 ## 3 In use
 
@@ -43,7 +43,7 @@ to
 
 ## 4 Compiled
 
-`./assets/in_use/` are all the assets that can actually be loaded into `ris_engine`. These assets are kept in a directory structure because of the ease of browsing. But this isn't ideal, as `ris_engine` must interact with the file system to access these assets. Because of that, assets can be compiled for optimal file system access. To compile the assets, run:
+`./assets/in_use/` are all the assets that can actually be loaded into `ris_engine`. These assets are kept in a directory structure because of the ease of browsing. But this isn't ideal, as `ris_engine` must interact with the file system to access each and every file. Because of that, assets can be compiled for optimal performance. To compile the assets, run:
 
     cargo run -p cli asset compile
 
