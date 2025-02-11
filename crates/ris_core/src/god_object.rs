@@ -28,7 +28,7 @@ use crate::output_frame::Renderer;
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelper;
 
-#[cfg(debug_assertions)]
+/*#[cfg(debug_assertions)]
 fn import_assets() -> RisResult<()> {
     use ris_asset::asset_importer;
 
@@ -36,18 +36,14 @@ fn import_assets() -> RisResult<()> {
 
     asset_importer::import_all(
         asset_importer::DEFAULT_SOURCE_DIRECTORY,
-        asset_importer::DEFAULT_TARGET_DIRECTORY,
+        asset_importer::DEFAULT_IMPORT_DIRECTORY,
+        asset_importer::DEFAULT_IN_USE_DIRECTORY,
         Some("temp"),
     )?;
 
     ris_log::debug!("assets imported!");
     Ok(())
-}
-
-#[cfg(not(debug_assertions))]
-fn import_assets() -> RisResult<()> {
-    Ok(())
-}
+}*/
 
 pub struct GodObject {
     pub app_info: AppInfo,
@@ -90,7 +86,22 @@ impl GodObject {
         );
 
         // assets
-        import_assets()?;
+        #[cfg(debug_assertions)]
+        {
+            use ris_asset::asset_importer;
+
+            ris_log::debug!("importing assets...");
+
+            asset_importer::import_all(
+                asset_importer::DEFAULT_SOURCE_DIRECTORY,
+                asset_importer::DEFAULT_IMPORT_DIRECTORY,
+                asset_importer::DEFAULT_IN_USE_DIRECTORY,
+                Some("temp"),
+            )?;
+
+            ris_log::debug!("assets imported!");
+        }
+
         let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // profiling

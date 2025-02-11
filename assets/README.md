@@ -23,15 +23,15 @@ All imported assets are written to the `./assets/imported/` directory. If the di
 
 To use an imported file, it must be copied to `./assets/in_use/` or in any of its subdirectories. This can be done manually, but it can also be achieved automatically by using meta files.
 
-A meta file has the extension `ris_asset_meta` and is stored inside `./assets/imported/`. The contents of a meta file consist of a single path which is relative to `./assets/in_use/`. After all source files have been imported (or have been attempted to), a copy process reads all the meta files and copies the imported files.
+A meta file has the extension `ris_meta` and is stored inside `./assets/imported/`. The contents of a meta file consist of a single path which is relative to `./assets/in_use/`. After all source files have been imported (or have been attempted to), a copy process reads all the meta files and copies the imported files.
 
 For example the meta file
 
-    ./assets/imported/path/to/my/file.extension.ris_asset_meta
+    ./assets/imported/path/to/my/file.extension.ris_meta
 
 with the contents
 
-    new/path
+    copy_to: new/path
 
 copies the file
 

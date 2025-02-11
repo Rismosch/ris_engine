@@ -2,13 +2,17 @@ use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_data::ris_yaml::RisYaml;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::importer::*;
 
 pub const DEFAULT_SOURCE_DIRECTORY: &str = "assets/source_files";
-pub const DEFAULT_TARGET_DIRECTORY: &str = "assets/imported";
+pub const DEFAULT_IMPORT_DIRECTORY: &str = "assets/imported";
+pub const DEFAULT_IN_USE_DIRECTORY: &str = "assets/in_use";
+pub const META_EXTENSION: &str = "ris_meta";
+pub const META_COPY_TO: &str = "copy_to";
 
 pub enum ImporterKind {
     GLSL,
@@ -33,19 +37,23 @@ pub enum ImporterInfo {
 
 pub fn import_all(
     source_directory: &str,
-    target_directory: &str,
+    import_directory: &str,
+    in_use_directory: &str,
     temp_directory: Option<&str>,
 ) -> RisResult<()> {
+    let temp_directory = temp_directory.map(PathBuf::from);
     let mut directories = std::collections::VecDeque::new();
+
+    // clean
+    //let target_directory_path = PathBuf::from(target_directory);
+    //if target_directory_path.exists() {
+    //    std::fs::remove_dir_all(target_directory_path)?;
+    //}
+
+
+    // import source files
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
-
-    let target_directory_path = PathBuf::from(target_directory);
-    if target_directory_path.exists() {
-        std::fs::remove_dir_all(target_directory_path)?;
-    }
-
-    let temp_directory = temp_directory.map(PathBuf::from);
 
     while let Some(current) = directories.pop_front() {
         let entries = std::fs::read_dir(&current)?;
@@ -57,7 +65,7 @@ pub fn import_all(
 
             if metadata.is_file() {
                 let mut source_directory = source_directory.replace('\\', "/");
-                let mut target_directory = target_directory.replace('\\', "/");
+                let mut target_directory = import_directory.replace('\\', "/");
 
                 if !source_directory.ends_with('/') {
                     source_directory.push('/');
@@ -99,6 +107,75 @@ pub fn import_all(
             }
         }
     }
+
+    // copy imported files
+    let import_path = PathBuf::from(import_directory);
+    let in_use_path = PathBuf::from(in_use_directory);
+    directories.push_back(import_path.clone());
+
+    while let Some(current) = directories.pop_front() {
+        let entries = std::fs::read_dir(&current)?;
+
+        for entry in entries {
+            let entry = entry?;
+            let metadata = entry.metadata()?;
+            let entry_path = entry.path();
+
+            if metadata.is_file() {
+                let Some(extension) = entry_path.extension() else {
+                    continue;
+                };
+
+                let Some(extension_str) = extension.to_str() else {
+                    continue;
+                };
+
+                if extension_str != META_EXTENSION {
+                    continue;
+                }
+
+                let entry_parent = entry_path
+                    .parent()
+                    .into_ris_error()?;
+                let entry_stem = entry_path
+                    .file_stem()
+                    .into_ris_error()?;
+                let copy_source = PathBuf::from(entry_parent).join(entry_stem);
+
+                let meta_content = std::fs::read_to_string(&entry_path)?;
+                let yaml = RisYaml::deserialize(meta_content)?;
+                let copy_to_value = yaml.get_value(META_COPY_TO).into_ris_error()?;
+                let copy_target = in_use_path.join(copy_to_value);
+
+                ris_log::trace!(
+                    "copying \"{}\" to \"{}\"...",
+                    ris_io::path::to_str(&copy_source),
+                    ris_io::path::to_str(&copy_target),
+                );
+
+                let copy_target_parent = copy_target.parent().into_ris_error()?;
+                std::fs::create_dir_all(copy_target_parent)?;
+                std::fs::copy(&copy_source, &copy_target)?; // write custom copy dir method
+
+                ris_log::debug!(
+                    "copied \"{}\" to \"{}\"!",
+                    ris_io::path::to_str(copy_source),
+                    ris_io::path::to_str(copy_target),
+                );
+
+
+
+            } else if metadata.is_dir() {
+                directories.push_back(entry_path);
+            } else {
+                return ris_error::new_result!(
+                    "entry \"{}\" is neither a file nor a directory",
+                    ris_io::path::to_str(entry_path),
+                );
+            }
+        }
+    }
+
     Ok(())
 }
 
