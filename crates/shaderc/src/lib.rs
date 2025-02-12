@@ -1,8 +1,4 @@
-pub mod env_h;
-pub mod shaderc_h;
-pub mod shaderc_hpp;
-pub mod status_h;
-pub mod visibility_h;
-
-pub fn test() {
-}
+pub mod env;
+pub mod shaderc;
+pub mod status;
+pub mod visibility;
