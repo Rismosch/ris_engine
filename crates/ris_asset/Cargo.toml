@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 miniz_oxide = "=0.8.2"
 png = "0.17.10"
-shaderc = "0.8"
 ris_data = { path = "../ris_data" }
 ris_error = { path = "../ris_error" }
 ris_io = { path = "../ris_io" }
