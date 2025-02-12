@@ -23,7 +23,7 @@ fn default_asset_path() -> PathBuf {
 
 impl ICommand for GodAsset {
     fn args() -> String {
-        format!("[-i <filepath>] <command> [args...]")
+        "[-i <filepath>] <command> [args...]".to_string()
     }
 
     fn explanation(level: ExplanationLevel) -> String {
@@ -39,7 +39,7 @@ impl ICommand for GodAsset {
                 explanation.push_str("flags:\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("[{} <filepath>]\n", FLAG_INPUT));
-                explanation.push_str(&format!("the path to the god asset.\n"));
+                explanation.push_str("the path to the god asset.\n");
                 explanation.push_str(&format!(
                     "default: \"{}\"\n",
                     ris_io::path::to_str(default_asset_path()),
@@ -59,21 +59,22 @@ impl ICommand for GodAsset {
     }
 
     fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
-
         let flag_input = args.iter().position(|x| x == FLAG_INPUT);
         let (command_index, god_asset_path) = match flag_input {
             Some(flag_input_position) => {
                 let command_index = flag_input_position + 2;
-                let flag_input_arg = args.get(flag_input_position + 1)
+                let flag_input_arg = args
+                    .get(flag_input_position + 1)
                     .ok_or(ris_error::new!("too few arguments"))?;
                 let god_asset_path = PathBuf::from(flag_input_arg);
 
                 (command_index, god_asset_path)
-            },
+            }
             None => (2, default_asset_path()),
         };
 
-        let command = args.get(command_index)
+        let command = args
+            .get(command_index)
             .ok_or(ris_error::new!("too few arguments"))?;
 
         match command.as_str() {
@@ -81,11 +82,13 @@ impl ICommand for GodAsset {
                 let god_asset = read_god_asset(god_asset_path)?;
                 print_god_asset(&god_asset);
                 Ok(())
-            },
+            }
             CMD_SET => {
-                let field = args.get(command_index + 1)
+                let field = args
+                    .get(command_index + 1)
                     .ok_or(ris_error::new!("too few arguments"))?;
-                let value = args.get(command_index + 2)
+                let value = args
+                    .get(command_index + 2)
                     .ok_or(ris_error::new!("too few arguments"))?
                     .clone();
 
@@ -105,18 +108,10 @@ impl ICommand for GodAsset {
                     "gizmo_segment_frag_spv" => {
                         god_asset.gizmo_segment_frag_spv = AssetId::Path(value)
                     }
-                    "gizmo_text_vert_spv" => {
-                        god_asset.gizmo_text_vert_spv = AssetId::Path(value)
-                    }
-                    "gizmo_text_geom_spv" => {
-                        god_asset.gizmo_text_geom_spv = AssetId::Path(value)
-                    }
-                    "gizmo_text_frag_spv" => {
-                        god_asset.gizmo_text_frag_spv = AssetId::Path(value)
-                    }
-                    "debug_font_texture" => {
-                        god_asset.debug_font_texture = AssetId::Path(value)
-                    }
+                    "gizmo_text_vert_spv" => god_asset.gizmo_text_vert_spv = AssetId::Path(value),
+                    "gizmo_text_geom_spv" => god_asset.gizmo_text_geom_spv = AssetId::Path(value),
+                    "gizmo_text_frag_spv" => god_asset.gizmo_text_frag_spv = AssetId::Path(value),
+                    "debug_font_texture" => god_asset.debug_font_texture = AssetId::Path(value),
                     "texture" => god_asset.texture = AssetId::Path(value),
                     _ => return ris_error::new_result!("unkown field \"{}\"", field),
                 }
@@ -125,8 +120,8 @@ impl ICommand for GodAsset {
                 print_god_asset(&god_asset);
 
                 Ok(())
-            },
-            _ => return ris_error::new_result!("unkown command: {}", command),
+            }
+            _ => ris_error::new_result!("unkown command: {}", command),
         }
     }
 }

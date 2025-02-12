@@ -132,7 +132,12 @@ impl AssetBrowser {
 
         if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
             let selection = Some(Selection::AssetPath(path_without_root.to_path_buf()));
-            ris_log::debug!("select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"", selection, path, root);
+            ris_log::debug!(
+                "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
+                selection,
+                path,
+                root
+            );
             self.shared_state
                 .borrow_mut()
                 .selector

@@ -51,7 +51,6 @@ pub fn import_all(
     //    std::fs::remove_dir_all(target_directory_path)?;
     //}
 
-
     // import source files
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
@@ -135,12 +134,8 @@ pub fn import_all(
                     continue;
                 }
 
-                let entry_parent = entry_path
-                    .parent()
-                    .into_ris_error()?;
-                let entry_stem = entry_path
-                    .file_stem()
-                    .into_ris_error()?;
+                let entry_parent = entry_path.parent().into_ris_error()?;
+                let entry_stem = entry_path.file_stem().into_ris_error()?;
                 let copy_source = PathBuf::from(entry_parent).join(entry_stem);
 
                 let meta_content = std::fs::read_to_string(&entry_path)?;
@@ -179,7 +174,10 @@ pub fn import_all(
                             to_copy.push_back((entry_path, new_copy_target));
                         }
                     } else {
-                        return ris_error::new_result!("\"{}\" is neither a file nor a dir", ris_io::path::to_str(&copy_source));
+                        return ris_error::new_result!(
+                            "\"{}\" is neither a file nor a dir",
+                            ris_io::path::to_str(&copy_source)
+                        );
                     }
                 }
 
@@ -238,7 +236,10 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
                 // insert new inporter here...
                 _ => {
-                    ris_log::debug!("failed to deduce importer, unknown extension \"{}\"", ris_io::path::to_str(source_path),);
+                    ris_log::debug!(
+                        "failed to deduce importer, unknown extension \"{}\"",
+                        ris_io::path::to_str(source_path),
+                    );
                     return Ok(());
                 }
             };

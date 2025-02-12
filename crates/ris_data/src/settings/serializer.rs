@@ -69,7 +69,10 @@ fn write_bytes(settings: &Settings) -> RisResult<Vec<u8>> {
     let mut yaml = RisYaml::default();
 
     yaml.add_entry(None, Some("jobs"));
-    yaml.add_entry(Some((key::JOB_WORKERS, &settings.job.get_workers().to_string())), None);
+    yaml.add_entry(
+        Some((key::JOB_WORKERS, &settings.job.get_workers().to_string())),
+        None,
+    );
     yaml.add_entry(None, None);
 
     let string = yaml.serialize()?;

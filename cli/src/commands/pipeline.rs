@@ -131,20 +131,30 @@ impl ICommand for Pipeline {
                 results,
                 run_build,
                 true,
-                cargo("build --no-default-features"),
-            );
-            test(
-                results,
-                run_build,
-                true,
                 cargo("build -r --no-default-features"),
             );
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
-            test(results, run_miri, false, cargo_nightly("miri test"));
-            test(results, run_miri, false, cargo_nightly("miri test -r"));
+            test(
+                results,
+                run_build,
+                true,
+                cargo("test -r --no-default-features"),
+            );
+            test(
+                results,
+                run_miri,
+                false,
+                cargo_nightly("miri test -r --no-default-features"),
+            );
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
+            test(
+                results,
+                run_build,
+                false,
+                cargo("clippy -r --no-default-features -- -Dwarnings"),
+            );
             test(
                 results,
                 run_clippy,
@@ -159,6 +169,12 @@ impl ICommand for Pipeline {
             );
             test(
                 results,
+                run_build,
+                false,
+                cargo("clippy -r --tests --no-default-features -- -Dwarnings"),
+            );
+            test(
+                results,
                 run_clippy,
                 false,
                 cargo("clippy -p cli -- -Dwarnings"),
@@ -168,6 +184,12 @@ impl ICommand for Pipeline {
                 run_clippy,
                 false,
                 cargo("clippy -r -p cli -- -Dwarnings"),
+            );
+            test(
+                results,
+                run_build,
+                false,
+                cargo("clippy -r -p cli --no-default-features -- -Dwarnings"),
             );
         }
 

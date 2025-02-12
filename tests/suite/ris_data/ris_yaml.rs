@@ -5,8 +5,14 @@ use ris_data::ris_yaml::RisYaml;
 fn should_serialize() {
     let mut yaml = RisYaml::default();
 
-    yaml.add_entry(Some(("my first key", "my first value")), Some("my first comment"));
-    yaml.add_entry(Some(("my second key", "my second value")), Some("my second comment"));
+    yaml.add_entry(
+        Some(("my first key", "my first value")),
+        Some("my first comment"),
+    );
+    yaml.add_entry(
+        Some(("my second key", "my second value")),
+        Some("my second comment"),
+    );
     yaml.add_entry(None, None);
     yaml.add_entry(None, Some("this line has no key/value"));
     yaml.add_entry(Some(("this line", "has no comment")), None);
@@ -136,7 +142,8 @@ fn should_parse_key_value_and_comment() {
 
 #[test]
 fn should_parse_everything() {
-    let yaml = RisYaml::deserialize("
+    let yaml = RisYaml::deserialize(
+        "
 my first key: my first value # my first comment
 my second key: my second value # my second comment
 

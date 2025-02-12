@@ -13,11 +13,7 @@ pub struct RisYaml {
 }
 
 impl RisYaml {
-    pub fn add_entry(
-        &mut self,
-        key_value: Option<(&str, &str)>,
-        comment: Option<&str>,
-    ) {
+    pub fn add_entry(&mut self, key_value: Option<(&str, &str)>, comment: Option<&str>) {
         let key_value = key_value.map(|(key, value)| (key.to_owned(), value.to_owned()));
         let comment = comment.map(|comment| comment.to_owned());
 
@@ -125,7 +121,6 @@ impl RisYaml {
         }
 
         Ok(RisYaml { entries })
-
     }
 }
 
@@ -180,5 +175,3 @@ fn assert_valid_comment(comment: &str, line: usize) -> RisResult<()> {
         Ok(())
     }
 }
-
-
