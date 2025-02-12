@@ -1,17 +1,17 @@
-use ris_data::settings::ris_yaml::RisYaml;
+use ris_data::ris_yaml::RisYaml;
 
 // serialize
 #[test]
 fn should_serialize() {
     let mut yaml = RisYaml::default();
 
-    yaml.add_key_value_and_comment("my first key", "my first value", "my first comment");
-    yaml.add_key_value_and_comment("my second key", "my second value", "my second comment");
-    yaml.add_empty();
-    yaml.add_comment("this line has no key/value");
-    yaml.add_key_value("this line", "has no comment");
+    yaml.add_entry(Some(("my first key", "my first value")), Some("my first comment"));
+    yaml.add_entry(Some(("my second key", "my second value")), Some("my second comment"));
+    yaml.add_entry(None, None);
+    yaml.add_entry(None, Some("this line has no key/value"));
+    yaml.add_entry(Some(("this line", "has no comment")), None);
 
-    let result = yaml.to_string().unwrap();
+    let result = yaml.serialize().unwrap();
 
     assert_eq!(
         result,
@@ -28,55 +28,55 @@ this line: has no comment
 fn should_not_serialize_when_key_is_invalid() {
     // no colon
     let mut yaml = RisYaml::default();
-    yaml.add_key_value(":", "");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(Some((":", "")), None);
+    assert!(yaml.serialize().is_err());
 
     // no newline
     let mut yaml = RisYaml::default();
-    yaml.add_key_value("\n", "");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(Some(("\n", "")), None);
+    assert!(yaml.serialize().is_err());
 
     // no empty key
     let mut yaml = RisYaml::default();
-    yaml.add_key_value("", "");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(Some(("", "")), None);
+    assert!(yaml.serialize().is_err());
 }
 
 #[test]
 fn should_not_serialize_when_value_is_invalid() {
     // no colon
     let mut yaml = RisYaml::default();
-    yaml.add_key_value("key", "\n");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(Some(("key", ":")), None);
+    assert!(yaml.serialize().is_err());
 
     // no newline
     let mut yaml = RisYaml::default();
-    yaml.add_key_value("key", "\n");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(Some(("key", "\n")), None);
+    assert!(yaml.serialize().is_err());
 
     // empty value is fine
     let mut yaml = RisYaml::default();
-    yaml.add_key_value("key", "");
-    assert!(yaml.to_string().is_ok());
+    yaml.add_entry(Some(("key", "")), None);
+    assert!(yaml.serialize().is_ok());
 }
 
 #[test]
 fn should_not_serialize_when_comment_is_invalid() {
     let mut yaml = RisYaml::default();
-    yaml.add_comment("\n");
-    assert!(yaml.to_string().is_err());
+    yaml.add_entry(None, Some("\n"));
+    assert!(yaml.serialize().is_err());
 }
 
 // deserialize
 #[test]
 fn should_parse_empty() {
-    let yaml = RisYaml::try_from("").unwrap();
+    let yaml = RisYaml::deserialize("").unwrap();
     assert!(yaml.entries.is_empty());
 }
 
 #[test]
 fn should_parse_key_value() {
-    let yaml = RisYaml::try_from("my key: my value").unwrap();
+    let yaml = RisYaml::deserialize("my key: my value").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -91,7 +91,7 @@ fn should_parse_key_value() {
 
 #[test]
 fn should_parse_comment() {
-    let yaml = RisYaml::try_from("# my comment").unwrap();
+    let yaml = RisYaml::deserialize("# my comment").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -105,7 +105,7 @@ fn should_parse_comment() {
 
 #[test]
 fn should_parse_mutliple_comments() {
-    let yaml = RisYaml::try_from(" # 1 # 2 # 3 # 4 ").unwrap();
+    let yaml = RisYaml::deserialize(" # 1 # 2 # 3 # 4 ").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -119,7 +119,7 @@ fn should_parse_mutliple_comments() {
 
 #[test]
 fn should_parse_key_value_and_comment() {
-    let yaml = RisYaml::try_from("my key: my value # my comment").unwrap();
+    let yaml = RisYaml::deserialize("my key: my value # my comment").unwrap();
     assert_eq!(yaml.entries.len(), 1);
 
     let first = &yaml.entries[0];
@@ -136,8 +136,8 @@ fn should_parse_key_value_and_comment() {
 
 #[test]
 fn should_parse_everything() {
-    let yaml = RisYaml::try_from(
-        "my first key: my first value # my first comment
+    let yaml = RisYaml::deserialize("
+my first key: my first value # my first comment
 my second key: my second value # my second comment
 
 # this line has no key/value
@@ -146,17 +146,12 @@ this line: has no comment
     )
     .unwrap();
 
-    assert_eq!(yaml.entries.len(), 5);
+    assert_eq!(yaml.entries.len(), 6);
 
     let entry = &yaml.entries[0];
-    assert!(entry.key_value.is_some());
-    assert!(entry.comment.is_some());
+    assert!(entry.key_value.is_none());
+    assert!(entry.comment.is_none());
     assert_eq!(entry.line, 1);
-    let (key, value) = entry.key_value.as_ref().unwrap();
-    let comment = entry.comment.as_ref().unwrap();
-    assert_eq!(key, "my first key");
-    assert_eq!(value, "my first value");
-    assert_eq!(comment, "my first comment");
 
     let entry = &yaml.entries[1];
     assert!(entry.key_value.is_some());
@@ -164,26 +159,36 @@ this line: has no comment
     assert_eq!(entry.line, 2);
     let (key, value) = entry.key_value.as_ref().unwrap();
     let comment = entry.comment.as_ref().unwrap();
+    assert_eq!(key, "my first key");
+    assert_eq!(value, "my first value");
+    assert_eq!(comment, "my first comment");
+
+    let entry = &yaml.entries[2];
+    assert!(entry.key_value.is_some());
+    assert!(entry.comment.is_some());
+    assert_eq!(entry.line, 3);
+    let (key, value) = entry.key_value.as_ref().unwrap();
+    let comment = entry.comment.as_ref().unwrap();
     assert_eq!(key, "my second key");
     assert_eq!(value, "my second value");
     assert_eq!(comment, "my second comment");
 
-    let entry = &yaml.entries[2];
-    assert!(entry.key_value.is_none());
-    assert!(entry.comment.is_none());
-    assert_eq!(entry.line, 3);
-
     let entry = &yaml.entries[3];
     assert!(entry.key_value.is_none());
-    assert!(entry.comment.is_some());
+    assert!(entry.comment.is_none());
     assert_eq!(entry.line, 4);
+
+    let entry = &yaml.entries[4];
+    assert!(entry.key_value.is_none());
+    assert!(entry.comment.is_some());
+    assert_eq!(entry.line, 5);
     let comment = entry.comment.as_ref().unwrap();
     assert_eq!(comment, "this line has no key/value");
 
-    let entry = &yaml.entries[4];
+    let entry = &yaml.entries[5];
     assert!(entry.key_value.is_some());
     assert!(entry.comment.is_none());
-    assert_eq!(entry.line, 5);
+    assert_eq!(entry.line, 6);
     let (key, value) = entry.key_value.as_ref().unwrap();
     assert_eq!(key, "this line");
     assert_eq!(value, "has no comment");
@@ -191,12 +196,12 @@ this line: has no comment
 
 #[test]
 fn should_not_parse_when_key_is_empty() {
-    let yaml = RisYaml::try_from(": my value");
+    let yaml = RisYaml::deserialize(": my value");
     assert!(yaml.is_err());
 }
 
 #[test]
 fn should_not_parse_when_value_is_invalid() {
-    let yaml = RisYaml::try_from("my key: my:value");
+    let yaml = RisYaml::deserialize("my key: my:value");
     assert!(yaml.is_err());
 }
