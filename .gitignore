@@ -15,7 +15,8 @@ Cargo.lock
 /cli_out
 
 # assets
-assets/__imported_raw/
+assets/imported
+!assets/imported/**/*.ris_meta
 decompiled_assets
 ris_assets
 

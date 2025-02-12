@@ -38,7 +38,7 @@ Barebones game engine. Home made passion project.
   - [x] Mesh renderer
     - [ ] Materials
   - [x] Scripting
-- [ ] Scene editing, saving and loading
+- [x] Scene editing, saving and loading
 - [ ] Collisions
 - [ ] Animations
 - [ ] 3d Sound
@@ -155,14 +155,7 @@ Alternatively, you can build a release-ready package, by running the command bel
 cargo run -p cli build
 ```
 
-Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. To do so, run the following two commands:
-
-```bash
-cargo run -p cli asset import
-cargo run -p cli asset compile
-```
-
-After compiling, you will find the file `ris_assets` in the root of this repo. It contains all assets used by `ris_engine`.
+Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. Infos and how to do can be found in [`./assets/README.md`](./assets/README.md).
 
 ## Testing
 

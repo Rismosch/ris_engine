@@ -1,4 +1,3 @@
-use ris_error::RisError;
 use ris_error::RisResult;
 
 #[derive(Default, Debug)]
@@ -8,15 +7,66 @@ pub struct RisYamlEntry {
     pub line: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RisYaml {
     pub entries: Vec<RisYamlEntry>,
 }
 
-impl TryFrom<&str> for RisYaml {
-    type Error = RisError;
+impl RisYaml {
+    pub fn add_entry(&mut self, key_value: Option<(&str, &str)>, comment: Option<&str>) {
+        let key_value = key_value.map(|(key, value)| (key.to_owned(), value.to_owned()));
+        let comment = comment.map(|comment| comment.to_owned());
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let entry = RisYamlEntry {
+            key_value,
+            comment,
+            ..Default::default()
+        };
+        self.entries.push(entry);
+    }
+
+    pub fn get_value(&self, key: impl AsRef<str>) -> Option<&str> {
+        let key = key.as_ref();
+
+        let position = self.entries.iter().position(|x| match &x.key_value {
+            Some((entry_key, _)) => entry_key == key,
+            None => false,
+        })?;
+
+        let entry = &self.entries[position];
+        let (_, value) = entry.key_value.as_ref()?;
+        Some(value.as_str())
+    }
+
+    pub fn serialize(&self) -> RisResult<String> {
+        let mut result = String::new();
+
+        for (i, entry) in self.entries.iter().enumerate() {
+            if let Some((key, value)) = &entry.key_value {
+                assert_valid_key(key, i)?;
+                assert_valid_value(value, i)?;
+
+                result.push_str(&format!("{}: {}", key, value));
+            }
+
+            if let Some(comment) = &entry.comment {
+                assert_valid_comment(comment, i)?;
+
+                if entry.key_value.is_some() {
+                    result.push(' ');
+                }
+
+                result.push_str(&format!("# {}", comment));
+            }
+
+            result.push('\n');
+        }
+
+        Ok(result)
+    }
+
+    pub fn deserialize(value: impl AsRef<str>) -> RisResult<Self> {
+        let value = value.as_ref();
         let mut entries = Vec::new();
 
         for (i, line) in value.lines().enumerate() {
@@ -71,65 +121,6 @@ impl TryFrom<&str> for RisYaml {
         }
 
         Ok(RisYaml { entries })
-    }
-}
-
-impl RisYaml {
-    pub fn add_empty(&mut self) {
-        let entry = RisYamlEntry::default();
-        self.entries.push(entry);
-    }
-
-    pub fn add_key_value(&mut self, key: &str, value: &str) {
-        let entry = RisYamlEntry {
-            key_value: Some((key.to_owned(), value.to_owned())),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn add_comment(&mut self, comment: &str) {
-        let entry = RisYamlEntry {
-            comment: Some(comment.to_owned()),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn add_key_value_and_comment(&mut self, key: &str, value: &str, comment: &str) {
-        let entry = RisYamlEntry {
-            key_value: Some((key.to_owned(), value.to_owned())),
-            comment: Some(comment.to_owned()),
-            ..Default::default()
-        };
-        self.entries.push(entry);
-    }
-
-    pub fn to_string(&self) -> RisResult<String> {
-        let mut result = String::new();
-
-        for (i, entry) in self.entries.iter().enumerate() {
-            if let Some((key, value)) = &entry.key_value {
-                assert_valid_key(key, i)?;
-                assert_valid_value(value, i)?;
-
-                result.push_str(&format!("{}: {}", key, value));
-            }
-
-            if let Some(comment) = &entry.comment {
-                assert_valid_comment(comment, i)?;
-
-                if entry.key_value.is_some() {
-                    result.push(' ');
-                }
-
-                result.push_str(&format!("# {}", comment));
-            }
-
-            result.push('\n');
-        }
-
-        Ok(result)
     }
 }
 

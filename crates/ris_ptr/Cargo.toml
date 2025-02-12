@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
+
+[features]
+validation_enabled = []

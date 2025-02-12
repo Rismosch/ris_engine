@@ -26,3 +26,5 @@ ris_util = { path = "../ris_util" }
 ris_video_data = { path = "../ris_video_data" }
 ris_video_renderers = { path = "../ris_video_renderers" }
 
+[features]
+ui_helper_enabled = []

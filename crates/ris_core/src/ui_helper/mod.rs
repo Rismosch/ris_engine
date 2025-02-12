@@ -16,7 +16,7 @@ use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
-use ris_data::settings::ris_yaml::RisYaml;
+use ris_data::ris_yaml::RisYaml;
 use ris_error::RisResult;
 use ris_jobs::job_future::JobFuture;
 use ris_ptr::ArefCell;
@@ -25,7 +25,6 @@ use ris_ptr::WeakPtr;
 
 pub mod modules;
 pub mod selection;
-pub mod util;
 
 use selection::Selector;
 
@@ -251,12 +250,12 @@ impl UiHelper {
 
             let key = format!("window_{}", i);
             let value = format!("{}{} {}", window.id, WINDOW_SEPARATOR, window.name);
-            yaml.add_key_value(&key, &value);
+            yaml.add_entry(Some((&key, &value)), None);
         }
 
         // write file
         let mut file = std::fs::File::create(&self.config_filepath)?;
-        let file_content = yaml.to_string()?;
+        let file_content = yaml.serialize()?;
         let bytes = file_content.as_bytes();
         file.write_all(bytes)?;
 
@@ -271,7 +270,7 @@ impl UiHelper {
         let mut bytes = vec![0; file_size as usize];
         ris_io::read(&mut file, &mut bytes)?;
         let file_content = String::from_utf8(bytes)?;
-        let yaml = RisYaml::try_from(file_content.as_str())?;
+        let yaml = RisYaml::deserialize(file_content)?;
 
         // parse yaml
         let builders = builders()?;
@@ -639,7 +638,8 @@ fn reimport_assets(import_asset_future: &mut Option<JobFuture<()>>) -> RisResult
     let future = ris_jobs::job_system::submit(|| {
         let result = asset_importer::import_all(
             asset_importer::DEFAULT_SOURCE_DIRECTORY,
-            asset_importer::DEFAULT_TARGET_DIRECTORY,
+            asset_importer::DEFAULT_IMPORT_DIRECTORY,
+            asset_importer::DEFAULT_IN_USE_DIRECTORY,
             Some("temp"),
         );
 

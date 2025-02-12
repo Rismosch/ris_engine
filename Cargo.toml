@@ -70,6 +70,28 @@ shaderc = "0.8"
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "^0.2.30"
 
+[features]
+default = [
+    "ris_debug_enabled",
+    "ris_logging_enabled",
+    "ris_validation_enabled",
+]
+
+ris_debug_enabled = [
+    "ris_core/ui_helper_enabled",
+    "ris_debug/gizmos_enabled",
+    "ris_debug/profiler_enabled",
+    "ris_debug/store_sid_values",
+]
+
+ris_logging_enabled = [
+    "ris_log/logging_enabled",
+]
+
+ris_validation_enabled = [
+    "ris_ptr/validation_enabled",
+]
+
 [profile.dev]
 opt-level = 0
 debug = true

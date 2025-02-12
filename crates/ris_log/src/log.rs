@@ -1,8 +1,11 @@
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
-use std::sync::Mutex;
-use std::thread::JoinHandle;
+#[cfg(feature = "logging_enabled")]
+use std::{
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Mutex,
+    },
+    thread::JoinHandle,
+};
 
 use chrono::DateTime;
 use chrono::Local;
@@ -14,10 +17,12 @@ pub trait IAppender {
     fn print(&mut self, message: &LogMessage);
 }
 
+#[cfg(feature = "logging_enabled")]
 pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
 
 pub struct LogGuard;
 
+#[cfg(feature = "logging_enabled")]
 impl Drop for LogGuard {
     fn drop(&mut self) {
         match LOG.lock() {
@@ -29,12 +34,17 @@ impl Drop for LogGuard {
     }
 }
 
+#[cfg(feature = "logging_enabled")]
 pub struct Logger {
     log_level: LogLevel,
     sender: Option<Sender<LogMessage>>,
     thread_handle: Option<JoinHandle<()>>,
 }
 
+#[cfg(not(feature = "logging_enabled"))]
+pub struct Logger;
+
+#[cfg(feature = "logging_enabled")]
 impl Drop for Logger {
     fn drop(&mut self) {
         self.sender.take();
@@ -48,34 +58,46 @@ impl Drop for Logger {
 }
 
 pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
-    if matches!(log_level, LogLevel::None) || appenders.is_empty() {
-        return LogGuard;
+    #[cfg(feature = "logging_enabled")]
+    {
+        if matches!(log_level, LogLevel::None) || appenders.is_empty() {
+            return LogGuard;
+        }
+
+        let (sender, receiver) = channel();
+        let sender = Some(sender);
+        let thread_handle = Some(std::thread::spawn(|| {
+            log_thread(receiver, appenders);
+        }));
+
+        let logger = Logger {
+            log_level,
+            sender,
+            thread_handle,
+        };
+
+        match LOG.lock() {
+            Ok(mut log) => {
+                *log = Some(logger);
+            }
+            Err(e) => {
+                eprintln!("error while initializing log: {}", e);
+            }
+        };
+
+        LogGuard
     }
 
-    let (sender, receiver) = channel();
-    let sender = Some(sender);
-    let thread_handle = Some(std::thread::spawn(|| {
-        log_thread(receiver, appenders);
-    }));
+    #[cfg(not(feature = "logging_enabled"))]
+    {
+        let _ = log_level;
+        let _ = appenders;
 
-    let logger = Logger {
-        log_level,
-        sender,
-        thread_handle,
-    };
-
-    match LOG.lock() {
-        Ok(mut log) => {
-            *log = Some(logger);
-        }
-        Err(e) => {
-            eprintln!("error while initializing log: {}", e);
-        }
-    };
-
-    LogGuard
+        LogGuard
+    }
 }
 
+#[cfg(feature = "logging_enabled")]
 fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppender + Send>>) {
     for log_message in receiver.iter() {
         for appender in appenders.iter_mut() {
@@ -91,11 +113,14 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
 }
 
 pub fn log_level() -> LogLevel {
-    match LOG.lock() {
-        Err(e) => eprintln!("error while getting log_level: {}", e),
-        Ok(log) => {
-            if let Some(logger) = &*log {
-                return logger.log_level;
+    #[cfg(feature = "logging_enabled")]
+    {
+        match LOG.lock() {
+            Err(e) => eprintln!("error while getting log_level: {}", e),
+            Ok(log) => {
+                if let Some(logger) = &*log {
+                    return logger.log_level;
+                }
             }
         }
     }
@@ -118,15 +143,23 @@ pub fn can_log(priority: LogLevel) -> bool {
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
-    match LOG.lock() {
-        Err(e) => eprintln!("error while forwarding to appenders: {}", e),
-        Ok(mut log) => {
-            if let Some(logger) = &mut *log {
-                if let Some(sender) = &mut logger.sender {
-                    let _ = sender.send(log_message);
+    #[cfg(feature = "logging_enabled")]
+    {
+        match LOG.lock() {
+            Err(e) => eprintln!("error while forwarding to appenders: {}", e),
+            Ok(mut log) => {
+                if let Some(logger) = &mut *log {
+                    if let Some(sender) = &mut logger.sender {
+                        let _ = sender.send(log_message);
+                    }
                 }
             }
         }
+    }
+
+    #[cfg(not(feature = "logging_enabled"))]
+    {
+        let _ = log_message;
     }
 }
 
@@ -172,6 +205,7 @@ macro_rules! fatal {
     };
 }
 
+#[cfg(feature = "logging_enabled")]
 #[macro_export]
 macro_rules! log {
     ($priority:expr, $($arg:tt)*) => {
@@ -197,4 +231,13 @@ macro_rules! log {
             ris_log::log::forward_to_appenders(message);
         }
     };
+}
+
+#[cfg(not(feature = "logging_enabled"))]
+#[macro_export]
+macro_rules! log {
+    ($priority:expr, $($arg:expr),* $(,)?) => {{
+        let _ = $priority;
+        $(let _ = &$arg;)*
+    }};
 }

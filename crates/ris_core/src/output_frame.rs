@@ -15,24 +15,29 @@ use ris_video_data::frame_in_flight::FrameInFlight;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
-use ris_video_renderers::ImguiBackend;
-use ris_video_renderers::ImguiRenderer;
 use ris_video_renderers::SceneRenderer;
+#[cfg(feature = "ui_helper_enabled")]
+use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
+#[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelper;
+#[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelperDrawData;
 
 pub struct Renderer {
     pub scene: SceneRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
     pub gizmo_text: GizmoTextRenderer,
+    #[cfg(feature = "ui_helper_enabled")]
     pub imgui: ImguiRenderer,
 }
 
 pub struct OutputFrame {
     pub current_frame: usize,
     pub renderer: Renderer,
+    #[cfg(feature = "ui_helper_enabled")]
     pub imgui_backend: ImguiBackend,
+    #[cfg(feature = "ui_helper_enabled")]
     pub ui_helper: UiHelper,
 
     // mut be dropped last
@@ -57,6 +62,7 @@ impl Drop for OutputFrame {
             self.renderer.scene.free(device);
             self.renderer.gizmo_segment.free(device);
             self.renderer.gizmo_text.free(device);
+            #[cfg(feature = "ui_helper_enabled")]
             self.renderer.imgui.free(device);
 
             self.core.free();
@@ -111,23 +117,34 @@ impl OutputFrame {
         unsafe { device.reset_fences(&[*in_flight]) }?;
 
         // ui helper
-        ris_debug::add_record!(r, "ui helper")?;
+        let ui_helper_state = {
+            #[cfg(feature = "ui_helper_enabled")]
+            {
+                ris_debug::add_record!(r, "ui helper")?;
 
-        let window_size = self.window.size();
-        let window_drawable_size = self.window.vulkan_drawable_size();
-        let imgui_ui = self.imgui_backend.prepare_frame(
-            frame,
-            state,
-            (window_size.0 as f32, window_size.1 as f32),
-            (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-        );
+                let window_size = self.window.size();
+                let window_drawable_size = self.window.vulkan_drawable_size();
+                let imgui_ui = self.imgui_backend.prepare_frame(
+                    frame,
+                    state,
+                    (window_size.0 as f32, window_size.1 as f32),
+                    (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+                );
 
-        let ui_helper_state = self.ui_helper.draw(UiHelperDrawData {
-            ui: imgui_ui,
-            frame,
-            state,
-            window_drawable_size,
-        })?;
+                self.ui_helper.draw(UiHelperDrawData {
+                    ui: imgui_ui,
+                    frame,
+                    state,
+                    window_drawable_size,
+                })?
+            }
+
+            #[cfg(not(feature = "ui_helper_enabled"))]
+            {
+                let _ = frame;
+                GameloopState::WantsToContinue
+            }
+        };
 
         // rebuild renderers
         ris_debug::add_record!(r, "rebuild renderers")?;
@@ -139,13 +156,17 @@ impl OutputFrame {
                 self.renderer.scene.free(device);
                 self.renderer.gizmo_segment.free(device);
                 self.renderer.gizmo_text.free(device);
+                #[cfg(feature = "ui_helper_enabled")]
                 self.renderer.imgui.free(device);
 
                 self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
-                self.renderer.imgui =
-                    ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
+                #[cfg(feature = "ui_helper_enabled")]
+                {
+                    self.renderer.imgui =
+                        ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
+                }
 
                 ris_log::debug!("rebuilt renderers!");
             }
@@ -242,13 +263,16 @@ impl OutputFrame {
         ris_debug::gizmo::new_frame()?;
 
         // imgui
-        ris_debug::add_record!(r, "imgui backend")?;
-        let draw_data = self.imgui_backend.context().render();
+        #[cfg(feature = "ui_helper_enabled")]
+        {
+            ris_debug::add_record!(r, "imgui backend")?;
+            let draw_data = self.imgui_backend.context().render();
 
-        ris_debug::add_record!(r, "imgui frontend")?;
-        self.renderer
-            .imgui
-            .draw(&self.core, swapchain_entry, draw_data)?;
+            ris_debug::add_record!(r, "imgui frontend")?;
+            self.renderer
+                .imgui
+                .draw(&self.core, swapchain_entry, draw_data)?;
+        }
 
         // end command buffer and submit
         ris_debug::add_record!(r, "submit command buffer")?;

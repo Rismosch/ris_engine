@@ -45,7 +45,7 @@ impl Script for TestRotationScript {
 
         ui.label_text("label", "this is the script inspector");
 
-        ris_core::ui_helper::util::drag_vec3(
+        ris_core::inspector_util::drag_vec3(
             format!("rotation axis##{}", id),
             &mut self.rotation_axis,
         )?;

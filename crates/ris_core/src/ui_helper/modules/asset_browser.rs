@@ -32,9 +32,9 @@ impl IUiHelperModule for AssetBrowser {
             return Ok(());
         }
 
-        let entries = get_sorted_children(root)?;
+        let entries = get_sorted_children(&root)?;
         for entry in entries {
-            self.draw_asset_recursive(entry, data)?;
+            self.draw_asset_recursive(&root, entry, data)?;
         }
 
         Ok(())
@@ -44,12 +44,16 @@ impl IUiHelperModule for AssetBrowser {
 impl AssetBrowser {
     fn draw_asset_recursive(
         &mut self,
+        root: impl AsRef<Path>,
         path: impl AsRef<Path>,
         data: &mut UiHelperDrawData,
     ) -> RisResult<()> {
+        let root = root.as_ref();
         let path = path.as_ref();
-        let components = path.components().skip(1);
-        let path_without_root = PathBuf::from_iter(components);
+        let path_without_root = path.strip_prefix(root)?;
+
+        //let components = path.components().skip(1);
+        //let path_without_root = PathBuf::from_iter(components);
 
         let selection = self.shared_state.borrow().selector.get_selection();
         let is_selected = selection
@@ -127,7 +131,13 @@ impl AssetBrowser {
         }
 
         if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
-            let selection = Some(Selection::AssetPath(path_without_root));
+            let selection = Some(Selection::AssetPath(path_without_root.to_path_buf()));
+            ris_log::debug!(
+                "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
+                selection,
+                path,
+                root
+            );
             self.shared_state
                 .borrow_mut()
                 .selector
@@ -145,7 +155,7 @@ impl AssetBrowser {
 
         let entries = get_sorted_children(path)?;
         for entry_path in entries {
-            self.draw_asset_recursive(entry_path, data)?;
+            self.draw_asset_recursive(root, entry_path, data)?;
         }
 
         unsafe { imgui::sys::igTreePop() };

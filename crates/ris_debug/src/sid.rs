@@ -1,18 +1,34 @@
 #[derive(Debug, Clone)]
 pub struct Sid {
     pub hash: u32,
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "store_sid_values")]
     pub value: String,
+}
+
+impl Sid {
+    pub fn from(hash: u32, value: String) -> Self {
+        #[cfg(feature = "store_sid_values")]
+        {
+            Self { hash, value }
+        }
+
+        #[cfg(not(feature = "store_sid_values"))]
+        {
+            let _ = value;
+
+            Self { hash }
+        }
+    }
 }
 
 impl std::fmt::Display for Sid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "store_sid_values")]
         {
             write!(f, "{} ({})", self.value, self.hash)
         }
 
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(feature = "store_sid_values"))]
         {
             write!(f, "sid_{}", self.hash)
         }
@@ -21,7 +37,7 @@ impl std::fmt::Display for Sid {
 
 impl PartialEq for Sid {
     fn eq(&self, other: &Self) -> bool {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "store_sid_values")]
         {
             let result = self.hash == other.hash;
 
@@ -35,7 +51,7 @@ impl PartialEq for Sid {
             result
         }
 
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(feature = "store_sid_values"))]
         {
             self.hash == other.hash
         }
@@ -64,11 +80,7 @@ macro_rules! sid {
             hash
         };
 
-        $crate::sid::Sid {
-            hash: HASH,
-            #[cfg(debug_assertions)]
-            value: $value.to_string(),
-        }
+        $crate::sid::Sid::from(HASH, $value.to_string())
     }};
 }
 
@@ -95,11 +107,7 @@ macro_rules! fsid {
             hash
         };
 
-        $crate::sid::Sid {
-            hash: HASH,
-            #[cfg(debug_assertions)]
-            value: format!("{}:{}/salt={}", FILE, LINE, SALT),
-        }
+        $crate::sid::Sid::from(HASH, format!("{}:{}/salt={}", FILE, LINE, SALT))
     }};
 }
 

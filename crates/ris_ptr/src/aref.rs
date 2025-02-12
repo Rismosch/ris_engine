@@ -1,10 +1,10 @@
 use std::cell::UnsafeCell;
 use std::ptr::NonNull;
-#[cfg(debug_assertions)]
+#[cfg(feature = "validation_enabled")]
 use std::sync::{atomic::AtomicIsize, atomic::Ordering, Arc};
 
 // enable to log all borrows and when they are dropped. useful for debugging.
-#[cfg(debug_assertions)]
+#[cfg(feature = "validation_enabled")]
 const TRACING: bool = false;
 
 /// Thread safe `RefCell`. Panics when Rusts ownership rules are violated at runtime.
@@ -15,19 +15,19 @@ const TRACING: bool = false;
 pub struct ArefCell<T: ?Sized> {
     /// positive values represent active immutable references, negative values represent active
     /// mutable references. isize::MAX represents a dropped cell.
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "validation_enabled")]
     refs: Arc<AtomicIsize>,
     value: UnsafeCell<T>,
 }
 
 pub struct Aref<T: ?Sized> {
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "validation_enabled")]
     refs: Arc<AtomicIsize>,
     value: NonNull<T>,
 }
 
 pub struct ArefMut<T: ?Sized> {
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "validation_enabled")]
     refs: Arc<AtomicIsize>,
     value: NonNull<T>,
 }
@@ -41,14 +41,14 @@ impl<T: Default> Default for ArefCell<T> {
 impl<T> ArefCell<T> {
     pub fn new(value: T) -> Self {
         Self {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             refs: Arc::new(AtomicIsize::new(0)),
             value: UnsafeCell::new(value),
         }
     }
 
     pub fn borrow(&self) -> Aref<T> {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.fetch_add(1, Ordering::SeqCst);
 
@@ -66,14 +66,14 @@ impl<T> ArefCell<T> {
         let value = unsafe { NonNull::new_unchecked(self.value.get()) };
 
         Aref {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             refs: self.refs.clone(),
             value,
         }
     }
 
     pub fn borrow_mut(&self) -> ArefMut<T> {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.fetch_sub(1, Ordering::SeqCst);
 
@@ -96,7 +96,7 @@ impl<T> ArefCell<T> {
         let value = unsafe { NonNull::new_unchecked(ptr) };
 
         ArefMut {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "validation_enabled")]
             refs: self.refs.clone(),
             value,
         }
@@ -105,7 +105,7 @@ impl<T> ArefCell<T> {
 
 impl<T: ?Sized> Drop for ArefCell<T> {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             self.refs.store(isize::MAX, Ordering::SeqCst);
         }
@@ -114,7 +114,7 @@ impl<T: ?Sized> Drop for ArefCell<T> {
 
 impl<T: ?Sized> Drop for Aref<T> {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
 
@@ -136,7 +136,7 @@ impl<T: ?Sized> Drop for Aref<T> {
 
 impl<T: ?Sized> Drop for ArefMut<T> {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
 
@@ -160,7 +160,7 @@ impl<T> std::ops::Deref for Aref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
             ris_error::throw_assert!(
@@ -176,7 +176,7 @@ impl<T> std::ops::Deref for ArefMut<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
             ris_error::throw_assert!(
@@ -190,7 +190,7 @@ impl<T> std::ops::Deref for ArefMut<T> {
 
 impl<T> std::ops::DerefMut for ArefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "validation_enabled")]
         {
             let prev_refs = self.refs.load(Ordering::SeqCst);
             ris_error::throw_assert!(

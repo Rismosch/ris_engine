@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(feature = "profiler_enabled")]
 use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
@@ -27,10 +28,12 @@ impl std::fmt::Display for ProfilerState {
     }
 }
 
+#[cfg(feature = "profiler_enabled")]
 static PROFILER: Mutex<Option<Profiler>> = Mutex::new(None);
 
 pub struct ProfilerGuard;
 
+#[cfg(feature = "profiler_enabled")]
 impl Drop for ProfilerGuard {
     fn drop(&mut self) {
         match PROFILER.lock() {
@@ -43,13 +46,16 @@ impl Drop for ProfilerGuard {
 }
 
 pub fn init() -> RisResult<ProfilerGuard> {
-    let mut profiler = PROFILER.lock()?;
-    *profiler = Some(Profiler {
-        state: ProfilerState::Stopped,
-        frames_to_record: 0,
-        durations: HashMap::new(),
-        evaluations: None,
-    });
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let mut profiler = PROFILER.lock()?;
+        *profiler = Some(Profiler {
+            state: ProfilerState::Stopped,
+            frames_to_record: 0,
+            durations: HashMap::new(),
+            evaluations: None,
+        });
+    }
 
     Ok(ProfilerGuard)
 }
@@ -223,63 +229,111 @@ impl Profiler {
 }
 
 pub fn state() -> RisResult<ProfilerState> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(ProfilerState::Stopped);
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(ProfilerState::Stopped);
+        };
 
-    Ok(profiler.state)
+        Ok(profiler.state)
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        Ok(ProfilerState::Stopped)
+    }
 }
 
 pub fn frames_to_record() -> RisResult<usize> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(0);
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(0);
+        };
 
-    Ok(profiler.frames_to_record)
+        Ok(profiler.frames_to_record)
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        Ok(0)
+    }
 }
 
 pub fn start_recording(frame_count: usize) -> RisResult<()> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(());
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(());
+        };
 
-    profiler.start_recording(frame_count);
+        profiler.start_recording(frame_count);
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        let _ = frame_count;
+    }
+
     Ok(())
 }
 
 pub fn stop_recording() -> RisResult<()> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(());
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(());
+        };
 
-    profiler.stop_recording();
+        profiler.stop_recording();
+    }
     Ok(())
 }
 
 pub fn new_frame() -> RisResult<()> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(());
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(());
+        };
 
-    profiler.new_frame();
+        profiler.new_frame();
+    }
     Ok(())
 }
 
 pub fn add_duration(id: RecordId, duration: Duration) -> RisResult<()> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(());
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(());
+        };
 
-    profiler.add_duration(id, duration);
+        profiler.add_duration(id, duration);
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        let _ = id;
+        let _ = duration;
+    }
     Ok(())
 }
 
 pub fn evaluate() -> RisResult<Option<ProfilerEvaluations>> {
-    let Some(ref mut profiler) = *PROFILER.lock()? else {
-        return Ok(None);
-    };
+    #[cfg(feature = "profiler_enabled")]
+    {
+        let Some(ref mut profiler) = *PROFILER.lock()? else {
+            return Ok(None);
+        };
 
-    profiler.evaluate()
+        profiler.evaluate()
+    }
+
+    #[cfg(not(feature = "profiler_enabled"))]
+    {
+        Ok(None)
+    }
 }
 
 pub fn generate_csv(evaluations: &ProfilerEvaluations, seperator: char) -> String {

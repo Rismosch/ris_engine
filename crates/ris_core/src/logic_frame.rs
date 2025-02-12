@@ -91,11 +91,10 @@ impl LogicFrame {
 
         let rotation_speed = 2. * frame.average_seconds();
         let movement_speed = 2. * frame.average_seconds();
-        let mouse_speed = frame.average_seconds();
 
         if input.mouse.buttons.is_hold(action::OK) {
-            let yrel = mouse_speed * input.mouse.yrel as f32;
-            let xrel = mouse_speed * input.mouse.xrel as f32;
+            let yrel = 0.01 * input.mouse.yrel as f32;
+            let xrel = 0.01 * input.mouse.xrel as f32;
             self.camera_vertical_angle -= yrel;
             self.camera_horizontal_angle -= xrel;
         } else if input.general.buttons.is_down(action::OK) {
@@ -153,7 +152,7 @@ impl LogicFrame {
         }
 
         if input.keyboard.keys.is_down(Scancode::F) {
-            ris_log::debug!(
+            println!(
                 "{:?} ({} fps)",
                 frame.average_duration(),
                 frame.average_fps()

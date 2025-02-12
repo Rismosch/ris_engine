@@ -22,6 +22,8 @@ const EXE_NAME: &str = "ris_engine";
 
 const ASSETS_NAME: &str = "ris_assets";
 
+pub const ARG_RELEASE: &str = "release";
+
 struct AutoGenerateParseData<'a> {
     is_generating: bool,
     to_replace: &'a str,
@@ -36,14 +38,46 @@ struct AutoGenerateParseData<'a> {
 pub struct Build;
 impl ICommand for Build {
     fn args() -> String {
-        String::new()
+        format!("[{}]", ARG_RELEASE)
     }
 
-    fn explanation(_level: ExplanationLevel) -> String {
-        String::from("Generates build info and compiles the workspace as a release ready package.")
+    fn explanation(level: ExplanationLevel) -> String {
+        match level {
+            ExplanationLevel::Short => String::from(
+                "Generates build info and compiles the workspace as a release ready package.",
+            ),
+            ExplanationLevel::Detailed => {
+                let mut explanation = String::new();
+                let short_explanation = Self::explanation(ExplanationLevel::Short);
+
+                explanation.push_str(&format!("{}\n", short_explanation));
+                explanation.push('\n');
+                explanation.push_str(&format!("[{}]\n", ARG_RELEASE));
+                explanation.push_str(&format!("The build command always builds with the release profile. However, ris_engine uses various features to enable better debugging. By passing `{}`, all these features are disabled, to enable maximum performance.\n", ARG_RELEASE));
+
+                explanation
+            }
+        }
     }
 
-    fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+        eprintln!("parsing args...");
+
+        let mut enable_default_features = true;
+        for arg in &args[2..] {
+            match arg.trim().to_lowercase().as_str() {
+                ARG_RELEASE => enable_default_features = false,
+                _ => {
+                    return crate::util::command_error(
+                        &format!("unkown arg: {}", arg),
+                        "build",
+                        Self::args(),
+                        Self::explanation(ExplanationLevel::Detailed),
+                    );
+                }
+            }
+        }
+
         eprintln!("generating build info...");
 
         let root_dir = crate::util::get_root_dir()?;
@@ -151,7 +185,14 @@ impl ICommand for Build {
         Asset::execute_command(AssetCommand::Compile, None)?;
 
         eprintln!("compiling workspace...");
-        crate::cmd::run("cargo build --release")?;
+
+        let features = if enable_default_features {
+            String::new()
+        } else {
+            String::from(" --no-default-features")
+        };
+
+        crate::cmd::run(&format!("cargo build --release{}", features))?;
 
         ris_io::util::clean_or_create_dir(&target_dir)?;
 
