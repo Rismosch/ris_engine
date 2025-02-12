@@ -86,21 +86,21 @@ impl GodObject {
         );
 
         // assets
-        #[cfg(debug_assertions)]
-        {
-            use ris_asset::asset_importer;
+        //#[cfg(debug_assertions)]
+        //{
+        //    use ris_asset::asset_importer;
 
-            ris_log::debug!("importing assets...");
+        //    ris_log::debug!("importing assets...");
 
-            asset_importer::import_all(
-                asset_importer::DEFAULT_SOURCE_DIRECTORY,
-                asset_importer::DEFAULT_IMPORT_DIRECTORY,
-                asset_importer::DEFAULT_IN_USE_DIRECTORY,
-                Some("temp"),
-            )?;
+        //    asset_importer::import_all(
+        //        asset_importer::DEFAULT_SOURCE_DIRECTORY,
+        //        asset_importer::DEFAULT_IMPORT_DIRECTORY,
+        //        asset_importer::DEFAULT_IN_USE_DIRECTORY,
+        //        Some("temp"),
+        //    )?;
 
-            ris_log::debug!("assets imported!");
-        }
+        //    ris_log::debug!("assets imported!");
+        //}
 
         let asset_loader_guard = asset_loader::init(&app_info)?;
 

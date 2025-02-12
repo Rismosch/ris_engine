@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
@@ -42,7 +43,7 @@ pub fn import_all(
     temp_directory: Option<&str>,
 ) -> RisResult<()> {
     let temp_directory = temp_directory.map(PathBuf::from);
-    let mut directories = std::collections::VecDeque::new();
+    let mut directories = VecDeque::new();
 
     // clean
     //let target_directory_path = PathBuf::from(target_directory);
@@ -153,18 +154,40 @@ pub fn import_all(
                     ris_io::path::to_str(&copy_target),
                 );
 
-                let copy_target_parent = copy_target.parent().into_ris_error()?;
-                std::fs::create_dir_all(copy_target_parent)?;
-                std::fs::copy(&copy_source, &copy_target)?; // write custom copy dir method
+                //let copy_target_parent = copy_target.parent().into_ris_error()?;
+                //std::fs::create_dir_all(copy_target_parent)?;
+
+                let mut to_copy = VecDeque::new();
+                to_copy.push_back((copy_source.clone(), copy_target.clone()));
+
+                while let Some((copy_source, copy_target)) = to_copy.pop_front() {
+                    if copy_source.ends_with(META_EXTENSION) {
+                        continue;
+                    }
+
+                    if copy_source.is_file() {
+                        let copy_target_parent = copy_target.parent().into_ris_error()?;
+                        std::fs::create_dir_all(copy_target_parent)?;
+                        std::fs::copy(&copy_source, &copy_target)?;
+                    } else if copy_source.is_dir() {
+                        for entry in std::fs::read_dir(&copy_source)? {
+                            let entry = entry?;
+                            let entry_path = entry.path();
+                            let entry_name = entry_path.file_name().into_ris_error()?;
+
+                            let new_copy_target = copy_target.join(entry_name);
+                            to_copy.push_back((entry_path, new_copy_target));
+                        }
+                    } else {
+                        return ris_error::new_result!("\"{}\" is neither a file nor a dir", ris_io::path::to_str(&copy_source));
+                    }
+                }
 
                 ris_log::debug!(
                     "copied \"{}\" to \"{}\"!",
                     ris_io::path::to_str(copy_source),
                     ris_io::path::to_str(copy_target),
                 );
-
-
-
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {

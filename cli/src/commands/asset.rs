@@ -72,7 +72,7 @@ impl ICommand for Asset {
                 ));
                 explanation.push_str(&format!(
                     "default target: {}\n",
-                    asset_importer::DEFAULT_TARGET_DIRECTORY
+                    asset_importer::DEFAULT_IMPORT_DIRECTORY
                 ));
                 explanation
             }
@@ -152,11 +152,16 @@ impl Asset {
                 ),
             },
             AssetCommand::Import => match source_target {
-                Some((source, target)) => asset_importer::import_all(source, target, None),
+                Some((source, target)) => asset_importer::import_all(
+                    source,
+                    target,
+                    asset_importer::DEFAULT_IN_USE_DIRECTORY,
+                    None,
+                ),
                 None => asset_importer::import_all(
                     asset_importer::DEFAULT_SOURCE_DIRECTORY,
-                    asset_importer::DEFAULT_TARGET_DIRECTORY,
-                    //Some("temp"),
+                    asset_importer::DEFAULT_IMPORT_DIRECTORY,
+                    asset_importer::DEFAULT_IN_USE_DIRECTORY,
                     None,
                 ),
             },
