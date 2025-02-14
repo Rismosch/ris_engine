@@ -43,7 +43,7 @@ impl Drop for CompileOptions {
 }
 
 impl CompileOptions {
-    fn initialize() -> Option<Self> {
+    pub fn initialize() -> Option<Self> {
         let ptr = unsafe{shaderc::shaderc_compile_options_initialize()};
         let inner = NonNull::new(ptr)?;
 
@@ -53,7 +53,7 @@ impl CompileOptions {
         })
     }
     
-    fn clone(&self) -> Option<Self> {
+    pub fn clone(&self) -> Option<Self> {
         let ptr = unsafe{shaderc::shaderc_compile_options_clone(self.inner.as_ptr())};
         let inner = NonNull::new(ptr)?;
 
@@ -63,8 +63,7 @@ impl CompileOptions {
         })
     }
 
-    fn add_macro_definition(&mut self, name: impl AsRef<str>, value: Option<impl AsRef<str>>) {
-
+    pub fn add_macro_definition(&mut self, name: impl AsRef<str>, value: Option<impl AsRef<str>>) {
         let name = name.as_ref();
         let value = value.as_ref().map(|x| x.as_ref());
 
@@ -72,9 +71,7 @@ impl CompileOptions {
         let name_length = name.len();
 
         let (value_ptr, value_length) = match value {
-            Some(value) => {
-                (value.as_ptr() as *const c_char, 0)
-            },
+            Some(value) => (value.as_ptr() as *const c_char, value.len()),
             None => (std::ptr::null(), 0)
         };
 
