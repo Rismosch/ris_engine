@@ -14,3 +14,4 @@ ris_io = { path = "../ris_io" }
 ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
 ris_util = { path = "../ris_util" }
+#shaderc = { path = "../shaderc" }

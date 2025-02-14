@@ -1,4 +1,4 @@
-All files in `./external/` are not mine and are licensed under their respective licenses.
+All files in `./third_party/` are not mine and are licensed under their respective licenses.
 
 Project: Chart.js  
 URL: https://www.chartjs.org  

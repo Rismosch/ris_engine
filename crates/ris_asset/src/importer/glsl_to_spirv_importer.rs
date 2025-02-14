@@ -106,6 +106,8 @@ impl ShaderStage {
         //options: &shaderc::CompileOptions,
     //) -> RisResult<Option<CompilationArtifact>> {
     ) -> RisResult<Option<()>> {
+        //let test = shaderc::Compiler::initialize();
+
         //let source = match self.source {
         //    Some(source) => source,
         //    None => return Ok(None),

@@ -1,10 +1,22 @@
 use std::path::PathBuf;
 
 fn main() {
-    build_shaderc();
+    link_sdl2();
+    compile_and_link_imgui();
+    compile_and_link_shaderc();
 }
 
-fn build_shaderc() {
+fn link_sdl2() {
+    println!("cargo:rustc-link-lib=SDL2");
+
+    println!("cargo:rustc-link-search=native=external/SDL2/lib/x64");
+}
+
+fn compile_and_link_imgui() {
+
+}
+
+fn compile_and_link_shaderc() {
     let include_dir = "external/shaderc/libshaderc/include";
     let target_dir = "bindings_shaderc";
 
