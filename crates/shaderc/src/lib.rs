@@ -1,3 +1,2 @@
-pub mod env;
+pub mod bindings;
 pub mod shaderc;
-pub mod status;
