@@ -1,51 +1,62 @@
 use std::path::PathBuf;
 
 fn main() {
-    //link_sdl2();
-    //compile_and_link_imgui();
-    //compile_and_link_shaderc();
+    build_imgui();
 }
 
-fn link_sdl2() {
-    println!("cargo:rustc-link-lib=SDL2");
-
-    println!("cargo:rustc-link-search=native=external/SDL2/lib/x64");
-}
-
-fn compile_and_link_imgui() {
-
-}
-
-fn compile_and_link_shaderc() {
-    let include_dir = "external/shaderc/libshaderc/include";
-    let target_dir = "bindings_shaderc";
+fn build_imgui() {
+    // generate bindings
+    let include_dir = "third_party/imgui";
+    let target_dir = "bindings_imgui";
 
     generate_bindings(
-        "external/shaderc/libshaderc/include/shaderc/env.h",
+        "third_party/imgui/imconfig.h",
         include_dir,
         target_dir,
     );
     generate_bindings(
-        "external/shaderc/libshaderc/include/shaderc/shaderc.h",
+        "third_party/imgui/imgui.h",
         include_dir,
         target_dir,
     );
     generate_bindings(
-        "external/shaderc/libshaderc/include/shaderc/shaderc.hpp",
+        "third_party/imgui/imgui_internal.h",
         include_dir,
         target_dir,
     );
     generate_bindings(
-        "external/shaderc/libshaderc/include/shaderc/status.h",
+        "third_party/imgui/imstb_rectpack.h",
         include_dir,
         target_dir,
     );
     generate_bindings(
-        "external/shaderc/libshaderc/include/shaderc/visibility.h",
+        "third_party/imgui/imstb_textedit.h",
+        include_dir,
+        target_dir,
+    );
+    generate_bindings(
+        "third_party/imgui/imstb_truetype.h",
         include_dir,
         target_dir,
     );
 
+    // compile and link
+    cc::Build::new()
+        .cpp(true)
+        .include(include_dir)
+        .file("third_party/imgui/imgui.cpp")
+        .file("third_party/imgui/imgui_demo.cpp")
+        .file("third_party/imgui/imgui_draw.cpp")
+        .file("third_party/imgui/imgui_tables.cpp")
+        .file("third_party/imgui/imgui_widgets.cpp")
+        .flag_if_supported("-std=c++17")
+        .compile("imgui");
+
+    println!("cargo:rustc-link-lib=static=imgui");
+
+    //if std::env::var("TARGET").unwrap().contains("windows-msvc") {
+    //    println!("cargo:rustc-link-lib=dylib=stdc++");
+    //}
 }
 
 fn generate_bindings(header: &str, include_dir: &str, target_dir: &str) {
@@ -54,13 +65,15 @@ fn generate_bindings(header: &str, include_dir: &str, target_dir: &str) {
     let bindings = bindgen::Builder::default()
         .header(header)
         .clang_arg(format!("-I{}", include_dir))
+        .clang_arg("-xc++")
+        .clang_arg("-std=c++17")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("failed to generate bindings");
 
     let header_path = PathBuf::from(header);
     let filename = header_path
-        .file_name()
+        .file_stem()
         .expect("header path had no file name")
         .to_str()
         .expect("failed to convert OsStr to str")

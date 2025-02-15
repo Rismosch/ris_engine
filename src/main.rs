@@ -27,6 +27,10 @@ pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;
 
 fn main() -> Result<(), String> {
+    unsafe {
+        imgui::bindings::imgui::ImGui_CreateContext(std::ptr::null_mut());
+    }
+
     let result = match get_app_info() {
         Ok(app_info) => {
             if app_info.args.no_restart {

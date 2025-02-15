@@ -1,6 +1,3 @@
-# install
-/*.dll
-
 # cargo
 /.cargo
 /target
