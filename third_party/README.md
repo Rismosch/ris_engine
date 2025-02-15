@@ -6,20 +6,8 @@ License: MIT
 Upstream version: 2.9.4  
 Local modifications: None  
 
-Project: SDL2  
-URL: https://www.libsdl.org/  
-License: zlib  
-Upstream version: 2.28.5  
-Local modifications: None  
-
-Project: Shaderc_old  
-URL: https://github.com/google/shaderc  
-License: Apache-2.0  
-Upstream version: 2023.8.1  
-Local modifications: None  
-
-Project: shaderc  
-URL: https://github.com/google/shaderc  
-License: Apache-2.0  
-Upstream version: 2024.4  
+Project: imgui  
+URL: https://github.com/ocornut/imgui  
+License: MIT  
+Upstream version: commit a4ebe3d57637fa513ee44a153d083b04ccaebb7a (docking branch)  
 Local modifications: None  

@@ -2,8 +2,6 @@ use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use imgui::Ui;
-
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_ptr::Aref;
@@ -36,7 +34,6 @@ pub struct ScriptUpdateData<'a> {
 
 pub struct ScriptInspectData<'a> {
     pub id: String,
-    pub ui: &'a Ui,
     pub game_object: GameObjectHandle,
     pub frame: Frame,
     pub state: &'a GodState,

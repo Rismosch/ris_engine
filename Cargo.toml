@@ -56,19 +56,19 @@ ris_util = { path = "crates/ris_util" }
 ris_video_data = { path = "crates/ris_video_data" }
 ris_video_renderers = { path = "crates/ris_video_renderers" }
 
-# bindings
-shaderc = { path = "crates/shaderc" }
-
 # vendor
 ash = "0.37.3"
 cfg-if = "1"
 chrono = "0.4"
-imgui = { version = "0.11.0", features = ["docking"] }
-libc = "0.2"
 miniz_oxide = "=0.8.2"
 png = "0.17.10"
 sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
+shaderc = "0.8"
+
+[build-dependencies]
+bindgen = "0.71.0"
+libc = "0.2"
 
 [features]
 default = [

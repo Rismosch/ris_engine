@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 fn main() {
-    link_sdl2();
-    compile_and_link_imgui();
-    compile_and_link_shaderc();
+    //link_sdl2();
+    //compile_and_link_imgui();
+    //compile_and_link_shaderc();
 }
 
 fn link_sdl2() {

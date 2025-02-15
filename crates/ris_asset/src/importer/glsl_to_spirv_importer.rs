@@ -5,7 +5,7 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
-//use shaderc::CompilationArtifact;
+use shaderc::CompilationArtifact;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -102,77 +102,73 @@ impl ShaderStage {
         self,
         file: &str,
         temp_dir: Option<&Path>,
-        //compiler: &shaderc::Compiler,
-        //options: &shaderc::CompileOptions,
-    //) -> RisResult<Option<CompilationArtifact>> {
-    ) -> RisResult<Option<()>> {
-        //let test = shaderc::Compiler::initialize();
+        compiler: &shaderc::Compiler,
+        options: &shaderc::CompileOptions,
+    ) -> RisResult<Option<CompilationArtifact>> {
+        let source = match self.source {
+            Some(source) => source,
+            None => return Ok(None),
+        };
 
-        //let source = match self.source {
-        //    Some(source) => source,
-        //    None => return Ok(None),
-        //};
+        let file_path = PathBuf::from(file);
+        let file_stem = file_path.file_stem().into_ris_error()?;
+        let file_stem = file_stem.to_str().into_ris_error()?;
+        let file_extension = file_path.extension().into_ris_error()?;
+        let file_extension = file_extension.to_str().into_ris_error()?;
 
-        //let file_path = PathBuf::from(file);
-        //let file_stem = file_path.file_stem().into_ris_error()?;
-        //let file_stem = file_stem.to_str().into_ris_error()?;
-        //let file_extension = file_path.extension().into_ris_error()?;
-        //let file_extension = file_extension.to_str().into_ris_error()?;
+        let shader_extension = match self.kind {
+            ShaderKind::Vertex => VERT,
+            ShaderKind::Geometry => GEOM,
+            ShaderKind::Fragment => FRAG,
+        };
 
-        //let shader_extension = match self.kind {
-        //    ShaderKind::Vertex => VERT,
-        //    ShaderKind::Geometry => GEOM,
-        //    ShaderKind::Fragment => FRAG,
-        //};
+        let file = format!("{}.{}.{}", file_stem, shader_extension, file_extension);
 
-        //let file = format!("{}.{}.{}", file_stem, shader_extension, file_extension);
+        if let Some(temp_dir) = temp_dir {
+            let parent = file_path.parent().into_ris_error()?;
+            let parent = parent.to_str().into_ris_error()?;
+            let parent = parent.replace('\\', "/");
+            let parent = match parent.strip_prefix(PATH_PREFIX) {
+                Some(parent) => parent.to_string(),
+                None => parent,
+            };
+            let parent = PathBuf::from(parent);
 
-        //if let Some(temp_dir) = temp_dir {
-        //    let parent = file_path.parent().into_ris_error()?;
-        //    let parent = parent.to_str().into_ris_error()?;
-        //    let parent = parent.replace('\\', "/");
-        //    let parent = match parent.strip_prefix(PATH_PREFIX) {
-        //        Some(parent) => parent.to_string(),
-        //        None => parent,
-        //    };
-        //    let parent = PathBuf::from(parent);
+            let dir = temp_dir.join(parent).join(NAME);
+            let temp_file_path = dir.join(file.clone());
 
-        //    let dir = temp_dir.join(parent).join(NAME);
-        //    let temp_file_path = dir.join(file.clone());
+            std::fs::create_dir_all(dir)?;
+            let mut temp_file = std::fs::File::create(&temp_file_path)?;
+            ris_io::write(&mut temp_file, source.as_bytes())?;
 
-        //    std::fs::create_dir_all(dir)?;
-        //    let mut temp_file = std::fs::File::create(&temp_file_path)?;
-        //    ris_io::write(&mut temp_file, source.as_bytes())?;
+            ris_log::trace!(
+                "saved transpiled shader to: \"{}\"",
+                ris_io::path::to_str(temp_file_path),
+            );
+        }
 
-        //    ris_log::trace!(
-        //        "saved transpiled shader to: \"{}\"",
-        //        ris_io::path::to_str(temp_file_path),
-        //    );
-        //}
+        let artifact = compiler
+            .compile_into_spirv(
+                &source,
+                shaderc::ShaderKind::InferFromSource,
+                &file,
+                "main",
+                Some(options),
+            )
+            .map_err(|e| {
+                let mut log_source = String::new();
+                for (i, line) in source.lines().enumerate() {
+                    log_source.push_str(&format!("{:>8} {}\n", i + 1, line));
+                }
 
-        //let artifact = compiler
-        //    .compile_into_spirv(
-        //        &source,
-        //        shaderc::ShaderKind::InferFromSource,
-        //        &file,
-        //        "main",
-        //        Some(options),
-        //    )
-        //    .map_err(|e| {
-        //        let mut log_source = String::new();
-        //        for (i, line) in source.lines().enumerate() {
-        //            log_source.push_str(&format!("{:>8} {}\n", i + 1, line));
-        //        }
+                let base_message = format!("failed to compile shader \"{}\"", file);
 
-        //        let base_message = format!("failed to compile shader \"{}\"", file);
+                ris_log::error!("{}\n\nsource:\n{}\nerror:\n{}", base_message, log_source, e,);
 
-        //        ris_log::error!("{}\n\nsource:\n{}\nerror:\n{}", base_message, log_source, e,);
+                ris_error::new!("{}. check log for more infos.", base_message)
+            })?;
 
-        //        ris_error::new!("{}. check log for more infos.", base_message)
-        //    })?;
-
-        //Ok(Some(artifact))
-        todo!("")
+        Ok(Some(artifact))
     }
 }
 
@@ -299,38 +295,37 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
     }
 
     // compile to spirv
-    //let compiler = shaderc::Compiler::new().into_ris_error()?;
-    //let mut options = shaderc::CompileOptions::new().into_ris_error()?;
-    //options.set_warnings_as_errors();
-    //options.set_optimization_level(shaderc::OptimizationLevel::Performance);
+    let compiler = shaderc::Compiler::new().into_ris_error()?;
+    let mut options = shaderc::CompileOptions::new().into_ris_error()?;
+    options.set_warnings_as_errors();
+    options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
-    //let mut artifacts = Vec::new();
+    let mut artifacts = Vec::new();
 
-    //let vert_artifact = shader.vert.compile(file, temp_dir, &compiler, &options)?;
-    //artifacts.push(vert_artifact);
+    let vert_artifact = shader.vert.compile(file, temp_dir, &compiler, &options)?;
+    artifacts.push(vert_artifact);
 
-    //let geom_artifact = shader.geom.compile(file, temp_dir, &compiler, &options)?;
-    //artifacts.push(geom_artifact);
+    let geom_artifact = shader.geom.compile(file, temp_dir, &compiler, &options)?;
+    artifacts.push(geom_artifact);
 
-    //let frag_artifact = shader.frag.compile(file, temp_dir, &compiler, &options)?;
-    //artifacts.push(frag_artifact);
+    let frag_artifact = shader.frag.compile(file, temp_dir, &compiler, &options)?;
+    artifacts.push(frag_artifact);
 
-    //// save to file
-    //debug_assert_eq!(artifacts.len(), targets.len());
-    //for i in 0..artifacts.len() {
-    //    let artifact = &artifacts[i];
-    //    let target = &targets[i];
+    // save to file
+    debug_assert_eq!(artifacts.len(), targets.len());
+    for i in 0..artifacts.len() {
+        let artifact = &artifacts[i];
+        let target = &targets[i];
 
-    //    if let Some(artifact) = artifact {
-    //        let mut output = crate::asset_importer::create_file(target)?;
-    //        let bytes = artifact.as_binary_u8();
+        if let Some(artifact) = artifact {
+            let mut output = crate::asset_importer::create_file(target)?;
+            let bytes = artifact.as_binary_u8();
 
-    //        ris_io::write(&mut output, bytes)?;
-    //    }
-    //}
+            ris_io::write(&mut output, bytes)?;
+        }
+    }
 
-    //Ok(())
-    todo!()
+    Ok(())
 }
 
 fn string_to_region_kind(value: &str, file: &str, line: usize) -> RisResult<ShaderKind> {
