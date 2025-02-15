@@ -129,7 +129,32 @@ impl GodObject {
             unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
         let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
 
-        // imgui renderer
+        // imgui
+        imgui::imgui_checkversion();
+        let mut context = imgui::create_context();
+        let mut io = imgui::get_io(&mut context);
+
+        let mut config_flags = io.config_flags();
+        config_flags |= imgui::IMGUI_CONFIG_FLAGS_NAV_ENABLE_KEYBOARD;
+        config_flags |= imgui::IMGUI_CONFIG_FLAGS_NAV_ENABLE_GAMEPAD;
+        config_flags |= imgui::IMGUI_CONFIG_FLAGS_DOCKING_ENABLE;
+        config_flags |= imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE;
+        io.set_config_flags(config_flags);
+
+        imgui::style_colors_light(&mut context);
+
+        // there is so much to wrap in imgui style. but since i am not intending to make changes to
+        // the style, let alone heavy changes, i just talk to the bindings directly
+        unsafe {
+            let style = imgui::bindings::imgui::ImGui_GetStyle();
+            if config_flags & imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE != 0 {
+                (*style).WindowRounding = 0.0;
+                ((*style).Colors)[imgui::bindings::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w = 1.0;
+            }
+        }
+
+        imgui::backend::init_platform();
+        imgui::backend::init_renderer();
 
         //#[cfg(feature = "ui_helper_enabled")]
         //let (imgui_backend, imgui_renderer) = {
