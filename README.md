@@ -49,6 +49,11 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
+You will need the following tools:
+
+- rustc 1.77.2 and cargo to compile this repo. [download link](https://www.rust-lang.org/tools/install)
+- C++17 compiler to compile third_party libraries
+
 The target platform is x86_64. ris_engine compiles both on Windows and Linux. Other platforms may work, but I haven't tested platforms outside of these.
 
 Your hardware must support [Vulkan](https://www.vulkan.org/). Most modern GPUs work.
@@ -58,28 +63,22 @@ You also require an internet connection, to download dependencies from [crates.i
 
 ## Setup
 
-This engine is using various 3rd party libraries. While most are provided via [crates.io](https://crates.io/), some require prebuild binaries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors.
+This engine relies on the [Vulkan SDK](https://vulkan.lunarg.com/). ris_engine uses prebuild binaries and header files from it.
 
-You will need binaries for:
-- [SDL2](https://www.libsdl.org/)
-- [Shaderc](https://github.com/google/shaderc)
-
-For information on how to get and install these, click to reveal the instructions for the given platform.
+For information on how to get and install it, click to reveal the instructions for the given platform.
 
 ### Windows
 
 <details>
   <summary>click to reveal</summary>
 
-  The easies way to get the required binaries is to install the [Vulkan SDK](https://vulkan.lunarg.com/). The installation of the Vulkan SDK should also configure your environment correctly. To see whether the Vulkan SDK is installed properly, check if the environment variables `$VULKAN_SDK` and `$VK_SDK_PATH` are set, and check if they pointing to the location of your Vulkan SDK installation.
+  Download and run the SDK Installer from  https://vulkan.lunarg.com/sdk/home#windows
 
-  If you don't want to use the Vulkan SDK, you must download the required binaries seperately.
+  When running the SDK Installer, make sure that you select the SDL2 libraries and headers.
 
-  All further instructions assume `$VULKAN_SDK` is properly set.
+  To see whether the Vulkan SDK was installed properly, check if the environment variables `$VULKAN_SDK` and `$VK_SDK_PATH` are set, and check if they pointing to the location of your Vulkan SDK installation.
 
-  #### SDL2
-
-  SDL2 needs to link statically. Assuming you are using `rustup`, copy `$VULKAN_SDK\Lib\SDL2.lib` into the following directory:
+  For ris_engine to be able to use SDL2 properly, we need to to do a few more steps. SDL2 needs to link statically. Assuming you are using `rustup`, copy `$VULKAN_SDK\Lib\SDL2.lib` into the following directory:
 
   ```powershell
   C:\Users\<your username>\.rustup\toolchains\<toolchain channel>\lib\rustlib\<current toolchain>\lib
@@ -88,12 +87,6 @@ For information on how to get and install these, click to reveal the instruction
   If you are not using `rustup`, you need to figure out how to link against `$VULKAN_SDK\Lib\SDL2.lib`.
 
   SDL2 also needs `$VULKAN_SDK\Bin\SDL2.dll` at runtime. There are many ways on how to accomplish this. One way is to copy the DLL to the root of this repo. But I recommend you to add `$VULKAN_SDK\Bin` to your environemnt variables. The Vulkan SDK provides useful tools that you may want in your environment.
-
-  #### Shaderc
-
-  When you are using a properly installed Vulkan SDK, Shaderc should work out of the box.
-
-  If you are not using the Vulkan SDK, you must configure Shaderc manually. Here are instructions on the needed setup: https://github.com/google/shaderc-rs/blob/4e0441563a49009a24916a0e4c6577532bf990a0/README.md#setup
 
 </details>
 
