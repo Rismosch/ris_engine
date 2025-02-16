@@ -15,7 +15,7 @@ pub unsafe fn handle_event(keyboard_data: &mut KeyboardData, event: &SDL_Event) 
             .take_while(|&&x| x != 0)
             .map(|&x| x as u8)
             .collect::<Vec<_>>();
-        
+
         if let Ok(text) = String::from_utf8(text_bytes) {
             keyboard_data.text_input.push(text);
         }

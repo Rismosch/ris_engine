@@ -30,15 +30,12 @@ use ris_video_renderers::SceneRenderer;
 //#[cfg(feature = "ui_helper_enabled")]
 //use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
-
-
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
 //#[cfg(feature = "ui_helper_enabled")]
 //use crate::ui_helper::UiHelper;
 
 pub struct GodObject {
-
     // fields are dropped in the order they are listed.
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
@@ -166,11 +163,12 @@ impl GodObject {
             let style = imgui::bindings::imgui::ImGui_GetStyle();
             if config_flags & imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE != 0 {
                 (*style).WindowRounding = 0.0;
-                ((*style).Colors)[imgui::bindings::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w = 1.0;
+                ((*style).Colors)[imgui::bindings::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w =
+                    1.0;
             }
         }
 
-        let imgui_backends = unsafe {ImGuiBackends::init(&window)};
+        let imgui_backends = unsafe { ImGuiBackends::init(&window) };
 
         //#[cfg(feature = "ui_helper_enabled")]
         //let (imgui_backend, imgui_renderer) = {

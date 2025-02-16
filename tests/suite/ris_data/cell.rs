@@ -297,4 +297,3 @@ fn should_panic_when_deref_mut_and_cell_was_dropped_in_multiple_threads() {
 
     handle.join().unwrap();
 }
-

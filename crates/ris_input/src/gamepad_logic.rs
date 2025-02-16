@@ -45,7 +45,7 @@ impl GamepadLogic {
             let which = event.cdevice.which as u32;
             self.add_controller(which);
         }
-        
+
         if event.type_ == SDL_EventType::SDL_CONTROLLERDEVICEREMOVED as u32 {
             let which = event.cdevice.which as u32;
             self.remove_controller(which);

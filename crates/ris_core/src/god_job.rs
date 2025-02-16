@@ -54,7 +54,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                     input_state = GameloopState::WantsToQuit;
                 }
 
-                if event.type_ == SDL_EventType::SDL_WINDOWEVENT as u32 && event.window.type_ == sdl2_sys::SDL_WindowEventID::SDL_WINDOWEVENT_RESIZED as u32{
+                if event.type_ == SDL_EventType::SDL_WINDOWEVENT as u32
+                    && event.window.type_
+                        == sdl2_sys::SDL_WindowEventID::SDL_WINDOWEVENT_RESIZED as u32
+                {
                     let w = event.window.data1 as u32;
                     let h = event.window.data2 as u32;
                     god_object.state.event_window_resized = Some((w, h));
@@ -62,7 +65,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 }
 
                 ris_input::mouse_logic::handle_event(&mut god_object.state.input.mouse, &event);
-                ris_input::keyboard_logic::handle_event(&mut god_object.state.input.keyboard, &event);
+                ris_input::keyboard_logic::handle_event(
+                    &mut god_object.state.input.keyboard,
+                    &event,
+                );
                 god_object.gamepad_logic.handle_event(&event);
             }
         }
@@ -76,9 +82,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             god_object.event_pump.keyboard_state(),
             god_object.keyboard_util.mod_state(),
         );
-        god_object.gamepad_logic.post_events(
-            &mut god_object.state.input.gamepad
-        );
+        god_object
+            .gamepad_logic
+            .post_events(&mut god_object.state.input.gamepad);
 
         ris_input::general_logic::update_general(&mut god_object.state);
 
@@ -136,11 +142,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // continue?
         let wants_to_quit =
-            input_state == GameloopState::WantsToQuit ||
-            output_state == GameloopState::WantsToQuit;
-        let wants_to_restart =
-            input_state == GameloopState::WantsToRestart ||
-            output_state == GameloopState::WantsToRestart;
+            input_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+        let wants_to_restart = input_state == GameloopState::WantsToRestart
+            || output_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {
             Some(WantsTo::Quit)

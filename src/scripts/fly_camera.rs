@@ -1,7 +1,5 @@
 use std::f32::consts::PI;
 
-use sdl2::keyboard::Scancode;
-
 use ris_data::ecs::script_prelude::*;
 use ris_data::input::action;
 use ris_math::quaternion::Quat;
