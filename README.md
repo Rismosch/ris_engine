@@ -51,10 +51,10 @@ Barebones game engine. Home made passion project.
 
 You will need the following tools:
 
-- rustc 1.77.2 and cargo to compile this repo. [download link](https://www.rust-lang.org/tools/install)
+- rustc and cargo version to compile this repo. I am using version 1.77.2. Newer versions may work, but I haven't tested these. [download link](https://www.rust-lang.org/tools/install)
 - C++17 compiler to compile third_party libraries
 
-The target platform is x86_64. ris_engine compiles both on Windows and Linux. Other platforms may work, but I haven't tested platforms outside of these.
+The target platform is x86_64. ris_engine compiles both to Windows and Linux. Other platforms may work, but I haven't tested platforms outside of these.
 
 Your hardware must support [Vulkan](https://www.vulkan.org/). Most modern GPUs work.
 
@@ -72,13 +72,13 @@ For information on how to get and install it, click to reveal the instructions f
 <details>
   <summary>click to reveal</summary>
 
-  Download and run the SDK Installer from  https://vulkan.lunarg.com/sdk/home#windows
+  Download and run the SDK Installer from https://vulkan.lunarg.com/sdk/home#windows
 
   When running the SDK Installer, make sure that you select the SDL2 libraries and headers.
 
   To see whether the Vulkan SDK was installed properly, check if the environment variables `$VULKAN_SDK` and `$VK_SDK_PATH` are set, and check if they pointing to the location of your Vulkan SDK installation.
 
-  For ris_engine to be able to use SDL2 properly, we need to to do a few more steps. SDL2 needs to link statically. Assuming you are using `rustup`, copy `$VULKAN_SDK\Lib\SDL2.lib` into the following directory:
+  For ris_engine to be able to use SDL2 properly, a few more steps are necessary. First, SDL2 needs to link. Assuming you are using `rustup`, copy `$VULKAN_SDK\Lib\SDL2.lib` into the following directory:
 
   ```powershell
   C:\Users\<your username>\.rustup\toolchains\<toolchain channel>\lib\rustlib\<current toolchain>\lib
