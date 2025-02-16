@@ -1,90 +1,26 @@
 use std::f32::consts::PI;
 
-use sdl2::event::Event;
-use sdl2::event::WindowEvent;
-use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
-use sdl2::EventPump;
-use sdl2::GameControllerSubsystem;
 
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_data::input::action;
 use ris_error::RisResult;
-use ris_input::gamepad_logic::GamepadLogic;
-use ris_input::general_logic::update_general;
-use ris_input::keyboard_logic;
-use ris_input::mouse_logic;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+#[derive(Default)]
 pub struct LogicFrame {
-    // input
-    event_pump: EventPump,
-    keyboard_util: KeyboardUtil,
-    gamepad_logic: GamepadLogic,
-
     // camera
     camera_horizontal_angle: f32,
     camera_vertical_angle: f32,
 }
 
 impl LogicFrame {
-    pub fn new(
-        event_pump: EventPump,
-        keyboard_util: KeyboardUtil,
-        controller_subsystem: GameControllerSubsystem,
-    ) -> Self {
-        Self {
-            event_pump,
-            keyboard_util,
-            gamepad_logic: GamepadLogic::new(controller_subsystem),
-
-            camera_horizontal_angle: 0.,
-            camera_vertical_angle: 0.,
-        }
-    }
-
     pub fn run(&mut self, frame: Frame, state: &mut GodState) -> RisResult<GameloopState> {
-        // input
-        mouse_logic::pre_events(&mut state.input.mouse);
-        keyboard_logic::pre_events(&mut state.input.keyboard);
-
-        for event in self.event_pump.poll_iter() {
-            if let Event::Quit { .. } = event {
-                return Ok(GameloopState::WantsToQuit);
-            };
-
-            if let Event::Window {
-                win_event: WindowEvent::SizeChanged(w, h),
-                ..
-            } = event
-            {
-                state.event_window_resized = Some((w as u32, h as u32));
-                ris_log::trace!("window changed size to {}x{}", w, h);
-            }
-
-            mouse_logic::handle_event(&mut state.input.mouse, &event);
-            keyboard_logic::handle_event(&mut state.input.keyboard, &event);
-            self.gamepad_logic.handle_event(&event);
-        }
-
-        mouse_logic::post_events(&mut state.input.mouse, self.event_pump.mouse_state());
-
-        keyboard_logic::post_events(
-            &mut state.input.keyboard,
-            self.event_pump.keyboard_state(),
-            self.keyboard_util.mod_state(),
-        );
-
-        self.gamepad_logic.post_events(&mut state.input.gamepad);
-
-        update_general(state);
-
         let input = &state.input;
 
-        // game logic
         if state.debug_ui_is_focused {
             return Ok(GameloopState::WantsToContinue);
         }
@@ -152,6 +88,14 @@ impl LogicFrame {
         }
 
         if input.keyboard.keys.is_down(Scancode::F) {
+            println!(
+                "{:?} ({} fps)",
+                frame.average_duration(),
+                frame.average_fps()
+            );
+        }
+
+        if frame.number() % 100 == 0 {
             println!(
                 "{:?} ({} fps)",
                 frame.average_duration(),

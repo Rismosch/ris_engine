@@ -48,15 +48,6 @@ pub struct OutputFrame {
 impl Drop for OutputFrame {
     fn drop(&mut self) {
         unsafe {
-            if let Err(e) = self.wait_idle() {
-                ris_log::fatal!(
-                    "cannot clean up output frame. device_wait_idle failed: {}",
-                    e
-                );
-
-                return;
-            }
-
             let device = &self.core.device;
 
             self.renderer.scene.free(device);
@@ -85,6 +76,7 @@ impl OutputFrame {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
+            std::thread::sleep(ris_data::gameloop::frame::IDEAL_DURATION);
             return Ok(GameloopState::WantsToContinue);
         }
 

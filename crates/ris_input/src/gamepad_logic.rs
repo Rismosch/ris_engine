@@ -1,6 +1,7 @@
 use sdl2::controller::GameController;
-use sdl2::event::Event;
 use sdl2::GameControllerSubsystem;
+use sdl2_sys::SDL_Event;
+use sdl2_sys::SDL_EventType;
 
 use ris_data::input::gamepad_data::GamepadData;
 
@@ -24,29 +25,35 @@ impl GamepadLogic {
         }
     }
 
-    pub fn handle_event(&mut self, event: &Event) {
-        if let Event::ControllerAxisMotion { which, .. } = event {
-            self.update_current_controller(*which);
+    pub unsafe fn handle_event(&mut self, event: &SDL_Event) {
+        if event.type_ == SDL_EventType::SDL_CONTROLLERAXISMOTION as u32 {
+            let which = event.caxis.which as u32;
+            self.update_current_controller(which);
         }
 
-        if let Event::ControllerButtonDown { which, .. } = event {
-            self.update_current_controller(*which);
+        if event.type_ == SDL_EventType::SDL_CONTROLLERBUTTONDOWN as u32 {
+            let which = event.cbutton.which as u32;
+            self.update_current_controller(which);
         }
 
-        if let Event::ControllerButtonUp { which, .. } = event {
-            self.update_current_controller(*which);
+        if event.type_ == SDL_EventType::SDL_CONTROLLERBUTTONUP as u32 {
+            let which = event.cbutton.which as u32;
+            self.update_current_controller(which);
         }
 
-        if let Event::ControllerDeviceAdded { which, .. } = event {
-            self.add_controller(*which);
+        if event.type_ == SDL_EventType::SDL_CONTROLLERDEVICEADDED as u32 {
+            let which = event.cdevice.which as u32;
+            self.add_controller(which);
+        }
+        
+        if event.type_ == SDL_EventType::SDL_CONTROLLERDEVICEREMOVED as u32 {
+            let which = event.cdevice.which as u32;
+            self.remove_controller(which);
         }
 
-        if let Event::ControllerDeviceRemoved { which, .. } = event {
-            self.remove_controller(*which);
-        }
-
-        if let Event::ControllerDeviceRemapped { which, .. } = event {
-            ris_log::info!("controller \"{}\" remapped", which);
+        if event.type_ == SDL_EventType::SDL_CONTROLLERDEVICEREMAPPED as u32 {
+            let which = event.cdevice.which as u32;
+            ris_log::warning!("controller \"{}\" remapped", which);
         }
     }
 

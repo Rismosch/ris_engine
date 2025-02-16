@@ -1,3 +1,5 @@
+use sdl2_sys::SDL_EventType;
+
 use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_jobs::job_system;
@@ -38,6 +40,47 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
             (settings_serializer, result)
         });
+
+        ris_debug::add_record!(r, "input")?;
+        ris_input::mouse_logic::pre_events(&mut god_object.state.input.mouse);
+        ris_input::keyboard_logic::pre_events(&mut god_object.state.input.keyboard);
+
+        let mut input_state = GameloopState::WantsToContinue;
+        unsafe {
+            while let Some(event) = imgui::util::poll_sdl2_event() {
+                god_object.imgui_backends.process_event(&event);
+
+                if event.type_ == SDL_EventType::SDL_QUIT as u32 {
+                    input_state = GameloopState::WantsToQuit;
+                }
+
+                if event.type_ == SDL_EventType::SDL_WINDOWEVENT as u32 && event.window.type_ == sdl2_sys::SDL_WindowEventID::SDL_WINDOWEVENT_RESIZED as u32{
+                    let w = event.window.data1 as u32;
+                    let h = event.window.data2 as u32;
+                    god_object.state.event_window_resized = Some((w, h));
+                    ris_log::trace!("window changed size to {}x{}", w, h);
+                }
+
+                ris_input::mouse_logic::handle_event(&mut god_object.state.input.mouse, &event);
+                ris_input::keyboard_logic::handle_event(&mut god_object.state.input.keyboard, &event);
+                god_object.gamepad_logic.handle_event(&event);
+            }
+        }
+
+        ris_input::mouse_logic::post_events(
+            &mut god_object.state.input.mouse,
+            god_object.event_pump.mouse_state(),
+        );
+        ris_input::keyboard_logic::post_events(
+            &mut god_object.state.input.keyboard,
+            god_object.event_pump.keyboard_state(),
+            god_object.keyboard_util.mod_state(),
+        );
+        god_object.gamepad_logic.post_events(
+            &mut god_object.state.input.gamepad
+        );
+
+        ris_input::general_logic::update_general(&mut god_object.state);
 
         ris_debug::add_record!(r, "logic frame")?;
         let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
@@ -96,9 +139,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // continue?
         let wants_to_quit =
-            logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
-        let wants_to_restart = logic_state == GameloopState::WantsToRestart
-            || output_state == GameloopState::WantsToRestart;
+            input_state == GameloopState::WantsToQuit ||
+            logic_state == GameloopState::WantsToQuit ||
+            output_state == GameloopState::WantsToQuit;
+        let wants_to_restart =
+            input_state == GameloopState::WantsToRestart ||
+            logic_state == GameloopState::WantsToRestart ||
+            output_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {
             Some(WantsTo::Quit)

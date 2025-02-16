@@ -242,6 +242,10 @@ dependencies = [
 [[package]]
 name = "imgui"
 version = "0.1.0"
+dependencies = [
+ "sdl2",
+ "sdl2-sys",
+]
 
 [[package]]
 name = "imgui"
@@ -610,6 +614,7 @@ dependencies = [
  "ris_log",
  "ris_util",
  "sdl2",
+ "sdl2-sys",
 ]
 
 [[package]]

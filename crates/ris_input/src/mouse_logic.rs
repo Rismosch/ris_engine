@@ -1,4 +1,5 @@
-use sdl2::event::Event;
+use sdl2_sys::SDL_Event;
+use sdl2_sys::SDL_EventType;
 
 use ris_data::input::mouse_data::MouseData;
 
@@ -9,20 +10,17 @@ pub fn pre_events(mouse_data: &mut MouseData) {
     mouse_data.wheel_yrel = 0;
 }
 
-pub fn handle_event(mouse_data: &mut MouseData, event: &Event) {
-    if let Event::MouseMotion {
-        x, y, xrel, yrel, ..
-    } = event
-    {
-        mouse_data.x = *x;
-        mouse_data.y = *y;
-        mouse_data.xrel += xrel;
-        mouse_data.yrel += yrel;
+pub unsafe fn handle_event(mouse_data: &mut MouseData, event: &SDL_Event) {
+    if event.type_ == SDL_EventType::SDL_MOUSEMOTION as u32 {
+        mouse_data.x = event.motion.x;
+        mouse_data.y = event.motion.y;
+        mouse_data.xrel += event.motion.xrel;
+        mouse_data.yrel += event.motion.yrel;
     }
 
-    if let Event::MouseWheel { x, y, .. } = event {
-        mouse_data.wheel_xrel += x;
-        mouse_data.wheel_yrel += y;
+    if event.type_ == SDL_EventType::SDL_MOUSEWHEEL as u32 {
+        mouse_data.wheel_xrel += event.wheel.x;
+        mouse_data.wheel_yrel += event.wheel.y;
     }
 }
 

@@ -1,4 +1,11 @@
+use sdl2::event::Event;
+use sdl2::event::WindowEvent;
+use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
+use sdl2::EventPump;
+use sdl2::GameControllerSubsystem;
+
+use imgui::backends::ImGuiBackends;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
@@ -13,6 +20,7 @@ use ris_data::settings::Settings;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
+use ris_input::gamepad_logic::GamepadLogic;
 use ris_jobs::job_system;
 use ris_jobs::job_system::JobSystemGuard;
 use ris_video_data::core::VulkanCore;
@@ -22,6 +30,8 @@ use ris_video_renderers::SceneRenderer;
 //#[cfg(feature = "ui_helper_enabled")]
 //use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
+
+
 use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
@@ -29,16 +39,21 @@ use crate::output_frame::Renderer;
 //use crate::ui_helper::UiHelper;
 
 pub struct GodObject {
+
+    // fields are dropped in the order they are listed.
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
+    pub event_pump: EventPump,
+    pub keyboard_util: KeyboardUtil,
+    pub gamepad_logic: GamepadLogic,
+    pub imgui_backends: ImGuiBackends, // must be dropped before logic_frame
     pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
 
     // guards, must be dropped last.
-    // they are dropped in the order they are listed.
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
@@ -100,6 +115,10 @@ impl GodObject {
             .game_controller()
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
+        // input
+        let keyboard_util = sdl_context.keyboard();
+        let gamepad_logic = GamepadLogic::new(controller_subsystem);
+
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
         let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
@@ -153,8 +172,7 @@ impl GodObject {
             }
         }
 
-        imgui::backend::init_platform();
-        imgui::backend::init_renderer();
+        let imgui_backends = unsafe {ImGuiBackends::init(&window)};
 
         //#[cfg(feature = "ui_helper_enabled")]
         //let (imgui_backend, imgui_renderer) = {
@@ -166,7 +184,7 @@ impl GodObject {
         //};
 
         // logic frame
-        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
+        let logic_frame = LogicFrame::default();
 
         // output frame
         //#[cfg(feature = "ui_helper_enabled")]
@@ -222,6 +240,10 @@ impl GodObject {
             app_info,
             settings_serializer,
             frame_calculator,
+            imgui_backends,
+            event_pump,
+            keyboard_util,
+            gamepad_logic,
             logic_frame,
             output_frame,
             god_asset,
