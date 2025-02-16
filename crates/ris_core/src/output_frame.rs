@@ -211,7 +211,9 @@ impl OutputFrame {
         ris_debug::add_record!(r, "prepare camera")?;
         let window_drawable_size = self.window.vulkan_drawable_size();
         let (w, h) = (window_drawable_size.0 as f32, window_drawable_size.1 as f32);
-        state.camera.aspect_ratio = w / h;
+        let mut camera_mut = state.camera.borrow_mut();
+        camera_mut.aspect_ratio = w / h;
+        let camera = &*camera_mut;
 
         // scene
         ris_debug::add_record!(r, "scene")?;
@@ -219,7 +221,7 @@ impl OutputFrame {
             &self.core,
             swapchain_entry,
             window_drawable_size,
-            &state.camera,
+            camera,
             &state.scene,
         )?;
 
@@ -227,7 +229,7 @@ impl OutputFrame {
         ris_debug::add_record!(r, "gizmos")?;
 
         ris_debug::add_record!(r, "get segment vertices")?;
-        let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(&state.camera)?;
+        let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(camera)?;
 
         ris_debug::add_record!(r, "get text vertices")?;
         let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
@@ -239,7 +241,7 @@ impl OutputFrame {
             &gizmo_text_vertices,
             &gizmo_text_texture,
             window_drawable_size,
-            &state.camera,
+            camera,
         )?;
 
         ris_debug::add_record!(r, "draw segments")?;
@@ -248,7 +250,7 @@ impl OutputFrame {
             swapchain_entry,
             &gizmo_segment_vertices,
             window_drawable_size,
-            &state.camera,
+            camera,
         )?;
 
         ris_debug::add_record!(r, "gizmo new frame")?;

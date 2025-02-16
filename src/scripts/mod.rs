@@ -1,3 +1,6 @@
+pub mod fly_camera;
+pub mod test;
+
 use ris_core::god_object::GodObject;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshRendererComponentHandle;
@@ -6,13 +9,14 @@ use ris_data::ecs::mesh::Mesh;
 use ris_data::ecs::registry::Registry;
 use ris_error::RisResult;
 
-pub mod test;
-
 pub fn registry() -> RisResult<Registry> {
     Registry::new(vec![Registry::script::<test::TestRotationScript>()?])
 }
 
-pub fn spawn_many_objects(god_object: &GodObject) -> RisResult<()> {
+pub fn setup_scene(god_object: &GodObject) -> RisResult<()> {
+    let camera_game_object = GameObjectHandle::new(&god_object.state.scene)?;
+    camera_game_object.add_script::<fly_camera::FlyCameraScript>(&god_object.state.scene)?;
+
     let mut rng = ris_rng::rng::Rng::new(ris_rng::rng::Seed::new()?);
 
     let count = 1000;

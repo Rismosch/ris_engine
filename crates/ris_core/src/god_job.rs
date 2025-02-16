@@ -82,9 +82,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         ris_input::general_logic::update_general(&mut god_object.state);
 
-        ris_debug::add_record!(r, "logic frame")?;
-        let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
-
+        ris_debug::add_record!(r, "script update")?;
         for script in god_object.state.scene.script_components.iter() {
             let mut aref_mut = script.borrow_mut();
             if aref_mut.is_alive {
@@ -132,7 +130,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "handle errors")?;
 
         save_settings_result?;
-        let logic_state = logic_result?;
         let output_state = output_result?;
 
         ris_debug::end_record!(r)?;
@@ -140,11 +137,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         // continue?
         let wants_to_quit =
             input_state == GameloopState::WantsToQuit ||
-            logic_state == GameloopState::WantsToQuit ||
             output_state == GameloopState::WantsToQuit;
         let wants_to_restart =
             input_state == GameloopState::WantsToRestart ||
-            logic_state == GameloopState::WantsToRestart ||
             output_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {

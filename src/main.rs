@@ -104,7 +104,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
         }
     };
 
-    scripts::spawn_many_objects(&god_object)?;
+    scripts::setup_scene(&god_object)?;
 
     let result = match god_job::run(god_object) {
         Ok(result) => result,

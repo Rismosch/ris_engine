@@ -32,7 +32,6 @@ use ris_video_renderers::SceneRenderer;
 
 
 
-use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
 //#[cfg(feature = "ui_helper_enabled")]
@@ -48,7 +47,6 @@ pub struct GodObject {
     pub keyboard_util: KeyboardUtil,
     pub gamepad_logic: GamepadLogic,
     pub imgui_backends: ImGuiBackends, // must be dropped before logic_frame
-    pub logic_frame: LogicFrame,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
@@ -183,9 +181,6 @@ impl GodObject {
         //    (imgui_backend, imgui_renderer)
         //};
 
-        // logic frame
-        let logic_frame = LogicFrame::default();
-
         // output frame
         //#[cfg(feature = "ui_helper_enabled")]
         //let ui_helper = UiHelper::new(&app_info)?;
@@ -244,7 +239,6 @@ impl GodObject {
             event_pump,
             keyboard_util,
             gamepad_logic,
-            logic_frame,
             output_frame,
             god_asset,
             state,

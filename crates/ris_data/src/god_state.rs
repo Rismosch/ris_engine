@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use ris_error::RisResult;
 use ris_math::camera::Camera;
+use ris_ptr::ArefCell;
 
 use crate::ecs::scene::Scene;
 use crate::ecs::scene::SceneCreateInfo;
@@ -17,7 +18,7 @@ pub struct GodState {
     // general
     pub input: Input,
     pub scene: Arc<Scene>,
-    pub camera: Camera,
+    pub camera: Arc<ArefCell<Camera>>,
 
     pub debug_ui_is_focused: bool,
 
@@ -35,7 +36,7 @@ impl GodState {
             // general
             input: Input::default(),
             scene: Arc::new(Scene::new(info)?),
-            camera: Camera::default(),
+            camera: Arc::default(),
 
             debug_ui_is_focused: false,
 
