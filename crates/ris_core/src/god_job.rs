@@ -47,7 +47,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         let mut input_state = GameloopState::WantsToContinue;
         unsafe {
-            while let Some(event) = imgui::util::poll_sdl2_event() {
+            loop {
+                let mut raw = std::mem::MaybeUninit::uninit();
+                let has_pending = sdl2_sys::SDL_PollEvent(raw.as_mut_ptr()) == 1;
+                if !has_pending {
+                    break;
+                }
+
+                let event = raw.assume_init();
+
                 god_object.imgui_backends.process_event(&event);
 
                 if event.type_ == SDL_EventType::SDL_QUIT as u32 {
@@ -97,10 +105,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
 
         ris_debug::add_record!(r, "output frame")?;
-        let output_result =
-            god_object
-                .output_frame
-                .run(frame, &mut god_object.state, &god_object.god_asset);
+        let output_result = god_object.output_frame.run(
+            frame,
+            &mut god_object.state,
+            &god_object.god_asset,
+            &mut god_object.imgui_backends,
+        );
 
         // wait for jobs
         ris_debug::add_record!(r, "wait for jobs")?;

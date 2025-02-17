@@ -72,6 +72,7 @@ impl OutputFrame {
         frame: Frame,
         state: &mut GodState,
         god_asset: &RisGodAsset,
+        imgui: &mut imgui::backends::ImGuiBackends,
     ) -> RisResult<GameloopState> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
@@ -108,36 +109,6 @@ impl OutputFrame {
         unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
         unsafe { device.reset_fences(&[*in_flight]) }?;
 
-        // ui helper
-        let ui_helper_state = {
-            //#[cfg(feature = "ui_helper_enabled")]
-            //{
-            //    ris_debug::add_record!(r, "ui helper")?;
-
-            //    let window_size = self.window.size();
-            //    let window_drawable_size = self.window.vulkan_drawable_size();
-            //    let imgui_ui = self.imgui_backend.prepare_frame(
-            //        frame,
-            //        state,
-            //        (window_size.0 as f32, window_size.1 as f32),
-            //        (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-            //    );
-
-            //    self.ui_helper.draw(UiHelperDrawData {
-            //        ui: imgui_ui,
-            //        frame,
-            //        state,
-            //        window_drawable_size,
-            //    })?
-            //}
-
-            //#[cfg(not(feature = "ui_helper_enabled"))]
-            {
-                let _ = frame;
-                GameloopState::WantsToContinue
-            }
-        };
-
         // rebuild renderers
         ris_debug::add_record!(r, "rebuild renderers")?;
         if state.event_rebuild_renderers {
@@ -163,6 +134,41 @@ impl OutputFrame {
                 ris_log::debug!("rebuilt renderers!");
             }
         }
+
+        // ui helper
+        let ui_helper_state = {
+            #[cfg(feature = "ui_helper_enabled")]
+            {
+                ris_debug::add_record!(r, "ui helper")?;
+
+                let window_size = self.window.size();
+                let window_drawable_size = self.window.vulkan_drawable_size();
+
+                imgui.new_frame();
+
+                //let imgui_ui = self.imgui_backend.prepare_frame(
+                //    frame,
+                //    state,
+                //    (window_size.0 as f32, window_size.1 as f32),
+                //    (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
+                //);
+
+                //self.ui_helper.draw(UiHelperDrawData {
+                //    ui: imgui_ui,
+                //    frame,
+                //    state,
+                //    window_drawable_size,
+                //})?
+
+                GameloopState::WantsToContinue
+            }
+
+            #[cfg(not(feature = "ui_helper_enabled"))]
+            {
+                let _ = frame;
+                GameloopState::WantsToContinue
+            }
+        };
 
         // acquire an image from the swap chain
         ris_debug::add_record!(r, "acquire an image from the swapchain")?;
@@ -257,16 +263,17 @@ impl OutputFrame {
         ris_debug::gizmo::new_frame()?;
 
         // imgui
-        //#[cfg(feature = "ui_helper_enabled")]
-        //{
-        //    ris_debug::add_record!(r, "imgui backend")?;
-        //    let draw_data = self.imgui_backend.context().render();
+        #[cfg(feature = "ui_helper_enabled")]
+        {
+            ris_debug::add_record!(r, "imgui backend")?;
+            //let draw_data = self.imgui_backend.context().render();
 
-        //    ris_debug::add_record!(r, "imgui frontend")?;
-        //    self.renderer
-        //        .imgui
-        //        .draw(&self.core, swapchain_entry, draw_data)?;
-        //}
+            ris_debug::add_record!(r, "imgui frontend")?;
+            //self.renderer
+            //    .imgui
+            //    .draw(&self.core, swapchain_entry, draw_data)?;
+        }
+
 
         // end command buffer and submit
         ris_debug::add_record!(r, "submit command buffer")?;

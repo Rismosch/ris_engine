@@ -11,7 +11,6 @@ fn build_imgui() {
     let target_dir = "bindings_imgui";
     let vulkan_sdk_dir = std::env::var("VULKAN_SDK").expect("Vulkan SDK not found");
     let vulkan_include_dir = &format!("{}/Include", vulkan_sdk_dir);
-    let vulkan_lib_dir = &format!("{}/Lib", vulkan_sdk_dir);
     
     generate_bindings(
         format!("{}/imconfig.h", imgui_dir),
@@ -44,11 +43,6 @@ fn build_imgui() {
         &[imgui_dir],
         format!("{}/backends", target_dir),
     );
-    generate_bindings(
-        format!("{}/backends/imgui_impl_vulkan.h", imgui_dir),
-        &[imgui_dir, vulkan_include_dir],
-        format!("{}/backends", target_dir),
-    );
 
     // compile and link
     cc::Build::new()
@@ -64,13 +58,9 @@ fn build_imgui() {
         .file(format!("{}/imgui_tables.cpp", imgui_dir))
         .file(format!("{}/imgui_widgets.cpp", imgui_dir))
         .file(format!("{}/backends/imgui_impl_sdl2.cpp", imgui_dir))
-        .file(format!("{}/backends/imgui_impl_vulkan.cpp", imgui_dir))
         .compile("imgui");
 
     println!("cargo:rustc-link-lib=static=imgui");
-
-    println!("cargo:rustc-link-search=native={}", vulkan_lib_dir);
-    println!("cargo:rustc-link-lib=vulkan-1");
 }
 
 fn generate_bindings(

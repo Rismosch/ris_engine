@@ -168,7 +168,7 @@ impl GodObject {
             }
         }
 
-        let imgui_backends = unsafe { ImGuiBackends::init(&window, &vulkan_core.instance) }?;
+        let imgui_backends = unsafe { ImGuiBackends::init(&window) };
 
         //#[cfg(feature = "ui_helper_enabled")]
         //let (imgui_backend, imgui_renderer) = {
