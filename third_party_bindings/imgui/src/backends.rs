@@ -1,7 +1,7 @@
-use std::marker::PhantomData;
+use std::ffi::CStr;
+use std::ffi::CString;
 
 use ash::vk;
-use sdl2::event::EventType;
 use sdl2::video::Window;
 use sdl2_sys::SDL_Event;
 
@@ -36,20 +36,29 @@ impl Drop for ImGuiBackends {
         unsafe {
             imgui_impl_vulkan::ImGui_ImplVulkan_Shutdown();
             imgui_impl_sdl2::ImGui_ImplSDL2_Shutdown();
+
+            // cleanup vulkan window
+            // cleanup vulkan
         }
     }
 }
 
 impl ImGuiBackends {
     /// Safety: `window` must outlive `ImGuiBackends`
-    pub unsafe fn init(window: &Window, instance: &mut ash::Instance) -> Result<Self, InitErr> {
+    pub unsafe fn init(
+        window: &Window,
+        instance: &ash::Instance,
+        surface: &vk::SurfaceKHR,
+    ) -> Result<Self, InitErr> {
         // setup sdl2
         let window_ptr = window.raw() as *mut imgui_impl_sdl2::SDL_Window;
 
         // setup vulkan
-        let instance = &mut instance.handle() 
-            as *mut vk::Instance
-            as *mut imgui_impl_vulkan::VkInstance_T;
+        let instance_handle = vk::Handle::as_raw(instance.handle());
+        //let instance = &mut instance.handle() 
+        //    as *mut ash::vk::Instance
+        //    as *mut imgui_impl_vulkan::VkInstance_T;
+        let instance = instance_handle as imgui_impl_vulkan::VkInstance;
 
         // select physical device (gpu)
         let physical_device = imgui_impl_vulkan::ImGui_ImplVulkanH_SelectPhysicalDevice(instance);
@@ -64,13 +73,15 @@ impl ImGuiBackends {
         }
 
         // create logical device (with 1 queue)
-        let (device, queue) = {
-            let device_extensions = unsafe {
-                [
-                    std::ffi::CStr::from_bytes_with_nul_unchecked(b"VK_KHR_swapchain\0").as_ptr()
-                ]
-            };
+        let allocator = std::ptr::null_mut();
 
+        let (device, queue) = {
+            //let Ok(device_extension_swapchain) = CString::new("VK_KHR_swapchain") else {
+            //    return InitErr::new("failed to create swapchain extension string");
+            //};
+            //let device_extensions = [device_extension_swapchain.as_c_str().as_ptr()];
+
+            let device_extensions = [std::ffi::CStr::from_bytes_with_nul_unchecked(b"VK_KHR_swapchain\0").as_ptr()];
 
             let mut properties_count = 0;
             let mut properties = Vec::new();
@@ -117,27 +128,29 @@ impl ImGuiBackends {
                 pEnabledFeatures: std::ptr::null(),
             };
 
-            let device = std::ptr::null_mut();
+            //let device = std::ptr::null_mut();
+            let mut device = std::mem::MaybeUninit::uninit();
             let err = imgui_impl_vulkan::vkCreateDevice(
                 physical_device,
                 &device_info,
-                std::ptr::null_mut(),
-                device,
+                allocator,
+                device.as_mut_ptr(),
             );
-
             if err != imgui_impl_vulkan::VkResult_VK_SUCCESS {
                 return InitErr::new(format!("failed to create device: {}", err));
             }
 
-            let queue = std::ptr::null_mut();
+            let device = device.assume_init();
+
+            let mut queue = std::mem::MaybeUninit::uninit();
             imgui_impl_vulkan::vkGetDeviceQueue(
-                *device,
+                device,
                 queue_family,
                 0,
-                queue,
+                queue.as_mut_ptr(),
             );
 
-            (*device, *queue)
+            (device, queue.assume_init())
         };
 
         // create descriptor pool
@@ -162,44 +175,131 @@ impl ImGuiBackends {
                 poolSizeCount: pool_sizes.len() as u32,
                 pPoolSizes: pool_sizes.as_ptr(),
             };
-            let descriptor_pool = std::ptr::null_mut();
+            let mut descriptor_pool = std::mem::MaybeUninit::uninit();
             let err = imgui_impl_vulkan::vkCreateDescriptorPool(
                 device,
                 &pool_info,
-                std::ptr::null(),
-                descriptor_pool,
+                allocator,
+                descriptor_pool.as_mut_ptr(),
             );
 
             if err != imgui_impl_vulkan::VkResult_VK_SUCCESS {
                 return InitErr::new(format!("failed to create descriptor pool: {}", err));
             }
 
-            *descriptor_pool
+            descriptor_pool.assume_init()
         };
 
+        println!("1");
+
         // setup vulkan window
+        //let Ok(surface) = window.vulkan_create_surface(instance_handle as usize) else {
+        //    return InitErr::new("failed to create vulkan surface");
+        //};
+
+        println!("2");
+
+        let mut wd = unsafe {
+            let mut wd = std::mem::MaybeUninit::<imgui_impl_vulkan::ImGui_ImplVulkanH_Window>::uninit();
+            std::ptr::write_bytes(wd.as_mut_ptr(), 0, 1);
+            wd.assume_init()
+        };
+        wd.PresentMode = !0;
+        wd.ClearEnable = true;
+
+        wd.Surface = surface as imgui_impl_vulkan::VkSurfaceKHR;
+
+        println!("3");
+
+        // check for wsi support
+        let mut res = imgui_impl_vulkan::VK_FALSE;
+        imgui_impl_vulkan::vkGetPhysicalDeviceSurfaceSupportKHR(
+            physical_device,
+            queue_family,
+            wd.Surface,
+            &mut res
+        );
+        if res != imgui_impl_vulkan::VK_TRUE {
+            return InitErr::new("error no wsi support on physical device 0");
+        }
+
+        println!("4");
+
+        // select surface format
+        let request_surface_image_format = [
+            imgui_impl_vulkan::VkFormat_VK_FORMAT_B8G8R8A8_UNORM,
+            imgui_impl_vulkan::VkFormat_VK_FORMAT_R8G8B8A8_UNORM,
+            imgui_impl_vulkan::VkFormat_VK_FORMAT_B8G8R8_UNORM,
+            imgui_impl_vulkan::VkFormat_VK_FORMAT_R8G8B8_UNORM,
+        ];
+        let request_surface_color_space = imgui_impl_vulkan::VkColorSpaceKHR_VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+        wd.SurfaceFormat = imgui_impl_vulkan::ImGui_ImplVulkanH_SelectSurfaceFormat(
+            physical_device,
+            wd.Surface,
+            request_surface_image_format.as_ptr(),
+            request_surface_image_format.len() as i32,
+            request_surface_color_space,
+        );
+
+        println!("5");
+
+        // select present mode
+        let present_modes = [imgui_impl_vulkan::VkPresentModeKHR_VK_PRESENT_MODE_IMMEDIATE_KHR];
+        wd.PresentMode = imgui_impl_vulkan::ImGui_ImplVulkanH_SelectPresentMode(
+            physical_device,
+            wd.Surface,
+            present_modes.as_ptr(),
+            present_modes.len() as i32,
+        );
+
+        println!("6 {}", wd.PresentMode);
+
+        // create swapchain, renderpass, framebuffer, etc.
+        let (w, h) = window.size();
+        let min_image_count = 2;
+        imgui_impl_vulkan::ImGui_ImplVulkanH_CreateOrResizeWindow(
+            instance,
+            physical_device,
+            device,
+            &mut wd,
+            queue_family,
+            allocator,
+            w as i32,
+            h as i32,
+            min_image_count,
+        );
+
+        println!("7");
 
         // setup backens
+        let pipeline_rendering_create_info = unsafe {
+            let mut pipeline_rendering_create_info = std::mem::MaybeUninit::<imgui_impl_vulkan::VkPipelineRenderingCreateInfoKHR>::uninit();
+            std::ptr::write_bytes(pipeline_rendering_create_info.as_mut_ptr(), 0, 1);
+            pipeline_rendering_create_info.assume_init()
+        };
+
+        println!("8");
+
         let mut vulkan_init_info = imgui_impl_vulkan::ImGui_ImplVulkan_InitInfo {
             Instance: instance,
             PhysicalDevice: physical_device,
             Device: device,
             QueueFamily: queue_family,
             Queue: queue,
-            //PipelineCache:,
+            PipelineCache: std::ptr::null_mut(),
             DescriptorPool: descriptor_pool,
-            //RenderPass:,
-            //Subpass: ,
-            //MinImageCount:,
-            //ImageCount:,
+            RenderPass: wd.RenderPass,
+            Subpass: 0,
+            MinImageCount: min_image_count,
+            ImageCount: wd.ImageCount,
             MSAASamples: imgui_impl_vulkan::VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT,
-            //Allocator:,
-            //CheckVkResultFn:,
+            Allocator: allocator,
+            CheckVkResultFn: Some(check_vk_result),
 
-            //DescriptorPoolSize:,
-            //UseDynamicRendering:,
-            //PipelineRenderingCreateInfo:,
-            //MinAllocationSize:,
+            DescriptorPoolSize: 0,
+            UseDynamicRendering: false,
+            PipelineRenderingCreateInfo: pipeline_rendering_create_info,
+            MinAllocationSize: 0,
         };
 
         let vulkan_init_info_ptr = (&mut vulkan_init_info) as *mut imgui_impl_vulkan::ImGui_ImplVulkan_InitInfo;
@@ -221,6 +321,15 @@ impl ImGuiBackends {
         unsafe {
             imgui_impl_vulkan::ImGui_NewFrame();
             imgui_impl_sdl2::ImGui_NewFrame();
+            crate::bindings::imgui::ImGui_NewFrame();
         }
+    }
+}
+
+extern "C" fn check_vk_result(x: i32) {
+    println!("check vk result");
+
+    if x != imgui_impl_vulkan::VkResult_VK_SUCCESS {
+        println!("ERROR: ImGui Vulkan backend check was unsuccessful. VkResult: {}", x)
     }
 }
