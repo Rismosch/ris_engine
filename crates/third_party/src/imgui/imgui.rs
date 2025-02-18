@@ -1,6 +1,8 @@
 use std::ffi::CString;
 use std::marker::PhantomData;
 use std::mem::size_of;
+use std::path::Path;
+use std::path::PathBuf;
 
 use super::sys;
 
@@ -27,8 +29,6 @@ pub const IMGUI_CONFIG_FLAGS_IS_SRGB: i32 = sys::imgui::ImGuiConfigFlags__ImGuiC
 pub const IMGUI_CONFIG_FLAGS_IS_TOUCH_SCREEN: i32 =
     sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_IsTouchScreen;
 
-//pub const IMGUI_COL_TEXT: i32 = sys::imgui::ImGuiCol__ImGuiCol_Text;
-
 pub fn imgui_checkversion() -> bool {
     let Ok(version) = CString::new(IMGUI_VERSION) else {
         return false;
@@ -49,6 +49,7 @@ pub fn imgui_checkversion() -> bool {
 
 pub struct ImGuiContext {
     ptr: *mut sys::imgui::ImGuiContext,
+    ini_filename: Option<CString>,
 }
 
 pub struct ImGuiIO<'a> {
@@ -75,7 +76,31 @@ impl Drop for ImGuiContext {
 impl ImGuiContext {
     pub fn create() -> Self {
         let ptr = unsafe { sys::imgui::ImGui_CreateContext(std::ptr::null_mut()) };
-        Self { ptr }
+        Self {
+            ptr,
+            ini_filename: None,
+        }
+    }
+
+    pub fn set_ini_filename(&mut self, ini_filename: Option<impl AsRef<Path>>) {
+        let ini_filename = ini_filename
+            .as_ref()
+            .and_then(|x| x.as_ref().to_str())
+            .and_then(|x| CString::new(x).ok());
+
+        let ini_filename_ptr = match ini_filename.as_ref() {
+            Some(cstring) => cstring.as_ptr(),
+            None => std::ptr::null(),
+        };
+
+        unsafe {
+
+            (*sys::imgui::ImGui_GetIO()).IniFilename = ini_filename_ptr;
+        }
+
+        // prevent the cstring to fall out of scope. if we wouldn't cache the cstring, then imgui
+        // would reference a dangling ptr, which is no good
+        self.ini_filename = ini_filename;
     }
 
     pub fn get_io<'a>(&'a mut self) -> ImGuiIO {

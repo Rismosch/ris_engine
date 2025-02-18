@@ -1,10 +1,11 @@
+use std::path::PathBuf;
+
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
-
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
@@ -148,6 +149,15 @@ impl GodObject {
         // imgui
         imgui::imgui_checkversion();
         let mut context = ImGuiContext::create();
+
+        let ui_helper_dir = PathBuf::from(&app_info.file.pref_path)
+            .join("ui_helper");
+        std::fs::create_dir_all(&ui_helper_dir)?;
+
+        let imgui_ini_filepath = ui_helper_dir.join("imgui.ini");
+
+        context.set_ini_filename(Some(imgui_ini_filepath));
+
         let mut io = context.get_io();
 
         let mut config_flags = io.config_flags();
