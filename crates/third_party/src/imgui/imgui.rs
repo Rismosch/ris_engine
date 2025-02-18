@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use super::sys;
+use super::util;
 
 pub const IMGUI_VERSION: &str = "1.91.9 WIP";
 
@@ -66,6 +67,11 @@ pub struct ImDrawData<'a> {
     boo: PhantomData<&'a mut ImGuiContext>,
     ptr: *mut sys::imgui::ImDrawData,
 }
+
+pub type ImVec2 = sys::imgui::ImVec2;
+pub type ImDrawVert = sys::imgui::ImDrawVert;
+
+pub type ImVector<T> = sys::imgui::ImVector<T>;
 
 impl Drop for ImGuiContext {
     fn drop(&mut self) {
@@ -167,7 +173,7 @@ impl<'a> ImGuiIO<'a> {
     }
 }
 
-impl <'a> ImFontAtlas<'a> {
+impl<'a> ImFontAtlas<'a> {
     pub fn add_font_default(&mut self) {
         unsafe {(*self.ptr).AddFontDefault(std::ptr::null())};
     }
@@ -176,3 +182,41 @@ impl <'a> ImFontAtlas<'a> {
         unsafe { (*self.ptr).Build() }
     }
 }
+
+impl<'a> ImDrawData<'a> {
+    pub fn valid(&self) -> bool {
+        unsafe {(*self.ptr).Valid}
+    }
+
+    pub fn cmd_lists_count(&self) -> i32 {
+        unsafe {(*self.ptr).CmdListsCount}
+    }
+
+    pub fn total_idx_count(&self) -> i32 {
+        unsafe {(*self.ptr).TotalIdxCount}
+    }
+
+    pub fn total_vtx_count(&self) -> i32 {
+        unsafe {(*self.ptr).TotalVtxCount}
+    }
+
+    pub fn cmd_lists(&self) -> &[*mut sys::imgui::ImDrawList] {
+        unsafe{
+            let vector = &(*self.ptr).CmdLists;
+            util::im_vector_to_slice(vector)
+        }
+    }
+
+    pub fn display_pos(&self) -> ImVec2 {
+        unsafe {(*self.ptr).DisplayPos}
+    }
+
+    pub fn display_size(&self) -> ImVec2 {
+        unsafe {(*self.ptr).DisplaySize}
+    }
+
+    pub fn framebuffer_scale(&self) -> ImVec2 {
+        unsafe {(*self.ptr).FramebufferScale}
+    }
+}
+

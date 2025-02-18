@@ -19,3 +19,4 @@ ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
 ris_util = { path = "../ris_util" }
 ris_video_data = { path = "../ris_video_data" }
+third_party = { path = "../third_party" }

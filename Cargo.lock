@@ -702,6 +702,7 @@ dependencies = [
  "ris_video_data",
  "sdl2",
  "sdl2-sys",
+ "third_party",
 ]
 
 [[package]]

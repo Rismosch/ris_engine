@@ -1,10 +1,10 @@
 use ash::vk;
 
-use imgui::DrawData;
-use imgui::DrawVert;
-
 use ris_error::RisResult;
 use ris_video_data::buffer::Buffer;
+use third_party::imgui;
+use third_party::imgui::ImDrawData;
+use third_party::imgui::ImDrawVert;
 
 pub struct Mesh {
     pub vertices: Buffer,
@@ -28,7 +28,7 @@ impl Mesh {
     pub unsafe fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        draw_data: &DrawData,
+        draw_data: &ImDrawData,
     ) -> RisResult<Self> {
         let vertices = Self::create_vertices(draw_data);
         let vertex_count = vertices.len();
@@ -70,20 +70,29 @@ impl Mesh {
         })
     }
 
-    pub fn create_vertices(draw_data: &DrawData) -> Vec<DrawVert> {
-        let vertex_count = draw_data.total_vtx_count as usize;
+    pub fn create_vertices(draw_data: &ImDrawData) -> Vec<ImDrawVert> {
+        let vertex_count = draw_data.total_vtx_count() as usize;
         let mut vertices = Vec::with_capacity(vertex_count);
-        for draw_list in draw_data.draw_lists() {
-            vertices.extend_from_slice(draw_list.vtx_buffer());
+        for &draw_list in draw_data.cmd_lists() {
+            let vtx_buffer = unsafe {
+                let vector = &(*draw_list).VtxBuffer;
+                imgui::util::im_vector_to_slice(vector)
+            };
+            vertices.extend_from_slice(vtx_buffer);
         }
         vertices
     }
 
-    pub fn create_indices(draw_data: &DrawData) -> Vec<u16> {
-        let index_count = draw_data.total_idx_count as usize;
+    pub fn create_indices(draw_data: &ImDrawData) -> Vec<u16> {
+        let index_count = draw_data.total_idx_count() as usize;
         let mut indices = Vec::with_capacity(index_count);
-        for draw_list in draw_data.draw_lists() {
-            indices.extend_from_slice(draw_list.idx_buffer());
+        for &draw_list in draw_data.cmd_lists() {
+            let idx_buffer = unsafe {
+                let vector = &(*draw_list).IdxBuffer;
+                imgui::util::im_vector_to_slice(vector)
+            };
+
+            indices.extend_from_slice(idx_buffer);
         }
         indices
     }
@@ -92,11 +101,11 @@ impl Mesh {
         &mut self,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        draw_data: &DrawData,
+        draw_data: &ImDrawData,
     ) -> RisResult<()> {
         let vertices = Self::create_vertices(draw_data);
         let old_vertex_count = self.vertex_count;
-        let new_vertex_count = draw_data.total_vtx_count as usize;
+        let new_vertex_count = draw_data.total_vtx_count() as usize;
 
         if old_vertex_count < new_vertex_count {
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
@@ -123,7 +132,7 @@ impl Mesh {
 
         let indices = Self::create_indices(draw_data);
         let old_index_count = self.index_count;
-        let new_index_count = draw_data.total_idx_count as usize;
+        let new_index_count = draw_data.total_idx_count() as usize;
 
         if old_index_count < new_index_count {
             let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;

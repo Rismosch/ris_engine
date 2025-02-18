@@ -2,7 +2,6 @@ use sdl2::video::Window;
 use sdl2_sys::SDL_Event;
 
 use super::sys::backends::imgui_impl_sdl2;
-use super::sys::imgui;
 use super::imgui::ImGuiContext;
 
 pub struct ImGuiBackend {
