@@ -18,6 +18,7 @@ use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
 //#[cfg(feature = "ui_helper_enabled")]
 //use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use third_party::imgui;
 
 //#[cfg(feature = "ui_helper_enabled")]
 //use crate::ui_helper::UiHelper;
@@ -72,7 +73,7 @@ impl OutputFrame {
         frame: Frame,
         state: &mut GodState,
         god_asset: &RisGodAsset,
-        imgui: &mut imgui::backends::ImGuiBackends,
+        imgui_backend: &mut imgui::backend::ImGuiBackend,
     ) -> RisResult<GameloopState> {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
@@ -141,18 +142,11 @@ impl OutputFrame {
             {
                 ris_debug::add_record!(r, "ui helper")?;
 
-                let window_size = self.window.size();
-                let window_drawable_size = self.window.vulkan_drawable_size();
+                imgui_backend.new_frame();
+                imgui_backend.context.new_frame();
 
-                imgui.new_frame();
-
-                //let imgui_ui = self.imgui_backend.prepare_frame(
-                //    frame,
-                //    state,
-                //    (window_size.0 as f32, window_size.1 as f32),
-                //    (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-                //);
-
+                unsafe {imgui::sys::imgui::ImGui_ShowDemoWindow(&mut false)};
+                
                 //self.ui_helper.draw(UiHelperDrawData {
                 //    ui: imgui_ui,
                 //    frame,
@@ -266,7 +260,7 @@ impl OutputFrame {
         #[cfg(feature = "ui_helper_enabled")]
         {
             ris_debug::add_record!(r, "imgui backend")?;
-            //let draw_data = self.imgui_backend.context().render();
+            let draw_data = imgui_backend.context.render();
 
             ris_debug::add_record!(r, "imgui frontend")?;
             //self.renderer

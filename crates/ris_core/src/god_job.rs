@@ -40,7 +40,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
             (settings_serializer, result)
         });
-
+        
         ris_debug::add_record!(r, "input")?;
         ris_input::mouse_logic::pre_events(&mut god_object.state.input.mouse);
         ris_input::keyboard_logic::pre_events(&mut god_object.state.input.keyboard);
@@ -56,7 +56,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
                 let event = raw.assume_init();
 
-                god_object.imgui_backends.process_event(&event);
+                god_object.imgui_backend.process_event(&event);
 
                 if event.type_ == SDL_EventType::SDL_QUIT as u32 {
                     input_state = GameloopState::WantsToQuit;
@@ -109,7 +109,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             frame,
             &mut god_object.state,
             &god_object.god_asset,
-            &mut god_object.imgui_backends,
+            &mut god_object.imgui_backend,
         );
 
         // wait for jobs

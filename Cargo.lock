@@ -151,7 +151,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "imgui 0.11.0",
+ "imgui",
  "ris_asset",
  "ris_core",
  "ris_data",
@@ -237,14 +237,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "imgui"
-version = "0.1.0"
-dependencies = [
- "sdl2",
- "sdl2-sys",
 ]
 
 [[package]]
@@ -515,7 +507,6 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "chrono",
- "imgui 0.1.0",
  "ris_asset",
  "ris_data",
  "ris_debug",
@@ -532,6 +523,7 @@ dependencies = [
  "ris_video_renderers",
  "sdl2",
  "sdl2-sys",
+ "third_party",
 ]
 
 [[package]]
@@ -572,7 +564,6 @@ dependencies = [
  "cc",
  "cfg-if 1.0.0",
  "chrono",
- "imgui 0.1.0",
  "libc",
  "miniz_oxide",
  "png",
@@ -594,6 +585,7 @@ dependencies = [
  "sdl2",
  "sdl2-sys",
  "shaderc",
+ "third_party",
 ]
 
 [[package]]
@@ -804,6 +796,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "third_party"
+version = "0.1.0"
+dependencies = [
+ "sdl2",
+ "sdl2-sys",
 ]
 
 [[package]]

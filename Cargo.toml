@@ -55,9 +55,7 @@ ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
 ris_video_data = { path = "crates/ris_video_data" }
 ris_video_renderers = { path = "crates/ris_video_renderers" }
-
-# third party bindings
-imgui = { path = "third_party_bindings/imgui" }
+third_party = { path = "crates/third_party" }
 
 # vendor
 ash = "0.37.3"

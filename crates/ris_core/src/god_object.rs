@@ -5,7 +5,6 @@ use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
 use sdl2::GameControllerSubsystem;
 
-use imgui::backends::ImGuiBackends;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
@@ -29,6 +28,9 @@ use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
 //#[cfg(feature = "ui_helper_enabled")]
 //use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use third_party::imgui;
+use third_party::imgui::ImGuiContext;
+use third_party::imgui::backend::ImGuiBackend;
 
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
@@ -43,7 +45,7 @@ pub struct GodObject {
     pub event_pump: EventPump,
     pub keyboard_util: KeyboardUtil,
     pub gamepad_logic: GamepadLogic,
-    pub imgui_backends: ImGuiBackends, // must be dropped before logic_frame
+    pub imgui_backend: ImGuiBackend, // must be dropped before logic_frame
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
@@ -145,8 +147,8 @@ impl GodObject {
 
         // imgui
         imgui::imgui_checkversion();
-        let mut context = imgui::create_context();
-        let mut io = imgui::get_io(&mut context);
+        let mut context = ImGuiContext::create();
+        let mut io = context.get_io();
 
         let mut config_flags = io.config_flags();
         config_flags |= imgui::IMGUI_CONFIG_FLAGS_NAV_ENABLE_KEYBOARD;
@@ -155,20 +157,23 @@ impl GodObject {
         config_flags |= imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE;
         io.set_config_flags(config_flags);
 
-        imgui::style_colors_light(&mut context);
+        io.fonts().add_font_default();
+        io.fonts().build();
+
+        context.style_colors_light();
 
         // there is so much to wrap in imgui style. but since i am not intending to make changes to
         // the style, let alone heavy changes, i just talk to the bindings directly
         unsafe {
-            let style = imgui::bindings::imgui::ImGui_GetStyle();
+            let style = imgui::sys::imgui::ImGui_GetStyle();
             if config_flags & imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE != 0 {
                 (*style).WindowRounding = 0.0;
-                ((*style).Colors)[imgui::bindings::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w =
+                ((*style).Colors)[imgui::sys::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w =
                     1.0;
             }
         }
 
-        let imgui_backends = unsafe { ImGuiBackends::init(&window) };
+        let imgui_backend = unsafe { ImGuiBackend::init(context, &window) };
 
         //#[cfg(feature = "ui_helper_enabled")]
         //let (imgui_backend, imgui_renderer) = {
@@ -233,7 +238,7 @@ impl GodObject {
             app_info,
             settings_serializer,
             frame_calculator,
-            imgui_backends,
+            imgui_backend,
             event_pump,
             keyboard_util,
             gamepad_logic,

@@ -1,26 +1,30 @@
 use sdl2::video::Window;
 use sdl2_sys::SDL_Event;
 
-use crate::bindings::backends::imgui_impl_sdl2;
-use crate::bindings::imgui;
+use super::sys::backends::imgui_impl_sdl2;
+use super::sys::imgui;
+use super::imgui::ImGuiContext;
 
-pub struct ImGuiBackends;
+pub struct ImGuiBackend {
+    pub context: ImGuiContext,
+}
 
-impl Drop for ImGuiBackends {
+impl Drop for ImGuiBackend {
     fn drop(&mut self) {
         unsafe {imgui_impl_sdl2::ImGui_ImplSDL2_Shutdown()};
     }
 }
 
-impl ImGuiBackends {
+impl ImGuiBackend {
     /// Safety: `window` must outlive `ImGuiBackends`
     pub unsafe fn init(
+        context: ImGuiContext,
         window: &Window,
     ) -> Self {
         let window_ptr = window.raw() as *mut imgui_impl_sdl2::SDL_Window;
         imgui_impl_sdl2::ImGui_ImplSDL2_InitForVulkan(window_ptr);
 
-        Self
+        Self {context}
     }
 
     pub unsafe fn process_event(&mut self, event: &SDL_Event) -> bool {
@@ -29,18 +33,7 @@ impl ImGuiBackends {
     }
 
     pub fn new_frame(&mut self) {
-        unsafe {
-            imgui_impl_sdl2::ImGui_NewFrame();
-            imgui::ImGui_NewFrame();
-            imgui::ImGui_ShowDemoWindow(&mut true);
-        }
-    }
-
-    pub fn render(&mut self) {
-        unsafe {
-            imgui::ImGui_Render();
-            let main_draw_data = imgui::ImGui_GetDrawData();
-        }
+        unsafe {imgui_impl_sdl2::ImGui_ImplSDL2_NewFrame()};
     }
 }
 
