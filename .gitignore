@@ -2,6 +2,7 @@
 /.cargo
 /target
 /vendor
+Cargo.lock
 
 # IDE
 /.idea
