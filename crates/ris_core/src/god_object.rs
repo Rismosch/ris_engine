@@ -27,8 +27,8 @@ use ris_video_data::core::VulkanCore;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
-//#[cfg(feature = "ui_helper_enabled")]
-//use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+#[cfg(feature = "ui_helper_enabled")]
+use ris_video_renderers::ImguiRenderer;
 use third_party::imgui;
 use third_party::imgui::ImGuiContext;
 use third_party::imgui::backend::ImGuiBackend;
@@ -170,7 +170,7 @@ impl GodObject {
         io.fonts().add_font_default();
         io.fonts().build();
 
-        context.style_colors_light();
+        context.style_colors_dark();
 
         // there is so much to wrap in imgui style. but since i am not intending to make changes to
         // the style, let alone heavy changes, i just talk to the bindings directly
@@ -183,16 +183,18 @@ impl GodObject {
             }
         }
 
-        let imgui_backend = unsafe { ImGuiBackend::init(context, &window) };
 
-        //#[cfg(feature = "ui_helper_enabled")]
-        //let (imgui_backend, imgui_renderer) = {
-        //    let mut imgui_backend = ImguiBackend::init(&app_info)?;
-        //    let context = imgui_backend.context();
-        //    let imgui_renderer =
-        //        unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
-        //    (imgui_backend, imgui_renderer)
-        //};
+        #[cfg(feature = "ui_helper_enabled")]
+        let (imgui_backend, imgui_renderer) = {
+            let mut imgui_backend = unsafe { ImGuiBackend::init(context, &window) };
+            let imgui_renderer =
+                unsafe { ImguiRenderer::alloc(
+                    &vulkan_core,
+                    &god_asset,
+                    &mut imgui_backend.context,
+                ) }?;
+            (imgui_backend, imgui_renderer)
+        };
 
         // output frame
         //#[cfg(feature = "ui_helper_enabled")]
@@ -202,8 +204,8 @@ impl GodObject {
             scene: scene_renderer,
             gizmo_segment: gizmo_segment_renderer,
             gizmo_text: gizmo_text_renderer,
-            //#[cfg(feature = "ui_helper_enabled")]
-            //imgui: imgui_renderer,
+            #[cfg(feature = "ui_helper_enabled")]
+            imgui: imgui_renderer,
         };
 
         let output_frame = OutputFrame {

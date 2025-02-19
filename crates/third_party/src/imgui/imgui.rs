@@ -54,7 +54,7 @@ pub struct ImGuiContext {
 }
 
 pub struct ImGuiIO<'a> {
-    boo: PhantomData<&'a mut sys::imgui::ImGuiIO>,
+    boo: PhantomData<&'a mut sys::imgui::ImGuiContext>,
     ptr: *mut sys::imgui::ImGuiIO,
 }
 
@@ -63,6 +63,15 @@ pub struct ImFontAtlas<'a> {
     ptr: *mut sys::imgui::ImFontAtlas,
 }
 
+pub struct TexData<'a> {
+    boo: PhantomData<&'a mut ImFontAtlas<'a>>,
+    pub data: &'a [u8],
+    pub width: i32,
+    pub height: i32,
+    pub bytes_per_pixel: i32,
+}
+
+
 pub struct ImDrawData<'a> {
     boo: PhantomData<&'a mut ImGuiContext>,
     ptr: *mut sys::imgui::ImDrawData,
@@ -70,8 +79,8 @@ pub struct ImDrawData<'a> {
 
 pub type ImVec2 = sys::imgui::ImVec2;
 pub type ImDrawVert = sys::imgui::ImDrawVert;
-
 pub type ImVector<T> = sys::imgui::ImVector<T>;
+pub type ImTextureID = sys::imgui::ImTextureID;
 
 impl Drop for ImGuiContext {
     fn drop(&mut self) {
@@ -180,6 +189,35 @@ impl<'a> ImFontAtlas<'a> {
 
     pub fn build(&mut self) -> bool {
         unsafe { (*self.ptr).Build() }
+    }
+
+    pub fn get_tex_data_as_rgba32(&mut self) -> TexData<'a> {
+        let mut data_ptr = std::ptr::null_mut();
+        let mut width = 0;
+        let mut height = 0;
+        let mut bytes_per_pixel = 0;
+        unsafe {sys::imgui::ImFontAtlas_GetTexDataAsRGBA32(
+            self.ptr,
+            &mut data_ptr,
+            &mut width,
+            &mut height,
+            &mut bytes_per_pixel
+        )};
+
+        let length = (width * height * bytes_per_pixel) as usize;
+        let data = unsafe {std::slice::from_raw_parts(data_ptr, length)};
+
+        TexData {
+            boo: PhantomData,
+            data,
+            width,
+            height,
+            bytes_per_pixel,
+        }
+    }
+
+    pub fn set_tex_id(&mut self, id: ImTextureID) {
+        unsafe {(*self.ptr).TexID = id};
     }
 }
 

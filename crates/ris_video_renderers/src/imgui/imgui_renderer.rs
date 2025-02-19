@@ -1,4 +1,5 @@
 use std::ffi::CString;
+use std::collections::HashMap;
 use std::ptr;
 
 use ash::vk;
@@ -18,6 +19,10 @@ use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
+use third_party::imgui;
+use third_party::imgui::ImDrawData;
+use third_party::imgui::ImGuiContext;
+use third_party::imgui::ImTextureID;
 
 use super::imgui_mesh::Mesh;
 
@@ -41,6 +46,43 @@ impl ImguiFrame {
     }
 }
 
+struct TextureLookup<T> {
+    map: HashMap<u64, T>,
+    next: u64,
+}
+
+impl<T> TextureLookup<T> {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            next: 0,
+        }
+    }
+
+    pub fn insert(&mut self, texture: T) -> ImTextureID {
+        let id = self.next;
+        self.map.insert(id, texture);
+        self.next += 1;
+        id
+    }
+
+    pub fn replace(&mut self, id: ImTextureID, texture: T) -> Option<T> {
+        self.map.insert(id, texture)
+    }
+
+    pub fn remove(&mut self, id: ImTextureID) -> Option<T> {
+        self.map.remove(&id)
+    }
+
+    pub fn get(&self, id: ImTextureID) -> Option<&T> {
+        self.map.get(&id)
+    }
+
+    pub fn get_mut(&mut self, id: ImTextureID) -> Option<&mut T> {
+        self.map.get_mut(&id)
+    }
+}
+
 pub struct ImguiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     pipeline_layout: vk::PipelineLayout,
@@ -49,7 +91,7 @@ pub struct ImguiRenderer {
     font_texture: Texture,
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
-    textures: Textures<vk::DescriptorSet>,
+    texture_lookup: TextureLookup<vk::DescriptorSet>,
     frames: Vec<ImguiFrame>,
 }
 
@@ -79,7 +121,7 @@ impl ImguiRenderer {
     pub unsafe fn alloc(
         core: &VulkanCore,
         god_asset: &RisGodAsset,
-        context: &mut Context,
+        context: &mut ImGuiContext,
     ) -> RisResult<Self> {
         let VulkanCore {
             instance,
@@ -415,7 +457,8 @@ impl ImguiRenderer {
         unsafe { device.destroy_shader_module(fs_shader_module, None) };
 
         // textures
-        let font_atlas_texture = context.fonts().build_rgba32_texture();
+        let mut io = context.get_io();
+        let font_atlas_texture = io.fonts().get_tex_data_as_rgba32();
 
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -430,16 +473,15 @@ impl ImguiRenderer {
                 transient_command_pool: *transient_command_pool,
                 physical_device_memory_properties,
                 physical_device_properties,
-                width: font_atlas_texture.width,
-                height: font_atlas_texture.height,
+                width: font_atlas_texture.width as u32,
+                height: font_atlas_texture.height as u32,
                 format: vk::Format::R8G8B8A8_SRGB,
                 filter: vk::Filter::LINEAR,
                 pixels_rgba: font_atlas_texture.data,
             })
         }?;
 
-        let fonts = context.fonts();
-        fonts.tex_id = TextureId::from(usize::MAX);
+        context.get_io().fonts().set_tex_id(u64::MAX);
 
         // descriptor pool
         let descriptor_pool_sizes = [vk::DescriptorPoolSize {
@@ -503,9 +545,6 @@ impl ImguiRenderer {
             frames.push(frame);
         }
 
-        // init
-        context.set_renderer_name(Some(String::from("ris_engine vulkan renderer")));
-
         Ok(Self {
             descriptor_set_layout,
             pipeline_layout,
@@ -514,7 +553,7 @@ impl ImguiRenderer {
             font_texture,
             descriptor_pool,
             descriptor_set,
-            textures: Textures::new(),
+            texture_lookup: TextureLookup::new(),
             frames,
         })
     }
@@ -523,9 +562,9 @@ impl ImguiRenderer {
         &mut self,
         core: &VulkanCore,
         entry: &SwapchainEntry,
-        draw_data: &DrawData,
+        draw_data: &ImDrawData,
     ) -> RisResult<()> {
-        if draw_data.total_vtx_count == 0 {
+        if draw_data.total_vtx_count() == 0 {
             return Ok(());
         }
 
@@ -623,8 +662,10 @@ impl ImguiRenderer {
             )
         };
 
-        let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
-        let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
+        let frame_buffer_scale = draw_data.framebuffer_scale();
+        let display_size = draw_data.display_size();
+        let framebuffer_width = frame_buffer_scale.x * display_size.x;
+        let framebuffer_height = frame_buffer_scale.y * display_size.y;
         let viewports = [vk::Viewport {
             width: framebuffer_width,
             height: framebuffer_height,
@@ -635,10 +676,10 @@ impl ImguiRenderer {
         unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
 
         let mut projection = Mat4::init(1.0);
-        let rml = draw_data.display_size[0];
-        let rpl = draw_data.display_size[0];
-        let tmb = -draw_data.display_size[1];
-        let tpb = -draw_data.display_size[1];
+        let rml = display_size.x;
+        let rpl = display_size.x;
+        let tmb = -display_size.y;
+        let tpb = -display_size.y;
         let fmn = 2.0;
         projection.0 .0 = 2.0 / rml;
         projection.1 .1 = -2.0 / tmb;
@@ -676,76 +717,63 @@ impl ImguiRenderer {
 
         let mut index_offset = 0;
         let mut vertex_offset = 0;
-        let current_texture_id: Option<TextureId> = None;
-        let clip_offset = draw_data.display_pos;
-        let clip_scale = draw_data.framebuffer_scale;
-        for draw_list in draw_data.draw_lists() {
-            for command in draw_list.commands() {
-                match command {
-                    DrawCmd::Elements {
-                        count,
-                        cmd_params:
-                            DrawCmdParams {
-                                clip_rect,
-                                texture_id,
-                                vtx_offset,
-                                idx_offset,
-                            },
-                    } => {
-                        let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
-                        let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
-                        let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
-                        let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
+        let current_texture_id: Option<ImTextureID> = None;
+        let clip_offset = draw_data.display_pos();
+        let clip_scale = draw_data.framebuffer_scale();
+        for &draw_list in draw_data.cmd_lists() {
+            let commands = unsafe {
+                let cmd_buffer = &(*draw_list).CmdBuffer;
+                imgui::util::im_vector_to_slice(cmd_buffer)
+            };
 
-                        let scissors = [vk::Rect2D {
-                            offset: vk::Offset2D {
-                                x: (clip_x as i32).max(0),
-                                y: (clip_y as i32).max(0),
-                            },
-                            extent: vk::Extent2D {
-                                width: clip_w as u32,
-                                height: clip_h as u32,
-                            },
-                        }];
+            for &command in commands {
+                let clip_rect = command.ClipRect;
+                let clip_x = (clip_rect.x - clip_offset.x) * clip_scale.x;
+                let clip_y = (clip_rect.y - clip_offset.y) * clip_scale.y;
+                let clip_w = (clip_rect.z - clip_offset.x) * clip_scale.x - clip_x;
+                let clip_h = (clip_rect.w - clip_offset.y) * clip_scale.y - clip_y;
 
-                        unsafe { device.cmd_set_scissor(*command_buffer, 0, &scissors) };
+                let scissors = [vk::Rect2D {
+                    offset: vk::Offset2D {
+                        x: (clip_x as i32).max(0),
+                        y: (clip_y as i32).max(0),
+                    },
+                    extent: vk::Extent2D {
+                        width: clip_w as u32,
+                        height: clip_h as u32,
+                    },
+                }];
 
-                        if Some(texture_id) != current_texture_id {
-                            let descriptor_set = self.lookup_descriptor_set(texture_id)?;
-                            unsafe {
-                                device.cmd_bind_descriptor_sets(
-                                    *command_buffer,
-                                    vk::PipelineBindPoint::GRAPHICS,
-                                    self.pipeline_layout,
-                                    0,
-                                    &[descriptor_set],
-                                    &[],
-                                )
-                            };
-                        }
+                unsafe { device.cmd_set_scissor(*command_buffer, 0, &scissors) };
 
-                        unsafe {
-                            device.cmd_draw_indexed(
-                                *command_buffer,
-                                count as u32,
-                                1,
-                                index_offset + idx_offset as u32,
-                                vertex_offset + vtx_offset as i32,
-                                0,
-                            )
-                        }
-                    }
-                    DrawCmd::ResetRenderState => {
-                        ris_log::warning!("reset render state not supported");
-                    }
-                    DrawCmd::RawCallback { .. } => {
-                        ris_log::warning!("raw callback not supported");
-                    }
+                if Some(command.TextureId) != current_texture_id {
+                    let descriptor_set = self.lookup_descriptor_set(command.TextureId)?;
+                    unsafe {
+                        device.cmd_bind_descriptor_sets(
+                            *command_buffer,
+                            vk::PipelineBindPoint::GRAPHICS,
+                            self.pipeline_layout,
+                            0,
+                            &[descriptor_set],
+                            &[],
+                        )
+                    };
+                }
+
+                unsafe {
+                    device.cmd_draw_indexed(
+                        *command_buffer,
+                        command.ElemCount as u32,
+                        1,
+                        index_offset + command.IdxOffset,
+                        vertex_offset + command.VtxOffset as i32,
+                        0,
+                    )
                 }
             }
 
-            index_offset += draw_list.idx_buffer().len() as u32;
-            vertex_offset += draw_list.vtx_buffer().len() as i32;
+            index_offset += unsafe {(*draw_list).IdxBuffer.Size as u32};
+            vertex_offset += unsafe {(*draw_list).VtxBuffer.Size};
         }
 
         unsafe { device.cmd_end_render_pass(*command_buffer) };
@@ -753,10 +781,10 @@ impl ImguiRenderer {
         Ok(())
     }
 
-    fn lookup_descriptor_set(&self, texture_id: TextureId) -> RisResult<vk::DescriptorSet> {
-        if texture_id.id() == usize::MAX {
+    fn lookup_descriptor_set(&self, texture_id: ImTextureID) -> RisResult<vk::DescriptorSet> {
+        if texture_id == u64::MAX {
             Ok(self.descriptor_set)
-        } else if let Some(descriptor_set) = self.textures.get(texture_id) {
+        } else if let Some(descriptor_set) = self.texture_lookup.get(texture_id) {
             Ok(*descriptor_set)
         } else {
             ris_error::new_result!("bad texture: {:?}", texture_id)

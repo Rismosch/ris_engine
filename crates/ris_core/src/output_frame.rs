@@ -16,8 +16,8 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
-//#[cfg(feature = "ui_helper_enabled")]
-//use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+#[cfg(feature = "ui_helper_enabled")]
+use ris_video_renderers::ImguiRenderer;
 use third_party::imgui;
 
 //#[cfg(feature = "ui_helper_enabled")]
@@ -29,8 +29,8 @@ pub struct Renderer {
     pub scene: SceneRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
     pub gizmo_text: GizmoTextRenderer,
-    //#[cfg(feature = "ui_helper_enabled")]
-    //pub imgui: ImguiRenderer,
+    #[cfg(feature = "ui_helper_enabled")]
+    pub imgui: ImguiRenderer,
 }
 
 pub struct OutputFrame {
@@ -263,9 +263,9 @@ impl OutputFrame {
             let draw_data = imgui_backend.context.render();
 
             ris_debug::add_record!(r, "imgui frontend")?;
-            //self.renderer
-            //    .imgui
-            //    .draw(&self.core, swapchain_entry, draw_data)?;
+            self.renderer
+                .imgui
+                .draw(&self.core, swapchain_entry, &draw_data)?;
         }
 
 
