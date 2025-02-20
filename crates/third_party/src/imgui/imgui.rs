@@ -9,27 +9,6 @@ use super::util;
 
 pub const IMGUI_VERSION: &str = "1.91.9 WIP";
 
-pub const IMGUI_CONFIG_FLAGS_NONE: i32 = sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_None;
-pub const IMGUI_CONFIG_FLAGS_NAV_ENABLE_KEYBOARD: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NavEnableKeyboard;
-pub const IMGUI_CONFIG_FLAGS_NAV_ENABLE_GAMEPAD: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NavEnableGamepad;
-pub const IMGUI_CONFIG_FLAGS_NO_MOUSE: i32 = sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NoMouse;
-pub const IMGUI_CONFIG_FLAGS_NO_MOUSE_CURSOR_CHANGE: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NoMouseCursorChange;
-pub const IMGUI_CONFIG_FLAGS_NO_KEYBOARD: i32 = sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NoKeyboard;
-pub const IMGUI_CONFIG_FLAGS_DOCKING_ENABLE: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_DockingEnable;
-pub const IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_ViewportsEnable;
-pub const IMGUI_CONFIG_FLAGS_DPI_ENABLE_SCALE_VIEWPORTS: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_DpiEnableScaleViewports;
-pub const IMGUI_CONFIG_FLAGS_DPI_ENABLE_SCALE_FONTS: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_DpiEnableScaleFonts;
-pub const IMGUI_CONFIG_FLAGS_IS_SRGB: i32 = sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_IsSRGB;
-pub const IMGUI_CONFIG_FLAGS_IS_TOUCH_SCREEN: i32 =
-    sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_IsTouchScreen;
-
 pub fn imgui_checkversion() -> bool {
     let Ok(version) = CString::new(IMGUI_VERSION) else {
         return false;
@@ -163,12 +142,34 @@ impl ImGuiContext {
 }
 
 impl<'a> ImGuiIO<'a> {
-    pub fn config_flags(&self) -> i32 {
-        unsafe { (*self.ptr).ConfigFlags }
+    pub fn config_flags(&self) -> sys::imgui::ImGuiConfigFlags_ {
+        let flags = unsafe { (*self.ptr).ConfigFlags };
+
+        #[cfg(target_os = "windows")]
+        {
+            flags
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            u32::from_ne_bytes(flags.to_ne_bytes())
+        }
     }
 
-    pub fn set_config_flags(&mut self, value: i32) {
-        unsafe { (*self.ptr).ConfigFlags = value };
+    pub fn set_config_flags(&mut self, value: sys::imgui::ImGuiConfigFlags_) {
+        let casted;
+
+        #[cfg(target_os = "windows")]
+        {
+            casted = value;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            casted = i32::from_ne_bytes(value.to_ne_bytes())
+        }
+
+        unsafe { (*self.ptr).ConfigFlags = casted };
     }
 
     pub fn fonts(&mut self) -> ImFontAtlas {

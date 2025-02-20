@@ -10,8 +10,22 @@ fn build_imgui() {
     // generate bindings
     let target_dir = "bindings_imgui";
     let vulkan_sdk_dir = std::env::var("VULKAN_SDK").expect("Vulkan SDK not found");
-    let vulkan_include_dir = &format!("{}/Include", vulkan_sdk_dir);
-    
+
+    let vulkan_include_dir;
+    let sdl2_include_dir;
+
+    #[cfg(target_os = "windows")]
+    {
+        vulkan_include_dir = format!("{}/Include", vulkan_sdk_dir);
+        sdl2_include_dir = format!("{}/SDL2", vulkan_include_dir);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        vulkan_include_dir = format!("{}/include", vulkan_sdk_dir);
+        sdl2_include_dir = format!("/usr/include/SDL2");
+    }
+
     generate_bindings(
         format!("{}/imconfig.h", imgui_dir),
         &[imgui_dir],
@@ -51,7 +65,7 @@ fn build_imgui() {
         .include(imgui_dir)
         .include(format!("{}/backends", imgui_dir))
         .include(vulkan_include_dir)
-        .include(format!("{}/SDL2", vulkan_include_dir))
+        .include(sdl2_include_dir)
         .file(format!("{}/imgui.cpp", imgui_dir))
         .file(format!("{}/imgui_demo.cpp", imgui_dir))
         .file(format!("{}/imgui_draw.cpp", imgui_dir))
@@ -76,13 +90,20 @@ fn generate_bindings(
 
     let mut bindgen_builder = bindgen::Builder::default();
     for include_dir in include_dirs {
+        println!("include dir: {}", include_dir);
         bindgen_builder = bindgen_builder.clang_arg(format!("-I{}", include_dir));
     }
 
+    let args = [
+        #[cfg(target_os = "linux")]
+        "--gcc-toolchain=/usr/bin/clang",
+        "-xc++",
+        "-std=c++17",
+    ];
+
     let bindings = bindgen_builder
         .header(header)
-        .clang_arg("-xc++")
-        .clang_arg("-std=c++17")
+        .clang_args(&args)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("failed to generate bindings");
@@ -105,4 +126,6 @@ fn generate_bindings(
     bindings
         .write_to_file(&target_path)
         .expect("failed to write bindings");
+
+    println!("wrote bindings to {}", target_path.to_str().unwrap())
 }

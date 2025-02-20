@@ -161,10 +161,10 @@ impl GodObject {
         let mut io = context.get_io();
 
         let mut config_flags = io.config_flags();
-        config_flags |= imgui::IMGUI_CONFIG_FLAGS_NAV_ENABLE_KEYBOARD;
-        config_flags |= imgui::IMGUI_CONFIG_FLAGS_NAV_ENABLE_GAMEPAD;
-        config_flags |= imgui::IMGUI_CONFIG_FLAGS_DOCKING_ENABLE;
-        config_flags |= imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE;
+        config_flags |= imgui::sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NavEnableKeyboard;
+        config_flags |= imgui::sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_NavEnableGamepad;
+        config_flags |= imgui::sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_DockingEnable;
+        config_flags |= imgui::sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_ViewportsEnable;
         io.set_config_flags(config_flags);
 
         io.fonts().add_font_default();
@@ -176,7 +176,7 @@ impl GodObject {
         // the style, let alone heavy changes, i just talk to the bindings directly
         unsafe {
             let style = imgui::sys::imgui::ImGui_GetStyle();
-            if config_flags & imgui::IMGUI_CONFIG_FLAGS_VIEWPORTS_ENABLE != 0 {
+            if config_flags & imgui::sys::imgui::ImGuiConfigFlags__ImGuiConfigFlags_ViewportsEnable != 0 {
                 (*style).WindowRounding = 0.0;
                 ((*style).Colors)[imgui::sys::imgui::ImGuiCol__ImGuiCol_WindowBg as usize].w =
                     1.0;
