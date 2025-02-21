@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub fn sanitize(value: &str, sanitize_slashes: bool) -> String {
     const SLASHES: [char; 2] = ['\\', '/'];
     const INVALID_CHARS: [char; 7] = [':', '*', '?', '"', '<', '>', '|'];
@@ -17,4 +15,3 @@ pub fn sanitize(value: &str, sanitize_slashes: bool) -> String {
 
     value
 }
-
