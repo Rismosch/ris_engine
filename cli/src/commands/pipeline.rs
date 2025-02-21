@@ -137,10 +137,11 @@ impl ICommand for Pipeline {
             test(results, run_test, true, cargo("test -r"));
             test(
                 results,
-                run_build,
+                run_test,
                 true,
                 cargo("test -r --no-default-features"),
             );
+            test(results, run_miri, false, cargo_nightly("miri test"));
             test(
                 results,
                 run_miri,
@@ -151,7 +152,7 @@ impl ICommand for Pipeline {
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
             test(
                 results,
-                run_build,
+                run_clippy,
                 false,
                 cargo("clippy -r --no-default-features -- -Dwarnings"),
             );
@@ -169,7 +170,7 @@ impl ICommand for Pipeline {
             );
             test(
                 results,
-                run_build,
+                run_clippy,
                 false,
                 cargo("clippy -r --tests --no-default-features -- -Dwarnings"),
             );
@@ -187,7 +188,7 @@ impl ICommand for Pipeline {
             );
             test(
                 results,
-                run_build,
+                run_clippy,
                 false,
                 cargo("clippy -r -p cli --no-default-features -- -Dwarnings"),
             );
@@ -217,7 +218,7 @@ impl ICommand for Pipeline {
 
         print_empty(ff, 1)?;
 
-        println!("results stored in \"{}\"", ris_io::path::to_str(target_dir),);
+        println!("results stored in \"{}\"", target_dir.display());
 
         print_empty(ff, 2)?;
 

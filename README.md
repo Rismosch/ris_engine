@@ -49,72 +49,33 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-|          |                          | Notes                                                    |
-| -------- | ------------------------ | -------------------------------------------------------- |
-| Compiler | rustc 1.77.2             | [Download Link](https://www.rust-lang.org/tools/install) |
-| Platform | x86_64 Windows and Linux | may or may not compile on other platforms                |
-| Graphics | Vulkan capable Hardware  |                                                          |
+You will need rustc and cargo version to compile this repo. I am using version 1.77.2 [download link](https://www.rust-lang.org/tools/install)
+
+The target platform is x86_64, Windows and Linux.
+
+_A newer compiler and other platforms may work, but I haven't tested these._
+
+Your hardware must support [Vulkan](https://www.vulkan.org/). Most modern GPUs work.
 
 You also require an internet connection, to download dependencies from [crates.io](https://crates.io/). You can [vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) crates for offline use or download an archived repo from [my website](https://www.rismosch.com/archive). Note that I make these archives sporadically, meaning they may not be up to date.
 
-## Installation
 
-This engine is using various 3rd party libraries. Trying to build without these will most definitely result in diverse compile, linker and runtime errors. Click to reveal the instructions for the given platform.
+## Setup
+
+This engine relies on the [Vulkan SDK](https://vulkan.lunarg.com/). ris_engine requires prebuild binaries from it.
+
+For information on how to get and install the Vulkan SDK, click to reveal the instructions for the given platform.
 
 ### Windows
 
 <details>
   <summary>click to reveal</summary>
 
-  The two required dependencies are [SDL2](https://www.libsdl.org/) and [Shaderc](https://github.com/google/shaderc). The easiest way to get them is to install the [Vulkan SDK](https://vulkan.lunarg.com/). The installation of the Vulkan SDK should also configure your environment correctly.
+  Download and run the SDK Installer from https://vulkan.lunarg.com/sdk/home#windows
 
-  If you don't want to install the Vulkan SDK, or you get build errors despite having it installed, see the instructions below.
+  When running the SDK Installer, make sure that you select the SDL2 libraries and headers.
 
-  #### 1. Get the necessary dependencies
-  
-  In this repo you will find the `./external/` directory, which contains all required binaries. If you don't trust the binaries in this repo, you must find and download them yourself. All following instructions assume you use the binaries provided in this repo.
-
-  #### 2. Assign `SHADERC_LIB_DIR`
-
-  [shaderc-rs](https://crates.io/crates/shaderc) requires the DLL `shaderc_shared.dll` during build time. shaderc-rs allows to store shader code inside Rust source files. ris_engine does not use this feature, but shaderc-rs requires this dependency regardless.
-  
-  shaderc-rs attempts to locate the DLL within the Vulkan SDK. If the Vulkan SDK is not installed, shaderc-rs searches the DLL in `SHADERC_LIB_DIR`. If this variable is not set, shaderc-rs will try to compile from source, which is quite slow and requires you to have C++ build tools installed.
-  
-  If you don't have the Vulkan SDK installed, set the environment variable `SHADERC_LIB_DIR` to `<path to repo>\external\Shaderc\bin`.
-
-  #### 3. Make the LIBs available for your linker
-
-  Rust needs to link. If you have the Vulkan SDK installed, then SDL2 and Shaderc should be able to find the required libs and you can skip this step. Otherwise continue reading.
-  
-  The four LIBs you need are:
-   - `.\external\SDL2\lib\SDL2.lib`
-   - `.\external\SDL2\lib\SDL2_test.lib`
-   - `.\external\SDL2\lib\SDL2main.lib`
-   - `.\external\Shaderc\lib\shaderc_shared.lib`
-
-  When using `rustup`, the linker will search for LIBs in the according directory of its toolchain. Copy the LIBs above into the following directory.
-
-  ```powershell
-  C:\Users\<your username>\.rustup\toolchains\<toolchain channel>\lib\rustlib\<current toolchain>\lib
-  ```
-
-  If you are not using `rustup`, you need to figure out how to link against the required LIBs.
-
-  #### 4. Add the DLLs to your environment
-
-  If you have the Vulkan SDK installed and haven't done so already, add `<path to Vulkan SDK>\Bin` to `PATH`. Then you can skip this step. If you haven't installed the Vulkan SDK, continue reading.
-
-  The two DLLs you need are
-  - `.\external\SDL2\bin\SDL2.dll`
-  - `.\external\Shaderc\bin\shaderc_shared.dll`
-  
-  The easiest way to make them available in your environment is to copy them to the root of this repo. This isn't recommended however, because they aren't tracked by git. Untracked files are deleted whenever you clean the repo.
-
-  Instead of coyping them, I recommend to simply add `<path to repo>\external\SDL2\bin` and `<path to repo>\external\Shaderc\bin` to `PATH`.
-  
-  #### 5. Restart your terminal
-
-  When you have changed your environment variables, you should restart all your terminals. Terminals that were opened before any changes to your environment dont see the new environment variables.
+  To confirm if the Vulkan SDK was installed properly, check the environment variables `$VULKAN_SDK` and `$VK_SDK_PATH`. They should be pointing to the directory where you installed the SDK into. You can also confirm if your hardware supports Vulkan, by running `$VULKAN_SDK/Bin/vkcube.exe`. If you see a spinning cube with the LunarG logo, everything is working as intended.
 </details>
 
 ### Arch Linux
@@ -143,7 +104,7 @@ This engine is using various 3rd party libraries. Trying to build without these 
 
 ## Building
 
-Assuming everything is installed correctly, you can now compile and run the engine with:
+Assuming your environment is set up properly, you can now compile and run the engine with:
 
 ```bash
 cargo run

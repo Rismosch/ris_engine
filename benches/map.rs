@@ -93,7 +93,7 @@ fn generate_random_key_values(count: usize) -> Vec<(String, u32)> {
     let mut rng = Rng::new(Seed::new().unwrap());
 
     for _ in 0..count {
-        let value = rng.next_u();
+        let value = rng.next_u32();
         let key = format!("{}", value);
 
         result.push((key, value));

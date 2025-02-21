@@ -16,7 +16,7 @@ fn sin_cos(c: &mut Criterion) {
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let value = rng.range_f(0., 2. * PI);
+        let value = rng.next_f32_between(0., 2. * PI);
         values.push(value);
     }
 

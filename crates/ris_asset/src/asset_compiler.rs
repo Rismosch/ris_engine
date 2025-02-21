@@ -64,7 +64,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             } else {
                 return ris_error::new_result!(
                     "entry \"{}\" is neither a file, nor a directory",
-                    ris_io::path::to_str(entry_path),
+                    entry_path.display(),
                 );
             }
         }
@@ -72,7 +72,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     ris_log::trace!("found {} assets:", assets.len());
     for (i, file) in assets.iter().enumerate() {
-        ris_log::trace!("{}: \"{}\"", i, ris_io::path::to_str(file),);
+        ris_log::trace!("{}: \"{}\"", i, file.display());
     }
 
     // create the target file
@@ -106,7 +106,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             "compiling... {}/{} \"{}\"",
             i + 1,
             assets.len(),
-            ris_io::path::to_str(asset),
+            asset.display(),
         );
 
         let mut file = File::open(asset)?;

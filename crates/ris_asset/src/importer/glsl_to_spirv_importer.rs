@@ -143,7 +143,7 @@ impl ShaderStage {
 
             ris_log::trace!(
                 "saved transpiled shader to: \"{}\"",
-                ris_io::path::to_str(temp_file_path),
+                temp_file_path.display(),
             );
         }
 

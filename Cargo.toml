@@ -67,6 +67,9 @@ sdl2 = "0.34.5"
 sdl2-sys = "0.34.5"
 shaderc = "0.8"
 
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "^0.2.30"
 
@@ -117,3 +120,19 @@ panic = "abort"
 incremental = false
 codegen-units = 1
 rpath = false
+
+[[bench]]
+name = "map"
+harness = false
+
+[[bench]]
+name = "math"
+harness = false
+
+[[bench]]
+name = "sincos"
+harness = false
+
+[[bench]]
+name = "vec"
+harness = false

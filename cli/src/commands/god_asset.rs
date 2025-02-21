@@ -42,7 +42,7 @@ impl ICommand for GodAsset {
                 explanation.push_str("the path to the god asset.\n");
                 explanation.push_str(&format!(
                     "default: \"{}\"\n",
-                    ris_io::path::to_str(default_asset_path()),
+                    default_asset_path().display(),
                 ));
                 explanation.push('\n');
                 explanation.push_str("commands:\n");
@@ -128,7 +128,7 @@ impl ICommand for GodAsset {
 
 fn read_god_asset(path: impl AsRef<Path>) -> RisResult<RisGodAsset> {
     let path = path.as_ref();
-    eprintln!("reading god_asset... \"{}\"", ris_io::path::to_str(path));
+    eprintln!("reading god_asset... \"{}\"", path.display());
     let mut file = std::fs::File::open(path)?;
     let length = ris_io::seek(&mut file, SeekFrom::End(0))?;
     let mut bytes = vec![0u8; length as usize];

@@ -528,7 +528,7 @@ impl IUiHelperModule for InspectorModule {
                 }
             }
             Selection::AssetPath(path_buf) => {
-                let path_string = ris_io::path::to_str(&path_buf);
+                let path_string = path_buf.display().to_string();
                 data.ui.text(&path_string);
                 let id = AssetId::Path(path_string.clone());
 

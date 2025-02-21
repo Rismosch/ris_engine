@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub fn sanitize(value: &str, sanitize_slashes: bool) -> String {
     const SLASHES: [char; 2] = ['\\', '/'];
     const INVALID_CHARS: [char; 7] = [':', '*', '?', '"', '<', '>', '|'];
@@ -16,19 +14,4 @@ pub fn sanitize(value: &str, sanitize_slashes: bool) -> String {
     }
 
     value
-}
-
-pub fn to_str(path: impl AsRef<Path>) -> String {
-    let debug = format!("{:?}", path.as_ref());
-    let without_quotes = debug.trim_matches('"');
-
-    #[cfg(target_os = "windows")]
-    {
-        without_quotes.replace("\\\\", "\\").replace('/', "\\")
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        without_quotes.to_string()
-    }
 }
