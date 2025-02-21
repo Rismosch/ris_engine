@@ -47,8 +47,9 @@ impl ICommand for ProfilerHtml {
 
     fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         let chart_js_path = crate::util::get_root_dir()?
-            .join("external")
-            .join("javascript")
+            .join("third_party")
+            .join("Chart.js")
+            .join("dist")
             .join("Chart.js");
         eprintln!("reading... \"{}\"", ris_io::path::to_str(&chart_js_path),);
         let chart_js = read_text_file(chart_js_path)?;

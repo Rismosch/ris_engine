@@ -62,9 +62,9 @@ You also require an internet connection, to download dependencies from [crates.i
 
 ## Setup
 
-This engine relies on the [Vulkan SDK](https://vulkan.lunarg.com/). ris_engine uses prebuild binaries from it.
+This engine relies on the [Vulkan SDK](https://vulkan.lunarg.com/). ris_engine requires prebuild binaries from it.
 
-For information on how to get and install it, click to reveal the instructions for the given platform.
+For information on how to get and install the Vulkan SDK, click to reveal the instructions for the given platform.
 
 ### Windows
 
