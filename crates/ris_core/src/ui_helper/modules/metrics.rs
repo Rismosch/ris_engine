@@ -149,7 +149,7 @@ impl IUiHelperModule for MetricsModule {
                 ris_io::write(&mut file, csv.as_bytes())?;
                 ris_log::info!(
                     "successfully written profiler result to \"{}\"",
-                    ris_io::path::to_str(filepath),
+                    filepath.display(),
                 );
             }
 

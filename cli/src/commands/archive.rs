@@ -149,9 +149,9 @@ impl ICommand for Archive {
         } else {
             let archive_date = chrono::Local::now().format("%Y_%m_%d").to_string();
 
-            let src_dir = ris_io::path::to_str(root_dir);
+            let src_dir = root_dir.display();
             let dst_file_path = target_dir.join(format!("{}_{}", RIS_ENGINE, archive_date));
-            let dst_file_path = ris_io::path::to_str(dst_file_path);
+            let dst_file_path = dst_file_path.display();
 
             ris_io::util::clean_or_create_dir(&target_dir)?;
 

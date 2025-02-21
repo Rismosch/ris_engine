@@ -11,7 +11,7 @@ macro_rules! trace {
 }
 
 pub fn clean_or_create_dir(dir: &Path) -> std::io::Result<()> {
-    let display_dir = crate::path::to_str(dir);
+    let display_dir = dir.display();
 
     if !dir.exists() {
         trace!("creating dir... \"{}\"", display_dir);

@@ -86,8 +86,8 @@ pub fn import_all(
 
                 ris_log::debug!(
                     "import \"{}\" to \"{}\"",
-                    ris_io::path::to_str(&entry_path),
-                    ris_io::path::to_str(&target_path),
+                    entry_path.display(),
+                    target_path.display(),
                 );
 
                 let info = DeduceImporterInfo {
@@ -102,7 +102,7 @@ pub fn import_all(
             } else {
                 return ris_error::new_result!(
                     "entry \"{}\" is neither a file nor a directory",
-                    ris_io::path::to_str(entry_path),
+                    entry_path.display(),
                 );
             }
         }
@@ -145,8 +145,8 @@ pub fn import_all(
 
                 ris_log::trace!(
                     "copying \"{}\" to \"{}\"...",
-                    ris_io::path::to_str(&copy_source),
-                    ris_io::path::to_str(&copy_target),
+                    copy_source.display(),
+                    copy_target.display(),
                 );
 
                 //let copy_target_parent = copy_target.parent().into_ris_error()?;
@@ -176,22 +176,22 @@ pub fn import_all(
                     } else {
                         return ris_error::new_result!(
                             "\"{}\" is neither a file nor a dir",
-                            ris_io::path::to_str(&copy_source)
+                            copy_source.display()
                         );
                     }
                 }
 
                 ris_log::debug!(
                     "copied \"{}\" to \"{}\"!",
-                    ris_io::path::to_str(copy_source),
-                    ris_io::path::to_str(copy_target),
+                    copy_source.display(),
+                    copy_target.display(),
                 );
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {
                 return ris_error::new_result!(
                     "entry \"{}\" is neither a file nor a directory",
-                    ris_io::path::to_str(entry_path),
+                    entry_path.display(),
                 );
             }
         }
@@ -238,7 +238,7 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 _ => {
                     ris_log::debug!(
                         "failed to deduce importer, unknown extension \"{}\"",
-                        ris_io::path::to_str(source_path),
+                        source_path.display(),
                     );
                     return Ok(());
                 }

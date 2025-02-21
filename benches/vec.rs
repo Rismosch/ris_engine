@@ -15,7 +15,7 @@ fn vec_overwrite(c: &mut Criterion) {
     let max_elements = 4096;
     let mut values = Vec::with_capacity(count);
     for _ in 0..count {
-        let len = rng.range_i(0, max_elements) as usize;
+        let len = rng.next_i32_between(0, max_elements) as usize;
         let bytes = rng.next_bytes(len);
         values.push(bytes);
     }

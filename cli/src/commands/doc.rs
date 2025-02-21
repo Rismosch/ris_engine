@@ -41,12 +41,12 @@ impl ICommand for Doc {
 
         eprintln!(
             "done! docs can be found in \"{}\"",
-            ris_io::path::to_str(&target_dir),
+            target_dir.display(),
         );
         let index_file = target_dir.join("ris_engine").join("index.html");
         eprintln!(
             "you will find the index in \"{}\"",
-            ris_io::path::to_str(index_file),
+            index_file.display(),
         );
 
         Ok(())

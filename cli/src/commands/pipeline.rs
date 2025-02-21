@@ -217,7 +217,7 @@ impl ICommand for Pipeline {
 
         print_empty(ff, 1)?;
 
-        println!("results stored in \"{}\"", ris_io::path::to_str(target_dir),);
+        println!("results stored in \"{}\"", target_dir.display());
 
         print_empty(ff, 2)?;
 

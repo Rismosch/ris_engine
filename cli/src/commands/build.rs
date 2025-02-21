@@ -111,7 +111,7 @@ impl ICommand for Build {
 
         eprintln!(
             "read previous build info... \"{}\"",
-            ris_io::path::to_str(&build_info_path),
+            build_info_path.display(),
         );
 
         let mut file_content = String::new();
@@ -223,7 +223,7 @@ impl ICommand for Build {
 
         eprintln!(
             "done! final build can be found under \"{}\"",
-            ris_io::path::to_str(target_dir),
+            target_dir.display(),
         );
 
         Ok(())

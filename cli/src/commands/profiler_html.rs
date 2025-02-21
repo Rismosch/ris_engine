@@ -51,12 +51,12 @@ impl ICommand for ProfilerHtml {
             .join("Chart.js")
             .join("dist")
             .join("Chart.js");
-        eprintln!("reading... \"{}\"", ris_io::path::to_str(&chart_js_path),);
+        eprintln!("reading... \"{}\"", chart_js_path.display(),);
         let chart_js = read_text_file(chart_js_path)?;
 
         let pref_path = sdl2::filesystem::pref_path(ORG_NAME, APP_NAME)?;
         let profiler_dir = PathBuf::from(pref_path).join(PROFILER);
-        eprintln!("reading... \"{}\"", ris_io::path::to_str(&profiler_dir),);
+        eprintln!("reading... \"{}\"", profiler_dir.display());
 
         let mut parsed_csv_files = Vec::new();
 
@@ -72,17 +72,17 @@ impl ICommand for ProfilerHtml {
                 .unwrap_or(false);
 
             if !entry_is_file || !path_ends_with_csv {
-                eprintln!("cannot read \"{}\"", ris_io::path::to_str(path),);
+                eprintln!("cannot read \"{}\"", path.display());
                 continue;
             }
 
-            eprintln!("reading... \"{}\"", ris_io::path::to_str(&path),);
+            eprintln!("reading... \"{}\"", path.display());
             let file_name = match path.file_name().map(|x| x.to_str()) {
                 Some(Some(file_name)) => file_name.to_string(),
                 _ => format!("csv {}", i),
             };
 
-            eprintln!("parse csv... \"{}\"", ris_io::path::to_str(&path),);
+            eprintln!("parse csv... \"{}\"", path.display());
             let csv = read_text_file(&path)?;
             let mut lines = csv.lines();
 
@@ -360,7 +360,7 @@ function render_chart() {
 
         eprintln!(
             "done! resulting html can be found in \"{}\"",
-            ris_io::path::to_str(dst_path),
+            dst_path.display(),
         );
 
         Ok(())
