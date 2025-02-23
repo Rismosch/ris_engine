@@ -2,6 +2,7 @@
 
 pub mod scripts;
 pub mod async_test;
+pub mod async_test_2;
 
 use std::path::PathBuf;
 
@@ -30,7 +31,7 @@ pub const RESTART_CODE: i32 = 42;
 
 
 fn main() -> Result<(), String> {
-    async_test::run();
+    async_test_2::run();
     return Ok(());
 
     let result = match get_app_info() {

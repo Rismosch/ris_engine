@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use crate::SpinLock;
 
+/// This channel is specifically designed for my thread pool, which calls `Sender::Send()` and
+/// `Receiver::receive()` on the same thread, which is why `Sender` and `Receiver` don't
+/// implement `Send`
 pub struct Channel<T> {
     head: UnsafeCell<usize>,
     tail: SpinLock<usize>,

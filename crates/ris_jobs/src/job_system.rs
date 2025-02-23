@@ -19,6 +19,8 @@ use crate::job_buffer::JobBuffer;
 use crate::job_future::JobFuture;
 use crate::job_future::SettableJobFuture;
 
+pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
+
 thread_local! {
     static WORKER_THREAD: RefCell<Option<WorkerThread>> = const { RefCell::new(None) };
 }
@@ -59,8 +61,6 @@ impl Drop for JobSystemGuard {
         ris_log::info!("job system guard dropped!");
     }
 }
-
-pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 
 pub fn init(
     buffer_capacity: usize,

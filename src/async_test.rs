@@ -7,6 +7,7 @@ use std::task::Wake;
 use std::thread::Thread;
 
 pub fn run() {
+    panic!();
     let mut futures = Vec::with_capacity(10);
     for i in 0..futures.capacity() {
         let future = math(i);
