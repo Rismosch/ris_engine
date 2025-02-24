@@ -1,6 +1,4 @@
-use std::cell::RefCell;
 use std::cell::UnsafeCell;
-use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::pin::Pin;
 use std::pin::pin;
@@ -122,11 +120,10 @@ impl Worker {
             match pinned_future.as_mut().poll(&mut context) {
                 Poll::Ready(result) => return result,
                 Poll::Pending => {
-                    println!(
-                        "well, i did not expect to park here. {}",
-                        self.name(),
-                    );
-                    std::thread::park();
+                    println!("pending...");
+                    if !self.run_pending_job() {
+                        std::thread::yield_now();
+                    }
                 },
             }
         }
@@ -139,13 +136,26 @@ impl Worker {
     }
 }
 
+pub struct ThreadPoolFutureInner<T> {
+    ready: AtomicBool,
+    data: UnsafeCell<MaybeUninit<T>>,
+}
+
 pub struct ThreadPoolFuture<T> {
     inner: Arc<ThreadPoolFutureInner<T>>,
 }
 
-pub struct ThreadPoolFutureInner<T> {
-    ready: AtomicBool,
-    data: UnsafeCell<MaybeUninit<T>>,
+impl<T> Future for ThreadPoolFuture<T> {
+    type Output = T;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.as_mut().inner.ready.swap(false, Ordering::Acquire) {
+            let output = unsafe{(*self.inner.data.get()).assume_init_read()};
+            Poll::Ready(output)
+        } else {
+            Poll::Pending
+        }
+    }
 }
 
 pub struct ThreadPool {
@@ -342,7 +352,7 @@ impl ThreadPool {
         })
     }
 
-    pub fn submit<F: Future + 'static>(&self, future: F) -> ThreadPoolFuture<F::Output> {
+    pub fn submit<F: Future + 'static>(future: F) -> ThreadPoolFuture<F::Output> {
         let Some(worker) = get_worker() else {
             panic!("fatal: not a worker")
         };
@@ -358,6 +368,7 @@ impl ThreadPool {
         let mut job: Box<dyn Future<Output = ()>> = Box::new(async move {
             let output = future.await;
             unsafe {(*inner.data.get()).write(output)};
+            inner.ready.store(true, Ordering::Release);
         });
 
         loop {
