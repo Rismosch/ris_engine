@@ -30,7 +30,7 @@ struct ThreadWaker(Thread);
 
 impl Wake for ThreadWaker {
     fn wake(self: Arc<Self>) {
-        self.0.unpark();
+        //self.0.unpark();
     }
 }
 
@@ -75,9 +75,9 @@ impl Worker {
 
         while !self.done.load(Ordering::Relaxed) {
             if !self.run_pending_job() {
-                std::thread::park();
+                //std::thread::park();
                 //std::thread::yield_now();
-                //std::hint::spin_loop();
+                std::hint::spin_loop();
             }
         }
 
@@ -122,7 +122,7 @@ impl Worker {
             match pinned_future.as_mut().poll(&mut context) {
                 Poll::Ready(result) => return result,
                 Poll::Pending => {
-                    println!("pending...");
+                    //println!("pending...");
                     if !self.run_pending_job() {
                         std::thread::yield_now();
                     }
@@ -217,7 +217,7 @@ impl ThreadPool {
             affinities[i % threads].push(i);
         }
 
-        // setup stealers
+        // setup shared worker data
         let initial_worker_data = Arc::new(SpinLock::new(Vec::new()));
         let prepared_worker_data = Arc::new(SpinLock::new(Vec::<Option<_>>::new()));
         let done_preparing_worker_data = Arc::new(AtomicBool::new(false));
@@ -250,7 +250,7 @@ impl ThreadPool {
             let done_preparing_worker_data = done_preparing_worker_data.clone();
 
             let join_handle = std::thread::Builder::new()
-                .name(format!("thread pool worker {}", i))
+                .name(format!("thread_pool.worker.{}", i))
                 .spawn(move || {
                     // worker initial setup
                     crate::affinity::set_affinity(&core_ids);
