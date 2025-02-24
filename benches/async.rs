@@ -3,8 +3,8 @@ use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::Criterion;
 
+use ris_async::thread_pool::ThreadPool;
 use ris_jobs::job_system;
-use ris_jobs::job_system::JobSystemGuard;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
@@ -21,17 +21,17 @@ fn async_runner(c: &mut Criterion) {
         hash_inputs.push(hash_input);
     }
 
-    // setup job system
+    // job system
     let cpu_count = sdl2::cpuinfo::cpu_count() as usize;
     let job_system_guard = job_system::init(
-        job_system::DEFAULT_BUFFER_CAPACITY,
+        1024,
         cpu_count,
         cpu_count,
         true,
     );
 
     group.bench_function("job_system", |b| {
-        let hash_inputs = hash_inputs.clone();
+        //let hash_inputs = hash_inputs.clone();
         b.iter(|| {
             let mut futures = Vec::with_capacity(hash_inputs.len());
             for &input in &hash_inputs {
@@ -49,6 +49,34 @@ fn async_runner(c: &mut Criterion) {
     });
 
     drop(job_system_guard);
+
+    // async thread pool
+    let thread_pool = ThreadPool::new(
+        1024,
+        cpu_count,
+        cpu_count,
+        true,
+    ).unwrap();
+
+    group.bench_function("thread pool", |b| {
+        //let hash_inputs = hash_inputs.clone();
+        b.iter(|| {
+            let mut futures = Vec::with_capacity(hash_inputs.len());
+            for &input in &hash_inputs {
+                let future = ThreadPool::submit(async move {
+                    dummy_work(input, hash_iterations)
+                });
+                futures.push(future);
+            }
+
+            for future in futures {
+                let result = ThreadPool::block_on(future);
+                black_box(result);
+            }
+        });
+    });
+
+    drop(thread_pool)
 }
 
 fn dummy_work(input: u64, iterations: usize) -> u64 {

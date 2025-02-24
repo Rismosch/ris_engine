@@ -76,6 +76,8 @@ impl Worker {
         while !self.done.load(Ordering::Relaxed) {
             if !self.run_pending_job() {
                 std::thread::park();
+                //std::thread::yield_now();
+                //std::hint::spin_loop();
             }
         }
 
@@ -388,9 +390,17 @@ impl ThreadPool {
         thread_pool_future
     }
 
+    pub fn block_on<F: Future>(future: F) -> F::Output {
+        let Some(worker) = get_worker() else {
+            panic!("fatal: not a worker")
+        };
+
+        worker.block_on(future)
+    }
+
     pub fn run_pending_job() -> bool {
         let Some(worker) = get_worker() else {
-            return false;
+            panic!("fatal: not a worker")
         };
 
         worker.run_pending_job()
