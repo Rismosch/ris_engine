@@ -26,7 +26,7 @@ pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 type Job = Box<dyn Future<Output = ()>>;
 
 #[derive(Clone)]
-struct ThreadWaker(Arc<Thread>);
+struct ThreadWaker(Thread);
 
 impl Wake for ThreadWaker {
     fn wake(self: Arc<Self>) {
@@ -235,7 +235,7 @@ impl ThreadPool {
             receiver,
             stealer,
         ) = Channel::<Job>::new(buffer_capacity);
-        let waker = ThreadWaker(Arc::new(std::thread::current()));
+        let waker = ThreadWaker(std::thread::current());
         initial_worker_data.lock()[0] = Some(OtherWorker{stealer, waker: waker.clone()});
 
         // setup worker threads
@@ -259,7 +259,7 @@ impl ThreadPool {
                         receiver,
                         stealer,
                     ) = Channel::<Job>::new(buffer_capacity);
-                    let waker = ThreadWaker(Arc::new(std::thread::current()));
+                    let waker = ThreadWaker(std::thread::current());
                     initial_worker_data.lock()[i] = Some(OtherWorker{stealer, waker: waker.clone()});
 
                     while !done_preparing_worker_data.load(Ordering::Relaxed) {

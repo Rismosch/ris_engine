@@ -20,10 +20,12 @@ pub fn run() {
 
 async fn hello(value: usize) {
     let result = ThreadPool::submit(mul_10(value)).await;
+    let ran_job = ThreadPool::run_pending_job();
     println!(
-        "hello {} * 10 = {}, thread: {:?}",
+        "hello {} * 10 = {}, ran job: {}, thread: {:?}",
         value,
         result,
+        ran_job,
         std::thread::current().name()
     );
 }
