@@ -5,9 +5,15 @@ pub fn run() {
         cpu_count,
         cpu_count,
         true,
-    );
+    ).unwrap();
 
+    for i in 0..100 {
+        thread_pool.submit(hello(i));
+    }
+}
 
+async fn hello(value: usize) {
+    println!("hello {} from thread: {:?}", value, std::thread::current().name())
 }
 
 

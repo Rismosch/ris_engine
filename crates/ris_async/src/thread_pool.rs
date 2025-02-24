@@ -1,11 +1,15 @@
 use std::cell::RefCell;
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 use std::pin::Pin;
+use std::pin::pin;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::future::Future;
+use std::task::Context;
+use std::task::Poll;
 use std::task::Wake;
 use std::thread::JoinHandle;
 use std::thread::Thread;
@@ -23,7 +27,8 @@ pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 
 type Job = Box<dyn Future<Output = ()>>;
 
-struct ThreadWaker(Thread);
+#[derive(Clone)]
+struct ThreadWaker(Arc<Thread>);
 
 impl Wake for ThreadWaker {
     fn wake(self: Arc<Self>) {
@@ -51,12 +56,13 @@ pub struct Worker {
     done: Arc<AtomicBool>,
     sender: Sender<Job>,
     receiver: Receiver<Job>,
-    shared: Vec<SharedWorkerData>,
+    waker: ThreadWaker,
+    others: Vec<OtherWorker>,
 }
 
-pub struct SharedWorkerData {
+pub struct OtherWorker {
     stealer: Arc<Stealer<Job>>,
-    waker: Arc<ThreadWaker>,
+    waker: ThreadWaker,
 }
 
 impl Worker {
@@ -95,8 +101,8 @@ impl Worker {
         match self.receiver.receive() {
             Some(job) => Some(job),
             None => {
-                for SharedWorkerData { stealer, waker } in self.shared.iter() {
-                    if let Some(job) = stealer.steal() {
+                for other in self.others.iter() {
+                    if let Some(job) = other.stealer.steal() {
                         return Some(job)
                     };
                 }
@@ -107,14 +113,39 @@ impl Worker {
     }
 
     fn block_on<F: Future>(&self, future: F) -> F::Output {
-        panic!();
+        let mut pinned_future = pin!(future);
+
+        let waker = Arc::new(self.waker.clone()).into();
+        let mut context = Context::from_waker(&waker);
+
+        loop {
+            match pinned_future.as_mut().poll(&mut context) {
+                Poll::Ready(result) => return result,
+                Poll::Pending => {
+                    println!(
+                        "well, i did not expect to park here. {}",
+                        self.name(),
+                    );
+                    std::thread::park();
+                },
+            }
+        }
     }
 
     fn wake_other_workers(&self) {
-        for SharedWorkerData { stealer, waker } in self.shared.iter() {
-            waker.clone().wake();
+        for other in self.others.iter() {
+            Arc::new(other.waker.clone()).wake();
         }
     }
+}
+
+pub struct ThreadPoolFuture<T> {
+    inner: Arc<ThreadPoolFutureInner<T>>,
+}
+
+pub struct ThreadPoolFutureInner<T> {
+    ready: AtomicBool,
+    data: UnsafeCell<MaybeUninit<T>>,
 }
 
 pub struct ThreadPool {
@@ -175,11 +206,11 @@ impl ThreadPool {
         }
 
         // setup stealers
-        let original_worker_data = Arc::new(SpinLock::new(Vec::new()));
-        let shared_worker_data = Arc::new(SpinLock::new(Vec::<Option<_>>::new()));
-        let done_preparing_shared_worker_data = Arc::new(AtomicBool::new(false));
+        let initial_worker_data = Arc::new(SpinLock::new(Vec::new()));
+        let prepared_worker_data = Arc::new(SpinLock::new(Vec::<Option<_>>::new()));
+        let done_preparing_worker_data = Arc::new(AtomicBool::new(false));
 
-        let mut g = original_worker_data.lock();
+        let mut g = initial_worker_data.lock();
         for _ in 0..threads {
             g.push(None);
         }
@@ -192,8 +223,8 @@ impl ThreadPool {
             receiver,
             stealer,
         ) = Channel::<Job>::new(buffer_capacity);
-        let waker = Arc::new(ThreadWaker(std::thread::current()));
-        original_worker_data.lock()[0] = Some((stealer, waker));
+        let waker = ThreadWaker(Arc::new(std::thread::current()));
+        initial_worker_data.lock()[0] = Some(OtherWorker{stealer, waker: waker.clone()});
 
         // setup worker threads
         let done = Arc::new(AtomicBool::new(false));
@@ -202,9 +233,9 @@ impl ThreadPool {
         for (i, core_ids) in affinities.iter().enumerate().take(threads).skip(1) {
             let core_ids = core_ids.clone();
             let done = done.clone();
-            let original_worker_data = original_worker_data.clone();
-            let shared_worker_data = shared_worker_data.clone();
-            let done_preparing_shared_worker_data = done_preparing_shared_worker_data.clone();
+            let initial_worker_data = initial_worker_data.clone();
+            let prepared_worker_data = prepared_worker_data.clone();
+            let done_preparing_worker_data = done_preparing_worker_data.clone();
 
             let join_handle = std::thread::Builder::new()
                 .name(format!("thread pool worker {}", i))
@@ -216,16 +247,16 @@ impl ThreadPool {
                         receiver,
                         stealer,
                     ) = Channel::<Job>::new(buffer_capacity);
-                    let waker = Arc::new(ThreadWaker(std::thread::current()));
-                    original_worker_data.lock()[i] = Some((stealer, waker));
+                    let waker = ThreadWaker(Arc::new(std::thread::current()));
+                    initial_worker_data.lock()[i] = Some(OtherWorker{stealer, waker: waker.clone()});
 
-                    while !done_preparing_shared_worker_data.load(Ordering::Relaxed) {
+                    while !done_preparing_worker_data.load(Ordering::Relaxed) {
                         std::thread::yield_now();
                     }
 
                     // prepare worker
-                    let mut g = shared_worker_data.lock();
-                    let shared = ris_error::unwrap!(
+                    let mut g = prepared_worker_data.lock();
+                    let others = ris_error::unwrap!(
                         (&mut g[i]).take().into_ris_error(),
                         "something has gone terribly wrong. this option should never be none"
                     );
@@ -235,7 +266,8 @@ impl ThreadPool {
                         done,
                         sender,
                         receiver,
-                        shared,
+                        waker,
+                        others,
                     });
 
                     let worker = ris_error::unwrap!(
@@ -249,17 +281,17 @@ impl ThreadPool {
             join_handles.push(join_handle);
         }
 
-        // wait until all workers have set up their channels
+        // wait until all workers have shared their initial worker data
         for i in 0..threads {
-            while original_worker_data.lock()[i].is_none() {
+            while initial_worker_data.lock()[i].is_none() {
                 std::thread::yield_now();
             }
         }
 
-        // all channels are setup, stealers can now be copied
+        // all workers are initialized, prepare worker data for everyone
         for i in 0..threads {
             let mut shared = Vec::new();
-            let g = original_worker_data.lock();
+            let g = initial_worker_data.lock();
             for j in 0..g.len() {
                 // offset j, such that every worker has a different stealer at first, this attempts
                 // to reduce contention
@@ -269,26 +301,26 @@ impl ThreadPool {
                 }
 
                 let original = &g[j];
-                let (stealer, waker) = ris_error::unwrap!(
+                let other = ris_error::unwrap!(
                     original.as_ref().into_ris_error(),
                     "something has gone terribly wrong. this option should never be none"
                 );
 
                 
-                shared.push(SharedWorkerData{
-                    stealer: stealer.clone(),
-                    waker: waker.clone(),
+                shared.push(OtherWorker{
+                    stealer: other.stealer.clone(),
+                    waker: other.waker.clone(),
                 });
             }
             drop(g);
-            shared_worker_data.lock().push(Some(shared));
+            prepared_worker_data.lock().push(Some(shared));
         }
 
-        done_preparing_shared_worker_data.store(true, Ordering::Relaxed);
+        done_preparing_worker_data.store(true, Ordering::Relaxed);
 
         // prepare main worker
-        let mut g = shared_worker_data.lock();
-        let shared = ris_error::unwrap!(
+        let mut g = prepared_worker_data.lock();
+        let others = ris_error::unwrap!(
             (&mut g[0]).take().into_ris_error(),
             "something has gone terribly wrong. this option should never be none"
         );
@@ -298,7 +330,8 @@ impl ThreadPool {
             done: done.clone(),
             sender,
             receiver,
-            shared,
+            waker,
+            others,
         };
         set_worker(worker);
 
@@ -309,22 +342,39 @@ impl ThreadPool {
         })
     }
 
-    pub fn submit<F: Future>(&self, future: F) -> Result<(), F> {
+    pub fn submit<F: Future + 'static>(&self, future: F) -> ThreadPoolFuture<F::Output> {
         let Some(worker) = get_worker() else {
-            println!("not a worker");
-            return Err(future); // todo better error
+            panic!("fatal: not a worker")
         };
 
-        let job = async {
+        let inner = Arc::new(ThreadPoolFutureInner {
+            ready: AtomicBool::new(false),
+            data: UnsafeCell::new(MaybeUninit::uninit()),
+        });
+        let thread_pool_future = ThreadPoolFuture {
+            inner: inner.clone(),
+        };
+
+        let mut job: Box<dyn Future<Output = ()>> = Box::new(async move {
             let output = future.await;
-        };
+            unsafe {(*inner.data.get()).write(output)};
+        });
 
-        // todo: enqueue `job` into thread pool
-        // todo: find a way to return `output`
+        loop {
+            match worker.sender.send(job) {
+                Ok(()) => break,
+                Err(not_sent) => {
+                    if !worker.run_pending_job() {
+                        std::thread::yield_now();
+                    }
+                    job = not_sent;
+                },
+            }
+        }
 
         worker.wake_other_workers();
 
-        Ok(())
+        thread_pool_future
     }
 
     pub fn run_pending_job() -> bool {
