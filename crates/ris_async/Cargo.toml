@@ -10,5 +10,8 @@ cfg-if = "1"
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "^0.2.30"
+
 [features]
 validation_enabled = []
