@@ -30,11 +30,23 @@ impl IUiHelperModule for SettingsModule {
         let settings = &mut data.state.settings;
 
         if ui.collapsing_header("jobs", imgui::TreeNodeFlags::empty()) {
-            let mut workers = settings.job().get_workers();
+            let mut workers = settings.job().workers();
+            let mut affinity = settings.job().affinity();
+            let mut use_parking = settings.job().use_parking();
 
             let cpu_count = self.shared_state.borrow().app_info.cpu.cpu_count;
             if ui.slider("workers", 1, cpu_count, &mut workers) {
                 settings.job_mut().set_workers(workers);
+                self.saved = false;
+            }
+
+            if ui.checkbox("affinity", &mut affinity) {
+                settings.job_mut().set_affinity(affinity);
+                self.saved = false;
+            }
+
+            if ui.checkbox("use parking", &mut use_parking) {
+                settings.job_mut().set_use_parking(use_parking);
                 self.saved = false;
             }
         }

@@ -2,6 +2,7 @@ use ris_error::RisResult;
 
 #[derive(Default, Debug)]
 pub struct RisYamlEntry {
+    pub raw_line: String,
     pub key_value: Option<(String, String)>,
     pub comment: Option<String>,
     pub line: usize,
@@ -112,6 +113,7 @@ impl RisYaml {
             };
 
             let entry = RisYamlEntry {
+                raw_line: line.to_string(),
                 key_value,
                 comment,
                 line: i + 1,

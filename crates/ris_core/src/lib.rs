@@ -16,6 +16,6 @@ pub fn determine_thread_count(app_info: &AppInfo, settings: &Settings) -> usize 
     if let Some(workers) = app_info.args.workers {
         workers
     } else {
-        settings.job().get_workers()
+        settings.job().workers()
     }
 }

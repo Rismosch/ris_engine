@@ -59,7 +59,7 @@ pub struct Worker {
     receiver: Receiver<Job>,
     waker: ThreadWaker,
     others: Vec<OtherWorker>,
-    park_when_no_pending_jobs: bool,
+    use_parking: bool,
 }
 
 pub struct OtherWorker {
@@ -79,7 +79,7 @@ impl Worker {
 
         while !self.done.load(Ordering::Relaxed) {
             if !self.run_pending_job() {
-                if self.park_when_no_pending_jobs {
+                if self.use_parking {
                     std::thread::park();
                 } else {
                     std::hint::spin_loop();
@@ -148,7 +148,7 @@ pub struct ThreadPoolCreateInfo {
     pub cpu_count: usize,
     pub threads: usize,
     pub set_affinity: bool,
-    pub park_workers: bool,
+    pub use_parking: bool,
 }
 
 pub struct ThreadPool {
@@ -196,7 +196,7 @@ impl ThreadPool {
             cpu_count,
             threads,
             set_affinity,
-            park_workers,
+            use_parking,
         } = create_info;
 
         let threads = std::cmp::max(threads, 1);
@@ -233,7 +233,7 @@ impl ThreadPool {
             receiver,
             stealer,
         ) = Channel::<Job>::new(buffer_capacity);
-        let waker = if park_workers {
+        let waker = if use_parking {
             ThreadWaker(Some(std::thread::current()))
         } else {
             ThreadWaker(None)
@@ -265,7 +265,7 @@ impl ThreadPool {
                         receiver,
                         stealer,
                     ) = Channel::<Job>::new(buffer_capacity);
-                    let waker = if park_workers {
+                    let waker = if use_parking {
                         ThreadWaker(Some(std::thread::current()))
                     } else {
                         ThreadWaker(None)
@@ -290,7 +290,7 @@ impl ThreadPool {
                         receiver,
                         waker,
                         others,
-                        park_when_no_pending_jobs: park_workers,
+                        use_parking,
                     });
 
                     let worker = ris_error::unwrap!(
@@ -355,7 +355,7 @@ impl ThreadPool {
             receiver,
             waker,
             others,
-            park_when_no_pending_jobs: park_workers,
+            use_parking,
         };
         set_worker(worker);
 

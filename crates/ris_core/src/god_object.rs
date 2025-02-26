@@ -78,12 +78,14 @@ impl GodObject {
         // job system
         let cpu_count = app_info.cpu.cpu_count;
         let threads = crate::determine_thread_count(&app_info, &settings);
+        let set_affinity = settings.job().affinity();
+        let use_parking = settings.job().use_parking();
         let thread_pool_create_info = ThreadPoolCreateInfo {
             buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
             cpu_count,
             threads,
-            set_affinity: true,
-            park_workers: true,
+            set_affinity,
+            use_parking,
         };
         let thread_pool = ThreadPool::init(thread_pool_create_info)?;
 
