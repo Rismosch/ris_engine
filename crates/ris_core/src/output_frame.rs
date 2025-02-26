@@ -20,9 +20,7 @@ use ris_video_renderers::SceneRenderer;
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
 #[cfg(feature = "ui_helper_enabled")]
-use crate::ui_helper::UiHelper;
-#[cfg(feature = "ui_helper_enabled")]
-use crate::ui_helper::UiHelperDrawData;
+use crate::ui_helper::{UiHelper, UiHelperDrawData};
 
 pub struct Renderer {
     pub scene: SceneRenderer,

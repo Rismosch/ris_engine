@@ -1,8 +1,6 @@
 #![windows_subsystem = "windows"]
 
 pub mod scripts;
-pub mod async_test;
-pub mod async_test_2;
 
 use std::path::PathBuf;
 
@@ -28,12 +26,7 @@ use ris_log::log_message::LogMessage;
 pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;
 
-
-
 fn main() -> Result<(), String> {
-    async_test_2::run();
-    return Ok(());
-
     let result = match get_app_info() {
         Ok(app_info) => {
             if app_info.args.no_restart {

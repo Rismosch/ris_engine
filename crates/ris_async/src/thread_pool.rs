@@ -1,5 +1,4 @@
 use std::cell::UnsafeCell;
-use std::mem::MaybeUninit;
 use std::pin::Pin;
 use std::pin::pin;
 use std::sync::Arc;
@@ -16,6 +15,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::Channel;
+use crate::JobFuture;
 use crate::Sender;
 use crate::Stealer;
 use crate::Receiver;
@@ -26,11 +26,13 @@ pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 type Job = Box<dyn Future<Output = ()>>;
 
 #[derive(Clone)]
-struct ThreadWaker(Thread);
+struct ThreadWaker(Option<Thread>);
 
 impl Wake for ThreadWaker {
     fn wake(self: Arc<Self>) {
-        //self.0.unpark();
+        if let Some(thread) = &self.0 {
+            thread.unpark();
+        }
     }
 }
 
@@ -56,6 +58,7 @@ pub struct Worker {
     receiver: Receiver<Job>,
     waker: ThreadWaker,
     others: Vec<OtherWorker>,
+    park_when_no_pending_jobs: bool,
 }
 
 pub struct OtherWorker {
@@ -71,19 +74,21 @@ impl Worker {
     }
 
     fn run(&self) {
-        println!("running \"{}\"", self.name());
+        ris_log::trace!("thread_pool running \"{}\"", self.name());
 
         while !self.done.load(Ordering::Relaxed) {
             if !self.run_pending_job() {
-                //std::thread::park();
-                //std::thread::yield_now();
-                std::hint::spin_loop();
+                if self.park_when_no_pending_jobs {
+                    std::thread::park();
+                } else {
+                    std::hint::spin_loop();
+                }
             }
         }
 
-        println!("finishing... \"{}\"", self.name());
+        ris_log::trace!("thread_pool finishing... \"{}\"", self.name());
         while self.run_pending_job() {}
-        println!("finished \"{}\"!", self.name());
+        ris_log::debug!("thread_pool finished \"{}\"!", self.name());
     }
 
     fn run_pending_job(&self) -> bool {
@@ -122,7 +127,6 @@ impl Worker {
             match pinned_future.as_mut().poll(&mut context) {
                 Poll::Ready(result) => return result,
                 Poll::Pending => {
-                    //println!("pending...");
                     if !self.run_pending_job() {
                         std::thread::yield_now();
                     }
@@ -138,26 +142,12 @@ impl Worker {
     }
 }
 
-pub struct ThreadPoolFutureInner<T> {
-    ready: AtomicBool,
-    data: UnsafeCell<MaybeUninit<T>>,
-}
-
-pub struct ThreadPoolFuture<T> {
-    inner: Arc<ThreadPoolFutureInner<T>>,
-}
-
-impl<T> Future for ThreadPoolFuture<T> {
-    type Output = T;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.as_mut().inner.ready.swap(false, Ordering::Acquire) {
-            let output = unsafe{(*self.inner.data.get()).assume_init_read()};
-            Poll::Ready(output)
-        } else {
-            Poll::Pending
-        }
-    }
+pub struct ThreadPoolCreateInfo {
+    pub buffer_capacity: usize,
+    pub cpu_count: usize,
+    pub threads: usize,
+    pub set_affinity: bool,
+    pub park_workers: bool,
 }
 
 pub struct ThreadPool {
@@ -167,7 +157,7 @@ pub struct ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        println!("dropping thread pool...");
+        ris_log::trace!("dropping thread_pool...");
 
         self.done.store(true, Ordering::Relaxed);
 
@@ -177,7 +167,7 @@ impl Drop for ThreadPool {
                 while worker.run_pending_job() {}
             },
             None => {
-                println!("thread pool was dropped on a non worker thread")
+                ris_log::error!("thread pool was dropped on a non worker thread")
             }
         }
 
@@ -186,25 +176,28 @@ impl Drop for ThreadPool {
                 for (i, join_handle) in join_handles.into_iter().enumerate() {
                     let i = i + 1;
                     match join_handle.join() {
-                        Ok(()) => println!("joined thread {}", i),
-                        Err(_) => println!("failed to join thread {}", i),
+                        Ok(()) => ris_log::debug!("joined thread {}", i),
+                        Err(_) => ris_log::error!("failed to join thread {}", i),
                     }
                 }
             },
-            None => println!("no handles to join"),
+            None => ris_log::error!("no handles to join"),
         }
 
-        println!("dropped thread pool!");
+        ris_log::info!("dropped thread_pool!");
     }
 }
 
 impl ThreadPool {
-    pub fn new(
-        buffer_capacity: usize,
-        cpu_count: usize,
-        threads: usize,
-        set_affinity: bool,
-    ) -> RisResult<Self> {
+    pub fn new(create_info: ThreadPoolCreateInfo) -> RisResult<Self> {
+        let ThreadPoolCreateInfo {
+            buffer_capacity,
+            cpu_count,
+            threads,
+            set_affinity,
+            park_workers,
+        } = create_info;
+
         let threads = std::cmp::max(threads, 1);
         let threads = std::cmp::min(threads, cpu_count);
 
@@ -229,13 +222,21 @@ impl ThreadPool {
         drop(g);
 
         // initial main worker setup
-        crate::affinity::set_affinity(&affinities[0]);
+        if set_affinity {
+            if let Err(e) = crate::affinity::set_affinity(&affinities[0]) {
+                ris_log::error!("failed to set affinities for main worker: {}", e);
+            }
+        }
         let (
             sender,
             receiver,
             stealer,
         ) = Channel::<Job>::new(buffer_capacity);
-        let waker = ThreadWaker(std::thread::current());
+        let waker = if park_workers {
+            ThreadWaker(Some(std::thread::current()))
+        } else {
+            ThreadWaker(None)
+        };
         initial_worker_data.lock()[0] = Some(OtherWorker{stealer, waker: waker.clone()});
 
         // setup worker threads
@@ -253,13 +254,21 @@ impl ThreadPool {
                 .name(format!("thread_pool.worker.{}", i))
                 .spawn(move || {
                     // worker initial setup
-                    crate::affinity::set_affinity(&core_ids);
+                    if set_affinity {
+                        if let Err(e) = crate::affinity::set_affinity(&core_ids) {
+                            ris_log::error!("failed to set affinities for worker {}: {}", i, e);
+                        }
+                    }
                     let (
                         sender,
                         receiver,
                         stealer,
                     ) = Channel::<Job>::new(buffer_capacity);
-                    let waker = ThreadWaker(std::thread::current());
+                    let waker = if park_workers {
+                        ThreadWaker(Some(std::thread::current()))
+                    } else {
+                        ThreadWaker(None)
+                    };
                     initial_worker_data.lock()[i] = Some(OtherWorker{stealer, waker: waker.clone()});
 
                     while !done_preparing_worker_data.load(Ordering::Relaxed) {
@@ -280,6 +289,7 @@ impl ThreadPool {
                         receiver,
                         waker,
                         others,
+                        park_when_no_pending_jobs: park_workers,
                     });
 
                     let worker = ris_error::unwrap!(
@@ -344,6 +354,7 @@ impl ThreadPool {
             receiver,
             waker,
             others,
+            park_when_no_pending_jobs: park_workers,
         };
         set_worker(worker);
 
@@ -354,23 +365,16 @@ impl ThreadPool {
         })
     }
 
-    pub fn submit<F: Future + 'static>(future: F) -> ThreadPoolFuture<F::Output> {
+    pub fn submit<F: Future + 'static>(future: F) -> JobFuture<F::Output> {
         let Some(worker) = get_worker() else {
-            panic!("fatal: not a worker")
+            ris_error::throw!("cannot submit future, caller is not a worker");
         };
 
-        let inner = Arc::new(ThreadPoolFutureInner {
-            ready: AtomicBool::new(false),
-            data: UnsafeCell::new(MaybeUninit::uninit()),
-        });
-        let thread_pool_future = ThreadPoolFuture {
-            inner: inner.clone(),
-        };
+        let (job_future, job_future_setter) = JobFuture::new();
 
         let mut job: Box<dyn Future<Output = ()>> = Box::new(async move {
             let output = future.await;
-            unsafe {(*inner.data.get()).write(output)};
-            inner.ready.store(true, Ordering::Release);
+            job_future_setter.set(output);
         });
 
         loop {
@@ -387,12 +391,12 @@ impl ThreadPool {
 
         worker.wake_other_workers();
 
-        thread_pool_future
+        job_future
     }
 
     pub fn block_on<F: Future>(future: F) -> F::Output {
         let Some(worker) = get_worker() else {
-            panic!("fatal: not a worker")
+            ris_error::throw!("cannot block on future, caller is not a worker");
         };
 
         worker.block_on(future)
@@ -400,7 +404,8 @@ impl ThreadPool {
 
     pub fn run_pending_job() -> bool {
         let Some(worker) = get_worker() else {
-            panic!("fatal: not a worker")
+            ris_log::error!("cannot run pending job, caller is not a worker");
+            return false;
         };
 
         worker.run_pending_job()

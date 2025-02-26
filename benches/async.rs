@@ -4,12 +4,13 @@ use criterion::criterion_main;
 use criterion::Criterion;
 
 use ris_async::thread_pool::ThreadPool;
+use ris_async::thread_pool::ThreadPoolCreateInfo;
 use ris_jobs::job_system;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
 fn async_runner(c: &mut Criterion) {
-    let mut group = c.benchmark_group("async_runner");
+    let mut group = c.benchmark_group("async");
 
     let mut rng = Rng::new(Seed::new().unwrap());
 
@@ -31,7 +32,6 @@ fn async_runner(c: &mut Criterion) {
     );
 
     group.bench_function("job_system", |b| {
-        //let hash_inputs = hash_inputs.clone();
         b.iter(|| {
             let mut futures = Vec::with_capacity(hash_inputs.len());
             for &input in &hash_inputs {
@@ -51,32 +51,39 @@ fn async_runner(c: &mut Criterion) {
     drop(job_system_guard);
 
     // async thread pool
-    let thread_pool = ThreadPool::new(
-        1024,
-        cpu_count,
-        cpu_count,
-        true,
-    ).unwrap();
+    let bools = [0, 1];
+    for set_affinity in bools {
+        for park_workers in bools {
+            let create_info = ThreadPoolCreateInfo {
+                buffer_capacity: 1024,
+                cpu_count,
+                threads: cpu_count,
+                set_affinity: set_affinity == 1,
+                park_workers: park_workers == 1,
+            };
+            let thread_pool = ThreadPool::new(create_info).unwrap();
 
-    group.bench_function("thread pool", |b| {
-        //let hash_inputs = hash_inputs.clone();
-        b.iter(|| {
-            let mut futures = Vec::with_capacity(hash_inputs.len());
-            for &input in &hash_inputs {
-                let future = ThreadPool::submit(async move {
-                    dummy_work(input, hash_iterations)
+            group.bench_function(format!("pool, aff:{}, prk:{} ", set_affinity, park_workers), |b| {
+                b.iter(|| {
+                    let mut futures = Vec::with_capacity(hash_inputs.len());
+                    for &input in &hash_inputs {
+                        let future = ThreadPool::submit(async move {
+                            dummy_work(input, hash_iterations)
+                        });
+                        futures.push(future);
+                    }
+
+                    for future in futures {
+                        let result = ThreadPool::block_on(future);
+                        black_box(result);
+                    }
                 });
-                futures.push(future);
-            }
+            });
 
-            for future in futures {
-                let result = ThreadPool::block_on(future);
-                black_box(result);
-            }
-        });
-    });
+            drop(thread_pool)
+        }
+    }
 
-    drop(thread_pool)
 }
 
 fn dummy_work(input: u64, iterations: usize) -> u64 {
