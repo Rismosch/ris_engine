@@ -11,6 +11,8 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_async::JobFuture;
+use ris_async::ThreadPool;
 use ris_data::asset_id::AssetId;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
@@ -18,7 +20,6 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::ris_yaml::RisYaml;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 use ris_ptr::WeakPtr;
@@ -460,7 +461,7 @@ impl UiHelper {
         }
 
         if let Some(future) = self.reimport_asset_future.take() {
-            future.wait(None)?;
+            future.wait();
         }
 
         match result {
@@ -632,10 +633,10 @@ fn reimport_assets(import_asset_future: &mut Option<JobFuture<()>>) -> RisResult
     use ris_asset::asset_importer;
 
     if let Some(future) = import_asset_future.take() {
-        future.wait(None)?;
+        future.wait();
     }
 
-    let future = ris_jobs::job_system::submit(|| {
+    let future = ThreadPool::submit(async {
         let result = asset_importer::import_all(
             asset_importer::DEFAULT_SOURCE_DIRECTORY,
             asset_importer::DEFAULT_IMPORT_DIRECTORY,

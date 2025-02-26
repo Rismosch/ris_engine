@@ -7,7 +7,7 @@ pub struct SpinLock<T> {
     value: UnsafeCell<T>,
 }
 
-pub struct Guard<'a, T> {
+pub struct SpinLockGuard<'a, T> {
     lock: &'a SpinLock<T>,
 }
 
@@ -25,23 +25,34 @@ impl<T> SpinLock<T> {
         }
     }
 
-    pub fn lock(&self) -> Guard<T> {
-        while self.locked.swap(true, Ordering::Acquire) {
-            std::hint::spin_loop();
+    pub fn spin_once(&self) -> Option<SpinLockGuard<T>> {
+        if self.locked.swap(true, Ordering::Acquire) {
+            None
+        } else {
+            Some(SpinLockGuard {
+                lock: self,
+            })
         }
-        Guard {
-            lock: self,
+    }
+
+    pub fn lock(&self) -> SpinLockGuard<T> {
+        loop {
+            if let Some(guard) = self.spin_once() {
+                return guard;
+            }
+
+            std::hint::spin_loop();
         }
     }
 }
 
-impl<T> Drop for Guard<'_, T> {
+impl<T> Drop for SpinLockGuard<'_, T> {
     fn drop(&mut self) {
         self.lock.locked.store(false, Ordering::Release);
     }
 }
 
-impl<T> std::ops::Deref for Guard<'_, T> {
+impl<T> std::ops::Deref for SpinLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -49,7 +60,7 @@ impl<T> std::ops::Deref for Guard<'_, T> {
     }
 }
 
-impl<T> std::ops::DerefMut for Guard<'_, T> {
+impl<T> std::ops::DerefMut for SpinLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe{&mut *self.lock.value.get()}
     }

@@ -22,13 +22,13 @@ default-run = "ris_engine"
 members = [ 
     "cli",
     "crates/ris_asset",
+    "crates/ris_async",
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_debug",
     "crates/ris_error",
     "crates/ris_input",
     "crates/ris_io",
-    "crates/ris_jobs",
     "crates/ris_log",
     "crates/ris_math",
     "crates/ris_ptr",
@@ -48,7 +48,6 @@ ris_debug = { path = "crates/ris_debug" }
 ris_error = { path = "crates/ris_error" }
 ris_input = { path = "crates/ris_input" }
 ris_io = { path = "crates/ris_io" }
-ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }
 ris_math = { path = "crates/ris_math" }
 ris_ptr = { path = "crates/ris_ptr" }

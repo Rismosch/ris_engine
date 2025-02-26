@@ -1,10 +1,13 @@
 use std::cell::UnsafeCell;
+use std::future::Future;
 use std::pin::Pin;
 use std::pin::pin;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::future::Future;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::sync::TryLockError;
 use std::task::Context;
 use std::task::Poll;
 use std::task::Wake;
@@ -20,8 +23,6 @@ use crate::Sender;
 use crate::Stealer;
 use crate::Receiver;
 use crate::SpinLock;
-
-pub const DEFAULT_BUFFER_CAPACITY: usize = 1024;
 
 type Job = Box<dyn Future<Output = ()>>;
 
@@ -189,7 +190,7 @@ impl Drop for ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(create_info: ThreadPoolCreateInfo) -> RisResult<Self> {
+    pub fn init(create_info: ThreadPoolCreateInfo) -> RisResult<Self> {
         let ThreadPoolCreateInfo {
             buffer_capacity,
             cpu_count,
@@ -409,6 +410,20 @@ impl ThreadPool {
         };
 
         worker.run_pending_job()
+    }
+
+    pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+        loop {
+            match mutex.try_lock() {
+                Ok(guard) => return guard,
+                Err(TryLockError::WouldBlock) => {
+                    Self::run_pending_job();
+                },
+                Err(TryLockError::Poisoned(e)) => {
+                    ris_error::throw!("mutex is poisoned: {}", e);
+                },
+            }
+        }
     }
 }
 

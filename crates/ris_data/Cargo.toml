@@ -10,10 +10,10 @@ ash = "0.37.3"
 chrono = "0.4"
 imgui = "0.11.0"
 sdl2 = "0.34.5"
+ris_async = { path = "../ris_async" }
 ris_debug = { path = "../ris_debug" }
 ris_error = { path = "../ris_error" }
 ris_io = { path = "../ris_io" }
-ris_jobs = { path = "../ris_jobs" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
 ris_ptr = { path = "../ris_ptr" }

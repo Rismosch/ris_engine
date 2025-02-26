@@ -95,8 +95,8 @@ impl ImguiRenderer {
         let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
         let fs_asset_future = ris_asset::load_async(god_asset.imgui_frag_spv.clone());
 
-        let vs_bytes = vs_asset_future.wait(None)??;
-        let fs_bytes = fs_asset_future.wait(None)??;
+        let vs_bytes = vs_asset_future.wait()?;
+        let fs_bytes = fs_asset_future.wait()?;
 
         // asset data is read in u8, but vulkan expects it to be in u32.
         // assert that the data is properly aligned

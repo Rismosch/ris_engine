@@ -1,9 +1,13 @@
 use std::any::TypeId;
 use std::ffi::CString;
+use std::sync::Arc;
 
 use imgui::Ui;
 
 use ris_asset::asset_loader::LoadError;
+use ris_async::JobFuture;
+use ris_async::SpinLock;
+use ris_async::ThreadPool;
 use ris_data::asset_id::AssetId;
 use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
 use ris_data::ecs::components::script::DynScriptComponent;
@@ -13,7 +17,6 @@ use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
@@ -42,7 +45,7 @@ pub struct InspectorModule {
     component_filter: String,
 
     // asset
-    load_asset_jobs: Vec<JobFuture<Result<Vec<u8>, LoadError>>>,
+    load_asset_jobs: Vec<Arc<SpinLock<Option<Result<Vec<u8>, LoadError>>>>>,
     loaded_asset: Vec<u8>,
 }
 
@@ -538,8 +541,14 @@ impl IUiHelperModule for InspectorModule {
                     let mut actual_path = self.shared_state.borrow().app_info.asset_path()?;
                     actual_path.push(path_buf);
                     if !actual_path.is_dir() {
-                        let job = ris_asset::load_async(id.clone());
-                        self.load_asset_jobs.push(job);
+                        let original_lock = Arc::new(SpinLock::new(None));
+                        let lock = original_lock.clone();
+                        let id = id.clone();
+                        ThreadPool::submit(async move {
+                            let data = ris_asset::load_async(id).await;
+                            *lock.lock() = Some(data);
+                        });
+                        self.load_asset_jobs.push(original_lock);
                     }
 
                     self.loaded_asset.clear();
@@ -547,9 +556,13 @@ impl IUiHelperModule for InspectorModule {
 
                 if !self.load_asset_jobs.is_empty() {
                     let job = self.load_asset_jobs.remove(0);
-                    match job.try_take() {
-                        Ok(data) => self.loaded_asset = data?,
-                        Err(job) => self.load_asset_jobs.insert(0, job),
+                    let mut g = job.lock();
+                    match g.take() {
+                        Some(data) => self.loaded_asset = data?,
+                        None => {
+                            drop(g);
+                            self.load_asset_jobs.insert(0, job);
+                        },
                     }
                 }
 

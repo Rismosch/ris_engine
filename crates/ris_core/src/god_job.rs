@@ -1,6 +1,7 @@
+use ris_async::ThreadPool;
+use ris_async::ThreadPoolCreateInfo;
 use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
-use ris_jobs::job_system;
 
 use crate::god_object::GodObject;
 
@@ -24,7 +25,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // game loop
         ris_debug::add_record!(r, "submit save settings future")?;
-        let save_settings_future = job_system::submit(move || {
+        let save_settings_future = ThreadPool::submit(async move {
             let settings_serializer = god_object.settings_serializer;
             let state = previous_state;
 
@@ -57,7 +58,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // wait for jobs
         ris_debug::add_record!(r, "wait for jobs")?;
-        let (new_settings_serializer, save_settings_result) = save_settings_future.wait(None)?;
+        let (new_settings_serializer, save_settings_result) = save_settings_future.wait();
 
         // update buffers
         ris_debug::add_record!(r, "update buffers")?;
@@ -69,18 +70,20 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let settings = &god_object.state.settings;
         if settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
-            drop(god_object.job_system_guard);
+            drop(god_object.thread_pool);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
-            let workers = crate::determine_thread_count(&god_object.app_info, settings);
+            let threads = crate::determine_thread_count(&god_object.app_info, settings);
 
-            let new_guard = job_system::init(
-                job_system::DEFAULT_BUFFER_CAPACITY,
+            let thread_pool_create_info = ThreadPoolCreateInfo {
+                buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
                 cpu_count,
-                workers,
-                true,
-            );
-            god_object.job_system_guard = new_guard;
+                threads,
+                set_affinity: true,
+                park_workers: true,
+            };
+            let new_thread_pool = ThreadPool::init(thread_pool_create_info)?;
+            god_object.thread_pool = new_thread_pool;
 
             ris_log::debug!("job system restarted!");
         }

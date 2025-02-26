@@ -7,6 +7,16 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
+use std::task::Wake;
+
+use crate::ThreadPool;
+
+struct EmptyWaker;
+
+impl Wake for EmptyWaker {
+    fn wake(self: Arc<Self>) {
+    }
+}
 
 struct JobFutureInner<T> {
     ready: AtomicBool,
@@ -20,6 +30,8 @@ pub struct JobFuture<T> {
 pub struct JobFutureSetter<T> {
     inner: Arc<JobFutureInner<T>>,
 }
+
+unsafe impl<T> Sync for JobFutureInner<T> where T: Send {}
 
 impl<T> Future for JobFuture<T> {
     type Output = T;
@@ -44,6 +56,10 @@ impl<T> JobFuture<T> {
         let future = Self {inner: inner.clone()};
         let setter = JobFutureSetter{inner};
         (future, setter)
+    }
+
+    pub fn wait(self) -> T {
+        ThreadPool::block_on(self)
     }
 }
 

@@ -3,6 +3,8 @@ use sdl2::keyboard::Scancode;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
+use ris_async::ThreadPool;
+use ris_async::ThreadPoolCreateInfo;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
@@ -13,8 +15,6 @@ use ris_data::settings::Settings;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
-use ris_jobs::job_system;
-use ris_jobs::job_system::JobSystemGuard;
 use ris_video_data::core::VulkanCore;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
@@ -59,7 +59,7 @@ pub struct GodObject {
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
-    pub job_system_guard: JobSystemGuard,
+    pub thread_pool: ThreadPool,
 }
 
 impl GodObject {
@@ -77,13 +77,15 @@ impl GodObject {
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
-        let workers = crate::determine_thread_count(&app_info, &settings);
-        let job_system_guard = job_system::init(
-            job_system::DEFAULT_BUFFER_CAPACITY,
+        let threads = crate::determine_thread_count(&app_info, &settings);
+        let thread_pool_create_info = ThreadPoolCreateInfo {
+            buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
             cpu_count,
-            workers,
-            true,
-        );
+            threads,
+            set_affinity: true,
+            park_workers: true,
+        };
+        let thread_pool = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
         //#[cfg(debug_assertions)]
@@ -119,7 +121,7 @@ impl GodObject {
 
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
+        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait()?;
         let god_asset = RisGodAsset::load(&god_asset_bytes)?;
 
         // video
@@ -223,7 +225,7 @@ impl GodObject {
             gizmo_guard,
             profiler_guard,
             asset_loader_guard,
-            job_system_guard,
+            thread_pool,
         };
 
         Ok(god_object)

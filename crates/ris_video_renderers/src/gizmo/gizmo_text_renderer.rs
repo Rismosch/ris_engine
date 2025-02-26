@@ -182,9 +182,9 @@ impl GizmoTextRenderer {
         let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
         let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
 
-        let vs_bytes = vs_future.wait(None)??;
-        let gs_bytes = gs_future.wait(None)??;
-        let fs_bytes = fs_future.wait(None)??;
+        let vs_bytes = vs_future.wait()?;
+        let gs_bytes = gs_future.wait()?;
+        let fs_bytes = fs_future.wait()?;
 
         let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
         let gs_module = ris_video_data::shader::create_module(device, &gs_bytes)?;
@@ -497,7 +497,7 @@ impl GizmoTextRenderer {
 
         // texture
         let font_future = ris_asset::load_async(god_asset.debug_font_texture.clone());
-        let font_data = font_future.wait(None)??;
+        let font_data = font_future.wait()?;
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 
         let pixels_rgba = match desc.channels {
