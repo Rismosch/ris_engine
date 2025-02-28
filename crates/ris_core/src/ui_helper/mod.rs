@@ -603,7 +603,7 @@ impl UiHelper {
                 };
 
                 window.module = Some(module);
-                window.name = builder.name.clone();
+                window.name.clone_from(&builder.name);
             }
         }
 

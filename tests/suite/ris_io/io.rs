@@ -24,8 +24,6 @@ use ris_util::assert_bytes_eq;
 use ris_util::testing;
 use ris_util::testing::miri_choose;
 
-use ris_util::testing::*;
-
 #[test]
 fn should_compare_bytes() {
     let array1 = [1, 2, 3];
@@ -37,14 +35,14 @@ fn should_compare_bytes() {
     let array7 = [1, 2, 3, 4];
     let array8 = [4, 5, 6];
 
-    assert!(bytes_eq(&array1, &array2));
-    assert!(!bytes_eq(&array1, &array3));
-    assert!(!bytes_eq(&array1, &array4));
-    assert!(!bytes_eq(&array1, &array5));
-    assert!(!bytes_eq(&array1, &array6));
-    assert!(!bytes_eq(&array1, &array7));
-    assert!(!bytes_eq(&array1, &array8));
-    assert!(bytes_eq(&array3, &array4));
+    assert!(ris_util::testing::bytes_eq(&array1, &array2));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array3));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array4));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array5));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array6));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array7));
+    assert!(!ris_util::testing::bytes_eq(&array1, &array8));
+    assert!(ris_util::testing::bytes_eq(&array3, &array4));
 }
 
 #[test]
