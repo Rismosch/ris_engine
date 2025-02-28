@@ -7,7 +7,7 @@ use crate::SpinLock;
 /// This channel is specifically designed for my thread pool, which calls `Sender::Send()` and
 /// `Receiver::receive()` on the same thread, which is why `Sender` and `Receiver` don't
 /// implement `Send`
-pub struct Channel<T> {
+struct Channel<T> {
     head: UnsafeCell<usize>,
     tail: SpinLock<usize>,
     buf: Vec<SpinLock<Option<T>>>,
@@ -33,37 +33,35 @@ unsafe impl<T> Sync for Channel<T> where T: Sync {}
 unsafe impl<T> Send for Stealer<T> {}
 unsafe impl<T> Sync for Stealer<T> {}
 
-impl<T> Channel<T> {
-    pub fn new(capacity: usize) -> (Sender<T>, Receiver<T>, Arc<Stealer<T>>) {
-        let mut buf = Vec::with_capacity(capacity);
-        for _ in 0..buf.capacity() {
-            let entry = SpinLock::new(None);
-            buf.push(entry);
-        }
-        let a = Arc::new(Channel{
-            head: UnsafeCell::new(0),
-            tail: SpinLock::new(0),
-            buf,
-        });
-        let sender = Sender{
-            channel: a.clone(),
-            _not_send: PhantomData,
-        };
-        let receiver = Receiver{
-            channel: a.clone(),
-            _not_send: PhantomData,
-        };
-        let stealer = Arc::new(Stealer{channel: a});
-        (sender, receiver, stealer)
+pub fn channel<T>(capacity: usize) -> (Sender<T>, Receiver<T>, Arc<Stealer<T>>) {
+    let mut buf = Vec::with_capacity(capacity);
+    for _ in 0..buf.capacity() {
+        let entry = SpinLock::new(None);
+        buf.push(entry);
     }
+    let a = Arc::new(Channel {
+        head: UnsafeCell::new(0),
+        tail: SpinLock::new(0),
+        buf,
+    });
+    let sender = Sender {
+        channel: a.clone(),
+        _not_send: PhantomData,
+    };
+    let receiver = Receiver {
+        channel: a.clone(),
+        _not_send: PhantomData,
+    };
+    let stealer = Arc::new(Stealer { channel: a });
+    (sender, receiver, stealer)
 }
 
 impl<T> Sender<T> {
     pub fn send(&self, value: T) -> Result<(), T> {
-        let head = unsafe {&mut *self.channel.head.get()};
+        let head = unsafe { &mut *self.channel.head.get() };
 
         debug_assert!(*head < self.channel.buf.len());
-        let entry = unsafe {self.channel.buf.get_unchecked(*head)};
+        let entry = unsafe { self.channel.buf.get_unchecked(*head) };
 
         let mut g = entry.lock();
         if g.is_some() {
@@ -79,7 +77,7 @@ impl<T> Sender<T> {
 
 impl<T> Receiver<T> {
     pub fn receive(&self) -> Option<T> {
-        let head = unsafe {&mut *self.channel.head.get()};
+        let head = unsafe { &mut *self.channel.head.get() };
 
         let new_head = if *head == 0 {
             self.channel.buf.len() - 1
@@ -88,7 +86,7 @@ impl<T> Receiver<T> {
         };
 
         debug_assert!(new_head < self.channel.buf.len());
-        let entry = unsafe {self.channel.buf.get_unchecked(new_head)};
+        let entry = unsafe { self.channel.buf.get_unchecked(new_head) };
 
         let mut g = entry.lock();
         g.take().map(|x| {
@@ -103,7 +101,7 @@ impl<T> Stealer<T> {
         let mut tail = self.channel.tail.lock();
 
         debug_assert!(*tail < self.channel.buf.len());
-        let entry = unsafe {self.channel.buf.get_unchecked(*tail)};
+        let entry = unsafe { self.channel.buf.get_unchecked(*tail) };
 
         let mut g = entry.lock();
         g.take().map(|x| {

@@ -29,9 +29,7 @@ impl<T> SpinLock<T> {
         if self.locked.swap(true, Ordering::Acquire) {
             None
         } else {
-            Some(SpinLockGuard {
-                lock: self,
-            })
+            Some(SpinLockGuard { lock: self })
         }
     }
 
@@ -56,13 +54,13 @@ impl<T> std::ops::Deref for SpinLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe{&*self.lock.value.get()}
+        unsafe { &*self.lock.value.get() }
     }
 }
 
 impl<T> std::ops::DerefMut for SpinLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe{&mut *self.lock.value.get()}
+        unsafe { &mut *self.lock.value.get() }
     }
 }
 

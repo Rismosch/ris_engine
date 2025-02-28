@@ -4,19 +4,31 @@ use ris_async::SpinLock;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
 
+fn get_cpu_count() -> usize {
+    #[cfg(miri)]
+    {
+        4
+    }
+
+    #[cfg(not(miri))]
+    {
+        sdl2::cpuinfo::cpu_count() as usize
+    }
+}
+
 #[test]
 fn should_run() {
-    let cpu_count = sdl2::cpuinfo::cpu_count() as usize;
+    let cpu_count = get_cpu_count();
     let count = ris_util::testing::miri_choose(1_000, 10);
 
-    let create_info = ThreadPoolCreateInfo{
+    let create_info = ThreadPoolCreateInfo {
         buffer_capacity: 256,
         cpu_count,
         threads: cpu_count / 2,
         set_affinity: false,
         use_parking: true,
     };
-    let g = ThreadPool::init(create_info).unwrap();
+    let _g = ThreadPool::init(create_info).unwrap();
 
     let mut futures = Vec::new();
     let results = Arc::new(SpinLock::new(Vec::new()));
@@ -45,10 +57,10 @@ fn should_run() {
 
 #[test]
 fn should_run_when_dropped() {
-    let cpu_count = sdl2::cpuinfo::cpu_count() as usize;
+    let cpu_count = get_cpu_count();
     let count = ris_util::testing::miri_choose(1_000, 10);
 
-    let create_info = ThreadPoolCreateInfo{
+    let create_info = ThreadPoolCreateInfo {
         buffer_capacity: 256,
         cpu_count,
         threads: cpu_count / 2,

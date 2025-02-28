@@ -47,22 +47,28 @@ fn async_runner(c: &mut Criterion) {
                 };
                 let thread_pool = ThreadPool::init(create_info).unwrap();
 
-                group.bench_function(format!("threads: {:02}, aff:{}, prk:{} ", threads, set_affinity, park_workers), |b| {
-                    b.iter(|| {
-                        let mut futures = Vec::with_capacity(hash_inputs.len());
-                        for &input in &hash_inputs {
-                            let future = ThreadPool::submit(async move {
-                                dummy_work(input, hash_iterations)
-                            });
-                            futures.push(future);
-                        }
+                group.bench_function(
+                    format!(
+                        "threads: {:02}, aff:{}, prk:{} ",
+                        threads, set_affinity, park_workers
+                    ),
+                    |b| {
+                        b.iter(|| {
+                            let mut futures = Vec::with_capacity(hash_inputs.len());
+                            for &input in &hash_inputs {
+                                let future = ThreadPool::submit(async move {
+                                    dummy_work(input, hash_iterations)
+                                });
+                                futures.push(future);
+                            }
 
-                        for future in futures {
-                            let result = ThreadPool::block_on(future);
-                            black_box(result);
-                        }
-                    });
-                });
+                            for future in futures {
+                                let result = ThreadPool::block_on(future);
+                                black_box(result);
+                            }
+                        });
+                    },
+                );
 
                 drop(thread_pool)
             }
@@ -71,9 +77,9 @@ fn async_runner(c: &mut Criterion) {
 }
 
 fn dummy_work(input: u64, iterations: usize) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
     use std::hash::Hash;
     use std::hash::Hasher;
-    use std::collections::hash_map::DefaultHasher;
 
     let mut hash = input;
     for _ in 0..iterations {

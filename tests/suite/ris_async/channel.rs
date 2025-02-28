@@ -1,13 +1,12 @@
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use ris_async::Channel;
 use ris_util::testing::miri_choose;
 
 #[test]
 fn should_send_and_receive() {
-    let (sender, receiver, _) = Channel::new(4);
+    let (sender, receiver, _) = ris_async::channel(4);
     sender.send(42).unwrap();
     let received = receiver.receive().unwrap();
     assert_eq!(received, 42);
@@ -15,7 +14,7 @@ fn should_send_and_receive() {
 
 #[test]
 fn should_send_and_steal() {
-    let (sender, _, stealer) = Channel::new(4);
+    let (sender, _, stealer) = ris_async::channel(4);
     sender.send(42).unwrap();
     let stolen = stealer.steal().unwrap();
     assert_eq!(stolen, 42);
@@ -23,7 +22,7 @@ fn should_send_and_steal() {
 
 #[test]
 fn should_send_until_full() {
-    let (sender, _, _) = Channel::new(2);
+    let (sender, _, _) = ris_async::channel(2);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result = sender.send(3);
@@ -32,7 +31,7 @@ fn should_send_until_full() {
 
 #[test]
 fn should_receive_until_empty() {
-    let (sender, receiver, _) = Channel::new(4);
+    let (sender, receiver, _) = ris_async::channel(4);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result_1 = receiver.receive();
@@ -45,7 +44,7 @@ fn should_receive_until_empty() {
 
 #[test]
 fn should_steal_until_empty() {
-    let (sender, _, stealer) = Channel::new(4);
+    let (sender, _, stealer) = ris_async::channel(4);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result_1 = stealer.steal();
@@ -58,7 +57,7 @@ fn should_steal_until_empty() {
 
 #[test]
 fn should_receive_and_steal() {
-    let (sender, receiver, stealer) = Channel::new(6);
+    let (sender, receiver, stealer) = ris_async::channel(6);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     sender.send(3).unwrap();
@@ -82,65 +81,62 @@ fn should_receive_and_steal() {
 #[test]
 fn should_steal_from_different_threads() {
     let repeats = miri_choose(1_000, 10);
-    ris_util::testing::repeat(
-        repeats,
-        |i| {
-            let count = 50;
-            let (sender, receiver, stealer) = Channel::new(count);
-            let done = Arc::new(AtomicBool::new(false));
-            let mut join_handles = Vec::new();
+    ris_util::testing::repeat(repeats, |i| {
+        let count = 50;
+        let (sender, receiver, stealer) = ris_async::channel(count);
+        let done = Arc::new(AtomicBool::new(false));
+        let mut join_handles = Vec::new();
 
-            for _ in 0..2 {
-                let stealer = stealer.clone();
-                let done = done.clone();
-                let mut results = Vec::new();
-                let join_handle = std::thread::spawn(move || {
-                    while !done.load(Ordering::Relaxed) {
-                        if let Some(stolen) = stealer.steal() {
-                            results.push(stolen)
-                        }
-                    }
-
-                    results
-                });
-                join_handles.push(join_handle);
-            }
-
-            let mut not_sent = Vec::new();
-            let mut main_results = Vec::new();
-
-            for i in 0..5 {
-                for j in 0..100 {
-                    if let Err(failure) = sender.send(i * 100 + j) {
-                        not_sent.push(failure);
+        for _ in 0..2 {
+            let stealer = stealer.clone();
+            let done = done.clone();
+            let mut results = Vec::new();
+            let join_handle = std::thread::spawn(move || {
+                while !done.load(Ordering::Relaxed) {
+                    if let Some(stolen) = stealer.steal() {
+                        results.push(stolen)
                     }
                 }
 
-                while let Some(received) = receiver.receive() {
-                    main_results.push(received);
-                }
-            }
-
-            done.store(true, Ordering::Relaxed);
-
-            let mut total_count = 0;
-            total_count += not_sent.len();
-            total_count += main_results.len();
-
-            let mut thread_results = Vec::new();
-            for join_handle in join_handles {
-                let thread_result = join_handle.join().unwrap();
-                total_count += thread_result.len();
-                thread_results.push(thread_result);
-            }
-
-            if i == repeats - 1 {
-                println!("not_sent: {:?}", not_sent);
-                println!("main_results: {:?}", main_results);
-                println!("thread_results: {:?}", thread_results);
-            }
-
-            assert_eq!(total_count, 500)
+                results
+            });
+            join_handles.push(join_handle);
         }
-    )
+
+        let mut not_sent = Vec::new();
+        let mut main_results = Vec::new();
+
+        for i in 0..5 {
+            for j in 0..100 {
+                if let Err(failure) = sender.send(i * 100 + j) {
+                    not_sent.push(failure);
+                }
+            }
+
+            while let Some(received) = receiver.receive() {
+                main_results.push(received);
+            }
+        }
+
+        done.store(true, Ordering::Relaxed);
+
+        let mut total_count = 0;
+        total_count += not_sent.len();
+        total_count += main_results.len();
+
+        let mut thread_results = Vec::new();
+        for join_handle in join_handles {
+            let thread_result = join_handle.join().unwrap();
+            total_count += thread_result.len();
+            thread_results.push(thread_result);
+        }
+
+        if i == repeats - 1 {
+            println!("not_sent: {:?}", not_sent);
+            println!("main_results: {:?}", main_results);
+            println!("thread_results: {:?}", thread_results);
+        }
+
+        assert_eq!(total_count, 500)
+    })
 }

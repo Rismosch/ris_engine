@@ -92,11 +92,15 @@ fn deserialize(bytes: &[u8], app_info: &AppInfo) -> RisResult<Settings> {
             Ok(()) => (),
             Err(SerializeError::EntryWasEmpty) => (),
             Err(SerializeError::ParseFailed) => {
-                return ris_error::new_result!("cannot parse value at line {}: {}", i, entry.raw_line);
-            },
+                return ris_error::new_result!(
+                    "cannot parse value at line {}: {}",
+                    i,
+                    entry.raw_line
+                );
+            }
             Err(SerializeError::UnkownKey) => {
                 return ris_error::new_result!("unkown key at line {}: {}", i, entry.raw_line);
-            },
+            }
         }
     }
 

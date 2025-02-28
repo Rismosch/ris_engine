@@ -17,5 +17,4 @@ fn should_lock() {
         // any other combinations are impossible. either thread 1 or thread 2 locks the mutex first
         assert!(g.as_slice() == [1, 2, 3] || g.as_slice() == [2, 3, 1]);
     });
-
 }

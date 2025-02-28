@@ -44,6 +44,7 @@ pub struct InspectorModule {
     component_filter: String,
 
     // asset
+    #[allow(clippy::type_complexity)]
     load_asset_jobs: Vec<Arc<SpinLock<Option<Result<Vec<u8>, LoadError>>>>>,
     loaded_asset: Vec<u8>,
 }
@@ -561,7 +562,7 @@ impl IUiHelperModule for InspectorModule {
                         None => {
                             drop(g);
                             self.load_asset_jobs.insert(0, job);
-                        },
+                        }
                     }
                 }
 

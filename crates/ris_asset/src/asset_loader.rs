@@ -118,10 +118,7 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
 pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     let (future, setter) = JobFuture::new();
 
-    let request = Request {
-        id,
-        setter,
-    };
+    let request = Request { id, setter };
 
     let result = {
         let asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
