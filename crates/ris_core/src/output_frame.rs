@@ -127,7 +127,7 @@ impl OutputFrame {
                     state,
                     (window_size.0 as f32, window_size.1 as f32),
                     (window_drawable_size.0 as f32, window_drawable_size.1 as f32),
-                );
+                )?;
 
                 self.ui_helper.draw(UiHelperDrawData {
                     ui: imgui_ui,

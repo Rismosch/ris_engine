@@ -73,8 +73,6 @@ impl Worker {
     }
 
     fn run(&self) {
-        ris_log::trace!("thread_pool running \"{}\"", self.name());
-
         while !self.done.load(Ordering::Relaxed) {
             if !self.run_pending_job() {
                 if self.use_parking {
@@ -84,11 +82,6 @@ impl Worker {
                 }
             }
         }
-
-        ris_log::trace!("thread_pool finishing... \"{}\"", self.name());
-        while self.run_pending_job() {}
-        set_worker(None);
-        ris_log::debug!("thread_pool finished \"{}\"!", self.name());
     }
 
     fn run_pending_job(&self) -> bool {
@@ -301,7 +294,14 @@ impl ThreadPool {
                     );
 
                     // run worker
+                    let worker_name = worker.name();
+                    ris_log::trace!("thread_pool running \"{}\"", worker_name);
                     worker.run();
+
+                    ris_log::trace!("thread_pool finishing... \"{}\"", worker_name);
+                    while worker.run_pending_job() {}
+                    set_worker(None);
+                    ris_log::debug!("thread_pool finished \"{}\"!", worker_name);
                 })?;
             join_handles.push(join_handle);
         }

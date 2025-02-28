@@ -82,7 +82,9 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             god_object.keyboard_util.mod_state(),
         );
 
-        god_object.gamepad_logic.post_events(&mut god_object.state.input.gamepad);
+        god_object
+            .gamepad_logic
+            .post_events(&mut god_object.state.input.gamepad);
 
         update_general(&mut god_object.state);
 

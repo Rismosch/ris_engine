@@ -20,7 +20,7 @@ impl Script for FlyCam {
 
     fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
         let ScriptUpdateData {
-            game_object,
+            game_object: _,
             frame,
             state,
         } = data;
@@ -120,4 +120,3 @@ impl Script for FlyCam {
         Ok(())
     }
 }
-

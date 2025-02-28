@@ -1,5 +1,5 @@
-pub mod test;
 pub mod flycam;
+pub mod test;
 
 use ris_core::god_object::GodObject;
 use ris_data::ecs::decl::GameObjectHandle;

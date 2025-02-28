@@ -1,6 +1,6 @@
-use sdl2::EventPump;
-use sdl2::keyboard::Scancode;
 use sdl2::keyboard::KeyboardUtil;
+use sdl2::keyboard::Scancode;
+use sdl2::EventPump;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
