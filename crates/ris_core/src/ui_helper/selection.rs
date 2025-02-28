@@ -18,7 +18,7 @@ pub struct Selector {
 impl Selector {
     pub fn update(&mut self) {
         self.changed = self.current != self.previous;
-        self.previous = self.current.clone();
+        self.previous.clone_from(&self.current);
     }
 
     pub fn selection_changed(&self) -> bool {

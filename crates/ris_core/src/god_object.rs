@@ -1,8 +1,13 @@
+use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
+use sdl2::EventPump;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
+use ris_async::ThreadPool;
+use ris_async::ThreadPoolCreateInfo;
+use ris_async::ThreadPoolGuard;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
@@ -13,8 +18,7 @@ use ris_data::settings::Settings;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
-use ris_jobs::job_system;
-use ris_jobs::job_system::JobSystemGuard;
+use ris_input::gamepad_logic::GamepadLogic;
 use ris_video_data::core::VulkanCore;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
@@ -22,7 +26,6 @@ use ris_video_renderers::SceneRenderer;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
-use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
 #[cfg(feature = "ui_helper_enabled")]
@@ -49,7 +52,9 @@ pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
-    pub logic_frame: LogicFrame,
+    pub event_pump: EventPump,
+    pub keyboard_util: KeyboardUtil,
+    pub gamepad_logic: GamepadLogic,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
@@ -59,7 +64,7 @@ pub struct GodObject {
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
-    pub job_system_guard: JobSystemGuard,
+    pub thread_pool_guard: ThreadPoolGuard,
 }
 
 impl GodObject {
@@ -77,13 +82,17 @@ impl GodObject {
 
         // job system
         let cpu_count = app_info.cpu.cpu_count;
-        let workers = crate::determine_thread_count(&app_info, &settings);
-        let job_system_guard = job_system::init(
-            job_system::DEFAULT_BUFFER_CAPACITY,
+        let threads = crate::determine_thread_count(&app_info, &settings);
+        let set_affinity = settings.job().affinity();
+        let use_parking = settings.job().use_parking();
+        let thread_pool_create_info = ThreadPoolCreateInfo {
+            buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
             cpu_count,
-            workers,
-            true,
-        );
+            threads,
+            set_affinity,
+            use_parking,
+        };
+        let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
         //#[cfg(debug_assertions)]
@@ -113,13 +122,16 @@ impl GodObject {
         let event_pump = sdl_context
             .event_pump()
             .map_err(|e| ris_error::new!("failed to get event pump: {}", e))?;
+        let keyboard_util = sdl_context.keyboard();
         let controller_subsystem = sdl_context
             .game_controller()
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
+        let gamepad_logic = GamepadLogic::new(controller_subsystem);
+
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait(None)??;
+        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait()?;
         let god_asset = RisGodAsset::load(&god_asset_bytes)?;
 
         // video
@@ -156,9 +168,6 @@ impl GodObject {
                 unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
             (imgui_backend, imgui_renderer)
         };
-
-        // logic frame
-        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
 
         // output frame
         #[cfg(feature = "ui_helper_enabled")]
@@ -214,7 +223,9 @@ impl GodObject {
             app_info,
             settings_serializer,
             frame_calculator,
-            logic_frame,
+            event_pump,
+            keyboard_util,
+            gamepad_logic,
             output_frame,
             god_asset,
             state,
@@ -223,7 +234,7 @@ impl GodObject {
             gizmo_guard,
             profiler_guard,
             asset_loader_guard,
-            job_system_guard,
+            thread_pool_guard,
         };
 
         Ok(god_object)

@@ -464,7 +464,7 @@ impl GameObjectHandle {
         while let Some(parent_handle) = to_test {
             if parent_handle == self {
                 return Err(EcsError::InvalidOperation(
-                    "circular dependency".to_string(),
+                    "operation would cause a circular hierarchy".to_string(),
                 ));
             }
 

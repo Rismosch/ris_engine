@@ -22,13 +22,13 @@ default-run = "ris_engine"
 members = [ 
     "cli",
     "crates/ris_asset",
+    "crates/ris_async",
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_debug",
     "crates/ris_error",
     "crates/ris_input",
     "crates/ris_io",
-    "crates/ris_jobs",
     "crates/ris_log",
     "crates/ris_math",
     "crates/ris_ptr",
@@ -41,13 +41,13 @@ members = [
 [dependencies]
 # internal
 ris_asset = { path = "crates/ris_asset" }
+ris_async = { path = "crates/ris_async" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
 ris_debug = { path = "crates/ris_debug" }
 ris_error = { path = "crates/ris_error" }
 ris_input = { path = "crates/ris_input" }
 ris_io = { path = "crates/ris_io" }
-ris_jobs = { path = "crates/ris_jobs" }
 ris_log = { path = "crates/ris_log" }
 ris_math = { path = "crates/ris_math" }
 ris_ptr = { path = "crates/ris_ptr" }
@@ -120,6 +120,10 @@ panic = "abort"
 incremental = false
 codegen-units = 1
 rpath = false
+
+[[bench]]
+name = "async"
+harness = false
 
 [[bench]]
 name = "map"

@@ -1,5 +1,5 @@
 [package]
-name = "ris_jobs"
+name = "ris_async"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,10 +7,9 @@ edition = "2021"
 
 [dependencies]
 cfg-if = "1"
-sdl2 = "0.34.5"
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
-ris_util = { path = "../ris_util" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "^0.2.30"
+

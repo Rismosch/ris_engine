@@ -50,6 +50,13 @@ impl Rng {
         self.pcg.next()
     }
 
+    /// returns a random u64
+    pub fn next_u64(&mut self) -> u64 {
+        let one: u64 = self.next_u32().into();
+        let two: u64 = self.next_u32().into();
+        one << 32 | two
+    }
+
     /// returns a random i32
     pub fn next_i32(&mut self) -> i32 {
         i32::from_ne_bytes(self.next_u32().to_ne_bytes())

@@ -10,7 +10,6 @@ use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::ecs::script_prelude::*;
-use ris_error::RisResult;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 

@@ -1,5 +1,7 @@
 #![windows_subsystem = "windows"]
 
+pub mod scripts;
+
 use std::path::PathBuf;
 
 use ris_core::god_job;
@@ -20,8 +22,6 @@ use ris_log::log::IAppender;
 use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
-
-pub mod scripts;
 
 pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
 pub const RESTART_CODE: i32 = 42;

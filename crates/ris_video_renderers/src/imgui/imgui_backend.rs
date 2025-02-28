@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use imgui::BackendFlags;
@@ -13,10 +14,12 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 pub struct ImguiBackend {
     context: Context,
+    cursors: HashMap<imgui::MouseCursor, sdl2::mouse::Cursor>,
 }
 
 impl ImguiBackend {
@@ -53,9 +56,14 @@ impl ImguiBackend {
         io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
         io.config_flags.insert(ConfigFlags::DOCKING_ENABLE);
 
+        // load cursors
+        let cursors = new_cursor_lookup()
+            .map_err(|e| ris_error::new!("failed to create cursor lookup:  {}", e))?;
+
+        // initialize platform
         context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));
 
-        Ok(Self { context })
+        Ok(Self { context, cursors })
     }
 
     pub fn prepare_frame(
@@ -64,7 +72,7 @@ impl ImguiBackend {
         state: &GodState,
         window_size: (f32, f32),
         window_drawable_size: (f32, f32),
-    ) -> &mut Ui {
+    ) -> RisResult<&mut Ui> {
         let _mouse_cursor = self.context.mouse_cursor();
         let io = self.context.io_mut();
 
@@ -150,10 +158,12 @@ impl ImguiBackend {
             .config_flags
             .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
         {
-            //ris_log::warning!("set mouse cursor is not implemented!");
+            let imgui_cursor = self.context.mouse_cursor().into_ris_error()?;
+            let sdl2_cursor = self.cursors.get(&imgui_cursor).into_ris_error()?;
+            sdl2_cursor.set();
         }
 
-        self.context.new_frame()
+        Ok(self.context.new_frame())
     }
 }
 
@@ -180,6 +190,48 @@ fn forward_mouse_button_event(io: &mut Io, buttons: &Buttons, button: usize) {
 
         io.add_mouse_button_event(mouse_button, pressed);
     }
+}
+
+fn new_cursor_lookup() -> Result<HashMap<imgui::MouseCursor, sdl2::mouse::Cursor>, String> {
+    let mut lookup = HashMap::new();
+    lookup.insert(
+        imgui::MouseCursor::Arrow,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::Arrow)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::TextInput,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::IBeam)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::ResizeAll,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::SizeAll)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::ResizeNS,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::SizeNS)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::ResizeEW,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::SizeWE)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::ResizeNESW,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::SizeNESW)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::ResizeNWSE,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::SizeNWSE)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::Hand,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::Hand)?,
+    );
+    lookup.insert(
+        imgui::MouseCursor::NotAllowed,
+        sdl2::mouse::Cursor::from_system(sdl2::mouse::SystemCursor::No)?,
+    );
+
+    Ok(lookup)
 }
 
 fn forward_keyboard_key_event(io: &mut Io, scancode: Scancode, pressed: bool) {

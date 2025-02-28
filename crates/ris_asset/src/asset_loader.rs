@@ -6,12 +6,12 @@ use std::sync::mpsc::SendError;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
+use ris_async::JobFuture;
+use ris_async::JobFutureSetter;
+use ris_async::ThreadPool;
 use ris_data::asset_id::AssetId;
 use ris_data::info::app_info::AppInfo;
 use ris_error::RisResult;
-use ris_jobs::job_future::JobFuture;
-use ris_jobs::job_future::SettableJobFuture;
-use ris_jobs::job_system;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
@@ -24,7 +24,7 @@ enum InternalLoader {
 
 pub struct Request {
     id: AssetId,
-    future: SettableJobFuture<Result<Vec<u8>, LoadError>>,
+    setter: JobFutureSetter<Result<Vec<u8>, LoadError>>,
 }
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ pub struct AssetLoaderGuard {
 
 impl Drop for AssetLoaderGuard {
     fn drop(&mut self) {
-        let mut asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
+        let mut asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
         *asset_loader_sender = None;
 
         ris_log::info!("asset loader guard dropped!");
@@ -108,7 +108,7 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     let _ = std::thread::spawn(|| load_asset_thread(receiver, internal_loader));
 
     {
-        let mut asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
+        let mut asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
         *asset_loader_sender = Some(sender)
     }
 
@@ -116,14 +116,12 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
 }
 
 pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
-    let (settable_job_future, job_future) = SettableJobFuture::new();
-    let request = Request {
-        id,
-        future: settable_job_future,
-    };
+    let (future, setter) = JobFuture::new();
+
+    let request = Request { id, setter };
 
     let result = {
-        let asset_loader_sender = job_system::lock(&ASSET_LOADER_SENDER);
+        let asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
         match &*asset_loader_sender {
             Some(sender) => sender.send(request),
             None => Err(SendError(request)),
@@ -133,10 +131,10 @@ pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     if let Err(send_error) = result {
         let error = Err(LoadError::SendFailed);
         let request = send_error.0;
-        request.future.set(error);
+        request.setter.set(error);
     }
 
-    job_future
+    future
 }
 
 fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
@@ -172,7 +170,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
             },
         };
 
-        request.future.set(result);
+        request.setter.set(result);
     }
 
     ris_log::info!("load asset thread ended");
