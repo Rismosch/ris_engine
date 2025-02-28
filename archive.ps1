@@ -29,7 +29,7 @@ function GetAndClearCiOutDir {
         $destinationDirectoryWasLogged = $true
 
         Write-Host
-        Write-Host "WARNING: destination directory exists already"
+        Write-Warning "destination directory exists already"
         $target_dir = Resolve-Path $target_dir
         $user_input = Read-Host "are you sure you want to delete ``$target_dir``? (y/N)"
         if ($user_input.ToLower() -eq "y") {
@@ -183,8 +183,8 @@ try {
 
         Write-Host "compressing..."
         $7z = "C:\Program Files\7-Zip\7z.exe"
-        RunCommand ".`"$7z`" a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!ci_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`"$7z`" a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!ci_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`"$7z`" a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`"$7z`" a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
@@ -193,7 +193,7 @@ try {
         $source_dir = "$source_dir".Replace('\','/').Replace('C:','/mnt/c')
 
         Write-Host "compressing..."
-        RunCommand "wsl tar --exclude='ci_out' --exclude='.git' -czf $target_path.tgz -C $source_dir ."
+        RunCommand "wsl tar --exclude='cli_out' --exclude='.git' -czf $target_path.tgz -C $source_dir ."
 
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
