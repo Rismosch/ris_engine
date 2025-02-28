@@ -1,7 +1,13 @@
+use sdl2::event::Event;
+use sdl2::event::WindowEvent;
+
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
 use ris_data::ecs::script_prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
+use ris_input::general_logic::update_general;
+use ris_input::keyboard_logic;
+use ris_input::mouse_logic;
 
 use crate::god_object::GodObject;
 
@@ -23,7 +29,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let previous_state = god_object.state.clone();
         god_object.state.reset_events();
 
-        // game loop
+        // serialize settings
         ris_debug::add_record!(r, "submit save settings future")?;
         let save_settings_future = ThreadPool::submit(async move {
             let settings_serializer = god_object.settings_serializer;
@@ -40,9 +46,48 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             (settings_serializer, result)
         });
 
-        ris_debug::add_record!(r, "logic frame")?;
-        let logic_result = god_object.logic_frame.run(frame, &mut god_object.state);
+        // sdl2 input
+        ris_debug::add_record!(r, "input")?;
+        mouse_logic::pre_events(&mut god_object.state.input.mouse);
+        keyboard_logic::pre_events(&mut god_object.state.input.keyboard);
 
+        let mut input_state = GameloopState::WantsToContinue;
+        for event in god_object.event_pump.poll_iter() {
+            if let Event::Quit { .. } = event {
+                input_state = GameloopState::WantsToQuit;
+            };
+
+            if let Event::Window {
+                win_event: WindowEvent::SizeChanged(w, h),
+                ..
+            } = event
+            {
+                god_object.state.event_window_resized = Some((w as u32, h as u32));
+                ris_log::trace!("window changed size to {}x{}", w, h);
+            }
+
+            mouse_logic::handle_event(&mut god_object.state.input.mouse, &event);
+            keyboard_logic::handle_event(&mut god_object.state.input.keyboard, &event);
+            god_object.gamepad_logic.handle_event(&event);
+        }
+
+        mouse_logic::post_events(
+            &mut god_object.state.input.mouse,
+            god_object.event_pump.mouse_state(),
+        );
+
+        keyboard_logic::post_events(
+            &mut god_object.state.input.keyboard,
+            god_object.event_pump.keyboard_state(),
+            god_object.keyboard_util.mod_state(),
+        );
+
+        god_object.gamepad_logic.post_events(&mut god_object.state.input.gamepad);
+
+        update_general(&mut god_object.state);
+
+        // update scripts
+        ris_debug::add_record!(r, "update scripts")?;
         for script in god_object.state.scene.script_components.iter() {
             let mut aref_mut = script.borrow_mut();
             if aref_mut.is_alive {
@@ -50,6 +95,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             }
         }
 
+        // render
         ris_debug::add_record!(r, "output frame")?;
         let output_result =
             god_object
@@ -94,15 +140,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "handle errors")?;
 
         save_settings_result?;
-        let logic_state = logic_result?;
         let output_state = output_result?;
 
         ris_debug::end_record!(r)?;
 
         // continue?
         let wants_to_quit =
-            logic_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
-        let wants_to_restart = logic_state == GameloopState::WantsToRestart
+            input_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+        let wants_to_restart = input_state == GameloopState::WantsToRestart
             || output_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {

@@ -1,4 +1,6 @@
+use sdl2::EventPump;
 use sdl2::keyboard::Scancode;
+use sdl2::keyboard::KeyboardUtil;
 
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
@@ -16,6 +18,7 @@ use ris_data::settings::Settings;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
+use ris_input::gamepad_logic::GamepadLogic;
 use ris_video_data::core::VulkanCore;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
@@ -23,7 +26,6 @@ use ris_video_renderers::SceneRenderer;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
-use crate::logic_frame::LogicFrame;
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
 #[cfg(feature = "ui_helper_enabled")]
@@ -50,7 +52,9 @@ pub struct GodObject {
     pub app_info: AppInfo,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
-    pub logic_frame: LogicFrame,
+    pub event_pump: EventPump,
+    pub keyboard_util: KeyboardUtil,
+    pub gamepad_logic: GamepadLogic,
     pub output_frame: OutputFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
@@ -118,9 +122,12 @@ impl GodObject {
         let event_pump = sdl_context
             .event_pump()
             .map_err(|e| ris_error::new!("failed to get event pump: {}", e))?;
+        let keyboard_util = sdl_context.keyboard();
         let controller_subsystem = sdl_context
             .game_controller()
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
+
+        let gamepad_logic = GamepadLogic::new(controller_subsystem);
 
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
@@ -161,9 +168,6 @@ impl GodObject {
                 unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
             (imgui_backend, imgui_renderer)
         };
-
-        // logic frame
-        let logic_frame = LogicFrame::new(event_pump, sdl_context.keyboard(), controller_subsystem);
 
         // output frame
         #[cfg(feature = "ui_helper_enabled")]
@@ -219,7 +223,9 @@ impl GodObject {
             app_info,
             settings_serializer,
             frame_calculator,
-            logic_frame,
+            event_pump,
+            keyboard_util,
+            gamepad_logic,
             output_frame,
             god_asset,
             state,
