@@ -41,9 +41,9 @@ thread_local! {
     static WORKER: UnsafeCell<Option<Worker>> = const { UnsafeCell::new(None)};
 }
 
-fn set_worker(value: Worker) {
+fn set_worker(value: Option<Worker>) {
     WORKER.with(|worker| {
-        *unsafe { &mut *worker.get() } = Some(value);
+        *unsafe { &mut *worker.get() } = value;
     })
 }
 
@@ -87,6 +87,7 @@ impl Worker {
 
         ris_log::trace!("thread_pool finishing... \"{}\"", self.name());
         while self.run_pending_job() {}
+        set_worker(None);
         ris_log::debug!("thread_pool finished \"{}\"!", self.name());
     }
 
@@ -168,6 +169,7 @@ impl Drop for ThreadPoolGuard {
             Some(worker) => {
                 worker.wake_other_workers();
                 while worker.run_pending_job() {}
+                set_worker(None);
             }
             None => {
                 ris_log::error!("thread pool was dropped on a non worker thread")
@@ -284,14 +286,14 @@ impl ThreadPool {
                     );
                     drop(g);
 
-                    set_worker(Worker {
+                    set_worker(Some(Worker {
                         done,
                         sender,
                         receiver,
                         waker,
                         others,
                         use_parking,
-                    });
+                    }));
 
                     let worker = ris_error::unwrap!(
                         get_worker().into_ris_error(),
@@ -348,15 +350,14 @@ impl ThreadPool {
         );
         drop(g);
 
-        let worker = Worker {
+        set_worker(Some(Worker {
             done: done.clone(),
             sender,
             receiver,
             waker,
             others,
             use_parking,
-        };
-        set_worker(worker);
+        }));
 
         // return thread pool
         Ok(ThreadPoolGuard {
