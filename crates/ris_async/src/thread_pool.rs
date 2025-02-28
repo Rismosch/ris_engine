@@ -1,5 +1,6 @@
 use std::cell::UnsafeCell;
 use std::future::Future;
+use std::marker::PhantomData;
 use std::pin::Pin;
 use std::pin::pin;
 use std::sync::Arc;
@@ -152,11 +153,15 @@ pub struct ThreadPoolCreateInfo {
 }
 
 pub struct ThreadPool {
+    _boo: PhantomData<()>, // prevent ThreadPool to be instantiated
+}
+
+pub struct ThreadPoolGuard {
     done: Arc<AtomicBool>,
     join_handles: Option<Vec<JoinHandle<()>>>,
 }
 
-impl Drop for ThreadPool {
+impl Drop for ThreadPoolGuard {
     fn drop(&mut self) {
         ris_log::trace!("dropping thread_pool...");
 
@@ -190,7 +195,7 @@ impl Drop for ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn init(create_info: ThreadPoolCreateInfo) -> RisResult<Self> {
+    pub fn init(create_info: ThreadPoolCreateInfo) -> RisResult<ThreadPoolGuard> {
         let ThreadPoolCreateInfo {
             buffer_capacity,
             cpu_count,
@@ -360,7 +365,7 @@ impl ThreadPool {
         set_worker(worker);
 
         // return thread pool
-        Ok(Self {
+        Ok(ThreadPoolGuard {
             done,
             join_handles: Some(join_handles),
         })

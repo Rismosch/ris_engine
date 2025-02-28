@@ -5,6 +5,7 @@ use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_asset::RisGodAsset;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
+use ris_async::ThreadPoolGuard;
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
@@ -59,7 +60,7 @@ pub struct GodObject {
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
     pub asset_loader_guard: AssetLoaderGuard,
-    pub thread_pool: ThreadPool,
+    pub thread_pool_guard: ThreadPoolGuard,
 }
 
 impl GodObject {
@@ -87,7 +88,7 @@ impl GodObject {
             set_affinity,
             use_parking,
         };
-        let thread_pool = ThreadPool::init(thread_pool_create_info)?;
+        let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
         //#[cfg(debug_assertions)]
@@ -227,7 +228,7 @@ impl GodObject {
             gizmo_guard,
             profiler_guard,
             asset_loader_guard,
-            thread_pool,
+            thread_pool_guard,
         };
 
         Ok(god_object)

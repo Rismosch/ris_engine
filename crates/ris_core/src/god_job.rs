@@ -70,7 +70,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let settings = &god_object.state.settings;
         if settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
-            drop(god_object.thread_pool);
+            drop(god_object.thread_pool_guard);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let threads = crate::determine_thread_count(&god_object.app_info, settings);
@@ -84,8 +84,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 set_affinity,
                 use_parking,
             };
-            let new_thread_pool = ThreadPool::init(thread_pool_create_info)?;
-            god_object.thread_pool = new_thread_pool;
+            let new_thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
+            god_object.thread_pool_guard = new_thread_pool_guard;
 
             ris_log::debug!("job system restarted!");
         }

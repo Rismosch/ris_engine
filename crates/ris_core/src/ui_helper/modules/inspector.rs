@@ -5,7 +5,6 @@ use std::sync::Arc;
 use imgui::Ui;
 
 use ris_asset::asset_loader::LoadError;
-use ris_async::JobFuture;
 use ris_async::SpinLock;
 use ris_async::ThreadPool;
 use ris_data::asset_id::AssetId;

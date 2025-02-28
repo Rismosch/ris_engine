@@ -11,6 +11,7 @@ pub use channel::Receiver;
 pub use job_future::JobFuture;
 pub use job_future::JobFutureSetter;
 pub use thread_pool::ThreadPool;
+pub use thread_pool::ThreadPoolGuard;
 pub use thread_pool::ThreadPoolCreateInfo;
 pub use spin_lock::SpinLock;
 pub use spin_lock::SpinLockGuard;

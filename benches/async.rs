@@ -5,7 +5,6 @@ use criterion::Criterion;
 
 use ris_async::thread_pool::ThreadPool;
 use ris_async::thread_pool::ThreadPoolCreateInfo;
-use ris_jobs::job_system;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 
@@ -22,68 +21,54 @@ fn async_runner(c: &mut Criterion) {
         hash_inputs.push(hash_input);
     }
 
-    // job system
     let cpu_count = sdl2::cpuinfo::cpu_count() as usize;
-    let job_system_guard = job_system::init(
-        1024,
-        cpu_count,
-        cpu_count,
-        true,
-    );
 
-    group.bench_function("job_system", |b| {
+    // control
+    group.bench_function("control", |b| {
         b.iter(|| {
-            let mut futures = Vec::with_capacity(hash_inputs.len());
             for &input in &hash_inputs {
-                let future = job_system::submit(move ||{
-                    dummy_work(input, hash_iterations)
-                });
-                futures.push(future);
-            }
-
-            for future in futures {
-                let result = future.wait(None).unwrap();
+                let result = dummy_work(input, hash_iterations);
                 black_box(result);
             }
         });
     });
 
-    drop(job_system_guard);
-
     // async thread pool
+    let cpu_counts = [cpu_count, cpu_count / 2, 1];
     let bools = [0, 1];
-    for set_affinity in bools {
-        for park_workers in bools {
-            let create_info = ThreadPoolCreateInfo {
-                buffer_capacity: 1024,
-                cpu_count,
-                threads: cpu_count,
-                set_affinity: set_affinity == 1,
-                park_workers: park_workers == 1,
-            };
-            let thread_pool = ThreadPool::new(create_info).unwrap();
+    for cpu_count in cpu_counts {
+        for set_affinity in bools {
+            for park_workers in bools {
+                let create_info = ThreadPoolCreateInfo {
+                    buffer_capacity: 256,
+                    cpu_count,
+                    threads: cpu_count,
+                    set_affinity: set_affinity == 1,
+                    use_parking: park_workers == 1,
+                };
+                let thread_pool = ThreadPool::init(create_info).unwrap();
 
-            group.bench_function(format!("pool, aff:{}, prk:{} ", set_affinity, park_workers), |b| {
-                b.iter(|| {
-                    let mut futures = Vec::with_capacity(hash_inputs.len());
-                    for &input in &hash_inputs {
-                        let future = ThreadPool::submit(async move {
-                            dummy_work(input, hash_iterations)
-                        });
-                        futures.push(future);
-                    }
+                group.bench_function(format!("cpu: {}, aff:{}, prk:{} ", cpu_count, set_affinity, park_workers), |b| {
+                    b.iter(|| {
+                        let mut futures = Vec::with_capacity(hash_inputs.len());
+                        for &input in &hash_inputs {
+                            let future = ThreadPool::submit(async move {
+                                dummy_work(input, hash_iterations)
+                            });
+                            futures.push(future);
+                        }
 
-                    for future in futures {
-                        let result = ThreadPool::block_on(future);
-                        black_box(result);
-                    }
+                        for future in futures {
+                            let result = ThreadPool::block_on(future);
+                            black_box(result);
+                        }
+                    });
                 });
-            });
 
-            drop(thread_pool)
+                drop(thread_pool)
+            }
         }
     }
-
 }
 
 fn dummy_work(input: u64, iterations: usize) -> u64 {

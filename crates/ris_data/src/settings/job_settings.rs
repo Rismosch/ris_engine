@@ -22,8 +22,8 @@ impl JobSettings {
     pub fn new(app_info: &AppInfo) -> Self {
         Self {
             changed: false,
-            workers: app_info.cpu.cpu_count,
-            affinity: true,
+            workers: app_info.cpu.cpu_count / 2,
+            affinity: false,
             use_parking: true,
         }
     }
