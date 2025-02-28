@@ -34,21 +34,20 @@ fn async_runner(c: &mut Criterion) {
     });
 
     // async thread pool
-    let cpu_counts = [cpu_count, cpu_count / 2, 1];
     let bools = [0, 1];
-    for cpu_count in cpu_counts {
+    for threads in 1..=cpu_count {
         for set_affinity in bools {
             for park_workers in bools {
                 let create_info = ThreadPoolCreateInfo {
                     buffer_capacity: 256,
                     cpu_count,
-                    threads: cpu_count,
+                    threads,
                     set_affinity: set_affinity == 1,
                     use_parking: park_workers == 1,
                 };
                 let thread_pool = ThreadPool::init(create_info).unwrap();
 
-                group.bench_function(format!("cpu: {}, aff:{}, prk:{} ", cpu_count, set_affinity, park_workers), |b| {
+                group.bench_function(format!("threads: {:02}, aff:{}, prk:{} ", threads, set_affinity, park_workers), |b| {
                     b.iter(|| {
                         let mut futures = Vec::with_capacity(hash_inputs.len());
                         for &input in &hash_inputs {
