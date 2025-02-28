@@ -1,13 +1,12 @@
 Write-Host
-Write-Host "This script is used to archive the entire workspace. The script cleans the repo, vendors dependencies, and compresses the result.`n`nTo compress the repo, 7-Zip and a WSL (Windows Subsystem for Linux) are required. If they are missing, the compression step at the very end will most likely fail."
+Write-Host "This script is used to archive the entire workspace. The script cleans the repo, vendors dependencies, and compresses the result.`n`nTo compress the repo, 7-Zip and a WSL (Windows Subsystem for Linux) are required. If they are missing, the compression step at the very end will fail."
 Write-Host
+Write-Warning "THIS SCRIPT IS GOING TO MODIFY THIS WORKSPACE. MAKE SURE THAT ALL CHANGES ARE COMMITED."
 Write-Host
 Write-Host
 
-$root_dir = "$PSScriptRoot/.."
+$root_dir = "$PSScriptRoot"
 $cli_out_dir = "$root_dir/cli_out"
-
-$arg_force = "-f";
 
 $ErrorActionPreference = "Stop"
 Push-Location $root_dir
