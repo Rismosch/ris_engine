@@ -55,7 +55,7 @@ pub struct GizmoSegmentRenderer {
 impl GizmoSegmentRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -69,10 +69,7 @@ impl GizmoSegmentRenderer {
         device.destroy_render_pass(self.render_pass, None);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -526,9 +523,7 @@ impl GizmoSegmentRenderer {
                 mesh
             }
             None => {
-                let new_mesh = unsafe {
-                    GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)
-                }?;
+                let new_mesh = GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().into_ris_error()?
             }

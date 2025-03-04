@@ -61,7 +61,7 @@ pub struct GizmoTextRenderer {
 impl GizmoTextRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -77,10 +77,7 @@ impl GizmoTextRenderer {
         self.font_texture.free(device);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -505,20 +502,18 @@ impl GizmoTextRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let font_texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: desc.width,
-                height: desc.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::NEAREST,
-                pixels_rgba: &pixels_rgba,
-            })
-        }?;
+        let font_texture = Texture::alloc(TextureCreateInfo {
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: desc.width,
+            height: desc.height,
+            format: vk::Format::R8G8B8A8_SRGB,
+            filter: vk::Filter::NEAREST,
+            pixels_rgba: &pixels_rgba,
+        })?;
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
@@ -621,7 +616,7 @@ impl GizmoTextRenderer {
                     mesh
                 }
                 None => {
-                    let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
+                    let new_mesh = GizmoTextMesh::alloc(core, vertices, text)?;
                     *mesh = Some(new_mesh);
                     mesh.as_mut().into_ris_error()?
                 }

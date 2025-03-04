@@ -147,16 +147,15 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = unsafe { VulkanCore::alloc(&app_info.package.name, &window) }?;
+        let vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
         // scene renderer
-        let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset)?;
 
         // gizmo renderer
         let gizmo_guard = ris_debug::gizmo::init()?;
-        let gizmo_segment_renderer =
-            unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
-        let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_segment_renderer =GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
+        let gizmo_text_renderer = GizmoTextRenderer::alloc(&vulkan_core, &god_asset)?;
 
         // imgui renderer
 
@@ -164,8 +163,7 @@ impl GodObject {
         let (imgui_backend, imgui_renderer) = {
             let mut imgui_backend = ImguiBackend::init(&app_info)?;
             let context = imgui_backend.context();
-            let imgui_renderer =
-                unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+            let imgui_renderer =ImguiRenderer::alloc(&vulkan_core, &god_asset, context)?;
             (imgui_backend, imgui_renderer)
         };
 

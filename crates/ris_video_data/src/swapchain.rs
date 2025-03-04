@@ -50,7 +50,7 @@ pub struct SwapchainCreateInfo<'a> {
 impl Swapchain {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device, command_pool: vk::CommandPool) {
         unsafe {
             device.free_command_buffers(command_pool, &self.command_buffers);
@@ -71,10 +71,7 @@ impl Swapchain {
         }
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
+    pub fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
         let SwapchainCreateInfo {
             instance,
             suitable_device,

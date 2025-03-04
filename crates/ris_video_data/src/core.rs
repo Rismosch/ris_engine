@@ -30,7 +30,7 @@ pub struct VulkanCore {
 impl VulkanCore {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self) {
         ris_log::debug!("dropping vulkan core...");
 
@@ -54,10 +54,7 @@ impl VulkanCore {
         ris_log::info!("vulkan core dropped!");
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(application_name: &str, window: &Window) -> RisResult<Self> {
+    pub fn alloc(application_name: &str, window: &Window) -> RisResult<Self> {
         let entry = unsafe { ash::Entry::load() }?;
 
         // instance extensions
@@ -209,20 +206,18 @@ impl VulkanCore {
             unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
         // swapchain
-        let swapchain = unsafe {
-            Swapchain::alloc(SwapchainCreateInfo {
-                instance: &instance,
-                suitable_device: &suitable_device,
-                device: &device,
-                graphics_queue,
-                command_pool,
-                transient_command_pool,
-                surface_loader: &surface_loader,
-                surface: &surface,
-                window_drawable_size: window.vulkan_drawable_size(),
-                frames_in_flight: None,
-            })
-        }?;
+        let swapchain = Swapchain::alloc(SwapchainCreateInfo {
+            instance: &instance,
+            suitable_device: &suitable_device,
+            device: &device,
+            graphics_queue,
+            command_pool,
+            transient_command_pool,
+            surface_loader: &surface_loader,
+            surface: &surface,
+            window_drawable_size: window.vulkan_drawable_size(),
+            frames_in_flight: None,
+        })?;
 
         // renderer
         Ok(Self {

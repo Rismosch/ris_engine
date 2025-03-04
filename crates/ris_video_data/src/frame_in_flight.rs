@@ -13,8 +13,16 @@ pub struct FrameInFlight {
 impl FrameInFlight {
     /// # Safety
     ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(device: &ash::Device) -> RisResult<Self> {
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&self, device: &ash::Device) {
+        unsafe {
+            device.destroy_fence(self.in_flight, None);
+            device.destroy_semaphore(self.render_finished, None);
+            device.destroy_semaphore(self.image_available, None);
+        }
+    }
+    
+    pub fn alloc(device: &ash::Device) -> RisResult<Self> {
         let semaphore_create_info = vk::SemaphoreCreateInfo {
             s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
             p_next: ptr::null(),
@@ -36,16 +44,5 @@ impl FrameInFlight {
             render_finished,
             in_flight,
         })
-    }
-
-    /// # Safety
-    ///
-    /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        unsafe {
-            device.destroy_fence(self.in_flight, None);
-            device.destroy_semaphore(self.render_finished, None);
-            device.destroy_semaphore(self.image_available, None);
-        }
     }
 }

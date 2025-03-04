@@ -47,7 +47,7 @@ pub struct SceneFrame {
 impl SceneFrame {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(framebuffer) = self.framebuffer.take() {
             device.destroy_framebuffer(framebuffer, None);
@@ -70,7 +70,7 @@ pub struct SceneRenderer {
 impl SceneRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
@@ -88,10 +88,7 @@ impl SceneRenderer {
         }
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -118,20 +115,18 @@ impl SceneRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: desc.width,
-                height: desc.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::LINEAR,
-                pixels_rgba: &pixels_rgba,
-            })
-        }?;
+        let texture = Texture::alloc(TextureCreateInfo {
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: desc.width,
+            height: desc.height,
+            format: vk::Format::R8G8B8A8_SRGB,
+            filter: vk::Filter::LINEAR,
+            pixels_rgba: &pixels_rgba,
+        })?;
 
         // push constants
         let push_constant_range = [vk::PushConstantRange {
@@ -515,12 +510,12 @@ impl SceneRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped = device.map_memory(
+            let descriptor_mapped = unsafe {device.map_memory(
                 descriptor_buffer.memory,
                 0,
                 buffer_size,
                 vk::MemoryMapFlags::empty(),
-            )? as *mut UniformBufferObject;
+            )}? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
                 framebuffer: None,

@@ -39,8 +39,15 @@ pub struct TransitionLayoutInfo<'a> {
 impl Image {
     /// # Safety
     ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(info: ImageCreateInfo) -> RisResult<Self> {
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&self, device: &ash::Device) {
+        unsafe {
+            device.destroy_image(self.image, None);
+            device.free_memory(self.memory, None);
+        }
+    }
+    
+    pub fn alloc(info: ImageCreateInfo) -> RisResult<Self> {
         let ImageCreateInfo {
             device,
             width,
@@ -97,20 +104,7 @@ impl Image {
         Ok(Self { image, memory })
     }
 
-    /// # Safety
-    ///
-    /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        unsafe {
-            device.destroy_image(self.image, None);
-            device.free_memory(self.memory, None);
-        }
-    }
-
-    /// # Safety
-    ///
-    /// the resulting `ImageView` must be explicitly destroyed.
-    pub unsafe fn alloc_view(
+    pub fn alloc_view(
         device: &ash::Device,
         image: vk::Image,
         format: vk::Format,
