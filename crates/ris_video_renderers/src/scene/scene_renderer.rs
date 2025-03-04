@@ -510,12 +510,14 @@ impl SceneRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped = unsafe {device.map_memory(
-                descriptor_buffer.memory,
-                0,
-                buffer_size,
-                vk::MemoryMapFlags::empty(),
-            )}? as *mut UniformBufferObject;
+            let descriptor_mapped = unsafe {
+                device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
                 framebuffer: None,

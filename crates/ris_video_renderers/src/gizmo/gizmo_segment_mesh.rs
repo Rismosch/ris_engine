@@ -33,7 +33,7 @@ impl GizmoSegmentMesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe {vertex_buffer.write(device, vertices)}?;
+        unsafe { vertex_buffer.write(device, vertices) }?;
 
         Ok(Self {
             vertices: vertex_buffer,

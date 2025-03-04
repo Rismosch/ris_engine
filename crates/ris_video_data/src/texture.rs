@@ -41,7 +41,7 @@ impl Texture {
 
         self.image.free(device);
     }
-    
+
     pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
         let TextureCreateInfo {
             device,
@@ -72,7 +72,7 @@ impl Texture {
             physical_device_memory_properties,
         )?;
 
-        unsafe {staging_buffer.write(device, pixels_rgba)}?;
+        unsafe { staging_buffer.write(device, pixels_rgba) }?;
 
         let image = Image::alloc(ImageCreateInfo {
             device,
@@ -95,15 +95,17 @@ impl Texture {
             sync: TransientCommandSync::default(),
         })?;
 
-        unsafe {staging_buffer.copy_to_image(CopyToImageInfo {
-            device,
-            queue,
-            transient_command_pool,
-            image: image.image,
-            width,
-            height,
-            sync: TransientCommandSync::default(),
-        })}?;
+        unsafe {
+            staging_buffer.copy_to_image(CopyToImageInfo {
+                device,
+                queue,
+                transient_command_pool,
+                image: image.image,
+                width,
+                height,
+                sync: TransientCommandSync::default(),
+            })
+        }?;
 
         image.transition_layout(TransitionLayoutInfo {
             device,
@@ -115,7 +117,7 @@ impl Texture {
             sync: TransientCommandSync::default(),
         })?;
 
-        unsafe {staging_buffer.free(device)};
+        unsafe { staging_buffer.free(device) };
 
         // create image view
         let view = Image::alloc_view(device, image.image, format, vk::ImageAspectFlags::COLOR)?;

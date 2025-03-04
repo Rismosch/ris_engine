@@ -26,11 +26,7 @@ impl GizmoTextMesh {
         self.text_texture.free(device);
     }
 
-    pub fn alloc(
-        core: &VulkanCore,
-        vertices: &[GizmoTextVertex],
-        text: &[u8],
-    ) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, vertices: &[GizmoTextVertex], text: &[u8]) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -59,7 +55,7 @@ impl GizmoTextMesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe {vertex_buffer.write(device, vertices)}?;
+        unsafe { vertex_buffer.write(device, vertices) }?;
 
         let text_texture = Texture::alloc(TextureCreateInfo {
             device,

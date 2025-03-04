@@ -523,7 +523,8 @@ impl GizmoSegmentRenderer {
                 mesh
             }
             None => {
-                let new_mesh = GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)?;
+                let new_mesh =
+                    GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().into_ris_error()?
             }

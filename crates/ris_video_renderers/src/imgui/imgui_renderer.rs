@@ -552,7 +552,7 @@ impl ImguiRenderer {
                 mesh
             }
             None => {
-                let new_mesh =Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
+                let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().into_ris_error()?
             }

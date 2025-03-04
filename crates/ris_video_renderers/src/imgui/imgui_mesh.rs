@@ -44,7 +44,7 @@ impl Mesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe {vertex_buffer.write(device, &vertices)}?;
+        unsafe { vertex_buffer.write(device, &vertices) }?;
 
         let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
         let index_buffer = Buffer::alloc(
@@ -57,7 +57,7 @@ impl Mesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe {index_buffer.write(device, &indices)}?;
+        unsafe { index_buffer.write(device, &indices) }?;
 
         Ok(Self {
             vertices: vertex_buffer,

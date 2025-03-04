@@ -43,7 +43,7 @@ impl Buffer {
             device.free_memory(self.memory, None);
         }
     }
-    
+
     pub fn alloc(
         device: &ash::Device,
         size: vk::DeviceSize,

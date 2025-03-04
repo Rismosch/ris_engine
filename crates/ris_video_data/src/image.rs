@@ -46,7 +46,7 @@ impl Image {
             device.free_memory(self.memory, None);
         }
     }
-    
+
     pub fn alloc(info: ImageCreateInfo) -> RisResult<Self> {
         let ImageCreateInfo {
             device,

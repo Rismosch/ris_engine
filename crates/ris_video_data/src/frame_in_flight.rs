@@ -21,7 +21,7 @@ impl FrameInFlight {
             device.destroy_semaphore(self.image_available, None);
         }
     }
-    
+
     pub fn alloc(device: &ash::Device) -> RisResult<Self> {
         let semaphore_create_info = vk::SemaphoreCreateInfo {
             s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
