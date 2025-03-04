@@ -137,15 +137,12 @@ impl GizmoSegmentRenderer {
 
         // shaders
         let vs_future = ris_asset::load_async(god_asset.gizmo_segment_vert_spv.clone());
-        let gs_future = ris_asset::load_async(god_asset.gizmo_segment_geom_spv.clone());
         let fs_future = ris_asset::load_async(god_asset.gizmo_segment_frag_spv.clone());
 
         let vs_bytes = vs_future.wait()?;
-        let gs_bytes = gs_future.wait()?;
         let fs_bytes = fs_future.wait()?;
 
         let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
-        let gs_module = ris_video_data::shader::create_module(device, &gs_bytes)?;
         let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
 
         let shader_stages = [
@@ -157,15 +154,6 @@ impl GizmoSegmentRenderer {
                 p_name: ris_video_data::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
-            },
-            vk::PipelineShaderStageCreateInfo {
-                s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::PipelineShaderStageCreateFlags::empty(),
-                module: gs_module,
-                p_name: ris_video_data::shader::ENTRY.as_ptr(),
-                p_specialization_info: ptr::null(),
-                stage: vk::ShaderStageFlags::GEOMETRY,
             },
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -444,7 +432,6 @@ impl GizmoSegmentRenderer {
         let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
-        unsafe { device.destroy_shader_module(gs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames

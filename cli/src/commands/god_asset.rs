@@ -102,9 +102,6 @@ impl ICommand for GodAsset {
                     "gizmo_segment_vert_spv" => {
                         god_asset.gizmo_segment_vert_spv = AssetId::Path(value)
                     }
-                    "gizmo_segment_geom_spv" => {
-                        god_asset.gizmo_segment_geom_spv = AssetId::Path(value)
-                    }
                     "gizmo_segment_frag_spv" => {
                         god_asset.gizmo_segment_frag_spv = AssetId::Path(value)
                     }
@@ -147,10 +144,6 @@ fn print_god_asset(god_asset: &RisGodAsset) {
     println!(
         "    gizmo_segment_vert_spv: {:?},",
         god_asset.gizmo_segment_vert_spv
-    );
-    println!(
-        "    gizmo_segment_geom_spv: {:?},",
-        god_asset.gizmo_segment_geom_spv
     );
     println!(
         "    gizmo_segment_frag_spv: {:?},",
