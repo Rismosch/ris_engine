@@ -36,6 +36,49 @@ pub enum ImporterInfo {
     DeduceFromFileName(DeduceImporterInfo),
 }
 
+pub fn clean(import_directory: &str) -> RisResult<()> {
+    let mut directories = VecDeque::new();
+    directories.push_back(PathBuf::from(import_directory));
+
+    while let Some(current) = directories.pop_front() {
+        let entries = std::fs::read_dir(&current)?;
+
+        let mut cleaned = 0;
+        for entry in entries {
+            let entry = entry?;
+            let metadata = entry.metadata()?;
+            let entry_path = entry.path();
+
+            if metadata.is_file() {
+                let extension = entry_path.extension()
+                    .into_ris_error()?
+                    .to_str()
+                    .into_ris_error()?
+                    .to_lowercase();
+                
+                if extension.trim() != META_EXTENSION {
+                    ris_log::debug!("cleaning \"{}\"...", entry_path.display());
+                    std::fs::remove_file(entry_path)?;
+                    cleaned += 1;
+                }
+            }
+            else if metadata.is_dir() {
+                directories.push_back(entry_path);
+            } else {
+                return ris_error::new_result!(
+                    "entry \"{}\" is neither a file nor a directory",
+                    entry_path.display(),
+                );
+            }
+        }
+
+        ris_log::debug!("deleted {} files", cleaned);
+
+    };
+
+    Ok(())
+}
+
 pub fn import_all(
     source_directory: &str,
     import_directory: &str,
@@ -44,12 +87,6 @@ pub fn import_all(
 ) -> RisResult<()> {
     let temp_directory = temp_directory.map(PathBuf::from);
     let mut directories = VecDeque::new();
-
-    // clean
-    //let target_directory_path = PathBuf::from(target_directory);
-    //if target_directory_path.exists() {
-    //    std::fs::remove_dir_all(target_directory_path)?;
-    //}
 
     // import source files
     let source_path = PathBuf::from(source_directory);

@@ -15,3 +15,8 @@ ris_data = { path = "../crates/ris_data" }
 ris_error = { path = "../crates/ris_error" }
 ris_io = { path = "../crates/ris_io" }
 ris_log = { path = "../crates/ris_log" }
+
+[features]
+default = [
+    "ris_log/logging_enabled",
+]
