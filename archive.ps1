@@ -1,7 +1,6 @@
 Write-Host
-Write-Host "This script is used to archive the entire workspace. The script cleans the repo, vendors dependencies, and compresses the result.`n`nTo compress the repo, 7-Zip and a WSL (Windows Subsystem for Linux) are required. If they are missing, the compression step at the very end will fail."
+Write-Host "This script is used to archive the entire workspace. The script cleans the repo, vendors dependencies, and compresses the result."
 Write-Host
-Write-Warning "THIS SCRIPT IS GOING TO MODIFY THIS WORKSPACE. MAKE SURE THAT ALL CHANGES ARE COMMITED."
 Write-Host
 Write-Host
 
@@ -71,6 +70,31 @@ function RunCommand {
 }
 
 try {
+    Write-Host "checking dependencies..."
+
+    $missing_dependencies = 0
+    if (Get-Command 7z.exe -ErrorAction SilentlyContinue) {
+        Write-Output "7zip found"
+    } else {
+        $missing_dependencies += 1
+        Write-Warning "7zip not found"
+    }
+
+    if (wsl which tars) {
+        Write-Output "wsl tar found"
+    } else {
+        $missing_dependencies += 1
+        Write-Warning "wsl tar not found"
+    }
+
+    if ($missing_dependencies -gt 0) {
+        Write-Warning "some dependencies could not be found. compression may fail"
+        $user_input = Read-Host "continue? (y/N)"
+        if ($user_input.ToLower() -ne "y") {
+            exit;
+        }
+    }
+
     Write-Host "asking for user input..."
     $enum_clean_none = 0
     $enum_clean_except_vendor = 1
@@ -182,9 +206,8 @@ try {
         $target_path = "$final_directory/ris_engine_$archive_date"
 
         Write-Host "compressing..."
-        $7z = "C:\Program Files\7-Zip\7z.exe"
-        RunCommand ".`"$7z`" a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`"$7z`" a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`7z.exe a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`7z.exe a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
