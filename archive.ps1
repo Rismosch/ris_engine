@@ -30,6 +30,7 @@ function GetAndClearCiOutDir {
         Write-Host
         Write-Warning "destination directory exists already"
         $target_dir = Resolve-Path $target_dir
+        Write-Host
         $user_input = Read-Host "are you sure you want to delete ``$target_dir``? (y/N)"
         if ($user_input.ToLower() -eq "y") {
             Write-Host "deleting..."
@@ -73,14 +74,21 @@ try {
     Write-Host "checking dependencies..."
 
     $missing_dependencies = 0
-    if (Get-Command 7z.exe -ErrorAction SilentlyContinue) {
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        Write-Output "git found"
+    } else {
+        $missing_dependencies += 1
+        Write-Warning "git not found"
+    }
+
+    if (Get-Command 7z -ErrorAction SilentlyContinue) {
         Write-Output "7zip found"
     } else {
         $missing_dependencies += 1
         Write-Warning "7zip not found"
     }
 
-    if (wsl which tars) {
+    if (wsl which tar) {
         Write-Output "wsl tar found"
     } else {
         $missing_dependencies += 1
@@ -88,14 +96,31 @@ try {
     }
 
     if ($missing_dependencies -gt 0) {
-        Write-Warning "some dependencies could not be found. compression may fail"
+        Write-Warning "some dependencies could not be found. script may fail"
+        Write-Host
         $user_input = Read-Host "continue? (y/N)"
         if ($user_input.ToLower() -ne "y") {
             exit;
         }
     }
 
-    Write-Host "asking for user input..."
+    Write-Host "check for changes..."
+
+    $changes = RunCommand "git status --porcelain"
+    if ($changes) {
+        Write-Warning "uncommited changes detected"
+        Write-Warning "this script makes changes to the workspace. uncommited changes may be lost"
+        Write-Warning ""
+        Write-Warning "changes:"
+        Write-Warning $changes
+        Write-Host
+        $user_input = Read-Host "continue? (y/N)"
+        if ($user_input.ToLower() -ne "y") {
+            exit;
+        }
+    }
+
+    Write-Host "asking for settings..."
     $enum_clean_none = 0
     $enum_clean_except_vendor = 1
     $enum_clean_all = 2
@@ -105,8 +130,10 @@ try {
 
     $cli_compress_value = $false
 
+    Write-Host
     $user_input = Read-Host "should the workspace be cleaned? (y/N)"
     if ($user_input.ToLower() -eq "y") {
+        Write-Host
         $user_input = Read-Host "exclude vendor from clean? (Y/n)"
 
         if ($user_input.ToLower() -eq "n") {
@@ -116,11 +143,13 @@ try {
         }
     }
 
+    Write-Host
     $user_input = Read-Host "should dependencies be downloaded? (y/N)"
     if ($user_input.ToLower() -eq "y") {
         $cli_vendor_value = $true
     }
 
+    Write-Host
     $user_input = Read-Host "should be compressed? (y/N)"
     if ($user_input.ToLower() -eq "y") {
         $cli_compress_value = $true
@@ -154,6 +183,7 @@ try {
     Write-Host "  compress: $cli_compress_display"
 
     
+    Write-Host
     $user_input = Read-Host "continue with these settings? (Y/n)"
     if ($user_input.ToLower() -eq "n") {
         exit
@@ -206,8 +236,8 @@ try {
         $target_path = "$final_directory/ris_engine_$archive_date"
 
         Write-Host "compressing..."
-        RunCommand ".`7z.exe a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`7z.exe a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
+        RunCommand ".`7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
+        RunCommand ".`7z a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
