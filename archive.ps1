@@ -31,7 +31,7 @@ function GetAndClearCiOutDir {
         Write-Warning "destination directory exists already"
         $target_dir = Resolve-Path $target_dir
         Write-Host
-        $user_input = Read-Host "are you sure you want to delete ``$target_dir``? (y/N)"
+        $user_input = Read-Host "do you want to delete ``$target_dir``? (y/N)"
         if ($user_input.ToLower() -eq "y") {
             Write-Host "deleting..."
             Remove-Item -Recurse -Force $target_dir
@@ -236,8 +236,8 @@ try {
         $target_path = "$final_directory/ris_engine_$archive_date"
 
         Write-Host "compressing..."
-        RunCommand ".`7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!cli_out' -x'!.git' $target_path.7z *"
-        RunCommand ".`7z a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!cli_out' -x'!.git' $target_path.zip *"
+        RunCommand "7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on -x'!.git' -x'!cli_out' -x'!target' $target_path.7z *"
+        RunCommand "7z a -tzip -mx9 -mfb=258 -mpass=15 -r -x'!.git' -x'!cli_out' -x'!target' $target_path.zip *"
         
         Write-Host "prepare compression for tgz..."
         
@@ -246,7 +246,7 @@ try {
         $source_dir = "$source_dir".Replace('\','/').Replace('C:','/mnt/c')
 
         Write-Host "compressing..."
-        RunCommand "wsl tar --exclude='cli_out' --exclude='.git' -czf $target_path.tgz -C $source_dir ."
+        RunCommand "wsl tar --exclude='.git' --exclude='cli_out' --exclude='target' -czf $target_path.tgz -C $source_dir ."
 
         $destination = Resolve-Path $final_directory
         Write-Host "done! compressed archives can be found under ``$destination``"
