@@ -8,11 +8,15 @@ use crate::ICommand;
 pub struct Repeat;
 
 impl ICommand for Repeat {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "repeat".to_string()
+    }
+
+    fn args(&self) -> String {
         String::from("-- <command> [args...]")
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from("Repeatedly runs a command."),
             ExplanationLevel::Detailed => {
@@ -34,22 +38,18 @@ impl ICommand for Repeat {
         }
     }
 
-    fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         let Some(divider) = args.iter().position(|x| x == "--") else {
             return crate::util::command_error(
                 "missing --",
-                "repeat",
-                Self::args(),
-                Self::explanation(ExplanationLevel::Detailed),
+                self,
             );
         };
 
         let Some(command) = args.get(divider + 1) else {
             return crate::util::command_error(
                 "no command provided",
-                "repeat",
-                Self::args(),
-                Self::explanation(ExplanationLevel::Detailed),
+                self,
             );
         };
 

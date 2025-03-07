@@ -4,21 +4,29 @@ use std::path::PathBuf;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-pub fn print_help_for_command(name: &str, args: String, explanation: String) {
+use crate::ICommand;
+use crate::ExplanationLevel;
+
+pub fn print_help_for_command<T: ICommand + ?Sized>(
+    command: &T,
+    level: ExplanationLevel,
+) {
+    let name = command.name();
+    let args = command.args();
+    let explanation = command.explanation(level);
+
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
     eprintln!("usage: {} {} {}", cargo_pkg_name, name, args);
     eprintln!();
     eprintln!("{}", explanation);
 }
 
-pub fn command_error(
+pub fn command_error<T: ICommand>(
     message: &str,
-    name: &str,
-    args: String,
-    explanation: String,
+    command: &T,
 ) -> RisResult<()> {
     eprintln!("{}", message);
-    crate::util::print_help_for_command(name, args, explanation);
+    crate::util::print_help_for_command(command, ExplanationLevel::Detailed);
     ris_error::new_result!("{}", message)
 }
 

@@ -29,16 +29,20 @@ pub enum AssetCommand {
 pub struct Asset;
 
 impl ICommand for Asset {
-    fn args() -> String {
-        String::from("<command>")
+    fn name(&self) -> String {
+        "asset".to_string()
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn args(&self) -> String {
+        "<command>".to_string()
+    }
+
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from("Compile, decompile or import assets."),
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
-                let short_explanation = Self::explanation(ExplanationLevel::Short);
+                let short_explanation = self.explanation(ExplanationLevel::Short);
                 explanation.push_str(&format!("{} If <source> and <target> are omitted, they will default depending on the command.\n", short_explanation));
                 explanation.push('\n');
                 explanation.push_str("commands:\n");
@@ -65,7 +69,7 @@ impl ICommand for Asset {
         }
     }
 
-    fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         let command = args.get(2)
             .into_ris_error()?
             .to_lowercase();

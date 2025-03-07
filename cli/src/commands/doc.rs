@@ -9,18 +9,22 @@ use crate::ICommand;
 pub struct Doc;
 
 impl ICommand for Doc {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "doc".to_string()
+    }
+
+    fn args(&self) -> String {
         String::new()
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from("Generates docs and moves them to another folder."),
             ExplanationLevel::Detailed => String::from("Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable."),
         }
     }
 
-    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         let cargo_doc = "cargo doc";
         let exit_status = crate::cmd::run(cargo_doc)?;
 

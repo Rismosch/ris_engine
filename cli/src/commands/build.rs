@@ -2,11 +2,8 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use ris_asset::asset_importer;
 use ris_error::RisResult;
 
-use crate::Asset;
-use crate::AssetCommand;
 use crate::ExplanationLevel;
 use crate::ICommand;
 
@@ -38,18 +35,22 @@ struct AutoGenerateParseData<'a> {
 
 pub struct Build;
 impl ICommand for Build {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "build".to_string()
+    }
+
+    fn args(&self) -> String {
         format!("[{}]", ARG_RELEASE)
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from(
                 "Generates build info and compiles the workspace as a release ready package.",
             ),
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
-                let short_explanation = Self::explanation(ExplanationLevel::Short);
+                let short_explanation = self.explanation(ExplanationLevel::Short);
 
                 explanation.push_str(&format!("{}\n", short_explanation));
                 explanation.push('\n');
@@ -61,7 +62,7 @@ impl ICommand for Build {
         }
     }
 
-    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         eprintln!("parsing args...");
 
         let mut is_release = false;
@@ -71,9 +72,7 @@ impl ICommand for Build {
                 _ => {
                     return crate::util::command_error(
                         &format!("unkown arg: {}", arg),
-                        "build",
-                        Self::args(),
-                        Self::explanation(ExplanationLevel::Detailed),
+                        self,
                     );
                 }
             }

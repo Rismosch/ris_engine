@@ -37,15 +37,19 @@ struct ParsedCsvLine {
 pub struct ProfilerHtml;
 
 impl ICommand for ProfilerHtml {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "profiler_html".to_string()
+    }
+
+    fn args(&self) -> String {
         String::new()
     }
 
-    fn explanation(_level: ExplanationLevel) -> String {
+    fn explanation(&self,  _level: ExplanationLevel) -> String {
         String::from("Renders profiler results as an Html.")
     }
 
-    fn run(_args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, _args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         let chart_js_path = crate::util::get_root_dir()?
             .join("third_party")
             .join("Chart.js")
