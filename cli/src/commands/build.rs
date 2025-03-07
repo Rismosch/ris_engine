@@ -70,10 +70,7 @@ impl ICommand for Build {
             match arg.trim().to_lowercase().as_str() {
                 ARG_RELEASE => is_release = true,
                 _ => {
-                    return crate::util::command_error(
-                        &format!("unkown arg: {}", arg),
-                        self,
-                    );
+                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }

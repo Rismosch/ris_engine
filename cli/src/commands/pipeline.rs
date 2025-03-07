@@ -83,10 +83,7 @@ impl ICommand for Pipeline {
 
     fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         if args.len() <= 2 {
-            return crate::util::command_error(
-                "no args provided",
-                self,
-            );
+            return crate::util::command_error("no args provided", self);
         }
 
         let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
@@ -114,10 +111,7 @@ impl ICommand for Pipeline {
                 NO_MIRI => run_miri = false,
                 NO_CLIPPY => run_clippy = false,
                 _ => {
-                    return crate::util::command_error(
-                        &format!("unkown arg: {}", arg),
-                        self,
-                    );
+                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }

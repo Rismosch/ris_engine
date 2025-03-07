@@ -40,17 +40,11 @@ impl ICommand for Repeat {
 
     fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         let Some(divider) = args.iter().position(|x| x == "--") else {
-            return crate::util::command_error(
-                "missing --",
-                self,
-            );
+            return crate::util::command_error("missing --", self);
         };
 
         let Some(command) = args.get(divider + 1) else {
-            return crate::util::command_error(
-                "no command provided",
-                self,
-            );
+            return crate::util::command_error("no command provided", self);
         };
 
         let args = &args[(divider + 2)..];

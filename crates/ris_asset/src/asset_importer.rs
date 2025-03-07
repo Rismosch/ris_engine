@@ -50,19 +50,19 @@ pub fn clean(import_directory: &str) -> RisResult<()> {
             let entry_path = entry.path();
 
             if metadata.is_file() {
-                let extension = entry_path.extension()
+                let extension = entry_path
+                    .extension()
                     .into_ris_error()?
                     .to_str()
                     .into_ris_error()?
                     .to_lowercase();
-                
+
                 if extension.trim() != META_EXTENSION {
                     ris_log::debug!("cleaning \"{}\"...", entry_path.display());
                     std::fs::remove_file(entry_path)?;
                     cleaned += 1;
                 }
-            }
-            else if metadata.is_dir() {
+            } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {
                 return ris_error::new_result!(
@@ -73,8 +73,7 @@ pub fn clean(import_directory: &str) -> RisResult<()> {
         }
 
         ris_log::debug!("deleted {} files", cleaned);
-
-    };
+    }
 
     Ok(())
 }

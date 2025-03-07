@@ -136,8 +136,7 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     let mut max_args_len = 0;
     let mut max_explanation_len = 0;
 
-    for command in commands.iter()
-    {
+    for command in commands.iter() {
         max_name_len = usize::max(max_name_len, command.name().len());
         max_args_len = usize::max(max_args_len, command.args().len());
         max_explanation_len = usize::max(

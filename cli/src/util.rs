@@ -4,13 +4,10 @@ use std::path::PathBuf;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::ICommand;
 use crate::ExplanationLevel;
+use crate::ICommand;
 
-pub fn print_help_for_command<T: ICommand + ?Sized>(
-    command: &T,
-    level: ExplanationLevel,
-) {
+pub fn print_help_for_command<T: ICommand + ?Sized>(command: &T, level: ExplanationLevel) {
     let name = command.name();
     let args = command.args();
     let explanation = command.explanation(level);
@@ -21,10 +18,7 @@ pub fn print_help_for_command<T: ICommand + ?Sized>(
     eprintln!("{}", explanation);
 }
 
-pub fn command_error<T: ICommand>(
-    message: &str,
-    command: &T,
-) -> RisResult<()> {
+pub fn command_error<T: ICommand>(message: &str, command: &T) -> RisResult<()> {
     eprintln!("{}", message);
     crate::util::print_help_for_command(command, ExplanationLevel::Detailed);
     ris_error::new_result!("{}", message)

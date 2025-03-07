@@ -45,7 +45,7 @@ impl ICommand for ProfilerHtml {
         String::new()
     }
 
-    fn explanation(&self,  _level: ExplanationLevel) -> String {
+    fn explanation(&self, _level: ExplanationLevel) -> String {
         String::from("Renders profiler results as an Html.")
     }
 
