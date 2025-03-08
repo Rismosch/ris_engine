@@ -1,8 +1,10 @@
 use std::fs::File;
+use std::path::Path;
 use std::path::PathBuf;
 
 use png::ColorType;
 
+use ris_error::Extensions;
 use ris_error::RisResult;
 
 use crate::codecs::qoi;
@@ -10,10 +12,13 @@ use crate::codecs::qoi::Channels;
 use crate::codecs::qoi::ColorSpace;
 use crate::codecs::qoi::QoiDesc;
 
-pub const IN_EXT: &str = "png";
-pub const OUT_EXT: &[&str] = &["qoi"];
+pub const IN_EXT_PNG: &str = "png";
+pub const OUT_EXT_QOI: &str = "qoi";
 
-pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
+pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResult<()> {
+    let source = source.as_ref();
+    let target_dir = target_dir.as_ref();
+
     // open file
     let input = File::open(source)?;
 
@@ -47,7 +52,11 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>) -> RisResult<()> {
 
     let encoded = qoi::encode(&pixels, desc)?;
 
-    let mut output = crate::asset_importer::create_file(&targets[0])?;
+    let mut output = crate::asset_importer::create_file(
+        source,
+        target_dir,
+        OUT_EXT_QOI,
+    )?;
     ris_io::write(&mut output, &encoded)?;
 
     Ok(())

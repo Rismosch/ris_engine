@@ -17,12 +17,13 @@ pub const META_COPY_TO: &str = "copy_to";
 
 pub enum ImporterKind {
     GLSL,
+    GLTF,
     PNG,
 }
 
 pub struct SpecificImporterInfo {
     pub source_file_path: PathBuf,
-    pub target_file_paths: Vec<PathBuf>,
+    pub target_directory: PathBuf,
     pub importer: ImporterKind,
 }
 
@@ -236,26 +237,46 @@ pub fn import_all(
     Ok(())
 }
 
-pub fn create_file(file_path: &Path) -> RisResult<File> {
-    let parent = file_path.parent();
+pub fn create_file(
+    source: impl AsRef<Path>,
+    target_dir: impl AsRef<Path>,
+    extension: impl AsRef<str>,
+) -> RisResult<File> {
+    let source = source.as_ref();
+    let target_dir = target_dir.as_ref();
+    let extension = extension.as_ref();
+
+    let file_stem = source
+        .file_stem()
+        .into_ris_error()?
+        .to_str()
+        .into_ris_error()?;
+
+    let target = target_dir.join(format!(
+        "{}.{}",
+        file_stem,
+        extension,
+    ));
+
+    let parent = target.parent();
     if let Some(parent) = parent {
         if !parent.exists() {
             std::fs::create_dir_all(parent)?;
         }
     }
 
-    if file_path.exists() {
-        std::fs::remove_file(file_path)?;
+    if target.exists() {
+        std::fs::remove_file(&target)?;
     }
 
-    let file = File::create(file_path)?;
+    let file = File::create(target)?;
     Ok(file)
 }
 
 fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
-    let (source_path, target_paths, importer) = match info {
+    let (source, target, importer) = match info {
         ImporterInfo::Specific(info) => {
-            (info.source_file_path, info.target_file_paths, info.importer)
+            (info.source_file_path, info.target_directory, info.importer)
         }
         ImporterInfo::DeduceFromFileName(info) => {
             let source_path = info.source_file_path;
@@ -265,11 +286,11 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_extension = source_extension.to_str().into_ris_error()?;
             let source_extension = source_extension.to_lowercase();
 
-            let (importer, target_extensions) = match source_extension.as_str() {
-                glsl_to_spirv_importer::IN_EXT => {
-                    (ImporterKind::GLSL, glsl_to_spirv_importer::OUT_EXT)
-                }
-                png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
+            let importer = match source_extension.as_str() {
+                glsl_to_spirv_importer::IN_EXT_GLSL => ImporterKind::GLSL,
+                gltf_importer::IN_EXT_GLB => ImporterKind::GLTF,
+                gltf_importer::IN_EXT_GLTF => ImporterKind::GLTF,
+                png_to_qoi_importer::IN_EXT_PNG => ImporterKind::PNG,
                 // insert new inporter here...
                 _ => {
                     ris_log::debug!(
@@ -280,29 +301,14 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 }
             };
 
-            let source_stem = source_path.file_stem().into_ris_error()?;
-            let source_stem = source_stem.to_str().into_ris_error()?;
-            let source_stem = String::from(source_stem);
-
-            let mut target_paths = Vec::new();
-
-            for target_extension in target_extensions {
-                let mut target_path = PathBuf::new();
-                target_path.push(target_directory.clone());
-                target_path.push(format!("{source_stem}.{target_extension}"));
-
-                target_paths.push(target_path);
-            }
-
-            (source_path, target_paths, importer)
+            (source_path, target_directory, importer)
         }
     };
 
     match importer {
-        ImporterKind::GLSL => {
-            glsl_to_spirv_importer::import(source_path, target_paths, temp_directory)
-        }
-        ImporterKind::PNG => png_to_qoi_importer::import(source_path, target_paths),
+        ImporterKind::GLSL => glsl_to_spirv_importer::import(source, target, temp_directory),
+        ImporterKind::GLTF => gltf_importer::import(source, target),
+        ImporterKind::PNG => png_to_qoi_importer::import(source, target),
         // insert more importers here...
     }
 }
