@@ -1,11 +1,9 @@
 use std::fs::File;
 use std::path::Path;
-use std::path::PathBuf;
 
 use png::ColorType;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::codecs::qoi;
 use crate::codecs::qoi::Channels;

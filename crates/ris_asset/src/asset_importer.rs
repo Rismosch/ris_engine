@@ -289,9 +289,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let importer = match source_extension.as_str() {
                 glsl_to_spirv_importer::IN_EXT_GLSL => ImporterKind::GLSL,
                 gltf_importer::IN_EXT_GLB => ImporterKind::GLTF,
-                gltf_importer::IN_EXT_GLTF => ImporterKind::GLTF,
                 png_to_qoi_importer::IN_EXT_PNG => ImporterKind::PNG,
-                // insert new inporter here...
+                // insert new importer here...
                 _ => {
                     ris_log::debug!(
                         "failed to deduce importer, unknown extension \"{}\"",
@@ -309,6 +308,6 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
         ImporterKind::GLSL => glsl_to_spirv_importer::import(source, target, temp_directory),
         ImporterKind::GLTF => gltf_importer::import(source, target),
         ImporterKind::PNG => png_to_qoi_importer::import(source, target),
-        // insert more importers here...
+        // insert new importers here...
     }
 }

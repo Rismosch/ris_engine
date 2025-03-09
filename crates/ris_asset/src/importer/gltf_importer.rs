@@ -3,7 +3,6 @@ use std::path::Path;
 use ris_error::prelude::*;
 
 pub const IN_EXT_GLB: &str = "glb";
-pub const IN_EXT_GLTF: &str = "gltf";
 
 pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResult<()> {
     let source = source.as_ref();
