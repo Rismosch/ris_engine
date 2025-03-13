@@ -19,6 +19,8 @@ pub const E: [char; 2] = ['e', 'E'];
 pub const MINUS: char = '-';
 pub const PLUS: char = '+';
 pub const ZERO: char = '0';
+pub const ESCAPE: char = '\\';
+pub const QUOTATION_MARK: char = '"';
 
 // structs
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -282,6 +284,15 @@ impl JsonObject {
             .rfind(|x| x.name == index)
             .map(|x| &mut x.value)
     }
+
+    fn push(&mut self, name: impl AsRef<str>, value: JsonValue) {
+        let name = name.as_ref().to_string();
+        let member = JsonMember{
+            name,
+            value,
+        };
+        self.members.push(member);
+    }
 }
 
 // serialization
@@ -305,6 +316,9 @@ impl JsonObject {
 
     pub fn deserialize(value: impl AsRef<str>) -> Self {
         let value = value.as_ref();
+
+        // ignore potential U+FEFF
+        // parse escaped character, including optional escape characters
         panic!()
     }
 }
@@ -379,7 +393,26 @@ impl JsonValue {
                 )
             },
             JsonValue::String(value) => {
-                todo!()
+                let mut serialized_string = value.clone();
+
+                let escape = |x: &mut String, c: char| {
+                    *x = x.replace(c, &format!("{}{}", ESCAPE, c))
+                };
+
+                escape(&mut serialized_string, QUOTATION_MARK);
+                escape(&mut serialized_string, ESCAPE);
+
+                for i in 0..=0x1f {
+                    let c = i as u8 as char;
+                    escape(&mut serialized_string, c);
+                }
+
+                format!(
+                    "{}{}{}",
+                    QUOTATION_MARK,
+                    serialized_string,
+                    QUOTATION_MARK,
+                )
             },
         }
     }
