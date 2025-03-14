@@ -27,7 +27,28 @@ fn should_serialize_example_1() {
 
 #[test]
 fn should_serialize_example_2() {
-    panic!();
+    let mut object1 = JsonObject::default();
+    object1.push("precision", "zip");
+    object1.push("Latitude", 37.7668);
+    object1.push("Longitude", -122.3959);
+    object1.push("Address", "");
+    object1.push("City", "SAN FRANCISCO");
+    object1.push("State", "CA");
+    object1.push("Zip", "94107");
+    object1.push("Country", "US");
+    let mut object2 = JsonObject::default();
+    object2.push("precision", "zip");
+    object2.push("Latitude", 37.371991);
+    object2.push("Longitude", -122.026020);
+    object2.push("Address", "");
+    object2.push("City", "SUNNYVALE");
+    object2.push("State", "CA");
+    object2.push("Zip", "94085");
+    object2.push("Country", "US");
+    let array = JsonValue::from(&[object1, object2]);
+
+    let json = array.serialize();
+    panic!("json: {}",json);
 }
 
 #[test]
@@ -114,5 +135,10 @@ fn should_deserialize_example_4() {
 #[test]
 fn should_deserialize_example_5() {
     let example = "true";
+    panic!();
+}
+
+#[test]
+fn should_serialize_deserialize_edge_cases() {
     panic!();
 }
