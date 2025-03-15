@@ -46,9 +46,7 @@ pub struct JsonMember {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonNumber {
-    pub int: i32,
-    pub frac: Option<u32>,
-    pub exp: Option<i32>,
+    inner: String, // storing it as any kind of number is a major footgun
 }
 
 impl Default for JsonValue {
@@ -59,27 +57,19 @@ impl Default for JsonValue {
 
 impl Default for JsonNumber {
     fn default() -> Self {
-        Self{
-            int: 0,
-            frac: None,
-            exp: None,
-        }
+        Self{inner: "0".to_string()}
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsonError {
     InvalidCast,
-    InvalidNumber,
-    MathOverflow,
 }
 
 impl std::fmt::Display for JsonError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidCast => write!(f, "specified cast is not valid"),
-            Self::InvalidNumber => write!(f, "the number is not supported by JSON"),
-            Self::MathOverflow => write!(f, "an operation caused a math overflow"),
         }
     }
 }
@@ -139,19 +129,8 @@ impl<T: Into<JsonValue> + Clone, const N: usize> From<&[T; N]> for JsonValue {
 }
 
 impl From<i32> for JsonValue {
-    fn from(mut value: i32) -> Self {
-        let minus = if value.is_negative() {
-            value *= -1;
-            Some(())
-        } else {
-            None
-        };
-
-        Self::Number(JsonNumber{
-            int: value,
-            frac: None,
-            exp: None,
-        })
+    fn from(value: i32) -> Self {
+        Self::Number(JsonNumber{inner: value.to_string()})
     }
 }
 
@@ -160,8 +139,9 @@ impl TryFrom<JsonValue> for i32 {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
-                Ok(int as i32)
+            JsonValue::Number(JsonNumber {inner}) => {
+                // safety: construction of number that cannot be parsed should be impossible
+                Ok(inner.parse().unwrap())
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -171,9 +151,7 @@ impl TryFrom<JsonValue> for i32 {
 impl From<usize> for JsonValue {
     fn from(value: usize) -> Self {
         Self::Number(JsonNumber{
-            int: value as i32,
-            frac: None,
-            exp: None,
+            inner: value.to_string()
         })
     }
 }
@@ -183,8 +161,9 @@ impl TryFrom<JsonValue> for usize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
-                Ok(int as usize)
+            JsonValue::Number(JsonNumber {inner}) => {
+                // safety: construction of number that cannot be parsed should be impossible
+                Ok(inner.parse().unwrap())
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -192,20 +171,9 @@ impl TryFrom<JsonValue> for usize {
 }
 
 impl From<isize> for JsonValue {
-    fn from(mut value: isize) -> Self {
-        let minus = if value.is_negative() {
-            value *= -1;
-            Some(())
-        } else {
-            None
-        };
-
-        let int = value as i32;
-
+    fn from(value: isize) -> Self {
         Self::Number(JsonNumber{
-            int,
-            frac: None,
-            exp: None,
+            inner: value.to_string()
         })
     }
 }
@@ -215,8 +183,9 @@ impl TryFrom<JsonValue> for isize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
-                Ok(int as isize)
+            JsonValue::Number(JsonNumber {inner}) => {
+                // safety: construction of number that cannot be parsed should be impossible
+                Ok(inner.parse().unwrap())
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -224,38 +193,17 @@ impl TryFrom<JsonValue> for isize {
 }
 
 impl From<f32> for JsonValue {
-    fn from(mut value: f32) -> Self {
+    fn from(value: f32) -> Self {
         if value.is_infinite() {
-            panic!("{}", JsonError::InvalidNumber);
+            panic!("{}", JsonError::InvalidCast);
         }
 
         if value.is_nan() {
-            panic!("{}", JsonError::InvalidNumber);
+            panic!("{}", JsonError::InvalidCast);
         }
 
-        let sign = ;
-
-        let fract = value.fract();
-        let frac = if fract == 0.0 {
-            None
-        } else {
-            let frac = format!("{}", fract);
-            let frac = frac
-                .trim_start_matches('-')
-                .trim_start_matches('0')
-                .trim_start_matches('.');
-            println!("deine mom: {:?}", frac);
-            let frac = frac.parse().expect(&format!("{}", JsonError::InvalidCast));
-
-            Some(frac)
-        };
-
-        let int = value as i32;
-
         Self::Number(JsonNumber{
-            int,
-            frac,
-            exp: None,
+            inner: format!("{:?}", value),
         })
     }
 }
@@ -265,23 +213,9 @@ impl TryFrom<JsonValue> for f32 {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(number) => {
-                let int = number.int as f32;
-                let frac = match number.frac {
-                    Some(frac) => match format!("0.{}", frac).parse() {
-                        Ok(parsed) => parsed,
-                        Err(_) => return Err(JsonError::InvalidCast),
-                    },
-                    None => 0.0,
-                };
-
-                let exp = match number.exp {
-                    Some(exp) => f32::powi(10.0, exp),
-                    None => 1.0
-                };
-
-                let result = (int + frac) * exp;
-                Ok(result)
+            JsonValue::Number(JsonNumber {inner}) => {
+                // safety: construction of number that cannot be parsed should be impossible
+                Ok(inner.parse().unwrap())
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -364,26 +298,7 @@ impl JsonValue {
                 )
             },
             JsonValue::Number(number) => {
-                let serialized_int = number.int.to_string();
-
-                let serialized_frac = match number.frac {
-                    Some(frac) => format!(".{}", frac),
-                    _ => "".to_string(),
-                };
-
-                let serialized_exp = match number.exp {
-                    Some(exp) => {
-                        format!("{}{}", E[0], exp)
-                    },
-                    None => "".to_string(),
-                };
-
-                format!(
-                    "{}{}{}",
-                    serialized_int,
-                    serialized_frac,
-                    serialized_exp,
-                )
+                number.inner.clone()
             },
             JsonValue::String(value) => {
                 let mut serialized_string = value.clone();

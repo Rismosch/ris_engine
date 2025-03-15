@@ -38,8 +38,9 @@ fn should_serialize_example_2() {
     object1.push("Country", "US");
     let mut object2 = JsonObject::default();
     object2.push("precision", "zip");
-    object2.push("Latitude", 37.371991);
-    object2.push("Longitude", -122.026020);
+    object2.push("Latitude", 37.371991); // because of floating point imprecision this will be
+                                         // stored as 37.37199
+    object2.push("Longitude", -122.026020); // will be stored as -122.02602
     object2.push("Address", "");
     object2.push("City", "SUNNYVALE");
     object2.push("State", "CA");
@@ -47,8 +48,10 @@ fn should_serialize_example_2() {
     object2.push("Country", "US");
     let array = JsonValue::from(&[object1, object2]);
 
+    println!("what: {:#?}", array);
+
     let json = array.serialize();
-    let expected = "[{\"precision\":\"zip\",\"Latitude\":37.7667999,\"Longitude\":-122.3958969,\"Address\":\"\",\"City\":\"SAN FRANCISCO\",\"State\":\"CA\",\"Zip\":\"94107\",\"Country\":\"US\"},{\"precision\":\"zip\",\"Latitude\":37.3719902,\"Longitude\":-122.026016235,\"Address\":\"\",\"City\":\"SUNNYVALE\",\"State\":\"CA\",\"Zip\":\"94085\",\"Country\":\"US\"}]";
+    let expected = "[{\"precision\":\"zip\",\"Latitude\":37.7668,\"Longitude\":-122.3959,\"Address\":\"\",\"City\":\"SAN FRANCISCO\",\"State\":\"CA\",\"Zip\":\"94107\",\"Country\":\"US\"},{\"precision\":\"zip\",\"Latitude\":37.37199,\"Longitude\":-122.02602,\"Address\":\"\",\"City\":\"SUNNYVALE\",\"State\":\"CA\",\"Zip\":\"94085\",\"Country\":\"US\"}]";
     assert_eq!(json, expected);
 }
 
@@ -140,6 +143,19 @@ fn should_deserialize_example_5() {
 }
 
 #[test]
-fn should_serialize_deserialize_edge_cases() {
-    panic!();
+#[should_panic]
+fn number_should_not_be_infinity() {
+    let _ = JsonValue::from(f32::INFINITY);
+}
+
+#[test]
+#[should_panic]
+fn number_should_not_be_neg_infinity() {
+    let _ = JsonValue::from(f32::NEG_INFINITY);
+}
+
+#[test]
+#[should_panic]
+fn number_should_not_be_nan() {
+    let _ = JsonValue::from(f32::NAN);
 }
