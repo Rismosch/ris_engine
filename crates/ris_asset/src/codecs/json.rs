@@ -7,10 +7,10 @@ pub const END_ARRAY: char = ']';
 pub const END_OBJECT: char = '}';
 pub const NAME_SEPARATOR: char = ':';
 pub const VALUE_SEPARATOR: char = ',';
-pub const WS_CARRIAGE_RETURN: char = '\u{0D}';
-pub const WS_HORIZONTAL_TAB: char = '\u{09}';
-pub const WS_LINE_FEED: char = '\u{0A}';
-pub const WS_SPACE: char = '\u{20}';
+pub const WS_CARRIAGE_RETURN: char = '\u{000D}';
+pub const WS_HORIZONTAL_TAB: char = '\u{0009}';
+pub const WS_LINE_FEED: char = '\u{000A}';
+pub const WS_SPACE: char = '\u{0020}';
 pub const TRUE: &str = "true";
 pub const NULL: &str = "null";
 pub const FALSE: &str = "false";
@@ -21,7 +21,7 @@ pub const PLUS: char = '+';
 pub const ZERO: char = '0';
 pub const ESCAPE: char = '\\';
 pub const QUOTATION_MARK: char = '"';
-pub const BYTE_ORDER_MARK: char = '\u{feff}';
+pub const BYTE_ORDER_MARK: char = '\u{FEFF}';
 
 // structs
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -113,6 +113,17 @@ impl TryFrom<JsonValue> for JsonObject {
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Object(result) => Ok(*result),
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a JsonValue> for &'a JsonObject {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Object(result) => Ok(result),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -251,14 +262,30 @@ impl From<&str> for JsonValue {
     }
 }
 
+impl<'a> TryFrom<&'a JsonValue> for &'a str {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::String(result) => Ok(&result),
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
 // member functions
 impl JsonObject {
-    pub fn get(&self, name: impl AsRef<str>) -> Option<&JsonValue> {
+    pub fn get<'a, T: TryFrom<&'a JsonValue>>(&'a self, name: impl AsRef<str>) -> Option<T> {
         let index = name.as_ref();
-        self.members
+        let value = self.members
             .iter()
             .rfind(|x| x.name == index)
-            .map(|x| &x.value)
+            .map(|x| T::try_from(&x.value));
+
+        match value {
+            Some(Ok(value)) => Some(value),
+            _ => None,
+        }
     }
 
     pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<&mut JsonValue> {
@@ -286,10 +313,10 @@ impl JsonValue {
             JsonValue::Null => NULL.to_string(),
             JsonValue::Boolean(true) => TRUE.to_string(),
             JsonValue::Boolean(false) => FALSE.to_string(),
-            JsonValue::Object(value) => value.serialize(),
-            JsonValue::Array(values) => {
-                let mut serialized_values = Vec::with_capacity(values.len());
-                for value in values.iter() {
+            JsonValue::Object(object) => object.serialize(),
+            JsonValue::Array(array) => {
+                let mut serialized_values = Vec::with_capacity(array.len());
+                for value in array.iter() {
                     let serialized_value = value.serialize();
                     serialized_values.push(serialized_value);
                 }
@@ -299,8 +326,8 @@ impl JsonValue {
                 format!("{}{}{}", BEGIN_ARRAY, serialized_array, END_ARRAY,)
             }
             JsonValue::Number(number) => number.inner.clone(),
-            JsonValue::String(value) => {
-                let mut serialized_string = value.clone();
+            JsonValue::String(string) => {
+                let mut serialized_string = string.clone();
 
                 let escape =
                     |x: &mut String, c: char| *x = x.replace(c, &format!("{}{}", ESCAPE, c));
@@ -505,14 +532,14 @@ impl JsonValue {
                 };
 
                 match c {
-                    '"' => result.push('"'),
-                    '\\' => result.push('\\'),
+                    '"' => result.push(QUOTATION_MARK),
+                    '\\' => result.push(ESCAPE),
                     '/' => result.push('/'),
                     'b' => result.push('\u{0008}'),
                     'f' => result.push('\u{000C}'),
-                    'n' => result.push('\u{000A}'),
-                    'r' => result.push('\u{000D}'),
-                    't' => result.push('\u{0009}'),
+                    'n' => result.push(WS_LINE_FEED),
+                    'r' => result.push(WS_CARRIAGE_RETURN),
+                    't' => result.push(WS_HORIZONTAL_TAB),
                     'u' => {
                         let digit_1 = char_iter.next().ok_or(JsonError::SyntaxError)?;
                         let digit_2 = char_iter.next().ok_or(JsonError::SyntaxError)?;

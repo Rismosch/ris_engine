@@ -16,8 +16,8 @@ pub const META_EXTENSION: &str = "ris_meta";
 pub const META_COPY_TO: &str = "copy_to";
 
 pub enum ImporterKind {
+    GLB,
     GLSL,
-    GLTF,
     PNG,
 }
 
@@ -283,8 +283,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_extension = source_extension.to_lowercase();
 
             let importer = match source_extension.as_str() {
+                glb_importer::IN_EXT_GLB => ImporterKind::GLB,
                 glsl_to_spirv_importer::IN_EXT_GLSL => ImporterKind::GLSL,
-                gltf_importer::IN_EXT_GLB => ImporterKind::GLTF,
                 png_to_qoi_importer::IN_EXT_PNG => ImporterKind::PNG,
                 // insert new importer here...
                 _ => {
@@ -301,8 +301,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
     };
 
     match importer {
+        ImporterKind::GLB => glb_importer::import(source, target),
         ImporterKind::GLSL => glsl_to_spirv_importer::import(source, target, temp_directory),
-        ImporterKind::GLTF => gltf_importer::import(source, target),
         ImporterKind::PNG => png_to_qoi_importer::import(source, target),
         // insert new importers here...
     }
