@@ -89,9 +89,8 @@ impl<T> Receiver<T> {
         let entry = unsafe { self.channel.buf.get_unchecked(new_head) };
 
         let mut g = entry.lock();
-        g.take().map(|x| {
+        g.take().inspect(|_| {
             *head = new_head;
-            x
         })
     }
 }
@@ -104,9 +103,8 @@ impl<T> Stealer<T> {
         let entry = unsafe { self.channel.buf.get_unchecked(*tail) };
 
         let mut g = entry.lock();
-        g.take().map(|x| {
+        g.take().inspect(|_| {
             *tail = (*tail + 1) % self.channel.buf.len();
-            x
         })
     }
 }

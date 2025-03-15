@@ -125,13 +125,13 @@ impl<'a> SceneReader<'a> {
     }
 }
 
-impl<'a> Seek for SceneWriter<'a> {
+impl Seek for SceneWriter<'_> {
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         self.stream.seek(pos)
     }
 }
 
-impl<'a> Write for SceneWriter<'a> {
+impl Write for SceneWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.stream.write(buf)
     }
@@ -141,13 +141,13 @@ impl<'a> Write for SceneWriter<'a> {
     }
 }
 
-impl<'a> Seek for SceneReader<'a> {
+impl Seek for SceneReader<'_> {
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         self.stream.seek(pos)
     }
 }
 
-impl<'a> Read for SceneReader<'a> {
+impl Read for SceneReader<'_> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.stream.read(buf)
     }

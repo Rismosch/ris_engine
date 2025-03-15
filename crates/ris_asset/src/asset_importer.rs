@@ -252,11 +252,7 @@ pub fn create_file(
         .to_str()
         .into_ris_error()?;
 
-    let target = target_dir.join(format!(
-        "{}.{}",
-        file_stem,
-        extension,
-    ));
+    let target = target_dir.join(format!("{}.{}", file_stem, extension,));
 
     let parent = target.parent();
     if let Some(parent) = parent {

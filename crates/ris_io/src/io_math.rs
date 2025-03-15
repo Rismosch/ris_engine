@@ -78,7 +78,7 @@ pub fn read_vec4(stream: &mut (impl Read + Seek)) -> Result<Vec4> {
 pub fn write_bvec2(stream: &mut (impl Write + Seek), value: Bvec2) -> Result<FatPtr> {
     let x = u8::from(value.x());
     let y = u8::from(value.y());
-    let flags = x | y << 1;
+    let flags = x | (y << 1);
     crate::write_u8(stream, flags)
 }
 
@@ -96,7 +96,7 @@ pub fn write_bvec3(stream: &mut (impl Write + Seek), value: Bvec3) -> Result<Fat
     let x = u8::from(value.x());
     let y = u8::from(value.y());
     let z = u8::from(value.z());
-    let flags = x | y << 1 | z << 2;
+    let flags = x | (y << 1) | (z << 2);
     crate::write_u8(stream, flags)
 }
 
@@ -116,7 +116,7 @@ pub fn write_bvec4(stream: &mut (impl Write + Seek), value: Bvec4) -> Result<Fat
     let y = u8::from(value.y());
     let z = u8::from(value.z());
     let w = u8::from(value.w());
-    let flags = x | y << 1 | z << 2 | w << 3;
+    let flags = x | (y << 1) | (z << 2) | (w << 3);
     crate::write_u8(stream, flags)
 }
 

@@ -19,9 +19,7 @@ fn example_1_json() -> &'static str {
     }"
 }
 
-
 fn example_2_json() -> &'static str {
-
     // because of floating point imprecision and how numbers are stored and serilialized in rust, the two lines
     //
     //     \"Latitude\":  37.371991,
@@ -139,21 +137,24 @@ fn should_serialize_example_2() {
 fn should_serialize_example_3() {
     let example = example_3_value();
     let json = example.serialize();
-    assert_eq!(json, "\"Hello world!\"");
+    let expected = example_3_json();
+    assert_eq!(json, expected);
 }
 
 #[test]
 fn should_serialize_example_4() {
     let example = example_4_value();
     let json = example.serialize();
-    assert_eq!(json, "42");
+    let expected = example_4_json();
+    assert_eq!(json, expected);
 }
 
 #[test]
 fn should_serialize_example_5() {
     let example = example_5_value();
     let json = example.serialize();
-    assert_eq!(json, "true");
+    let expected = example_5_json();
+    assert_eq!(json, expected);
 }
 
 #[test]
@@ -212,9 +213,4 @@ fn number_should_not_be_neg_infinity() {
 #[should_panic]
 fn number_should_not_be_nan() {
     let _ = JsonValue::from(f32::NAN);
-}
-
-#[test]
-fn should_deserialize_edge_cases() {
-    panic!("make sure to hit every branch, place a panic in each and generate edgecases until all panics have been removed");
 }

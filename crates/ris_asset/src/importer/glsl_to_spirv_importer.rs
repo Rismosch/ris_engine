@@ -174,7 +174,11 @@ impl ShaderStage {
     }
 }
 
-pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>, temp_dir: Option<impl AsRef<Path>>) -> RisResult<()> {
+pub fn import(
+    source: impl AsRef<Path>,
+    target_dir: impl AsRef<Path>,
+    temp_dir: Option<impl AsRef<Path>>,
+) -> RisResult<()> {
     let source = source.as_ref();
     let target_dir = target_dir.as_ref();
     let temp_dir = temp_dir.as_ref().map(|x| x.as_ref());
@@ -324,11 +328,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>, temp_dir: 
         let extension = extensions[i];
 
         if let Some(artifact) = artifact {
-            let mut output = crate::asset_importer::create_file(
-                source,
-                target_dir,
-                extension,
-            )?;
+            let mut output = crate::asset_importer::create_file(source, target_dir, extension)?;
             let bytes = artifact.as_binary_u8();
 
             ris_io::write(&mut output, bytes)?;

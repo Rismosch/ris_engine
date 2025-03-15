@@ -60,7 +60,9 @@ impl Default for JsonValue {
 
 impl Default for JsonNumber {
     fn default() -> Self {
-        Self{inner: ZERO.to_string()}
+        Self {
+            inner: ZERO.to_string(),
+        }
     }
 }
 
@@ -118,10 +120,7 @@ impl TryFrom<JsonValue> for JsonObject {
 
 impl<T: Into<JsonValue> + Clone> From<&[T]> for JsonValue {
     fn from(value: &[T]) -> Self {
-        let array = value
-            .into_iter()
-            .map(|x| x.clone().into())
-            .collect();
+        let array = value.iter().map(|x| x.clone().into()).collect();
         JsonValue::Array(array)
     }
 }
@@ -135,7 +134,9 @@ impl<T: Into<JsonValue> + Clone, const N: usize> From<&[T; N]> for JsonValue {
 
 impl From<i32> for JsonValue {
     fn from(value: i32) -> Self {
-        Self::Number(JsonNumber{inner: value.to_string()})
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
+        })
     }
 }
 
@@ -144,10 +145,10 @@ impl TryFrom<JsonValue> for i32 {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber {inner}) => {
+            JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
-            },
+            }
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -155,8 +156,8 @@ impl TryFrom<JsonValue> for i32 {
 
 impl From<usize> for JsonValue {
     fn from(value: usize) -> Self {
-        Self::Number(JsonNumber{
-            inner: value.to_string()
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
         })
     }
 }
@@ -166,10 +167,10 @@ impl TryFrom<JsonValue> for usize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber {inner}) => {
+            JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
-            },
+            }
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -177,8 +178,8 @@ impl TryFrom<JsonValue> for usize {
 
 impl From<isize> for JsonValue {
     fn from(value: isize) -> Self {
-        Self::Number(JsonNumber{
-            inner: value.to_string()
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
         })
     }
 }
@@ -188,10 +189,10 @@ impl TryFrom<JsonValue> for isize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber {inner}) => {
+            JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
-            },
+            }
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -207,7 +208,7 @@ impl From<f32> for JsonValue {
             panic!("{}", JsonError::InvalidCast);
         }
 
-        Self::Number(JsonNumber{
+        Self::Number(JsonNumber {
             inner: format!("{:?}", value),
         })
     }
@@ -218,10 +219,10 @@ impl TryFrom<JsonValue> for f32 {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber {inner}) => {
+            JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
-            },
+            }
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -270,7 +271,7 @@ impl JsonObject {
 
     pub fn push(&mut self, name: impl AsRef<str>, value: impl Into<JsonValue>) {
         let name = name.as_ref().to_string();
-        let member = JsonMember{
+        let member = JsonMember {
             name,
             value: value.into(),
         };
@@ -295,22 +296,14 @@ impl JsonValue {
 
                 let serialized_array = serialized_values.join(&VALUE_SEPARATOR.to_string());
 
-                format!(
-                    "{}{}{}",
-                    BEGIN_ARRAY,
-                    serialized_array,
-                    END_ARRAY,
-                )
-            },
-            JsonValue::Number(number) => {
-                number.inner.clone()
-            },
+                format!("{}{}{}", BEGIN_ARRAY, serialized_array, END_ARRAY,)
+            }
+            JsonValue::Number(number) => number.inner.clone(),
             JsonValue::String(value) => {
                 let mut serialized_string = value.clone();
 
-                let escape = |x: &mut String, c: char| {
-                    *x = x.replace(c, &format!("{}{}", ESCAPE, c))
-                };
+                let escape =
+                    |x: &mut String, c: char| *x = x.replace(c, &format!("{}{}", ESCAPE, c));
 
                 escape(&mut serialized_string, QUOTATION_MARK);
                 escape(&mut serialized_string, ESCAPE);
@@ -320,13 +313,8 @@ impl JsonValue {
                     escape(&mut serialized_string, c);
                 }
 
-                format!(
-                    "{}{}{}",
-                    QUOTATION_MARK,
-                    serialized_string,
-                    QUOTATION_MARK,
-                )
-            },
+                format!("{}{}{}", QUOTATION_MARK, serialized_string, QUOTATION_MARK,)
+            }
         }
     }
 
@@ -337,7 +325,7 @@ impl JsonValue {
         let mut tokens = vec![String::new()];
 
         // ignore byte order mark (U+FEFF) for interopability. see https://www.rfc-editor.org/rfc/rfc8259#section-8.1
-        let skip = if value.chars().next() == Some(BYTE_ORDER_MARK) {
+        let skip = if value.starts_with(BYTE_ORDER_MARK) {
             1
         } else {
             0
@@ -372,14 +360,14 @@ impl JsonValue {
                     tokens.push(String::new());
                 }
                 WS_LINE_FEED => {
-
                     if token.is_empty() {
                         continue;
                     }
 
                     tokens.push(String::new());
-                },
-                BEGIN_ARRAY | BEGIN_OBJECT | END_ARRAY | END_OBJECT | NAME_SEPARATOR | VALUE_SEPARATOR => {
+                }
+                BEGIN_ARRAY | BEGIN_OBJECT | END_ARRAY | END_OBJECT | NAME_SEPARATOR
+                | VALUE_SEPARATOR => {
                     if !token.is_empty() {
                         tokens.push(String::new());
                     }
@@ -388,8 +376,8 @@ impl JsonValue {
                     let token = &mut tokens[last_index];
                     token.push(c);
                     tokens.push(String::new());
-                },
-            _ => token.push(c),
+                }
+                _ => token.push(c),
             }
         }
 
@@ -453,10 +441,10 @@ impl JsonValue {
                             elements.push(Vec::new());
                             continue;
                         }
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 },
-                _ => {},
+                _ => {}
             }
 
             if object_generation < 0 || array_generation < 0 {
@@ -469,12 +457,15 @@ impl JsonValue {
         }
 
         let result = if is_object {
-            let members = elements.into_iter()
+            let members = elements
+                .into_iter()
                 .map(|x| JsonMember::from_tokens(&x))
                 .collect::<Result<Vec<_>, JsonError>>()?;
-            JsonValue::Object(Box::new(JsonObject{members}))
-        } else { // is_array 
-            let values = elements.into_iter()
+            JsonValue::Object(Box::new(JsonObject { members }))
+        } else {
+            // is_array
+            let values = elements
+                .into_iter()
                 .map(|x| Self::from_tokens(&x))
                 .collect::<Result<Vec<_>, JsonError>>()?;
             JsonValue::Array(values)
@@ -494,7 +485,8 @@ impl JsonValue {
 
         // try parse string
         if token.starts_with(QUOTATION_MARK) && token.ends_with(QUOTATION_MARK) {
-            let inner: String = token.chars()
+            let inner: String = token
+                .chars()
                 .skip(1)
                 .take(token.chars().count() - 2)
                 .collect();
@@ -527,19 +519,14 @@ impl JsonValue {
                         let digit_3 = char_iter.next().ok_or(JsonError::SyntaxError)?;
                         let digit_4 = char_iter.next().ok_or(JsonError::SyntaxError)?;
 
-                        let hex_codepoint = format!(
-                            "{}{}{}{}",
-                            digit_1,
-                            digit_2,
-                            digit_3,
-                            digit_4,
-                        );
+                        let hex_codepoint =
+                            format!("{}{}{}{}", digit_1, digit_2, digit_3, digit_4,);
                         let codepoint = u32::from_str_radix(&hex_codepoint, 16)
                             .map_err(|_| JsonError::SyntaxError)?;
                         let character = char::from_u32(codepoint).ok_or(JsonError::SyntaxError)?;
 
                         result.push(character);
-                    },
+                    }
                     _ => return Err(JsonError::SyntaxError),
                 }
             }
@@ -549,7 +536,9 @@ impl JsonValue {
 
         // try parse number
         if token.parse::<f32>().is_ok() {
-            return Ok(JsonValue::Number(JsonNumber{inner: token.to_string()}));
+            return Ok(JsonValue::Number(JsonNumber {
+                inner: token.to_string(),
+            }));
         }
 
         // invalid token
@@ -567,12 +556,7 @@ impl JsonObject {
 
         let serialized_object = serialized_members.join(&VALUE_SEPARATOR.to_string());
 
-        format!(
-            "{}{}{}",
-            BEGIN_OBJECT,
-            serialized_object,
-            END_OBJECT,
-        )
+        format!("{}{}{}", BEGIN_OBJECT, serialized_object, END_OBJECT,)
     }
 }
 
@@ -581,12 +565,7 @@ impl JsonMember {
         let name = JsonValue::String(self.name.clone());
         let serialized_name = name.serialize();
         let serialized_value = self.value.serialize();
-        format!(
-            "{}{}{}",
-            serialized_name,
-            NAME_SEPARATOR,
-            serialized_value,
-        )
+        format!("{}{}{}", serialized_name, NAME_SEPARATOR, serialized_value,)
     }
 
     fn from_tokens(tokens: &[String]) -> Result<Self, JsonError> {
@@ -612,12 +591,8 @@ impl JsonMember {
             return Err(JsonError::SyntaxError);
         }
 
-        let value = JsonValue::from_tokens(&value_tokens)?;
+        let value = JsonValue::from_tokens(value_tokens)?;
 
-        Ok(Self {
-            name,
-            value,
-        })
+        Ok(Self { name, value })
     }
 }
-

@@ -72,7 +72,7 @@ impl ICommand for ProfilerHtml {
             let entry_is_file = metadata.is_file();
             let path_ends_with_csv = path
                 .extension()
-                .map(|x| x.to_ascii_lowercase() == "csv")
+                .map(|x| x.eq_ignore_ascii_case("csv"))
                 .unwrap_or(false);
 
             if !entry_is_file || !path_ends_with_csv {

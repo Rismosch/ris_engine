@@ -8,7 +8,6 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     let source = source.as_ref();
     let target_dir = target_dir.as_ref();
 
-
     ris_error::new_result!(
         "importing gltf {} {}",
         source.display(),

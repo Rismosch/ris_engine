@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use ris_error::RisResult;
+use ris_ptr::SyncUnsafeCell;
 
 use super::components::mesh_renderer::MeshRendererComponent;
 use super::components::script::DynScript;
@@ -14,7 +15,7 @@ use super::handle::DynComponentHandle;
 use super::id::Component;
 use super::scene::Scene;
 
-static mut REGISTRY: Option<Registry> = None;
+static REGISTRY: SyncUnsafeCell<Option<Registry>> = SyncUnsafeCell::new(None);
 
 #[derive(Debug)]
 pub struct Registry {
@@ -148,16 +149,25 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
     }
 }
 
-pub fn init(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<()> {
+/// # Safety
+///
+/// since this method manipulates a pointer below, care must be taken when this method is called.
+/// as far as i am aware, it can cause UB when
+///     - being called from multiple threads
+///     - being called while a reference per `get()` exists
+///
+/// i recommend you call it once before ever calling `get()` and then never again
+pub unsafe fn init(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<()> {
     let new_registry = Registry::new(scripts)?;
-    unsafe { REGISTRY = Some(new_registry) };
+    *REGISTRY.get() = Some(new_registry);
 
     Ok(())
 }
 
 pub fn get() -> &'static Registry {
     unsafe {
-        match REGISTRY.as_ref() {
+        let registry = &*REGISTRY.get();
+        match registry.as_ref() {
             Some(registry) => registry,
             None => ris_error::throw!("registry is not initialized"),
         }

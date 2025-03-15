@@ -26,7 +26,7 @@ pub struct TransientCommand<'a> {
     command_buffers: Vec<vk::CommandBuffer>,
 }
 
-impl<'a> Drop for TransientCommand<'a> {
+impl Drop for TransientCommand<'_> {
     fn drop(&mut self) {
         let Self {
             device,

@@ -15,7 +15,7 @@ fn hash(s: &str) -> u64 {
         h = u64::wrapping_mul(h, 1111111111111111111);
     }
 
-    h ^ h >> 32
+    h ^ (h >> 32)
 }
 
 #[cfg(not(miri))]
