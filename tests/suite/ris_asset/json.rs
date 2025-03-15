@@ -48,7 +48,8 @@ fn should_serialize_example_2() {
     let array = JsonValue::from(&[object1, object2]);
 
     let json = array.serialize();
-    panic!("json: {}",json);
+    let expected = "[{\"precision\":\"zip\",\"Latitude\":37.7667999,\"Longitude\":-122.3958969,\"Address\":\"\",\"City\":\"SAN FRANCISCO\",\"State\":\"CA\",\"Zip\":\"94107\",\"Country\":\"US\"},{\"precision\":\"zip\",\"Latitude\":37.3719902,\"Longitude\":-122.026016235,\"Address\":\"\",\"City\":\"SUNNYVALE\",\"State\":\"CA\",\"Zip\":\"94085\",\"Country\":\"US\"}]";
+    assert_eq!(json, expected);
 }
 
 #[test]

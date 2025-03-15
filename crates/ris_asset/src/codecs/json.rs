@@ -23,6 +23,16 @@ pub const ESCAPE: char = '\\';
 pub const QUOTATION_MARK: char = '"';
 
 // structs
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum JsonValue {
+    Null,
+    Boolean(bool),
+    Object(Box<JsonObject>),
+    Array(Vec<JsonValue>),
+    Number(JsonNumber),
+    String(String),
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct JsonObject {
     pub members: Vec<JsonMember>,
@@ -35,26 +45,11 @@ pub struct JsonMember {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum JsonValue {
-    Null,
-    Boolean(bool),
-    Object(Box<JsonObject>),
-    Array(Vec<JsonValue>),
-    Number(JsonNumber),
-    String(String),
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct JsonNumber {
-    pub minus: Option<()>,
     pub int: i32,
-    pub frac: Option<f32>,
+    pub frac: Option<u32>,
     pub exp: Option<i32>,
 }
-
-impl Eq for JsonNumber {} // cannot derive Eq and must be implemented manually, because of some
-                          // bullshit NaN reason. What if I don't care? NaN is not equal Nan, but
-                          // this should be fine, and is imo no reason to not implement Eq
 
 impl Default for JsonValue {
     fn default() -> Self {
@@ -65,7 +60,6 @@ impl Default for JsonValue {
 impl Default for JsonNumber {
     fn default() -> Self {
         Self{
-            minus: None,
             int: 0,
             frac: None,
             exp: None,
@@ -144,17 +138,16 @@ impl<T: Into<JsonValue> + Clone, const N: usize> From<&[T; N]> for JsonValue {
     }
 }
 
-//impl<T: Into<JsonValue> + Clone> From<Vec<T>> for JsonValue {
-//    fn from(value: Vec<T>) -> Self {
-//        let slice: &[_] = &value;
-//        JsonValue::from(slice)
-//    }
-//}
-
 impl From<i32> for JsonValue {
-    fn from(value: i32) -> Self {
+    fn from(mut value: i32) -> Self {
+        let minus = if value.is_negative() {
+            value *= -1;
+            Some(())
+        } else {
+            None
+        };
+
         Self::Number(JsonNumber{
-            minus: None,
             int: value,
             frac: None,
             exp: None,
@@ -167,8 +160,8 @@ impl TryFrom<JsonValue> for i32 {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { minus: None, int, frac: None, exp: None }) => {
-                Ok(int)
+            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
+                Ok(int as i32)
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -178,7 +171,6 @@ impl TryFrom<JsonValue> for i32 {
 impl From<usize> for JsonValue {
     fn from(value: usize) -> Self {
         Self::Number(JsonNumber{
-            minus: None,
             int: value as i32,
             frac: None,
             exp: None,
@@ -191,7 +183,7 @@ impl TryFrom<JsonValue> for usize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { minus: None, int, frac: None, exp: None }) => {
+            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
                 Ok(int as usize)
             },
             _ => Err(JsonError::InvalidCast),
@@ -211,7 +203,6 @@ impl From<isize> for JsonValue {
         let int = value as i32;
 
         Self::Number(JsonNumber{
-            minus,
             int,
             frac: None,
             exp: None,
@@ -224,18 +215,8 @@ impl TryFrom<JsonValue> for isize {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Number(JsonNumber { minus, int, frac: None, exp: None }) => {
-                let sign: isize = if minus.is_some() {
-                    -1
-                } else {
-                    1
-                };
-
-                let int: isize = int.try_into().map_err(|_| JsonError::MathOverflow)?;
-                match int.checked_mul(sign) {
-                    Some(result) => Ok(result),
-                    None => Err(JsonError::MathOverflow),
-                }
+            JsonValue::Number(JsonNumber { int, frac: None, exp: None }) => {
+                Ok(int as isize)
             },
             _ => Err(JsonError::InvalidCast),
         }
@@ -252,24 +233,26 @@ impl From<f32> for JsonValue {
             panic!("{}", JsonError::InvalidNumber);
         }
 
-        let minus = if value.is_sign_negative() {
-            value *= -1.0;
-            Some(())
-        } else {
-            None
-        };
+        let sign = ;
 
         let fract = value.fract();
         let frac = if fract == 0.0 {
             None
         } else {
-            Some(fract)
+            let frac = format!("{}", fract);
+            let frac = frac
+                .trim_start_matches('-')
+                .trim_start_matches('0')
+                .trim_start_matches('.');
+            println!("deine mom: {:?}", frac);
+            let frac = frac.parse().expect(&format!("{}", JsonError::InvalidCast));
+
+            Some(frac)
         };
 
         let int = value as i32;
 
         Self::Number(JsonNumber{
-            minus,
             int,
             frac,
             exp: None,
@@ -283,15 +266,12 @@ impl TryFrom<JsonValue> for f32 {
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(number) => {
-                let sign = if number.minus.is_some() {
-                    -1.0
-                } else {
-                    1.0
-                };
-
                 let int = number.int as f32;
                 let frac = match number.frac {
-                    Some(frac) => frac,
+                    Some(frac) => match format!("0.{}", frac).parse() {
+                        Ok(parsed) => parsed,
+                        Err(_) => return Err(JsonError::InvalidCast),
+                    },
                     None => 0.0,
                 };
 
@@ -300,7 +280,7 @@ impl TryFrom<JsonValue> for f32 {
                     None => 1.0
                 };
 
-                let result = sign * (int + frac) * exp;
+                let result = (int + frac) * exp;
                 Ok(result)
             },
             _ => Err(JsonError::InvalidCast),
@@ -360,47 +340,6 @@ impl JsonObject {
 }
 
 // serialization
-impl JsonObject {
-    pub fn serialize(&self) -> String {
-        let mut serialized_members = Vec::with_capacity(self.members.len());
-        for member in self.members.iter() {
-            let serialized_member = member.serialize();
-            serialized_members.push(serialized_member);
-        }
-
-        let serialized_object = serialized_members.join(&VALUE_SEPARATOR.to_string());
-
-        format!(
-            "{}{}{}",
-            BEGIN_OBJECT,
-            serialized_object,
-            END_OBJECT,
-        )
-    }
-
-    pub fn deserialize(value: impl AsRef<str>) -> Self {
-        let value = value.as_ref();
-
-        // ignore potential U+FEFF
-        // parse escaped character, including optional escape characters
-        panic!()
-    }
-}
-
-impl JsonMember {
-    pub fn serialize(&self) -> String {
-        let name = JsonValue::String(self.name.clone());
-        let serialized_name = name.serialize();
-        let serialized_value = self.value.serialize();
-        format!(
-            "{}{}{}",
-            serialized_name,
-            NAME_SEPARATOR,
-            serialized_value,
-        )
-    }
-}
-
 impl JsonValue {
     pub fn serialize(&self) -> String {
         match self {
@@ -425,19 +364,10 @@ impl JsonValue {
                 )
             },
             JsonValue::Number(number) => {
-                let serialized_minus = if number.minus.is_some() {
-                    MINUS.to_string()
-                } else {
-                    "".to_string()
-                };
-
                 let serialized_int = number.int.to_string();
 
                 let serialized_frac = match number.frac {
-                    Some(frac) if frac != 0.0 => {
-                        let frac_string = frac.to_string();
-                        frac_string.trim_start_matches(ZERO).to_string()
-                    },
+                    Some(frac) => format!(".{}", frac),
                     _ => "".to_string(),
                 };
 
@@ -449,8 +379,7 @@ impl JsonValue {
                 };
 
                 format!(
-                    "{}{}{}{}",
-                    serialized_minus,
+                    "{}{}{}",
                     serialized_int,
                     serialized_frac,
                     serialized_exp,
@@ -479,6 +408,51 @@ impl JsonValue {
                 )
             },
         }
+    }
+
+    pub fn deserialize(value: impl AsRef<str>) -> Self {
+        let value = value.as_ref();
+
+        let mut line = 1;
+        let mut column = 1;
+
+        // ignore potential U+FEFF
+        // parse escaped character, including optional escape characters
+        panic!()
+    }
+}
+
+
+impl JsonObject {
+    pub fn serialize(&self) -> String {
+        let mut serialized_members = Vec::with_capacity(self.members.len());
+        for member in self.members.iter() {
+            let serialized_member = member.serialize();
+            serialized_members.push(serialized_member);
+        }
+
+        let serialized_object = serialized_members.join(&VALUE_SEPARATOR.to_string());
+
+        format!(
+            "{}{}{}",
+            BEGIN_OBJECT,
+            serialized_object,
+            END_OBJECT,
+        )
+    }
+}
+
+impl JsonMember {
+    pub fn serialize(&self) -> String {
+        let name = JsonValue::String(self.name.clone());
+        let serialized_name = name.serialize();
+        let serialized_value = self.value.serialize();
+        format!(
+            "{}{}{}",
+            serialized_name,
+            NAME_SEPARATOR,
+            serialized_value,
+        )
     }
 }
 
