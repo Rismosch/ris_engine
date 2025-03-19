@@ -73,7 +73,7 @@ impl IUiHelperModule for HierarchyModule {
             if ui.button("save") {
                 if let Some(AssetId::Path(path)) = chunk.clone() {
                     ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
-                    let bytes = ris_scene::serialize(scene, Some(chunk_index))?;
+                    let bytes = ris_scene::serialize(scene, chunk_index)?;
 
                     let asset_path = self.shared_state.borrow().app_info.asset_path()?;
                     let path = asset_path.join(path);

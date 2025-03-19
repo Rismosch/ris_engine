@@ -19,23 +19,16 @@ pub const EXTENSION: &str = "ris_scene";
 
 pub const COMPRESSION_LEVEL: u8 = 6;
 
-pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>> {
-    let (handles, chunk_index) = match chunk_index {
-        Some(chunk_index) => {
-            ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
-            let chunk = &scene.static_chunks[chunk_index];
+pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
+    ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
+    let chunk = &scene.static_chunks[chunk_index];
 
-            let handles = chunk
-                .game_objects
-                .iter()
-                .filter(|x| x.borrow().is_alive)
-                .map(|x| x.borrow().handle)
-                .collect::<Vec<_>>();
-
-            (handles, chunk_index)
-        }
-        None => (Vec::with_capacity(0), 0),
-    };
+    let handles = chunk
+        .game_objects
+        .iter()
+        .filter(|x| x.borrow().is_alive)
+        .map(|x| x.borrow().handle)
+        .collect::<Vec<_>>();
 
     let mut stream = SceneWriter::new(chunk_index, scene);
     let f = &mut stream;
@@ -53,7 +46,7 @@ pub fn serialize(scene: &Scene, chunk_index: Option<usize>) -> RisResult<Vec<u8>
         ris_io::write_bool(f, handle.is_active(scene)?)?;
         ris_io::write_vec3(f, handle.local_position(scene)?)?;
         ris_io::write_quat(f, handle.local_rotation(scene)?)?;
-        ris_io::write_f32(f, handle.local_scale(scene)?)?;
+        ris_io::write_vec3(f, handle.local_scale(scene)?)?;
 
         let components = handle.components(scene)?;
         ris_io::write_uint(f, components.len())?;
@@ -142,7 +135,7 @@ pub fn load(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         let is_active = ris_io::read_bool(f)?;
         let local_position = ris_io::read_vec3(f)?;
         let local_rotation = ris_io::read_quat(f)?;
-        let local_scale = ris_io::read_f32(f)?;
+        let local_scale = ris_io::read_vec3(f)?;
 
         let component_count = ris_io::read_uint(f)?;
         let mut component_ptrs = Vec::with_capacity(component_count);

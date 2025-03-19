@@ -3,6 +3,19 @@ use ris_error::prelude::*;
 use super::json::JsonObject;
 use super::json::JsonValue;
 
+// implementations nots:
+//
+// gltf coordinate system: right handed
+// +Y up, +Z forward, -X right
+// units for linear distances are meters
+// angles are radians
+// positive rotation is counterclockwise
+//
+// trs matrices cannot skew or shear
+// 0 scale can be used to enable/disable rendering as an optimization
+//
+// all buffer data must be little endian
+
 pub struct Gltf {
 
 }
