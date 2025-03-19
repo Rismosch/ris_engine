@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::decl::MeshRendererComponentHandle;
 use ris_data::ecs::game_object::GetFrom;
@@ -10,7 +12,7 @@ fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
     info.dynamic_game_objects = 8;
     info.mesh_renderer_components = 8;
-    info.registry = Some(Registry::new(Vec::new()).unwrap());
+    info.registry = Some(Arc::new(Registry::new(Vec::new()).unwrap()));
     info
 }
 

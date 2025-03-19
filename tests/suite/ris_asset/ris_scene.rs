@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::sync::Arc;
 
 use ris_asset::assets::ris_scene;
 use ris_data::asset_id::AssetId;
@@ -101,7 +102,7 @@ fn should_serialize() {
     let scene_create_info = SceneCreateInfo {
         static_chunks: 2,
         game_objects_per_static_chunk: count,
-        registry: Some(registry),
+        registry: Some(Arc::new(registry)),
         ..Default::default()
     };
     let scene = Scene::new(scene_create_info).unwrap();
@@ -178,7 +179,7 @@ fn should_serialize() {
     fill_data(&scene, g9, &mut rng, "nine", &gs).unwrap();
 
     // actual code to be tested
-    let serialized = ris_scene::serialize(&scene, Some(0)).unwrap();
+    let serialized = ris_scene::serialize(&scene, 0).unwrap();
     ris_scene::load(&scene, &serialized).unwrap();
 
     //// debugging
@@ -244,7 +245,7 @@ fn should_serialize() {
             left.local_rotation(&scene).unwrap(),
             right.local_rotation(&scene).unwrap(),
         );
-        ris_util::assert_feq!(
+        ris_util::assert_vec3_eq!(
             left.local_scale(&scene).unwrap(),
             right.local_scale(&scene).unwrap(),
         );
@@ -303,7 +304,7 @@ fn fill_data(
     let is_active = rng.next_bool();
     let position = rng.next_pos_3();
     let rotation = rng.next_rot();
-    let scale = rng.next_f32();
+    let scale = rng.next_dir_3();
 
     game_object.set_name(scene, name.as_ref()).unwrap();
     game_object.set_active(scene, is_active).unwrap();
