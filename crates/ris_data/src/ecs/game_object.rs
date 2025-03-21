@@ -45,7 +45,7 @@ pub struct GameObject {
     is_active: bool,
     position: Vec3,
     rotation: Quat,
-    scale: Vec3,
+    scale: f32,
     components: Vec<DynComponentHandle>,
 
     // hierarchy
@@ -60,7 +60,7 @@ impl Default for GameObject {
             is_active: true,
             position: Vec3::init(0.0),
             rotation: Quat::identity(),
-            scale: Vec3::init(1.0),
+            scale: 1.0,
             components: Vec::new(),
             parent: None,
             children: Vec::new(),
@@ -173,12 +173,18 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn local_scale(self, scene: &Scene) -> EcsResult<Vec3> {
+    pub fn local_scale(self, scene: &Scene) -> EcsResult<f32> {
         let ptr = scene.deref(self.into())?;
         Ok(ptr.borrow().scale)
     }
 
-    pub fn set_local_scale(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
+    pub fn set_local_scale(self, scene: &Scene, value: f32) -> EcsResult<()> {
+        if value <= 0.0 {
+            return Err(EcsError::InvalidOperation(
+                "scale must be positive".to_string(),
+            ));
+        }
+
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
 
@@ -229,6 +235,25 @@ impl GameObjectHandle {
         };
 
         self.set_local_rotation(scene, rotation)?;
+        Ok(())
+    }
+
+    pub fn world_scale(self, scene: &Scene) -> EcsResult<f32> {
+        let model = self.model(scene)?;
+        let (_position, _rotation, scale) = affine::trs_decompose(model);
+        Ok(scale)
+    }
+
+    pub fn set_world_scale(self, scene: &Scene, value: f32) -> EcsResult<()> {
+        let scale = match self.parent(scene)? {
+            Some(parent_handle) => {
+                let parent_world_scale = parent_handle.world_scale(scene)?;
+                value / parent_world_scale
+            }
+            None => value,
+        };
+
+        self.set_local_scale(scene, scale)?;
         Ok(())
     }
 
@@ -450,8 +475,9 @@ impl GameObjectHandle {
         let world_transform = if keep_world_transform {
             let position = self.world_position(scene)?;
             let rotation = self.world_rotation(scene)?;
+            let scale = self.world_scale(scene)?;
 
-            Some((position, rotation))
+            Some((position, rotation, scale))
         } else {
             None
         };
@@ -485,9 +511,10 @@ impl GameObjectHandle {
         aref_mut.parent = new_handle;
         drop(aref_mut);
 
-        if let Some((position, rotation)) = world_transform {
+        if let Some((position, rotation, scale)) = world_transform {
             self.set_world_position(scene, position)?;
             self.set_world_rotation(scene, rotation)?;
+            self.set_world_scale(scene, scale)?;
         }
 
         Ok(())

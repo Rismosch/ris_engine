@@ -123,8 +123,8 @@ impl IUiHelperModule for InspectorModule {
                 let set_position: fn(GameObjectHandle, &Scene, Vec3) -> EcsResult<()>;
                 let get_rotation: fn(GameObjectHandle, &Scene) -> EcsResult<Quat>;
                 let set_rotation: fn(GameObjectHandle, &Scene, Quat) -> EcsResult<()>;
-                let get_scale: fn(GameObjectHandle, &Scene) -> EcsResult<Vec3>;
-                let set_scale: fn(GameObjectHandle, &Scene, Vec3) -> EcsResult<()>;
+                let get_scale: fn(GameObjectHandle, &Scene) -> EcsResult<f32>;
+                let set_scale: fn(GameObjectHandle, &Scene, f32) -> EcsResult<()>;
 
                 match self.space {
                     Space::Local => {
@@ -140,8 +140,8 @@ impl IUiHelperModule for InspectorModule {
                         set_position = GameObjectHandle::set_world_position;
                         get_rotation = GameObjectHandle::world_rotation;
                         set_rotation = GameObjectHandle::set_world_rotation;
-                        get_scale = GameObjectHandle::local_scale;
-                        set_scale = GameObjectHandle::set_local_scale;
+                        get_scale = GameObjectHandle::world_scale;
+                        set_scale = GameObjectHandle::set_world_scale;
                     }
                 };
 
@@ -380,21 +380,21 @@ impl IUiHelperModule for InspectorModule {
                 }
 
                 let label = CString::new("scale")?;
-                let scale = get_scale(game_object, &data.state.scene)?;
-                let mut scale_array: [f32; 3] = scale.into();
+                let scale_min = 0.001;
+                let mut scale = get_scale(game_object, &data.state.scene)?;
                 let changed = unsafe {
-                    imgui::sys::igDragFloat3(
+                    imgui::sys::igDragFloat(
                         label.as_ptr(),
-                        scale_array.as_mut_ptr(),
+                        &mut scale as *mut f32,
                         0.001,
-                        f32::MIN,
+                        scale_min,
                         f32::MAX,
                         format.as_ptr(),
                         0,
                     )
                 };
+                scale = f32::max(scale, scale_min);
                 if changed {
-                    let scale = scale_array.into();
                     set_scale(game_object, &data.state.scene, scale)?;
                 }
 

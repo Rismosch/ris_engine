@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
@@ -196,7 +194,7 @@ impl GodObject {
 
         // god state
         let scene_create_info = SceneCreateInfo {
-            registry: Some(Arc::new(registry)),
+            registry: Some(registry),
             ..Default::default()
         };
         let mut state = GodState::new(settings, scene_create_info)?;
