@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ris_data::ecs::registry::Registry;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::god_state::GodState;
@@ -21,7 +19,7 @@ impl TestContext {
 
         let mut scene_create_info =
             miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
-        scene_create_info.registry = Some(Arc::new(Registry::new(Vec::new()).unwrap()));
+        scene_create_info.registry = Some(Registry::new(Vec::new()).unwrap());
 
         let state = GodState::new(Settings::default(), scene_create_info).unwrap();
 

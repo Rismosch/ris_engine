@@ -75,14 +75,43 @@ fn should_convert_trs() {
 
         let t = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.next_dir_3();
+        let s = rng.next_f32_between(0.000_001, 1.0);
 
         let m = affine::trs_compose(t, r, s);
         let (t_, r_, s_) = affine::trs_decompose(m);
 
         assert_vec3_eq!(t, t_);
         assert_quat_eq!(r, r_);
-        assert_vec3_eq!(s, s_);
+        assert_feq!(s, s_);
     });
 }
 
+#[test]
+#[should_panic]
+#[cfg(debug_assertions)]
+fn should_panic_when_scale_is_negative() {
+    unsafe {
+        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+    }
+
+    let t = ris_math::vector::Vec3::default();
+    let r = ris_math::quaternion::Quat::default();
+    let s = -1.0;
+
+    let _ = affine::trs_compose(t, r, s);
+}
+
+#[test]
+#[should_panic]
+#[cfg(debug_assertions)]
+fn should_panic_when_scale_is_zero() {
+    unsafe {
+        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+    }
+
+    let t = ris_math::vector::Vec3::default();
+    let r = ris_math::quaternion::Quat::default();
+    let s = 0.0;
+
+    let _ = affine::trs_compose(t, r, s);
+}

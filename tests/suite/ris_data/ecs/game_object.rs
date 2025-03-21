@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::registry::Registry;
@@ -19,7 +18,7 @@ use ris_util::testing::miri_choose;
 fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
     info.dynamic_game_objects = 5;
-    info.registry = Some(Arc::new(Registry::new(Vec::new()).unwrap()));
+    info.registry = Some(Registry::new(Vec::new()).unwrap());
     info
 }
 
@@ -107,14 +106,27 @@ fn should_get_and_set_local_scale() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene).unwrap();
 
-    let expected1 = Vec3::init(1.0);
-    let expected2 = Vec3(42.0, -13.0, std::f32::consts::PI);
+    let expected1 = 1.0;
+    let expected2 = 9.0;
     let actual1 = g.local_scale(&scene).unwrap();
     g.set_local_scale(&scene, expected2).unwrap();
     let actual2 = g.local_scale(&scene).unwrap();
 
     assert_eq!(expected1, actual1);
     assert_eq!(expected2, actual2);
+}
+
+#[test]
+fn should_not_set_local_scale_to_0_or_negative() {
+    unsafe {
+        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+    }
+
+    let scene = Scene::new(scene_create_info()).unwrap();
+    let g = GameObjectHandle::new(&scene).unwrap();
+
+    assert!(g.set_local_scale(&scene, 0.0).is_err());
+    assert!(g.set_local_scale(&scene, -20.0).is_err());
 }
 
 #[test]
@@ -151,10 +163,10 @@ fn should_keep_position_on_set_parent() {
 
     let position1 = Vec3(0.1, 0.2, 0.3);
     let rotation1 = Quat(0.4, 0.5, 0.6, 0.7).normalize();
-    let scale1 = Vec3(0.8, 0.9, 1.0);
-    let position2 = Vec3(1.1, 1.2, 1.3);
-    let rotation2 = Quat(1.4, 1.5, 1.6, 1.7).normalize();
-    let scale2 = Vec3(1.8, 1.9, 2.0);
+    let scale1 = 0.8;
+    let position2 = Vec3(0.9, 1.0, 1.1);
+    let rotation2 = Quat(1.2, 1.3, 1.4, 1.5).normalize();
+    let scale2 = 1.6;
 
     child1.set_local_position(&scene, position1).unwrap();
     child1.set_local_rotation(&scene, rotation1).unwrap();
@@ -168,10 +180,10 @@ fn should_keep_position_on_set_parent() {
 
     assert_vec3_eq!(position1, child1.local_position(&scene).unwrap());
     assert_quat_eq!(rotation1, child1.local_rotation(&scene).unwrap());
-    assert_vec3_eq!(scale1, child1.local_scale(&scene).unwrap());
+    assert_feq!(scale1, child1.local_scale(&scene).unwrap());
     assert_vec3_eq!(position2, child2.world_position(&scene).unwrap());
     assert_quat_eq!(rotation2, child2.world_rotation(&scene).unwrap());
-    assert_vec3_eq!(scale2, child2.local_scale(&scene).unwrap());
+    assert_feq!(scale2, child2.world_scale(&scene).unwrap());
 }
 
 #[test]
@@ -478,24 +490,24 @@ fn should_get_and_set_world_transform() {
 
         let p = rng.next_pos_3();
         let r = rng.next_rot();
-        let s = rng.next_dir_3();
+        let s = rng.next_f32_between(0.000_001, 1.0);
         g4.set_world_position(&scene, p).unwrap();
         g4.set_world_rotation(&scene, r).unwrap();
-        g4.set_local_scale(&scene, s).unwrap();
+        g4.set_world_scale(&scene, s).unwrap();
         let p_ = g4.world_position(&scene).unwrap();
         let r_ = g4.world_rotation(&scene).unwrap();
-        let s_ = g4.local_scale(&scene).unwrap();
+        let s_ = g4.world_scale(&scene).unwrap();
 
         assert_vec3_eq!(p, p_, 0.000_003);
         assert_quat_eq!(r, r_);
-        assert_vec3_eq!(s, s_, 0.000_003);
+        assert_feq!(s, s_, 0.000_003);
     });
 }
 
 fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
     let p = rng.next_pos_3();
     let r = rng.next_rot();
-    let s = rng.next_dir_3();
+    let s = rng.next_f32_between(0.000_001, 1.0);
     g.set_local_position(scene, p).unwrap();
     g.set_local_rotation(scene, r).unwrap();
     g.set_local_scale(scene, s).unwrap();

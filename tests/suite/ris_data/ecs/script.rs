@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::game_object::GetFrom;
 use ris_data::ecs::registry::Registry;
@@ -12,11 +10,11 @@ fn scene_create_info() -> SceneCreateInfo {
     info.dynamic_game_objects = 5;
     info.script_components = 5;
     info.registry = Some(
-        Arc::new(Registry::new(vec![
+        Registry::new(vec![
             Registry::script::<TestScriptString>().unwrap(),
             Registry::script::<TestScriptISize>().unwrap(),
         ])
-        .unwrap())
+        .unwrap(),
     );
     info
 }
