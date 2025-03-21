@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::sync::Arc;
 
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
@@ -42,7 +43,7 @@ pub struct SceneCreateInfo {
 
     // other
     pub video_meshes: usize,
-    pub registry: Option<Registry>,
+    pub registry: Option<Arc<Registry>>,
 }
 
 pub struct StaticChunk {
@@ -61,7 +62,7 @@ pub struct Scene {
 
     // other
     pub video_meshes: Vec<EcsPtr<VideoMesh>>,
-    pub registry: Registry,
+    pub registry: Arc<Registry>,
 }
 
 impl Default for SceneCreateInfo {
@@ -88,6 +89,18 @@ impl SceneCreateInfo {
             script_components: 0,
             video_meshes: 0,
             registry: None,
+        }
+    }
+
+    pub fn with_single_static_chunk(registry: Arc<Registry>) -> Self {
+        Self {
+            dynamic_game_objects: 0,
+            static_chunks: 1,
+            game_objects_per_static_chunk: DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK,
+            mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
+            script_components: DEFAULT_SCRIPT_COMPONENTS,
+            video_meshes: DEFAULT_VIDEO_MESHES,
+            registry: Some(registry),
         }
     }
 }

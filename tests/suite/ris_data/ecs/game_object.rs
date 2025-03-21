@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::registry::Registry;
@@ -18,7 +19,7 @@ use ris_util::testing::miri_choose;
 fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
     info.dynamic_game_objects = 5;
-    info.registry = Some(Registry::new(Vec::new()).unwrap());
+    info.registry = Some(Arc::new(Registry::new(Vec::new()).unwrap()));
     info
 }
 

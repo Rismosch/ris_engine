@@ -3,6 +3,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ris_asset::assets::ris_scene;
+use ris_data::ecs::scene::Scene;
+use ris_data::ecs::scene::SceneCreateInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -111,10 +113,12 @@ impl AssetBrowser {
                     ));
                 }
 
-                let empty_scene = ris_scene::serialize(&data.state.scene, None)?;
+                let scene_create_info = SceneCreateInfo::with_single_static_chunk(data.state.scene.registry.clone());
+                let empty_scene = Scene::new(scene_create_info)?;
+                let scene_bytes = ris_scene::serialize(&empty_scene, 0)?;
 
                 let mut file = std::fs::File::create_new(new_path)?;
-                ris_io::write(&mut file, &empty_scene)?;
+                ris_io::write(&mut file, &scene_bytes)?;
             }
 
             unsafe { imgui::sys::igEndPopup() };
