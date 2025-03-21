@@ -29,6 +29,7 @@ impl Gltf {
             ris_error::assert!(version == min_version)?;
         }
 
+
         ris_error::new_result!("reached end")
     }
 }
