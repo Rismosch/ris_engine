@@ -11,8 +11,8 @@ use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_feq;
-use ris_util::assert_quat_eq;
-use ris_util::assert_vec3_eq;
+use ris_util::assert_quat_feq;
+use ris_util::assert_vec3_feq;
 use ris_util::testing;
 use ris_util::testing::miri_choose;
 
@@ -83,8 +83,8 @@ fn should_get_and_set_local_position() {
     g.set_local_position(&scene, expected2).unwrap();
     let actual2 = g.local_position(&scene).unwrap();
 
-    assert_vec3_eq!(expected1, actual1);
-    assert_vec3_eq!(expected2, actual2);
+    assert_vec3_feq!(expected1, actual1);
+    assert_vec3_feq!(expected2, actual2);
 }
 
 #[test]
@@ -98,8 +98,8 @@ fn should_get_and_set_local_rotation() {
     g.set_local_rotation(&scene, expected2).unwrap();
     let actual2 = g.local_rotation(&scene).unwrap();
 
-    assert_quat_eq!(expected1, actual1);
-    assert_quat_eq!(expected2, actual2);
+    assert_quat_feq!(expected1, actual1);
+    assert_quat_feq!(expected2, actual2);
 }
 
 #[test]
@@ -179,11 +179,11 @@ fn should_keep_position_on_set_parent() {
     child1.set_parent(&scene, Some(parent), 0, false).unwrap();
     child2.set_parent(&scene, Some(parent), 0, true).unwrap();
 
-    assert_vec3_eq!(position1, child1.local_position(&scene).unwrap());
-    assert_quat_eq!(rotation1, child1.local_rotation(&scene).unwrap());
+    assert_vec3_feq!(position1, child1.local_position(&scene).unwrap());
+    assert_quat_feq!(rotation1, child1.local_rotation(&scene).unwrap());
     assert_feq!(scale1, child1.local_scale(&scene).unwrap());
-    assert_vec3_eq!(position2, child2.world_position(&scene).unwrap());
-    assert_quat_eq!(rotation2, child2.world_rotation(&scene).unwrap());
+    assert_vec3_feq!(position2, child2.world_position(&scene).unwrap());
+    assert_quat_feq!(rotation2, child2.world_rotation(&scene).unwrap());
     assert_feq!(scale2, child2.world_scale(&scene).unwrap());
 }
 
@@ -499,8 +499,8 @@ fn should_get_and_set_world_transform() {
         let r_ = g4.world_rotation(&scene).unwrap();
         let s_ = g4.world_scale(&scene).unwrap();
 
-        assert_vec3_eq!(p, p_, 0.000_003);
-        assert_quat_eq!(r, r_);
+        assert_vec3_feq!(p, p_, 0.000_003);
+        assert_quat_feq!(r, r_);
         assert_feq!(s, s_, 0.000_003);
     });
 }

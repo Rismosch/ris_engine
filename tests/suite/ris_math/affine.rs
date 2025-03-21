@@ -5,8 +5,8 @@ use ris_math::affine;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_feq;
-use ris_util::assert_quat_eq;
-use ris_util::assert_vec3_eq;
+use ris_util::assert_quat_feq;
+use ris_util::assert_vec3_feq;
 use ris_util::testing;
 use ris_util::testing::miri_choose;
 
@@ -24,7 +24,7 @@ fn should_convert_translation() {
         let m = affine::from_translation(t);
         let t_ = affine::to_translation(m);
 
-        assert_vec3_eq!(t, t_);
+        assert_vec3_feq!(t, t_);
     });
 }
 
@@ -42,7 +42,7 @@ fn should_convert_rotation() {
         let m = affine::from_rotation(r);
         let r_ = affine::to_rotation(m);
 
-        assert_quat_eq!(r, r_);
+        assert_quat_feq!(r, r_);
     });
 }
 
@@ -60,7 +60,7 @@ fn should_convert_scale() {
         let m = affine::from_scale(s);
         let s_ = affine::to_scale(m);
 
-        assert_vec3_eq!(s, s_);
+        assert_vec3_feq!(s, s_);
     });
 }
 
@@ -80,8 +80,8 @@ fn should_convert_trs() {
         let m = affine::trs_compose(t, r, s);
         let (t_, r_, s_) = affine::trs_decompose(m);
 
-        assert_vec3_eq!(t, t_);
-        assert_quat_eq!(r, r_);
+        assert_vec3_feq!(t, t_);
+        assert_quat_feq!(r, r_);
         assert_feq!(s, s_);
     });
 }

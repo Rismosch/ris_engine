@@ -237,11 +237,11 @@ fn should_serialize() {
             left.is_active(&scene).unwrap(),
             right.is_active(&scene).unwrap(),
         );
-        ris_util::assert_vec3_eq!(
+        ris_util::assert_vec3_feq!(
             left.local_position(&scene).unwrap(),
             right.local_position(&scene).unwrap(),
         );
-        ris_util::assert_quat_eq!(
+        ris_util::assert_quat_feq!(
             left.local_rotation(&scene).unwrap(),
             right.local_rotation(&scene).unwrap(),
         );
