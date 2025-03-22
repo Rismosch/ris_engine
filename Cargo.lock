@@ -600,6 +600,7 @@ dependencies = [
  "ris_error",
  "ris_io",
  "ris_log",
+ "ris_math",
  "ris_util",
  "shaderc",
 ]

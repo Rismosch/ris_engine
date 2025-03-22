@@ -47,8 +47,9 @@ pub struct JsonMember {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonNumber {
-    inner: String, // storing a json number as any kind or combination of ints or floats leads to
-                   // many footguns. thus we store it as a string and convert only when the user
+    inner: String, // storing a json number as any kind or combination of 
+                   // ints or floats leads to many footguns. thus we store 
+                   // it as a string and convert only when the user 
                    // attempts to read the number
 }
 
@@ -112,7 +113,7 @@ impl TryFrom<JsonValue> for JsonObject {
 
     fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Object(result) => Ok(*result),
+            JsonValue::Object(object) => Ok(*object),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -123,7 +124,25 @@ impl<'a> TryFrom<&'a JsonValue> for &'a JsonObject {
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Object(result) => Ok(result),
+            JsonValue::Object(object) => Ok(object),
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a JsonValue> for Vec<&'a JsonObject> {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Array(array) => {
+                array.iter()
+                    .map(|x| match x {
+                        JsonValue::Object(object) => Ok(&**object),
+                        _ => Err(JsonError::InvalidCast),
+                    })
+                    .collect::<Result<Vec<_>, JsonError>>()
+            },
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -173,15 +192,30 @@ impl From<usize> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for usize {
+impl TryFrom<&JsonValue> for usize {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
             }
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a JsonValue> for Vec<usize> {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Array(array) => {
+                array.iter()
+                    .map(|x| usize::try_from(x))
+                    .collect::<Result<Vec<_>, JsonError>>()
+            },
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -225,15 +259,30 @@ impl From<f32> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for f32 {
+impl TryFrom<&JsonValue> for f32 {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(JsonNumber { inner }) => {
                 // safety: construction of number that cannot be parsed should be impossible
                 Ok(inner.parse().unwrap())
             }
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a JsonValue> for Vec<f32> {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Array(array) => {
+                array.iter()
+                    .map(|x| f32::try_from(x))
+                    .collect::<Result<Vec<_>, JsonError>>()
+            },
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -267,7 +316,18 @@ impl<'a> TryFrom<&'a JsonValue> for &'a str {
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::String(result) => Ok(&result),
+            JsonValue::String(string) => Ok(&string),
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a JsonValue> for String {
+    type Error = JsonError;
+
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::String(string) => Ok(string.clone()),
             _ => Err(JsonError::InvalidCast),
         }
     }

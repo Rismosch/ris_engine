@@ -70,37 +70,18 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     }
 
     // identify chunks
-    ris_error::assert!(chunks.len() > 0)?;
+    ris_error::assert!(chunks.len() == 2)?;
 
-    let first_chunk = &chunks[0];
-    ris_error::assert!(first_chunk.chunk_type == ChunkType::Json)?;
-
-    if let Some(second_chunk) = &chunks.get(1) {
-        ris_error::assert!(second_chunk.chunk_type == ChunkType::Bin)?;
-    }
-
-    let mut gltfs = Vec::new();
-    let mut buffers = Vec::new();
-    for chunk in chunks {
-        match chunk.chunk_type {
-            ChunkType::Json => {
-                let json = String::from_utf8(chunk.data)?;
-                gltfs.push(json);
-            },
-            ChunkType::Bin => {
-                let buffer = chunk.data;
-                buffers.push(buffer);
-            },
-        }
-    }
-
-    let gltfs_len = gltfs.len();
-    if gltfs_len > 1 {
-        ris_log::warning!("{} gltf chunks found, only the first one will be imported", gltfs_len);
-    }
+    let mut chunks = chunks.into_iter();
+    let json_chunk = chunks.next().into_ris_error()?;
+    let bin_chunk = chunks.next().into_ris_error()?;
+    ris_error::assert!(json_chunk.chunk_type == ChunkType::Json)?;
+    ris_error::assert!(bin_chunk.chunk_type == ChunkType::Bin)?;
 
     // import gltf
-    let gltf = Gltf::deserialize(&gltfs[0], buffers)?;
+    let json = String::from_utf8(json_chunk.data)?;
+    let bin = &bin_chunk.data;
+    let gltf = Gltf::deserialize(json, bin)?;
     
     // convert to ris assets
     ris_error::new_result!("not implemented")

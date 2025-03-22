@@ -14,4 +14,5 @@ ris_data = { path = "../ris_data" }
 ris_error = { path = "../ris_error" }
 ris_io = { path = "../ris_io" }
 ris_log = { path = "../ris_log" }
+ris_math = { path = "../ris_math" }
 ris_util = { path = "../ris_util" }
