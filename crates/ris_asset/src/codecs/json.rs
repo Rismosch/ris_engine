@@ -91,12 +91,12 @@ impl From<bool> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for bool {
+impl TryFrom<&JsonValue> for bool {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Boolean(result) => Ok(result),
+            JsonValue::Boolean(result) => Ok(*result),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -108,12 +108,12 @@ impl From<JsonObject> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for JsonObject {
+impl TryFrom<&JsonValue> for JsonObject {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Object(object) => Ok(*object),
+            JsonValue::Object(object) => Ok(*object.clone()),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -170,13 +170,13 @@ impl From<i32> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for i32 {
+impl TryFrom<&JsonValue> for i32 {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of number that cannot be parsed should be impossible
+                // safety: construction of invalid number should be impossible
                 Ok(inner.parse().unwrap())
             }
             _ => Err(JsonError::InvalidCast),
@@ -192,13 +192,24 @@ impl From<usize> for JsonValue {
     }
 }
 
+impl TryFrom<&JsonValue> for JsonNumber {
+    type Error = JsonError;
+
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Number(number) => Ok(number.clone()),
+            _ => Err(JsonError::InvalidCast),
+        }
+    }
+}
+
 impl TryFrom<&JsonValue> for usize {
     type Error = JsonError;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of number that cannot be parsed should be impossible
+                // safety: construction of invalid number should be impossible
                 Ok(inner.parse().unwrap())
             }
             _ => Err(JsonError::InvalidCast),
@@ -229,13 +240,13 @@ impl From<isize> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for isize {
+impl TryFrom<&JsonValue> for isize {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of number that cannot be parsed should be impossible
+                // safety: construction of invalid number should be impossible
                 Ok(inner.parse().unwrap())
             }
             _ => Err(JsonError::InvalidCast),
@@ -294,12 +305,12 @@ impl From<String> for JsonValue {
     }
 }
 
-impl TryFrom<JsonValue> for String {
+impl TryFrom<&JsonValue> for String {
     type Error = JsonError;
 
-    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::String(result) => Ok(result),
+            JsonValue::String(result) => Ok(result.clone()),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -322,12 +333,19 @@ impl<'a> TryFrom<&'a JsonValue> for &'a str {
     }
 }
 
-impl<'a> TryFrom<&'a JsonValue> for String {
+impl<'a> TryFrom<&JsonValue> for Vec<String> {
     type Error = JsonError;
 
-    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::String(string) => Ok(string.clone()),
+            JsonValue::Array(array) => {
+                array.iter()
+                    .map(|x| match x {
+                        JsonValue::String(string) => Ok(string.clone()),
+                        _ => Err(JsonError::InvalidCast),
+                    })
+                    .collect::<Result<Vec<_>, JsonError>>()
+            },
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -418,6 +436,7 @@ impl JsonValue {
             0
         };
 
+        // lexical analysis: turn the character sequence into a token sequence
         for c in value.chars().skip(skip) {
             let last_index = tokens.len() - 1;
             let token = &mut tokens[last_index];
@@ -468,12 +487,15 @@ impl JsonValue {
             }
         }
 
+        // because of the particular lexer logic used, the last token may be empty. empty tokens
+        // are illegal and thus the last token may be removed
         let last_index = tokens.len() - 1;
         let last = &tokens[last_index];
         if last.is_empty() {
             tokens.remove(last_index);
         }
 
+        // parse syntax
         Self::from_tokens(&tokens)
     }
 
@@ -492,11 +514,14 @@ impl JsonValue {
         let first_token = &tokens[0];
         let last_token = &tokens[len - 1];
 
-        if first_token.len() > 1 {
+        // multiple tokens mean one of two scenarios: we are dealing with an object, or an array.
+        // both start and end with a single character token, so we do an early check if the tokens
+        // have a length of 1
+        if first_token.len() != 1 {
             return Err(JsonError::SyntaxError);
         }
 
-        if last_token.len() > 1 {
+        if last_token.len() != 1 {
             return Err(JsonError::SyntaxError);
         }
 
@@ -515,7 +540,9 @@ impl JsonValue {
 
         let mut elements = vec![Vec::new()];
 
-        for token in &tokens[1..tokens.len() - 1] {
+        let start = 1;
+        let end = tokens.len() - 1;
+        for token in &tokens[start..end] {
             match token.len() {
                 0 => return Err(JsonError::SyntaxError),
                 1 => match token.chars().next().unwrap() {
