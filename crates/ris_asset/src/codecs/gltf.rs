@@ -1,6 +1,8 @@
 // glTF implemented in Rust
 // original spec: https://www.rfc-editor.org/rfc/rfc8259
 
+use std::str::FromStr;
+
 use ris_error::prelude::*;
 
 use crate::codecs::json::JsonMember;
@@ -174,7 +176,7 @@ pub struct MeshPrimitive {
     indices: Option<usize>,
     material: Option<usize>,
     mode: MeshPrimitiveMode,
-    targets: Vec<()>,
+    targets: Vec<Vec<MeshPrimitiveTarget>>,
     pub extensions: Option<JsonObject>,
     pub extras: Option<JsonValue>,
 }
@@ -206,6 +208,22 @@ pub enum MeshPrimitiveMode {
     Triangles,
     TriangleStrip,
     TriangleFan,
+}
+
+#[derive(Debug, Clone)]
+pub struct MeshPrimitiveTarget {
+    name: MeshPrimitiveTargetName,
+    accessor: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MeshPrimitiveTargetName {
+    Position,
+    Normal,
+    Tangent,
+    TexCoord(usize),
+    Color(usize),
+    Custom(String),
 }
 
 #[derive(Debug, Clone)]
@@ -594,23 +612,14 @@ impl Gltf {
                 let json_attributes = json_primitive.get::<&JsonObject>("attributes").into_ris_error()?;
                 let mut attributes = Vec::with_capacity(json_attributes.members.len());
                 for JsonMember { name: json_name, value: json_value } in json_attributes.members.iter() {
-                    let get_postfix = || {
-                        let splits = json_name.split('_').collect::<Vec<_>>();
-                        ris_error::assert!(splits.len() == 2)?;
-                        let postfix = splits[1];
-                        ris_error::assert!(postfix.len() == 1 || !postfix.starts_with('0'))?;
-                        let result = postfix.parse::<usize>()?;
-                        Ok::<usize, RisError>(result)
-                    };
-
                     let name = match json_name.as_str() {
                         "POSITION" => MeshPrimitiveAttributeName::Position,
                         "NORMAL" => MeshPrimitiveAttributeName::Normal,
                         "TANGENT" => MeshPrimitiveAttributeName::Tangent,
-                        _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveAttributeName::TexCoord(get_postfix()?),
-                        _ if json_name.starts_with("COLOR_") => MeshPrimitiveAttributeName::Color(get_postfix()?),
-                        _ if json_name.starts_with("JOINTS_") => MeshPrimitiveAttributeName::Joints(get_postfix()?),
-                        _ if json_name.starts_with("WEIGHTS_") => MeshPrimitiveAttributeName::Weights(get_postfix()?),
+                        _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveAttributeName::TexCoord(parse_postfix(json_name)?),
+                        _ if json_name.starts_with("COLOR_") => MeshPrimitiveAttributeName::Color(parse_postfix(json_name)?),
+                        _ if json_name.starts_with("JOINTS_") => MeshPrimitiveAttributeName::Joints(parse_postfix(json_name)?),
+                        _ if json_name.starts_with("WEIGHTS_") => MeshPrimitiveAttributeName::Weights(parse_postfix(json_name)?),
                         _ if json_name.starts_with("_") => MeshPrimitiveAttributeName::Custom(json_name.clone()),
                         _ => return ris_error::new_result!("invalid mesh primitive attribute name: {:?}", json_name),
                     };
@@ -639,8 +648,33 @@ impl Gltf {
                     Some(6) => MeshPrimitiveMode::TriangleFan,
                     mode => return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode),
                 };
-                let targets = json_mesh.get::<Vec<&JsonObject>>("targets")
+                let json_targets = json_mesh.get::<Vec<&JsonObject>>("targets")
                     .unwrap_or(Vec::with_capacity(0));
+                let mut targets = Vec::with_capacity(json_targets.len());
+                for json_target in json_targets {
+                    let mut target = Vec::new();
+                    for JsonMember { name: json_name, value: json_value } in json_target.members.iter() {
+                        let name = match json_name.as_str() {
+                            "POSITION" => MeshPrimitiveTargetName::Position,
+                            "NORMAL" => MeshPrimitiveTargetName::Normal,
+                            "TANGENT" => MeshPrimitiveTargetName::Tangent,
+                            _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveTargetName::TexCoord(parse_postfix(json_name)?),
+                            _ if json_name.starts_with("COLOR_") => MeshPrimitiveTargetName::Color(parse_postfix(json_name)?),
+                            _ if json_name.starts_with("_") => MeshPrimitiveTargetName::Custom(json_name.clone()),
+                            _ => return ris_error::new_result!("invalid mesh primitive attribute name: {:?}", json_name),
+                        };
+                        let accessor = usize::try_from(json_value)?;
+
+                        let entry = MeshPrimitiveTarget {
+                            name,
+                            accessor,
+                        };
+                        target.push(entry);
+                    }
+
+                    targets.push(target);
+                }
+                // todo: validate targets
                 let extensions = json_mesh.get::<&JsonObject>("extensions").cloned();
                 let extras = json_mesh.get::<&JsonValue>("extras").cloned();
 
@@ -648,7 +682,7 @@ impl Gltf {
                     attributes,
                     indices,
                     material,
-                    targets: Vec::new(),
+                    targets,
                     mode,
                     extensions,
                     extras,
@@ -668,7 +702,6 @@ impl Gltf {
                 extensions,
                 extras,
             };
-            ris_log::error!("mesh: {:#?}", mesh);
             meshes.push(mesh);
         }
 
@@ -706,3 +739,11 @@ impl Gltf {
     }
 }
 
+fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: impl AsRef<str>) -> RisResult<F> {
+    let value = value.as_ref();
+    let splits = value.split('_').collect::<Vec<_>>();
+    ris_error::assert!(splits.len() == 2)?;
+    let postfix = splits[1];
+    let result = postfix.parse::<F>()?;
+    Ok(result)
+}
