@@ -159,7 +159,16 @@ pub struct Material {
 
 #[derive(Debug, Clone)]
 pub struct Mesh {
-    // todo
+    pub primitives: Vec<MeshPrimitive>,
+    pub weights: Vec<JsonNumber>,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MeshPrimitive {
+    //todo
 }
 
 #[derive(Debug, Clone)]
@@ -222,20 +231,21 @@ impl Gltf {
         };
 
         // asset
-        let asset = json_gltf.get::<&JsonObject>("asset").into_ris_error()?;
+        let json_asset = json_gltf.get::<&JsonObject>("asset").into_ris_error()?;
 
-        let version_string = asset.get::<String>("version").into_ris_error()?;
+        let version_string = json_asset.get::<String>("version").into_ris_error()?;
         ris_error::assert!(version_string == "2.0")?;
-        let copyright = asset.get::<String>("copyright");
-        let generator = asset.get::<String>("generator");
-        let min_version_string = asset.get::<String>("minVersion");
-        let (extensions, extras) = get_extensions_extras(asset);
+        let copyright = json_asset.get::<String>("copyright");
+        let generator = json_asset.get::<String>("generator");
+        let min_version_string = json_asset.get::<String>("minVersion");
+        let extensions = json_asset.get::<&JsonObject>("extensions").cloned();
+        let extras = json_asset.get::<&JsonValue>("extras").cloned();
 
         if let Some(min_version_string) = min_version_string.as_ref() {
             let version = version_string.split('.').collect::<Vec<_>>();
             let min_version = min_version_string.split('.').collect::<Vec<_>>();
-            ris_error::assert!(version.len() == 2);
-            ris_error::assert!(min_version.len() == 2);
+            ris_error::assert!(version.len() == 2)?;
+            ris_error::assert!(min_version.len() == 2)?;
             let major_version = version[0].parse::<usize>()?;
             let minor_version = version[1].parse::<usize>()?;
             let major_min_version = min_version[0].parse::<usize>()?;
@@ -280,7 +290,8 @@ impl Gltf {
             let weights = json_node.get::<Vec<f32>>("weights")
                 .unwrap_or(Vec::with_capacity(0));
             let name = json_node.get::<String>("name");
-            let (extensions, extras) = get_extensions_extras(json_node);
+            let extensions = json_node.get::<&JsonObject>("extensions").cloned();
+            let extras = json_node.get::<&JsonValue>("extras").cloned();
 
 
             let transform = match (matrix, translation, rotation, scale) {
@@ -355,7 +366,8 @@ impl Gltf {
             let nodes = json_scene.get::<Vec<usize>>("nodes")
                 .unwrap_or(Vec::with_capacity(0));
             let name = json_scene.get::<String>("name");
-            let (extensions, extras) = get_extensions_extras(json_scene);
+            let extensions = json_scene.get::<&JsonObject>("extensions").cloned();
+            let extras = json_scene.get::<&JsonValue>("extras").cloned();
 
             // todo: check if nodes are root nodes, i.e. they aren't found in any children of any node
 
@@ -380,7 +392,8 @@ impl Gltf {
             let byte_length = json_buffer.get::<usize>("byteLength").into_ris_error()?;
             ris_error::assert!(byte_length >= 1)?;
             let name = json_buffer.get::<String>("name");
-            let (extensions, extras) = get_extensions_extras(json_buffer);
+            let extensions = json_buffer.get::<&JsonObject>("extensions").cloned();
+            let extras = json_buffer.get::<&JsonValue>("extras").cloned();
 
             let buffer = Buffer {
                 uri,
@@ -410,7 +423,8 @@ impl Gltf {
                 Some(target) => return ris_error::new_result!("invalid buffer view target: {}", target),
             };
             let name = json_buffer_view.get::<String>("name");
-            let (extensions, extras) = get_extensions_extras(json_buffer_view);
+            let extensions = json_buffer_view.get::<&JsonObject>("extensions").cloned();
+            let extras = json_buffer_view.get::<&JsonValue>("extras").cloned();
 
             let buffer_view = BufferView {
                 buffer,
@@ -470,7 +484,8 @@ impl Gltf {
                     Some(5125) => AccessorSparseIndicesComponentType::U32,
                     component_type => return ris_error::new_result!("invalid accessor spare indices component type: {:?}", component_type),
                 };
-                let (extensions, extras) = get_extensions_extras(json_indices);
+                let extensions = json_indices.get::<&JsonObject>("extensions").cloned();
+                let extras = json_indices.get::<&JsonValue>("extras").cloned();
                 let indices = AccessorSparseIndices {
                     buffer_view,
                     byte_offset,
@@ -482,14 +497,16 @@ impl Gltf {
                 let buffer_view = json_values.get::<usize>("bufferView").into_ris_error()?;
                 let byte_offset = json_values.get::<usize>("byteOffset")
                     .unwrap_or(0);
-                let (extensions, extras) = get_extensions_extras(json_values);
+                let extensions = json_values.get::<&JsonObject>("extensions").cloned();
+                let extras = json_values.get::<&JsonValue>("extras").cloned();
                 let values = AccessorSparseValues {
                     buffer_view,
                     byte_offset,
                     extensions,
                     extras,
                 };
-                let (extensions, extras) = get_extensions_extras(json_sparse);
+                let extensions = json_sparse.get::<&JsonObject>("extensions").cloned();
+                let extras = json_sparse.get::<&JsonValue>("extras").cloned();
 
                 // todo: validate sparse
 
@@ -504,7 +521,8 @@ impl Gltf {
                 None
             };
             let name = json_accessor.get::<String>("name");
-            let (extensions, extras) = get_extensions_extras(json_accessor);
+            let extensions = json_accessor.get::<&JsonObject>("extensions").cloned();
+            let extras = json_accessor.get::<&JsonValue>("extras").cloned();
 
             let accessor = Accessor {
                 buffer_view,
@@ -524,13 +542,43 @@ impl Gltf {
         }
 
         // todo: validate accessor
+        
+        // meshes
+        let json_meshes = json_gltf.get::<Vec<&JsonObject>>("meshes")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut meshes = Vec::with_capacity(json_meshes.len());
+        for json_mesh in json_meshes {
+            let json_primitives = json_mesh.get::<Vec<&JsonObject>>("primitives")
+                .unwrap_or(Vec::with_capacity(0));
+            ris_error::assert!(!json_primitives.is_empty())?;
+            let mut primitives = Vec::with_capacity(json_primitives.len());
+            for json_primitive in json_primitives {
+                ris_log::error!("todo");
+            }
+            let weights = json_mesh.get::<Vec<JsonNumber>>("weights")
+                .unwrap_or(Vec::with_capacity(0));
+            let name = json_mesh.get::<String>("name");
+            let extensions = json_mesh.get::<&JsonObject>("extensions").cloned();
+            let extras = json_mesh.get::<&JsonValue>("extras").cloned();
+
+            let mesh = Mesh {
+                primitives,
+                weights,
+                name,
+                extensions,
+                extras,
+            };
+            ris_log::error!("mesh: {:#?}", mesh);
+            meshes.push(mesh);
+        }
 
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
         let extensions_required = json_gltf.get::<Vec<String>>("extensionsRequired")
             .unwrap_or(Vec::with_capacity(0));
-        let (extensions, extras) = get_extensions_extras(&json_gltf);
+        let extensions = json_gltf.get::<&JsonObject>("extensions").cloned();
+        let extras = json_gltf.get::<&JsonValue>("extras").cloned();
 
         let gltf = Self {
             extensions_used,
@@ -543,7 +591,7 @@ impl Gltf {
             cameras: Vec::new(),
             images: Vec::new(),
             materials: Vec::new(),
-            meshes: Vec::new(),
+            meshes,
             nodes,
             samplers: Vec::new(),
             scene,
@@ -558,8 +606,3 @@ impl Gltf {
     }
 }
 
-fn get_extensions_extras(json: &JsonObject) -> (Option<JsonObject>, Option<JsonValue>) {
-    let extensions = json.get::<&JsonObject>("extensions").cloned();
-    let extras = json.get::<&JsonValue>("extras").cloned();
-    (extensions, extras)
-}

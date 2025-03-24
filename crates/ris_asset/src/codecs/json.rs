@@ -85,26 +85,81 @@ impl std::fmt::Display for JsonError {
 impl std::error::Error for JsonError {}
 
 // conversion
-impl From<bool> for JsonValue {
-    fn from(value: bool) -> Self {
-        JsonValue::Boolean(value)
+impl<T: Into<JsonValue> + Clone> From<&[T]> for JsonValue {
+    fn from(value: &[T]) -> Self {
+        let array = value.iter().map(|x| x.clone().into()).collect();
+        JsonValue::Array(array)
     }
 }
 
-impl TryFrom<&JsonValue> for bool {
-    type Error = JsonError;
-
-    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Boolean(result) => Ok(*result),
-            _ => Err(JsonError::InvalidCast),
-        }
+impl<T: Into<JsonValue> + Clone, const N: usize> From<&[T; N]> for JsonValue {
+    fn from(value: &[T; N]) -> Self {
+        let slice: &[_] = value;
+        JsonValue::from(slice)
     }
 }
 
 impl From<JsonObject> for JsonValue {
     fn from(value: JsonObject) -> Self {
         JsonValue::Object(Box::new(value))
+    }
+}
+
+impl From<bool> for JsonValue {
+    fn from(value: bool) -> Self {
+        JsonValue::Boolean(value)
+    }
+}
+
+impl From<i32> for JsonValue {
+    fn from(value: i32) -> Self {
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
+        })
+    }
+}
+
+impl From<usize> for JsonValue {
+    fn from(value: usize) -> Self {
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
+        })
+    }
+}
+
+impl From<isize> for JsonValue {
+    fn from(value: isize) -> Self {
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
+        })
+    }
+}
+
+impl From<f32> for JsonValue {
+    fn from(value: f32) -> Self {
+        if value.is_infinite() {
+            panic!("{}", JsonError::InvalidCast);
+        }
+
+        if value.is_nan() {
+            panic!("{}", JsonError::InvalidCast);
+        }
+
+        Self::Number(JsonNumber {
+            inner: format!("{:?}", value),
+        })
+    }
+}
+
+impl From<String> for JsonValue {
+    fn from(value: String) -> Self {
+        JsonValue::String(value)
+    }
+}
+
+impl From<&str> for JsonValue {
+    fn from(value: &str) -> Self {
+        JsonValue::String(value.to_string())
     }
 }
 
@@ -130,43 +185,26 @@ impl<'a> TryFrom<&'a JsonValue> for &'a JsonObject {
     }
 }
 
-impl<'a> TryFrom<&'a JsonValue> for Vec<&'a JsonObject> {
+impl TryFrom<&JsonValue> for bool {
+
     type Error = JsonError;
 
-    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
-            JsonValue::Array(array) => {
-                array.iter()
-                    .map(|x| match x {
-                        JsonValue::Object(object) => Ok(&**object),
-                        _ => Err(JsonError::InvalidCast),
-                    })
-                    .collect::<Result<Vec<_>, JsonError>>()
-            },
+            JsonValue::Boolean(result) => Ok(*result),
             _ => Err(JsonError::InvalidCast),
         }
     }
 }
 
-impl<T: Into<JsonValue> + Clone> From<&[T]> for JsonValue {
-    fn from(value: &[T]) -> Self {
-        let array = value.iter().map(|x| x.clone().into()).collect();
-        JsonValue::Array(array)
-    }
-}
+impl TryFrom<&JsonValue> for JsonNumber {
+    type Error = JsonError;
 
-impl<T: Into<JsonValue> + Clone, const N: usize> From<&[T; N]> for JsonValue {
-    fn from(value: &[T; N]) -> Self {
-        let slice: &[_] = value;
-        JsonValue::from(slice)
-    }
-}
-
-impl From<i32> for JsonValue {
-    fn from(value: i32) -> Self {
-        Self::Number(JsonNumber {
-            inner: value.to_string(),
-        })
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
+        match value {
+            JsonValue::Number(number) => Ok(number.clone()),
+            _ => Err(JsonError::InvalidCast),
+        }
     }
 }
 
@@ -179,25 +217,6 @@ impl TryFrom<&JsonValue> for i32 {
                 // safety: construction of invalid number should be impossible
                 Ok(inner.parse().unwrap())
             }
-            _ => Err(JsonError::InvalidCast),
-        }
-    }
-}
-
-impl From<usize> for JsonValue {
-    fn from(value: usize) -> Self {
-        Self::Number(JsonNumber {
-            inner: value.to_string(),
-        })
-    }
-}
-
-impl TryFrom<&JsonValue> for JsonNumber {
-    type Error = JsonError;
-
-    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Number(number) => Ok(number.clone()),
             _ => Err(JsonError::InvalidCast),
         }
     }
@@ -217,29 +236,6 @@ impl TryFrom<&JsonValue> for usize {
     }
 }
 
-impl<'a> TryFrom<&'a JsonValue> for Vec<usize> {
-    type Error = JsonError;
-
-    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Array(array) => {
-                array.iter()
-                    .map(|x| usize::try_from(x))
-                    .collect::<Result<Vec<_>, JsonError>>()
-            },
-            _ => Err(JsonError::InvalidCast),
-        }
-    }
-}
-
-impl From<isize> for JsonValue {
-    fn from(value: isize) -> Self {
-        Self::Number(JsonNumber {
-            inner: value.to_string(),
-        })
-    }
-}
-
 impl TryFrom<&JsonValue> for isize {
     type Error = JsonError;
 
@@ -251,22 +247,6 @@ impl TryFrom<&JsonValue> for isize {
             }
             _ => Err(JsonError::InvalidCast),
         }
-    }
-}
-
-impl From<f32> for JsonValue {
-    fn from(value: f32) -> Self {
-        if value.is_infinite() {
-            panic!("{}", JsonError::InvalidCast);
-        }
-
-        if value.is_nan() {
-            panic!("{}", JsonError::InvalidCast);
-        }
-
-        Self::Number(JsonNumber {
-            inner: format!("{:?}", value),
-        })
     }
 }
 
@@ -284,27 +264,6 @@ impl TryFrom<&JsonValue> for f32 {
     }
 }
 
-impl<'a> TryFrom<&'a JsonValue> for Vec<f32> {
-    type Error = JsonError;
-
-    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Array(array) => {
-                array.iter()
-                    .map(|x| f32::try_from(x))
-                    .collect::<Result<Vec<_>, JsonError>>()
-            },
-            _ => Err(JsonError::InvalidCast),
-        }
-    }
-}
-
-impl From<String> for JsonValue {
-    fn from(value: String) -> Self {
-        JsonValue::String(value)
-    }
-}
-
 impl TryFrom<&JsonValue> for String {
     type Error = JsonError;
 
@@ -313,12 +272,6 @@ impl TryFrom<&JsonValue> for String {
             JsonValue::String(result) => Ok(result.clone()),
             _ => Err(JsonError::InvalidCast),
         }
-    }
-}
-
-impl From<&str> for JsonValue {
-    fn from(value: &str) -> Self {
-        JsonValue::String(value.to_string())
     }
 }
 
@@ -333,17 +286,14 @@ impl<'a> TryFrom<&'a JsonValue> for &'a str {
     }
 }
 
-impl<'a> TryFrom<&JsonValue> for Vec<String> {
+impl<'a, T: TryFrom<&'a JsonValue, Error = JsonError>> TryFrom<&'a JsonValue> for Vec<T> {
     type Error = JsonError;
 
-    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
+    fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Array(array) => {
                 array.iter()
-                    .map(|x| match x {
-                        JsonValue::String(string) => Ok(string.clone()),
-                        _ => Err(JsonError::InvalidCast),
-                    })
+                    .map(|x| T::try_from(x))
                     .collect::<Result<Vec<_>, JsonError>>()
             },
             _ => Err(JsonError::InvalidCast),

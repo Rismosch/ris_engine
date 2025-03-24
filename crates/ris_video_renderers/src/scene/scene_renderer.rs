@@ -758,7 +758,7 @@ impl SceneRenderer {
                     *command_buffer,
                     indices.buffer,
                     0,
-                    vk::IndexType::UINT32,
+                    vk::IndexType::UINT16,
                 );
 
                 let index_count_u32 = index_count as u32;
