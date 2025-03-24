@@ -163,17 +163,6 @@ impl From<&str> for JsonValue {
     }
 }
 
-impl TryFrom<&JsonValue> for JsonObject {
-    type Error = JsonError;
-
-    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Object(object) => Ok(*object.clone()),
-            _ => Err(JsonError::InvalidCast),
-        }
-    }
-}
-
 impl<'a> TryFrom<&'a JsonValue> for &'a JsonObject {
     type Error = JsonError;
 

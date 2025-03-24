@@ -3,6 +3,8 @@
 
 use ris_error::prelude::*;
 
+use crate::codecs::json::JsonMember;
+
 use super::json::JsonNumber;
 use super::json::JsonObject;
 use super::json::JsonValue;
@@ -15,15 +17,15 @@ pub struct Accessor {
     pub normalized: bool,
     pub count: usize,
     pub accessor_type: AccessorType,
-    pub max: Option<JsonNumber>,
-    pub min: Option<JsonNumber>,
+    pub max: Vec<JsonNumber>,
+    pub min: Vec<JsonNumber>,
     pub sparse: Option<AccessorSparse>,
     pub name: Option<String>,
     pub extensions: Option<JsonObject>,
     pub extras: Option<JsonValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccessorComponentType {
     I8,
     U8,
@@ -51,7 +53,7 @@ pub struct AccessorSparseIndices {
     pub extras: Option<JsonValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccessorSparseIndicesComponentType {
     U8,
     U16,
@@ -66,7 +68,7 @@ pub struct AccessorSparseValues {
     pub extras: Option<JsonValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccessorType {
     Scalar,
     Vec2,
@@ -113,7 +115,7 @@ pub struct BufferView {
     pub extras: Option<JsonValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BufferViewTarget {
     ArrayBuffer,
     ElementArrayBuffer,
@@ -168,7 +170,42 @@ pub struct Mesh {
 
 #[derive(Debug, Clone)]
 pub struct MeshPrimitive {
-    //todo
+    attributes: Vec<MeshPrimitiveAttribute>,
+    indices: Option<usize>,
+    material: Option<usize>,
+    mode: MeshPrimitiveMode,
+    targets: Vec<()>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MeshPrimitiveAttribute {
+    name: MeshPrimitiveAttributeName,
+    accessor: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MeshPrimitiveAttributeName {
+    Position,
+    Normal,
+    Tangent,
+    TexCoord(usize),
+    Color(usize),
+    Joints(usize),
+    Weights(usize),
+    Custom(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MeshPrimitiveMode {
+    Points,
+    Lines,
+    LineLoop,
+    LineStrip,
+    Triangles,
+    TriangleStrip,
+    TriangleFan,
 }
 
 #[derive(Debug, Clone)]
@@ -188,7 +225,7 @@ pub struct Node {
 ///  x => left
 ///  y => up
 ///  z => forward
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NodeTransform {
     Matrix([f32; 16]),
     TRS{
@@ -470,8 +507,10 @@ impl Gltf {
                 Some("MAT4") => AccessorType::Mat4,
                 accessor_type => return ris_error::new_result!("invalid accessor type: {:?}", accessor_type),
             };
-            let max = json_accessor.get::<JsonNumber>("max");
-            let min = json_accessor.get::<JsonNumber>("min");
+            let max = json_accessor.get::<Vec<JsonNumber>>("max")
+                .unwrap_or(Vec::with_capacity(0));
+            let min = json_accessor.get::<Vec<JsonNumber>>("min")
+                .unwrap_or(Vec::with_capacity(0));
             let sparse = if let Some(json_sparse) = json_accessor.get::<&JsonObject>("sparse") {
                 let count = json_sparse.get::<usize>("count").into_ris_error()?;
                 let json_indices = json_sparse.get::<&JsonObject>("indices").into_ris_error()?;
@@ -548,12 +587,73 @@ impl Gltf {
             .unwrap_or(Vec::with_capacity(0));
         let mut meshes = Vec::with_capacity(json_meshes.len());
         for json_mesh in json_meshes {
-            let json_primitives = json_mesh.get::<Vec<&JsonObject>>("primitives")
-                .unwrap_or(Vec::with_capacity(0));
+            let json_primitives = json_mesh.get::<Vec<&JsonObject>>("primitives").into_ris_error()?;
             ris_error::assert!(!json_primitives.is_empty())?;
             let mut primitives = Vec::with_capacity(json_primitives.len());
             for json_primitive in json_primitives {
-                ris_log::error!("todo");
+                let json_attributes = json_primitive.get::<&JsonObject>("attributes").into_ris_error()?;
+                let mut attributes = Vec::with_capacity(json_attributes.members.len());
+                for JsonMember { name: json_name, value: json_value } in json_attributes.members.iter() {
+                    let get_postfix = || {
+                        let splits = json_name.split('_').collect::<Vec<_>>();
+                        ris_error::assert!(splits.len() == 2)?;
+                        let postfix = splits[1];
+                        ris_error::assert!(postfix.len() == 1 || !postfix.starts_with('0'))?;
+                        let result = postfix.parse::<usize>()?;
+                        Ok::<usize, RisError>(result)
+                    };
+
+                    let name = match json_name.as_str() {
+                        "POSITION" => MeshPrimitiveAttributeName::Position,
+                        "NORMAL" => MeshPrimitiveAttributeName::Normal,
+                        "TANGENT" => MeshPrimitiveAttributeName::Tangent,
+                        _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveAttributeName::TexCoord(get_postfix()?),
+                        _ if json_name.starts_with("COLOR_") => MeshPrimitiveAttributeName::Color(get_postfix()?),
+                        _ if json_name.starts_with("JOINTS_") => MeshPrimitiveAttributeName::Joints(get_postfix()?),
+                        _ if json_name.starts_with("WEIGHTS_") => MeshPrimitiveAttributeName::Weights(get_postfix()?),
+                        _ if json_name.starts_with("_") => MeshPrimitiveAttributeName::Custom(json_name.clone()),
+                        _ => return ris_error::new_result!("invalid mesh primitive attribute name: {:?}", json_name),
+                    };
+                    let accessor = usize::try_from(json_value)?;
+
+                    // todo: validate data, the primitive attributes impose restrictions on the
+                    // accessors
+
+                    let attribute = MeshPrimitiveAttribute {
+                        name,
+                        accessor,
+                    };
+                    attributes.push(attribute);
+                }
+
+                let indices = json_primitive.get::<usize>("indices");
+                let material = json_primitive.get::<usize>("material");
+                let mode = match json_primitive.get::<usize>("mode") {
+                    None => MeshPrimitiveMode::Triangles,
+                    Some(0) => MeshPrimitiveMode::Points,
+                    Some(1) => MeshPrimitiveMode::Lines,
+                    Some(2) => MeshPrimitiveMode::LineLoop,
+                    Some(3) => MeshPrimitiveMode::LineStrip,
+                    Some(4) => MeshPrimitiveMode::Triangles,
+                    Some(5) => MeshPrimitiveMode::TriangleStrip,
+                    Some(6) => MeshPrimitiveMode::TriangleFan,
+                    mode => return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode),
+                };
+                let targets = json_mesh.get::<Vec<&JsonObject>>("targets")
+                    .unwrap_or(Vec::with_capacity(0));
+                let extensions = json_mesh.get::<&JsonObject>("extensions").cloned();
+                let extras = json_mesh.get::<&JsonValue>("extras").cloned();
+
+                let primitive = MeshPrimitive {
+                    attributes,
+                    indices,
+                    material,
+                    targets: Vec::new(),
+                    mode,
+                    extensions,
+                    extras,
+                };
+                primitives.push(primitive);
             }
             let weights = json_mesh.get::<Vec<JsonNumber>>("weights")
                 .unwrap_or(Vec::with_capacity(0));
