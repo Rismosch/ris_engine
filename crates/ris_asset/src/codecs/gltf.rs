@@ -153,8 +153,27 @@ pub struct Gltf {
 
 #[derive(Debug, Clone)]
 pub struct Image {
-    // todo
+    pub data: ImageData,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
 }
+
+#[derive(Debug, Clone)]
+pub enum ImageData {
+    Uri(String),
+    BufferView {
+        mime_type: ImageMimeType,
+        buffer_view: usize,
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ImageMimeType {
+    Jpeg,
+    Png,
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Material {
@@ -255,7 +274,36 @@ pub enum NodeTransform {
 
 #[derive(Debug, Clone)]
 pub struct Sampler {
-    // todo
+    pub mag_filter: Option<SamplerMagFilter>,
+    pub min_filter: Option<SamplerMinFilter>,
+    pub wrap_s: SamplerWrap, // u
+    pub wrap_t: SamplerWrap, // v
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub enum SamplerMagFilter {
+    Nearest,
+    Linear,
+}
+
+#[derive(Debug, Clone)]
+pub enum SamplerMinFilter {
+    Nearest,
+    Linear,
+    NearestMipmapNearest,
+    LinearMipmapNearest,
+    NearestMipmapLinear,
+    LinearMipmapLinear,
+}
+
+#[derive(Debug, Clone)]
+pub enum SamplerWrap {
+    ClampToEdge,
+    MirroredRepeat,
+    Repeat,
 }
 
 #[derive(Debug, Clone)]
@@ -740,7 +788,7 @@ impl Gltf {
         // todo: validate skins
         // skins pose restrictions on nodes, accessors and meshes
 
-        // texture
+        // textures
         let json_textures = json_gltf.get::<Vec<&JsonObject>>("textures")
             .unwrap_or(Vec::with_capacity(0));
         let mut textures = Vec::with_capacity(json_textures.len());
@@ -761,6 +809,92 @@ impl Gltf {
             textures.push(texture);
         }
 
+        // images
+        let json_images = json_gltf.get::<Vec<&JsonObject>>("images")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut images = Vec::with_capacity(json_images.len());
+        for json_image in json_images {
+            let json_uri = json_image.get::<String>("uri");
+            let json_mime_type = json_image.get::<&str>("mimeType");
+            let json_buffer_view = json_image.get::<usize>("bufferView");
+
+            let data = match (json_uri, json_mime_type, json_buffer_view) {
+                (Some(uri), None, None) => ImageData::Uri(uri),
+                (None, Some("image/jpeg"), Some(json_buffer_view)) => ImageData::BufferView {
+                    mime_type: ImageMimeType::Jpeg,
+                    buffer_view: json_buffer_view,
+                },
+                (None, Some("image/png"), Some(json_buffer_view)) => ImageData::BufferView {
+                    mime_type: ImageMimeType::Png,
+                    buffer_view: json_buffer_view,
+                },
+                _ => return ris_error::new_result!("invalid gltf image"),
+            };
+
+            let name = json_image.get::<String>("name");
+            let extensions = json_image.get::<&JsonObject>("extensions").cloned();
+            let extras = json_image.get::<&JsonValue>("extras").cloned();
+
+            let image = Image {
+                data,
+                name,
+                extensions,
+                extras,
+            };
+            images.push(image);
+        }
+
+        // samplers
+        let json_samplers = json_gltf.get::<Vec<&JsonObject>>("samplers")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut samplers = Vec::with_capacity(json_samplers.len());
+        for json_sampler in json_samplers {
+            let mag_filter = match json_sampler.get::<usize>("magFilter") {
+                Some(9728) => Some(SamplerMagFilter::Nearest),
+                Some(9729) => Some(SamplerMagFilter::Linear),
+                None => None,
+                mag_filter => return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter),
+            };
+            let min_filter = match json_sampler.get::<usize>("minFilter") {
+                Some(9728) => Some(SamplerMinFilter::Nearest),
+                Some(9729) => Some(SamplerMinFilter::Linear),
+                Some(9984) => Some(SamplerMinFilter::NearestMipmapNearest),
+                Some(9985) => Some(SamplerMinFilter::NearestMipmapLinear),
+                Some(9986) => Some(SamplerMinFilter::LinearMipmapNearest),
+                Some(9987) => Some(SamplerMinFilter::LinearMipmapLinear),
+                None => None,
+                min_filter => return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter),
+            };
+            let wrap_s = match json_sampler.get::<usize>("wrapS") {
+                Some(33071) => SamplerWrap::ClampToEdge,
+                Some(33648) => SamplerWrap::MirroredRepeat,
+                Some(10497) => SamplerWrap::Repeat,
+                None => SamplerWrap::Repeat,
+                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", min_filter),
+            };
+            let wrap_t= match json_sampler.get::<usize>("wrapT") {
+                Some(33071) => SamplerWrap::ClampToEdge,
+                Some(33648) => SamplerWrap::MirroredRepeat,
+                Some(10497) => SamplerWrap::Repeat,
+                None => SamplerWrap::Repeat,
+                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", min_filter),
+            };
+
+            let name = json_sampler.get::<String>("name");
+            let extensions = json_sampler.get::<&JsonObject>("extensions").cloned();
+            let extras = json_sampler.get::<&JsonValue>("extras").cloned();
+
+            let sampler = Sampler {
+                mag_filter,
+                min_filter,
+                wrap_s,
+                wrap_t,
+                name,
+                extensions,
+                extras,
+            };
+            samplers.push(sampler);
+        }
 
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
@@ -779,11 +913,11 @@ impl Gltf {
             buffers,
             buffer_views,
             cameras: Vec::new(),
-            images: Vec::new(),
+            images,
             materials: Vec::new(),
             meshes,
             nodes,
-            samplers: Vec::new(),
+            samplers,
             scene,
             scenes,
             skins,
