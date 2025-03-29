@@ -1,5 +1,5 @@
 // glTF implemented in Rust
-// original spec: https://www.rfc-editor.org/rfc/rfc8259
+// original spec: 
 
 use std::str::FromStr;
 
@@ -172,19 +172,19 @@ pub struct Mesh {
 
 #[derive(Debug, Clone)]
 pub struct MeshPrimitive {
-    attributes: Vec<MeshPrimitiveAttribute>,
-    indices: Option<usize>,
-    material: Option<usize>,
-    mode: MeshPrimitiveMode,
-    targets: Vec<Vec<MeshPrimitiveTarget>>,
+    pub attributes: Vec<MeshPrimitiveAttribute>,
+    pub indices: Option<usize>,
+    pub material: Option<usize>,
+    pub mode: MeshPrimitiveMode,
+    pub targets: Vec<Vec<MeshPrimitiveTarget>>,
     pub extensions: Option<JsonObject>,
     pub extras: Option<JsonValue>,
 }
 
 #[derive(Debug, Clone)]
 pub struct MeshPrimitiveAttribute {
-    name: MeshPrimitiveAttributeName,
-    accessor: usize,
+    pub name: MeshPrimitiveAttributeName,
+    pub accessor: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -268,7 +268,12 @@ pub struct Scene {
 
 #[derive(Debug, Clone)]
 pub struct Skin {
-    // todo
+    pub inverse_bind_matrices: Option<usize>,
+    pub skeleton: Option<usize>,
+    pub joints: Vec<usize>,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
 }
 
 #[derive(Debug, Clone)]
@@ -705,6 +710,29 @@ impl Gltf {
             meshes.push(mesh);
         }
 
+        // skins
+        let json_skins = json_gltf.get::<Vec<&JsonObject>>("skins")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut skins = Vec::with_capacity(json_skins.len());
+        for json_skin in json_skins {
+            let inverse_bind_matrices = json_skin.get::<usize>("inverseBindMatrices");
+            let skeleton = json_skin.get::<usize>("skeleton");
+            let joints = json_skin.get::<Vec<usize>>("joints").into_ris_error()?;
+            let name = json_skin.get::<String>("name");
+            let extensions = json_skin.get::<&JsonObject>("extensions").cloned();
+            let extras = json_skin.get::<&JsonValue>("extras").cloned();
+
+            let skin = Skin{
+                inverse_bind_matrices,
+                skeleton,
+                joints,
+                name,
+                extensions,
+                extras,
+            };
+            skins.push(skin);
+        }
+
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
@@ -729,7 +757,7 @@ impl Gltf {
             samplers: Vec::new(),
             scene,
             scenes,
-            skins: Vec::new(),
+            skins,
             textures: Vec::new(),
             extensions,
             extras,
