@@ -870,14 +870,14 @@ impl Gltf {
                 Some(33648) => SamplerWrap::MirroredRepeat,
                 Some(10497) => SamplerWrap::Repeat,
                 None => SamplerWrap::Repeat,
-                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", min_filter),
+                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", wrap),
             };
             let wrap_t= match json_sampler.get::<usize>("wrapT") {
                 Some(33071) => SamplerWrap::ClampToEdge,
                 Some(33648) => SamplerWrap::MirroredRepeat,
                 Some(10497) => SamplerWrap::Repeat,
                 None => SamplerWrap::Repeat,
-                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", min_filter),
+                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", wrap),
             };
 
             let name = json_sampler.get::<String>("name");
@@ -894,6 +894,17 @@ impl Gltf {
                 extras,
             };
             samplers.push(sampler);
+        }
+
+        // materials
+        let json_materials = json_gltf.get::<Vec<&JsonObject>>("materials")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut materials = Vec::with_capacity(json_materials.len());
+        for json_material in json_materials {
+            ris_log::fatal!("material: {:?}", json_material);
+            let material = Material{
+            };
+            materials.push(material);
         }
 
         // construct gltf
@@ -914,7 +925,7 @@ impl Gltf {
             buffer_views,
             cameras: Vec::new(),
             images,
-            materials: Vec::new(),
+            materials,
             meshes,
             nodes,
             samplers,

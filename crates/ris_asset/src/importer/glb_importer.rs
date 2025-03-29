@@ -83,9 +83,9 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     let gltf = Gltf::deserialize(json)?;
 
     //ris_log::error!("gltf: {:#?}", gltf);
-    for item in gltf.samplers.iter() {
-        ris_log::error!("item: {:?}", item);
-    }
+    //for item in gltf.samplers.iter() {
+    //    ris_log::error!("item: {:?}", item);
+    //}
     
     // convert to ris assets
     ris_error::new_result!("not implemented")
