@@ -278,7 +278,11 @@ pub struct Skin {
 
 #[derive(Debug, Clone)]
 pub struct Texture {
-    // todo
+    pub sampler: Option<usize>,
+    pub source: Option<usize>,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
 }
 
 impl Gltf {
@@ -733,6 +737,31 @@ impl Gltf {
             skins.push(skin);
         }
 
+        // todo: validate skins
+        // skins pose restrictions on nodes, accessors and meshes
+
+        // texture
+        let json_textures = json_gltf.get::<Vec<&JsonObject>>("textures")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut textures = Vec::with_capacity(json_textures.len());
+        for json_texture in json_textures {
+            let sampler = json_texture.get::<usize>("sampler");
+            let source = json_texture.get::<usize>("source");
+            let name = json_texture.get::<String>("name");
+            let extensions = json_texture.get::<&JsonObject>("extensions").cloned();
+            let extras = json_texture.get::<&JsonValue>("extras").cloned();
+
+            let texture = Texture {
+                sampler,
+                source,
+                name,
+                extensions,
+                extras,
+            };
+            textures.push(texture);
+        }
+
+
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
@@ -758,7 +787,7 @@ impl Gltf {
             scene,
             scenes,
             skins,
-            textures: Vec::new(),
+            textures,
             extensions,
             extras,
         };

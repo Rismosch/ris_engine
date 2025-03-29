@@ -83,7 +83,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     let gltf = Gltf::deserialize(json)?;
 
     //ris_log::error!("gltf: {:#?}", gltf);
-    for item in gltf.skins.iter() {
+    for item in gltf.textures.iter() {
         ris_log::error!("item: {:?}", item);
     }
     
