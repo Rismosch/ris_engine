@@ -125,7 +125,36 @@ pub enum BufferViewTarget {
 
 #[derive(Debug, Clone)]
 pub struct Camera {
-    // todo
+    pub kind: CameraKind,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub enum CameraKind {
+    Orthographic(CameraOrthographic),
+    Perspective(CameraPerspective),
+}
+
+#[derive(Debug, Clone)]
+pub struct CameraOrthographic {
+    pub xmag: f32,
+    pub ymag: f32,
+    pub zfar: f32,
+    pub znear: f32,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CameraPerspective {
+    pub aspect_ratio: Option<f32>,
+    pub yfov: f32,
+    pub zfar: Option<f32>,
+    pub znear: f32,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
 }
 
 #[derive(Debug, Clone)]
@@ -1093,11 +1122,89 @@ impl Gltf {
             materials.push(material);
         }
 
+        // cameras
+        let json_cameras = json_gltf.get::<Vec<&JsonObject>>("cameras")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut cameras = Vec::with_capacity(json_cameras.len());
+        for json_camera in json_cameras {
+            let json_camera_perspective = json_camera.get::<&JsonObject>("perspective");
+            let json_camera_orthographic = json_camera.get::<&JsonObject>("orthographic");
+            let kind = match json_camera.get::<&str>("type") {
+                Some("perspective") => {
+                    let json_camera_perspective = json_camera_perspective.into_ris_error()?;
+                    ris_error::assert!(json_camera_orthographic.is_none())?;
+
+                    let aspect_ratio = json_camera_perspective.get::<f32>("aspectRatio");
+                    if let Some(aspect_ratio) = aspect_ratio {
+                        ris_error::assert!(aspect_ratio > 0.0)?;
+                    }
+                    let yfov = json_camera_perspective.get::<f32>("yfov").into_ris_error()?;
+                    ris_error::assert!(yfov > 0.0)?;
+                    let zfar = json_camera_perspective.get::<f32>("zfar");
+                    if let Some(zfar) = zfar {
+                        ris_error::assert!(zfar > 0.0)?;
+                    }
+                    let znear = json_camera_perspective.get::<f32>("znear").into_ris_error()?;
+                    ris_error::assert!(znear > 0.0)?;
+                    let extensions = json_camera_perspective.get::<&JsonObject>("extensions").cloned();
+                    let extras = json_camera_perspective.get::<&JsonValue>("extras").cloned();
+
+                    CameraKind::Perspective(CameraPerspective{
+                        aspect_ratio,
+                        yfov,
+                        zfar,
+                        znear,
+                        extensions,
+                        extras,
+                    })
+                },
+                Some("orthographic") => {
+                    ris_error::assert!(json_camera_perspective.is_none())?;
+                    let json_camera_orthographic = json_camera_orthographic.into_ris_error()?;
+
+                    let xmag = json_camera_orthographic.get::<f32>("xmag").into_ris_error()?;
+                    let ymag = json_camera_orthographic.get::<f32>("ymag").into_ris_error()?;
+                    let zfar = json_camera_orthographic.get::<f32>("zfar").into_ris_error()?;
+                    ris_error::assert!(zfar > 0.0)?;
+                    let znear = json_camera_orthographic.get::<f32>("znear").into_ris_error()?;
+                    ris_error::assert!(znear >= 0.0)?;
+                    let extensions = json_camera_orthographic.get::<&JsonObject>("extensions").cloned();
+                    let extras = json_camera_orthographic.get::<&JsonValue>("extras").cloned();
+
+                    CameraKind::Orthographic(CameraOrthographic{
+                        xmag,
+                        ymag,
+                        zfar,
+                        znear,
+                        extensions,
+                        extras,
+                    })
+                },
+                camera_type => return ris_error::new_result!("invalid camera type: {:?}", camera_type),
+            };
+
+            let name = json_camera.get::<String>("name");
+            let extensions = json_camera.get::<&JsonObject>("extensions").cloned();
+            let extras = json_camera.get::<&JsonValue>("extras").cloned();
+
+            let camera = Camera{
+                kind,
+                name,
+                extensions,
+                extras,
+            };
+            cameras.push(camera);
+        }
+        
+        // animations
+        // todo
+
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
         let extensions_required = json_gltf.get::<Vec<String>>("extensionsRequired")
             .unwrap_or(Vec::with_capacity(0));
+        // todo: assert proper extensions_used and extensions_required usage
         let extensions = json_gltf.get::<&JsonObject>("extensions").cloned();
         let extras = json_gltf.get::<&JsonValue>("extras").cloned();
 
@@ -1109,7 +1216,7 @@ impl Gltf {
             asset,
             buffers,
             buffer_views,
-            cameras: Vec::new(),
+            cameras,
             images,
             materials,
             meshes,
@@ -1150,4 +1257,70 @@ fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
         extras,
     };
     Ok(result)
+}
+
+impl Camera {
+    pub fn projection_matrix(&self) -> [f32; 16] {
+        match self.kind {
+            // infinite perspective projection
+            CameraKind::Perspective(CameraPerspective {
+                aspect_ratio,
+                yfov,
+                zfar: None,
+                znear,
+                ..
+            }) => {
+                let a = aspect_ratio.unwrap_or(1.0);
+                let y = yfov;
+                let n = znear;
+
+                [
+                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
+                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
+                    0.0, 0.0, -1.0, -2.0 * n,
+                    0.0, 0.0, -1.0, 0.0,
+                ]
+            },
+            // finite perspective projection
+            CameraKind::Perspective(CameraPerspective {
+                aspect_ratio,
+                yfov,
+                zfar: Some(zfar),
+                znear,
+                ..
+            }) => {
+                let a = aspect_ratio.unwrap_or(1.0);
+                let y = yfov;
+                let f = zfar;
+                let n = znear;
+
+                [
+                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
+                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
+                    0.0, 0.0, (f + n) / (n - f), (2.0 * f * n) / (n - f),
+                    0.0, 0.0, -1.0, 0.0,
+                ]
+            },
+            // orthographic projection
+            CameraKind::Orthographic(CameraOrthographic {
+                xmag,
+                ymag,
+                zfar,
+                znear,
+                ..
+            }) => {
+                let r = xmag;
+                let t = ymag;
+                let f = zfar;
+                let n = znear;
+
+                [
+                    1.0 / r, 0.0, 0.0, 0.0,
+                    0.0, 1.0 / t, 0.0, 0.0,
+                    0.0, 0.0, 2.0 / (n - f), (f + n) / (n - f),
+                    0.0, 0.0, 0.0, 1.0,
+                ]
+            },
+        }
+    }
 }

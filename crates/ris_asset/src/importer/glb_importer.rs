@@ -83,10 +83,10 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     let gltf = Gltf::deserialize(json)?;
 
     //ris_log::error!("gltf: {:#?}", gltf);
-    let collection = &gltf.materials;
+    let collection = &gltf.cameras;
     ris_log::error!("len: {}", collection.len());
     for item in collection.iter() {
-        ris_log::error!("item: {:?}", item);
+        ris_log::error!("item: {:#?}", item);
     }
     
     // convert to ris assets
