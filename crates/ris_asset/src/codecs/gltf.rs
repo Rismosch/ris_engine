@@ -460,6 +460,99 @@ pub struct TextureInfo {
     pub extras: Option<JsonValue>,
 }
 
+impl AccessorComponentType {
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            AccessorComponentType::I8 => 1,
+            AccessorComponentType::U8 => 1,
+            AccessorComponentType::I16 => 2,
+            AccessorComponentType::U16 => 2,
+            AccessorComponentType::U32 => 4,
+            AccessorComponentType::F32 => 4,
+        }
+    }
+}
+
+impl AccessorType {
+    pub fn number_of_components(&self) -> usize {
+        match *self {
+            AccessorType::Scalar => 1,
+            AccessorType::Vec2 => 2,
+            AccessorType::Vec3 => 3,
+            AccessorType::Vec4 => 4,
+            AccessorType::Mat2 => 4,
+            AccessorType::Mat3 => 9,
+            AccessorType::Mat4 => 16,
+        }
+    }
+}
+
+impl Camera {
+    pub fn projection_matrix(&self) -> [f32; 16] {
+        match self.kind {
+            // infinite perspective projection
+            CameraKind::Perspective(CameraPerspective {
+                aspect_ratio,
+                yfov,
+                zfar: None,
+                znear,
+                ..
+            }) => {
+                let a = aspect_ratio.unwrap_or(1.0);
+                let y = yfov;
+                let n = znear;
+
+                [
+                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
+                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
+                    0.0, 0.0, -1.0, -2.0 * n,
+                    0.0, 0.0, -1.0, 0.0,
+                ]
+            },
+            // finite perspective projection
+            CameraKind::Perspective(CameraPerspective {
+                aspect_ratio,
+                yfov,
+                zfar: Some(zfar),
+                znear,
+                ..
+            }) => {
+                let a = aspect_ratio.unwrap_or(1.0);
+                let y = yfov;
+                let f = zfar;
+                let n = znear;
+
+                [
+                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
+                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
+                    0.0, 0.0, (f + n) / (n - f), (2.0 * f * n) / (n - f),
+                    0.0, 0.0, -1.0, 0.0,
+                ]
+            },
+            // orthographic projection
+            CameraKind::Orthographic(CameraOrthographic {
+                xmag,
+                ymag,
+                zfar,
+                znear,
+                ..
+            }) => {
+                let r = xmag;
+                let t = ymag;
+                let f = zfar;
+                let n = znear;
+
+                [
+                    1.0 / r, 0.0, 0.0, 0.0,
+                    0.0, 1.0 / t, 0.0, 0.0,
+                    0.0, 0.0, 2.0 / (n - f), (f + n) / (n - f),
+                    0.0, 0.0, 0.0, 1.0,
+                ]
+            },
+        }
+    }
+}
+
 impl Gltf {
     pub fn deserialize(json: impl AsRef<str>) -> RisResult<Self> {
         let json = json.as_ref();
@@ -1355,72 +1448,6 @@ impl Gltf {
         };
 
         Ok(gltf)
-    }
-}
-
-impl Camera {
-    pub fn projection_matrix(&self) -> [f32; 16] {
-        match self.kind {
-            // infinite perspective projection
-            CameraKind::Perspective(CameraPerspective {
-                aspect_ratio,
-                yfov,
-                zfar: None,
-                znear,
-                ..
-            }) => {
-                let a = aspect_ratio.unwrap_or(1.0);
-                let y = yfov;
-                let n = znear;
-
-                [
-                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
-                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
-                    0.0, 0.0, -1.0, -2.0 * n,
-                    0.0, 0.0, -1.0, 0.0,
-                ]
-            },
-            // finite perspective projection
-            CameraKind::Perspective(CameraPerspective {
-                aspect_ratio,
-                yfov,
-                zfar: Some(zfar),
-                znear,
-                ..
-            }) => {
-                let a = aspect_ratio.unwrap_or(1.0);
-                let y = yfov;
-                let f = zfar;
-                let n = znear;
-
-                [
-                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
-                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
-                    0.0, 0.0, (f + n) / (n - f), (2.0 * f * n) / (n - f),
-                    0.0, 0.0, -1.0, 0.0,
-                ]
-            },
-            // orthographic projection
-            CameraKind::Orthographic(CameraOrthographic {
-                xmag,
-                ymag,
-                zfar,
-                znear,
-                ..
-            }) => {
-                let r = xmag;
-                let t = ymag;
-                let f = zfar;
-                let n = znear;
-
-                [
-                    1.0 / r, 0.0, 0.0, 0.0,
-                    0.0, 1.0 / t, 0.0, 0.0,
-                    0.0, 0.0, 2.0 / (n - f), (f + n) / (n - f),
-                    0.0, 0.0, 0.0, 1.0,
-                ]
-            },
-        }
     }
 }
 

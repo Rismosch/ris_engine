@@ -80,15 +80,60 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
     // import gltf
     let json = String::from_utf8(json_chunk.data)?;
+    let bin = bin_chunk.data;
     let gltf = Gltf::deserialize(json)?;
 
-    //ris_log::error!("gltf: {:#?}", gltf);
-    let collection = &gltf.animations;
-    ris_log::error!("len: {}", collection.len());
-    for item in collection.iter() {
-        ris_log::error!("item: {:#?}", item);
+    // a glb file may have only a single gltf buffer. the first buffer
+    // MUST have it's uri undefined. this way, the buffer references the
+    // bin chunk of the glb file
+    ris_error::assert!(gltf.buffers.len() == 1)?;
+    ris_error::assert!(gltf.buffers[0].uri.is_none())?;
+
+    // convert to internal format. 
+    // note that this importer makes assumptions about the underlying
+    // data. thus it may return errors on valid gltf
+
+    // meshes
+    for mesh in gltf.meshes.iter() {
+        ris_log::fatal!("mesh: {:#?}", mesh);
+
+        for primitive in mesh.primitives.iter() {
+            for attribute in primitive.attributes.iter() {
+                let data = access_data(
+                    &bin,
+                    &gltf,
+                    attribute.accessor,
+                )?;
+
+                ris_log::fatal!("data: {:?}", data.len());
+            }
+        }
     }
+
+    Ok(())
+}
+
+fn access_data<'a>(
+    bin: &'a [u8],
+    gltf: &'a Gltf,
+    accessor_index: usize,
+) -> RisResult<&'a [u8]> {
+    let accessor = gltf.accessors.get(accessor_index).into_ris_error()?;
+
+    let buffer_view_index = accessor.buffer_view.into_ris_error()?;
+    let buffer_view = gltf.buffer_views.get(buffer_view_index).into_ris_error()?;
+    ris_error::assert!(buffer_view.buffer == 0)?;
+    ris_error::assert!(buffer_view.byte_stride.is_none())?;
+
+    let element_size = accessor.component_type.size_in_bytes() * accessor.accessor_type.number_of_components();
     
-    // convert to ris assets
-    ris_error::new_result!("not implemented")
+    let start = accessor.byte_offset + buffer_view.byte_offset;
+    let len = accessor.count * element_size;
+    let end = start + len;
+
+    ris_error::assert!(len <= buffer_view.byte_length)?;
+    ris_error::assert!(start <= end)?;
+    ris_error::assert!(end <= bin.len())?;
+
+    Ok(&bin[start..end])
 }
