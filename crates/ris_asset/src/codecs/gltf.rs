@@ -4,6 +4,7 @@
 use std::str::FromStr;
 
 use ris_error::prelude::*;
+use ris_log::error;
 
 use crate::codecs::json::JsonMember;
 
@@ -83,7 +84,51 @@ pub enum AccessorType {
 
 #[derive(Debug, Clone)]
 pub struct Animation {
-    // todo
+    pub channels: Vec<AnimationChannel>,
+    pub samplers: Vec<AnimationSampler>,
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnimationChannel {
+    pub sampler: usize,
+    pub target: AnimationChannelTarget,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnimationChannelTarget {
+    pub node: Option<usize>,
+    pub path: AnimationChannelTargetPath,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnimationChannelTargetPath {
+    Translation,
+    Rotation,
+    Scale,
+    Weights,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnimationSampler {
+    pub input: usize,
+    pub interpolation: AnimationSamplerInterpolation,
+    pub output: usize,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnimationSamplerInterpolation {
+    Linear,
+    Step,
+    CubicSpline,
 }
 
 #[derive(Debug, Clone)]
@@ -1197,14 +1242,92 @@ impl Gltf {
         }
         
         // animations
-        // todo
+        let json_animations = json_gltf.get::<Vec<&JsonObject>>("animations")
+            .unwrap_or(Vec::with_capacity(0));
+        let mut animations = Vec::with_capacity(json_animations.len());
+        for json_animation in json_animations {
+            
+            let json_channels = json_animation.get::<Vec<&JsonObject>>("channels")
+                .unwrap_or(Vec::with_capacity(0));
+            ris_error::assert!(json_channels.len() > 0)?;
+            let mut channels = Vec::with_capacity(json_channels.len());
+            for json_channel in json_channels {
+                let sampler = json_channel.get::<usize>("sampler").into_ris_error()?;
+                let json_target = json_channel.get::<&JsonObject>("target").into_ris_error()?;
+                let node = json_target.get::<usize>("node");
+                let path = match json_target.get::<&str>("path") {
+                    Some("translation") => AnimationChannelTargetPath::Translation,
+                    Some("rotation") => AnimationChannelTargetPath::Rotation,
+                    Some("scale") => AnimationChannelTargetPath::Scale,
+                    Some("weights") => AnimationChannelTargetPath::Weights,
+                    path => return ris_error::new_result!("invalid animation channel target path: {:?}", path),
+                };
+                let extensions = json_target.get::<&JsonObject>("extensions").cloned();
+                let extras = json_target.get::<&JsonValue>("extras").cloned();
+                let target = AnimationChannelTarget {
+                    node,
+                    path,
+                    extensions,
+                    extras,
+                };
+                let extensions = json_channel.get::<&JsonObject>("extensions").cloned();
+                let extras = json_channel.get::<&JsonValue>("extras").cloned();
+
+                let channel = AnimationChannel{
+                    sampler,
+                    target,
+                    extensions,
+                    extras,
+                };
+                channels.push(channel);
+            }
+
+            let json_samplers = json_animation.get::<Vec<&JsonObject>>("samplers")
+                .unwrap_or(Vec::with_capacity(0));
+            ris_error::assert!(json_samplers.len() > 0)?;
+            let mut samplers = Vec::with_capacity(json_samplers.len());
+            for json_sampler in json_samplers {
+                let input = json_sampler.get::<usize>("input").into_ris_error()?;
+                let interpolation = match json_sampler.get::<&str>("interpolation") {
+                    Some("LINEAR") => AnimationSamplerInterpolation::Linear,
+                    Some("STEP") => AnimationSamplerInterpolation::Step,
+                    Some("CUBICSPLINE") => AnimationSamplerInterpolation::CubicSpline,
+                    interpolation => return ris_error::new_result!("invalid animation sampler interpolation: {:?}", interpolation),
+                };
+                let output = json_sampler.get::<usize>("output").into_ris_error()?;
+                let extensions = json_sampler.get::<&JsonObject>("extensions").cloned();
+                let extras = json_sampler.get::<&JsonValue>("extras").cloned();
+
+                let sampler = AnimationSampler{
+                    input,
+                    interpolation,
+                    output,
+                    extensions,
+                    extras,
+                };
+                samplers.push(sampler);
+            }
+
+            let name = json_animation.get::<String>("name");
+            let extensions = json_animation.get::<&JsonObject>("extensions").cloned();
+            let extras = json_animation.get::<&JsonValue>("extras").cloned();
+
+            let animation = Animation{
+                channels,
+                samplers,
+                name,
+                extensions,
+                extras,
+            };
+            animations.push(animation);
+        }
 
         // construct gltf
         let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
         let extensions_required = json_gltf.get::<Vec<String>>("extensionsRequired")
             .unwrap_or(Vec::with_capacity(0));
-        // todo: assert proper extensions_used and extensions_required usage
+        // todo: assert proper usage of extensions_used and extensions_required
         let extensions = json_gltf.get::<&JsonObject>("extensions").cloned();
         let extras = json_gltf.get::<&JsonValue>("extras").cloned();
 
@@ -1212,7 +1335,7 @@ impl Gltf {
             extensions_used,
             extensions_required,
             accessors,
-            animations: Vec::new(),
+            animations,
             asset,
             buffers,
             buffer_views,
@@ -1232,31 +1355,6 @@ impl Gltf {
 
         Ok(gltf)
     }
-}
-
-fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: impl AsRef<str>) -> RisResult<F> {
-    let value = value.as_ref();
-    let splits = value.split('_').collect::<Vec<_>>();
-    ris_error::assert!(splits.len() == 2)?;
-    let postfix = splits[1];
-    let result = postfix.parse::<F>()?;
-    Ok(result)
-}
-
-fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
-    let index = value.get::<usize>("index").into_ris_error()?;
-    let tex_coord = value.get::<usize>("index")
-        .unwrap_or(0);
-    let extensions = value.get::<&JsonObject>("extensions").cloned();
-    let extras = value.get::<&JsonValue>("extras").cloned();
-
-    let result = TextureInfo {
-        index,
-        tex_coord,
-        extensions,
-        extras,
-    };
-    Ok(result)
 }
 
 impl Camera {
@@ -1323,4 +1421,29 @@ impl Camera {
             },
         }
     }
+}
+
+fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: impl AsRef<str>) -> RisResult<F> {
+    let value = value.as_ref();
+    let splits = value.split('_').collect::<Vec<_>>();
+    ris_error::assert!(splits.len() == 2)?;
+    let postfix = splits[1];
+    let result = postfix.parse::<F>()?;
+    Ok(result)
+}
+
+fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
+    let index = value.get::<usize>("index").into_ris_error()?;
+    let tex_coord = value.get::<usize>("index")
+        .unwrap_or(0);
+    let extensions = value.get::<&JsonObject>("extensions").cloned();
+    let extras = value.get::<&JsonValue>("extras").cloned();
+
+    let result = TextureInfo {
+        index,
+        tex_coord,
+        extensions,
+        extras,
+    };
+    Ok(result)
 }
