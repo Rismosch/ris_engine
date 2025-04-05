@@ -4,7 +4,6 @@
 use std::str::FromStr;
 
 use ris_error::prelude::*;
-use ris_log::error;
 
 use crate::codecs::json::JsonMember;
 
@@ -1307,6 +1306,8 @@ impl Gltf {
                 };
                 samplers.push(sampler);
             }
+
+            // todo: validate data, path imposes restrictions on the accessors
 
             let name = json_animation.get::<String>("name");
             let extensions = json_animation.get::<&JsonObject>("extensions").cloned();
