@@ -1,5 +1,5 @@
 // glTF implemented in Rust
-// original spec: 
+// original spec: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
 use std::str::FromStr;
 
@@ -177,7 +177,53 @@ pub enum ImageMimeType {
 
 #[derive(Debug, Clone)]
 pub struct Material {
-    // todo
+    pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+    pub pbr_metallic_roughness: Option<MaterialPbrMetallicRoughness>,
+    pub normal_texture: Option<MaterialNormalTextureInfo>,
+    pub occlusion_texture: Option<MaterialOcclusionTextureInfo>,
+    pub emissive_texture: Option<TextureInfo>,
+    pub emissive_factor: [f32; 3],
+    pub alpha_mode: MaterialAlphaMode,
+    pub alpha_cutoff: f32,
+    pub double_sided: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MaterialAlphaMode {
+    Opaque,
+    Mask,
+    Blend,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialNormalTextureInfo {
+    pub index: usize,
+    pub tex_coord: usize,
+    pub scale: f32,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialOcclusionTextureInfo {
+    pub index: usize,
+    pub tex_coord: usize,
+    pub strength: f32,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialPbrMetallicRoughness {
+    pub base_color_factor: [f32; 4],
+    pub base_color_texture: Option<TextureInfo>,
+    pub metallic_factor: f32,
+    pub roughness_factor: f32,
+    pub metallic_roughness_texture: Option<TextureInfo>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
 }
 
 #[derive(Debug, Clone)]
@@ -231,8 +277,8 @@ pub enum MeshPrimitiveMode {
 
 #[derive(Debug, Clone)]
 pub struct MeshPrimitiveTarget {
-    name: MeshPrimitiveTargetName,
-    accessor: usize,
+    pub name: MeshPrimitiveTargetName,
+    pub accessor: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -329,6 +375,14 @@ pub struct Texture {
     pub sampler: Option<usize>,
     pub source: Option<usize>,
     pub name: Option<String>,
+    pub extensions: Option<JsonObject>,
+    pub extras: Option<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextureInfo {
+    pub index: usize,
+    pub tex_coord: usize,
     pub extensions: Option<JsonObject>,
     pub extras: Option<JsonValue>,
 }
@@ -901,8 +955,140 @@ impl Gltf {
             .unwrap_or(Vec::with_capacity(0));
         let mut materials = Vec::with_capacity(json_materials.len());
         for json_material in json_materials {
-            ris_log::fatal!("material: {:?}", json_material);
+            let name = json_material.get::<String>("name");
+            let extensions = json_material.get::<&JsonObject>("extensions").cloned();
+            let extras = json_material.get::<&JsonValue>("extras").cloned();
+            let pbr_metallic_roughness = match json_material.get::<&JsonObject>("pbrMetallicRoughness") {
+                Some(json_pbr_metallic_roughness) => {
+                    let base_color_factor = match json_pbr_metallic_roughness.get::<Vec<f32>>("baseColorFactor") {
+                        Some(base_color_factor) => {
+                            ris_error::assert!(base_color_factor.len() == 4)?;
+                            for &base_color_factor in base_color_factor.iter() {
+                                ris_error::assert!(base_color_factor >= 0.0)?;
+                                ris_error::assert!(base_color_factor <= 1.0)?;
+                            }
+
+                            [
+                                base_color_factor[0],
+                                base_color_factor[1],
+                                base_color_factor[2],
+                                base_color_factor[3],
+                            ]
+                        },
+                        None => [0.0; 4],
+                    };
+                    let base_color_texture = match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
+                        Some(json_base_color_texture) => Some(parse_texture_info(json_base_color_texture)?),
+                        None => None,
+                    };
+                    let metallic_factor = json_pbr_metallic_roughness.get::<f32>("metallicFactor")
+                        .unwrap_or(1.0);
+                    ris_error::assert!(metallic_factor >= 0.0)?;
+                    ris_error::assert!(metallic_factor <= 1.0)?;
+                    let roughness_factor = json_pbr_metallic_roughness.get::<f32>("roughnessFactor")
+                        .unwrap_or(1.0);
+                    ris_error::assert!(roughness_factor >= 0.0)?;
+                    ris_error::assert!(roughness_factor <= 1.0)?;
+                    let metallic_roughness_texture = match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
+                        Some(json_metallic_roughness_texture) => Some(parse_texture_info(json_metallic_roughness_texture)?),
+                        None => None,
+                    };
+                    let extensions = json_pbr_metallic_roughness.get::<&JsonObject>("extensions").cloned();
+                    let extras = json_pbr_metallic_roughness.get::<&JsonValue>("extras").cloned();
+
+                    Some(MaterialPbrMetallicRoughness{
+                        base_color_factor,
+                        base_color_texture,
+                        metallic_factor,
+                        roughness_factor,
+                        metallic_roughness_texture,
+                        extensions,
+                        extras,
+                    })
+                },
+                None => None,
+            };
+            let normal_texture = match json_material.get::<&JsonObject>("normalTexture") {
+                Some(json_normal_texture) => {
+                    let texture_info = parse_texture_info(json_normal_texture)?;
+                    let scale = json_normal_texture.get::<f32>("scale")
+                        .unwrap_or(1.0);
+
+                    Some(MaterialNormalTextureInfo {
+                        index: texture_info.index,
+                        tex_coord: texture_info.tex_coord,
+                        scale,
+                        extensions: texture_info.extensions,
+                        extras: texture_info.extras,
+                    })
+                },
+                None => None,
+            };
+            let occlusion_texture = match json_material.get::<&JsonObject>("occlusionTexture") {
+                Some(json_occlusion_texture) => {
+                    let texture_info = parse_texture_info(json_occlusion_texture)?;
+                    let strength = json_occlusion_texture.get::<f32>("strength")
+                        .unwrap_or(1.0);
+                    ris_error::assert!(strength >= 0.0)?;
+                    ris_error::assert!(strength <= 1.0)?;
+
+                    Some(MaterialOcclusionTextureInfo{
+                        index: texture_info.index,
+                        tex_coord: texture_info.tex_coord,
+                        strength,
+                        extensions: texture_info.extensions,
+                        extras: texture_info.extras,
+                    })
+                },
+                None => None,
+            };
+            let emissive_texture = match json_material.get::<&JsonObject>("emissiveTexture") {
+
+                Some(json_emissive_texture) => Some(parse_texture_info(json_emissive_texture)?),
+                None => None,
+            };
+            let emissive_factor = match json_material.get::<Vec<f32>>("emissiveFactor") {
+                Some(emissive_factor) => {
+                    ris_error::assert!(emissive_factor.len() == 3)?;
+                    for &emissive_factor in emissive_factor.iter() {
+                        ris_error::assert!(emissive_factor >= 0.0)?;
+                        ris_error::assert!(emissive_factor <= 1.0)?;
+                    }
+
+                    [
+                        emissive_factor[0],
+                        emissive_factor[1],
+                        emissive_factor[2],
+                    ]
+                },
+                None => [0.0; 3],
+            };
+            let alpha_mode = match json_material.get::<&str>("alphaMode") {
+                None => MaterialAlphaMode::Opaque,
+                Some("OPAQUE") => MaterialAlphaMode::Opaque,
+                Some("MASK") => MaterialAlphaMode::Mask,
+                Some("BLEND") => MaterialAlphaMode::Blend,
+                Some(alpha_mode) => return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode),
+            };
+            let alpha_cutoff = json_material.get::<f32>("alphaCutoff")
+                .unwrap_or(0.5);
+            ris_error::assert!(alpha_cutoff.is_sign_positive())?;
+            let double_sided = json_material.get::<bool>("doubleSided")
+                .unwrap_or(false);
+
+
             let material = Material{
+                name,
+                extensions,
+                extras,
+                pbr_metallic_roughness,
+                normal_texture,
+                occlusion_texture,
+                emissive_texture,
+                emissive_factor,
+                alpha_mode,
+                alpha_cutoff,
+                double_sided,
             };
             materials.push(material);
         }
@@ -947,5 +1133,21 @@ fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: imp
     ris_error::assert!(splits.len() == 2)?;
     let postfix = splits[1];
     let result = postfix.parse::<F>()?;
+    Ok(result)
+}
+
+fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
+    let index = value.get::<usize>("index").into_ris_error()?;
+    let tex_coord = value.get::<usize>("index")
+        .unwrap_or(0);
+    let extensions = value.get::<&JsonObject>("extensions").cloned();
+    let extras = value.get::<&JsonValue>("extras").cloned();
+
+    let result = TextureInfo {
+        index,
+        tex_coord,
+        extensions,
+        extras,
+    };
     Ok(result)
 }
