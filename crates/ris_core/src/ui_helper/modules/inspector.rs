@@ -574,7 +574,7 @@ impl IUiHelperModule for InspectorModule {
                     && data.ui.button("load")
                 {
                     let reserved =
-                        ris_asset::assets::ris_scene::load(&data.state.scene, &self.loaded_asset)?;
+                        ris_asset::assets::ris_scene::deserialize(&data.state.scene, &self.loaded_asset)?;
                     if let Some(chunk_index) = reserved {
                         self.shared_state
                             .borrow_mut()

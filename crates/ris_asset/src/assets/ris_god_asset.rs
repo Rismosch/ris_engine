@@ -55,8 +55,8 @@ impl RisGodAsset {
         Ok(bytes)
     }
 
-    pub fn load(bytes: &[u8]) -> RisResult<Self> {
-        let header = RisHeader::load(bytes)?.into_ris_error()?;
+    pub fn deserialize(bytes: &[u8]) -> RisResult<Self> {
+        let header = RisHeader::deserialize(bytes)?.into_ris_error()?;
         header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();

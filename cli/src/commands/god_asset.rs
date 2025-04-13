@@ -135,7 +135,7 @@ fn read_god_asset(path: impl AsRef<Path>) -> RisResult<RisGodAsset> {
     let mut bytes = vec![0u8; length as usize];
     ris_io::seek(&mut file, SeekFrom::Start(0))?;
     ris_io::read(&mut file, &mut bytes)?;
-    RisGodAsset::load(&bytes)
+    RisGodAsset::deserialize(&bytes)
 }
 
 fn print_god_asset(god_asset: &RisGodAsset) {

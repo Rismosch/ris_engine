@@ -1451,6 +1451,14 @@ impl Gltf {
     }
 }
 
+impl MeshPrimitive {
+    pub fn get_attribute(&self, name: MeshPrimitiveAttributeName) -> Option<&MeshPrimitiveAttribute> {
+        self.attributes.iter()
+            .filter(|x| x.name == name)
+            .next()
+    }
+}
+
 fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: impl AsRef<str>) -> RisResult<F> {
     let value = value.as_ref();
     let splits = value.split('_').collect::<Vec<_>>();

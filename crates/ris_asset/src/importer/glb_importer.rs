@@ -1,9 +1,15 @@
 use std::path::Path;
 use std::io::SeekFrom;
+use std::process::exit;
 
 use ris_error::prelude::*;
 
+use crate::codecs::gltf::Accessor;
+use crate::codecs::gltf::AccessorComponentType;
+use crate::codecs::gltf::AccessorType;
 use crate::codecs::gltf::Gltf;
+use crate::codecs::gltf::MeshPrimitiveAttributeName;
+use crate::codecs::gltf::MeshPrimitiveMode;
 
 pub const IN_EXT_GLB: &str = "glb";
 
@@ -21,6 +27,11 @@ struct Chunk {
 pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResult<()> {
     let source = source.as_ref();
     let target_dir = target_dir.as_ref();
+
+    let source_file_stem = source.file_stem()
+        .into_ris_error()?
+        .to_str()
+        .into_ris_error()?;
 
     let mut file = std::fs::File::open(source)?;
     let f = &mut file;
@@ -94,19 +105,62 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     // data. thus it may return errors on valid gltf
 
     // meshes
-    for mesh in gltf.meshes.iter() {
+    for (mesh_index, mesh) in gltf.meshes.iter().enumerate() {
         ris_log::fatal!("mesh: {:#?}", mesh);
+        for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
+            ris_error::assert!(primitive.mode == MeshPrimitiveMode::Triangles)?;
 
-        for primitive in mesh.primitives.iter() {
-            for attribute in primitive.attributes.iter() {
-                let data = access_data(
-                    &bin,
-                    &gltf,
-                    attribute.accessor,
-                )?;
+            let vertex_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::Position)
+                .into_ris_error()?;
+            let normal_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::Normal)
+                .into_ris_error()?;
+            let uv_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
+                .into_ris_error()?;
+            let index_accessor_index = primitive.indices.into_ris_error()?;
 
-                ris_log::fatal!("data: {:?}", data.len());
-            }
+            let vertex_accessor = gltf.accessors.get(vertex_attribute.accessor).into_ris_error()?;
+            let normal_accessor = gltf.accessors.get(normal_attribute.accessor).into_ris_error()?;
+            let uv_accessor = gltf.accessors.get(uv_attribute.accessor).into_ris_error()?;
+            let index_accessor = gltf.accessors.get(index_accessor_index).into_ris_error()?;
+
+            ris_error::assert!(vertex_accessor.count == normal_accessor.count)?;
+            ris_error::assert!(vertex_accessor.count == uv_accessor.count)?;
+            ris_error::assert!(vertex_accessor.accessor_type == AccessorType::Vec3)?;
+            ris_error::assert!(vertex_accessor.component_type == AccessorComponentType::F32)?;
+            ris_error::assert!(normal_accessor.accessor_type == AccessorType::Vec3)?;
+            ris_error::assert!(normal_accessor.component_type == AccessorComponentType::F32)?;
+            ris_error::assert!(uv_accessor.accessor_type == AccessorType::Vec2)?;
+            ris_error::assert!(uv_accessor.component_type == AccessorComponentType::F32)?;
+            ris_error::assert!(index_accessor.accessor_type == AccessorType::Scalar)?;
+            ris_error::assert!(index_accessor.component_type == AccessorComponentType::U16)?;
+
+            let vertex_data = access_data(vertex_accessor, &bin, &gltf)?;
+            let normal_data = access_data(normal_accessor, &bin, &gltf)?;
+            let uv_data = access_data(uv_accessor, &bin, &gltf)?;
+            let index_data = access_data(index_accessor, &bin, &gltf)?;
+
+            ris_log::fatal!("vertices: {:?}", vertex_data.len());
+            ris_log::fatal!("normals: {:?}", normal_data.len());
+            ris_log::fatal!("uvs: {:?}", uv_data.len());
+            ris_log::fatal!("indices: {:?}", index_data.len());
+
+            let mesh_name = if let Some(name) = &mesh.name {
+                name.clone()
+            } else {
+                "none".to_string()
+            };
+
+            let target_name = format!(
+                "{}-{}-{:03}-{:03}.{}",
+                source_file_stem,
+                mesh_name,
+                mesh_index,
+                primitive_index,
+                crate::assets::ris_mesh::EXTENSION,
+            );
+            let target_path = target_dir.join(&target_name);
+
+            ris_log::fatal!("target path: {:?}", target_path);
         }
     }
 
@@ -114,12 +168,10 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 }
 
 fn access_data<'a>(
+    accessor: &Accessor,
     bin: &'a [u8],
     gltf: &'a Gltf,
-    accessor_index: usize,
 ) -> RisResult<&'a [u8]> {
-    let accessor = gltf.accessors.get(accessor_index).into_ris_error()?;
-
     let buffer_view_index = accessor.buffer_view.into_ris_error()?;
     let buffer_view = gltf.buffer_views.get(buffer_view_index).into_ris_error()?;
     ris_error::assert!(buffer_view.buffer == 0)?;

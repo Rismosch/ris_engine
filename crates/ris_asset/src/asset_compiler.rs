@@ -115,7 +115,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         ris_io::seek(&mut file, SeekFrom::Start(0))?;
         ris_io::read(&mut file, &mut file_content)?;
 
-        let modified_file_content = match RisHeader::load(&file_content)? {
+        let modified_file_content = match RisHeader::deserialize(&file_content)? {
             // asset is not a ris_asset, return unmodified
             None => file_content,
 
@@ -285,7 +285,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let file_content = ris_io::read_at(source, p_asset)?;
 
         // reassign ids
-        let modified_file_content = match RisHeader::load(&file_content)? {
+        let modified_file_content = match RisHeader::deserialize(&file_content)? {
             // asset is not a ris_asset, return unmodified
             None => file_content,
 

@@ -74,7 +74,7 @@ impl RisHeader {
         Ok(bytes)
     }
 
-    pub fn load(bytes: &[u8]) -> RisResult<Option<Self>> {
+    pub fn deserialize(bytes: &[u8]) -> RisResult<Option<Self>> {
         let f = &mut Cursor::new(bytes);
         let mut magic = [0; 16];
         ris_io::read(f, &mut magic)?;
