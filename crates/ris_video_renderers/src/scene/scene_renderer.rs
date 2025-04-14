@@ -1,16 +1,20 @@
+use std::io::Seek;
+use std::io::Write;
 use std::ptr;
 
 use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
-use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
+//use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+//use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
+use ris_math::vector::Vec3;
+use ris_math::vector::Vec2;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
@@ -37,6 +41,7 @@ pub struct UniformBufferObject {
     pub proj: Mat4,
 }
 
+
 pub struct SceneFrame {
     framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
@@ -57,6 +62,51 @@ impl SceneFrame {
     }
 }
 
+const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 3] = [
+    // vertex
+    vk::VertexInputBindingDescription{
+        binding: 0,
+        stride: std::mem::size_of::<Vec3>() as u32,
+        input_rate: vk::VertexInputRate::VERTEX,
+    },
+    // normal
+    vk::VertexInputBindingDescription{
+        binding: 1,
+        stride: std::mem::size_of::<Vec3>() as u32,
+        input_rate: vk::VertexInputRate::VERTEX,
+    },
+    // uv
+    vk::VertexInputBindingDescription{
+        binding: 2,
+        stride: std::mem::size_of::<Vec2>() as u32,
+        input_rate: vk::VertexInputRate::VERTEX,
+    },
+];
+
+const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3] = [
+    // vertex
+    vk::VertexInputAttributeDescription{
+        location: 0,
+        binding: 0,
+        format: vk::Format::R32G32B32_SFLOAT,
+        offset: 0,
+    },
+    // normal
+    vk::VertexInputAttributeDescription{
+        location: 1,
+        binding: 1,
+        format: vk::Format::R32G32B32_SFLOAT,
+        offset: 0,
+    },
+    // uv
+    vk::VertexInputAttributeDescription{
+        location: 2,
+        binding: 2,
+        format: vk::Format::R32G32_SFLOAT,
+        offset: 0,
+    },
+];
+
 pub struct SceneRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
@@ -65,6 +115,11 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
+    p_vertices: u64,
+    p_normals: u64,
+    p_uvs: u64,
+    p_indices: u64,
+    test_buffer: Buffer,
 }
 
 impl SceneRenderer {
@@ -528,6 +583,72 @@ impl SceneRenderer {
             frames.push(frame);
         }
 
+        // test
+        let vertices = [
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(0.0, 1.0, 0.0),
+            Vec3(0.0, 0.0, 1.0),
+        ];
+        let normals = [
+            Vec3(0.0, 1.0, 1.0),
+            Vec3(1.0, 0.0, 1.0),
+            Vec3(1.0, 1.0, 0.0),
+        ];
+        let uvs = [
+            Vec2(0.0, 0.0),
+            Vec2(1.0, 0.0),
+            Vec2(0.0, 1.0),
+        ];
+        let indices = [
+            0u16,
+            1u16,
+            2u16,
+        ];
+
+        let mut s = std::io::Cursor::new(Vec::new());
+        let p_vertices = s.seek(std::io::SeekFrom::Current(0))?;
+        for vertex in vertices {
+            let x = vertex.0.to_le_bytes();
+            let y = vertex.1.to_le_bytes();
+            let z = vertex.2.to_le_bytes();
+            s.write_all(&x)?;
+            s.write_all(&y)?;
+            s.write_all(&z)?;
+        }
+        let p_normals = s.seek(std::io::SeekFrom::Current(0))?;
+        for normal in normals {
+            let x = normal.0.to_le_bytes();
+            let y = normal.1.to_le_bytes();
+            let z = normal.2.to_le_bytes();
+            s.write_all(&x)?;
+            s.write_all(&y)?;
+            s.write_all(&z)?;
+        }
+        let p_uvs = s.seek(std::io::SeekFrom::Current(0))?;
+        for uv in uvs {
+            let x = uv.0.to_le_bytes();
+            let y = uv.1.to_le_bytes();
+            s.write_all(&x)?;
+            s.write_all(&y)?;
+        }
+        let p_indices = s.seek(std::io::SeekFrom::Current(0))?;
+        for index in indices {
+            let x = index.to_le_bytes();
+            s.write_all(&x)?;
+        }
+
+        let test_bytes = s.into_inner();
+        let test_buffer = Buffer::alloc(
+            device,
+            test_bytes.len() as vk::DeviceSize,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+        unsafe {test_buffer.write(device, &test_bytes)}?;
+
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -536,6 +657,11 @@ impl SceneRenderer {
             pipeline_layout,
             frames,
             texture,
+            p_vertices,
+            p_normals,
+            p_uvs,
+            p_indices,
+            test_buffer,
         })
     }
 
@@ -707,38 +833,41 @@ impl SceneRenderer {
                 &[],
             );
 
-            for mesh_renderer_component in scene.mesh_renderer_components.iter() {
-                let aref = mesh_renderer_component.borrow();
-                if !aref.is_alive {
-                    continue;
-                }
+            //for mesh_renderer_component in scene.mesh_renderer_components.iter() {
+            //    let aref = mesh_renderer_component.borrow();
+            //    if !aref.is_alive {
+            //        continue;
+            //    }
 
-                let game_object = aref.game_object();
-                if game_object.is_active_in_hierarchy(scene) != Ok(true) {
-                    continue;
-                }
+            //    let game_object = aref.game_object();
+            //    if game_object.is_active_in_hierarchy(scene) != Ok(true) {
+            //        continue;
+            //    }
 
-                let Ok(model) = game_object.model(scene) else {
-                    continue;
+            //    let Ok(model) = game_object.model(scene) else {
+            //        continue;
+            //    };
+
+            //    let Some(video_mesh_handle) = aref.video_mesh() else {
+            //        continue;
+            //    };
+
+            //    let Ok(Some(vertices)) = video_mesh_handle.vertices(scene) else {
+            //        continue;
+            //    };
+
+            //    let Ok(Some(indices)) = video_mesh_handle.indices(scene) else {
+            //        continue;
+            //    };
+
+            //    let Ok(Some(index_count)) = video_mesh_handle.index_count(scene) else {
+            //        continue;
+            //    };
+
+                //let push_constants = PushConstants { model };
+                let push_constants = PushConstants {
+                    model: Mat4::init(1.0)
                 };
-
-                let Some(video_mesh_handle) = aref.video_mesh() else {
-                    continue;
-                };
-
-                let Ok(Some(vertices)) = video_mesh_handle.vertices(scene) else {
-                    continue;
-                };
-
-                let Ok(Some(indices)) = video_mesh_handle.indices(scene) else {
-                    continue;
-                };
-
-                let Ok(Some(index_count)) = video_mesh_handle.index_count(scene) else {
-                    continue;
-                };
-
-                let push_constants = PushConstants { model };
 
                 let push_constants_ptr = &push_constants as *const PushConstants as *const u8;
                 let size = std::mem::size_of::<PushConstants>();
@@ -752,18 +881,39 @@ impl SceneRenderer {
                     push_constants_bytes,
                 );
 
-                device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
+                //device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
+                device.cmd_bind_vertex_buffers(
+                    *command_buffer,
+                    0,
+                    &[
+                        self.test_buffer.buffer,
+                        self.test_buffer.buffer,
+                        self.test_buffer.buffer,
+                    ],
+                    &[
+                        self.p_vertices,
+                        self.p_normals,
+                        self.p_uvs,
+                    ],
+                );
 
+                //device.cmd_bind_index_buffer(
+                //    *command_buffer,
+                //    indices.buffer,
+                //    0,
+                //    vk::IndexType::UINT16,
+                //);
                 device.cmd_bind_index_buffer(
                     *command_buffer,
-                    indices.buffer,
-                    0,
+                    self.test_buffer.buffer,
+                    self.p_indices,
                     vk::IndexType::UINT16,
                 );
 
-                let index_count_u32 = index_count as u32;
+                //let index_count_u32 = index_count as u32;
+                let index_count_u32 = 3 as u32;
                 device.cmd_draw_indexed(*command_buffer, index_count_u32, 1, 0, 0, 0);
-            }
+            //}
 
             device.cmd_end_render_pass(*command_buffer);
         }
