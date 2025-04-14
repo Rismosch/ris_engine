@@ -113,6 +113,12 @@ pub fn write_uint(stream: &mut (impl Write + Seek), value: usize) -> Result<FatP
     write(stream, &bytes)
 }
 
+/// writes an `u16` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_u16(stream: &mut (impl Write + Seek), value: u16) -> Result<FatPtr> {
+    let bytes = value.to_le_bytes();
+    write(stream, &bytes)
+}
+
 /// writes an `u32` and advances the stream. returns a `FatPtr` to the byte written.
 pub fn write_u32(stream: &mut (impl Write + Seek), value: u32) -> Result<FatPtr> {
     let bytes = value.to_le_bytes();
@@ -230,6 +236,14 @@ pub fn read_uint(stream: &mut impl Read) -> Result<usize> {
     let int = u32::from_le_bytes(bytes);
     let result = usize::try_from(int).map_err(|_| Error::from(ErrorKind::InvalidData))?;
     Ok(result)
+}
+
+/// reads an `u16` and advances the stream.
+pub fn read_u16(stream: &mut impl Read) -> Result<u16> {
+    let mut bytes = [0; 2];
+    read(stream, &mut bytes)?;
+
+    Ok(u16::from_le_bytes(bytes))
 }
 
 /// reads an `u32` and advances the stream.

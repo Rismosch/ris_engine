@@ -606,6 +606,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ris_asset_data"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "ris_error",
+ "ris_io",
+ "ris_log",
+ "ris_math",
+ "ris_video_data",
+]
+
+[[package]]
 name = "ris_async"
 version = "0.1.0"
 dependencies = [
@@ -683,6 +695,7 @@ dependencies = [
  "miniz_oxide",
  "png",
  "ris_asset",
+ "ris_asset_data",
  "ris_async",
  "ris_core",
  "ris_data",
@@ -795,6 +808,7 @@ dependencies = [
  "ash",
  "imgui",
  "ris_asset",
+ "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_debug",

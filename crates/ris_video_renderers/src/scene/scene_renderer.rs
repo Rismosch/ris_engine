@@ -6,6 +6,8 @@ use ash::vk;
 
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
+use ris_asset_data::mesh::MeshPrototype;
+use ris_asset_data::mesh::GpuMesh;
 //use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
 //use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::scene::Scene;
@@ -115,11 +117,7 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
-    p_vertices: u64,
-    p_normals: u64,
-    p_uvs: u64,
-    p_indices: u64,
-    test_buffer: Buffer,
+    test_mesh: GpuMesh,
 }
 
 impl SceneRenderer {
@@ -584,70 +582,29 @@ impl SceneRenderer {
         }
 
         // test
-        let vertices = [
-            Vec3(1.0, 0.0, 0.0),
-            Vec3(0.0, 1.0, 0.0),
-            Vec3(0.0, 0.0, 1.0),
-        ];
-        let normals = [
-            Vec3(0.0, 1.0, 1.0),
-            Vec3(1.0, 0.0, 1.0),
-            Vec3(1.0, 1.0, 0.0),
-        ];
-        let uvs = [
-            Vec2(0.0, 0.0),
-            Vec2(1.0, 0.0),
-            Vec2(0.0, 1.0),
-        ];
-        let indices = [
-            0u16,
-            1u16,
-            2u16,
-        ];
-
-        let mut s = std::io::Cursor::new(Vec::new());
-        let p_vertices = s.seek(std::io::SeekFrom::Current(0))?;
-        for vertex in vertices {
-            let x = vertex.0.to_le_bytes();
-            let y = vertex.1.to_le_bytes();
-            let z = vertex.2.to_le_bytes();
-            s.write_all(&x)?;
-            s.write_all(&y)?;
-            s.write_all(&z)?;
-        }
-        let p_normals = s.seek(std::io::SeekFrom::Current(0))?;
-        for normal in normals {
-            let x = normal.0.to_le_bytes();
-            let y = normal.1.to_le_bytes();
-            let z = normal.2.to_le_bytes();
-            s.write_all(&x)?;
-            s.write_all(&y)?;
-            s.write_all(&z)?;
-        }
-        let p_uvs = s.seek(std::io::SeekFrom::Current(0))?;
-        for uv in uvs {
-            let x = uv.0.to_le_bytes();
-            let y = uv.1.to_le_bytes();
-            s.write_all(&x)?;
-            s.write_all(&y)?;
-        }
-        let p_indices = s.seek(std::io::SeekFrom::Current(0))?;
-        for index in indices {
-            let x = index.to_le_bytes();
-            s.write_all(&x)?;
-        }
-
-        let test_bytes = s.into_inner();
-        let test_buffer = Buffer::alloc(
+        let prototype = MeshPrototype{
+            vertices: vec![
+                Vec3(1.0, 0.0, 0.0),
+                Vec3(0.0, 1.0, 0.0),
+                Vec3(0.0, 0.0, 1.0),
+            ],
+            normals: vec![
+                Vec3(0.0, 1.0, 1.0),
+                Vec3(1.0, 0.0, 1.0),
+                Vec3(1.0, 1.0, 0.0),
+            ],
+            uvs: vec![
+                Vec2(0.0, 0.0),
+                Vec2(0.5, 0.0),
+                Vec2(0.0, 0.5),
+            ],
+            indices: vec![0, 1, 2],
+        };
+        let test_mesh = GpuMesh::from_prototype(
             device,
-            test_bytes.len() as vk::DeviceSize,
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
+            prototype,
         )?;
-        unsafe {test_buffer.write(device, &test_bytes)}?;
 
         Ok(Self {
             descriptor_set_layout,
@@ -657,11 +614,7 @@ impl SceneRenderer {
             pipeline_layout,
             frames,
             texture,
-            p_vertices,
-            p_normals,
-            p_uvs,
-            p_indices,
-            test_buffer,
+            test_mesh,
         })
     }
 
@@ -885,16 +838,8 @@ impl SceneRenderer {
                 device.cmd_bind_vertex_buffers(
                     *command_buffer,
                     0,
-                    &[
-                        self.test_buffer.buffer,
-                        self.test_buffer.buffer,
-                        self.test_buffer.buffer,
-                    ],
-                    &[
-                        self.p_vertices,
-                        self.p_normals,
-                        self.p_uvs,
-                    ],
+                    &self.test_mesh.vertex_buffers()?,
+                    &self.test_mesh.vertex_offsets()?,
                 );
 
                 //device.cmd_bind_index_buffer(
@@ -905,14 +850,20 @@ impl SceneRenderer {
                 //);
                 device.cmd_bind_index_buffer(
                     *command_buffer,
-                    self.test_buffer.buffer,
-                    self.p_indices,
-                    vk::IndexType::UINT16,
+                    self.test_mesh.index_buffer()?,
+                    self.test_mesh.index_offset()?,
+                    self.test_mesh.index_type(),
                 );
 
                 //let index_count_u32 = index_count as u32;
-                let index_count_u32 = 3 as u32;
-                device.cmd_draw_indexed(*command_buffer, index_count_u32, 1, 0, 0, 0);
+                device.cmd_draw_indexed(
+                    *command_buffer,
+                    self.test_mesh.index_count()?,
+                    1,
+                    0,
+                    0,
+                    0,
+                );
             //}
 
             device.cmd_end_render_pass(*command_buffer);

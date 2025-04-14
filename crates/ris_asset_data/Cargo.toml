@@ -1,5 +1,5 @@
 [package]
-name = "ris_video_renderers"
+name = "ris_asset_data"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,18 +7,8 @@ edition = "2021"
 
 [dependencies]
 ash = "0.37.3"
-imgui = "0.11.0"
-sdl2 = "0.34.5"
-sdl2-sys = "0.34.5"
-shaderc = "0.8"
-ris_asset = { path = "../ris_asset" }
-ris_asset_data = { path = "../ris_asset_data" }
-ris_async = { path = "../ris_async" }
-ris_data = { path = "../ris_data" }
-ris_debug = { path = "../ris_debug" }
 ris_error = { path = "../ris_error" }
 ris_io = { path = "../ris_io" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
-ris_util = { path = "../ris_util" }
 ris_video_data = { path = "../ris_video_data" }
