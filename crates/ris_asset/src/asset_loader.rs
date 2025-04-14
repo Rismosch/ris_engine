@@ -6,10 +6,10 @@ use std::sync::mpsc::SendError;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
+use ris_asset_data::asset_id::AssetId;
 use ris_async::JobFuture;
 use ris_async::JobFutureSetter;
 use ris_async::ThreadPool;
-use ris_data::asset_id::AssetId;
 use ris_data::info::app_info::AppInfo;
 use ris_error::RisResult;
 

@@ -1,7 +1,7 @@
 use std::io::Cursor;
 use std::io::SeekFrom;
 
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 

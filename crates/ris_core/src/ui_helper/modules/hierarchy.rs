@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::ptr;
 
 use ris_asset::assets::ris_scene;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::SceneKind;

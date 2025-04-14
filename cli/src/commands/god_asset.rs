@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use ris_asset::assets::ris_god_asset;
 use ris_asset::assets::ris_god_asset::RisGodAsset;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::info::args_info::DEFAULT_ASSETS_VALUE;
 use ris_error::RisResult;
 

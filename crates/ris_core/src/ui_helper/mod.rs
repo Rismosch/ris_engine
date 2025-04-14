@@ -11,9 +11,9 @@ use imgui::WindowFlags;
 use imgui::WindowFocusedFlags;
 use sdl2::keyboard::Scancode;
 
+use ris_asset_data::asset_id::AssetId;
 use ris_async::JobFuture;
 use ris_async::ThreadPool;
-use ris_data::asset_id::AssetId;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;

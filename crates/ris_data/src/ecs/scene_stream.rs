@@ -4,11 +4,11 @@ use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 
+use ris_asset_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
-use crate::asset_id::AssetId;
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::id::SceneKind;
 use crate::ecs::scene::Scene;

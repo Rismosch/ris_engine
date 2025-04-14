@@ -7,7 +7,7 @@ use imgui::Ui;
 use ris_asset::asset_loader::LoadError;
 use ris_async::SpinLock;
 use ris_async::ThreadPool;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
 use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::components::script::ScriptInspectData;
