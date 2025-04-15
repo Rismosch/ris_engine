@@ -319,7 +319,7 @@ impl GizmoTextRenderer {
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::TRUE,
-            depth_compare_op: vk::CompareOp::LESS,
+            depth_compare_op: vk::CompareOp::GREATER,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
             front: stencil_op_state,
@@ -590,10 +590,6 @@ impl GizmoTextRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
-        //if vertices.is_empty() {
-        //    return Ok(());
-        //}
-
         // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -659,7 +655,7 @@ impl GizmoTextRenderer {
                 },
                 vk::ClearValue {
                     depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
+                        depth: 0.0,
                         stencil: 0,
                     },
                 },
