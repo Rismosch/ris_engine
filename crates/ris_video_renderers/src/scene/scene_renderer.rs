@@ -587,18 +587,27 @@ impl SceneRenderer {
                 Vec3(1.0, 0.0, 0.0),
                 Vec3(0.0, 1.0, 0.0),
                 Vec3(0.0, 0.0, 1.0),
+                Vec3(-1.0, 0.0, 0.0),
+                Vec3(0.0, -1.0, 0.0),
+                Vec3(0.0, 0.0, -1.0),
             ],
             normals: vec![
                 Vec3(0.0, 1.0, 1.0),
                 Vec3(1.0, 0.0, 1.0),
                 Vec3(1.0, 1.0, 0.0),
+                Vec3(1.0, 0.0, 0.0),
+                Vec3(0.0, 1.0, 0.0),
+                Vec3(0.0, 0.0, 1.0),
             ],
             uvs: vec![
                 Vec2(0.0, 0.0),
                 Vec2(0.5, 0.0),
                 Vec2(0.0, 0.5),
+                Vec2(0.5, 0.0),
+                Vec2(0.0, 0.5),
+                Vec2(0.5, 0.5),
             ],
-            indices: vec![0, 1, 2],
+            indices: vec![0, 1, 2, 3, 4, 5],
         };
         let test_mesh = GpuMesh::from_prototype(
             device,

@@ -37,6 +37,6 @@ void main() {
 
 #fragment
 void main() {
-    //out_color = texture(tex_sampler, in_uv);
-    out_color = vec4(in_uv, 0.0, 1.0);
+    out_color = texture(tex_sampler, in_uv);
+    //out_color = vec4(in_normal, 1.0);
 }

@@ -7,56 +7,56 @@ use crate::SpinLock;
 /// This channel is specifically designed for my thread pool, which calls `Sender::Send()` and
 /// `Receiver::receive()` on the same thread, which is why `Sender` and `Receiver` don't
 /// implement `Send`
-struct Channel<T> {
+struct JobChannel<T> {
     head: UnsafeCell<usize>,
     tail: SpinLock<usize>,
     buf: Vec<SpinLock<Option<T>>>,
 }
 
-pub struct Sender<T> {
-    channel: Arc<Channel<T>>,
+pub struct JobSender<T> {
+    channel: Arc<JobChannel<T>>,
     /// prevents `Sender<T>` to be sent across threads
     _not_send: PhantomData<*const ()>,
 }
 
-pub struct Receiver<T> {
-    channel: Arc<Channel<T>>,
+pub struct JobReceiver<T> {
+    channel: Arc<JobChannel<T>>,
     /// prevents `Sender<T>` to be sent across threads
     _not_send: PhantomData<*const ()>,
 }
 
-pub struct Stealer<T> {
-    channel: Arc<Channel<T>>,
+pub struct JobStealer<T> {
+    channel: Arc<JobChannel<T>>,
 }
 
-unsafe impl<T> Sync for Channel<T> where T: Sync {}
-unsafe impl<T> Send for Stealer<T> {}
-unsafe impl<T> Sync for Stealer<T> {}
+unsafe impl<T> Sync for JobChannel<T> where T: Sync {}
+unsafe impl<T> Send for JobStealer<T> {}
+unsafe impl<T> Sync for JobStealer<T> {}
 
-pub fn channel<T>(capacity: usize) -> (Sender<T>, Receiver<T>, Arc<Stealer<T>>) {
+pub fn job_channel<T>(capacity: usize) -> (JobSender<T>, JobReceiver<T>, Arc<JobStealer<T>>) {
     let mut buf = Vec::with_capacity(capacity);
     for _ in 0..buf.capacity() {
         let entry = SpinLock::new(None);
         buf.push(entry);
     }
-    let a = Arc::new(Channel {
+    let a = Arc::new(JobChannel {
         head: UnsafeCell::new(0),
         tail: SpinLock::new(0),
         buf,
     });
-    let sender = Sender {
+    let sender = JobSender {
         channel: a.clone(),
         _not_send: PhantomData,
     };
-    let receiver = Receiver {
+    let receiver = JobReceiver {
         channel: a.clone(),
         _not_send: PhantomData,
     };
-    let stealer = Arc::new(Stealer { channel: a });
+    let stealer = Arc::new(JobStealer { channel: a });
     (sender, receiver, stealer)
 }
 
-impl<T> Sender<T> {
+impl<T> JobSender<T> {
     pub fn send(&self, value: T) -> Result<(), T> {
         let head = unsafe { &mut *self.channel.head.get() };
 
@@ -75,7 +75,7 @@ impl<T> Sender<T> {
     }
 }
 
-impl<T> Receiver<T> {
+impl<T> JobReceiver<T> {
     pub fn receive(&self) -> Option<T> {
         let head = unsafe { &mut *self.channel.head.get() };
 
@@ -95,7 +95,7 @@ impl<T> Receiver<T> {
     }
 }
 
-impl<T> Stealer<T> {
+impl<T> JobStealer<T> {
     pub fn steal(&self) -> Option<T> {
         let mut tail = self.channel.tail.lock();
 

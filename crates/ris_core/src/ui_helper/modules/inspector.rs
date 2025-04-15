@@ -545,7 +545,7 @@ impl IUiHelperModule for InspectorModule {
                         let lock = original_lock.clone();
                         let id = id.clone();
                         ThreadPool::submit(async move {
-                            let data = ris_asset::load_async(id).await;
+                            let data = ris_asset::load_async(id).wait();
                             *lock.lock() = Some(data);
                         });
                         self.load_asset_jobs.push(original_lock);

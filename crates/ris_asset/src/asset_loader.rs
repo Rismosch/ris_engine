@@ -7,8 +7,9 @@ use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
 use ris_asset_data::asset_id::AssetId;
-use ris_async::JobFuture;
-use ris_async::JobFutureSetter;
+use ris_async::oneshot_channel;
+use ris_async::OneshotSender;
+use ris_async::OneshotReceiver;
 use ris_async::ThreadPool;
 use ris_data::info::app_info::AppInfo;
 use ris_error::RisResult;
@@ -24,7 +25,7 @@ enum InternalLoader {
 
 pub struct Request {
     id: AssetId,
-    setter: JobFutureSetter<Result<Vec<u8>, LoadError>>,
+    sender: OneshotSender<Result<Vec<u8>, LoadError>>,
 }
 
 #[derive(Debug)]
@@ -115,10 +116,10 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     Ok(AssetLoaderGuard { god_asset_id })
 }
 
-pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
-    let (future, setter) = JobFuture::new();
+pub fn load_async(id: AssetId) -> OneshotReceiver<Result<Vec<u8>, LoadError>> {
+    let (sender, receiver) = oneshot_channel();
 
-    let request = Request { id, setter };
+    let request = Request { id, sender };
 
     let result = {
         let asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
@@ -131,10 +132,10 @@ pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     if let Err(send_error) = result {
         let error = Err(LoadError::SendFailed);
         let request = send_error.0;
-        request.setter.set(error);
+        request.sender.send(error);
     }
 
-    future
+    receiver
 }
 
 fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
@@ -170,7 +171,7 @@ fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
             },
         };
 
-        request.setter.set(result);
+        request.sender.send(result);
     }
 
     ris_log::info!("load asset thread ended");

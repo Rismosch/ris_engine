@@ -2,7 +2,7 @@ use std::any::TypeId;
 use std::sync::Arc;
 
 use ris_asset::assets::ris_scene;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::ecs::components::script::DynScriptComponent;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::handle::DynComponentHandle;
@@ -180,7 +180,7 @@ fn should_serialize() {
 
     // actual code to be tested
     let serialized = ris_scene::serialize(&scene, 0).unwrap();
-    ris_scene::load(&scene, &serialized).unwrap();
+    ris_scene::deserialize(&scene, &serialized).unwrap();
 
     //// debugging
     //{
