@@ -89,8 +89,8 @@ impl ImguiRenderer {
         } = core;
 
         // shaders
-        let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_async(god_asset.imgui_frag_spv.clone());
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.imgui_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.imgui_frag_spv.clone());
 
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;

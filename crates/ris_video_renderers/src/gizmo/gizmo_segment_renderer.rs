@@ -133,8 +133,8 @@ impl GizmoSegmentRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_async(god_asset.gizmo_segment_vert_spv.clone());
-        let fs_future = ris_asset::load_async(god_asset.gizmo_segment_frag_spv.clone());
+        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_vert_spv.clone());
+        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_frag_spv.clone());
 
         let vs_bytes = vs_future.wait()?;
         let fs_bytes = fs_future.wait()?;

@@ -9,13 +9,12 @@ pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
 // useful, for finding errors that are not logged
 pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
 
-pub type SourceError = Option<Arc<dyn Error + 'static>>;
 pub type RisResult<T> = Result<T, RisError>;
 
 #[derive(Clone)]
 pub struct RisError {
-    pub source: SourceError,
-    pub message: Option<String>,
+    pub source_type_name: Option<String>,
+    pub message: String,
     pub file: String,
     pub line: u32,
     pub backtrace: Arc<Backtrace>,
@@ -23,19 +22,19 @@ pub struct RisError {
 
 impl std::fmt::Display for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(source) = &self.source {
-            write!(f, "source: {}", source)?;
-        } else {
-            write!(f, "source: none")?;
+        write!(f, "RisError")?;
+
+        if let Some(source_type_name) = &self.source_type_name {
+            write!(f, " from {}", source_type_name)?;
         }
 
-        if let Some(message) = &self.message {
-            write!(f, "\n    message: \"{}\"", message)?;
-        } else {
-            write!(f, "\n    message: none")?;
-        }
-
-        write!(f, "\n    at {}:{}", self.file, self.line)
+        write!(
+            f,
+            ": \"{}\"\n    at {}:{}",
+            self.message,
+            self.file,
+            self.line,
+        )
     }
 }
 
@@ -58,10 +57,12 @@ impl std::fmt::Display for OptionError {
 
 impl<E: Error + 'static> From<E> for RisError {
     fn from(value: E) -> Self {
+        let source_type_name = Some(std::any::type_name::<E>().to_string());
+        let message = format!("{}", value);
         Self {
-            source: Some(Arc::new(value)),
-            message: None,
-            file: String::from(file!()),
+            source_type_name,
+            message,
+            file: file!().to_string(),
             line: line!(),
             backtrace: crate::get_backtrace!(),
         }
@@ -99,12 +100,18 @@ macro_rules! new {
     ($($arg:tt)*) => {{
         use $crate::error::RisError;
 
-        let source = None;
-        let message = Some(format!($($arg)*));
+        let source_type_name = None;
+        let message = format!($($arg)*);
         let file = String::from(file!());
         let line = line!();
         let backtrace = $crate::get_backtrace!();
-        RisError{source, message, file, line, backtrace}
+        RisError {
+            source_type_name,
+            message,
+            file,
+            line, 
+            backtrace,
+        }
     }};
 }
 

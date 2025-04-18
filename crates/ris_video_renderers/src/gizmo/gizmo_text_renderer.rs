@@ -175,9 +175,9 @@ impl GizmoTextRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_async(god_asset.gizmo_text_vert_spv.clone());
-        let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
-        let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
+        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_text_vert_spv.clone());
+        let gs_future = ris_asset::load_raw_async(god_asset.gizmo_text_geom_spv.clone());
+        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_text_frag_spv.clone());
 
         let vs_bytes = vs_future.wait()?;
         let gs_bytes = gs_future.wait()?;
@@ -493,7 +493,7 @@ impl GizmoTextRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // texture
-        let font_future = ris_asset::load_async(god_asset.debug_font_texture.clone());
+        let font_future = ris_asset::load_raw_async(god_asset.debug_font_texture.clone());
         let font_data = font_future.wait()?;
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 

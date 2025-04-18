@@ -160,7 +160,7 @@ impl SceneRenderer {
 
         // texture
         let texture_asset_id = god_asset.texture.clone();
-        let content = ris_asset::load_async(texture_asset_id.clone()).wait()?;
+        let content = ris_asset::load_raw_async(texture_asset_id.clone()).wait()?;
         let (pixels, desc) = qoi::decode(&content, None)?;
 
         let pixels_rgba = match desc.channels {
@@ -260,8 +260,8 @@ impl SceneRenderer {
         ris_error::assert!(descriptor_sets.len() == total_descriptor_set_count)?;
 
         // shaders
-        let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_async(god_asset.default_frag_spv.clone());
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.default_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.default_frag_spv.clone());
 
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;

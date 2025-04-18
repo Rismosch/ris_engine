@@ -133,7 +133,7 @@ impl GodObject {
 
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait()?;
+        let god_asset_bytes = asset_loader::load_raw_async(god_asset_id).wait()?;
         let god_asset = RisGodAsset::deserialize(&god_asset_bytes)?;
 
         // video

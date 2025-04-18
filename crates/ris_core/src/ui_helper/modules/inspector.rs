@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use imgui::Ui;
 
-use ris_asset::asset_loader::LoadError;
 use ris_async::SpinLock;
 use ris_async::ThreadPool;
 use ris_asset_data::asset_id::AssetId;
@@ -45,7 +44,7 @@ pub struct InspectorModule {
 
     // asset
     #[allow(clippy::type_complexity)]
-    load_asset_jobs: Vec<Arc<SpinLock<Option<Result<Vec<u8>, LoadError>>>>>,
+    load_asset_jobs: Vec<Arc<SpinLock<Option<RisResult<Vec<u8>>>>>>,
     loaded_asset: Vec<u8>,
 }
 
@@ -545,7 +544,7 @@ impl IUiHelperModule for InspectorModule {
                         let lock = original_lock.clone();
                         let id = id.clone();
                         ThreadPool::submit(async move {
-                            let data = ris_asset::load_async(id).wait();
+                            let data = ris_asset::load_raw_async(id).wait();
                             *lock.lock() = Some(data);
                         });
                         self.load_asset_jobs.push(original_lock);
