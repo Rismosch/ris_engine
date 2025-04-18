@@ -114,13 +114,7 @@ fn main() -> Result<(), String> {
                     eprintln!("command failed. pass -v for more info");
                 }
 
-                if let Some(message) = e.message {
-                    message
-                } else if let Some(source) = e.source {
-                    source.to_string()
-                } else {
-                    String::from("error contained no information on what caused it")
-                }
+                e.message
             })
         }
         None => {
