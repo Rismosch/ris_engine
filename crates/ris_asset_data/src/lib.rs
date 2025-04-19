@@ -1,3 +1,4 @@
 pub mod asset_id;
-pub mod lookup;
 pub mod mesh;
+
+pub use asset_id::AssetId;
