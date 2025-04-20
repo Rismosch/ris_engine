@@ -93,15 +93,8 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
     );
 
     // add header
-    let mut stream = Cursor::new(Vec::new());
-    let s = &mut stream;
-
     let header = RisHeader::new(MAGIC, references);
-    let header_bytes = header.serialize()?;
-    ris_io::write(s, &header_bytes)?;
-    ris_io::write(s, &compressed)?;
-
-    let result = stream.into_inner();
+    let result = header.serialize(&compressed)?;
     Ok(result)
 }
 
@@ -113,10 +106,9 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
     let chunk = &scene.static_chunks[index];
 
-    let header = RisHeader::deserialize(bytes)?.into_ris_error()?;
+    let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
     header.assert_magic(MAGIC)?;
 
-    let content = header.content(bytes)?;
     let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
         .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
 

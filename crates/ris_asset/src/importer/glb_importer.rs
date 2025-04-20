@@ -1,9 +1,11 @@
 use std::path::Path;
 use std::io::SeekFrom;
-use std::process::exit;
 
+use ris_asset_data::mesh::CpuMesh;
+use ris_asset_data::mesh::MeshPrototype;
 use ris_error::prelude::*;
 
+use crate::assets::ris_mesh;
 use crate::codecs::gltf::Accessor;
 use crate::codecs::gltf::AccessorComponentType;
 use crate::codecs::gltf::AccessorType;
@@ -139,10 +141,23 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             let uv_data = access_data(uv_accessor, &bin, &gltf)?;
             let index_data = access_data(index_accessor, &bin, &gltf)?;
 
-            ris_log::fatal!("vertices: {:?}", vertex_data.len());
-            ris_log::fatal!("normals: {:?}", normal_data.len());
-            ris_log::fatal!("uvs: {:?}", uv_data.len());
-            ris_log::fatal!("indices: {:?}", index_data.len());
+            let mut stream = std::io::Cursor::new(Vec::new());
+            let s = &mut stream;
+
+            let p_vertices = ris_io::write(s, vertex_data)?;
+            let p_normals = ris_io::write(s, normal_data)?;
+            let p_uvs = ris_io::write(s, uv_data)?;
+            let p_indices = ris_io::write(s, index_data)?;
+
+            let cpu_mesh = CpuMesh{
+                p_vertices,
+                p_normals,
+                p_uvs,
+                p_indices,
+                data: stream.into_inner(),
+            };
+
+            let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
             let mesh_name = if let Some(name) = &mesh.name {
                 name.clone()
@@ -151,16 +166,18 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             };
 
             let target_name = format!(
-                "{}-{}-{:03}-{:03}.{}",
+                "{}-{}-{:03}-{:03}",
                 source_file_stem,
                 mesh_name,
                 mesh_index,
                 primitive_index,
-                crate::assets::ris_mesh::EXTENSION,
             );
-            let target_path = target_dir.join(&target_name);
-
-            ris_log::fatal!("target path: {:?}", target_path);
+            let mut output = crate::asset_importer::create_file(
+                target_name,
+                target_dir,
+                ris_mesh::EXTENSION,
+            )?;
+            ris_io::write(&mut output, &bytes)?;
         }
     }
 

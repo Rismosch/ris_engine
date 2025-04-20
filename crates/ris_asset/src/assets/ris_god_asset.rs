@@ -46,17 +46,13 @@ impl RisGodAsset {
                 self.texture.clone(),
             ],
         );
-        let header_bytes = header.serialize()?;
 
-        let mut stream = Cursor::new(Vec::new());
-        ris_io::write(&mut stream, &header_bytes)?;
-        let bytes = stream.into_inner();
-
+        let bytes = header.serialize(&[])?;
         Ok(bytes)
     }
 
     pub fn deserialize(bytes: &[u8]) -> RisResult<Self> {
-        let header = RisHeader::deserialize(bytes)?.into_ris_error()?;
+        let (header, _content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
         header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();
