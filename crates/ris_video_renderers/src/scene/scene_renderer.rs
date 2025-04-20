@@ -64,51 +64,6 @@ impl SceneFrame {
     }
 }
 
-const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 3] = [
-    // vertex
-    vk::VertexInputBindingDescription{
-        binding: 0,
-        stride: std::mem::size_of::<Vec3>() as u32,
-        input_rate: vk::VertexInputRate::VERTEX,
-    },
-    // normal
-    vk::VertexInputBindingDescription{
-        binding: 1,
-        stride: std::mem::size_of::<Vec3>() as u32,
-        input_rate: vk::VertexInputRate::VERTEX,
-    },
-    // uv
-    vk::VertexInputBindingDescription{
-        binding: 2,
-        stride: std::mem::size_of::<Vec2>() as u32,
-        input_rate: vk::VertexInputRate::VERTEX,
-    },
-];
-
-const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3] = [
-    // vertex
-    vk::VertexInputAttributeDescription{
-        location: 0,
-        binding: 0,
-        format: vk::Format::R32G32B32_SFLOAT,
-        offset: 0,
-    },
-    // normal
-    vk::VertexInputAttributeDescription{
-        location: 1,
-        binding: 1,
-        format: vk::Format::R32G32B32_SFLOAT,
-        offset: 0,
-    },
-    // uv
-    vk::VertexInputAttributeDescription{
-        location: 2,
-        binding: 2,
-        format: vk::Format::R32G32_SFLOAT,
-        offset: 0,
-    },
-];
-
 pub struct SceneRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
@@ -292,14 +247,17 @@ impl SceneRenderer {
         ];
 
         // pipeline
+        let vertex_binding_descriptions = ris_asset_data::mesh::VERTEX_BINDING_DESCRIPTIONS;
+        let vertex_attribute_descriptions = ris_asset_data::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+
         let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_binding_description_count: VERTEX_BINDING_DESCRIPTIONS.len() as u32,
-            p_vertex_binding_descriptions: VERTEX_BINDING_DESCRIPTIONS.as_ptr(),
-            vertex_attribute_description_count: VERTEX_ATTRIBUTE_DESCRIPTIONS.len() as u32,
-            p_vertex_attribute_descriptions: VERTEX_ATTRIBUTE_DESCRIPTIONS.as_ptr(),
+            vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
+            p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
+            vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
+            p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         }];
 
         let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {
@@ -582,38 +540,20 @@ impl SceneRenderer {
         }
 
         // test
-        let prototype = MeshPrototype{
-            vertices: vec![
-                Vec3(1.0, 0.0, 0.0),
-                Vec3(0.0, 1.0, 0.0),
-                Vec3(0.0, 0.0, 1.0),
-                Vec3(-1.0, 0.0, 0.0),
-                Vec3(0.0, -1.0, 0.0),
-                Vec3(0.0, 0.0, -1.0),
-            ],
-            normals: vec![
-                Vec3(0.0, 1.0, 1.0),
-                Vec3(1.0, 0.0, 1.0),
-                Vec3(1.0, 1.0, 0.0),
-                Vec3(1.0, 0.0, 0.0),
-                Vec3(0.0, 1.0, 0.0),
-                Vec3(0.0, 0.0, 1.0),
-            ],
-            uvs: vec![
-                Vec2(0.0, 0.0),
-                Vec2(0.5, 0.0),
-                Vec2(0.0, 0.5),
-                Vec2(0.5, 0.0),
-                Vec2(0.0, 0.5),
-                Vec2(0.5, 0.5),
-            ],
-            indices: vec![0, 1, 2, 3, 4, 5],
-        };
-        let test_mesh = GpuMesh::from_prototype(
-            device,
-            physical_device_memory_properties,
-            prototype,
-        )?;
+        let device = device.clone();
+        let physical_device_memory_properties = physical_device_memory_properties.clone();
+
+        let asset_id = ris_asset_data::AssetId::Path("models/human.ris_mesh".to_string());
+        let mesh_receiver = ris_asset::load_async(asset_id, move |bytes| {
+            let cpu_mesh = ris_asset::assets::ris_mesh::deserialize(&bytes)?;
+            let gpu_mesh = unsafe {GpuMesh::from_cpu_mesh(
+                &device,
+                physical_device_memory_properties,
+                cpu_mesh,
+            )}?;
+            Ok(gpu_mesh)
+        });
+        let test_mesh = mesh_receiver.wait()?;
 
         Ok(Self {
             descriptor_set_layout,
