@@ -211,12 +211,13 @@ impl HierarchyModule {
         if unsafe { imgui::sys::igBeginDragDropSource(0) } {
             unsafe {
                 let payload = Box::new(handle);
-                let payload_ptr = Box::leak(payload);
+                let data = &*payload as *const GameObjectHandle as *const std::ffi::c_void;
 
-                // wtf rust
-                // is there really no easier way to cast to *void?
-                let data = payload_ptr as *const GameObjectHandle as *const std::ffi::c_void;
-
+                // imgui::SetDragDropPayload uses memcpy to copy
+                // `data` to its internal payload. therefore, we
+                // may not pass ownership of our `payload`, and we
+                // may not take ownerwhip when accepting the
+                // payload.
                 imgui::sys::igSetDragDropPayload(
                     PAYLOAD_ID.as_ptr(),
                     data,
