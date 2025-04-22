@@ -5,7 +5,6 @@ pub mod error;
 pub mod game_object;
 pub mod handle;
 pub mod id;
-pub mod mesh;
 pub mod registry;
 pub mod scene;
 pub mod scene_stream;

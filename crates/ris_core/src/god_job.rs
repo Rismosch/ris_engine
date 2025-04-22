@@ -173,10 +173,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
 
         god_object.output_frame.wait_idle()?;
-        god_object
-            .state
-            .scene
-            .free(&god_object.output_frame.core.device);
 
         return Ok(wants_to);
     }

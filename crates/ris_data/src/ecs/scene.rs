@@ -20,7 +20,6 @@ use super::id::EcsPtr;
 use super::id::EcsWeakPtr;
 use super::id::SceneId;
 use super::id::SceneKind;
-use super::mesh::VideoMesh;
 use super::registry::Registry;
 
 const DEFAULT_DYNAMIC_GAME_OBJECTS: usize = 1024;
@@ -28,7 +27,6 @@ const DEFAULT_STATIC_CHUNKS: usize = 8;
 const DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK: usize = 1024;
 const DEFAULT_MESH_RENDERER_COMPONENTS: usize = 1024;
 const DEFAULT_SCRIPT_COMPONENTS: usize = 1024;
-const DEFAULT_VIDEO_MESHES: usize = 1024;
 
 #[derive(Debug)]
 pub struct SceneCreateInfo {
@@ -42,7 +40,6 @@ pub struct SceneCreateInfo {
     pub script_components: usize,
 
     // other
-    pub video_meshes: usize,
     pub registry: Option<Arc<Registry>>,
 }
 
@@ -61,7 +58,6 @@ pub struct Scene {
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
 
     // other
-    pub video_meshes: Vec<EcsPtr<VideoMesh>>,
     pub registry: Arc<Registry>,
 }
 
@@ -73,7 +69,6 @@ impl Default for SceneCreateInfo {
             game_objects_per_static_chunk: DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK,
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
-            video_meshes: DEFAULT_VIDEO_MESHES,
             registry: None,
         }
     }
@@ -87,7 +82,6 @@ impl SceneCreateInfo {
             game_objects_per_static_chunk: 0,
             mesh_renderer_components: 0,
             script_components: 0,
-            video_meshes: 0,
             registry: None,
         }
     }
@@ -99,20 +93,12 @@ impl SceneCreateInfo {
             game_objects_per_static_chunk: DEFAULT_GAME_OBJECTS_PER_STATIC_CHUNK,
             mesh_renderer_components: DEFAULT_MESH_RENDERER_COMPONENTS,
             script_components: DEFAULT_SCRIPT_COMPONENTS,
-            video_meshes: DEFAULT_VIDEO_MESHES,
             registry: Some(registry),
         }
     }
 }
 
 impl Scene {
-    pub fn free(&self, device: &ash::Device) {
-        for video_mesh in self.video_meshes.iter() {
-            let mut aref_mut = video_mesh.borrow_mut();
-            aref_mut.free(device);
-        }
-    }
-
     pub fn new(info: SceneCreateInfo) -> EcsResult<Self> {
         let Some(registry) = info.registry else {
             return Err(EcsError::InvalidOperation("registry was none".to_string()));
@@ -136,14 +122,11 @@ impl Scene {
             create_chunk(SceneKind::Component, info.mesh_renderer_components)?;
         let script_components = create_chunk(SceneKind::Component, info.script_components)?;
 
-        let video_meshes = create_chunk(SceneKind::Other, info.video_meshes)?;
-
         Ok(Self {
             dynamic_game_objects,
             static_chunks,
             mesh_renderer_components,
             script_components,
-            video_meshes,
             registry,
         })
     }
@@ -238,9 +221,6 @@ impl Scene {
         } else if type_id == TypeId::of::<DynScriptComponent>() {
             let chunk = self.find_chunk::<DynScriptComponent>(kind)?;
             chunk[index].borrow_mut().is_alive = false;
-        } else if type_id == TypeId::of::<VideoMesh>() {
-            let chunk = self.find_chunk::<VideoMesh>(kind)?;
-            chunk[index].borrow_mut().is_alive = false;
         } else {
             return Err(EcsError::InvalidCast);
         }
@@ -316,12 +296,7 @@ impl Scene {
                 }
             }
             SceneKind::Other => {
-                let type_id = TypeId::of::<T>();
-                if type_id == TypeId::of::<VideoMesh>() {
-                    cast_chunk(&self.video_meshes)
-                } else {
-                    Err(EcsError::TypeDoesNotMatchSceneKind)
-                }
+                Err(EcsError::TypeDoesNotMatchSceneKind)
             }
         }
     }
