@@ -6,15 +6,18 @@ use std::sync::Arc;
 
 use crate::ThreadPool;
 
+#[derive(Debug)]
 struct OneshotChannel<T> {
     ready: AtomicBool,
     data: UnsafeCell<MaybeUninit<T>>,
 }
 
+#[derive(Debug)]
 pub struct OneshotSender<T> {
     channel: Arc<OneshotChannel<T>>,
 }
 
+#[derive(Debug)]
 pub struct OneshotReceiver<T> {
     channel: Arc<OneshotChannel<T>>,
 }

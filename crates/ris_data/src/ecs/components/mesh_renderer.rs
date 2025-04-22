@@ -1,4 +1,7 @@
-use ris_error::RisResult;
+use ris_asset_data::AssetId;
+use ris_asset_data::mesh::GpuMesh;
+use ris_async::OneshotReceiver;
+use ris_error::prelude::*;
 
 use crate::ecs::decl::GameObjectHandle;
 use crate::ecs::decl::MeshRendererComponentHandle;
@@ -7,9 +10,13 @@ use crate::ecs::scene::Scene;
 use crate::ecs::scene_stream::SceneReader;
 use crate::ecs::scene_stream::SceneWriter;
 
+pub const EMPTY_MESH_PATH: &str = "models/empty.ris_mesh";
+
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
+    mesh_asset: Option<AssetId>,
+    load_job: Option<OneshotReceiver<RisResult<GpuMesh>>>,
 }
 
 impl MeshRendererComponent {

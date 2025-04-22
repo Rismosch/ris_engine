@@ -55,6 +55,7 @@ pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3
 
 pub const INDEX_TYPE: vk::IndexType = vk::IndexType::UINT16;
 
+#[derive(Debug)]
 pub struct MeshPrototype {
     pub vertices: Vec<Vec3>,
     pub normals: Vec<Vec3>,
@@ -62,6 +63,7 @@ pub struct MeshPrototype {
     pub indices: Vec<u16>,
 }
 
+#[derive(Debug)]
 pub struct CpuMesh {
     pub p_vertices: FatPtr,
     pub p_normals: FatPtr,
@@ -70,10 +72,12 @@ pub struct CpuMesh {
     pub data: Vec<u8>,
 }
 
+#[derive(Debug)]
 pub struct GpuMesh {
     inner: Option<GpuMeshInner>,
 }
 
+#[derive(Debug)]
 struct GpuMeshInner {
     p_vertices: vk::DeviceSize,
     p_normals: vk::DeviceSize,
