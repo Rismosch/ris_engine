@@ -19,15 +19,19 @@ Barebones game engine. Home made passion project.
   - [x] Color
     - [x] RGB
     - [x] OkLab
-- [x] Basic 3d renderer via Vulkan
+- [x] 3d Graphics via Vulkan
+  - [x] Static Meshes
+  - [ ] Skinned Meshes
+  - [ ] Materials
+  - [ ] Lighting
 - [x] Debugging
   - [x] GUI via Dear ImGui
   - [x] Profiling
-  - [x] Gizmos
+  - [x] 3d Gizmos
   - [x] const hashed string ids
-- [x] Asset System
-  - [x] Importing (convert raw assets to usable form)
-  - [x] Loading (use in engine)
+- [x] Asset system and pipeline
+  - [x] Importing
+  - [x] Loading
   - [x] (De)compiling
 - [x] Codecs
   - [x] GLSL to SpirV, with custom pre processor
@@ -36,11 +40,11 @@ Barebones game engine. Home made passion project.
 - [x] Settings/Configuration
 - [x] Gameobjects and components
   - [x] Mesh renderer
-    - [ ] Materials
   - [x] Scripting
 - [x] Scene editing, saving and loading
 - [ ] Collisions
 - [ ] Animations
+  - [ ] Bones
 - [ ] 3d Sound
 
 **Legend**:
