@@ -442,11 +442,10 @@ impl IUiHelperModule for InspectorModule {
                         let header =
                             ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
                         delete_requested = header.delete_requested;
-                        if !header.is_open {
-                            continue;
+                        if header.is_open {
+                            data.ui.text("im a mesh :)");
                         }
 
-                        data.ui.text("im a mesh :)");
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
                         let ptr = data.state.scene.script_components[index].to_weak();
                         let mut aref_mut = ptr.borrow_mut();
@@ -460,19 +459,17 @@ impl IUiHelperModule for InspectorModule {
                             format!("{} (script)##{:?}", script_name, component),
                         );
                         delete_requested = header.delete_requested;
-                        if !header.is_open {
-                            continue;
+                        if header.is_open {
+                            let script_inspect_data = ScriptInspectData {
+                                id: format!("{:?}", component),
+                                ui: data.ui,
+                                game_object,
+                                frame: data.frame,
+                                state: data.state,
+                            };
+
+                            script.inspect(script_inspect_data)?;
                         }
-
-                        let script_inspect_data = ScriptInspectData {
-                            id: format!("{:?}", component),
-                            ui: data.ui,
-                            game_object,
-                            frame: data.frame,
-                            state: data.state,
-                        };
-
-                        script.inspect(script_inspect_data)?;
                     } else {
                         let header = ComponentHeader::draw(
                             data.ui,
@@ -498,7 +495,9 @@ impl IUiHelperModule for InspectorModule {
                         .input_text("filter", &mut self.component_filter)
                         .build();
 
-                    for factory in data.state.scene.registry.component_factories() {
+                    // the first component is the DynScriptComponent, which may not be added
+                    // manually
+                    for factory in data.state.scene.registry.component_factories().iter().skip(1) {
                         let name = factory.component_name();
                         if !name
                             .to_lowercase()

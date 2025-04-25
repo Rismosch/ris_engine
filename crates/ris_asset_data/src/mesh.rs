@@ -8,6 +8,19 @@ use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MeshLookupId {
+    pub index: usize,
+}
+
+impl Default for MeshLookupId {
+    fn default() -> Self {
+        Self {
+            index: usize::MAX,
+        }
+    }
+}
+
 pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 3] = [
     // vertex
     vk::VertexInputBindingDescription{
