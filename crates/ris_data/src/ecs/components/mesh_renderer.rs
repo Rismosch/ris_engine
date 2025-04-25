@@ -12,20 +12,28 @@ use crate::ecs::scene_stream::SceneWriter;
 
 pub const EMPTY_MESH_PATH: &str = "models/empty.ris_mesh";
 
+pub struct MeshRendererComponentRequest {
+    pub to_allocate: Option<AssetId>,
+    pub to_free: Option<MeshLookupId>,
+}
+
 #[derive(Debug)]
 pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
-    state: InnerState,
+    previous_asset_id: Option<AssetId>,
+    previous_lookup_id: MeshLookupId,
+    current_asset_id: Option<AssetId>,
+    current_lookup_id: MeshLookupId,
 }
 
 impl Default for MeshRendererComponent {
     fn default() -> Self {
         Self {
             game_object: GameObjectHandle::default(),
-            state: InnerState::Stable {
-                asset_id: None,
-                lookup_id: MeshLookupId::default(),
-            }
+            previous_asset_id: None,
+            previous_lookup_id: MeshLookupId::default(),
+            current_asset_id: None,
+            current_lookup_id: MeshLookupId::default(),
         }
     }
 }
@@ -48,34 +56,32 @@ impl Component for MeshRendererComponent {
     }
 
     fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
-        //match self.asset_id.as_ref() {
-        //    Some(asset_id) => {
-        //        ris_io::write_bool(stream, true)?;
-        //        stream.write_asset_id(asset_id.clone())?;
-        //    },
-        //    None => {
-        //        let asset_id = AssetId::Path(EMPTY_MESH_PATH.to_string());
-        //        ris_io::write_bool(stream, false)?;
-        //        stream.write_asset_id(asset_id)?;
-        //    },
-        //}
+        match self.current_asset_id.as_ref() {
+            Some(asset_id) => {
+                ris_io::write_bool(stream, true)?;
+                stream.write_asset_id(asset_id.clone())?;
+            },
+            None => {
+                let asset_id = AssetId::Path(EMPTY_MESH_PATH.to_string());
+                ris_io::write_bool(stream, false)?;
+                stream.write_asset_id(asset_id)?;
+            },
+        }
 
-        //Ok(())
-        todo!();
+        Ok(())
     }
 
     fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
-        //let has_asset = ris_io::read_bool(stream)?;
-        //let asset_id = stream.read_asset_id()?;
+        let has_asset = ris_io::read_bool(stream)?;
+        let asset_id = stream.read_asset_id()?;
 
-        //if has_asset {
-        //    self.asset_id = Some(asset_id);
-        //} else {
-        //    self.asset_id = 
-        //}
+        if has_asset {
+            self.current_asset_id = Some(asset_id);
+        } else {
+            self.current_asset_id = None;
+        }
 
-        //Ok(())
-        todo!();
+        Ok(())
     }
 }
 
@@ -89,13 +95,41 @@ impl MeshRendererComponent {
 }
 
 impl MeshRendererComponentHandle {
-    fn take_request(self, scene: &Scene) -> EcsResult<()> {
+    fn update(self, scene: &Scene) -> EcsResult<MeshRendererComponentRequest> {
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
 
-        match aref_mut.state {
-            InnerState::RequestFree
-        }
+        let to_allocate = if aref_mut.current_asset_id == aref_mut.previous_asset_id {
+            None
+        } else {
+            aref_mut.current_asset_id.clone()
+        };
+
+        let to_free = if aref_mut.current_lookup_id == aref_mut.previous_lookup_id {
+            None
+        } else {
+            Some(aref_mut.previous_lookup_id)
+        };
+
+        aref_mut.previous_asset_id = aref_mut.current_asset_id.clone();
+        aref_mut.previous_lookup_id = aref_mut.current_lookup_id;
+
+        Ok(MeshRendererComponentRequest{
+            to_allocate,
+            to_free,
+        })
+    }
+
+    fn lookup_id(self, scene: &Scene) -> EcsResult<MeshLookupId> {
+        let ptr = scene.deref(self.into())?;
+        let aref = ptr.borrow();
+        Ok(aref.current_lookup_id)
+    }
+
+    fn set_lookup_id(self, scene: &Scene, id: MeshLookupId) -> EcsResult<()> {
+        let ptr = scene.deref(self.into())?;
+        let mut aref_mut = ptr.borrow_mut();
+        aref_mut.current_lookup_id = id;
 
         Ok(())
     }
