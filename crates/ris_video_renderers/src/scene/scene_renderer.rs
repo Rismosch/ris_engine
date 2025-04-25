@@ -72,7 +72,6 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
-    test_mesh: GpuMesh,
 }
 
 impl SceneRenderer {
@@ -539,22 +538,6 @@ impl SceneRenderer {
             frames.push(frame);
         }
 
-        // test
-        let device = device.clone();
-        let physical_device_memory_properties = physical_device_memory_properties.clone();
-
-        let asset_id = ris_asset_data::AssetId::Path("models/human.ris_mesh".to_string());
-        let mesh_receiver = ris_asset::load_async(asset_id, move |bytes| {
-            let cpu_mesh = ris_asset::assets::ris_mesh::deserialize(&bytes)?;
-            let gpu_mesh = unsafe {GpuMesh::from_cpu_mesh(
-                &device,
-                physical_device_memory_properties,
-                cpu_mesh,
-            )}?;
-            Ok(gpu_mesh)
-        });
-        let test_mesh = mesh_receiver.wait()?;
-
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -563,7 +546,6 @@ impl SceneRenderer {
             pipeline_layout,
             frames,
             texture,
-            test_mesh,
         })
     }
 
@@ -575,6 +557,7 @@ impl SceneRenderer {
         camera: &Camera,
         scene: &Scene,
     ) -> RisResult<()> {
+
         let VulkanCore {
             device, swapchain, ..
         } = core;
@@ -735,41 +718,32 @@ impl SceneRenderer {
                 &[],
             );
 
-            //for mesh_renderer_component in scene.mesh_renderer_components.iter() {
-            //    let aref = mesh_renderer_component.borrow();
-            //    if !aref.is_alive {
-            //        continue;
-            //    }
+            for mesh_renderer_component in scene.mesh_renderer_components.iter() {
+                let mut aref = mesh_renderer_component.borrow_mut();
+                if !aref.is_alive {
+                    continue;
+                }
 
-            //    let game_object = aref.game_object();
-            //    if game_object.is_active_in_hierarchy(scene) != Ok(true) {
-            //        continue;
-            //    }
+                let mut request = aref.update();
 
-            //    let Ok(model) = game_object.model(scene) else {
-            //        continue;
-            //    };
+                if let Some(to_allocate) = request.to_allocate.take() {
+                    ris_log::info!("to allocate: {:?}", to_allocate);
+                }
 
-            //    let Some(video_mesh_handle) = aref.video_mesh() else {
-            //        continue;
-            //    };
+                if let Some(to_free) = request.to_free.take() {
+                    ris_log::info!("to free: {:?}", to_free);
+                }
 
-            //    let Ok(Some(vertices)) = video_mesh_handle.vertices(scene) else {
-            //        continue;
-            //    };
+                let game_object = aref.game_object();
+                if game_object.is_active_in_hierarchy(scene) != Ok(true) {
+                    continue;
+                }
 
-            //    let Ok(Some(indices)) = video_mesh_handle.indices(scene) else {
-            //        continue;
-            //    };
-
-            //    let Ok(Some(index_count)) = video_mesh_handle.index_count(scene) else {
-            //        continue;
-            //    };
-
-                //let push_constants = PushConstants { model };
-                let push_constants = PushConstants {
-                    model: Mat4::init(1.0)
+                let Ok(model) = game_object.model(scene) else {
+                    continue;
                 };
+
+                let push_constants = PushConstants { model };
 
                 let push_constants_ptr = &push_constants as *const PushConstants as *const u8;
                 let size = std::mem::size_of::<PushConstants>();
@@ -783,37 +757,29 @@ impl SceneRenderer {
                     push_constants_bytes,
                 );
 
-                //device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
-                device.cmd_bind_vertex_buffers(
-                    *command_buffer,
-                    0,
-                    &self.test_mesh.vertex_buffers()?,
-                    &self.test_mesh.vertex_offsets()?,
-                );
+                //device.cmd_bind_vertex_buffers(
+                //    *command_buffer,
+                //    0,
+                //    &self.test_mesh.vertex_buffers()?,
+                //    &self.test_mesh.vertex_offsets()?,
+                //);
 
                 //device.cmd_bind_index_buffer(
                 //    *command_buffer,
-                //    indices.buffer,
-                //    0,
-                //    vk::IndexType::UINT16,
+                //    self.test_mesh.index_buffer()?,
+                //    self.test_mesh.index_offset()?,
+                //    self.test_mesh.index_type(),
                 //);
-                device.cmd_bind_index_buffer(
-                    *command_buffer,
-                    self.test_mesh.index_buffer()?,
-                    self.test_mesh.index_offset()?,
-                    self.test_mesh.index_type(),
-                );
 
-                //let index_count_u32 = index_count as u32;
-                device.cmd_draw_indexed(
-                    *command_buffer,
-                    self.test_mesh.index_count()?,
-                    1,
-                    0,
-                    0,
-                    0,
-                );
-            //}
+                //device.cmd_draw_indexed(
+                //    *command_buffer,
+                //    self.test_mesh.index_count()?,
+                //    1,
+                //    0,
+                //    0,
+                //    0,
+                //);
+            }
 
             device.cmd_end_render_pass(*command_buffer);
         }

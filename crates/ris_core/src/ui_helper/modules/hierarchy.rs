@@ -10,12 +10,14 @@ use ris_data::ecs::id::SceneKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
+use crate::inspector_util;
 use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
-const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
+//const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
+const PAYLOAD_ID: &str = "hierarchy drag drop payload id";
 
 pub struct HierarchyModule {
     shared_state: SharedStateWeakPtr,
@@ -208,43 +210,21 @@ impl HierarchyModule {
                 .set_selection(selection);
         }
 
-        if unsafe { imgui::sys::igBeginDragDropSource(0) } {
-            unsafe {
-                let payload = Box::new(handle);
-                let data = &*payload as *const GameObjectHandle as *const std::ffi::c_void;
-
-                // imgui::SetDragDropPayload uses memcpy to copy
-                // `data` to its internal payload. therefore, we
-                // may not pass ownership of our `payload`, and we
-                // may not take ownerwhip when accepting the
-                // payload.
-                imgui::sys::igSetDragDropPayload(
-                    PAYLOAD_ID.as_ptr(),
-                    data,
-                    std::mem::size_of::<GameObjectHandle>(),
-                    0,
-                );
-
-                let drag_text = CString::new(name)?;
-                imgui::sys::igText(drag_text.as_ptr());
-
-                imgui::sys::igEndDragDropSource();
-            }
+        if let Some(guard) = inspector_util::drag_drop_source() {
+            inspector_util::set_drag_drop_payload(
+                &guard,
+                PAYLOAD_ID,
+                handle,
+            )?;
         }
 
-        if unsafe { imgui::sys::igBeginDragDropTarget() } {
-            unsafe {
-                let payload = imgui::sys::igAcceptDragDropPayload(PAYLOAD_ID.as_ptr(), 0);
-                if !payload.is_null() {
-                    let data_ptr = (*payload).Data as *const GameObjectHandle;
-                    let dragged_handle = *data_ptr;
-
-                    if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
-                        ris_log::error!("failed to drag: {}", e);
-                    }
+        if let Some(guard) = inspector_util::drag_drop_target() {
+            if let Some(dragged_handle) = unsafe {inspector_util::accept_drag_drop_payload::<GameObjectHandle>(&guard, PAYLOAD_ID)}? {
+                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
+                    ris_log::error!("failed to drag: {}", e);
+                } else {
+                    ris_log::info!("dragged!");
                 }
-
-                imgui::sys::igEndDragDropTarget();
             }
         }
 

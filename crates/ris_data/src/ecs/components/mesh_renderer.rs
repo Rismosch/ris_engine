@@ -86,51 +86,34 @@ impl Component for MeshRendererComponent {
 }
 
 impl MeshRendererComponent {
-    pub fn create(game_object: GameObjectHandle) -> Self {
-        Self {
-            game_object,
-            ..Default::default()
-        }
-    }
-}
-
-impl MeshRendererComponentHandle {
-    fn update(self, scene: &Scene) -> EcsResult<MeshRendererComponentRequest> {
-        let ptr = scene.deref(self.into())?;
-        let mut aref_mut = ptr.borrow_mut();
-
-        let to_allocate = if aref_mut.current_asset_id == aref_mut.previous_asset_id {
+    pub fn update(&mut self) -> MeshRendererComponentRequest {
+        let to_allocate = if self.current_asset_id == self.previous_asset_id {
             None
         } else {
-            aref_mut.current_asset_id.clone()
+            self.current_asset_id.clone()
         };
 
-        let to_free = if aref_mut.current_lookup_id == aref_mut.previous_lookup_id {
+        let to_free = if self.current_lookup_id == self.previous_lookup_id {
             None
         } else {
-            Some(aref_mut.previous_lookup_id)
+            Some(self.previous_lookup_id)
         };
 
-        aref_mut.previous_asset_id = aref_mut.current_asset_id.clone();
-        aref_mut.previous_lookup_id = aref_mut.current_lookup_id;
+        self.previous_asset_id = self.current_asset_id.clone();
+        self.previous_lookup_id = self.current_lookup_id;
 
-        Ok(MeshRendererComponentRequest{
+        MeshRendererComponentRequest{
             to_allocate,
             to_free,
-        })
+        }
     }
 
-    fn lookup_id(self, scene: &Scene) -> EcsResult<MeshLookupId> {
-        let ptr = scene.deref(self.into())?;
-        let aref = ptr.borrow();
-        Ok(aref.current_lookup_id)
+    pub fn lookup_id(&mut self) -> MeshLookupId {
+        self.current_lookup_id
     }
 
-    fn set_lookup_id(self, scene: &Scene, id: MeshLookupId) -> EcsResult<()> {
-        let ptr = scene.deref(self.into())?;
-        let mut aref_mut = ptr.borrow_mut();
-        aref_mut.current_lookup_id = id;
-
-        Ok(())
+    pub fn set_lookup_id(&mut self, id: MeshLookupId) {
+        self.current_lookup_id = id;
     }
 }
+
