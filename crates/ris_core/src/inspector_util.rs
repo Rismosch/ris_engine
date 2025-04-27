@@ -2,9 +2,14 @@ use std::ffi::CString;
 
 use imgui::Ui;
 
+use ris_asset_data::AssetId;
 use ris_error::RisResult;
 use ris_math::vector::Vec3;
 
+use crate::inspector_util;
+use crate::ui_helper::SharedStateWeakPtr;
+
+// widgets
 pub fn help_marker(ui: &Ui, text: &str) {
     ui.text_disabled("(?)");
     if ui.is_item_hovered() {
@@ -16,6 +21,7 @@ pub fn help_marker(ui: &Ui, text: &str) {
     }
 }
 
+// fields
 pub fn drag_vec3(label: impl AsRef<str>, value: &mut Vec3) -> RisResult<bool> {
     let label_cstring = CString::new(label.as_ref())?;
     let mut array: [f32; 3] = (*value).into();
@@ -39,6 +45,83 @@ pub fn drag_vec3(label: impl AsRef<str>, value: &mut Vec3) -> RisResult<bool> {
     Ok(changed)
 }
 
+pub fn asset_field(
+    label: impl AsRef<str>,
+    shared_state: SharedStateWeakPtr,
+    value: &mut Option<AssetId>,
+    extension: Option<&str>,
+) -> RisResult<bool> {
+    let path = match &value {
+        Some(AssetId::Path(path)) => path.as_str(),
+        _ => {
+            *value = None;
+            "<none>"
+        },
+    };
+
+    let label_cstring = CString::new(label.as_ref())?;
+    let mut buf = path.to_string();
+    buf.push('\0');
+    let buf_ptr = buf.as_mut_ptr() as *mut i8;
+    let buf_capacity = buf.capacity();
+
+    let mut flags = 0;
+    flags |= imgui::sys::ImGuiInputTextFlags_ReadOnly;
+
+    let button_label = c"clear";
+
+    unsafe{imgui::sys::igInputText(
+        label_cstring.as_ptr(),
+        buf_ptr,
+        buf_capacity,
+        flags as i32,
+        None,
+        std::ptr::null_mut(),
+    )};
+
+    let mut changed = false;
+
+    if let Some(guard) = inspector_util::drag_drop_target() {
+        let mut aref_mut = shared_state.borrow_mut();
+        let payload = aref_mut.accept_drag_drop_payload::<AssetId>(
+            &guard,
+            "asset",
+        )?;
+
+        if let Some(payload_data) = payload {
+
+            let extension_matches = if let Some(extension) = extension {
+                payload_data.has_extension(extension)
+            } else {
+                true
+            };
+
+            if extension_matches {
+                *value = Some(payload_data);
+                changed = true;
+            }
+        }
+    }
+
+    let clear_pressed = unsafe {
+        imgui::sys::igSameLine(0.0, -1.0);
+        imgui::sys::igButton(
+            button_label.as_ptr(),
+            [0.0, 0.0].into(),
+        )
+    };
+
+    if clear_pressed {
+        *value = None;
+        changed = true;
+    }
+
+
+
+    Ok(changed)
+}
+
+// util
 pub fn purge_negative_0(value: &mut [f32]) {
     let tolerance = 0.000_01;
 
@@ -49,6 +132,7 @@ pub fn purge_negative_0(value: &mut [f32]) {
     }
 }
 
+// drag and drop
 pub struct DragDropSourceGuard(());
 pub struct DragDropTargetGuard(());
 

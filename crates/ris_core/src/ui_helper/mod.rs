@@ -124,7 +124,7 @@ pub struct SharedState {
 }
 
 impl SharedState {
-    fn new(app_info: AppInfo) -> SharedStateStrongPtr {
+    pub fn new(app_info: AppInfo) -> SharedStateStrongPtr {
         StrongPtr::new(ArefCell::new(Self {
             app_info,
             selector: Selector::default(),
@@ -133,17 +133,17 @@ impl SharedState {
         }))
     }
 
-    fn chunk(&mut self, index: usize) -> Option<AssetId> {
+    pub fn chunk(&mut self, index: usize) -> Option<AssetId> {
         self.reserve_chunks(index);
         self.loaded_chunks[index].clone()
     }
 
-    fn set_chunk(&mut self, index: usize, value: Option<AssetId>) {
+    pub fn set_chunk(&mut self, index: usize, value: Option<AssetId>) {
         self.reserve_chunks(index);
         self.loaded_chunks[index] = value;
     }
 
-    fn reserve_chunks(&mut self, index: usize) {
+    pub fn reserve_chunks(&mut self, index: usize) {
         let total_chunks = self.loaded_chunks.len() as isize;
         let iindex = index as isize;
         let chunks_to_add = iindex - total_chunks + 1;
@@ -152,7 +152,7 @@ impl SharedState {
         }
     }
 
-    fn set_drag_drop_payload<T: std::any::Any>(
+    pub fn set_drag_drop_payload<T: std::any::Any>(
         &mut self,
         guard: &inspector_util::DragDropSourceGuard,
         type_str: impl AsRef<str>,
@@ -168,7 +168,7 @@ impl SharedState {
         Ok(())
     }
 
-    fn accept_drag_drop_payload<T: std::any::Any>(
+    pub fn accept_drag_drop_payload<T: std::any::Any>(
         &mut self,
         guard: &inspector_util::DragDropTargetGuard,
         type_str: impl AsRef<str>,

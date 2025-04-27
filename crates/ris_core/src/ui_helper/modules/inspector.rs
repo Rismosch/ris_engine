@@ -436,14 +436,24 @@ impl IUiHelperModule for InspectorModule {
                     let delete_requested;
 
                     if component.type_id() == TypeId::of::<MeshRendererComponent>() {
-                        //let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
-                        //let aref_mut = ptr.borrow_mut();
+                        let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
+                        let mut aref_mut = ptr.borrow_mut();
 
                         let header =
                             ComponentHeader::draw(data.ui, format!("mesh##{:?}", component));
                         delete_requested = header.delete_requested;
                         if header.is_open {
-                            data.ui.text("im a mesh :)");
+                            let mut asset_id = aref_mut.asset_id();
+                            let changed = inspector_util::asset_field(
+                                "asset",
+                                self.shared_state.clone(),
+                                &mut asset_id,
+                                Some(ris_asset::assets::ris_mesh::EXTENSION),
+                            )?;
+
+                            if changed {
+                                aref_mut.set_asset_id(asset_id);
+                            }
                         }
 
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
