@@ -2,12 +2,14 @@ use std::ffi::CString;
 use std::path::Path;
 use std::path::PathBuf;
 
+use ris_asset_data::AssetId;
 use ris_asset::assets::ris_scene;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::inspector_util;
 use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
@@ -15,6 +17,8 @@ use crate::ui_helper::UiHelperDrawData;
 
 pub struct AssetBrowser {
     shared_state: SharedStateWeakPtr,
+    clicked_path: Option<PathBuf>,
+    is_dragging: bool,
 }
 
 impl IUiHelperModule for AssetBrowser {
@@ -23,7 +27,11 @@ impl IUiHelperModule for AssetBrowser {
     }
 
     fn build(shared_state: SharedStateWeakPtr) -> Box<dyn IUiHelperModule> {
-        Box::new(Self { shared_state })
+        Box::new(Self {
+            shared_state,
+            clicked_path: None,
+            is_dragging: false,
+        })
     }
 
     fn draw(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
@@ -53,9 +61,6 @@ impl AssetBrowser {
         let root = root.as_ref();
         let path = path.as_ref();
         let path_without_root = path.strip_prefix(root)?;
-
-        //let components = path.components().skip(1);
-        //let path_without_root = PathBuf::from_iter(components);
 
         let selection = self.shared_state.borrow().selector.get_selection();
         let is_selected = selection
@@ -99,6 +104,7 @@ impl AssetBrowser {
 
         let is_open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
+        // context menu
         if path.is_dir() && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
             if data.ui.menu_item("new scene") {
                 let mut new_path =
@@ -134,20 +140,50 @@ impl AssetBrowser {
             unsafe { imgui::sys::igEndPopup() };
         }
 
-        if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
-            let selection = Some(Selection::AssetPath(path_without_root.to_path_buf()));
-            ris_log::debug!(
-                "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
-                selection,
-                path,
-                root
-            );
-            self.shared_state
-                .borrow_mut()
-                .selector
-                .set_selection(selection);
+        // drag and drop
+        if path.is_file() {
+            if let Some(guard) = inspector_util::drag_drop_source() {
+                let asset_id = AssetId::Path(path_without_root.display().to_string());
+                let mut aref_mut = self.shared_state.borrow_mut();
+                aref_mut.set_drag_drop_payload(
+                    &guard,
+                    "asset",
+                    asset_id,
+                )?;
+                data.ui.text(file_name);
+                self.is_dragging = true;
+            }
         }
 
+        // click
+        // dragging takes several frames to be detected, but click goes through on frame 1. as
+        // such, we must jump through some hoops to detect whether the item was clicked or being
+        // dragged
+        if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
+            self.clicked_path = Some(path_without_root.to_path_buf());
+        }
+
+        if unsafe {imgui::sys::igIsMouseReleased_Nil(0)} {
+            if let Some(clicked_path) = self.clicked_path.take() {
+                if !self.is_dragging {
+                    let selection = Some(Selection::AssetPath(clicked_path));
+                    ris_log::debug!(
+                        "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
+                        selection,
+                        path,
+                        root
+                    );
+                    self.shared_state
+                        .borrow_mut()
+                        .selector
+                        .set_selection(selection);
+                }
+
+                self.is_dragging = false;
+            }
+        }
+
+        // draw children
         if !is_open {
             return Ok(());
         }

@@ -108,7 +108,15 @@ impl MeshRendererComponent {
         }
     }
 
-    pub fn lookup_id(&mut self) -> MeshLookupId {
+    pub fn asset_id(&self) -> Option<AssetId> {
+        self.current_asset_id.clone()
+    }
+
+    pub fn set_asset_id(&mut self, value: Option<AssetId>) {
+        self.current_asset_id = value;
+    }
+
+    pub fn lookup_id(&self) -> MeshLookupId {
         self.current_lookup_id
     }
 

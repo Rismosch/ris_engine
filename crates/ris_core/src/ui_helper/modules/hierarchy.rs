@@ -217,29 +217,28 @@ impl HierarchyModule {
         }
 
         if let Some(guard) = inspector_util::drag_drop_source() {
-            self.shared_state.borrow_mut()
-                .set_drag_drop_payload(
-                    &guard,
-                    PAYLOAD_ID,
-                    handle,
-                )?;
+            let mut aref_mut = self.shared_state.borrow_mut();
+            aref_mut.set_drag_drop_payload(
+                &guard,
+                PAYLOAD_ID,
+                handle,
+            )?;
             ui.text(name);
         }
 
         if let Some(guard) = inspector_util::drag_drop_target() {
-            let payload = self.shared_state.borrow_mut()
-                .accept_drag_drop_payload::<GameObjectHandle>(
-                    &guard,
-                    PAYLOAD_ID,
-                )?;
+            let mut aref_mut = self.shared_state.borrow_mut();
+
+            let payload = aref_mut.accept_drag_drop_payload::<GameObjectHandle>(
+                &guard,
+                PAYLOAD_ID,
+            )?;
             if let Some(dragged_handle) = payload {
                 ris_log::info!("accepted drag");
 
                 if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
                     ris_log::error!("failed to drag: {}", e);
                 }
-            } else {
-                ris_log::info!("did not accept drag");
             }
             
         }
