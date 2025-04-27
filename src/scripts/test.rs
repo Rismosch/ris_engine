@@ -43,8 +43,6 @@ impl Script for TestRotationScript {
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
         let ScriptInspectData { id, ui, .. } = data;
 
-        ui.label_text("label", "this is the script inspector");
-
         ris_core::inspector_util::drag_vec3(
             format!("rotation axis##{}", id),
             &mut self.rotation_axis,

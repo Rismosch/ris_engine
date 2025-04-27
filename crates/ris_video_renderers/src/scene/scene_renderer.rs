@@ -4,6 +4,7 @@ use std::ptr;
 
 use ash::vk;
 
+use ris_asset::assets::ris_mesh_lookup::MeshLookup;
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
 use ris_asset_data::mesh::MeshPrototype;
@@ -72,6 +73,7 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
+    mesh_lookup: MeshLookup,
 }
 
 impl SceneRenderer {
@@ -538,6 +540,9 @@ impl SceneRenderer {
             frames.push(frame);
         }
 
+        // lookup
+        let mesh_lookup = MeshLookup::default();
+
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -546,6 +551,7 @@ impl SceneRenderer {
             pipeline_layout,
             frames,
             texture,
+            mesh_lookup,
         })
     }
 
@@ -559,8 +565,16 @@ impl SceneRenderer {
     ) -> RisResult<()> {
 
         let VulkanCore {
-            device, swapchain, ..
+            instance,
+            suitable_device,
+            device,
+            swapchain,
+            ..
         } = core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
 
         let SwapchainEntry {
             index,
@@ -719,22 +733,35 @@ impl SceneRenderer {
             );
 
             for mesh_renderer_component in scene.mesh_renderer_components.iter() {
-                let mut aref = mesh_renderer_component.borrow_mut();
-                if !aref.is_alive {
+                let mut aref_mut = mesh_renderer_component.borrow_mut();
+                if !aref_mut.is_alive {
                     continue;
                 }
 
-                let mut request = aref.update();
+                let mut request = aref_mut.update();
 
                 if let Some(to_allocate) = request.to_allocate.take() {
-                    ris_log::info!("to allocate: {:?}", to_allocate);
+                    let lookup_id = self.mesh_lookup.alloc(
+                        device,
+                        physical_device_memory_properties,
+                        to_allocate,
+                    );
+                    aref_mut.set_lookup_id(lookup_id);
                 }
 
                 if let Some(to_free) = request.to_free.take() {
-                    ris_log::info!("to free: {:?}", to_free);
+                    self.mesh_lookup.free(
+                        device,
+                        to_free,
+                    );
                 }
 
-                let game_object = aref.game_object();
+                let lookup_id = aref_mut.lookup_id();
+                let Some(mesh) = self.mesh_lookup.get(lookup_id) else {
+                    continue;
+                };
+
+                let game_object = aref_mut.game_object();
                 if game_object.is_active_in_hierarchy(scene) != Ok(true) {
                     continue;
                 }
@@ -757,28 +784,28 @@ impl SceneRenderer {
                     push_constants_bytes,
                 );
 
-                //device.cmd_bind_vertex_buffers(
-                //    *command_buffer,
-                //    0,
-                //    &self.test_mesh.vertex_buffers()?,
-                //    &self.test_mesh.vertex_offsets()?,
-                //);
+                device.cmd_bind_vertex_buffers(
+                    *command_buffer,
+                    0,
+                    &mesh.vertex_buffers()?,
+                    &mesh.vertex_offsets()?,
+                );
 
-                //device.cmd_bind_index_buffer(
-                //    *command_buffer,
-                //    self.test_mesh.index_buffer()?,
-                //    self.test_mesh.index_offset()?,
-                //    self.test_mesh.index_type(),
-                //);
+                device.cmd_bind_index_buffer(
+                    *command_buffer,
+                    mesh.index_buffer()?,
+                    mesh.index_offset()?,
+                    mesh.index_type(),
+                );
 
-                //device.cmd_draw_indexed(
-                //    *command_buffer,
-                //    self.test_mesh.index_count()?,
-                //    1,
-                //    0,
-                //    0,
-                //    0,
-                //);
+                device.cmd_draw_indexed(
+                    *command_buffer,
+                    mesh.index_count()?,
+                    1,
+                    0,
+                    0,
+                    0,
+                );
             }
 
             device.cmd_end_render_pass(*command_buffer);

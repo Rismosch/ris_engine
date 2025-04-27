@@ -113,6 +113,9 @@ impl MeshRendererComponent {
     }
 
     pub fn set_asset_id(&mut self, value: Option<AssetId>) {
+        if value.is_none() {
+            self.current_lookup_id = MeshLookupId::default();
+        }
         self.current_asset_id = value;
     }
 

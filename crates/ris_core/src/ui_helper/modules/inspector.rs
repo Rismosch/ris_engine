@@ -454,6 +454,11 @@ impl IUiHelperModule for InspectorModule {
                             if changed {
                                 aref_mut.set_asset_id(asset_id);
                             }
+
+                            data.ui.label_text(
+                                "lookup id",
+                                aref_mut.lookup_id().index.to_string(),
+                            );
                         }
 
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
