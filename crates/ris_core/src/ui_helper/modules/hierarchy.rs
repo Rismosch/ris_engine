@@ -1,4 +1,3 @@
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
@@ -16,7 +15,6 @@ use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
-//const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
 const PAYLOAD_ID: &str = "hierarchy drag drop payload id";
 
 pub struct HierarchyModule {
@@ -180,6 +178,14 @@ impl HierarchyModule {
         let open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
+
+            {
+                let _disabled_token = ui.begin_disabled(handle.parent(scene)?.is_none());
+                if ui.menu_item("unparent") {
+                    handle.set_parent(scene, None, usize::MAX, true)?;
+                }
+            }
+
             if ui.menu_item("new") {
                 let kind = handle.scene_id().kind;
                 let is_game_object = matches!(
@@ -211,21 +217,31 @@ impl HierarchyModule {
         }
 
         if let Some(guard) = inspector_util::drag_drop_source() {
-            inspector_util::set_drag_drop_payload(
-                &guard,
-                PAYLOAD_ID,
-                handle,
-            )?;
+            self.shared_state.borrow_mut()
+                .set_drag_drop_payload(
+                    &guard,
+                    PAYLOAD_ID,
+                    handle,
+                )?;
+            ui.text(name);
         }
 
         if let Some(guard) = inspector_util::drag_drop_target() {
-            if let Some(dragged_handle) = unsafe {inspector_util::accept_drag_drop_payload::<GameObjectHandle>(&guard, PAYLOAD_ID)}? {
+            let payload = self.shared_state.borrow_mut()
+                .accept_drag_drop_payload::<GameObjectHandle>(
+                    &guard,
+                    PAYLOAD_ID,
+                )?;
+            if let Some(dragged_handle) = payload {
+                ris_log::info!("accepted drag");
+
                 if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
                     ris_log::error!("failed to drag: {}", e);
-                } else {
-                    ris_log::info!("dragged!");
                 }
+            } else {
+                ris_log::info!("did not accept drag");
             }
+            
         }
 
         if open {

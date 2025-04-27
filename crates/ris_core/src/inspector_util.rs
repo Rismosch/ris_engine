@@ -80,7 +80,18 @@ pub fn drag_drop_target() -> Option<DragDropTargetGuard> {
     }
 }
 
-pub fn set_drag_drop_payload<T: Copy>(
+#[repr(C)]
+struct AnyPayload {
+    type_id: std::any::TypeId,
+}
+
+#[repr(C)]
+struct GenericPayload<T: Copy> {
+    type_id: std::any::TypeId,
+    data: T,
+}
+
+pub fn set_drag_drop_payload<T: Copy + 'static>(
     _guard: &DragDropSourceGuard,
     type_str: impl AsRef<str>,
     data: T,
@@ -91,24 +102,23 @@ pub fn set_drag_drop_payload<T: Copy>(
     ris_error::assert!(type_cstring.as_bytes().len() <= 32)?;
     let type_ = type_cstring.as_ptr();
 
-    let data = &data as *const T as *const std::ffi::c_void;
+    let payload = GenericPayload {
+        type_id: std::any::TypeId::of::<T>(),
+        data,
+    };
+    let data = &payload as *const GenericPayload<T> as *const std::ffi::c_void;
 
     let payload_was_accepted = unsafe {imgui::sys::igSetDragDropPayload(
         type_,
         data,
-        std::mem::size_of::<T>(),
+        std::mem::size_of::<GenericPayload<T>>(),
         0,
     )};
 
     Ok(payload_was_accepted)
 }
 
-/// # Safety
-///
-/// Payload stores no type information. Client code _absolutely_
-/// must make sure, that the payload does indeed store data of
-/// type `T`.
-pub unsafe fn accept_drag_drop_payload<T: Copy>(
+pub fn accept_drag_drop_payload<T: Copy + 'static>(
     _guard: &DragDropTargetGuard,
     type_str: impl AsRef<str>,
 ) -> RisResult<Option<T>> {
@@ -123,8 +133,12 @@ pub unsafe fn accept_drag_drop_payload<T: Copy>(
         return Ok(None);
     }
 
-    let data_ptr = (*payload).Data as *const T;
-    let data = (*data_ptr).clone();
+    let type_id = std::any::TypeId::of::<T>();
+    let payload_data = unsafe {(*payload).Data};
+    let payload_type_id = unsafe{&*(payload_data as *const AnyPayload)}.type_id;
+    ris_error::assert!(type_id == payload_type_id)?;
+
+    let data = unsafe{&*(payload_data as *const GenericPayload<T>)}.data.clone();
     Ok(Some(data))
 }
 

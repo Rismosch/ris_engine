@@ -37,6 +37,8 @@ use modules::log::LogModule;
 use modules::metrics::MetricsModule;
 use modules::settings::SettingsModule;
 
+use crate::inspector_util;
+
 const CRASH_TIMEOUT_IN_SECS: u64 = 3;
 
 const WINDOW_OFFSET: f32 = 19.0;
@@ -118,6 +120,7 @@ pub struct SharedState {
     app_info: AppInfo,
     selector: Selector,
     loaded_chunks: Vec<Option<AssetId>>,
+    drag_drop_payload: Option<Box<dyn std::any::Any>>,
 }
 
 impl SharedState {
@@ -126,6 +129,7 @@ impl SharedState {
             app_info,
             selector: Selector::default(),
             loaded_chunks: Vec::new(),
+            drag_drop_payload: None,
         }))
     }
 
@@ -145,6 +149,57 @@ impl SharedState {
         let chunks_to_add = iindex - total_chunks + 1;
         for _ in 0..chunks_to_add {
             self.loaded_chunks.push(None);
+        }
+    }
+
+    fn set_drag_drop_payload<T: std::any::Any>(
+        &mut self,
+        guard: &inspector_util::DragDropSourceGuard,
+        type_str: impl AsRef<str>,
+        data: T,
+    ) -> RisResult<()> {
+        inspector_util::set_drag_drop_payload(
+            guard,
+            type_str,
+            (),
+        )?;
+
+        self.drag_drop_payload = Some(Box::new(data));
+        Ok(())
+    }
+
+    fn accept_drag_drop_payload<T: std::any::Any>(
+        &mut self,
+        guard: &inspector_util::DragDropTargetGuard,
+        type_str: impl AsRef<str>,
+    ) -> RisResult<Option<T>> {
+        let imgui_payload = inspector_util::accept_drag_drop_payload::<()>(
+            guard,
+            type_str,
+        )?;
+
+        if imgui_payload.is_none() {
+            return Ok(None);
+        }
+
+        let Some(payload) = self.drag_drop_payload.take() else {
+            return Ok(None);
+        };
+
+        match payload.downcast::<T>() {
+            Ok(payload) => Ok(Some(*payload)),
+            Err(payload) => {
+                let type_name = std::any::type_name::<T>();
+                let expected = std::any::TypeId::of::<T>();
+                let actual = payload.type_id();
+                ris_log::error!(
+                    "expected payload to be type \"{}\" {:?} but was {:?}",
+                    type_name,
+                    expected,
+                    actual,
+                );
+                Ok(None)
+            },
         }
     }
 }
