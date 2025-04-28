@@ -10,7 +10,7 @@ use crate::ecs::scene::Scene;
 use crate::ecs::scene_stream::SceneReader;
 use crate::ecs::scene_stream::SceneWriter;
 
-pub const EMPTY_MESH_PATH: &str = "models/empty.ris_mesh";
+pub const ERROR_MESH_PATH: &str = "models/Suzanne.ris_mesh";
 
 pub struct MeshRendererComponentRequest {
     pub to_allocate: Option<AssetId>,
@@ -62,7 +62,7 @@ impl Component for MeshRendererComponent {
                 stream.write_asset_id(asset_id.clone())?;
             },
             None => {
-                let asset_id = AssetId::Path(EMPTY_MESH_PATH.to_string());
+                let asset_id = AssetId::Path(ERROR_MESH_PATH.to_string());
                 ris_io::write_bool(stream, false)?;
                 stream.write_asset_id(asset_id)?;
             },

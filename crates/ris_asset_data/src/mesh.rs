@@ -100,6 +100,74 @@ struct GpuMeshInner {
     buffer: Buffer,
 }
 
+impl TryFrom<CpuMesh> for MeshPrototype {
+    type Error = RisError;
+
+    fn try_from(value: CpuMesh) -> Result<Self, Self::Error> {
+        let mut stream = std::io::Cursor::new(value.data);
+        let s = &mut stream;
+
+        let vertex_bytes = ris_io::read_at(s, value.p_vertices)?;
+        let vertex_stride = std::mem::size_of::<Vec3>();
+        ris_error::assert!(vertex_bytes.len() % vertex_stride == 0)?;
+        let vertex_count = vertex_bytes.len() / vertex_stride;
+
+        let normal_bytes = ris_io::read_at(s, value.p_normals)?;
+        let normal_stride = std::mem::size_of::<Vec3>();
+        ris_error::assert!(normal_bytes.len() % normal_stride == 0)?;
+        let normal_count = normal_bytes.len() / normal_stride;
+
+        let uv_bytes = ris_io::read_at(s, value.p_uvs)?;
+        let uv_stride = std::mem::size_of::<Vec2>();
+        ris_error::assert!(uv_bytes.len() % uv_stride == 0)?;
+        let uv_count = uv_bytes.len() / uv_stride;
+
+        let index_bytes = ris_io::read_at(s, value.p_indices)?;
+        let index_stride = std::mem::size_of::<u16>();
+        ris_error::assert!(index_bytes.len() % index_stride == 0)?;
+        let index_count = index_bytes.len() / index_stride;
+
+        let mut stream = std::io::Cursor::new(vertex_bytes);
+        let s = &mut stream;
+        let mut vertices = Vec::with_capacity(vertex_count);
+        for _ in 0..vertex_count {
+            let vertex = ris_io::read_vec3(s)?;
+            vertices.push(vertex);
+        }
+
+        let mut stream = std::io::Cursor::new(normal_bytes);
+        let s = &mut stream;
+        let mut normals = Vec::with_capacity(normal_count);
+        for _ in 0..normal_count {
+            let normal = ris_io::read_vec3(s)?;
+            normals.push(normal);
+        }
+
+        let mut stream = std::io::Cursor::new(uv_bytes);
+        let s = &mut stream;
+        let mut uvs = Vec::with_capacity(uv_count);
+        for _ in 0..uv_count {
+            let uv = ris_io::read_vec2(s)?;
+            uvs.push(uv);
+        }
+
+        let mut stream = std::io::Cursor::new(index_bytes);
+        let s = &mut stream;
+        let mut indices = Vec::with_capacity(index_count);
+        for _ in 0..index_count {
+            let index = ris_io::read_u16(s)?;
+            indices.push(index);
+        }
+
+        Ok(Self{
+            vertices,
+            normals,
+            uvs,
+            indices,
+        })
+    }
+}
+
 impl TryFrom<MeshPrototype> for CpuMesh {
     type Error = RisError;
 

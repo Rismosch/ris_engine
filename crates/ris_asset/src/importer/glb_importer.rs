@@ -1,9 +1,12 @@
+use std::f32::consts::PI;
 use std::path::Path;
 use std::io::SeekFrom;
 
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_error::prelude::*;
+use ris_math::quaternion::Quat;
+use ris_math::vector::Vec3;
 
 use crate::assets::ris_mesh;
 use crate::codecs::gltf::Accessor;
@@ -108,7 +111,6 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
     // meshes
     for (mesh_index, mesh) in gltf.meshes.iter().enumerate() {
-        ris_log::fatal!("mesh: {:#?}", mesh);
         for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
             ris_error::assert!(primitive.mode == MeshPrimitiveMode::Triangles)?;
 
@@ -156,6 +158,17 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 p_indices,
                 data: stream.into_inner(),
             };
+
+            // correct coordinate system
+            let mut mesh_prototype = MeshPrototype::try_from(cpu_mesh)?;
+            let rotation = Quat::angle_axis(0.5 * PI, Vec3::right());
+            for vertex in mesh_prototype.vertices.iter_mut() {
+                *vertex = rotation.rotate(*vertex);
+            }
+            for normal in mesh_prototype.normals.iter_mut() {
+                *normal = rotation.rotate(*normal);
+            }
+            let cpu_mesh = CpuMesh::try_from(mesh_prototype)?;
 
             let bytes = ris_mesh::serialize(&cpu_mesh)?;
 

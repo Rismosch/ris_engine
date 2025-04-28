@@ -29,7 +29,7 @@ layout(location = 0) out vec4 out_color;
 #vertex
 void main() {
     out_vertex = ubo.proj * ubo.view * pc.model * vec4(in_vertex, 1.0);
-    out_normal = in_normal;
+    out_normal = (pc.model * vec4(in_normal, 0.0)).xyz;
     out_uv = in_uv;
 
     gl_Position = out_vertex;
