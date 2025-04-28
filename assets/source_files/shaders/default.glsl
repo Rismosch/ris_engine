@@ -29,7 +29,7 @@ layout(location = 0) out vec4 out_color;
 #vertex
 void main() {
     out_vertex = ubo.proj * ubo.view * pc.model * vec4(in_vertex, 1.0);
-    out_normal = (pc.model * vec4(in_normal, 0.0)).xyz;
+    out_normal = mat3(transpose(inverse(pc.model))) * in_normal;
     out_uv = in_uv;
 
     gl_Position = out_vertex;
@@ -37,6 +37,16 @@ void main() {
 
 #fragment
 void main() {
+    vec3 light_direction = vec3(1.0, -1.0, 1.0);
+    vec3 light_color = vec3(0.981, 0.912, 0.788);
+    vec3 ambient_color = vec3(0.624, 0.321, 0.096);
+    vec3 object_color = vec3(1.0);
+
+    float diff = max(dot(in_normal, light_direction), 0.0);
+    vec3 diffuse = diff * light_color;
+
     //out_color = texture(tex_sampler, in_uv);
-    out_color = vec4(in_normal, 1.0);
+
+    vec3 result = (ambient_color + diffuse) * object_color;
+    out_color = vec4(result, 1.0);
 }
