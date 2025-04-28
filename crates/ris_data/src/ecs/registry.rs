@@ -68,7 +68,8 @@ impl Registry {
     }
 
     pub fn new(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<Self> {
-        let components: Vec<Box<dyn IComponentFactory>> = vec![ Self::component::<DynScriptComponent>()?,
+        let components: Vec<Box<dyn IComponentFactory>> = vec![
+            Self::component::<DynScriptComponent>()?,
             Self::component::<MeshRendererComponent>()?,
         ];
 

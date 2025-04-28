@@ -1,8 +1,8 @@
 use ash::vk;
 
-use ris_asset_data::AssetId;
 use ris_asset_data::mesh::GpuMesh;
 use ris_asset_data::mesh::MeshLookupId;
+use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
 
@@ -29,20 +29,16 @@ impl MeshLookup {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         id: AssetId,
     ) -> MeshLookupId {
-        let position = self.entries
-            .iter()
-            .position(|x| x.id == id);
+        let position = self.entries.iter().position(|x| x.id == id);
 
         let (index, entry) = match position {
             Some(position) => {
                 let entry = &mut self.entries[position];
                 entry.reference_count += 1;
                 (position, entry)
-            },
+            }
             None => {
-                let position = self.entries
-                    .iter()
-                    .position(|x| x.reference_count == 0);
+                let position = self.entries.iter().position(|x| x.reference_count == 0);
 
                 match position {
                     Some(position) => {
@@ -50,7 +46,7 @@ impl MeshLookup {
                         entry.id = id;
                         entry.reference_count += 1;
                         (position, entry)
-                    },
+                    }
                     None => {
                         let index = self.entries.len();
                         let entry = MeshLookupEntry {
@@ -61,26 +57,24 @@ impl MeshLookup {
                         self.entries.push(entry);
                         let entry = self.entries.last_mut().unwrap();
                         (index, entry)
-                    },
+                    }
                 }
-            },
+            }
         };
 
         if entry.value.is_none() {
             let device = device.clone();
             let receiver = crate::load_async(entry.id.clone(), move |bytes| {
                 let cpu_mesh = super::ris_mesh::deserialize(&bytes)?;
-                unsafe {GpuMesh::from_cpu_mesh(
-                    &device,
-                    physical_device_memory_properties,
-                    cpu_mesh,
-                )}
+                unsafe {
+                    GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh)
+                }
             });
 
             entry.value = Some(MeshLookupEntryState::Loading(receiver));
         }
 
-        MeshLookupId{index}
+        MeshLookupId { index }
     }
 
     pub fn free(&mut self, device: &ash::Device, id: MeshLookupId) {
@@ -111,9 +105,7 @@ impl MeshLookup {
     }
 
     pub fn get(&mut self, id: MeshLookupId) -> Option<&GpuMesh> {
-        let Some(entry) = self.entries.get_mut(id.index) else {
-            return None;
-        };
+        let entry = self.entries.get_mut(id.index)?;
 
         match entry.value.take() {
             Some(MeshLookupEntryState::Loading(receiver)) => match receiver.receive() {
@@ -121,7 +113,7 @@ impl MeshLookup {
                 Ok(Err(e)) => {
                     ris_log::error!("failed to load mesh {:?}: {}", entry.id, e);
                     entry.value = None;
-                },
+                }
                 Err(receiver) => entry.value = Some(MeshLookupEntryState::Loading(receiver)),
             },
             value => entry.value = value,
@@ -133,4 +125,3 @@ impl MeshLookup {
         }
     }
 }
-

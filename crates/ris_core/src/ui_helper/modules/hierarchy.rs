@@ -178,7 +178,6 @@ impl HierarchyModule {
         let open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
-
             {
                 let _disabled_token = ui.begin_disabled(handle.parent(scene)?.is_none());
                 if ui.menu_item("unparent") {
@@ -218,21 +217,15 @@ impl HierarchyModule {
 
         if let Some(guard) = inspector_util::drag_drop_source() {
             let mut aref_mut = self.shared_state.borrow_mut();
-            aref_mut.set_drag_drop_payload(
-                &guard,
-                PAYLOAD_ID,
-                handle,
-            )?;
+            aref_mut.set_drag_drop_payload(&guard, PAYLOAD_ID, handle)?;
             ui.text(name);
         }
 
         if let Some(guard) = inspector_util::drag_drop_target() {
             let mut aref_mut = self.shared_state.borrow_mut();
 
-            let payload = aref_mut.accept_drag_drop_payload::<GameObjectHandle>(
-                &guard,
-                PAYLOAD_ID,
-            )?;
+            let payload =
+                aref_mut.accept_drag_drop_payload::<GameObjectHandle>(&guard, PAYLOAD_ID)?;
             if let Some(dragged_handle) = payload {
                 ris_log::info!("accepted drag");
 
@@ -240,7 +233,6 @@ impl HierarchyModule {
                     ris_log::error!("failed to drag: {}", e);
                 }
             }
-            
         }
 
         if open {

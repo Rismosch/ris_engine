@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
-use ris_error::prelude::*;
 use ris_asset_data::mesh::CpuMesh;
+use ris_error::prelude::*;
 
 use super::ris_header::RisHeader;
 
@@ -38,7 +38,7 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
     let p_indices = ris_io::read_fat_ptr(s)?;
     let data = ris_io::read_to_end(s)?;
 
-    Ok(CpuMesh{
+    Ok(CpuMesh {
         p_vertices,
         p_normals,
         p_uvs,

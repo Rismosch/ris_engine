@@ -31,9 +31,7 @@ impl std::fmt::Display for RisError {
         write!(
             f,
             ": \"{}\"\n    at {}:{}",
-            self.message,
-            self.file,
-            self.line,
+            self.message, self.file, self.line,
         )
     }
 }
@@ -109,7 +107,7 @@ macro_rules! new {
             source_type_name,
             message,
             file,
-            line, 
+            line,
             backtrace,
         }
     }};

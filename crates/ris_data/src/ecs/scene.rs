@@ -295,9 +295,7 @@ impl Scene {
                     Err(EcsError::TypeDoesNotMatchSceneKind)
                 }
             }
-            SceneKind::Other => {
-                Err(EcsError::TypeDoesNotMatchSceneKind)
-            }
+            SceneKind::Other => Err(EcsError::TypeDoesNotMatchSceneKind),
         }
     }
 }

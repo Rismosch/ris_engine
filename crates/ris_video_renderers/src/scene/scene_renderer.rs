@@ -1,5 +1,3 @@
-use std::io::Seek;
-use std::io::Write;
 use std::ptr;
 
 use ash::vk;
@@ -7,17 +5,11 @@ use ash::vk;
 use ris_asset::assets::ris_mesh_lookup::MeshLookup;
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_asset_data::mesh::MeshPrototype;
-use ris_asset_data::mesh::GpuMesh;
-//use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
-//use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
-use ris_math::vector::Vec3;
-use ris_math::vector::Vec2;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
@@ -43,7 +35,6 @@ pub struct UniformBufferObject {
     pub view: Mat4,
     pub proj: Mat4,
 }
-
 
 pub struct SceneFrame {
     framebuffer: Option<vk::Framebuffer>,
@@ -563,7 +554,6 @@ impl SceneRenderer {
         camera: &Camera,
         scene: &Scene,
     ) -> RisResult<()> {
-
         let VulkanCore {
             instance,
             suitable_device,
@@ -750,10 +740,7 @@ impl SceneRenderer {
                 }
 
                 if let Some(to_free) = request.to_free.take() {
-                    self.mesh_lookup.free(
-                        device,
-                        to_free,
-                    );
+                    self.mesh_lookup.free(device, to_free);
                 }
 
                 let lookup_id = aref_mut.lookup_id();
@@ -798,14 +785,7 @@ impl SceneRenderer {
                     mesh.index_type(),
                 );
 
-                device.cmd_draw_indexed(
-                    *command_buffer,
-                    mesh.index_count()?,
-                    1,
-                    0,
-                    0,
-                    0,
-                );
+                device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);
             }
 
             device.cmd_end_render_pass(*command_buffer);

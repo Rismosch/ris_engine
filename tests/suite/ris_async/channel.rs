@@ -140,4 +140,3 @@ fn should_steal_from_different_threads() {
         assert_eq!(total_count, 500)
     })
 }
-

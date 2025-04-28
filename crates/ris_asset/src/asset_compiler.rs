@@ -149,7 +149,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 for reference in references {
                     ris_io::write_uint(stream, reference)?;
                 }
-                ris_io::write(stream, &ris_asset_content)?;
+                ris_io::write(stream, ris_asset_content)?;
 
                 modified_file_content.into_inner()
             }

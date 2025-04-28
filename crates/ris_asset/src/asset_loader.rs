@@ -8,8 +8,8 @@ use std::sync::Mutex;
 
 use ris_asset_data::asset_id::AssetId;
 use ris_async::oneshot_channel;
-use ris_async::OneshotSender;
 use ris_async::OneshotReceiver;
+use ris_async::OneshotSender;
 use ris_async::ThreadPool;
 use ris_data::info::app_info::AppInfo;
 use ris_error::prelude::*;
@@ -123,10 +123,10 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
 }
 
 pub fn load_raw_async(id: AssetId) -> OneshotReceiver<RisResult<Vec<u8>>> {
-    load_async(id, |bytes| Ok(bytes))
+    load_async(id, Ok)
 }
 
-pub fn load_async<T, F>(id: AssetId, deserializer: F) -> OneshotReceiver<RisResult<T>> 
+pub fn load_async<T, F>(id: AssetId, deserializer: F) -> OneshotReceiver<RisResult<T>>
 where
     T: Send + 'static,
     F: FnOnce(Vec<u8>) -> RisResult<T> + Send + 'static,
@@ -135,7 +135,7 @@ where
 
     let request: Box<dyn LoadRequest> = Box::new(GenericLoadRequest {
         id,
-        inner: Some(GenericLoadRequestInner{
+        inner: Some(GenericLoadRequestInner {
             deserializer,
             sender,
         }),
@@ -165,10 +165,16 @@ fn load_asset_thread(receiver: Receiver<Box<dyn LoadRequest>>, mut loader: Inter
         let result = match &mut loader {
             InternalLoader::Compiled(loader) => match request.id() {
                 AssetId::Index(id) => loader.load(id),
-                AssetId::Path(id) => ris_error::new_result!("invalid id. expected compiled but was directory. id: {:?}",id),
+                AssetId::Path(id) => ris_error::new_result!(
+                    "invalid id. expected compiled but was directory. id: {:?}",
+                    id
+                ),
             },
             InternalLoader::Directory(loader) => match request.id() {
-                AssetId::Index(id) => ris_error::new_result!("invalid id. expected directory but was compiled. id: {:?}",id),
+                AssetId::Index(id) => ris_error::new_result!(
+                    "invalid id. expected directory but was compiled. id: {:?}",
+                    id
+                ),
                 AssetId::Path(id) => loader.load(id.clone()),
             },
         };

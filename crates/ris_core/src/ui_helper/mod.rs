@@ -158,11 +158,7 @@ impl SharedState {
         type_str: impl AsRef<str>,
         data: T,
     ) -> RisResult<()> {
-        inspector_util::set_drag_drop_payload(
-            guard,
-            type_str,
-            (),
-        )?;
+        inspector_util::set_drag_drop_payload(guard, type_str, ())?;
 
         self.drag_drop_payload = Some(Box::new(data));
         Ok(())
@@ -173,10 +169,7 @@ impl SharedState {
         guard: &inspector_util::DragDropTargetGuard,
         type_str: impl AsRef<str>,
     ) -> RisResult<Option<T>> {
-        let imgui_payload = inspector_util::accept_drag_drop_payload::<()>(
-            guard,
-            type_str,
-        )?;
+        let imgui_payload = inspector_util::accept_drag_drop_payload::<()>(guard, type_str)?;
 
         if imgui_payload.is_none() {
             return Ok(None);
@@ -199,7 +192,7 @@ impl SharedState {
                     actual,
                 );
                 Ok(None)
-            },
+            }
         }
     }
 }

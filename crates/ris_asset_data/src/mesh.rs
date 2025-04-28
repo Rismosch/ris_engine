@@ -15,27 +15,25 @@ pub struct MeshLookupId {
 
 impl Default for MeshLookupId {
     fn default() -> Self {
-        Self {
-            index: usize::MAX,
-        }
+        Self { index: usize::MAX }
     }
 }
 
 pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 3] = [
     // vertex
-    vk::VertexInputBindingDescription{
+    vk::VertexInputBindingDescription {
         binding: 0,
         stride: std::mem::size_of::<Vec3>() as u32,
         input_rate: vk::VertexInputRate::VERTEX,
     },
     // normal
-    vk::VertexInputBindingDescription{
+    vk::VertexInputBindingDescription {
         binding: 1,
         stride: std::mem::size_of::<Vec3>() as u32,
         input_rate: vk::VertexInputRate::VERTEX,
     },
     // uv
-    vk::VertexInputBindingDescription{
+    vk::VertexInputBindingDescription {
         binding: 2,
         stride: std::mem::size_of::<Vec2>() as u32,
         input_rate: vk::VertexInputRate::VERTEX,
@@ -44,21 +42,21 @@ pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 3] = 
 
 pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3] = [
     // vertex
-    vk::VertexInputAttributeDescription{
+    vk::VertexInputAttributeDescription {
         location: 0,
         binding: 0,
         format: vk::Format::R32G32B32_SFLOAT,
         offset: 0,
     },
     // normal
-    vk::VertexInputAttributeDescription{
+    vk::VertexInputAttributeDescription {
         location: 1,
         binding: 1,
         format: vk::Format::R32G32B32_SFLOAT,
         offset: 0,
     },
     // uv
-    vk::VertexInputAttributeDescription{
+    vk::VertexInputAttributeDescription {
         location: 2,
         binding: 2,
         format: vk::Format::R32G32_SFLOAT,
@@ -159,7 +157,7 @@ impl TryFrom<CpuMesh> for MeshPrototype {
             indices.push(index);
         }
 
-        Ok(Self{
+        Ok(Self {
             vertices,
             normals,
             uvs,
@@ -176,7 +174,7 @@ impl TryFrom<MeshPrototype> for CpuMesh {
         ris_error::assert!(value.normals.len() == len)?;
         ris_error::assert!(value.uvs.len() == len)?;
         for &index in value.indices.iter() {
-            let index = usize::try_from(index)?;
+            let index = usize::from(index);
             ris_error::assert!(index < len)?;
         }
 
@@ -207,7 +205,7 @@ impl TryFrom<MeshPrototype> for CpuMesh {
         let p_indices = FatPtr::begin_end(indices_addr, end)?;
         let data = cursor.into_inner();
 
-        Ok(CpuMesh{
+        Ok(CpuMesh {
             p_vertices,
             p_normals,
             p_uvs,
@@ -220,7 +218,7 @@ impl TryFrom<MeshPrototype> for CpuMesh {
 impl GpuMesh {
     pub fn free(&mut self, device: &ash::Device) {
         if let Some(inner) = self.inner.take() {
-            unsafe {inner.buffer.free(device)};
+            unsafe { inner.buffer.free(device) };
         };
     }
 
@@ -230,17 +228,13 @@ impl GpuMesh {
         value: MeshPrototype,
     ) -> RisResult<Self> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        unsafe {Self::from_cpu_mesh(
-            device,
-            physical_device_memory_properties,
-            cpu_mesh,
-        )}
+        unsafe { Self::from_cpu_mesh(device, physical_device_memory_properties, cpu_mesh) }
     }
 
     /// # Safety
     ///
-    /// this method does not validate the CpuMesh. client code must 
-    /// ensure that the pointers point inside the data array, and the 
+    /// this method does not validate the CpuMesh. client code must
+    /// ensure that the pointers point inside the data array, and the
     /// indices may not index outside the vertex range.
     pub unsafe fn from_cpu_mesh(
         device: &ash::Device,
@@ -262,22 +256,24 @@ impl GpuMesh {
                 | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
-        unsafe {buffer.write(device, &value.data)}?;
+        unsafe { buffer.write(device, &value.data) }?;
 
-        Ok(GpuMesh{inner: Some(GpuMeshInner{
-            p_vertices,
-            p_normals,
-            p_uvs,
-            p_indices,
-            index_count,
-            buffer,
-        })})
+        Ok(GpuMesh {
+            inner: Some(GpuMeshInner {
+                p_vertices,
+                p_normals,
+                p_uvs,
+                p_indices,
+                index_count,
+                buffer,
+            }),
+        })
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {
         let Some(inner) = self.inner.as_ref() else {
             return ris_error::new_result!("gpu mesh was freed");
-        }; 
+        };
 
         Ok(vec![
             inner.buffer.buffer,
@@ -289,19 +285,15 @@ impl GpuMesh {
     pub fn vertex_offsets(&self) -> RisResult<Vec<vk::DeviceSize>> {
         let Some(inner) = self.inner.as_ref() else {
             return ris_error::new_result!("gpu mesh was freed");
-        }; 
+        };
 
-        Ok(vec![
-           inner.p_vertices,
-           inner.p_normals,
-           inner.p_uvs,
-        ])
+        Ok(vec![inner.p_vertices, inner.p_normals, inner.p_uvs])
     }
 
     pub fn index_buffer(&self) -> RisResult<vk::Buffer> {
         let Some(inner) = self.inner.as_ref() else {
             return ris_error::new_result!("gpu mesh was freed");
-        }; 
+        };
 
         Ok(inner.buffer.buffer)
     }
@@ -309,7 +301,7 @@ impl GpuMesh {
     pub fn index_offset(&self) -> RisResult<vk::DeviceSize> {
         let Some(inner) = self.inner.as_ref() else {
             return ris_error::new_result!("gpu mesh was freed");
-        }; 
+        };
 
         Ok(inner.p_indices)
     }
@@ -317,7 +309,7 @@ impl GpuMesh {
     pub fn index_count(&self) -> RisResult<u32> {
         let Some(inner) = self.inner.as_ref() else {
             return ris_error::new_result!("gpu mesh was freed");
-        }; 
+        };
 
         Ok(inner.index_count)
     }

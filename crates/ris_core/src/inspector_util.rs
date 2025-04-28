@@ -56,7 +56,7 @@ pub fn asset_field(
         _ => {
             *value = None;
             "<none>"
-        },
+        }
     };
 
     let label_cstring = CString::new(label.as_ref())?;
@@ -70,26 +70,24 @@ pub fn asset_field(
 
     let button_label = c"clear";
 
-    unsafe{imgui::sys::igInputText(
-        label_cstring.as_ptr(),
-        buf_ptr,
-        buf_capacity,
-        flags as i32,
-        None,
-        std::ptr::null_mut(),
-    )};
+    unsafe {
+        imgui::sys::igInputText(
+            label_cstring.as_ptr(),
+            buf_ptr,
+            buf_capacity,
+            flags as i32,
+            None,
+            std::ptr::null_mut(),
+        )
+    };
 
     let mut changed = false;
 
     if let Some(guard) = inspector_util::drag_drop_target() {
         let mut aref_mut = shared_state.borrow_mut();
-        let payload = aref_mut.accept_drag_drop_payload::<AssetId>(
-            &guard,
-            "asset",
-        )?;
+        let payload = aref_mut.accept_drag_drop_payload::<AssetId>(&guard, "asset")?;
 
         if let Some(payload_data) = payload {
-
             let extension_matches = if let Some(extension) = extension {
                 payload_data.has_extension(extension)
             } else {
@@ -105,18 +103,13 @@ pub fn asset_field(
 
     let clear_pressed = unsafe {
         imgui::sys::igSameLine(0.0, -1.0);
-        imgui::sys::igButton(
-            button_label.as_ptr(),
-            [0.0, 0.0].into(),
-        )
+        imgui::sys::igButton(button_label.as_ptr(), [0.0, 0.0].into())
     };
 
     if clear_pressed {
         *value = None;
         changed = true;
     }
-
-
 
     Ok(changed)
 }
@@ -138,18 +131,18 @@ pub struct DragDropTargetGuard(());
 
 impl Drop for DragDropSourceGuard {
     fn drop(&mut self) {
-        unsafe {imgui::sys::igEndDragDropSource()};
+        unsafe { imgui::sys::igEndDragDropSource() };
     }
 }
 
 impl Drop for DragDropTargetGuard {
     fn drop(&mut self) {
-        unsafe {imgui::sys::igEndDragDropTarget()};
+        unsafe { imgui::sys::igEndDragDropTarget() };
     }
 }
 
 pub fn drag_drop_source() -> Option<DragDropSourceGuard> {
-    if unsafe {imgui::sys::igBeginDragDropSource(0)} {
+    if unsafe { imgui::sys::igBeginDragDropSource(0) } {
         Some(DragDropSourceGuard(()))
     } else {
         None
@@ -157,7 +150,7 @@ pub fn drag_drop_source() -> Option<DragDropSourceGuard> {
 }
 
 pub fn drag_drop_target() -> Option<DragDropTargetGuard> {
-    if unsafe {imgui::sys::igBeginDragDropTarget() } {
+    if unsafe { imgui::sys::igBeginDragDropTarget() } {
         Some(DragDropTargetGuard(()))
     } else {
         None
@@ -192,12 +185,9 @@ pub fn set_drag_drop_payload<T: Copy + 'static>(
     };
     let data = &payload as *const GenericPayload<T> as *const std::ffi::c_void;
 
-    let payload_was_accepted = unsafe {imgui::sys::igSetDragDropPayload(
-        type_,
-        data,
-        std::mem::size_of::<GenericPayload<T>>(),
-        0,
-    )};
+    let payload_was_accepted = unsafe {
+        imgui::sys::igSetDragDropPayload(type_, data, std::mem::size_of::<GenericPayload<T>>(), 0)
+    };
 
     Ok(payload_was_accepted)
 }
@@ -212,17 +202,16 @@ pub fn accept_drag_drop_payload<T: Copy + 'static>(
     ris_error::assert!(type_cstring.as_bytes().len() <= 32)?;
     let type_ = type_cstring.as_ptr();
 
-    let payload = unsafe {imgui::sys::igAcceptDragDropPayload(type_, 0)};
+    let payload = unsafe { imgui::sys::igAcceptDragDropPayload(type_, 0) };
     if payload.is_null() {
         return Ok(None);
     }
 
     let type_id = std::any::TypeId::of::<T>();
-    let payload_data = unsafe {(*payload).Data};
-    let payload_type_id = unsafe{&*(payload_data as *const AnyPayload)}.type_id;
+    let payload_data = unsafe { (*payload).Data };
+    let payload_type_id = unsafe { &*(payload_data as *const AnyPayload) }.type_id;
     ris_error::assert!(type_id == payload_type_id)?;
 
-    let data = unsafe{&*(payload_data as *const GenericPayload<T>)}.data.clone();
+    let data = unsafe { &*(payload_data as *const GenericPayload<T>) }.data;
     Ok(Some(data))
 }
-

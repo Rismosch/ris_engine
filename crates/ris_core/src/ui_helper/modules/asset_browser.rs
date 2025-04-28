@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_asset_data::AssetId;
 use ris_asset::assets::ris_scene;
+use ris_asset_data::AssetId;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_error::Extensions;
@@ -119,7 +119,8 @@ impl AssetBrowser {
                     ));
                 }
 
-                let scene_create_info = SceneCreateInfo::with_single_static_chunk(data.state.scene.registry.clone());
+                let scene_create_info =
+                    SceneCreateInfo::with_single_static_chunk(data.state.scene.registry.clone());
                 let empty_scene = Scene::new(scene_create_info)?;
                 let scene_bytes = ris_scene::serialize(&empty_scene, 0)?;
 
@@ -145,11 +146,7 @@ impl AssetBrowser {
             if let Some(guard) = inspector_util::drag_drop_source() {
                 let asset_id = AssetId::Path(path_without_root.display().to_string());
                 let mut aref_mut = self.shared_state.borrow_mut();
-                aref_mut.set_drag_drop_payload(
-                    &guard,
-                    "asset",
-                    asset_id,
-                )?;
+                aref_mut.set_drag_drop_payload(&guard, "asset", asset_id)?;
                 data.ui.text(file_name);
                 self.is_dragging = true;
             }
@@ -159,11 +156,11 @@ impl AssetBrowser {
         // dragging takes several frames to be detected, but click goes through on frame 1. as
         // such, we must jump through some hoops to detect whether the item was clicked or being
         // dragged
-        if unsafe {imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen()} {
+        if unsafe { imgui::sys::igIsItemClicked(0) && !imgui::sys::igIsItemToggledOpen() } {
             self.clicked_path = Some(path_without_root.to_path_buf());
         }
 
-        if unsafe {imgui::sys::igIsMouseReleased_Nil(0)} {
+        if unsafe { imgui::sys::igIsMouseReleased_Nil(0) } {
             if let Some(clicked_path) = self.clicked_path.take() {
                 if !self.is_dragging {
                     let selection = Some(Selection::AssetPath(clicked_path));

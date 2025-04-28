@@ -1,18 +1,14 @@
-use std::cell::UnsafeCell;
 use std::future::Future;
-use std::mem::MaybeUninit;
 use std::pin::Pin;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 use std::task::Wake;
 
-use crate::ThreadPool;
 use crate::oneshot_channel;
-use crate::OneshotSender;
 use crate::OneshotReceiver;
+use crate::OneshotSender;
+use crate::ThreadPool;
 
 struct EmptyWaker;
 
@@ -42,8 +38,8 @@ impl<T> Future for JobFuture<T> {
 impl<T> JobFuture<T> {
     pub fn new() -> (Self, JobFutureSetter<T>) {
         let (sender, receiver) = oneshot_channel();
-        let future = Self{receiver};
-        let setter = JobFutureSetter{sender};
+        let future = Self { receiver };
+        let setter = JobFutureSetter { sender };
         (future, setter)
     }
 

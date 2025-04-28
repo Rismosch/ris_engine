@@ -11,10 +11,13 @@ fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
     info.dynamic_game_objects = 5;
     info.script_components = 5;
-    info.registry = Some(Arc::new(Registry::new(vec![
-        Registry::script::<TestScriptString>().unwrap(),
-        Registry::script::<TestScriptISize>().unwrap(),
-    ]).unwrap()));
+    info.registry = Some(Arc::new(
+        Registry::new(vec![
+            Registry::script::<TestScriptString>().unwrap(),
+            Registry::script::<TestScriptISize>().unwrap(),
+        ])
+        .unwrap(),
+    ));
     info
 }
 

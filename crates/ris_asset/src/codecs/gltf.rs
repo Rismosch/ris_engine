@@ -238,7 +238,7 @@ pub enum ImageData {
     BufferView {
         mime_type: ImageMimeType,
         buffer_view: usize,
-    }
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -246,7 +246,6 @@ pub enum ImageMimeType {
     Jpeg,
     Png,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Material {
@@ -377,18 +376,18 @@ pub struct Node {
     pub extras: Option<JsonValue>,
 }
 
-/// gltf coordinate system is 
+/// gltf coordinate system is
 ///  x => left
 ///  y => up
 ///  z => forward
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeTransform {
     Matrix([f32; 16]),
-    TRS{
+    TRS {
         translation: [f32; 3],
         rotation: [f32; 4],
         scale: [f32; 3],
-    }
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -503,12 +502,24 @@ impl Camera {
                 let n = znear;
 
                 [
-                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
-                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
-                    0.0, 0.0, -1.0, -2.0 * n,
-                    0.0, 0.0, -1.0, 0.0,
+                    1.0 / (a * f32::tan(0.5 * y)),
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0 / f32::tan(0.5 * y),
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    -1.0,
+                    -2.0 * n,
+                    0.0,
+                    0.0,
+                    -1.0,
+                    0.0,
                 ]
-            },
+            }
             // finite perspective projection
             CameraKind::Perspective(CameraPerspective {
                 aspect_ratio,
@@ -523,12 +534,24 @@ impl Camera {
                 let n = znear;
 
                 [
-                    1.0 / (a * f32::tan(0.5 * y)), 0.0, 0.0, 0.0,
-                    0.0, 1.0 / f32::tan(0.5 * y), 0.0, 0.0,
-                    0.0, 0.0, (f + n) / (n - f), (2.0 * f * n) / (n - f),
-                    0.0, 0.0, -1.0, 0.0,
+                    1.0 / (a * f32::tan(0.5 * y)),
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0 / f32::tan(0.5 * y),
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    (f + n) / (n - f),
+                    (2.0 * f * n) / (n - f),
+                    0.0,
+                    0.0,
+                    -1.0,
+                    0.0,
                 ]
-            },
+            }
             // orthographic projection
             CameraKind::Orthographic(CameraOrthographic {
                 xmag,
@@ -543,12 +566,24 @@ impl Camera {
                 let n = znear;
 
                 [
-                    1.0 / r, 0.0, 0.0, 0.0,
-                    0.0, 1.0 / t, 0.0, 0.0,
-                    0.0, 0.0, 2.0 / (n - f), (f + n) / (n - f),
-                    0.0, 0.0, 0.0, 1.0,
+                    1.0 / r,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0 / t,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    2.0 / (n - f),
+                    (f + n) / (n - f),
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
                 ]
-            },
+            }
         }
     }
 }
@@ -584,7 +619,8 @@ impl Gltf {
             let minor_min_version = min_version[1].parse::<usize>()?;
 
             let is_greater_case_1 = major_version < major_min_version;
-            let is_greater_case_2 = major_version == major_min_version && minor_version < minor_min_version; 
+            let is_greater_case_2 =
+                major_version == major_min_version && minor_version < minor_min_version;
             if is_greater_case_1 || is_greater_case_2 {
                 return ris_error::new_result!(
                     "minVersion {:?} may not be greater than version {:?}",
@@ -606,12 +642,14 @@ impl Gltf {
         };
 
         // nodes
-        let json_nodes = json_gltf.get::<Vec<&JsonObject>>("nodes")
+        let json_nodes = json_gltf
+            .get::<Vec<&JsonObject>>("nodes")
             .unwrap_or(Vec::with_capacity(0));
         let mut nodes = Vec::with_capacity(json_nodes.len());
         for json_node in json_nodes {
             let camera = json_node.get::<usize>("camera");
-            let children = json_node.get::<Vec<usize>>("children")
+            let children = json_node
+                .get::<Vec<usize>>("children")
                 .unwrap_or(Vec::with_capacity(0));
             let skin = json_node.get::<usize>("skin");
             let matrix = json_node.get::<Vec<f32>>("matrix");
@@ -619,20 +657,18 @@ impl Gltf {
             let rotation = json_node.get::<Vec<f32>>("rotation");
             let scale = json_node.get::<Vec<f32>>("scale");
             let translation = json_node.get::<Vec<f32>>("translation");
-            let weights = json_node.get::<Vec<f32>>("weights")
+            let weights = json_node
+                .get::<Vec<f32>>("weights")
                 .unwrap_or(Vec::with_capacity(0));
             let name = json_node.get::<String>("name");
             let extensions = json_node.get::<&JsonObject>("extensions").cloned();
             let extras = json_node.get::<&JsonValue>("extras").cloned();
 
-
             let transform = match (matrix, translation, rotation, scale) {
                 (Some(m), None, None, None) => {
                     let mut matrix = [
-                        1.0,0.0,0.0,0.0,
-                        0.0,1.0,0.0,0.0,
-                        0.0,0.0,1.0,0.0,
-                        0.0,0.0,0.0,1.0,
+                        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                        1.0,
                     ];
 
                     if let Ok(m) = m.try_into() {
@@ -640,7 +676,7 @@ impl Gltf {
                     }
 
                     NodeTransform::Matrix(matrix)
-                },
+                }
                 (None, t, r, s) => {
                     let mut translation = [0.0, 0.0, 0.0];
                     let mut rotation = [0.0, 0.0, 0.0, 1.0];
@@ -667,10 +703,9 @@ impl Gltf {
                         rotation,
                         scale,
                     }
-                },
+                }
                 _ => return ris_error::new_result!("invalid transform"),
             };
-
 
             let node = Node {
                 camera,
@@ -690,12 +725,14 @@ impl Gltf {
         // todo: check for circular hiearchy
 
         // scenes
-        let json_scenes = json_gltf.get::<Vec<&JsonObject>>("scenes")
+        let json_scenes = json_gltf
+            .get::<Vec<&JsonObject>>("scenes")
             .unwrap_or(Vec::with_capacity(0));
 
         let mut scenes = Vec::with_capacity(json_scenes.len());
         for json_scene in json_scenes {
-            let nodes = json_scene.get::<Vec<usize>>("nodes")
+            let nodes = json_scene
+                .get::<Vec<usize>>("nodes")
                 .unwrap_or(Vec::with_capacity(0));
             let name = json_scene.get::<String>("name");
             let extensions = json_scene.get::<&JsonObject>("extensions").cloned();
@@ -715,7 +752,8 @@ impl Gltf {
         let scene = json_gltf.get::<usize>("scene");
 
         // buffers
-        let json_buffers = json_gltf.get::<Vec<&JsonObject>>("buffers")
+        let json_buffers = json_gltf
+            .get::<Vec<&JsonObject>>("buffers")
             .unwrap_or(Vec::with_capacity(0));
 
         let mut buffers = Vec::with_capacity(json_buffers.len());
@@ -739,20 +777,25 @@ impl Gltf {
         }
 
         // buffer views
-        let json_buffer_views = json_gltf.get::<Vec<&JsonObject>>("bufferViews")
+        let json_buffer_views = json_gltf
+            .get::<Vec<&JsonObject>>("bufferViews")
             .unwrap_or(Vec::with_capacity(0));
 
         let mut buffer_views = Vec::with_capacity(json_buffer_views.len());
         for json_buffer_view in json_buffer_views {
             let buffer = json_buffer_view.get::<usize>("buffer").into_ris_error()?;
             let byte_offset = json_buffer_view.get::<usize>("byteOffset").unwrap_or(0);
-            let byte_length = json_buffer_view.get::<usize>("byteLength").into_ris_error()?;
+            let byte_length = json_buffer_view
+                .get::<usize>("byteLength")
+                .into_ris_error()?;
             let byte_stride = json_buffer_view.get::<usize>("byteStride");
             let target = match json_buffer_view.get::<usize>("target") {
                 None => None,
                 Some(34962) => Some(BufferViewTarget::ArrayBuffer),
                 Some(34963) => Some(BufferViewTarget::ElementArrayBuffer),
-                Some(target) => return ris_error::new_result!("invalid buffer view target: {}", target),
+                Some(target) => {
+                    return ris_error::new_result!("invalid buffer view target: {}", target)
+                }
             };
             let name = json_buffer_view.get::<String>("name");
             let extensions = json_buffer_view.get::<&JsonObject>("extensions").cloned();
@@ -772,14 +815,14 @@ impl Gltf {
         }
 
         // accessors
-        let json_accessors = json_gltf.get::<Vec<&JsonObject>>("accessors")
+        let json_accessors = json_gltf
+            .get::<Vec<&JsonObject>>("accessors")
             .unwrap_or(Vec::with_capacity(0));
 
         let mut accessors = Vec::with_capacity(json_accessors.len());
         for json_accessor in json_accessors {
             let buffer_view = json_accessor.get::<usize>("bufferView");
-            let byte_offset = json_accessor.get::<usize>("byteOffset")
-                .unwrap_or(0);
+            let byte_offset = json_accessor.get::<usize>("byteOffset").unwrap_or(0);
             let component_type = match json_accessor.get::<usize>("componentType") {
                 Some(5120) => AccessorComponentType::I8,
                 Some(5121) => AccessorComponentType::U8,
@@ -787,10 +830,11 @@ impl Gltf {
                 Some(5123) => AccessorComponentType::U16,
                 Some(5125) => AccessorComponentType::U32,
                 Some(5126) => AccessorComponentType::F32,
-                component_type => return ris_error::new_result!("invalid component type: {:?}", component_type),
+                component_type => {
+                    return ris_error::new_result!("invalid component type: {:?}", component_type)
+                }
             };
-            let normalized = json_accessor.get::<bool>("normalized")
-                .unwrap_or(false);
+            let normalized = json_accessor.get::<bool>("normalized").unwrap_or(false);
             let count = json_accessor.get::<usize>("count").into_ris_error()?;
             let accessor_type = match json_accessor.get::<&str>("type") {
                 Some("SCALAR") => AccessorType::Scalar,
@@ -800,23 +844,31 @@ impl Gltf {
                 Some("MAT2") => AccessorType::Mat2,
                 Some("MAT3") => AccessorType::Mat3,
                 Some("MAT4") => AccessorType::Mat4,
-                accessor_type => return ris_error::new_result!("invalid accessor type: {:?}", accessor_type),
+                accessor_type => {
+                    return ris_error::new_result!("invalid accessor type: {:?}", accessor_type)
+                }
             };
-            let max = json_accessor.get::<Vec<JsonNumber>>("max")
+            let max = json_accessor
+                .get::<Vec<JsonNumber>>("max")
                 .unwrap_or(Vec::with_capacity(0));
-            let min = json_accessor.get::<Vec<JsonNumber>>("min")
+            let min = json_accessor
+                .get::<Vec<JsonNumber>>("min")
                 .unwrap_or(Vec::with_capacity(0));
             let sparse = if let Some(json_sparse) = json_accessor.get::<&JsonObject>("sparse") {
                 let count = json_sparse.get::<usize>("count").into_ris_error()?;
                 let json_indices = json_sparse.get::<&JsonObject>("indices").into_ris_error()?;
                 let buffer_view = json_indices.get::<usize>("bufferView").into_ris_error()?;
-                let byte_offset = json_indices.get::<usize>("bufferOffset")
-                    .unwrap_or(0);
+                let byte_offset = json_indices.get::<usize>("bufferOffset").unwrap_or(0);
                 let component_type = match json_indices.get::<usize>("componentType") {
                     Some(5121) => AccessorSparseIndicesComponentType::U8,
                     Some(5123) => AccessorSparseIndicesComponentType::U16,
                     Some(5125) => AccessorSparseIndicesComponentType::U32,
-                    component_type => return ris_error::new_result!("invalid accessor spare indices component type: {:?}", component_type),
+                    component_type => {
+                        return ris_error::new_result!(
+                            "invalid accessor spare indices component type: {:?}",
+                            component_type
+                        )
+                    }
                 };
                 let extensions = json_indices.get::<&JsonObject>("extensions").cloned();
                 let extras = json_indices.get::<&JsonValue>("extras").cloned();
@@ -829,8 +881,7 @@ impl Gltf {
                 };
                 let json_values = json_sparse.get::<&JsonObject>("values").into_ris_error()?;
                 let buffer_view = json_values.get::<usize>("bufferView").into_ris_error()?;
-                let byte_offset = json_values.get::<usize>("byteOffset")
-                    .unwrap_or(0);
+                let byte_offset = json_values.get::<usize>("byteOffset").unwrap_or(0);
                 let extensions = json_values.get::<&JsonObject>("extensions").cloned();
                 let extras = json_values.get::<&JsonValue>("extras").cloned();
                 let values = AccessorSparseValues {
@@ -844,7 +895,7 @@ impl Gltf {
 
                 // todo: validate sparse
 
-                Some(AccessorSparse{
+                Some(AccessorSparse {
                     count,
                     indices,
                     values,
@@ -876,39 +927,60 @@ impl Gltf {
         }
 
         // todo: validate accessor
-        
+
         // meshes
-        let json_meshes = json_gltf.get::<Vec<&JsonObject>>("meshes")
+        let json_meshes = json_gltf
+            .get::<Vec<&JsonObject>>("meshes")
             .unwrap_or(Vec::with_capacity(0));
         let mut meshes = Vec::with_capacity(json_meshes.len());
         for json_mesh in json_meshes {
-            let json_primitives = json_mesh.get::<Vec<&JsonObject>>("primitives").into_ris_error()?;
+            let json_primitives = json_mesh
+                .get::<Vec<&JsonObject>>("primitives")
+                .into_ris_error()?;
             ris_error::assert!(!json_primitives.is_empty())?;
             let mut primitives = Vec::with_capacity(json_primitives.len());
             for json_primitive in json_primitives {
-                let json_attributes = json_primitive.get::<&JsonObject>("attributes").into_ris_error()?;
+                let json_attributes = json_primitive
+                    .get::<&JsonObject>("attributes")
+                    .into_ris_error()?;
                 let mut attributes = Vec::with_capacity(json_attributes.members.len());
-                for JsonMember { name: json_name, value: json_value } in json_attributes.members.iter() {
+                for JsonMember {
+                    name: json_name,
+                    value: json_value,
+                } in json_attributes.members.iter()
+                {
                     let name = match json_name.as_str() {
                         "POSITION" => MeshPrimitiveAttributeName::Position,
                         "NORMAL" => MeshPrimitiveAttributeName::Normal,
                         "TANGENT" => MeshPrimitiveAttributeName::Tangent,
-                        _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveAttributeName::TexCoord(parse_postfix(json_name)?),
-                        _ if json_name.starts_with("COLOR_") => MeshPrimitiveAttributeName::Color(parse_postfix(json_name)?),
-                        _ if json_name.starts_with("JOINTS_") => MeshPrimitiveAttributeName::Joints(parse_postfix(json_name)?),
-                        _ if json_name.starts_with("WEIGHTS_") => MeshPrimitiveAttributeName::Weights(parse_postfix(json_name)?),
-                        _ if json_name.starts_with("_") => MeshPrimitiveAttributeName::Custom(json_name.clone()),
-                        _ => return ris_error::new_result!("invalid mesh primitive attribute name: {:?}", json_name),
+                        _ if json_name.starts_with("TEXCOORD_") => {
+                            MeshPrimitiveAttributeName::TexCoord(parse_postfix(json_name)?)
+                        }
+                        _ if json_name.starts_with("COLOR_") => {
+                            MeshPrimitiveAttributeName::Color(parse_postfix(json_name)?)
+                        }
+                        _ if json_name.starts_with("JOINTS_") => {
+                            MeshPrimitiveAttributeName::Joints(parse_postfix(json_name)?)
+                        }
+                        _ if json_name.starts_with("WEIGHTS_") => {
+                            MeshPrimitiveAttributeName::Weights(parse_postfix(json_name)?)
+                        }
+                        _ if json_name.starts_with("_") => {
+                            MeshPrimitiveAttributeName::Custom(json_name.clone())
+                        }
+                        _ => {
+                            return ris_error::new_result!(
+                                "invalid mesh primitive attribute name: {:?}",
+                                json_name
+                            )
+                        }
                     };
                     let accessor = usize::try_from(json_value)?;
 
                     // todo: validate data, the primitive attributes impose restrictions on the
                     // accessors
 
-                    let attribute = MeshPrimitiveAttribute {
-                        name,
-                        accessor,
-                    };
+                    let attribute = MeshPrimitiveAttribute { name, accessor };
                     attributes.push(attribute);
                 }
 
@@ -923,29 +995,44 @@ impl Gltf {
                     Some(4) => MeshPrimitiveMode::Triangles,
                     Some(5) => MeshPrimitiveMode::TriangleStrip,
                     Some(6) => MeshPrimitiveMode::TriangleFan,
-                    mode => return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode),
+                    mode => {
+                        return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode)
+                    }
                 };
-                let json_targets = json_mesh.get::<Vec<&JsonObject>>("targets")
+                let json_targets = json_mesh
+                    .get::<Vec<&JsonObject>>("targets")
                     .unwrap_or(Vec::with_capacity(0));
                 let mut targets = Vec::with_capacity(json_targets.len());
                 for json_target in json_targets {
                     let mut target = Vec::new();
-                    for JsonMember { name: json_name, value: json_value } in json_target.members.iter() {
+                    for JsonMember {
+                        name: json_name,
+                        value: json_value,
+                    } in json_target.members.iter()
+                    {
                         let name = match json_name.as_str() {
                             "POSITION" => MeshPrimitiveTargetName::Position,
                             "NORMAL" => MeshPrimitiveTargetName::Normal,
                             "TANGENT" => MeshPrimitiveTargetName::Tangent,
-                            _ if json_name.starts_with("TEXCOORD_") => MeshPrimitiveTargetName::TexCoord(parse_postfix(json_name)?),
-                            _ if json_name.starts_with("COLOR_") => MeshPrimitiveTargetName::Color(parse_postfix(json_name)?),
-                            _ if json_name.starts_with("_") => MeshPrimitiveTargetName::Custom(json_name.clone()),
-                            _ => return ris_error::new_result!("invalid mesh primitive attribute name: {:?}", json_name),
+                            _ if json_name.starts_with("TEXCOORD_") => {
+                                MeshPrimitiveTargetName::TexCoord(parse_postfix(json_name)?)
+                            }
+                            _ if json_name.starts_with("COLOR_") => {
+                                MeshPrimitiveTargetName::Color(parse_postfix(json_name)?)
+                            }
+                            _ if json_name.starts_with("_") => {
+                                MeshPrimitiveTargetName::Custom(json_name.clone())
+                            }
+                            _ => {
+                                return ris_error::new_result!(
+                                    "invalid mesh primitive attribute name: {:?}",
+                                    json_name
+                                )
+                            }
                         };
                         let accessor = usize::try_from(json_value)?;
 
-                        let entry = MeshPrimitiveTarget {
-                            name,
-                            accessor,
-                        };
+                        let entry = MeshPrimitiveTarget { name, accessor };
                         target.push(entry);
                     }
 
@@ -966,7 +1053,8 @@ impl Gltf {
                 };
                 primitives.push(primitive);
             }
-            let weights = json_mesh.get::<Vec<JsonNumber>>("weights")
+            let weights = json_mesh
+                .get::<Vec<JsonNumber>>("weights")
                 .unwrap_or(Vec::with_capacity(0));
             let name = json_mesh.get::<String>("name");
             let extensions = json_mesh.get::<&JsonObject>("extensions").cloned();
@@ -983,7 +1071,8 @@ impl Gltf {
         }
 
         // skins
-        let json_skins = json_gltf.get::<Vec<&JsonObject>>("skins")
+        let json_skins = json_gltf
+            .get::<Vec<&JsonObject>>("skins")
             .unwrap_or(Vec::with_capacity(0));
         let mut skins = Vec::with_capacity(json_skins.len());
         for json_skin in json_skins {
@@ -994,7 +1083,7 @@ impl Gltf {
             let extensions = json_skin.get::<&JsonObject>("extensions").cloned();
             let extras = json_skin.get::<&JsonValue>("extras").cloned();
 
-            let skin = Skin{
+            let skin = Skin {
                 inverse_bind_matrices,
                 skeleton,
                 joints,
@@ -1009,7 +1098,8 @@ impl Gltf {
         // skins pose restrictions on nodes, accessors and meshes
 
         // textures
-        let json_textures = json_gltf.get::<Vec<&JsonObject>>("textures")
+        let json_textures = json_gltf
+            .get::<Vec<&JsonObject>>("textures")
             .unwrap_or(Vec::with_capacity(0));
         let mut textures = Vec::with_capacity(json_textures.len());
         for json_texture in json_textures {
@@ -1030,7 +1120,8 @@ impl Gltf {
         }
 
         // images
-        let json_images = json_gltf.get::<Vec<&JsonObject>>("images")
+        let json_images = json_gltf
+            .get::<Vec<&JsonObject>>("images")
             .unwrap_or(Vec::with_capacity(0));
         let mut images = Vec::with_capacity(json_images.len());
         for json_image in json_images {
@@ -1065,7 +1156,8 @@ impl Gltf {
         }
 
         // samplers
-        let json_samplers = json_gltf.get::<Vec<&JsonObject>>("samplers")
+        let json_samplers = json_gltf
+            .get::<Vec<&JsonObject>>("samplers")
             .unwrap_or(Vec::with_capacity(0));
         let mut samplers = Vec::with_capacity(json_samplers.len());
         for json_sampler in json_samplers {
@@ -1073,7 +1165,9 @@ impl Gltf {
                 Some(9728) => Some(SamplerMagFilter::Nearest),
                 Some(9729) => Some(SamplerMagFilter::Linear),
                 None => None,
-                mag_filter => return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter),
+                mag_filter => {
+                    return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter)
+                }
             };
             let min_filter = match json_sampler.get::<usize>("minFilter") {
                 Some(9728) => Some(SamplerMinFilter::Nearest),
@@ -1083,7 +1177,9 @@ impl Gltf {
                 Some(9986) => Some(SamplerMinFilter::LinearMipmapNearest),
                 Some(9987) => Some(SamplerMinFilter::LinearMipmapLinear),
                 None => None,
-                min_filter => return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter),
+                min_filter => {
+                    return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter)
+                }
             };
             let wrap_s = match json_sampler.get::<usize>("wrapS") {
                 Some(33071) => SamplerWrap::ClampToEdge,
@@ -1092,7 +1188,7 @@ impl Gltf {
                 None => SamplerWrap::Repeat,
                 wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", wrap),
             };
-            let wrap_t= match json_sampler.get::<usize>("wrapT") {
+            let wrap_t = match json_sampler.get::<usize>("wrapT") {
                 Some(33071) => SamplerWrap::ClampToEdge,
                 Some(33648) => SamplerWrap::MirroredRepeat,
                 Some(10497) => SamplerWrap::Repeat,
@@ -1117,52 +1213,68 @@ impl Gltf {
         }
 
         // materials
-        let json_materials = json_gltf.get::<Vec<&JsonObject>>("materials")
+        let json_materials = json_gltf
+            .get::<Vec<&JsonObject>>("materials")
             .unwrap_or(Vec::with_capacity(0));
         let mut materials = Vec::with_capacity(json_materials.len());
         for json_material in json_materials {
             let name = json_material.get::<String>("name");
             let extensions = json_material.get::<&JsonObject>("extensions").cloned();
             let extras = json_material.get::<&JsonValue>("extras").cloned();
-            let pbr_metallic_roughness = match json_material.get::<&JsonObject>("pbrMetallicRoughness") {
+            let pbr_metallic_roughness = match json_material
+                .get::<&JsonObject>("pbrMetallicRoughness")
+            {
                 Some(json_pbr_metallic_roughness) => {
-                    let base_color_factor = match json_pbr_metallic_roughness.get::<Vec<f32>>("baseColorFactor") {
-                        Some(base_color_factor) => {
-                            ris_error::assert!(base_color_factor.len() == 4)?;
-                            for &base_color_factor in base_color_factor.iter() {
-                                ris_error::assert!(base_color_factor >= 0.0)?;
-                                ris_error::assert!(base_color_factor <= 1.0)?;
-                            }
+                    let base_color_factor =
+                        match json_pbr_metallic_roughness.get::<Vec<f32>>("baseColorFactor") {
+                            Some(base_color_factor) => {
+                                ris_error::assert!(base_color_factor.len() == 4)?;
+                                for &base_color_factor in base_color_factor.iter() {
+                                    ris_error::assert!(base_color_factor >= 0.0)?;
+                                    ris_error::assert!(base_color_factor <= 1.0)?;
+                                }
 
-                            [
-                                base_color_factor[0],
-                                base_color_factor[1],
-                                base_color_factor[2],
-                                base_color_factor[3],
-                            ]
-                        },
-                        None => [0.0; 4],
-                    };
-                    let base_color_texture = match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
-                        Some(json_base_color_texture) => Some(parse_texture_info(json_base_color_texture)?),
-                        None => None,
-                    };
-                    let metallic_factor = json_pbr_metallic_roughness.get::<f32>("metallicFactor")
+                                [
+                                    base_color_factor[0],
+                                    base_color_factor[1],
+                                    base_color_factor[2],
+                                    base_color_factor[3],
+                                ]
+                            }
+                            None => [0.0; 4],
+                        };
+                    let base_color_texture =
+                        match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
+                            Some(json_base_color_texture) => {
+                                Some(parse_texture_info(json_base_color_texture)?)
+                            }
+                            None => None,
+                        };
+                    let metallic_factor = json_pbr_metallic_roughness
+                        .get::<f32>("metallicFactor")
                         .unwrap_or(1.0);
                     ris_error::assert!(metallic_factor >= 0.0)?;
                     ris_error::assert!(metallic_factor <= 1.0)?;
-                    let roughness_factor = json_pbr_metallic_roughness.get::<f32>("roughnessFactor")
+                    let roughness_factor = json_pbr_metallic_roughness
+                        .get::<f32>("roughnessFactor")
                         .unwrap_or(1.0);
                     ris_error::assert!(roughness_factor >= 0.0)?;
                     ris_error::assert!(roughness_factor <= 1.0)?;
-                    let metallic_roughness_texture = match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
-                        Some(json_metallic_roughness_texture) => Some(parse_texture_info(json_metallic_roughness_texture)?),
-                        None => None,
-                    };
-                    let extensions = json_pbr_metallic_roughness.get::<&JsonObject>("extensions").cloned();
-                    let extras = json_pbr_metallic_roughness.get::<&JsonValue>("extras").cloned();
+                    let metallic_roughness_texture =
+                        match json_pbr_metallic_roughness.get::<&JsonObject>("baseColorTexture") {
+                            Some(json_metallic_roughness_texture) => {
+                                Some(parse_texture_info(json_metallic_roughness_texture)?)
+                            }
+                            None => None,
+                        };
+                    let extensions = json_pbr_metallic_roughness
+                        .get::<&JsonObject>("extensions")
+                        .cloned();
+                    let extras = json_pbr_metallic_roughness
+                        .get::<&JsonValue>("extras")
+                        .cloned();
 
-                    Some(MaterialPbrMetallicRoughness{
+                    Some(MaterialPbrMetallicRoughness {
                         base_color_factor,
                         base_color_texture,
                         metallic_factor,
@@ -1171,14 +1283,13 @@ impl Gltf {
                         extensions,
                         extras,
                     })
-                },
+                }
                 None => None,
             };
             let normal_texture = match json_material.get::<&JsonObject>("normalTexture") {
                 Some(json_normal_texture) => {
                     let texture_info = parse_texture_info(json_normal_texture)?;
-                    let scale = json_normal_texture.get::<f32>("scale")
-                        .unwrap_or(1.0);
+                    let scale = json_normal_texture.get::<f32>("scale").unwrap_or(1.0);
 
                     Some(MaterialNormalTextureInfo {
                         index: texture_info.index,
@@ -1187,29 +1298,27 @@ impl Gltf {
                         extensions: texture_info.extensions,
                         extras: texture_info.extras,
                     })
-                },
+                }
                 None => None,
             };
             let occlusion_texture = match json_material.get::<&JsonObject>("occlusionTexture") {
                 Some(json_occlusion_texture) => {
                     let texture_info = parse_texture_info(json_occlusion_texture)?;
-                    let strength = json_occlusion_texture.get::<f32>("strength")
-                        .unwrap_or(1.0);
+                    let strength = json_occlusion_texture.get::<f32>("strength").unwrap_or(1.0);
                     ris_error::assert!(strength >= 0.0)?;
                     ris_error::assert!(strength <= 1.0)?;
 
-                    Some(MaterialOcclusionTextureInfo{
+                    Some(MaterialOcclusionTextureInfo {
                         index: texture_info.index,
                         tex_coord: texture_info.tex_coord,
                         strength,
                         extensions: texture_info.extensions,
                         extras: texture_info.extras,
                     })
-                },
+                }
                 None => None,
             };
             let emissive_texture = match json_material.get::<&JsonObject>("emissiveTexture") {
-
                 Some(json_emissive_texture) => Some(parse_texture_info(json_emissive_texture)?),
                 None => None,
             };
@@ -1221,12 +1330,8 @@ impl Gltf {
                         ris_error::assert!(emissive_factor <= 1.0)?;
                     }
 
-                    [
-                        emissive_factor[0],
-                        emissive_factor[1],
-                        emissive_factor[2],
-                    ]
-                },
+                    [emissive_factor[0], emissive_factor[1], emissive_factor[2]]
+                }
                 None => [0.0; 3],
             };
             let alpha_mode = match json_material.get::<&str>("alphaMode") {
@@ -1234,16 +1339,15 @@ impl Gltf {
                 Some("OPAQUE") => MaterialAlphaMode::Opaque,
                 Some("MASK") => MaterialAlphaMode::Mask,
                 Some("BLEND") => MaterialAlphaMode::Blend,
-                Some(alpha_mode) => return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode),
+                Some(alpha_mode) => {
+                    return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode)
+                }
             };
-            let alpha_cutoff = json_material.get::<f32>("alphaCutoff")
-                .unwrap_or(0.5);
+            let alpha_cutoff = json_material.get::<f32>("alphaCutoff").unwrap_or(0.5);
             ris_error::assert!(alpha_cutoff.is_sign_positive())?;
-            let double_sided = json_material.get::<bool>("doubleSided")
-                .unwrap_or(false);
+            let double_sided = json_material.get::<bool>("doubleSided").unwrap_or(false);
 
-
-            let material = Material{
+            let material = Material {
                 name,
                 extensions,
                 extras,
@@ -1260,7 +1364,8 @@ impl Gltf {
         }
 
         // cameras
-        let json_cameras = json_gltf.get::<Vec<&JsonObject>>("cameras")
+        let json_cameras = json_gltf
+            .get::<Vec<&JsonObject>>("cameras")
             .unwrap_or(Vec::with_capacity(0));
         let mut cameras = Vec::with_capacity(json_cameras.len());
         for json_camera in json_cameras {
@@ -1275,18 +1380,24 @@ impl Gltf {
                     if let Some(aspect_ratio) = aspect_ratio {
                         ris_error::assert!(aspect_ratio > 0.0)?;
                     }
-                    let yfov = json_camera_perspective.get::<f32>("yfov").into_ris_error()?;
+                    let yfov = json_camera_perspective
+                        .get::<f32>("yfov")
+                        .into_ris_error()?;
                     ris_error::assert!(yfov > 0.0)?;
                     let zfar = json_camera_perspective.get::<f32>("zfar");
                     if let Some(zfar) = zfar {
                         ris_error::assert!(zfar > 0.0)?;
                     }
-                    let znear = json_camera_perspective.get::<f32>("znear").into_ris_error()?;
+                    let znear = json_camera_perspective
+                        .get::<f32>("znear")
+                        .into_ris_error()?;
                     ris_error::assert!(znear > 0.0)?;
-                    let extensions = json_camera_perspective.get::<&JsonObject>("extensions").cloned();
+                    let extensions = json_camera_perspective
+                        .get::<&JsonObject>("extensions")
+                        .cloned();
                     let extras = json_camera_perspective.get::<&JsonValue>("extras").cloned();
 
-                    CameraKind::Perspective(CameraPerspective{
+                    CameraKind::Perspective(CameraPerspective {
                         aspect_ratio,
                         yfov,
                         zfar,
@@ -1294,21 +1405,33 @@ impl Gltf {
                         extensions,
                         extras,
                     })
-                },
+                }
                 Some("orthographic") => {
                     ris_error::assert!(json_camera_perspective.is_none())?;
                     let json_camera_orthographic = json_camera_orthographic.into_ris_error()?;
 
-                    let xmag = json_camera_orthographic.get::<f32>("xmag").into_ris_error()?;
-                    let ymag = json_camera_orthographic.get::<f32>("ymag").into_ris_error()?;
-                    let zfar = json_camera_orthographic.get::<f32>("zfar").into_ris_error()?;
+                    let xmag = json_camera_orthographic
+                        .get::<f32>("xmag")
+                        .into_ris_error()?;
+                    let ymag = json_camera_orthographic
+                        .get::<f32>("ymag")
+                        .into_ris_error()?;
+                    let zfar = json_camera_orthographic
+                        .get::<f32>("zfar")
+                        .into_ris_error()?;
                     ris_error::assert!(zfar > 0.0)?;
-                    let znear = json_camera_orthographic.get::<f32>("znear").into_ris_error()?;
+                    let znear = json_camera_orthographic
+                        .get::<f32>("znear")
+                        .into_ris_error()?;
                     ris_error::assert!(znear >= 0.0)?;
-                    let extensions = json_camera_orthographic.get::<&JsonObject>("extensions").cloned();
-                    let extras = json_camera_orthographic.get::<&JsonValue>("extras").cloned();
+                    let extensions = json_camera_orthographic
+                        .get::<&JsonObject>("extensions")
+                        .cloned();
+                    let extras = json_camera_orthographic
+                        .get::<&JsonValue>("extras")
+                        .cloned();
 
-                    CameraKind::Orthographic(CameraOrthographic{
+                    CameraKind::Orthographic(CameraOrthographic {
                         xmag,
                         ymag,
                         zfar,
@@ -1316,15 +1439,17 @@ impl Gltf {
                         extensions,
                         extras,
                     })
-                },
-                camera_type => return ris_error::new_result!("invalid camera type: {:?}", camera_type),
+                }
+                camera_type => {
+                    return ris_error::new_result!("invalid camera type: {:?}", camera_type)
+                }
             };
 
             let name = json_camera.get::<String>("name");
             let extensions = json_camera.get::<&JsonObject>("extensions").cloned();
             let extras = json_camera.get::<&JsonValue>("extras").cloned();
 
-            let camera = Camera{
+            let camera = Camera {
                 kind,
                 name,
                 extensions,
@@ -1332,16 +1457,17 @@ impl Gltf {
             };
             cameras.push(camera);
         }
-        
+
         // animations
-        let json_animations = json_gltf.get::<Vec<&JsonObject>>("animations")
+        let json_animations = json_gltf
+            .get::<Vec<&JsonObject>>("animations")
             .unwrap_or(Vec::with_capacity(0));
         let mut animations = Vec::with_capacity(json_animations.len());
         for json_animation in json_animations {
-            
-            let json_channels = json_animation.get::<Vec<&JsonObject>>("channels")
+            let json_channels = json_animation
+                .get::<Vec<&JsonObject>>("channels")
                 .unwrap_or(Vec::with_capacity(0));
-            ris_error::assert!(json_channels.len() > 0)?;
+            ris_error::assert!(!json_channels.is_empty())?;
             let mut channels = Vec::with_capacity(json_channels.len());
             for json_channel in json_channels {
                 let sampler = json_channel.get::<usize>("sampler").into_ris_error()?;
@@ -1352,7 +1478,12 @@ impl Gltf {
                     Some("rotation") => AnimationChannelTargetPath::Rotation,
                     Some("scale") => AnimationChannelTargetPath::Scale,
                     Some("weights") => AnimationChannelTargetPath::Weights,
-                    path => return ris_error::new_result!("invalid animation channel target path: {:?}", path),
+                    path => {
+                        return ris_error::new_result!(
+                            "invalid animation channel target path: {:?}",
+                            path
+                        )
+                    }
                 };
                 let extensions = json_target.get::<&JsonObject>("extensions").cloned();
                 let extras = json_target.get::<&JsonValue>("extras").cloned();
@@ -1365,7 +1496,7 @@ impl Gltf {
                 let extensions = json_channel.get::<&JsonObject>("extensions").cloned();
                 let extras = json_channel.get::<&JsonValue>("extras").cloned();
 
-                let channel = AnimationChannel{
+                let channel = AnimationChannel {
                     sampler,
                     target,
                     extensions,
@@ -1374,9 +1505,10 @@ impl Gltf {
                 channels.push(channel);
             }
 
-            let json_samplers = json_animation.get::<Vec<&JsonObject>>("samplers")
+            let json_samplers = json_animation
+                .get::<Vec<&JsonObject>>("samplers")
                 .unwrap_or(Vec::with_capacity(0));
-            ris_error::assert!(json_samplers.len() > 0)?;
+            ris_error::assert!(!json_samplers.is_empty())?;
             let mut samplers = Vec::with_capacity(json_samplers.len());
             for json_sampler in json_samplers {
                 let input = json_sampler.get::<usize>("input").into_ris_error()?;
@@ -1384,13 +1516,18 @@ impl Gltf {
                     Some("LINEAR") => AnimationSamplerInterpolation::Linear,
                     Some("STEP") => AnimationSamplerInterpolation::Step,
                     Some("CUBICSPLINE") => AnimationSamplerInterpolation::CubicSpline,
-                    interpolation => return ris_error::new_result!("invalid animation sampler interpolation: {:?}", interpolation),
+                    interpolation => {
+                        return ris_error::new_result!(
+                            "invalid animation sampler interpolation: {:?}",
+                            interpolation
+                        )
+                    }
                 };
                 let output = json_sampler.get::<usize>("output").into_ris_error()?;
                 let extensions = json_sampler.get::<&JsonObject>("extensions").cloned();
                 let extras = json_sampler.get::<&JsonValue>("extras").cloned();
 
-                let sampler = AnimationSampler{
+                let sampler = AnimationSampler {
                     input,
                     interpolation,
                     output,
@@ -1406,7 +1543,7 @@ impl Gltf {
             let extensions = json_animation.get::<&JsonObject>("extensions").cloned();
             let extras = json_animation.get::<&JsonValue>("extras").cloned();
 
-            let animation = Animation{
+            let animation = Animation {
                 channels,
                 samplers,
                 name,
@@ -1417,9 +1554,11 @@ impl Gltf {
         }
 
         // construct gltf
-        let extensions_used = json_gltf.get::<Vec<String>>("extensionsUsed")
+        let extensions_used = json_gltf
+            .get::<Vec<String>>("extensionsUsed")
             .unwrap_or(Vec::with_capacity(0));
-        let extensions_required = json_gltf.get::<Vec<String>>("extensionsRequired")
+        let extensions_required = json_gltf
+            .get::<Vec<String>>("extensionsRequired")
             .unwrap_or(Vec::with_capacity(0));
         // todo: assert proper usage of extensions_used and extensions_required
         let extensions = json_gltf.get::<&JsonObject>("extensions").cloned();
@@ -1452,14 +1591,17 @@ impl Gltf {
 }
 
 impl MeshPrimitive {
-    pub fn get_attribute(&self, name: MeshPrimitiveAttributeName) -> Option<&MeshPrimitiveAttribute> {
-        self.attributes.iter()
-            .filter(|x| x.name == name)
-            .next()
+    pub fn get_attribute(
+        &self,
+        name: MeshPrimitiveAttributeName,
+    ) -> Option<&MeshPrimitiveAttribute> {
+        self.attributes.iter().find(|x| x.name == name)
     }
 }
 
-fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: impl AsRef<str>) -> RisResult<F> {
+fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(
+    value: impl AsRef<str>,
+) -> RisResult<F> {
     let value = value.as_ref();
     let splits = value.split('_').collect::<Vec<_>>();
     ris_error::assert!(splits.len() == 2)?;
@@ -1470,8 +1612,7 @@ fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(value: imp
 
 fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
     let index = value.get::<usize>("index").into_ris_error()?;
-    let tex_coord = value.get::<usize>("index")
-        .unwrap_or(0);
+    let tex_coord = value.get::<usize>("index").unwrap_or(0);
     let extensions = value.get::<&JsonObject>("extensions").cloned();
     let extras = value.get::<&JsonValue>("extras").cloned();
 

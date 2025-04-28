@@ -3,7 +3,6 @@ use std::io::SeekFrom;
 
 use ris_asset_data::asset_id::AssetId;
 use ris_error::RisResult;
-use ris_io::FatPtr;
 
 // # File Format
 //
@@ -26,16 +25,11 @@ pub struct RisHeader {
 
 impl RisHeader {
     pub fn new(magic: [u8; 16], references: Vec<AssetId>) -> Self {
-        Self {
-            magic,
-            references,
-        }
+        Self { magic, references }
     }
 
     pub fn serialize(&self, content: &[u8]) -> RisResult<Vec<u8>> {
-        let Self {
-            magic, references,
-        } = self;
+        let Self { magic, references } = self;
 
         if magic[0] != 0x72 || // `r`
             magic[1] != 0x69 || // `i`
@@ -103,10 +97,7 @@ impl RisHeader {
             references.push(reference);
         }
 
-        let header = Self {
-            magic,
-            references,
-        };
+        let header = Self { magic, references };
 
         let content_begin = ris_io::seek(s, SeekFrom::Current(0))?.try_into()?;
         let content_end = ris_io::seek(s, SeekFrom::End(0))?.try_into()?;

@@ -1,10 +1,8 @@
-use ris_asset_data::AssetId;
 use ris_asset_data::mesh::MeshLookupId;
+use ris_asset_data::AssetId;
 use ris_error::prelude::*;
 
 use crate::ecs::decl::GameObjectHandle;
-use crate::ecs::decl::MeshRendererComponentHandle;
-use crate::ecs::error::EcsResult;
 use crate::ecs::id::Component;
 use crate::ecs::scene::Scene;
 use crate::ecs::scene_stream::SceneReader;
@@ -17,25 +15,13 @@ pub struct MeshRendererComponentRequest {
     pub to_free: Option<MeshLookupId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
     previous_asset_id: Option<AssetId>,
     previous_lookup_id: MeshLookupId,
     current_asset_id: Option<AssetId>,
     current_lookup_id: MeshLookupId,
-}
-
-impl Default for MeshRendererComponent {
-    fn default() -> Self {
-        Self {
-            game_object: GameObjectHandle::default(),
-            previous_asset_id: None,
-            previous_lookup_id: MeshLookupId::default(),
-            current_asset_id: None,
-            current_lookup_id: MeshLookupId::default(),
-        }
-    }
 }
 
 impl MeshRendererComponent {
@@ -60,12 +46,12 @@ impl Component for MeshRendererComponent {
             Some(asset_id) => {
                 ris_io::write_bool(stream, true)?;
                 stream.write_asset_id(asset_id.clone())?;
-            },
+            }
             None => {
                 let asset_id = AssetId::Path(ERROR_MESH_PATH.to_string());
                 ris_io::write_bool(stream, false)?;
                 stream.write_asset_id(asset_id)?;
-            },
+            }
         }
 
         Ok(())
@@ -102,7 +88,7 @@ impl MeshRendererComponent {
         self.previous_asset_id = self.current_asset_id.clone();
         self.previous_lookup_id = self.current_lookup_id;
 
-        MeshRendererComponentRequest{
+        MeshRendererComponentRequest {
             to_allocate,
             to_free,
         }
@@ -127,4 +113,3 @@ impl MeshRendererComponent {
         self.current_lookup_id = id;
     }
 }
-

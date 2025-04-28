@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
-use std::path::Path;
 use std::io::SeekFrom;
+use std::path::Path;
 
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::MeshPrototype;
@@ -33,7 +33,8 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     let source = source.as_ref();
     let target_dir = target_dir.as_ref();
 
-    let source_file_stem = source.file_stem()
+    let source_file_stem = source
+        .file_stem()
         .into_ris_error()?
         .to_str()
         .into_ris_error()?;
@@ -105,7 +106,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     ris_error::assert!(gltf.buffers.len() == 1)?;
     ris_error::assert!(gltf.buffers[0].uri.is_none())?;
 
-    // convert to internal format. 
+    // convert to internal format.
     // note that this importer makes assumptions about the underlying
     // data. thus it may return errors on valid gltf
 
@@ -114,16 +115,25 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
         for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
             ris_error::assert!(primitive.mode == MeshPrimitiveMode::Triangles)?;
 
-            let vertex_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::Position)
+            let vertex_attribute = primitive
+                .get_attribute(MeshPrimitiveAttributeName::Position)
                 .into_ris_error()?;
-            let normal_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::Normal)
+            let normal_attribute = primitive
+                .get_attribute(MeshPrimitiveAttributeName::Normal)
                 .into_ris_error()?;
-            let uv_attribute = primitive.get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
+            let uv_attribute = primitive
+                .get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
                 .into_ris_error()?;
             let index_accessor_index = primitive.indices.into_ris_error()?;
 
-            let vertex_accessor = gltf.accessors.get(vertex_attribute.accessor).into_ris_error()?;
-            let normal_accessor = gltf.accessors.get(normal_attribute.accessor).into_ris_error()?;
+            let vertex_accessor = gltf
+                .accessors
+                .get(vertex_attribute.accessor)
+                .into_ris_error()?;
+            let normal_accessor = gltf
+                .accessors
+                .get(normal_attribute.accessor)
+                .into_ris_error()?;
             let uv_accessor = gltf.accessors.get(uv_attribute.accessor).into_ris_error()?;
             let index_accessor = gltf.accessors.get(index_accessor_index).into_ris_error()?;
 
@@ -151,7 +161,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             let p_uvs = ris_io::write(s, uv_data)?;
             let p_indices = ris_io::write(s, index_data)?;
 
-            let cpu_mesh = CpuMesh{
+            let cpu_mesh = CpuMesh {
                 p_vertices,
                 p_normals,
                 p_uvs,
@@ -180,16 +190,10 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
             let target_name = format!(
                 "{}-{}-{:03}-{:03}",
-                source_file_stem,
-                mesh_name,
-                mesh_index,
-                primitive_index,
+                source_file_stem, mesh_name, mesh_index, primitive_index,
             );
-            let mut output = crate::asset_importer::create_file(
-                target_name,
-                target_dir,
-                ris_mesh::EXTENSION,
-            )?;
+            let mut output =
+                crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
             ris_io::write(&mut output, &bytes)?;
         }
     }
@@ -197,18 +201,15 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     Ok(())
 }
 
-fn access_data<'a>(
-    accessor: &Accessor,
-    bin: &'a [u8],
-    gltf: &'a Gltf,
-) -> RisResult<&'a [u8]> {
+fn access_data<'a>(accessor: &Accessor, bin: &'a [u8], gltf: &'a Gltf) -> RisResult<&'a [u8]> {
     let buffer_view_index = accessor.buffer_view.into_ris_error()?;
     let buffer_view = gltf.buffer_views.get(buffer_view_index).into_ris_error()?;
     ris_error::assert!(buffer_view.buffer == 0)?;
     ris_error::assert!(buffer_view.byte_stride.is_none())?;
 
-    let element_size = accessor.component_type.size_in_bytes() * accessor.accessor_type.number_of_components();
-    
+    let element_size =
+        accessor.component_type.size_in_bytes() * accessor.accessor_type.number_of_components();
+
     let start = accessor.byte_offset + buffer_view.byte_offset;
     let len = accessor.count * element_size;
     let end = start + len;

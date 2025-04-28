@@ -25,12 +25,14 @@ pub struct OneshotReceiver<T> {
 unsafe impl<T> Sync for OneshotChannel<T> where T: Send {}
 
 pub fn oneshot_channel<T>() -> (OneshotSender<T>, OneshotReceiver<T>) {
-    let channel = Arc::new(OneshotChannel{
+    let channel = Arc::new(OneshotChannel {
         ready: AtomicBool::new(false),
         data: UnsafeCell::new(MaybeUninit::uninit()),
     });
 
-    let sender = OneshotSender {channel: channel.clone()};
+    let sender = OneshotSender {
+        channel: channel.clone(),
+    };
     let receiver = OneshotReceiver { channel };
 
     (sender, receiver)
@@ -68,7 +70,7 @@ impl<T> OneshotReceiver<T> {
                     if !ThreadPool::run_pending_job() {
                         std::thread::yield_now();
                     }
-                },
+                }
             }
         }
     }
