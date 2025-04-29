@@ -10,18 +10,12 @@ use crate::ecs::scene_stream::SceneWriter;
 
 pub const ERROR_MESH_PATH: &str = "models/Suzanne.ris_mesh";
 
-pub struct MeshRendererComponentRequest {
-    pub to_allocate: Option<AssetId>,
-    pub to_free: Option<MeshLookupId>,
-}
-
 #[derive(Debug, Default)]
 pub struct MeshRendererComponent {
     game_object: GameObjectHandle,
     previous_asset_id: Option<AssetId>,
-    previous_lookup_id: MeshLookupId,
     current_asset_id: Option<AssetId>,
-    current_lookup_id: MeshLookupId,
+    lookup_id: Option<MeshLookupId>,
 }
 
 impl MeshRendererComponent {
@@ -31,7 +25,9 @@ impl MeshRendererComponent {
 }
 
 impl Component for MeshRendererComponent {
-    fn destroy(&mut self, _scene: &Scene) {}
+    fn destroy(&mut self, _scene: &Scene) {
+        self.lookup_id.take();
+    }
 
     fn game_object(&self) -> GameObjectHandle {
         self.game_object
@@ -72,26 +68,14 @@ impl Component for MeshRendererComponent {
 }
 
 impl MeshRendererComponent {
-    pub fn update(&mut self) -> MeshRendererComponentRequest {
-        let to_allocate = if self.current_asset_id == self.previous_asset_id {
-            None
-        } else {
-            self.current_asset_id.clone()
-        };
-
-        let to_free = if self.current_lookup_id == self.previous_lookup_id {
-            None
-        } else {
-            Some(self.previous_lookup_id)
-        };
+    pub fn poll_asset_id_to_allocate(&mut self) -> Option<AssetId> {
+        let changed = self.current_asset_id != self.previous_asset_id;
+        if !changed {
+            return None;
+        }
 
         self.previous_asset_id = self.current_asset_id.clone();
-        self.previous_lookup_id = self.current_lookup_id;
-
-        MeshRendererComponentRequest {
-            to_allocate,
-            to_free,
-        }
+        self.current_asset_id.clone()
     }
 
     pub fn asset_id(&self) -> Option<AssetId> {
@@ -100,16 +84,16 @@ impl MeshRendererComponent {
 
     pub fn set_asset_id(&mut self, value: Option<AssetId>) {
         if value.is_none() {
-            self.current_lookup_id = MeshLookupId::default();
+            self.lookup_id = None;
         }
         self.current_asset_id = value;
     }
 
-    pub fn lookup_id(&self) -> MeshLookupId {
-        self.current_lookup_id
+    pub fn lookup_id(&self) -> Option<&MeshLookupId> {
+        self.lookup_id.as_ref()
     }
 
-    pub fn set_lookup_id(&mut self, id: MeshLookupId) {
-        self.current_lookup_id = id;
+    pub fn set_lookup_id(&mut self, value: MeshLookupId) {
+        self.lookup_id = Some(value);
     }
 }

@@ -455,8 +455,11 @@ impl IUiHelperModule for InspectorModule {
                                 aref_mut.set_asset_id(asset_id);
                             }
 
-                            data.ui
-                                .label_text("lookup id", aref_mut.lookup_id().index.to_string());
+                            let lookup_id_string = match aref_mut.lookup_id() {
+                                Some(lookup_id) => lookup_id.index().to_string(),
+                                None => "none".to_string(),
+                            };
+                            data.ui.label_text("lookup id", lookup_id_string);
                         }
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
                         let ptr = data.state.scene.script_components[index].to_weak();
@@ -598,7 +601,7 @@ impl IUiHelperModule for InspectorModule {
                         self.shared_state
                             .borrow_mut()
                             .set_chunk(chunk_index, Some(id));
-                        ris_log::info!("loaded asset into chunk {}", chunk_index);
+                        ris_log::info!("loaded scene into chunk {}", chunk_index);
                     }
                 }
             }

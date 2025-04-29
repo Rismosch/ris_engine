@@ -12,8 +12,8 @@ pub struct MeshLookup {
 }
 
 struct MeshLookupEntry {
-    id: AssetId,
-    reference_count: usize,
+    asset_id: AssetId,
+    lookup_id: MeshLookupId,
     value: Option<MeshLookupEntryState>,
 }
 
@@ -27,36 +27,34 @@ impl MeshLookup {
         &mut self,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        id: AssetId,
+        asset_id: AssetId,
     ) -> MeshLookupId {
-        let position = self.entries.iter().position(|x| x.id == id);
+        let position = self.entries.iter().position(|x| x.asset_id == asset_id);
 
-        let (index, entry) = match position {
+        let entry = match position {
             Some(position) => {
                 let entry = &mut self.entries[position];
-                entry.reference_count += 1;
-                (position, entry)
+                entry
             }
             None => {
-                let position = self.entries.iter().position(|x| x.reference_count == 0);
+                let position = self.entries.iter_mut().position(|x| x.lookup_id.is_unique());
 
                 match position {
                     Some(position) => {
                         let entry = &mut self.entries[position];
-                        entry.id = id;
-                        entry.reference_count += 1;
-                        (position, entry)
+                        entry.asset_id = asset_id;
+                        entry
                     }
                     None => {
                         let index = self.entries.len();
                         let entry = MeshLookupEntry {
-                            id,
-                            reference_count: 1,
+                            asset_id,
+                            lookup_id: MeshLookupId::new(index),
                             value: None,
                         };
                         self.entries.push(entry);
                         let entry = self.entries.last_mut().unwrap();
-                        (index, entry)
+                        entry
                     }
                 }
             }
@@ -64,7 +62,7 @@ impl MeshLookup {
 
         if entry.value.is_none() {
             let device = device.clone();
-            let receiver = crate::load_async(entry.id.clone(), move |bytes| {
+            let receiver = crate::load_async(entry.asset_id.clone(), move |bytes| {
                 let cpu_mesh = super::ris_mesh::deserialize(&bytes)?;
                 unsafe {
                     GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh)
@@ -74,44 +72,49 @@ impl MeshLookup {
             entry.value = Some(MeshLookupEntryState::Loading(receiver));
         }
 
-        MeshLookupId { index }
+        entry.lookup_id.clone()
     }
 
-    pub fn free(&mut self, device: &ash::Device, id: MeshLookupId) {
-        let Some(entry) = self.entries.get_mut(id.index) else {
-            return;
+    pub fn free_unused_meshes(&mut self, device: &ash::Device) -> RisResult<()> {
+        let mut must_wait = true;
+
+        for entry in self.entries.iter_mut() {
+            if !entry.lookup_id.is_unique() {
+                continue;
+            }
+
+            if must_wait {
+                unsafe{device.device_wait_idle()}?;
+                must_wait = false;
+            }
+
+            let mut gpu_mesh = match entry.value.take() {
+                Some(MeshLookupEntryState::Loading(receiver)) => match receiver.wait() {
+                    Ok(gpu_mesh) => gpu_mesh,
+                    Err(e) => {
+                        ris_log::warning!("failed to load mesh {:?}: {}", entry.asset_id, e);
+                        continue;
+                    }
+                },
+                Some(MeshLookupEntryState::Loaded(gpu_mesh)) => gpu_mesh,
+                None => continue,
+            };
+
+            gpu_mesh.free(device);
+            ris_log::trace!("freed mesh {:?}", entry.asset_id);
         };
 
-        entry.reference_count = entry.reference_count.saturating_sub(1);
-
-        if entry.reference_count != 0 {
-            return;
-        }
-
-        let mut gpu_mesh = match entry.value.take() {
-            Some(MeshLookupEntryState::Loading(receiver)) => match receiver.wait() {
-                Ok(gpu_mesh) => gpu_mesh,
-                Err(e) => {
-                    ris_log::warning!("failed to load mesh {:?}: {}", entry.id, e);
-                    return;
-                }
-            },
-            Some(MeshLookupEntryState::Loaded(gpu_mesh)) => gpu_mesh,
-            None => return,
-        };
-
-        gpu_mesh.free(device);
-        ris_log::trace!("freed mesh {:?}", entry.id);
+        Ok(())
     }
 
-    pub fn get(&mut self, id: MeshLookupId) -> Option<&GpuMesh> {
-        let entry = self.entries.get_mut(id.index)?;
+    pub fn get(&mut self, id: &MeshLookupId) -> Option<&GpuMesh> {
+        let entry = self.entries.get_mut(id.index())?;
 
         match entry.value.take() {
             Some(MeshLookupEntryState::Loading(receiver)) => match receiver.receive() {
                 Ok(Ok(gpu_mesh)) => entry.value = Some(MeshLookupEntryState::Loaded(gpu_mesh)),
                 Ok(Err(e)) => {
-                    ris_log::error!("failed to load mesh {:?}: {}", entry.id, e);
+                    ris_log::error!("failed to load mesh {:?}: {}", entry.asset_id, e);
                     entry.value = None;
                 }
                 Err(receiver) => entry.value = Some(MeshLookupEntryState::Loading(receiver)),

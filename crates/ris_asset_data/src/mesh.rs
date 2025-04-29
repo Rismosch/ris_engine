@@ -1,4 +1,5 @@
 use std::io::SeekFrom;
+use std::sync::Arc;
 
 use ash::vk;
 
@@ -8,14 +9,26 @@ use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub struct MeshLookupId {
-    pub index: usize,
+    index: usize,
+    references: Arc<()>,
 }
 
-impl Default for MeshLookupId {
-    fn default() -> Self {
-        Self { index: usize::MAX }
+impl MeshLookupId {
+    pub fn new(index: usize) -> Self {
+        Self {
+            index,
+            references: Arc::default(),
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn is_unique(&mut self) -> bool {
+        Arc::get_mut(&mut self.references).is_some()
     }
 }
 

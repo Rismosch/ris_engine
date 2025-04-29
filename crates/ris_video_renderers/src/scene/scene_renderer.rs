@@ -581,6 +581,9 @@ impl SceneRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
+        // clean up
+        self.mesh_lookup.free_unused_meshes(device);
+
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
             unsafe { device.destroy_framebuffer(framebuffer, None) };
@@ -728,9 +731,7 @@ impl SceneRenderer {
                     continue;
                 }
 
-                let mut request = aref_mut.update();
-
-                if let Some(to_allocate) = request.to_allocate.take() {
+                if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
                     let lookup_id = self.mesh_lookup.alloc(
                         device,
                         physical_device_memory_properties,
@@ -739,11 +740,10 @@ impl SceneRenderer {
                     aref_mut.set_lookup_id(lookup_id);
                 }
 
-                if let Some(to_free) = request.to_free.take() {
-                    self.mesh_lookup.free(device, to_free);
-                }
+                let Some(lookup_id) = aref_mut.lookup_id() else {
+                    continue;
+                };
 
-                let lookup_id = aref_mut.lookup_id();
                 let Some(mesh) = self.mesh_lookup.get(lookup_id) else {
                     continue;
                 };
