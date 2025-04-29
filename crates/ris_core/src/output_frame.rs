@@ -166,7 +166,8 @@ impl OutputFrame {
                 #[cfg(feature = "ui_helper_enabled")]
                 self.renderer.imgui.free(device);
 
-                self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
+                self.renderer.scene =
+                    SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
                 #[cfg(feature = "ui_helper_enabled")]

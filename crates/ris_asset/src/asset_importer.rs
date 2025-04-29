@@ -157,9 +157,7 @@ pub fn import_all(
             continue;
         }
 
-        let splits = line
-            .split(COPY_INSTRUCTION_SEPARATOR)
-            .collect::<Vec<_>>();
+        let splits = line.split(COPY_INSTRUCTION_SEPARATOR).collect::<Vec<_>>();
 
         if splits.len() != 2 {
             let count = splits.len() - 1;
@@ -178,7 +176,7 @@ pub fn import_all(
             return ris_error::new_result!(
                 "source and target may not be empty. line: {}",
                 line_number,
-            )
+            );
         }
 
         let source = PathBuf::from(import_directory).join(split0);
@@ -193,7 +191,6 @@ pub fn import_all(
         }
 
         let mut to_copy = Vec::new();
-
 
         if source.is_file() {
             to_copy.push((source, target));
