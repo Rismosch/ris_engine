@@ -64,7 +64,7 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
-    mesh_lookup: MeshLookup,
+    pub mesh_lookup: Option<MeshLookup>,
 }
 
 impl SceneRenderer {
@@ -85,10 +85,16 @@ impl SceneRenderer {
             device.destroy_render_pass(self.render_pass, None);
 
             self.texture.free(device);
+            if let Some(mut mesh_lookup) = self.mesh_lookup.take() {
+                mesh_lookup.free(device);
+            }
         }
     }
 
-    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(
+        core: &VulkanCore,
+        god_asset: &RisGodAsset,
+        mesh_lookup: Option<MeshLookup>) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -532,7 +538,10 @@ impl SceneRenderer {
         }
 
         // lookup
-        let mesh_lookup = MeshLookup::default();
+        let mesh_lookup = match mesh_lookup {
+            Some(mesh_lookup) => Some(mesh_lookup),
+            None => Some(MeshLookup::default()),
+        };
 
         Ok(Self {
             descriptor_set_layout,
@@ -581,8 +590,10 @@ impl SceneRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
+        let mesh_lookup = self.mesh_lookup.as_mut().into_ris_error()?;
+
         // clean up
-        self.mesh_lookup.free_unused_meshes(device)?;
+        mesh_lookup.free_unused_meshes(device)?;
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
@@ -732,7 +743,7 @@ impl SceneRenderer {
                 }
 
                 if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
-                    let lookup_id = self.mesh_lookup.alloc(
+                    let lookup_id = mesh_lookup.alloc(
                         device,
                         physical_device_memory_properties,
                         to_allocate,
@@ -744,7 +755,7 @@ impl SceneRenderer {
                     continue;
                 };
 
-                let Some(mesh) = self.mesh_lookup.get(lookup_id) else {
+                let Some(mesh) = mesh_lookup.get(lookup_id) else {
                     continue;
                 };
 

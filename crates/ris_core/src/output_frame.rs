@@ -89,12 +89,18 @@ impl OutputFrame {
         let mut r = ris_debug::new_record!("run output frame");
 
         let VulkanCore {
+            instance,
+            suitable_device,
             device,
             graphics_queue,
             present_queue,
             swapchain,
             ..
         } = &self.core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
 
         let frames_in_flight = swapchain.frames_in_flight.as_ref().into_ris_error()?;
         let FrameInFlight {
@@ -151,13 +157,16 @@ impl OutputFrame {
                 ris_log::trace!("rebuilding renderers...");
                 self.core.device.device_wait_idle()?;
 
+                let mut mesh_lookup = self.renderer.scene.mesh_lookup.take().into_ris_error()?;
+                mesh_lookup.reimport_everything(device, physical_device_memory_properties);
+
                 self.renderer.scene.free(device);
                 self.renderer.gizmo_segment.free(device);
                 self.renderer.gizmo_text.free(device);
                 #[cfg(feature = "ui_helper_enabled")]
                 self.renderer.imgui.free(device);
 
-                self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset)?;
+                self.renderer.scene = SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
                 #[cfg(feature = "ui_helper_enabled")]
