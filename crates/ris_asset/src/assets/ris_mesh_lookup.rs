@@ -51,7 +51,7 @@ impl MeshLookup {
                 entry.asset_id.clone(),
             );
             entry.value = Some(state);
-        };
+        }
     }
 
     pub fn alloc(
@@ -63,12 +63,12 @@ impl MeshLookup {
         let position = self.entries.iter().position(|x| x.asset_id == asset_id);
 
         let entry = match position {
-            Some(position) => {
-                let entry = &mut self.entries[position];
-                entry
-            }
+            Some(position) => &mut self.entries[position],
             None => {
-                let position = self.entries.iter_mut().position(|x| x.lookup_id.is_unique());
+                let position = self
+                    .entries
+                    .iter_mut()
+                    .position(|x| x.lookup_id.is_unique());
 
                 match position {
                     Some(position) => {
@@ -101,7 +101,7 @@ impl MeshLookup {
             //});
 
             //entry.value = Some(MeshLookupEntryState::Loading(receiver));
-            
+
             let state = MeshLookupEntryState::load(
                 device,
                 physical_device_memory_properties,
@@ -122,7 +122,7 @@ impl MeshLookup {
             }
 
             if must_wait {
-                unsafe{device.device_wait_idle()}?;
+                unsafe { device.device_wait_idle() }?;
                 must_wait = false;
             }
 
@@ -130,7 +130,7 @@ impl MeshLookup {
                 gpu_mesh.free(device);
                 ris_log::trace!("freed mesh {:?}", entry.asset_id);
             }
-        };
+        }
 
         Ok(())
     }
@@ -182,9 +182,7 @@ impl MeshLookupEntryState {
         let device = device.clone();
         let receiver = crate::load_async(asset_id, move |bytes| {
             let cpu_mesh = super::ris_mesh::deserialize(&bytes)?;
-            unsafe {
-                GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh)
-            }
+            unsafe { GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh) }
         });
 
         MeshLookupEntryState::Loading(receiver)

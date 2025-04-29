@@ -21,27 +21,15 @@ All imported assets are written to the `./assets/imported/` directory. If a targ
 
 ## 3 In use
 
-To use an imported file, it must be copied to `./assets/in_use/` or in any of its subdirectories. This step exists to allow the user to pick and choose which assets ris_engine should or should not be aware of. Chances are that the import process generates undesirable names, and chances are, that the user may not want to use all imported assets. The latter may be the case when assets are removed, but still reside in `./assets/imported/` because they weren't cleaned up.
+To use an imported file, it must be copied to `./assets/in_use/` or in any of its subdirectories. This step exists to allow the user to pick and choose which assets ris_engine should or should not be aware of. Chances are that the import process generates undesirable names, and chances are, that the user may not want to use all imported assets.
 
-Copying the files to `./assets/in_use/` can be done manually, but it can also be achieved automatically by using meta files:
+Copying the files to `./assets/in_use/` can be done manually, but it can also be achieved automatically by using the file `./assets/copy_instructions.ris_meta`. This text file instructs the asset importer, which assets should be copied and how. This also allows the imported file to be renamed. Each line in `./assets/copy_instructions.ris_meta` is a single copy instruction. An instruction looks like this:
 
-A meta file has the extension `ris_meta` and is stored inside `./assets/imported/`. The contents of a meta file consist of a single path which is relative to `./assets/in_use/`. After all source files have been imported (or have been attempted to), a copy process reads all the meta files and copies the imported files.
+    source :=> target
 
-For example the meta file
+`source` and `target` are relative to `./assets/imported/` and `./assets/in_use/` respectively. This means the example above copies `./assets/imported/source` to `./assets/in_use/target`. `source` may be a file or a directory. If the parent directory of `target` does not exist, it will be created.
 
-    ./assets/imported/path/to/my/file.extension.ris_meta
-
-with the contents
-
-    copy_to: new/path
-
-copies the file
-
-    ./assets/imported/path/to/my/file.extension
-
-to
-
-    ./assets/in_use/new/path/file.extension
+`source` and `target` will be trimmed, i.e. whitespaces will be removed from the start and end. Lines that start with `#` will be ignored. Empty lines are also ignored.
 
 ## 4 Compiled
 

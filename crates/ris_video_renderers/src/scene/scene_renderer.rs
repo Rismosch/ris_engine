@@ -94,7 +94,8 @@ impl SceneRenderer {
     pub fn alloc(
         core: &VulkanCore,
         god_asset: &RisGodAsset,
-        mesh_lookup: Option<MeshLookup>) -> RisResult<Self> {
+        mesh_lookup: Option<MeshLookup>,
+    ) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -743,11 +744,8 @@ impl SceneRenderer {
                 }
 
                 if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
-                    let lookup_id = mesh_lookup.alloc(
-                        device,
-                        physical_device_memory_properties,
-                        to_allocate,
-                    );
+                    let lookup_id =
+                        mesh_lookup.alloc(device, physical_device_memory_properties, to_allocate);
                     aref_mut.set_lookup_id(lookup_id);
                 }
 
