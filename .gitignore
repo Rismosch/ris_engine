@@ -15,7 +15,6 @@
 
 # assets
 assets/imported/*
-!assets/imported/*.ris_meta
 decompiled_assets
 ris_assets
 

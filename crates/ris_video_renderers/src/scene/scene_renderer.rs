@@ -582,7 +582,7 @@ impl SceneRenderer {
         } = &mut self.frames[*index];
 
         // clean up
-        self.mesh_lookup.free_unused_meshes(device);
+        self.mesh_lookup.free_unused_meshes(device)?;
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
