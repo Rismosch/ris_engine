@@ -82,6 +82,8 @@ pub fn import_all(
     let mut directories = VecDeque::new();
 
     // import source files
+    ris_log::info!("import source files...");
+
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
 
@@ -139,7 +141,7 @@ pub fn import_all(
     }
 
     // copy imported files
-    ris_log::debug!("copying imported files...");
+    ris_log::info!("copy imported files...");
     let file = std::fs::File::open(COPY_INSTRUCTIONS_PATH)?;
     let reader = std::io::BufReader::new(file);
     for (line_number, line) in reader.lines().enumerate() {

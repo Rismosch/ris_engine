@@ -1,5 +1,5 @@
-# this file instructs the asset importer which assets
-# should be copied from `imported` to `in_use`.
+# this file instructs the asset importer which imported
+# assets should be copied to `./assets/in_use/`.
 # 
 # syntax:
 #     <source> :=> <target>
@@ -20,7 +20,7 @@
 
 ### meshes
 models/humane_rigging_chapter_05-human-000-000.ris_mesh :=> meshes/human.ris_mesh
-models/Suzanne-Suzanne.ris_mesh                         :=> meshes/Suzanne.ris_mesh
+models/Suzanne-Suzanne.ris_mesh                         :=> meshes/suzanne.ris_mesh
 
 
 

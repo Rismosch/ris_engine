@@ -11,6 +11,8 @@ pub const MAGIC: [u8; 16] = [
 ];
 pub const EXTENSION: &str = "ris_mesh";
 
+pub const COMPRESSION_LEVEL: u8 = 6;
+
 pub fn serialize(mesh: &CpuMesh) -> RisResult<Vec<u8>> {
     let mut stream = Cursor::new(Vec::new());
     let s = &mut stream;
@@ -21,15 +23,28 @@ pub fn serialize(mesh: &CpuMesh) -> RisResult<Vec<u8>> {
     ris_io::write_fat_ptr(s, mesh.p_indices)?;
     ris_io::write(s, &mesh.data)?;
 
+    let bytes = stream.into_inner();
+    let compressed = miniz_oxide::deflate::compress_to_vec(&bytes, COMPRESSION_LEVEL);
+
+    ris_log::trace!(
+        "compressed {} to {}. percentage: {}",
+        bytes.len(),
+        compressed.len(),
+        compressed.len() as f32 / bytes.len() as f32,
+    );
+
     let header = RisHeader::new(MAGIC, Vec::new());
-    header.serialize(&stream.into_inner())
+    header.serialize(&compressed)
 }
 
 pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
     let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
     header.assert_magic(MAGIC)?;
 
-    let mut stream = Cursor::new(content);
+    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
+        .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
+
+    let mut stream = Cursor::new(uncompressed);
     let s = &mut stream;
 
     let p_vertices = ris_io::read_fat_ptr(s)?;
