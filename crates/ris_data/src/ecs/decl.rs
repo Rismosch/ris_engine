@@ -11,13 +11,11 @@ use super::handle::DynHandle;
 use super::handle::GenericHandle;
 use super::handle::Handle;
 use super::id::EcsObject;
-use super::mesh::VideoMesh;
 use super::scene::Scene;
 
 declare::object!(GameObjectHandle, GameObject);
 declare::component!(MeshRendererComponentHandle, MeshRendererComponent);
 declare::component!(DynScriptComponentHandle, DynScriptComponent);
-declare::object!(VideoMeshHandle, VideoMesh);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScriptComponentHandle<T: Script> {

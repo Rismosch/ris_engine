@@ -6,7 +6,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_send_and_receive() {
-    let (sender, receiver, _) = ris_async::channel(4);
+    let (sender, receiver, _) = ris_async::job_channel(4);
     sender.send(42).unwrap();
     let received = receiver.receive().unwrap();
     assert_eq!(received, 42);
@@ -14,7 +14,7 @@ fn should_send_and_receive() {
 
 #[test]
 fn should_send_and_steal() {
-    let (sender, _, stealer) = ris_async::channel(4);
+    let (sender, _, stealer) = ris_async::job_channel(4);
     sender.send(42).unwrap();
     let stolen = stealer.steal().unwrap();
     assert_eq!(stolen, 42);
@@ -22,7 +22,7 @@ fn should_send_and_steal() {
 
 #[test]
 fn should_send_until_full() {
-    let (sender, _, _) = ris_async::channel(2);
+    let (sender, _, _) = ris_async::job_channel(2);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result = sender.send(3);
@@ -31,7 +31,7 @@ fn should_send_until_full() {
 
 #[test]
 fn should_receive_until_empty() {
-    let (sender, receiver, _) = ris_async::channel(4);
+    let (sender, receiver, _) = ris_async::job_channel(4);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result_1 = receiver.receive();
@@ -44,7 +44,7 @@ fn should_receive_until_empty() {
 
 #[test]
 fn should_steal_until_empty() {
-    let (sender, _, stealer) = ris_async::channel(4);
+    let (sender, _, stealer) = ris_async::job_channel(4);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     let result_1 = stealer.steal();
@@ -57,7 +57,7 @@ fn should_steal_until_empty() {
 
 #[test]
 fn should_receive_and_steal() {
-    let (sender, receiver, stealer) = ris_async::channel(6);
+    let (sender, receiver, stealer) = ris_async::job_channel(6);
     sender.send(1).unwrap();
     sender.send(2).unwrap();
     sender.send(3).unwrap();
@@ -83,7 +83,7 @@ fn should_steal_from_different_threads() {
     let repeats = miri_choose(1_000, 10);
     ris_util::testing::repeat(repeats, |i| {
         let count = 50;
-        let (sender, receiver, stealer) = ris_async::channel(count);
+        let (sender, receiver, stealer) = ris_async::job_channel(count);
         let done = Arc::new(AtomicBool::new(false));
         let mut join_handles = Vec::new();
 

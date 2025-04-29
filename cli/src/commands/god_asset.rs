@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use ris_asset::assets::ris_god_asset;
 use ris_asset::assets::ris_god_asset::RisGodAsset;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::info::args_info::DEFAULT_ASSETS_VALUE;
 use ris_error::RisResult;
 
@@ -22,18 +22,22 @@ fn default_asset_path() -> PathBuf {
 }
 
 impl ICommand for GodAsset {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "god_asset".to_string()
+    }
+
+    fn args(&self) -> String {
         "[-i <filepath>] <command> [args...]".to_string()
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => {
                 String::from("prints or modifies the god asset, the entry point of all assets.")
             }
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
-                let short = Self::explanation(ExplanationLevel::Short);
+                let short = self.explanation(ExplanationLevel::Short);
                 explanation.push_str(&format!("{}\n", short));
                 explanation.push('\n');
                 explanation.push_str("flags:\n");
@@ -58,7 +62,7 @@ impl ICommand for GodAsset {
         }
     }
 
-    fn run(args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
         let flag_input = args.iter().position(|x| x == FLAG_INPUT);
         let (command_index, god_asset_path) = match flag_input {
             Some(flag_input_position) => {
@@ -102,9 +106,6 @@ impl ICommand for GodAsset {
                     "gizmo_segment_vert_spv" => {
                         god_asset.gizmo_segment_vert_spv = AssetId::Path(value)
                     }
-                    "gizmo_segment_geom_spv" => {
-                        god_asset.gizmo_segment_geom_spv = AssetId::Path(value)
-                    }
                     "gizmo_segment_frag_spv" => {
                         god_asset.gizmo_segment_frag_spv = AssetId::Path(value)
                     }
@@ -134,7 +135,7 @@ fn read_god_asset(path: impl AsRef<Path>) -> RisResult<RisGodAsset> {
     let mut bytes = vec![0u8; length as usize];
     ris_io::seek(&mut file, SeekFrom::Start(0))?;
     ris_io::read(&mut file, &mut bytes)?;
-    RisGodAsset::load(&bytes)
+    RisGodAsset::deserialize(&bytes)
 }
 
 fn print_god_asset(god_asset: &RisGodAsset) {
@@ -147,10 +148,6 @@ fn print_god_asset(god_asset: &RisGodAsset) {
     println!(
         "    gizmo_segment_vert_spv: {:?},",
         god_asset.gizmo_segment_vert_spv
-    );
-    println!(
-        "    gizmo_segment_geom_spv: {:?},",
-        god_asset.gizmo_segment_geom_spv
     );
     println!(
         "    gizmo_segment_frag_spv: {:?},",

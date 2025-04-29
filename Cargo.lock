@@ -141,6 +141,7 @@ dependencies = [
  "chrono",
  "imgui",
  "ris_asset",
+ "ris_asset_data",
  "ris_core",
  "ris_data",
  "ris_error",
@@ -593,15 +594,30 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 name = "ris_asset"
 version = "0.1.0"
 dependencies = [
+ "ash",
  "miniz_oxide",
  "png",
+ "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_error",
  "ris_io",
  "ris_log",
+ "ris_math",
  "ris_util",
  "shaderc",
+]
+
+[[package]]
+name = "ris_asset_data"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "ris_error",
+ "ris_io",
+ "ris_log",
+ "ris_math",
+ "ris_video_data",
 ]
 
 [[package]]
@@ -622,6 +638,7 @@ dependencies = [
  "chrono",
  "imgui",
  "ris_asset",
+ "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_debug",
@@ -646,6 +663,7 @@ dependencies = [
  "ash",
  "chrono",
  "imgui",
+ "ris_asset_data",
  "ris_async",
  "ris_debug",
  "ris_error",
@@ -682,6 +700,7 @@ dependencies = [
  "miniz_oxide",
  "png",
  "ris_asset",
+ "ris_asset_data",
  "ris_async",
  "ris_core",
  "ris_data",
@@ -794,6 +813,7 @@ dependencies = [
  "ash",
  "imgui",
  "ris_asset",
+ "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_debug",

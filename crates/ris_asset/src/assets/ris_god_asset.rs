@@ -1,6 +1,4 @@
-use std::io::Cursor;
-
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -20,7 +18,6 @@ pub struct RisGodAsset {
     pub imgui_vert_spv: AssetId,
     pub imgui_frag_spv: AssetId,
     pub gizmo_segment_vert_spv: AssetId,
-    pub gizmo_segment_geom_spv: AssetId,
     pub gizmo_segment_frag_spv: AssetId,
     pub gizmo_text_vert_spv: AssetId,
     pub gizmo_text_geom_spv: AssetId,
@@ -39,7 +36,6 @@ impl RisGodAsset {
                 self.imgui_vert_spv.clone(),
                 self.imgui_frag_spv.clone(),
                 self.gizmo_segment_vert_spv.clone(),
-                self.gizmo_segment_geom_spv.clone(),
                 self.gizmo_segment_frag_spv.clone(),
                 self.gizmo_text_vert_spv.clone(),
                 self.gizmo_text_geom_spv.clone(),
@@ -48,17 +44,13 @@ impl RisGodAsset {
                 self.texture.clone(),
             ],
         );
-        let header_bytes = header.serialize()?;
 
-        let mut stream = Cursor::new(Vec::new());
-        ris_io::write(&mut stream, &header_bytes)?;
-        let bytes = stream.into_inner();
-
+        let bytes = header.serialize(&[])?;
         Ok(bytes)
     }
 
-    pub fn load(bytes: &[u8]) -> RisResult<Self> {
-        let header = RisHeader::load(bytes)?.into_ris_error()?;
+    pub fn deserialize(bytes: &[u8]) -> RisResult<Self> {
+        let (header, _content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
         header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();
@@ -66,13 +58,12 @@ impl RisGodAsset {
         let imgui_vert_spv = header.references[2].clone();
         let imgui_frag_spv = header.references[3].clone();
         let gizmo_segment_vert_spv = header.references[4].clone();
-        let gizmo_segment_geom_spv = header.references[5].clone();
-        let gizmo_segment_frag_spv = header.references[6].clone();
-        let gizmo_text_vert_spv = header.references[7].clone();
-        let gizmo_text_geom_spv = header.references[8].clone();
-        let gizmo_text_frag_spv = header.references[9].clone();
-        let debug_font_texture = header.references[10].clone();
-        let texture = header.references[11].clone();
+        let gizmo_segment_frag_spv = header.references[5].clone();
+        let gizmo_text_vert_spv = header.references[6].clone();
+        let gizmo_text_geom_spv = header.references[7].clone();
+        let gizmo_text_frag_spv = header.references[8].clone();
+        let debug_font_texture = header.references[9].clone();
+        let texture = header.references[10].clone();
 
         let god_asset = Self {
             default_vert_spv,
@@ -80,7 +71,6 @@ impl RisGodAsset {
             imgui_vert_spv,
             imgui_frag_spv,
             gizmo_segment_vert_spv,
-            gizmo_segment_geom_spv,
             gizmo_segment_frag_spv,
             gizmo_text_vert_spv,
             gizmo_text_geom_spv,

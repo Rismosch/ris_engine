@@ -10,6 +10,7 @@ ash = "0.37.3"
 chrono = "0.4"
 imgui = "0.11.0"
 sdl2 = "0.34.5"
+ris_asset_data = { path = "../ris_asset_data" }
 ris_async = { path = "../ris_async" }
 ris_debug = { path = "../ris_debug" }
 ris_error = { path = "../ris_error" }

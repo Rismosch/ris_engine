@@ -34,8 +34,15 @@ pub struct TextureCreateInfo<'a> {
 impl Texture {
     /// # Safety
     ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&self, device: &ash::Device) {
+        device.destroy_sampler(self.sampler, None);
+        device.destroy_image_view(self.view, None);
+
+        self.image.free(device);
+    }
+
+    pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
         let TextureCreateInfo {
             device,
             queue,
@@ -65,7 +72,7 @@ impl Texture {
             physical_device_memory_properties,
         )?;
 
-        staging_buffer.write(device, pixels_rgba)?;
+        unsafe { staging_buffer.write(device, pixels_rgba) }?;
 
         let image = Image::alloc(ImageCreateInfo {
             device,
@@ -88,15 +95,17 @@ impl Texture {
             sync: TransientCommandSync::default(),
         })?;
 
-        staging_buffer.copy_to_image(CopyToImageInfo {
-            device,
-            queue,
-            transient_command_pool,
-            image: image.image,
-            width,
-            height,
-            sync: TransientCommandSync::default(),
-        })?;
+        unsafe {
+            staging_buffer.copy_to_image(CopyToImageInfo {
+                device,
+                queue,
+                transient_command_pool,
+                image: image.image,
+                width,
+                height,
+                sync: TransientCommandSync::default(),
+            })
+        }?;
 
         image.transition_layout(TransitionLayoutInfo {
             device,
@@ -108,7 +117,7 @@ impl Texture {
             sync: TransientCommandSync::default(),
         })?;
 
-        staging_buffer.free(device);
+        unsafe { staging_buffer.free(device) };
 
         // create image view
         let view = Image::alloc_view(device, image.image, format, vk::ImageAspectFlags::COLOR)?;
@@ -142,15 +151,5 @@ impl Texture {
             view,
             sampler,
         })
-    }
-
-    /// # Safety
-    ///
-    /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        device.destroy_sampler(self.sampler, None);
-        device.destroy_image_view(self.view, None);
-
-        self.image.free(device);
     }
 }

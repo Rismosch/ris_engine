@@ -146,7 +146,7 @@ macro_rules! assert_bytes_eq {
 }
 
 #[macro_export]
-macro_rules! assert_vec2_eq {
+macro_rules! assert_vec2_feq {
     ($left:expr, $right:expr $(,)?) => {{
         $crate::assert_feq!($left.0, $right.0);
         $crate::assert_feq!($left.1, $right.1);
@@ -154,9 +154,9 @@ macro_rules! assert_vec2_eq {
 }
 
 #[macro_export]
-macro_rules! assert_vec3_eq {
+macro_rules! assert_vec3_feq {
     ($left:expr, $right:expr $(,)?) => {{
-        $crate::assert_vec3_eq!($left, $right, $crate::testing::MIN_NORM);
+        $crate::assert_vec3_feq!($left, $right, $crate::testing::MIN_NORM);
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         $crate::assert_feq!($left.0, $right.0, $tolerance);
@@ -166,7 +166,7 @@ macro_rules! assert_vec3_eq {
 }
 
 #[macro_export]
-macro_rules! assert_vec4_eq {
+macro_rules! assert_vec4_feq {
     ($left:expr, $right:expr) => {{
         $crate::assert_feq!($left.0, $right.0);
         $crate::assert_feq!($left.1, $right.1);
@@ -176,9 +176,9 @@ macro_rules! assert_vec4_eq {
 }
 
 #[macro_export]
-macro_rules! assert_quat_eq {
+macro_rules! assert_quat_feq {
     ($left:expr, $right:expr $(,)?) => {{
-        $crate::assert_quat_eq!($left, $right, $crate::testing::MIN_NORM);
+        $crate::assert_quat_feq!($left, $right, $crate::testing::MIN_NORM);
     }};
     ($left:expr, $right:expr, $tolerance:expr) => {{
         let left = ris_math::vector::Vec4::from($left);

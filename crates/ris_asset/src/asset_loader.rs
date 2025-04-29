@@ -6,51 +6,58 @@ use std::sync::mpsc::SendError;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
-use ris_async::JobFuture;
-use ris_async::JobFutureSetter;
+use ris_asset_data::asset_id::AssetId;
+use ris_async::oneshot_channel;
+use ris_async::OneshotReceiver;
+use ris_async::OneshotSender;
 use ris_async::ThreadPool;
-use ris_data::asset_id::AssetId;
 use ris_data::info::app_info::AppInfo;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::asset_loader_compiled::AssetLoaderCompiled;
 use crate::asset_loader_directory::AssetLoaderDirectory;
 use crate::assets::ris_god_asset;
+
+trait LoadRequest: Send {
+    fn id(&self) -> AssetId;
+    fn deserialize_and_send(&mut self, data: RisResult<Vec<u8>>);
+}
+
+struct GenericLoadRequest<T: Send, F: Send + FnOnce(Vec<u8>) -> RisResult<T>> {
+    id: AssetId,
+    inner: Option<GenericLoadRequestInner<T, F>>,
+}
+
+struct GenericLoadRequestInner<T: Send, F: Send + FnOnce(Vec<u8>) -> RisResult<T>> {
+    deserializer: F,
+    sender: OneshotSender<RisResult<T>>,
+}
+
+impl<T: Send, F: Send + FnOnce(Vec<u8>) -> RisResult<T>> LoadRequest for GenericLoadRequest<T, F> {
+    fn id(&self) -> AssetId {
+        self.id.clone()
+    }
+
+    fn deserialize_and_send(&mut self, data: RisResult<Vec<u8>>) {
+        let Some(inner) = self.inner.take() else {
+            ris_error::throw!("attempted to send load request multiple times");
+        };
+
+        let result = match data {
+            Ok(bytes) => (inner.deserializer)(bytes),
+            Err(e) => Err(e),
+        };
+
+        inner.sender.send(result)
+    }
+}
 
 enum InternalLoader {
     Compiled(AssetLoaderCompiled),
     Directory(AssetLoaderDirectory),
 }
 
-pub struct Request {
-    id: AssetId,
-    setter: JobFutureSetter<Result<Vec<u8>, LoadError>>,
-}
-
-#[derive(Debug)]
-pub enum LoadError {
-    InvalidId,
-    SendFailed,
-    LoadFailed,
-}
-
-impl std::error::Error for LoadError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
-}
-
-impl std::fmt::Display for LoadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidId => write!(f, "the wrong id has been passed to the currently loaded loader"),
-            Self::SendFailed => write!(f, "the request was not able to be send to the loading thread. this usually occurs when the loading doesn't exist"),
-            Self::LoadFailed => write!(f, "asset could not be loaded. this may be because it doesn't exist, or because an io error occured when reading the file"),
-        }
-    }
-}
-
-static ASSET_LOADER_SENDER: Mutex<Option<Sender<Request>>> = Mutex::new(None);
+static ASSET_LOADER_SENDER: Mutex<Option<Sender<Box<dyn LoadRequest>>>> = Mutex::new(None);
 
 pub struct AssetLoaderGuard {
     pub god_asset_id: AssetId,
@@ -115,10 +122,24 @@ pub fn init(app_info: &AppInfo) -> RisResult<AssetLoaderGuard> {
     Ok(AssetLoaderGuard { god_asset_id })
 }
 
-pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
-    let (future, setter) = JobFuture::new();
+pub fn load_raw_async(id: AssetId) -> OneshotReceiver<RisResult<Vec<u8>>> {
+    load_async(id, Ok)
+}
 
-    let request = Request { id, setter };
+pub fn load_async<T, F>(id: AssetId, deserializer: F) -> OneshotReceiver<RisResult<T>>
+where
+    T: Send + 'static,
+    F: FnOnce(Vec<u8>) -> RisResult<T> + Send + 'static,
+{
+    let (sender, receiver) = oneshot_channel();
+
+    let request: Box<dyn LoadRequest> = Box::new(GenericLoadRequest {
+        id,
+        inner: Some(GenericLoadRequestInner {
+            deserializer,
+            sender,
+        }),
+    });
 
     let result = {
         let asset_loader_sender = ThreadPool::lock(&ASSET_LOADER_SENDER);
@@ -129,48 +150,36 @@ pub fn load_async(id: AssetId) -> JobFuture<Result<Vec<u8>, LoadError>> {
     };
 
     if let Err(send_error) = result {
-        let error = Err(LoadError::SendFailed);
-        let request = send_error.0;
-        request.setter.set(error);
+        let error = ris_error::new_result!("failed to send: {}", send_error);
+        let mut request = send_error.0;
+        request.deserialize_and_send(error);
     }
 
-    future
+    receiver
 }
 
-fn load_asset_thread(receiver: Receiver<Request>, mut loader: InternalLoader) {
-    for request in receiver.iter() {
-        ris_log::trace!("loading asset {:?}...", request.id);
+fn load_asset_thread(receiver: Receiver<Box<dyn LoadRequest>>, mut loader: InternalLoader) {
+    for mut request in receiver.iter() {
+        ris_log::trace!("loading asset {:?}...", request.id());
 
         let result = match &mut loader {
-            InternalLoader::Compiled(loader) => match &request.id {
-                AssetId::Index(id) => loader.load(*id).map_err(|e| {
-                    ris_log::error!("failed loading {:?}: {}", id, e);
-                    LoadError::LoadFailed
-                }),
-                AssetId::Path(id) => {
-                    ris_log::error!(
-                        "invalid id. expected compiled but was directory. id: {:?}",
-                        id
-                    );
-                    Err(LoadError::InvalidId)
-                }
+            InternalLoader::Compiled(loader) => match request.id() {
+                AssetId::Index(id) => loader.load(id),
+                AssetId::Path(id) => ris_error::new_result!(
+                    "invalid id. expected compiled but was directory. id: {:?}",
+                    id
+                ),
             },
-            InternalLoader::Directory(loader) => match request.id {
-                AssetId::Index(id) => {
-                    ris_log::error!(
-                        "invalid id. expected directory but was compiled. id: {:?}",
-                        id
-                    );
-                    Err(LoadError::InvalidId)
-                }
-                AssetId::Path(id) => loader.load(id.clone()).map_err(|e| {
-                    ris_log::error!("failed loading {:?}: {}", id, e);
-                    LoadError::LoadFailed
-                }),
+            InternalLoader::Directory(loader) => match request.id() {
+                AssetId::Index(id) => ris_error::new_result!(
+                    "invalid id. expected directory but was compiled. id: {:?}",
+                    id
+                ),
+                AssetId::Path(id) => loader.load(id.clone()),
             },
         };
 
-        request.setter.set(result);
+        request.deserialize_and_send(result);
     }
 
     ris_log::info!("load asset thread ended");

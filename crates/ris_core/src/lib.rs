@@ -5,7 +5,6 @@ pub mod output_frame;
 
 pub mod log_appenders;
 
-#[cfg(feature = "ui_helper_enabled")]
 pub mod ui_helper;
 
 use ris_data::info::app_info::AppInfo;

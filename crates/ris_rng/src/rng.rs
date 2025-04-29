@@ -54,7 +54,7 @@ impl Rng {
     pub fn next_u64(&mut self) -> u64 {
         let one: u64 = self.next_u32().into();
         let two: u64 = self.next_u32().into();
-        one << 32 | two
+        (one << 32) | two
     }
 
     /// returns a random i32

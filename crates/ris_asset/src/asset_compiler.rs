@@ -5,7 +5,7 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
@@ -38,8 +38,7 @@ pub struct CompileOptions {
 
 /// compiles a directory to a ris_asset file
 /// - `source`: the directory to be compiled
-/// - `target`: the path to the final compiled file. if this file exists already, it will be
-/// overwritten
+/// - `target`: the path to the final compiled file. if this file exists already, it will be overwritten
 pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult<()> {
     let mut assets = Vec::new();
     let mut asset_lookup_hashmap = HashMap::new();
@@ -116,12 +115,12 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         ris_io::seek(&mut file, SeekFrom::Start(0))?;
         ris_io::read(&mut file, &mut file_content)?;
 
-        let modified_file_content = match RisHeader::load(&file_content)? {
+        let modified_file_content = match RisHeader::deserialize(&file_content)? {
             // asset is not a ris_asset, return unmodified
             None => file_content,
 
             // asset is ris_asset, change directory id to compiled id
-            Some(ris_header) => {
+            Some((ris_header, ris_asset_content)) => {
                 let mut references = Vec::with_capacity(ris_header.references.len());
                 for reference in &ris_header.references {
                     match reference {
@@ -142,9 +141,6 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                     }
                 }
 
-                let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content())?;
-
                 let mut modified_file_content = Cursor::new(Vec::new());
                 let stream = &mut modified_file_content;
                 ris_io::write(stream, &ris_header.magic)?;
@@ -153,7 +149,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 for reference in references {
                     ris_io::write_uint(stream, reference)?;
                 }
-                ris_io::write(stream, &ris_asset_content)?;
+                ris_io::write(stream, ris_asset_content)?;
 
                 modified_file_content.into_inner()
             }
@@ -214,8 +210,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
 /// decompiles a .ris_asset file to a directory.
 /// - `source`: the path to the compiled file
-/// - `target`: the path to the final directory. if this directory exists already, it will be
-/// cleared
+/// - `target`: the path to the final directory. if this directory exists already, it will be cleared
 pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     // preparations
     let target = Path::new(target);
@@ -287,12 +282,12 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let file_content = ris_io::read_at(source, p_asset)?;
 
         // reassign ids
-        let modified_file_content = match RisHeader::load(&file_content)? {
+        let modified_file_content = match RisHeader::deserialize(&file_content)? {
             // asset is not a ris_asset, return unmodified
             None => file_content,
 
             // asset is ris_asset, change compiled id to directory id
-            Some(old_header) => {
+            Some((old_header, old_content)) => {
                 let mut references = Vec::with_capacity(old_header.references.len());
                 for reference in &old_header.references {
                     match reference {
@@ -311,35 +306,7 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
                 }
 
                 let new_header = RisHeader::new(old_header.magic, references);
-                let new_header_content = new_header.serialize()?;
-
-                let mut file_content = Cursor::new(file_content);
-                let ris_asset_content = ris_io::read_at(&mut file_content, old_header.p_content())?;
-
-                let mut modified_file_content = Cursor::new(Vec::new());
-                ris_io::write(&mut modified_file_content, &new_header_content)?;
-                ris_io::write(&mut modified_file_content, &ris_asset_content)?;
-
-                modified_file_content.into_inner()
-
-                //let mut file_content = Cursor::new(file_content);
-                //let ris_asset_content = ris_io::read_at(&mut file_content, ris_header.p_content())?;
-
-                //let mut modified_file_content = Cursor::new(Vec::new());
-                //let stream = &mut modified_file_content;
-                //ris_io::write(stream, &ris_header.magic)?;
-                //ris_io::write_bool(stream, false)?;
-                //let addr_p_content = ris_io::seek(stream, SeekFrom::Current(0))?;
-                //ris_io::write_fat_ptr(stream, FatPtr::null())?; // placeholder
-                //ris_io::write_uint(stream, references.len())?;
-                //for reference in references {
-                //    ris_io::write_string(stream, reference)?;
-                //}
-                //let p_content = ris_io::write(stream, &ris_asset_content)?;
-                //ris_io::seek(stream, SeekFrom::Start(addr_p_content))?;
-                //ris_io::write_fat_ptr(stream, p_content)?;
-
-                //modified_file_content.into_inner()
+                new_header.serialize(old_content)?
             }
         };
 

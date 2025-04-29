@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::fs::File;
+use std::io::BufRead;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_data::ris_yaml::RisYaml;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -12,17 +12,20 @@ use crate::importer::*;
 pub const DEFAULT_SOURCE_DIRECTORY: &str = "assets/source_files";
 pub const DEFAULT_IMPORT_DIRECTORY: &str = "assets/imported";
 pub const DEFAULT_IN_USE_DIRECTORY: &str = "assets/in_use";
-pub const META_EXTENSION: &str = "ris_meta";
+pub const COPY_INSTRUCTIONS_PATH: &str = "assets/copy_instructions.ris_meta";
+pub const COPY_INSTRUCTION_COMMENT: char = '#';
+pub const COPY_INSTRUCTION_SEPARATOR: &str = ":=>";
 pub const META_COPY_TO: &str = "copy_to";
 
 pub enum ImporterKind {
+    GLB,
     GLSL,
     PNG,
 }
 
 pub struct SpecificImporterInfo {
     pub source_file_path: PathBuf,
-    pub target_file_paths: Vec<PathBuf>,
+    pub target_directory: PathBuf,
     pub importer: ImporterKind,
 }
 
@@ -36,6 +39,39 @@ pub enum ImporterInfo {
     DeduceFromFileName(DeduceImporterInfo),
 }
 
+pub fn clean(import_directory: &str) -> RisResult<()> {
+    let mut directories = VecDeque::new();
+    directories.push_back(PathBuf::from(import_directory));
+
+    while let Some(current) = directories.pop_front() {
+        let entries = std::fs::read_dir(&current)?;
+
+        let mut cleaned = 0;
+        for entry in entries {
+            let entry = entry?;
+            let metadata = entry.metadata()?;
+            let entry_path = entry.path();
+
+            if metadata.is_file() {
+                ris_log::debug!("cleaning \"{}\"...", entry_path.display());
+                std::fs::remove_file(entry_path)?;
+                cleaned += 1;
+            } else if metadata.is_dir() {
+                directories.push_back(entry_path);
+            } else {
+                return ris_error::new_result!(
+                    "entry \"{}\" is neither a file nor a directory",
+                    entry_path.display(),
+                );
+            }
+        }
+
+        ris_log::debug!("deleted {} files", cleaned);
+    }
+
+    Ok(())
+}
+
 pub fn import_all(
     source_directory: &str,
     import_directory: &str,
@@ -45,13 +81,9 @@ pub fn import_all(
     let temp_directory = temp_directory.map(PathBuf::from);
     let mut directories = VecDeque::new();
 
-    // clean
-    //let target_directory_path = PathBuf::from(target_directory);
-    //if target_directory_path.exists() {
-    //    std::fs::remove_dir_all(target_directory_path)?;
-    //}
-
     // import source files
+    ris_log::info!("import source files...");
+
     let source_path = PathBuf::from(source_directory);
     directories.push_back(source_path);
 
@@ -109,117 +141,147 @@ pub fn import_all(
     }
 
     // copy imported files
-    let import_path = PathBuf::from(import_directory);
-    let in_use_path = PathBuf::from(in_use_directory);
-    directories.push_back(import_path.clone());
+    ris_log::info!("copy imported files...");
+    let file = std::fs::File::open(COPY_INSTRUCTIONS_PATH)?;
+    let reader = std::io::BufReader::new(file);
+    for (line_number, line) in reader.lines().enumerate() {
+        let line_number = line_number + 1;
+        let line = line?;
+        let line = line.trim();
 
-    while let Some(current) = directories.pop_front() {
-        let entries = std::fs::read_dir(&current)?;
+        if line.is_empty() {
+            continue;
+        }
 
-        for entry in entries {
-            let entry = entry?;
-            let metadata = entry.metadata()?;
-            let entry_path = entry.path();
+        if line.starts_with(COPY_INSTRUCTION_COMMENT) {
+            continue;
+        }
 
-            if metadata.is_file() {
-                let Some(extension) = entry_path.extension() else {
-                    continue;
-                };
+        let splits = line
+            .split(COPY_INSTRUCTION_SEPARATOR)
+            .collect::<Vec<_>>();
 
-                let Some(extension_str) = extension.to_str() else {
-                    continue;
-                };
+        if splits.len() != 2 {
+            let count = splits.len() - 1;
+            return ris_error::new_result!(
+                "expected to find 1 \"{}\" but found {}. line: {}",
+                COPY_INSTRUCTION_SEPARATOR,
+                count,
+                line_number,
+            );
+        }
 
-                if extension_str != META_EXTENSION {
-                    continue;
-                }
+        let split0 = splits[0].trim();
+        let split1 = splits[1].trim();
 
-                let entry_parent = entry_path.parent().into_ris_error()?;
-                let entry_stem = entry_path.file_stem().into_ris_error()?;
-                let copy_source = PathBuf::from(entry_parent).join(entry_stem);
+        if split0.is_empty() || split1.is_empty() {
+            return ris_error::new_result!(
+                "source and target may not be empty. line: {}",
+                line_number,
+            )
+        }
 
-                let meta_content = std::fs::read_to_string(&entry_path)?;
-                let yaml = RisYaml::deserialize(meta_content)?;
-                let copy_to_value = yaml.get_value(META_COPY_TO).into_ris_error()?;
-                let copy_target = in_use_path.join(copy_to_value);
+        let source = PathBuf::from(import_directory).join(split0);
+        let target = PathBuf::from(in_use_directory).join(split1);
 
-                ris_log::trace!(
-                    "copying \"{}\" to \"{}\"...",
-                    copy_source.display(),
-                    copy_target.display(),
-                );
+        if !source.exists() {
+            return ris_error::new_result!(
+                "source \"{}\" does not exist. line: {}",
+                source.display(),
+                line_number,
+            );
+        }
 
-                //let copy_target_parent = copy_target.parent().into_ris_error()?;
-                //std::fs::create_dir_all(copy_target_parent)?;
+        let mut to_copy = Vec::new();
 
-                let mut to_copy = VecDeque::new();
-                to_copy.push_back((copy_source.clone(), copy_target.clone()));
 
-                while let Some((copy_source, copy_target)) = to_copy.pop_front() {
-                    if copy_source.ends_with(META_EXTENSION) {
-                        continue;
-                    }
+        if source.is_file() {
+            to_copy.push((source, target));
+        } else if source.is_dir() {
+            directories.push_back(PathBuf::from(&source));
 
-                    if copy_source.is_file() {
-                        let copy_target_parent = copy_target.parent().into_ris_error()?;
-                        std::fs::create_dir_all(copy_target_parent)?;
-                        std::fs::copy(&copy_source, &copy_target)?;
-                    } else if copy_source.is_dir() {
-                        for entry in std::fs::read_dir(&copy_source)? {
-                            let entry = entry?;
-                            let entry_path = entry.path();
-                            let entry_name = entry_path.file_name().into_ris_error()?;
+            while let Some(current) = directories.pop_front() {
+                let entries = std::fs::read_dir(&current)?;
 
-                            let new_copy_target = copy_target.join(entry_name);
-                            to_copy.push_back((entry_path, new_copy_target));
-                        }
+                for entry in entries {
+                    let entry = entry?;
+                    let metadata = entry.metadata()?;
+                    let entry_path = entry.path();
+
+                    if metadata.is_file() {
+                        let entry_path_without_root = entry_path.strip_prefix(&source)?;
+                        let actual_target = target.join(entry_path_without_root);
+                        to_copy.push((entry_path, actual_target));
+                    } else if metadata.is_dir() {
+                        directories.push_back(entry_path);
                     } else {
                         return ris_error::new_result!(
-                            "\"{}\" is neither a file nor a dir",
-                            copy_source.display()
+                            "entry \"{}\" is neither a file nor a directory",
+                            entry_path.display(),
                         );
                     }
                 }
-
-                ris_log::debug!(
-                    "copied \"{}\" to \"{}\"!",
-                    copy_source.display(),
-                    copy_target.display(),
-                );
-            } else if metadata.is_dir() {
-                directories.push_back(entry_path);
-            } else {
-                return ris_error::new_result!(
-                    "entry \"{}\" is neither a file nor a directory",
-                    entry_path.display(),
-                );
             }
+        } else {
+            return ris_error::new_result!(
+                "source \"{}\" is neither a file nor a directory. line: {}",
+                source.display(),
+                line_number,
+            );
+        }
+
+        for (source, target) in to_copy {
+            ris_log::debug!(
+                "copying \"{}\" to \"{}\"...",
+                source.display(),
+                target.display(),
+            );
+
+            let target_parent = target.parent().into_ris_error()?;
+            std::fs::create_dir_all(target_parent)?;
+            std::fs::copy(source, target)?;
         }
     }
 
     Ok(())
 }
 
-pub fn create_file(file_path: &Path) -> RisResult<File> {
-    let parent = file_path.parent();
+pub fn create_file(
+    source: impl AsRef<Path>,
+    target_dir: impl AsRef<Path>,
+    extension: impl AsRef<str>,
+) -> RisResult<File> {
+    let source = source.as_ref();
+    let target_dir = target_dir.as_ref();
+    let extension = extension.as_ref();
+
+    let file_stem = source
+        .file_stem()
+        .into_ris_error()?
+        .to_str()
+        .into_ris_error()?;
+
+    let target = target_dir.join(format!("{}.{}", file_stem, extension,));
+
+    let parent = target.parent();
     if let Some(parent) = parent {
         if !parent.exists() {
             std::fs::create_dir_all(parent)?;
         }
     }
 
-    if file_path.exists() {
-        std::fs::remove_file(file_path)?;
+    if target.exists() {
+        std::fs::remove_file(&target)?;
     }
 
-    let file = File::create(file_path)?;
+    let file = File::create(target)?;
     Ok(file)
 }
 
 fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
-    let (source_path, target_paths, importer) = match info {
+    let (source, target, importer) = match info {
         ImporterInfo::Specific(info) => {
-            (info.source_file_path, info.target_file_paths, info.importer)
+            (info.source_file_path, info.target_directory, info.importer)
         }
         ImporterInfo::DeduceFromFileName(info) => {
             let source_path = info.source_file_path;
@@ -229,12 +291,11 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_extension = source_extension.to_str().into_ris_error()?;
             let source_extension = source_extension.to_lowercase();
 
-            let (importer, target_extensions) = match source_extension.as_str() {
-                glsl_to_spirv_importer::IN_EXT => {
-                    (ImporterKind::GLSL, glsl_to_spirv_importer::OUT_EXT)
-                }
-                png_to_qoi_importer::IN_EXT => (ImporterKind::PNG, png_to_qoi_importer::OUT_EXT),
-                // insert new inporter here...
+            let importer = match source_extension.as_str() {
+                glb_importer::IN_EXT_GLB => ImporterKind::GLB,
+                glsl_to_spirv_importer::IN_EXT_GLSL => ImporterKind::GLSL,
+                png_to_qoi_importer::IN_EXT_PNG => ImporterKind::PNG,
+                // insert new importer here...
                 _ => {
                     ris_log::debug!(
                         "failed to deduce importer, unknown extension \"{}\"",
@@ -244,29 +305,14 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
                 }
             };
 
-            let source_stem = source_path.file_stem().into_ris_error()?;
-            let source_stem = source_stem.to_str().into_ris_error()?;
-            let source_stem = String::from(source_stem);
-
-            let mut target_paths = Vec::new();
-
-            for target_extension in target_extensions {
-                let mut target_path = PathBuf::new();
-                target_path.push(target_directory.clone());
-                target_path.push(format!("{source_stem}.{target_extension}"));
-
-                target_paths.push(target_path);
-            }
-
-            (source_path, target_paths, importer)
+            (source_path, target_directory, importer)
         }
     };
 
     match importer {
-        ImporterKind::GLSL => {
-            glsl_to_spirv_importer::import(source_path, target_paths, temp_directory)
-        }
-        ImporterKind::PNG => png_to_qoi_importer::import(source_path, target_paths),
-        // insert more importers here...
+        ImporterKind::GLB => glb_importer::import(source, target),
+        ImporterKind::GLSL => glsl_to_spirv_importer::import(source, target, temp_directory),
+        ImporterKind::PNG => png_to_qoi_importer::import(source, target),
+        // insert new importers here...
     }
 }

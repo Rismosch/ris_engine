@@ -1,0 +1,28 @@
+# this file instructs the asset importer which imported
+# assets should be copied to `./assets/in_use/`.
+# 
+# syntax:
+#     <source> :=> <target>
+#
+# the example above copies `./assets/imported/<source>`
+# to `./assets/in_use/<target>`.
+# 
+# if `<source>` is a directory, the entire directory
+# will be copied. if the target directory is missing,
+# it will be created.
+#
+# additional notes:
+# - use hashtag `#` for comments
+# - whitespaces are trimmed from the front and end
+# - empty lines are ignored
+
+
+
+### meshes
+models/humane_rigging_chapter_05-human-000-000.ris_mesh :=> meshes/human.ris_mesh
+models/Suzanne-Suzanne.ris_mesh                         :=> meshes/suzanne.ris_mesh
+
+
+
+### shaders
+shaders :=> shaders

@@ -41,6 +41,7 @@ members = [
 [dependencies]
 # internal
 ris_asset = { path = "crates/ris_asset" }
+ris_asset_data = { path = "crates/ris_asset_data" }
 ris_async = { path = "crates/ris_async" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }

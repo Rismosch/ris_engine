@@ -29,7 +29,7 @@ pub struct ImguiFrame {
 impl ImguiFrame {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -56,7 +56,7 @@ pub struct ImguiRenderer {
 impl ImguiRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
@@ -73,10 +73,7 @@ impl ImguiRenderer {
         }
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
+    pub fn alloc(
         core: &VulkanCore,
         god_asset: &RisGodAsset,
         context: &mut Context,
@@ -92,8 +89,8 @@ impl ImguiRenderer {
         } = core;
 
         // shaders
-        let vs_asset_future = ris_asset::load_async(god_asset.imgui_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_async(god_asset.imgui_frag_spv.clone());
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.imgui_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.imgui_frag_spv.clone());
 
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;
@@ -423,20 +420,18 @@ impl ImguiRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-        let font_texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: font_atlas_texture.width,
-                height: font_atlas_texture.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::LINEAR,
-                pixels_rgba: font_atlas_texture.data,
-            })
-        }?;
+        let font_texture = Texture::alloc(TextureCreateInfo {
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: font_atlas_texture.width,
+            height: font_atlas_texture.height,
+            format: vk::Format::R8G8B8A8_SRGB,
+            filter: vk::Filter::LINEAR,
+            pixels_rgba: font_atlas_texture.data,
+        })?;
 
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);
@@ -557,8 +552,7 @@ impl ImguiRenderer {
                 mesh
             }
             None => {
-                let new_mesh =
-                    unsafe { Mesh::alloc(device, physical_device_memory_properties, draw_data) }?;
+                let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().into_ris_error()?
             }

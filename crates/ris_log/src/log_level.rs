@@ -44,7 +44,7 @@ impl From<LogLevel> for usize {
 impl LogLevel {
     pub fn to_color_string(&self) -> ColorString {
         match *self {
-            LogLevel::Trace => ColorString("Trace", Color::BrightCyan),
+            LogLevel::Trace => ColorString("Trace", Color::BrightWhite),
             LogLevel::Debug => ColorString("Debug", Color::BrightGreen),
             LogLevel::Info => ColorString("Info", Color::BrightWhite),
             LogLevel::Warning => ColorString("Warning", Color::BrightYellow),

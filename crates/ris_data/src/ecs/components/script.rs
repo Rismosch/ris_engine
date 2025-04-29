@@ -195,9 +195,12 @@ impl DynScriptComponent {
 
         match self.script_mut() {
             Some(script) => script.update(data),
-            None => ris_error::new_result!(
-                "script was none. make sure to start the script before calling update"
-            ),
+            None => {
+                ris_log::error!(
+                    "script was none. make sure to start the script before calling update"
+                );
+                Ok(())
+            }
         }
     }
 

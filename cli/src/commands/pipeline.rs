@@ -36,11 +36,15 @@ impl From<bool> for TestResult {
 }
 
 impl ICommand for Pipeline {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "pipeline".to_string()
+    }
+
+    fn args(&self) -> String {
         format!("[{}] [{}] [{}] [{}] [{}]", BUILD, TEST, MIRI, CLIPPY, ALL,)
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from(
                 "Runs various tests, to determine if the repo is in an acceptable state.",
@@ -77,14 +81,9 @@ impl ICommand for Pipeline {
         }
     }
 
-    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         if args.len() <= 2 {
-            return crate::util::command_error(
-                "no args provided",
-                "pipeline",
-                Self::args(),
-                Self::explanation(ExplanationLevel::Detailed),
-            );
+            return crate::util::command_error("no args provided", self);
         }
 
         let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
@@ -112,12 +111,7 @@ impl ICommand for Pipeline {
                 NO_MIRI => run_miri = false,
                 NO_CLIPPY => run_clippy = false,
                 _ => {
-                    return crate::util::command_error(
-                        &format!("unkown arg: {}", arg),
-                        "pipeline",
-                        Self::args(),
-                        Self::explanation(ExplanationLevel::Detailed),
-                    );
+                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }

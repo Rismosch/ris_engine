@@ -55,7 +55,7 @@ pub struct GizmoSegmentRenderer {
 impl GizmoSegmentRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -69,10 +69,7 @@ impl GizmoSegmentRenderer {
         device.destroy_render_pass(self.render_pass, None);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -136,16 +133,13 @@ impl GizmoSegmentRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_async(god_asset.gizmo_segment_vert_spv.clone());
-        let gs_future = ris_asset::load_async(god_asset.gizmo_segment_geom_spv.clone());
-        let fs_future = ris_asset::load_async(god_asset.gizmo_segment_frag_spv.clone());
+        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_vert_spv.clone());
+        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_frag_spv.clone());
 
         let vs_bytes = vs_future.wait()?;
-        let gs_bytes = gs_future.wait()?;
         let fs_bytes = fs_future.wait()?;
 
         let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
-        let gs_module = ris_video_data::shader::create_module(device, &gs_bytes)?;
         let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
 
         let shader_stages = [
@@ -157,15 +151,6 @@ impl GizmoSegmentRenderer {
                 p_name: ris_video_data::shader::ENTRY.as_ptr(),
                 p_specialization_info: ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
-            },
-            vk::PipelineShaderStageCreateInfo {
-                s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::PipelineShaderStageCreateFlags::empty(),
-                module: gs_module,
-                p_name: ris_video_data::shader::ENTRY.as_ptr(),
-                p_specialization_info: ptr::null(),
-                stage: vk::ShaderStageFlags::GEOMETRY,
             },
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -274,7 +259,7 @@ impl GizmoSegmentRenderer {
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::FALSE,
-            depth_compare_op: vk::CompareOp::LESS,
+            depth_compare_op: vk::CompareOp::GREATER,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
             front: stencil_op_state,
@@ -444,7 +429,6 @@ impl GizmoSegmentRenderer {
         let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
-        unsafe { device.destroy_shader_module(gs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
@@ -539,9 +523,8 @@ impl GizmoSegmentRenderer {
                 mesh
             }
             None => {
-                let new_mesh = unsafe {
-                    GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)
-                }?;
+                let new_mesh =
+                    GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)?;
                 *mesh = Some(new_mesh);
                 mesh.as_mut().into_ris_error()?
             }
@@ -581,7 +564,7 @@ impl GizmoSegmentRenderer {
                 },
                 vk::ClearValue {
                     depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
+                        depth: 0.0,
                         stencil: 0,
                     },
                 },

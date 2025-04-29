@@ -14,8 +14,7 @@
 /cli_out
 
 # assets
-assets/imported
-!assets/imported/**/*.ris_meta
+assets/imported/*
 decompiled_assets
 ris_assets
 

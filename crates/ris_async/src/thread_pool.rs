@@ -18,11 +18,12 @@ use std::thread::Thread;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use crate::job_channel;
 use crate::JobFuture;
-use crate::Receiver;
-use crate::Sender;
+use crate::JobReceiver;
+use crate::JobSender;
+use crate::JobStealer;
 use crate::SpinLock;
-use crate::Stealer;
 
 type Job = Box<dyn Future<Output = ()>>;
 
@@ -53,15 +54,15 @@ fn get_worker() -> Option<&'static Worker> {
 
 pub struct Worker {
     done: Arc<AtomicBool>,
-    sender: Sender<Job>,
-    receiver: Receiver<Job>,
+    sender: JobSender<Job>,
+    receiver: JobReceiver<Job>,
     waker: ThreadWaker,
     others: Vec<OtherWorker>,
     use_parking: bool,
 }
 
 pub struct OtherWorker {
-    stealer: Arc<Stealer<Job>>,
+    stealer: Arc<JobStealer<Job>>,
     waker: ThreadWaker,
 }
 
@@ -225,7 +226,7 @@ impl ThreadPool {
                 ris_log::error!("failed to set affinities for main worker: {}", e);
             }
         }
-        let (sender, receiver, stealer) = crate::channel::<Job>(buffer_capacity);
+        let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
         let waker = if use_parking {
             ThreadWaker(Some(std::thread::current()))
         } else {
@@ -256,7 +257,7 @@ impl ThreadPool {
                             ris_log::error!("failed to set affinities for worker {}: {}", i, e);
                         }
                     }
-                    let (sender, receiver, stealer) = crate::channel::<Job>(buffer_capacity);
+                    let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
                     let waker = if use_parking {
                         ThreadWaker(Some(std::thread::current()))
                     } else {

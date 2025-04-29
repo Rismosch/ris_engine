@@ -10,8 +10,10 @@ use shaderc::CompilationArtifact;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-pub const IN_EXT: &str = "glsl";
-pub const OUT_EXT: &[&str] = &["vert.spv", "geom.spv", "frag.spv"];
+pub const IN_EXT_GLSL: &str = "glsl";
+pub const OUT_EXT_VERT: &str = "vert.spv";
+pub const OUT_EXT_GEOM: &str = "geom.spv";
+pub const OUT_EXT_FRAG: &str = "frag.spv";
 
 const PATH_PREFIX: &str = "assets/__raw/shaders";
 const NAME: &str = "glsl_to_spirv_importer";
@@ -172,12 +174,19 @@ impl ShaderStage {
     }
 }
 
-pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -> RisResult<()> {
+pub fn import(
+    source: impl AsRef<Path>,
+    target_dir: impl AsRef<Path>,
+    temp_dir: Option<impl AsRef<Path>>,
+) -> RisResult<()> {
+    let source = source.as_ref();
+    let target_dir = target_dir.as_ref();
+    let temp_dir = temp_dir.as_ref().map(|x| x.as_ref());
+
     // read file
     let file = source.to_str().into_ris_error()?;
-
-    let mut source = File::open(file)?;
-    let f = &mut source;
+    let mut source_file = File::open(source)?;
+    let f = &mut source_file;
 
     let file_size = ris_io::seek(f, SeekFrom::End(0))?;
     let mut file_content = vec![0u8; file_size as usize];
@@ -312,13 +321,14 @@ pub fn import(source: PathBuf, targets: Vec<PathBuf>, temp_dir: Option<&Path>) -
     artifacts.push(frag_artifact);
 
     // save to file
-    debug_assert_eq!(artifacts.len(), targets.len());
+    let extensions = [OUT_EXT_VERT, OUT_EXT_GEOM, OUT_EXT_FRAG];
+    debug_assert_eq!(artifacts.len(), extensions.len());
     for i in 0..artifacts.len() {
         let artifact = &artifacts[i];
-        let target = &targets[i];
+        let extension = extensions[i];
 
         if let Some(artifact) = artifact {
-            let mut output = crate::asset_importer::create_file(target)?;
+            let mut output = crate::asset_importer::create_file(source, target_dir, extension)?;
             let bytes = artifact.as_binary_u8();
 
             ris_io::write(&mut output, bytes)?;

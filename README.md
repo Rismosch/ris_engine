@@ -19,28 +19,32 @@ Barebones game engine. Home made passion project.
   - [x] Color
     - [x] RGB
     - [x] OkLab
-- [x] Basic 3d renderer via Vulkan
+- [x] 3d Graphics via Vulkan
+  - [x] Static Meshes
+  - [ ] Skinned Meshes
+  - [ ] Materials
+  - [ ] Lighting
 - [x] Debugging
   - [x] GUI via Dear ImGui
   - [x] Profiling
-  - [x] Gizmos
+  - [x] 3d Gizmos
   - [x] const hashed string ids
-- [x] Asset System
-  - [x] Importing (convert raw assets to usable form)
-  - [x] Loading (use in engine)
+- [x] Asset system and pipeline
+  - [x] Importing
+  - [x] Loading
   - [x] (De)compiling
 - [x] Codecs
   - [x] GLSL to SpirV, with custom pre processor
   - [x] QOI
-  - [ ] glTF
+  - [x] glTF
 - [x] Settings/Configuration
 - [x] Gameobjects and components
   - [x] Mesh renderer
-    - [ ] Materials
   - [x] Scripting
 - [x] Scene editing, saving and loading
 - [ ] Collisions
 - [ ] Animations
+  - [ ] Bones
 - [ ] 3d Sound
 
 **Legend**:
@@ -49,11 +53,11 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-You will need rustc and cargo version to compile this repo. I am using version 1.77.2 [download link](https://www.rust-lang.org/tools/install)
+You will need rustc and cargo to compile this repo. I am using version 1.77.2 [download link](https://www.rust-lang.org/tools/install)
 
 The target platform is x86_64, Windows and Linux.
 
-_A newer compiler and other platforms may work, but I haven't tested these._
+_A newer compiler and other platforms may work, but I cannot give guarantees._
 
 Your hardware must support [Vulkan](https://www.vulkan.org/). Most modern GPUs work.
 
@@ -116,7 +120,7 @@ Alternatively, you can build a release-ready package, by running the command bel
 cargo run -p cli build
 ```
 
-Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. Infos and how to do can be found in [`./assets/README.md`](./assets/README.md).
+Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. Infos and how to do that can be found in [`./assets/README.md`](./assets/README.md).
 
 ## Testing
 

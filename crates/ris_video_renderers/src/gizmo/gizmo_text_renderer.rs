@@ -61,7 +61,7 @@ pub struct GizmoTextRenderer {
 impl GizmoTextRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -77,10 +77,7 @@ impl GizmoTextRenderer {
         self.font_texture.free(device);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -178,9 +175,9 @@ impl GizmoTextRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_async(god_asset.gizmo_text_vert_spv.clone());
-        let gs_future = ris_asset::load_async(god_asset.gizmo_text_geom_spv.clone());
-        let fs_future = ris_asset::load_async(god_asset.gizmo_text_frag_spv.clone());
+        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_text_vert_spv.clone());
+        let gs_future = ris_asset::load_raw_async(god_asset.gizmo_text_geom_spv.clone());
+        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_text_frag_spv.clone());
 
         let vs_bytes = vs_future.wait()?;
         let gs_bytes = gs_future.wait()?;
@@ -322,7 +319,7 @@ impl GizmoTextRenderer {
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::TRUE,
-            depth_compare_op: vk::CompareOp::LESS,
+            depth_compare_op: vk::CompareOp::GREATER,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
             front: stencil_op_state,
@@ -496,7 +493,7 @@ impl GizmoTextRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // texture
-        let font_future = ris_asset::load_async(god_asset.debug_font_texture.clone());
+        let font_future = ris_asset::load_raw_async(god_asset.debug_font_texture.clone());
         let font_data = font_future.wait()?;
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 
@@ -505,20 +502,18 @@ impl GizmoTextRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let font_texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: desc.width,
-                height: desc.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::NEAREST,
-                pixels_rgba: &pixels_rgba,
-            })
-        }?;
+        let font_texture = Texture::alloc(TextureCreateInfo {
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: desc.width,
+            height: desc.height,
+            format: vk::Format::R8G8B8A8_SRGB,
+            filter: vk::Filter::NEAREST,
+            pixels_rgba: &pixels_rgba,
+        })?;
 
         // frames
         let mut frames = Vec::with_capacity(swapchain.entries.len());
@@ -595,10 +590,6 @@ impl GizmoTextRenderer {
             descriptor_set,
         } = &mut self.frames[*index];
 
-        //if vertices.is_empty() {
-        //    return Ok(());
-        //}
-
         // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -621,7 +612,7 @@ impl GizmoTextRenderer {
                     mesh
                 }
                 None => {
-                    let new_mesh = unsafe { GizmoTextMesh::alloc(core, vertices, text) }?;
+                    let new_mesh = GizmoTextMesh::alloc(core, vertices, text)?;
                     *mesh = Some(new_mesh);
                     mesh.as_mut().into_ris_error()?
                 }
@@ -664,7 +655,7 @@ impl GizmoTextRenderer {
                 },
                 vk::ClearValue {
                     depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
+                        depth: 0.0,
                         stencil: 0,
                     },
                 },

@@ -1,0 +1,1 @@
+- [ ] index buffers should use u16 instead of u32, because it uses much less bandwidth. if a model exceeds u16::MAX indices, use submeshes, ie multiple meshes

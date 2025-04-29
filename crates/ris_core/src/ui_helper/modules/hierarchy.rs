@@ -1,21 +1,21 @@
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
 use ris_asset::assets::ris_scene;
-use ris_data::asset_id::AssetId;
+use ris_asset_data::asset_id::AssetId;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::id::GameObjectKind;
 use ris_data::ecs::id::SceneKind;
 use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
+use crate::inspector_util;
 use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
-const PAYLOAD_ID: &CStr = c"hierarchy drag drop payload id";
+const PAYLOAD_ID: &str = "hierarchy drag drop payload id";
 
 pub struct HierarchyModule {
     shared_state: SharedStateWeakPtr,
@@ -73,7 +73,7 @@ impl IUiHelperModule for HierarchyModule {
             if ui.button("save") {
                 if let Some(AssetId::Path(path)) = chunk.clone() {
                     ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
-                    let bytes = ris_scene::serialize(scene, Some(chunk_index))?;
+                    let bytes = ris_scene::serialize(scene, chunk_index)?;
 
                     let asset_path = self.shared_state.borrow().app_info.asset_path()?;
                     let path = asset_path.join(path);
@@ -178,6 +178,13 @@ impl HierarchyModule {
         let open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
         if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
+            {
+                let _disabled_token = ui.begin_disabled(handle.parent(scene)?.is_none());
+                if ui.menu_item("unparent") {
+                    handle.set_parent(scene, None, usize::MAX, true)?;
+                }
+            }
+
             if ui.menu_item("new") {
                 let kind = handle.scene_id().kind;
                 let is_game_object = matches!(
@@ -208,42 +215,23 @@ impl HierarchyModule {
                 .set_selection(selection);
         }
 
-        if unsafe { imgui::sys::igBeginDragDropSource(0) } {
-            unsafe {
-                let payload = Box::new(handle);
-                let payload_ptr = Box::leak(payload);
-
-                // wtf rust
-                // is there really no easier way to cast to *void?
-                let data = payload_ptr as *const GameObjectHandle as *const std::ffi::c_void;
-
-                imgui::sys::igSetDragDropPayload(
-                    PAYLOAD_ID.as_ptr(),
-                    data,
-                    std::mem::size_of::<GameObjectHandle>(),
-                    0,
-                );
-
-                let drag_text = CString::new(name)?;
-                imgui::sys::igText(drag_text.as_ptr());
-
-                imgui::sys::igEndDragDropSource();
-            }
+        if let Some(guard) = inspector_util::drag_drop_source() {
+            let mut aref_mut = self.shared_state.borrow_mut();
+            aref_mut.set_drag_drop_payload(&guard, PAYLOAD_ID, handle)?;
+            ui.text(name);
         }
 
-        if unsafe { imgui::sys::igBeginDragDropTarget() } {
-            unsafe {
-                let payload = imgui::sys::igAcceptDragDropPayload(PAYLOAD_ID.as_ptr(), 0);
-                if !payload.is_null() {
-                    let data_ptr = (*payload).Data as *const GameObjectHandle;
-                    let dragged_handle = *data_ptr;
+        if let Some(guard) = inspector_util::drag_drop_target() {
+            let mut aref_mut = self.shared_state.borrow_mut();
 
-                    if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
-                        ris_log::error!("failed to drag: {}", e);
-                    }
+            let payload =
+                aref_mut.accept_drag_drop_payload::<GameObjectHandle>(&guard, PAYLOAD_ID)?;
+            if let Some(dragged_handle) = payload {
+                ris_log::info!("accepted drag");
+
+                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
+                    ris_log::error!("failed to drag: {}", e);
                 }
-
-                imgui::sys::igEndDragDropTarget();
             }
         }
 

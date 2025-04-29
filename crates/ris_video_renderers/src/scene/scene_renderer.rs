@@ -2,10 +2,9 @@ use std::ptr;
 
 use ash::vk;
 
+use ris_asset::assets::ris_mesh_lookup::MeshLookup;
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
-use ris_data::ecs::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
-use ris_data::ecs::mesh::VERTEX_BINDING_DESCRIPTIONS;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
@@ -47,7 +46,7 @@ pub struct SceneFrame {
 impl SceneFrame {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(framebuffer) = self.framebuffer.take() {
             device.destroy_framebuffer(framebuffer, None);
@@ -65,12 +64,13 @@ pub struct SceneRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<SceneFrame>,
     texture: Texture,
+    pub mesh_lookup: Option<MeshLookup>,
 }
 
 impl SceneRenderer {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
@@ -85,13 +85,16 @@ impl SceneRenderer {
             device.destroy_render_pass(self.render_pass, None);
 
             self.texture.free(device);
+            if let Some(mut mesh_lookup) = self.mesh_lookup.take() {
+                mesh_lookup.free(device);
+            }
         }
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+    pub fn alloc(
+        core: &VulkanCore,
+        god_asset: &RisGodAsset,
+        mesh_lookup: Option<MeshLookup>) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -110,7 +113,7 @@ impl SceneRenderer {
 
         // texture
         let texture_asset_id = god_asset.texture.clone();
-        let content = ris_asset::load_async(texture_asset_id.clone()).wait()?;
+        let content = ris_asset::load_raw_async(texture_asset_id.clone()).wait()?;
         let (pixels, desc) = qoi::decode(&content, None)?;
 
         let pixels_rgba = match desc.channels {
@@ -118,20 +121,18 @@ impl SceneRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let texture = unsafe {
-            Texture::alloc(TextureCreateInfo {
-                device,
-                queue: *graphics_queue,
-                transient_command_pool: *transient_command_pool,
-                physical_device_memory_properties,
-                physical_device_properties,
-                width: desc.width,
-                height: desc.height,
-                format: vk::Format::R8G8B8A8_SRGB,
-                filter: vk::Filter::LINEAR,
-                pixels_rgba: &pixels_rgba,
-            })
-        }?;
+        let texture = Texture::alloc(TextureCreateInfo {
+            device,
+            queue: *graphics_queue,
+            transient_command_pool: *transient_command_pool,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: desc.width,
+            height: desc.height,
+            format: vk::Format::R8G8B8A8_SRGB,
+            filter: vk::Filter::LINEAR,
+            pixels_rgba: &pixels_rgba,
+        })?;
 
         // push constants
         let push_constant_range = [vk::PushConstantRange {
@@ -212,8 +213,8 @@ impl SceneRenderer {
         ris_error::assert!(descriptor_sets.len() == total_descriptor_set_count)?;
 
         // shaders
-        let vs_asset_future = ris_asset::load_async(god_asset.default_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_async(god_asset.default_frag_spv.clone());
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.default_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.default_frag_spv.clone());
 
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;
@@ -244,14 +245,17 @@ impl SceneRenderer {
         ];
 
         // pipeline
+        let vertex_binding_descriptions = ris_asset_data::mesh::VERTEX_BINDING_DESCRIPTIONS;
+        let vertex_attribute_descriptions = ris_asset_data::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+
         let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_binding_description_count: VERTEX_BINDING_DESCRIPTIONS.len() as u32,
-            p_vertex_binding_descriptions: VERTEX_BINDING_DESCRIPTIONS.as_ptr(),
-            vertex_attribute_description_count: VERTEX_ATTRIBUTE_DESCRIPTIONS.len() as u32,
-            p_vertex_attribute_descriptions: VERTEX_ATTRIBUTE_DESCRIPTIONS.as_ptr(),
+            vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
+            p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
+            vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
+            p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         }];
 
         let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {
@@ -319,7 +323,7 @@ impl SceneRenderer {
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::TRUE,
-            depth_compare_op: vk::CompareOp::LESS,
+            depth_compare_op: vk::CompareOp::GREATER,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
             front: stencil_op_state,
@@ -515,12 +519,14 @@ impl SceneRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped = device.map_memory(
-                descriptor_buffer.memory,
-                0,
-                buffer_size,
-                vk::MemoryMapFlags::empty(),
-            )? as *mut UniformBufferObject;
+            let descriptor_mapped = unsafe {
+                device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
                 framebuffer: None,
@@ -531,6 +537,12 @@ impl SceneRenderer {
             frames.push(frame);
         }
 
+        // lookup
+        let mesh_lookup = match mesh_lookup {
+            Some(mesh_lookup) => Some(mesh_lookup),
+            None => Some(MeshLookup::default()),
+        };
+
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -539,6 +551,7 @@ impl SceneRenderer {
             pipeline_layout,
             frames,
             texture,
+            mesh_lookup,
         })
     }
 
@@ -551,8 +564,16 @@ impl SceneRenderer {
         scene: &Scene,
     ) -> RisResult<()> {
         let VulkanCore {
-            device, swapchain, ..
+            instance,
+            suitable_device,
+            device,
+            swapchain,
+            ..
         } = core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
 
         let SwapchainEntry {
             index,
@@ -568,6 +589,11 @@ impl SceneRenderer {
             descriptor_mapped,
             descriptor_set,
         } = &mut self.frames[*index];
+
+        let mesh_lookup = self.mesh_lookup.as_mut().into_ris_error()?;
+
+        // clean up
+        mesh_lookup.free_unused_meshes(device)?;
 
         // framebuffer
         if let Some(framebuffer) = framebuffer.take() {
@@ -603,7 +629,7 @@ impl SceneRenderer {
                 },
                 vk::ClearValue {
                     depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
+                        depth: 0.0,
                         stencil: 0,
                     },
                 },
@@ -711,33 +737,34 @@ impl SceneRenderer {
             );
 
             for mesh_renderer_component in scene.mesh_renderer_components.iter() {
-                let aref = mesh_renderer_component.borrow();
-                if !aref.is_alive {
+                let mut aref_mut = mesh_renderer_component.borrow_mut();
+                if !aref_mut.is_alive {
                     continue;
                 }
 
-                let game_object = aref.game_object();
+                if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
+                    let lookup_id = mesh_lookup.alloc(
+                        device,
+                        physical_device_memory_properties,
+                        to_allocate,
+                    );
+                    aref_mut.set_lookup_id(lookup_id);
+                }
+
+                let Some(lookup_id) = aref_mut.lookup_id() else {
+                    continue;
+                };
+
+                let Some(mesh) = mesh_lookup.get(lookup_id) else {
+                    continue;
+                };
+
+                let game_object = aref_mut.game_object();
                 if game_object.is_active_in_hierarchy(scene) != Ok(true) {
                     continue;
                 }
 
                 let Ok(model) = game_object.model(scene) else {
-                    continue;
-                };
-
-                let Some(video_mesh_handle) = aref.video_mesh() else {
-                    continue;
-                };
-
-                let Ok(Some(vertices)) = video_mesh_handle.vertices(scene) else {
-                    continue;
-                };
-
-                let Ok(Some(indices)) = video_mesh_handle.indices(scene) else {
-                    continue;
-                };
-
-                let Ok(Some(index_count)) = video_mesh_handle.index_count(scene) else {
                     continue;
                 };
 
@@ -755,17 +782,21 @@ impl SceneRenderer {
                     push_constants_bytes,
                 );
 
-                device.cmd_bind_vertex_buffers(*command_buffer, 0, &[vertices.buffer], &[0]);
+                device.cmd_bind_vertex_buffers(
+                    *command_buffer,
+                    0,
+                    &mesh.vertex_buffers()?,
+                    &mesh.vertex_offsets()?,
+                );
 
                 device.cmd_bind_index_buffer(
                     *command_buffer,
-                    indices.buffer,
-                    0,
-                    vk::IndexType::UINT32,
+                    mesh.index_buffer()?,
+                    mesh.index_offset()?,
+                    mesh.index_type(),
                 );
 
-                let index_count_u32 = index_count as u32;
-                device.cmd_draw_indexed(*command_buffer, index_count_u32, 1, 0, 0, 0);
+                device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);
             }
 
             device.cmd_end_render_pass(*command_buffer);

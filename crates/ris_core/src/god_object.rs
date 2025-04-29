@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
@@ -131,8 +133,8 @@ impl GodObject {
 
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset_bytes = asset_loader::load_async(god_asset_id).wait()?;
-        let god_asset = RisGodAsset::load(&god_asset_bytes)?;
+        let god_asset_bytes = asset_loader::load_raw_async(god_asset_id).wait()?;
+        let god_asset = RisGodAsset::deserialize(&god_asset_bytes)?;
 
         // video
         let video_subsystem = sdl_context
@@ -147,16 +149,15 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = unsafe { VulkanCore::alloc(&app_info.package.name, &window) }?;
+        let vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
         // scene renderer
-        let scene_renderer = unsafe { SceneRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
 
         // gizmo renderer
         let gizmo_guard = ris_debug::gizmo::init()?;
-        let gizmo_segment_renderer =
-            unsafe { GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset) }?;
-        let gizmo_text_renderer = unsafe { GizmoTextRenderer::alloc(&vulkan_core, &god_asset) }?;
+        let gizmo_segment_renderer = GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
+        let gizmo_text_renderer = GizmoTextRenderer::alloc(&vulkan_core, &god_asset)?;
 
         // imgui renderer
 
@@ -164,8 +165,7 @@ impl GodObject {
         let (imgui_backend, imgui_renderer) = {
             let mut imgui_backend = ImguiBackend::init(&app_info)?;
             let context = imgui_backend.context();
-            let imgui_renderer =
-                unsafe { ImguiRenderer::alloc(&vulkan_core, &god_asset, context) }?;
+            let imgui_renderer = ImguiRenderer::alloc(&vulkan_core, &god_asset, context)?;
             (imgui_backend, imgui_renderer)
         };
 
@@ -196,7 +196,7 @@ impl GodObject {
 
         // god state
         let scene_create_info = SceneCreateInfo {
-            registry: Some(registry),
+            registry: Some(Arc::new(registry)),
             ..Default::default()
         };
         let mut state = GodState::new(settings, scene_create_info)?;

@@ -145,7 +145,7 @@ fn should_read_and_write_u64() {
         let mut rng = rng.borrow_mut();
         let input0 = rng.next_u32() as u64;
         let input1 = rng.next_u32() as u64;
-        let input: u64 = input0 | input1 << 32;
+        let input: u64 = input0 | (input1 << 32);
         let mut stream = Cursor::new(Vec::new());
         ris_io::write_u64(&mut stream, input).unwrap();
         ris_io::seek(&mut stream, SeekFrom::Start(0)).unwrap();
@@ -199,10 +199,10 @@ fn should_read_and_write_fat_ptr() {
         let mut rng = rng.borrow_mut();
         let addr0 = rng.next_u32() as u64;
         let addr1 = rng.next_u32() as u64;
-        let addr = addr0 | addr1 << 32;
+        let addr = addr0 | (addr1 << 32);
         let len0 = rng.next_u32() as u64;
         let len1 = rng.next_u32() as u64;
-        let len = len0 | len1 << 32;
+        let len = len0 | (len1 << 32);
         let input = FatPtr { addr, len };
         let mut stream = Cursor::new(Vec::new());
         ris_io::write_fat_ptr(&mut stream, input).unwrap();
@@ -570,10 +570,10 @@ fn should_read_and_write_everything_via_fat_ptrs() {
         let input_bool = rng.next_bool();
         let addr0 = rng.next_u32() as u64;
         let addr1 = rng.next_u32() as u64;
-        let addr = addr0 | addr1 << 32;
+        let addr = addr0 | (addr1 << 32);
         let len0 = rng.next_u32() as u64;
         let len1 = rng.next_u32() as u64;
-        let len = len0 | len1 << 32;
+        let len = len0 | (len1 << 32);
         let input_fat_ptr = FatPtr { addr, len };
         let input_string = rng.next_u32().to_string();
         let input_vec2 = rng.next_pos_2();

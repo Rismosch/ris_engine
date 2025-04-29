@@ -12,7 +12,6 @@ use super::id::Component;
 use super::id::EcsObject;
 use super::id::SceneId;
 use super::id::SceneKind;
-use super::mesh::VideoMesh;
 use super::scene::Scene;
 
 //
@@ -77,7 +76,6 @@ impl DynHandle {
             }
             SceneKind::Component if type_id == TypeId::of::<MeshRendererComponent>() => true,
             SceneKind::Component if type_id == TypeId::of::<DynScriptComponent>() => true,
-            SceneKind::Other if type_id == TypeId::of::<VideoMesh>() => true,
             _ => false,
         };
 

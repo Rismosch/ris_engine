@@ -4,8 +4,6 @@ use std::path::PathBuf;
 
 use ris_error::RisResult;
 
-use crate::Asset;
-use crate::AssetCommand;
 use crate::ExplanationLevel;
 use crate::ICommand;
 
@@ -37,18 +35,22 @@ struct AutoGenerateParseData<'a> {
 
 pub struct Build;
 impl ICommand for Build {
-    fn args() -> String {
+    fn name(&self) -> String {
+        "build".to_string()
+    }
+
+    fn args(&self) -> String {
         format!("[{}]", ARG_RELEASE)
     }
 
-    fn explanation(level: ExplanationLevel) -> String {
+    fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
             ExplanationLevel::Short => String::from(
                 "Generates build info and compiles the workspace as a release ready package.",
             ),
             ExplanationLevel::Detailed => {
                 let mut explanation = String::new();
-                let short_explanation = Self::explanation(ExplanationLevel::Short);
+                let short_explanation = self.explanation(ExplanationLevel::Short);
 
                 explanation.push_str(&format!("{}\n", short_explanation));
                 explanation.push('\n');
@@ -60,20 +62,15 @@ impl ICommand for Build {
         }
     }
 
-    fn run(args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
         eprintln!("parsing args...");
 
-        let mut enable_default_features = true;
+        let mut is_release = false;
         for arg in &args[2..] {
             match arg.trim().to_lowercase().as_str() {
-                ARG_RELEASE => enable_default_features = false,
+                ARG_RELEASE => is_release = true,
                 _ => {
-                    return crate::util::command_error(
-                        &format!("unkown arg: {}", arg),
-                        "build",
-                        Self::args(),
-                        Self::explanation(ExplanationLevel::Detailed),
-                    );
+                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }
@@ -180,16 +177,28 @@ impl ICommand for Build {
         }
 
         eprintln!("importing assets...");
-        Asset::execute_command(AssetCommand::Import, None)?;
+        ris_asset::asset_importer::import_all(
+            ris_asset::asset_importer::DEFAULT_SOURCE_DIRECTORY,
+            ris_asset::asset_importer::DEFAULT_IMPORT_DIRECTORY,
+            ris_asset::asset_importer::DEFAULT_IN_USE_DIRECTORY,
+            None,
+        )?;
         eprintln!("compiling assets...");
-        Asset::execute_command(AssetCommand::Compile, None)?;
+        let compile_options = ris_asset::asset_compiler::CompileOptions {
+            include_original_paths: !is_release,
+        };
+        ris_asset::asset_compiler::compile(
+            ris_asset::asset_compiler::DEFAULT_ASSET_DIRECTORY,
+            ris_asset::asset_compiler::DEFAULT_COMPILED_FILE,
+            compile_options,
+        )?;
 
         eprintln!("compiling workspace...");
 
-        let features = if enable_default_features {
-            String::new()
-        } else {
+        let features = if is_release {
             String::from(" --no-default-features")
+        } else {
+            String::new()
         };
 
         crate::cmd::run(&format!("cargo build --release{}", features))?;

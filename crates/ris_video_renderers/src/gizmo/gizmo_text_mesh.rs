@@ -20,20 +20,13 @@ pub struct GizmoTextMesh {
 impl GizmoTextMesh {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
         self.text_texture.free(device);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
-        core: &VulkanCore,
-        vertices: &[GizmoTextVertex],
-        text: &[u8],
-    ) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, vertices: &[GizmoTextVertex], text: &[u8]) -> RisResult<Self> {
         let VulkanCore {
             instance,
             suitable_device,
@@ -62,7 +55,7 @@ impl GizmoTextMesh {
             physical_device_memory_properties,
         )?;
 
-        vertex_buffer.write(device, vertices)?;
+        unsafe { vertex_buffer.write(device, vertices) }?;
 
         let text_texture = Texture::alloc(TextureCreateInfo {
             device,
@@ -107,17 +100,15 @@ impl GizmoTextMesh {
 
         if old_vertex_count < new_vertex_count {
             let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-            let new_vertex_buffer = unsafe {
-                Buffer::alloc(
-                    device,
-                    vertex_buffer_size,
-                    vk::BufferUsageFlags::VERTEX_BUFFER,
-                    vk::MemoryPropertyFlags::HOST_VISIBLE
-                        | vk::MemoryPropertyFlags::HOST_COHERENT
-                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                    physical_device_memory_properties,
-                )
-            }?;
+            let new_vertex_buffer = Buffer::alloc(
+                device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE
+                    | vk::MemoryPropertyFlags::HOST_COHERENT
+                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )?;
 
             self.vertex_count = vertices.len();
 
@@ -132,20 +123,18 @@ impl GizmoTextMesh {
         let new_text_len = text.len();
 
         if old_text_len < new_text_len {
-            let new_text_texture = unsafe {
-                Texture::alloc(TextureCreateInfo {
-                    device,
-                    queue: *graphics_queue,
-                    transient_command_pool: *transient_command_pool,
-                    physical_device_memory_properties,
-                    physical_device_properties,
-                    width: (text.len() / 4) as u32,
-                    height: 1,
-                    format: vk::Format::R8G8B8A8_UINT,
-                    filter: vk::Filter::NEAREST,
-                    pixels_rgba: text,
-                })
-            }?;
+            let new_text_texture = Texture::alloc(TextureCreateInfo {
+                device,
+                queue: *graphics_queue,
+                transient_command_pool: *transient_command_pool,
+                physical_device_memory_properties,
+                physical_device_properties,
+                width: (text.len() / 4) as u32,
+                height: 1,
+                format: vk::Format::R8G8B8A8_UINT,
+                filter: vk::Filter::NEAREST,
+                pixels_rgba: text,
+            })?;
 
             self.text_len = text.len();
 

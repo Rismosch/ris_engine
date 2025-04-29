@@ -12,15 +12,12 @@ pub struct GizmoSegmentMesh {
 impl GizmoSegmentMesh {
     /// # Safety
     ///
-    /// Must only be called once. Memory must not be freed twice.
+    /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
     }
 
-    /// # Safety
-    ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
+    pub fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[GizmoSegmentVertex],
@@ -36,7 +33,7 @@ impl GizmoSegmentMesh {
             physical_device_memory_properties,
         )?;
 
-        vertex_buffer.write(device, vertices)?;
+        unsafe { vertex_buffer.write(device, vertices) }?;
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -55,17 +52,15 @@ impl GizmoSegmentMesh {
 
         if old_vertex_count < new_vertex_count {
             let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-            let new_vertex_buffer = unsafe {
-                Buffer::alloc(
-                    device,
-                    vertex_buffer_size,
-                    vk::BufferUsageFlags::VERTEX_BUFFER,
-                    vk::MemoryPropertyFlags::HOST_VISIBLE
-                        | vk::MemoryPropertyFlags::HOST_COHERENT
-                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                    physical_device_memory_properties,
-                )
-            }?;
+            let new_vertex_buffer = Buffer::alloc(
+                device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE
+                    | vk::MemoryPropertyFlags::HOST_COHERENT
+                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )?;
 
             self.vertex_count = vertices.len();
 

@@ -36,8 +36,15 @@ pub struct CopyToImageInfo<'a> {
 impl Buffer {
     /// # Safety
     ///
-    /// `free()` must be called, or you are leaking memory.
-    pub unsafe fn alloc(
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&self, device: &ash::Device) {
+        unsafe {
+            device.destroy_buffer(self.buffer, None);
+            device.free_memory(self.memory, None);
+        }
+    }
+
+    pub fn alloc(
         device: &ash::Device,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
@@ -77,16 +84,6 @@ impl Buffer {
         unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
         Ok(Self { buffer, memory })
-    }
-
-    /// # Safety
-    ///
-    /// Must only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&self, device: &ash::Device) {
-        unsafe {
-            device.destroy_buffer(self.buffer, None);
-            device.free_memory(self.memory, None);
-        }
     }
 
     /// # Safety
