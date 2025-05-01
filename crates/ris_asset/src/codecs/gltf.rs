@@ -965,7 +965,7 @@ impl Gltf {
                         _ if json_name.starts_with("WEIGHTS_") => {
                             MeshPrimitiveAttributeName::Weights(parse_postfix(json_name)?)
                         }
-                        _ if json_name.starts_with("_") => {
+                        _ if json_name.starts_with('_') => {
                             MeshPrimitiveAttributeName::Custom(json_name.clone())
                         }
                         _ => {
@@ -1020,7 +1020,7 @@ impl Gltf {
                             _ if json_name.starts_with("COLOR_") => {
                                 MeshPrimitiveTargetName::Color(parse_postfix(json_name)?)
                             }
-                            _ if json_name.starts_with("_") => {
+                            _ if json_name.starts_with('_') => {
                                 MeshPrimitiveTargetName::Custom(json_name.clone())
                             }
                             _ => {

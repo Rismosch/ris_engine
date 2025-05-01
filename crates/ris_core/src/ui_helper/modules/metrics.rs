@@ -5,6 +5,7 @@ use std::time::Instant;
 use ris_data::gameloop::frame::Frame;
 use ris_debug::profiler::ProfilerState;
 use ris_error::RisResult;
+use ris_io::path::SanitizeInfo;
 
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
@@ -139,7 +140,10 @@ impl IUiHelperModule for MetricsModule {
             if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
 
-                let filename = ris_io::path::sanitize(&chrono::Local::now().to_rfc3339(), true);
+                let filename = ris_io::path::sanitize(
+                    chrono::Local::now().to_rfc3339(),
+                    SanitizeInfo::RemoveInvalidCharsAndSlashes,
+                );
                 let filename = format!("{}.csv", filename);
                 let filepath = PathBuf::from(&dir).join(filename);
 
