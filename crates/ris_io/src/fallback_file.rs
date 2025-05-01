@@ -10,6 +10,8 @@ use chrono::Local;
 
 use ris_error::RisResult;
 
+use crate::path::SanitizeInfo;
+
 pub struct FallbackFileAppend {
     current_file: File,
 }
@@ -169,7 +171,7 @@ fn move_current_file(
         _ => format!("{}", Local::now()),
     };
     let previous_filename_without_extension =
-        crate::path::sanitize(&previous_filename_unsanitized, true);
+        crate::path::sanitize(&previous_filename_unsanitized, SanitizeInfo::RemoveInvalidCharsAndSlashes);
 
     let mut previous_path = PathBuf::new();
     previous_path.push(old_directory);
@@ -187,7 +189,7 @@ fn move_current_file(
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
         let new_previous_filename = format!("{}{}", Local::now().to_rfc3339(), file_extension);
-        let sanitized_new_previous_filename = crate::path::sanitize(&new_previous_filename, true);
+        let sanitized_new_previous_filename = crate::path::sanitize(&new_previous_filename, SanitizeInfo::RemoveInvalidCharsAndSlashes);
         previous_path.push(sanitized_new_previous_filename);
     }
 
