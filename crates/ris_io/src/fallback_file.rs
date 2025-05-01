@@ -170,8 +170,10 @@ fn move_current_file(
         Some(Ok(line)) => line,
         _ => format!("{}", Local::now()),
     };
-    let previous_filename_without_extension =
-        crate::path::sanitize(&previous_filename_unsanitized, SanitizeInfo::RemoveInvalidCharsAndSlashes);
+    let previous_filename_without_extension = crate::path::sanitize(
+        previous_filename_unsanitized,
+        SanitizeInfo::RemoveInvalidCharsAndSlashes,
+    );
 
     let mut previous_path = PathBuf::new();
     previous_path.push(old_directory);
@@ -189,7 +191,10 @@ fn move_current_file(
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
         let new_previous_filename = format!("{}{}", Local::now().to_rfc3339(), file_extension);
-        let sanitized_new_previous_filename = crate::path::sanitize(&new_previous_filename, SanitizeInfo::RemoveInvalidCharsAndSlashes);
+        let sanitized_new_previous_filename = crate::path::sanitize(
+            &new_previous_filename,
+            SanitizeInfo::RemoveInvalidCharsAndSlashes,
+        );
         previous_path.push(sanitized_new_previous_filename);
     }
 

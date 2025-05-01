@@ -55,11 +55,11 @@ impl RisHeader {
                 AssetId::Index(id) if is_compiled => ris_io::write_uint(s, *id)?,
                 AssetId::Path(id) if !is_compiled => {
                     let sanitized_id = ris_io::path::sanitize(
-                        &id,
+                        id,
                         SanitizeInfo::RemoveInvalidCharsAndReplaceSlashes,
                     );
                     ris_io::write_string(s, sanitized_id)?
-                },
+                }
                 _ => {
                     return ris_error::new_result!(
                         "all references must be the same enum variant. is_compiled: {}",

@@ -141,7 +141,7 @@ impl IUiHelperModule for MetricsModule {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
 
                 let filename = ris_io::path::sanitize(
-                    &chrono::Local::now().to_rfc3339(),
+                    chrono::Local::now().to_rfc3339(),
                     SanitizeInfo::RemoveInvalidCharsAndSlashes,
                 );
                 let filename = format!("{}.csv", filename);

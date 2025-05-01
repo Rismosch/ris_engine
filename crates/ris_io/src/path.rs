@@ -20,11 +20,11 @@ pub fn sanitize(value: impl AsRef<str>, info: SanitizeInfo) -> String {
         SanitizeInfo::RemoveInvalidChars => (),
         SanitizeInfo::RemoveInvalidCharsAndReplaceSlashes => {
             value = value.replace(WINDOWS_SLASH, &LINUX_SLASH.to_string());
-        },
+        }
         SanitizeInfo::RemoveInvalidCharsAndSlashes => {
             value = value.replace(WINDOWS_SLASH, REPLACEMENT);
             value = value.replace(LINUX_SLASH, REPLACEMENT);
-        },
+        }
     }
 
     value
