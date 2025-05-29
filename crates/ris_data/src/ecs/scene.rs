@@ -4,8 +4,8 @@ use std::sync::Arc;
 use ris_ptr::ArefCell;
 use ris_ptr::StrongPtr;
 
-use super::components::mesh_renderer::MeshRendererComponent;
-use super::components::script::DynScriptComponent;
+use super::components::mesh_component::MeshComponent;
+use super::components::script_component::DynScriptComponent;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -54,7 +54,7 @@ pub struct Scene {
     pub static_chunks: Vec<StaticChunk>,
 
     // compontents
-    pub mesh_renderer_components: Vec<EcsPtr<MeshRendererComponent>>,
+    pub mesh_renderer_components: Vec<EcsPtr<MeshComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
 
     // other
@@ -215,8 +215,8 @@ impl Scene {
         if type_id == TypeId::of::<GameObject>() {
             let chunk = self.find_chunk::<GameObject>(kind)?;
             chunk[index].borrow_mut().is_alive = false;
-        } else if type_id == TypeId::of::<MeshRendererComponent>() {
-            let chunk = self.find_chunk::<MeshRendererComponent>(kind)?;
+        } else if type_id == TypeId::of::<MeshComponent>() {
+            let chunk = self.find_chunk::<MeshComponent>(kind)?;
             chunk[index].borrow_mut().is_alive = false;
         } else if type_id == TypeId::of::<DynScriptComponent>() {
             let chunk = self.find_chunk::<DynScriptComponent>(kind)?;
@@ -240,7 +240,7 @@ impl Scene {
             return Err(EcsError::InvalidCast);
         }
 
-        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+        let retval = if type_id == TypeId::of::<MeshComponent>() {
             let aref = self.mesh_renderer_components[index].borrow();
             callback(&aref.value)
         } else if type_id == TypeId::of::<DynScriptComponent>() {
@@ -265,7 +265,7 @@ impl Scene {
             return Err(EcsError::InvalidCast);
         }
 
-        let retval = if type_id == TypeId::of::<MeshRendererComponent>() {
+        let retval = if type_id == TypeId::of::<MeshComponent>() {
             let mut aref = self.mesh_renderer_components[index].borrow_mut();
             callback(&mut aref.value)
         } else if type_id == TypeId::of::<DynScriptComponent>() {
@@ -287,7 +287,7 @@ impl Scene {
             }
             SceneKind::Component => {
                 let type_id = TypeId::of::<T>();
-                if type_id == TypeId::of::<MeshRendererComponent>() {
+                if type_id == TypeId::of::<MeshComponent>() {
                     cast_chunk(&self.mesh_renderer_components)
                 } else if type_id == TypeId::of::<DynScriptComponent>() {
                     cast_chunk(&self.script_components)

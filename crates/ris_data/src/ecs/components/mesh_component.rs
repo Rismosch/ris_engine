@@ -11,20 +11,20 @@ use crate::ecs::scene_stream::SceneWriter;
 pub const ERROR_MESH_PATH: &str = "models/Suzanne.ris_mesh";
 
 #[derive(Debug, Default)]
-pub struct MeshRendererComponent {
+pub struct MeshComponent {
     game_object: GameObjectHandle,
     previous_asset_id: Option<AssetId>,
     current_asset_id: Option<AssetId>,
     lookup_id: Option<MeshLookupId>,
 }
 
-impl MeshRendererComponent {
+impl MeshComponent {
     pub fn game_object(&self) -> GameObjectHandle {
         self.game_object
     }
 }
 
-impl Component for MeshRendererComponent {
+impl Component for MeshComponent {
     fn destroy(&mut self, _scene: &Scene) {
         self.lookup_id.take();
     }
@@ -67,7 +67,7 @@ impl Component for MeshRendererComponent {
     }
 }
 
-impl MeshRendererComponent {
+impl MeshComponent {
     pub fn poll_asset_id_to_allocate(&mut self) -> Option<AssetId> {
         let changed = self.current_asset_id != self.previous_asset_id;
         if !changed {

@@ -1,9 +1,9 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 
-use super::components::mesh_renderer::MeshRendererComponent;
-use super::components::script::DynScriptComponent;
-use super::components::script::Script;
+use super::components::mesh_component::MeshComponent;
+use super::components::script_component::DynScriptComponent;
+use super::components::script_component::Script;
 use super::game_object::GameObject;
 use super::handle::ComponentHandle;
 use super::handle::DynComponentHandle;
@@ -14,7 +14,7 @@ use super::id::EcsObject;
 use super::scene::Scene;
 
 declare::object!(GameObjectHandle, GameObject);
-declare::component!(MeshRendererComponentHandle, MeshRendererComponent);
+declare::component!(MeshComponentHandle, MeshComponent);
 declare::component!(DynScriptComponentHandle, DynScriptComponent);
 
 #[derive(Debug, PartialEq, Eq)]
