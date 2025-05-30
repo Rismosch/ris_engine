@@ -45,8 +45,8 @@ impl LogLevel {
     pub fn to_color_string(&self) -> ColorString {
         match *self {
             LogLevel::Trace => ColorString("Trace", Color::BrightWhite),
-            LogLevel::Debug => ColorString("Debug", Color::BrightGreen),
-            LogLevel::Info => ColorString("Info", Color::BrightWhite),
+            LogLevel::Debug => ColorString("Debug", Color::BrightCyan),
+            LogLevel::Info => ColorString("Info", Color::BrightGreen),
             LogLevel::Warning => ColorString("Warning", Color::BrightYellow),
             LogLevel::Error => ColorString("Error", Color::BrightRed),
             LogLevel::Fatal => ColorString("Fatal", Color::BrightRed),
