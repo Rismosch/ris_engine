@@ -2486,4 +2486,13 @@ impl Vec3 {
         let sign = f32::signum(axis.dot(a.cross(b)));
         theta * sign
     }
+
+    /// returns the distance between the line ab and the point p
+    pub fn distance_to_point(a: Self, b: Self, p: Self) -> f32 {
+        let ab = b - a;
+        let ap = p - a;
+        let alpha = Self::angle(ab, ap);
+        let distance = f32::sin(alpha) * ap.length();
+        distance
+    }
 }
