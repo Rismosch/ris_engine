@@ -28,6 +28,7 @@ impl Seed {
     }
 }
 
+#[derive(Debug)]
 pub struct Rng {
     seed: Seed,
     pcg: Pcg32,

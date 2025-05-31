@@ -1,3 +1,5 @@
+use std::usize;
+
 use ris_asset::assets::ris_mesh;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::CpuMesh;
@@ -5,16 +7,28 @@ use ris_data::ecs::script_prelude::*;
 use ris_error::prelude::*;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
+use ris_rng::rng::Rng;
+use ris_rng::rng::Seed;
 
 #[derive(Debug)]
 pub struct PlanetScript {
     subdivisions: usize,
+    noise_magnitude: f32,
+    rng: Rng,
 }
 
 impl Default for PlanetScript {
     fn default() -> Self {
+        let seed = ris_error::unwrap!(
+           Seed::new(),
+           "failed to generate seed",
+        );
+        let rng = Rng::new(seed);
+
         Self{
-            subdivisions: 6,
+            subdivisions: 5,
+            noise_magnitude: 0.01,
+            rng,
         }
     }
 }
@@ -76,6 +90,19 @@ impl Script for PlanetScript {
             let v11 = Vec3(0.0, a, -b);
 
             // vertices
+            //let v0 = self.distort_vertex(v0);
+            //let v1 = self.distort_vertex(v1);
+            //let v2 = self.distort_vertex(v2);
+            //let v3 = self.distort_vertex(v3);
+            //let v4 = self.distort_vertex(v4);
+            //let v5 = self.distort_vertex(v5);
+            //let v6 = self.distort_vertex(v6);
+            //let v7 = self.distort_vertex(v7);
+            //let v8 = self.distort_vertex(v8);
+            //let v9 = self.distort_vertex(v9);
+            //let v10 = self.distort_vertex(v10);
+            //let v11 = self.distort_vertex(v11);
+            
             let mut vertices = vec![
                 v9, v3, v2,
                 v9, v4, v3,
@@ -144,9 +171,17 @@ impl Script for PlanetScript {
                     let v0 = *old_vertices.get(0).into_ris_error()?;
                     let v1 = *old_vertices.get(1).into_ris_error()?;
                     let v2 = *old_vertices.get(2).into_ris_error()?;
-                    let v3 = (v0 + v1) / 2.0;
-                    let v4 = (v1 + v2) / 2.0;
-                    let v5 = (v0 + v2) / 2.0;
+
+                    let d3 = self.rng.next_f32_between(0.45, 0.55);
+                    let d4 = self.rng.next_f32_between(0.45, 0.55);
+                    let d5 = self.rng.next_f32_between(0.45, 0.55);
+
+                    //let v3 = (v0 + v1) * 0.5;
+                    //let v4 = (v1 + v2) * 0.5;
+                    //let v5 = (v0 + v2) * 0.5;
+                    let v3 = Vec3::mix(v0, v1, Vec3::init(d3));
+                    let v4 = Vec3::mix(v1, v2, Vec3::init(d4));
+                    let v5 = Vec3::mix(v0, v2, Vec3::init(d5));
 
                     let v0 = v0.normalize();
                     let v1 = v1.normalize();
@@ -190,9 +225,21 @@ impl Script for PlanetScript {
                 // uvs
                 let mut new_uvs = Vec::with_capacity(vertices.len());
                 for _ in vertices.chunks(3) {
-                    new_uvs.push(Vec2(0.0, 0.0));
-                    new_uvs.push(Vec2(1.0, 0.0));
-                    new_uvs.push(Vec2(0.0, 1.0));
+                    let mut uvs = vec![
+                        Vec2(0.0, 0.0),
+                        Vec2(1.0, 0.0),
+                        Vec2(0.0, 1.0),
+                    ];
+                    
+                    let i0 = self.rng.next_i32_between(0, 2) as usize;
+                    let uv0 = uvs.remove(i0);
+                    let i1 = self.rng.next_i32_between(0, 1) as usize;
+                    let uv1 = uvs.remove(i1);
+                    let uv2 = uvs[0];
+
+                    new_uvs.push(uv0);
+                    new_uvs.push(uv1);
+                    new_uvs.push(uv2);
                 }
                 uvs = new_uvs;
                 
@@ -205,6 +252,52 @@ impl Script for PlanetScript {
 
                 subdivision -= 1;
             }
+
+            // distort vertices
+            //ris_log::trace!("distort vertices...");
+            //let mut to_distort: Vec<Vec<usize>> = Vec::new();
+            //for i in 0..vertices.len() {
+            //    if i % 100 == 0 {
+            //        ris_log::trace!("{}/{}", i, vertices.len());
+            //    }
+
+            //    let mut similar_vertices: Vec<usize> = Vec::new();
+            //    for j in i..vertices.len() {
+            //        let v0 = vertices[i];
+            //        let v1 = vertices[j];
+
+            //        if v0.not_fequal(v1, 0.001).all() {
+            //            continue;
+            //        }
+
+            //        let already_registered = to_distort
+            //            .iter()
+            //            .find(|x| x
+            //                  .iter()
+            //                  .find(|y| **y == j)
+            //                  .is_some()
+            //            )
+            //            .is_some();
+
+            //        if !already_registered {
+            //            similar_vertices.push(j);
+            //        }
+            //    }
+
+            //    to_distort.push(similar_vertices);
+            //}
+
+            //for indices in to_distort.into_iter() {
+            //    if indices.is_empty() {
+            //        continue;
+            //    }
+
+            //    let v = vertices[indices[0]];
+            //    let distorted = self.distort_vertex(v);
+            //    for i in indices {
+            //        vertices[i] = distorted;
+            //    }
+            //}
 
             ris_log::trace!("generate mesh... vertices: {}", vertices.len());
             let prototype = MeshPrototype{
@@ -219,7 +312,11 @@ impl Script for PlanetScript {
             let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
             ris_log::trace!("write file...");
-            let filename = format!("planet_{}.ris_mesh", self.subdivisions);
+            let filename = format!("assets/in_use/meshes/planet_distorted.ris_mesh");
+            if std::fs::exists(&filename)? {
+                std::fs::remove_file(&filename)?;
+            }
+
             let mut file = std::fs::File::create_new(filename)?;
             let f = &mut file;
             ris_io::write(f, &bytes)?;
@@ -231,3 +328,10 @@ impl Script for PlanetScript {
     }
 }
 
+impl PlanetScript {
+    fn distort_vertex(&mut self, v: Vec3) -> Vec3 {
+        let dir = self.rng.next_dir_3();
+        let distortion = dir * self.noise_magnitude;
+        (v + distortion).normalize()
+    }
+}
