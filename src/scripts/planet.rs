@@ -7,8 +7,10 @@ use ris_data::ecs::script_prelude::*;
 use ris_error::prelude::*;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
+use ris_math::color::Rgb;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
+use ris_data::ecs::decl::MeshComponentHandle;
 
 #[derive(Debug)]
 pub struct PlanetScript {
@@ -63,31 +65,50 @@ impl Script for PlanetScript {
             state,
         } = data;
 
+        let a = 1.0;
+        let b = (1.0 + f32::sqrt(5.0)) / 2.0;
+        let a = a / 2.0;
+        let b = b / 2.0;
+
+        // rectangle 1
+        let v0 = Vec3(a, b, 0.0);
+        let v1 = Vec3(-a, b, 0.0);
+        let v2 = Vec3(-a, -b, 0.0);
+        let v3 = Vec3(a, -b, 0.0);
+
+        // rectangle 2
+        let v4 = Vec3(b, 0.0, a);
+        let v5 = Vec3(-b, 0.0, a);
+        let v6 = Vec3(-b, 0.0, -a);
+        let v7 = Vec3(b, 0.0, -a);
+
+        // rectangle 3
+        let v8 = Vec3(0.0, a, b);
+        let v9 = Vec3(0.0, -a, b);
+        let v10 = Vec3(0.0, -a, -b);
+        let v11 = Vec3(0.0, a, -b);
+
+        ris_debug::gizmo::point(v0, None)?;
+        ris_debug::gizmo::point(v1, None)?;
+        ris_debug::gizmo::point(v2, None)?;
+        ris_debug::gizmo::point(v3, None)?;
+        ris_debug::gizmo::point(v4, None)?;
+        ris_debug::gizmo::point(v5, None)?;
+        ris_debug::gizmo::point(v6, None)?;
+        ris_debug::gizmo::point(v7, None)?;
+        ris_debug::gizmo::point(v8, None)?;
+        ris_debug::gizmo::point(v9, None)?;
+        ris_debug::gizmo::point(v10, None)?;
+        ris_debug::gizmo::point(v11, None)?;
+
+        //ris_debug::gizmo::point(Vec3(0.5171953, -0.8558633, -0.0026602172), Some(Rgb(1.0, 0.0, 1.0)))?;
+        //ris_debug::gizmo::point(Vec3(0.8517644, 0.0069445064, 0.523879), Some(Rgb(0.0, 1.0, 1.0)))?;
+        //ris_debug::gizmo::point(Vec3(-0.006888782, 0.52749693, -0.849529), Some(Rgb(1.0, 0.0, 0.0)))?;
+        //ris_debug::gizmo::point(Vec3(-0.8461729, -0.0011264872, -0.53290725), Some(Rgb(0.0, 1.0, 0.0)))?;
+        //ris_debug::gizmo::point(Vec3(-0.0027416965, -0.5170917, -0.8559256), Some(Rgb(0.0, 0.0, 1.0)))?;
+
         if ui.button("generate") {
             ris_log::trace!("generate prototype...");
-
-            let a = 1.0;
-            let b = (1.0 + f32::sqrt(5.0)) / 2.0;
-            let a = a / 2.0;
-            let b = b / 2.0;
-
-            // rectangle 1
-            let v0 = Vec3(a, b, 0.0);
-            let v1 = Vec3(-a, b, 0.0);
-            let v2 = Vec3(-a, -b, 0.0);
-            let v3 = Vec3(a, -b, 0.0);
-
-            // rectangle 2
-            let v4 = Vec3(b, 0.0, a);
-            let v5 = Vec3(-b, 0.0, a);
-            let v6 = Vec3(-b, 0.0, -a);
-            let v7 = Vec3(b, 0.0, -a);
-
-            // rectangle 3
-            let v8 = Vec3(0.0, a, b);
-            let v9 = Vec3(0.0, -a, b);
-            let v10 = Vec3(0.0, -a, -b);
-            let v11 = Vec3(0.0, a, -b);
 
             // vertices
             let mut vertices = vec![
@@ -155,160 +176,82 @@ impl Script for PlanetScript {
                 subdivision -= 1;
             }
 
-            // find unique vertices
-            ris_log::trace!("find unique vertices...");
-            let mut unique_vertices = Vec::<Vec3>::new();
-            for (i, &v0) in vertices.iter().enumerate() {
+            // find hull
+            let vertices = self.find_hull_02(vertices);
 
-                if i % 5000 == 0 {
-                    ris_log::trace!("find unique vertices... {}/{}", i, vertices.len());
-                }
+            // normals
+            let mut normals = Vec::with_capacity(vertices.len());
+            for vertices in vertices.chunks(3) {
+                let v0 = vertices[0];
+                let v1 = vertices[1];
+                let v2 = vertices[2];
 
-                let exists = unique_vertices
-                    .iter()
-                    .find(|&&x| v0.fequal(x, 0.001).all())
-                    .is_some();
-
-                if !exists {
-                    unique_vertices.push(v0);
-                }
+                let v01 = v1 - v0;
+                let v02 = v2 - v0;
+                let normal = v01.cross(v02);
+                normals.push(normal);
+                normals.push(normal);
+                normals.push(normal);
             }
 
-            ris_log::trace!("unique vertex count: {}", unique_vertices.len());
+            // uvs
+            let mut uvs = Vec::with_capacity(vertices.len());
+            for _ in vertices.chunks(3) {
+                let mut available_uvs = vec![
+                    Vec2(0.0, 0.0),
+                    Vec2(1.0, 0.0),
+                    Vec2(0.0, 1.0),
+                ];
 
-            ris_log::trace!("distort vertices...");
-            let mut distorted_vertices = unique_vertices.clone();
-            for v in distorted_vertices.iter_mut() {
-                let dir = self.rng.next_dir_3();
-                let distortion = dir * self.noise_magnitude;
-                let distorted = (*v + distortion).normalize();
-                *v = distorted;
+                let i = self.rng.next_i32_between(0, 2) as usize;
+                let uv0 = available_uvs.swap_remove(i);
+                let i = self.rng.next_i32_between(0, 1) as usize;
+                let uv1 = available_uvs.swap_remove(i);
+                let uv2 = available_uvs[0];
+
+                uvs.push(uv0);
+                uvs.push(uv1);
+                uvs.push(uv2);
+            }
+            
+            // indices
+            let mut indices = Vec::with_capacity(vertices.len());
+            for i in 0..indices.capacity() {
+                indices.push(i as u16);
             }
 
-            ris_log::trace!("triangulate...");
-            let mut vertices = Vec::<Vec3>::new();
-            let mut loose_vertices = distorted_vertices.clone();
+            // generate mesh
+            ris_log::trace!("generate mesh... vertices: {}", vertices.len());
+            let prototype = MeshPrototype{
+                vertices,
+                normals,
+                uvs,
+                indices,
+            };
 
-            ris_log::trace!("find first triangle...");
-            ris_log::trace!("find first vertex...");
-            let v0 = loose_vertices.swap_remove(0);
+            //ris_log::trace!("prototype: {:#?}", prototype);
 
-            ris_log::trace!("find second vertex...");
-            let mut i1 = 0;
-            for (i, &v1b) in loose_vertices.iter().enumerate() {
-                let v1a = loose_vertices[i1];
-                let distance_a = v0.distance(v1a);
-                let distance_b = v0.distance(v1b);
+            let cpu_mesh = CpuMesh::try_from(prototype)?;
+            ris_log::trace!("serialize...");
+            let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
-                if distance_b < distance_a {
-                    i1 = i;
-                }
-            }
-            let v1 = loose_vertices.swap_remove(i1);
-
-            ris_log::trace!("find third vertex...");
-            let mut i2 = 0;
-            for (i, &v2b) in loose_vertices.iter().enumerate() {
-                let v2a = loose_vertices[i2];
-                let distance_a = Vec3::distance_to_point(v0, v1, v2a);
-                let distance_b = Vec3::distance_to_point(v0, v1, v2b);
-
-                if distance_b < distance_a {
-                    i2 = i;
-                }
-            }
-            let v2 = loose_vertices.swap_remove(i2);
-
-            vertices.push(v0);
-            vertices.push(v1);
-            vertices.push(v2);
-            ris_log::trace!("found triangle: {:?} {:?} {:?}", v0, v1, v2);
-
-            let mut loose_edges = vec![
-                (v0, v1),
-                (v1, v2),
-                (v2, v0),
-            ];
-
-            ris_log::trace!("connecting loose vertices...");
-            while !loose_vertices.is_empty() {
-                if loose_vertices.len() % 100 == 0{
-                    ris_log::trace!("connecting loose vertices... {}", loose_vertices.len());
-                }
-
-                // find third vertex
-                let (v0, v1) = loose_edges.swap_remove(0);
-                let mut i2 = 0;
-                for (i, &v2b) in loose_vertices.iter().enumerate() {
-                    let v2a = loose_vertices[i2];
-
-                    let distance_a = Vec3::distance_to_point(v0, v1, v2a);
-                    let distance_b = Vec3::distance_to_point(v0, v1, v2b);
-
-                    if distance_b < distance_a {
-                        i2 = i;
-                    }
-                }
-                let v2 = loose_vertices.swap_remove(i2);
-
-                // vertex found
-                vertices.push(v0);
-                vertices.push(v1);
-                vertices.push(v2);
-
-                // handle edges
-                let edge0 = (v2, v0);
-                let edge1 = (v2, v1);
-
-                let edge0_position = loose_edges.iter().position(|&existing_edge| {
-                    edges_match(edge0, existing_edge)
-                });
-                let edge1_position = loose_edges.iter().position(|&existing_edge| {
-                    edges_match(edge1, existing_edge)
-                });
-
-                match edge0_position {
-                    Some(i) => _ = loose_edges.swap_remove(i),
-                    None => loose_edges.push(edge0),
-                }
-                match edge1_position {
-                    Some(i) => _ = loose_edges.swap_remove(i),
-                    None => loose_edges.push(edge1),
-                }
+            ris_log::trace!("write file...");
+            let filename = format!("assets/in_use/meshes/planet_convex_hull.ris_mesh");
+            if std::fs::exists(&filename)? {
+                std::fs::remove_file(&filename)?;
             }
 
-            ris_log::trace!("triangulated vertices! count: {}", vertices.len());
-            ris_log::trace!("loose count: {} {}", loose_vertices.len(), loose_edges.len());
-
-            //ris_log::trace!("generate mesh... vertices: {}", vertices.len());
-            //let prototype = MeshPrototype{
-            //    vertices,
-            //    normals,
-            //    uvs,
-            //    indices,
-            //};
-
-            //let cpu_mesh = CpuMesh::try_from(prototype)?;
-            //ris_log::trace!("serialize...");
-            //let bytes = ris_mesh::serialize(&cpu_mesh)?;
-
-            //ris_log::trace!("write file...");
-            //let filename = format!("assets/in_use/meshes/planet_convex_hull.ris_mesh");
-            //if std::fs::exists(&filename)? {
-            //    std::fs::remove_file(&filename)?;
-            //}
-
-            //let mut file = std::fs::File::create_new(filename)?;
-            //let f = &mut file;
-            //ris_io::write(f, &bytes)?;
-            //ris_log::trace!("done!");
+            let mut file = std::fs::File::create_new(filename)?;
+            let f = &mut file;
+            ris_io::write(f, &bytes)?;
+            ris_log::trace!("done!");
         }
 
         Ok(())
     }
 }
 
-fn edges_match(a: (Vec3, Vec3), b: (Vec3, Vec3)) -> bool {
+fn edges_match(a: (Vec3, Vec3, Vec3), b: (Vec3, Vec3, Vec3)) -> bool {
     let matches_case_1 = a.0.equal(b.0).all() && a.1.equal(a.1).all();
     let matches_case_2 = a.0.equal(b.1).all() && a.1.equal(b.0).all();
     let matches = matches_case_1 || matches_case_2;
@@ -321,4 +264,243 @@ impl PlanetScript {
         let distortion = dir * self.noise_magnitude;
         (v + distortion).normalize()
     }
+
+    fn find_hull_02(&mut self, mut vertices: Vec<Vec3>) -> Vec<Vec3> {
+        ris_log::trace!("find distortion magnitude...");
+        let v0 = vertices[0];
+        let mut i1 = usize::MAX;
+        let mut min = f32::MAX;
+        for (i, &v1) in vertices.iter().enumerate() {
+            if v0.equal(v1).all() {
+                continue;
+            }
+
+            let d = v0.distance(v1);
+            if d < min {
+                min = d;
+                i1 = i;
+            }
+        }
+
+        let v1 = vertices[i1];
+        let d = v0.distance(v1);
+        let distortion_magnitude = d / 3.0;
+        ris_log::trace!("distortion magnitude: {}", distortion_magnitude);
+
+        let mut rectified = vertices.clone();
+
+        ris_log::trace!("rectify and distort...");
+        for i in 0..rectified.len() {
+            let left = rectified[i];
+
+            let dir = self.rng.next_dir_3();
+            let distortion = dir * distortion_magnitude;
+            let distorted_vertex = (left + distortion).normalize();
+
+            if i % 100 == 0 {
+                ris_log::trace!("rectify... {}/{}", i, rectified.len());
+            }
+
+            for (j, right) in vertices.iter_mut().enumerate() {
+                if left.fequal(*right, 0.001).all() {
+                    rectified[j] = distorted_vertex;
+                    *right = Vec3::init(f32::NAN);
+                }
+            }
+        }
+
+        rectified
+    }
+
+    fn find_hull_01(&mut self, vertices: Vec<Vec3>) -> Vec<Vec3> {
+        // find unique vertices
+        ris_log::trace!("find unique vertices...");
+        let mut unique_vertices = Vec::<Vec3>::new();
+        for (i, &v0) in vertices.iter().enumerate() {
+
+            if i % 5000 == 0 {
+                ris_log::trace!("find unique vertices... {}/{}", i, vertices.len());
+            }
+
+            let exists = unique_vertices
+                .iter()
+                .find(|&&x| v0.fequal(x, 0.001).all())
+                .is_some();
+
+            if !exists {
+                unique_vertices.push(v0);
+            }
+        }
+
+        ris_log::trace!("unique vertex count: {}", unique_vertices.len());
+
+        // triangulate
+        ris_log::trace!("triangulate...");
+        let mut vertices = Vec::<Vec3>::new();
+        let all_vertices = unique_vertices.clone();
+
+        // find a small triangle
+        ris_log::trace!("find small triangle...");
+        ris_log::trace!("find v0...");
+        let mut v0 = all_vertices[0];
+        let mut i1 = usize::MAX;
+        let mut i2 = usize::MAX;
+
+        ris_log::trace!("find v1...");
+        let mut min = f32::MAX;
+        for i in 0..all_vertices.len() {
+            let v1 = all_vertices[i];
+            if v1.equal(v0).all() {
+                continue;
+            }
+
+            let d = v0.distance(v1);
+            if d < min {
+                min = d;
+                i1 = i;
+            }
+        }
+        let mut v1 = all_vertices[i1];
+
+        ris_log::trace!("find v2...");
+        let mut min = f32::MAX;
+        for i in 0..all_vertices.len() {
+            let v2 = all_vertices[i];
+            if v2.equal(v0).all() || v2.equal(v1).all() {
+                continue;
+            }
+
+            let d = v2.distance(v0) + v2.distance(v1);
+            if d < min {
+                min = d;
+                i2 = i;
+            }
+        }
+        let v2 = all_vertices[i2];
+
+        let v01 = v1 - v0;
+        let v02 = v2 - v0;
+        let angle = Vec3::signed_angle(v01, v02, v0);
+        if angle.is_sign_negative() {
+            ris_log::trace!("swapped {} {:?} {:?} {:?}", angle, v0, v1, v2);
+            std::mem::swap(&mut v0, &mut v1);
+        }
+
+        ris_log::trace!(
+            "smallest triangle found: {:?} {:?} {:?}",
+            v0,
+            v1,
+            v2,
+        );
+        vertices.push(v0);
+        vertices.push(v1);
+        vertices.push(v2);
+
+        // the first two define the edge, the third defines the vertex that describes a
+        // triangle with that edge
+        let mut loose_edges = vec![
+            (v0, v1, v2),
+            (v1, v2, v0),
+            (v2, v0, v1),
+        ];
+
+        // connect loose vertices
+        let mut count = 0;
+        while !loose_edges.is_empty() {
+            if count % 100 == 0{
+                ris_log::trace!("connecting loose vertices... round: {} edges: {}", count, loose_edges.len());
+            }
+
+            count += 1;
+
+            // find third vertex
+            // swap v0 and v1, to ensure all other vertices are in front of the plane
+            let (v1, v0, mut v2) = loose_edges.remove(0);
+            let mut count = 0;
+            loop {
+                if count % 1000 == 0{
+                    ris_log::trace!("find better candidate... {}", count);
+                }
+                count += 1;
+
+                let mut better_candidate_found = false;
+                for (i, &v) in all_vertices.iter().enumerate() {
+                    let v02 = v0 - v2;
+                    let v12 = v1 - v2;
+                    let n = v02.cross(v12);
+
+                    let p = v;
+                    let o = v2;
+                    let d = n.dot(p - o);
+                    if d == 0.0 {
+                        continue; // indicates a point in the same plane, usually itself
+                    }
+
+                    if d.is_sign_negative() {
+                        // point is behind the plane. we only want to find candidates in front
+                        // of the plane
+                        continue;
+                    }
+
+                    if v.equal(v0).all() || v.equal(v1).all() {
+                        // v2 may not be equal to v0 or v1, or we get an infinitely thin
+                        // triangle
+                        continue;
+                    }
+
+                    //ris_log::trace!("better candidate: {} {} {:?}", d, i, v2);
+                    v2 = v;
+                    better_candidate_found = true;
+                }
+
+                if !better_candidate_found {
+                    break;
+                }
+            }
+
+            //let i = loose_vertices.iter().position(|x| x.equal(v2).all()).unwrap();
+            //loose_vertices.remove(i);
+
+            // vertex found
+            vertices.push(v0);
+            vertices.push(v1);
+            vertices.push(v2);
+
+            // handle edges
+            let edge0 = (v1, v2, v0);
+            let edge1 = (v2, v0, v1);
+
+            let edge0_position = loose_edges.iter().position(|&existing_edge| {
+                edges_match(edge0, existing_edge)
+            });
+            match edge0_position {
+                Some(i) => _ = loose_edges.remove(i),
+                None => loose_edges.push(edge0),
+            }
+
+            let edge1_position = loose_edges.iter().position(|&existing_edge| {
+                edges_match(edge1, existing_edge)
+            });
+            match edge1_position {
+                Some(i) => _ = loose_edges.remove(i),
+                None => loose_edges.push(edge1),
+            }
+        }
+
+        ris_log::trace!("triangulated vertices! count: {}", vertices.len());
+        //for (i, vertices) in vertices.chunks(3).enumerate() {
+        //    let v0 = vertices[0];
+        //    let v1 = vertices[1];
+        //    let v2 = vertices[2];
+        //    let v01 = v1 - v0;
+        //    let p = v0 + (0.5 * v01);
+        //    let h = p.distance(v2);
+        //    let a = v01.length();
+        //    let area = 0.5 * a * h;
+        //    ris_log::trace!("area {}: {}", i, area);
+        //}
+
+        vertices
+    }
 }
+
