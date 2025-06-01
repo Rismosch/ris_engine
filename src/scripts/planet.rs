@@ -28,7 +28,7 @@ impl Default for PlanetScript {
         let rng = Rng::new(seed);
 
         Self{
-            subdivisions: 5,
+            subdivisions: 6,
             noise_magnitude: 0.01,
             rng,
         }
@@ -171,49 +171,126 @@ impl Script for PlanetScript {
             }
 
             // find hull
-            let vertices = self.find_hull_02(vertices);
+            //let vertices = self.find_hull_02(vertices);
+
+            // indices
+            let mut unique_vertices = Vec::<Vec3>::new();
+            let mut indices = Vec::new();
+            for (i, v) in vertices.iter().enumerate() {
+                if i % 1000 == 0 {
+                    ris_log::trace!("generate indices... {}/{}", i, vertices.len());
+                }
+
+                let position = unique_vertices
+                    .iter()
+                    .position(|x| x.equal(*v).all());
+
+                match position {
+                    Some(position) => {
+                        indices.push(position as u16);
+                    },
+                    None => {
+                        let index = unique_vertices.len();
+                        indices.push(index.try_into()?);
+                        unique_vertices.push(*v);
+                    }
+                }
+            }
+
+            ris_log::trace!(
+                "vertices: {} unique: {}, indices: {}",
+                vertices.len(),
+                unique_vertices.len(),
+                indices.len(),
+            );
+            let mut vertices = unique_vertices;
+
+            // distort vertices
+            ris_log::trace!("find distortion magnitude...");
+            let v0 = vertices[0];
+            let mut i1 = usize::MAX;
+            let mut min = f32::MAX;
+            for (i, &v1) in vertices.iter().enumerate() {
+                if v0.equal(v1).all() {
+                    continue;
+                }
+
+                let d = v0.distance(v1);
+                if d < min {
+                    min = d;
+                    i1 = i;
+                }
+            }
+
+            let v1 = vertices[i1];
+            let d = v0.distance(v1);
+            let distortion_magnitude = d / 3.0;
+            ris_log::trace!("distortion magnitude: {}", distortion_magnitude);
+
+            let vertices_len = vertices.len();
+            for (i, v) in vertices.iter_mut().enumerate() {
+                if i % 1000 == 0 {
+                    ris_log::trace!("distort vertices... {}/{}", i, vertices_len);
+                }
+
+                let mut dir = self.rng.next_dir_3();
+                loop {
+                    let dot = v.normalize().dot(dir);
+                    if dot.abs() > 0.5 {
+                        dir = self.rng.next_dir_3();
+                    } else {
+                        break;
+                    }
+                }
+                let dir = v.normalize().cross(dir);
+                let distorted_vertex = *v + dir * distortion_magnitude;
+                *v = distorted_vertex;
+            }
+
 
             // normals
             let mut normals = Vec::with_capacity(vertices.len());
-            for vertices in vertices.chunks(3) {
-                let v0 = vertices[0];
-                let v1 = vertices[1];
-                let v2 = vertices[2];
+            //for vertices in vertices.chunks(3) {
+            //    let v0 = vertices[0];
+            //    let v1 = vertices[1];
+            //    let v2 = vertices[2];
 
-                let v01 = v1 - v0;
-                let v02 = v2 - v0;
-                let normal = v01.cross(v02);
-                normals.push(normal);
-                normals.push(normal);
-                normals.push(normal);
+            //    let v01 = v1 - v0;
+            //    let v02 = v2 - v0;
+            //    let normal = v01.cross(v02);
+            //    normals.push(normal);
+            //    normals.push(normal);
+            //    normals.push(normal);
+            //}
+            for v in vertices.iter() {
+                let n = v.normalize();
+                normals.push(n);
             }
 
             // uvs
             let mut uvs = Vec::with_capacity(vertices.len());
-            for _ in vertices.chunks(3) {
-                let mut available_uvs = vec![
-                    Vec2(0.0, 0.0),
-                    Vec2(1.0, 0.0),
-                    Vec2(0.0, 1.0),
-                ];
+            //for _ in vertices.chunks(3) {
+            //    let mut available_uvs = vec![
+            //        Vec2(0.0, 0.0),
+            //        Vec2(1.0, 0.0),
+            //        Vec2(0.0, 1.0),
+            //    ];
 
-                let i = self.rng.next_i32_between(0, 2) as usize;
-                let uv0 = available_uvs.swap_remove(i);
-                let i = self.rng.next_i32_between(0, 1) as usize;
-                let uv1 = available_uvs.swap_remove(i);
-                let uv2 = available_uvs[0];
+            //    let i = self.rng.next_i32_between(0, 2) as usize;
+            //    let uv0 = available_uvs.swap_remove(i);
+            //    let i = self.rng.next_i32_between(0, 1) as usize;
+            //    let uv1 = available_uvs.swap_remove(i);
+            //    let uv2 = available_uvs[0];
 
-                uvs.push(uv0);
-                uvs.push(uv1);
-                uvs.push(uv2);
+            //    uvs.push(uv0);
+            //    uvs.push(uv1);
+            //    uvs.push(uv2);
+            //}
+            for _ in vertices.iter() {
+                let uv = self.rng.next_pos_2().abs();
+                uvs.push(uv);
             }
             
-            // indices
-            let mut indices = Vec::with_capacity(vertices.len());
-            for i in 0..indices.capacity() {
-                indices.push(i as u16);
-            }
-
             // generate mesh
             ris_log::trace!("generate mesh... vertices: {}", vertices.len());
             let prototype = MeshPrototype{
@@ -228,7 +305,7 @@ impl Script for PlanetScript {
             let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
             ris_log::trace!("write file...");
-            let filename = format!("assets/in_use/meshes/planet_convex_hull.ris_mesh");
+            let filename = format!("assets/in_use/meshes/planet_new.ris_mesh");
             if std::fs::exists(&filename)? {
                 std::fs::remove_file(&filename)?;
             }
@@ -279,9 +356,6 @@ impl PlanetScript {
         for i in 0..rectified.len() {
             let left = rectified[i];
 
-            //let dir = self.rng.next_dir_3();
-            //let distortion = dir * distortion_magnitude;
-            //let distorted_vertex = (left + distortion).normalize();
             let mut dir = self.rng.next_dir_3();
             loop {
                 let dot = left.normalize().dot(dir);
