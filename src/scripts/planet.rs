@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use std::usize;
 
 use ris_asset::assets::ris_mesh;
@@ -10,7 +11,6 @@ use ris_math::vector::Vec3;
 use ris_math::color::Rgb;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
-use ris_data::ecs::decl::MeshComponentHandle;
 
 #[derive(Debug)]
 pub struct PlanetScript {
@@ -101,13 +101,7 @@ impl Script for PlanetScript {
         ris_debug::gizmo::point(v10, None)?;
         ris_debug::gizmo::point(v11, None)?;
 
-        //ris_debug::gizmo::point(Vec3(0.5171953, -0.8558633, -0.0026602172), Some(Rgb(1.0, 0.0, 1.0)))?;
-        //ris_debug::gizmo::point(Vec3(0.8517644, 0.0069445064, 0.523879), Some(Rgb(0.0, 1.0, 1.0)))?;
-        //ris_debug::gizmo::point(Vec3(-0.006888782, 0.52749693, -0.849529), Some(Rgb(1.0, 0.0, 0.0)))?;
-        //ris_debug::gizmo::point(Vec3(-0.8461729, -0.0011264872, -0.53290725), Some(Rgb(0.0, 1.0, 0.0)))?;
-        //ris_debug::gizmo::point(Vec3(-0.0027416965, -0.5170917, -0.8559256), Some(Rgb(0.0, 0.0, 1.0)))?;
-
-        if ui.button("generate") {
+        if ui.button("generate distorted mesh") {
             ris_log::trace!("generate prototype...");
 
             // vertices
@@ -229,8 +223,6 @@ impl Script for PlanetScript {
                 indices,
             };
 
-            //ris_log::trace!("prototype: {:#?}", prototype);
-
             let cpu_mesh = CpuMesh::try_from(prototype)?;
             ris_log::trace!("serialize...");
             let bytes = ris_mesh::serialize(&cpu_mesh)?;
@@ -259,12 +251,6 @@ fn edges_match(a: (Vec3, Vec3, Vec3), b: (Vec3, Vec3, Vec3)) -> bool {
 }
 
 impl PlanetScript {
-    fn distort_vertex(&mut self, v: Vec3) -> Vec3 {
-        let dir = self.rng.next_dir_3();
-        let distortion = dir * self.noise_magnitude;
-        (v + distortion).normalize()
-    }
-
     fn find_hull_02(&mut self, mut vertices: Vec<Vec3>) -> Vec<Vec3> {
         ris_log::trace!("find distortion magnitude...");
         let v0 = vertices[0];
@@ -293,9 +279,20 @@ impl PlanetScript {
         for i in 0..rectified.len() {
             let left = rectified[i];
 
-            let dir = self.rng.next_dir_3();
-            let distortion = dir * distortion_magnitude;
-            let distorted_vertex = (left + distortion).normalize();
+            //let dir = self.rng.next_dir_3();
+            //let distortion = dir * distortion_magnitude;
+            //let distorted_vertex = (left + distortion).normalize();
+            let mut dir = self.rng.next_dir_3();
+            loop {
+                let dot = left.normalize().dot(dir);
+                if dot.abs() > 0.5 {
+                    dir = self.rng.next_dir_3();
+                } else {
+                    break;
+                }
+            }
+            let dir = left.normalize().cross(dir);
+            let distorted_vertex = left + dir * distortion_magnitude;
 
             if i % 100 == 0 {
                 ris_log::trace!("rectify... {}/{}", i, rectified.len());
@@ -424,7 +421,7 @@ impl PlanetScript {
                 count += 1;
 
                 let mut better_candidate_found = false;
-                for (i, &v) in all_vertices.iter().enumerate() {
+                for &v in all_vertices.iter() {
                     let v02 = v0 - v2;
                     let v12 = v1 - v2;
                     let n = v02.cross(v12);
@@ -458,9 +455,6 @@ impl PlanetScript {
                 }
             }
 
-            //let i = loose_vertices.iter().position(|x| x.equal(v2).all()).unwrap();
-            //loose_vertices.remove(i);
-
             // vertex found
             vertices.push(v0);
             vertices.push(v1);
@@ -488,17 +482,6 @@ impl PlanetScript {
         }
 
         ris_log::trace!("triangulated vertices! count: {}", vertices.len());
-        //for (i, vertices) in vertices.chunks(3).enumerate() {
-        //    let v0 = vertices[0];
-        //    let v1 = vertices[1];
-        //    let v2 = vertices[2];
-        //    let v01 = v1 - v0;
-        //    let p = v0 + (0.5 * v01);
-        //    let h = p.distance(v2);
-        //    let a = v01.length();
-        //    let area = 0.5 * a * h;
-        //    ris_log::trace!("area {}: {}", i, area);
-        //}
 
         vertices
     }
