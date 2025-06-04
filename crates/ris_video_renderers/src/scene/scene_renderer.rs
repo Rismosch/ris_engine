@@ -791,7 +791,7 @@ impl SceneRenderer {
                     *command_buffer,
                     mesh.index_buffer()?,
                     mesh.index_offset()?,
-                    mesh.index_type(),
+                    mesh.index_type()?,
                 );
 
                 device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);

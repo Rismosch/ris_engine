@@ -128,16 +128,20 @@ impl Script for FlyCam {
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
         let ScriptInspectData { id, state, .. } = data;
 
-        let mut camera_position = state.camera.borrow().position;
+        let mut camera = state.camera.borrow_mut();
 
-        let changed = ris_core::inspector_util::drag_vec3(
+        ris_core::inspector_util::drag_vec3(
             format!("camera position##{}", id),
-            &mut camera_position,
+            &mut camera.position,
         )?;
-
-        if changed {
-            state.camera.borrow_mut().position = camera_position;
-        }
+        ris_core::inspector_util::drag(
+            format!("far##{}", id),
+            &mut camera.far,
+        )?;
+        ris_core::inspector_util::drag(
+            format!("near##{}", id),
+            &mut camera.near,
+        )?;
 
         ris_core::inspector_util::drag(
             format!("translation speed (m/s)##{}", id),

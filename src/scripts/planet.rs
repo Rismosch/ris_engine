@@ -4,6 +4,7 @@ use std::usize;
 use ris_asset::assets::ris_mesh;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::CpuMesh;
+use ris_asset_data::mesh::Indices;
 use ris_data::ecs::script_prelude::*;
 use ris_error::prelude::*;
 use ris_math::vector::Vec2;
@@ -28,7 +29,7 @@ impl Default for PlanetScript {
         let rng = Rng::new(seed);
 
         Self{
-            subdivisions: 6,
+            subdivisions: 1,
             noise_magnitude: 0.01,
             rng,
         }
@@ -187,7 +188,7 @@ impl Script for PlanetScript {
 
                 match position {
                     Some(position) => {
-                        indices.push(position as u16);
+                        indices.push(position as u32);
                     },
                     None => {
                         let index = unique_vertices.len();
@@ -204,6 +205,7 @@ impl Script for PlanetScript {
                 indices.len(),
             );
             let mut vertices = unique_vertices;
+            let indices = Indices::U32(indices);
 
             // distort vertices
             ris_log::trace!("find distortion magnitude...");
@@ -288,6 +290,7 @@ impl Script for PlanetScript {
             //}
             for _ in vertices.iter() {
                 let uv = self.rng.next_pos_2().abs();
+
                 uvs.push(uv);
             }
             

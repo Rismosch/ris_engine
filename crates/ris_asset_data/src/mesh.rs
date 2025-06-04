@@ -77,14 +77,20 @@ pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 3
     },
 ];
 
-pub const INDEX_TYPE: vk::IndexType = vk::IndexType::UINT16;
+#[derive(Debug)]
+pub enum Indices {
+    U16(Vec<u16>),
+    U32(Vec<u32>),
+    U8(Vec<u8>),
+    None,
+}
 
 #[derive(Debug)]
 pub struct MeshPrototype {
     pub vertices: Vec<Vec3>,
     pub normals: Vec<Vec3>,
     pub uvs: Vec<Vec2>,
-    pub indices: Vec<u16>,
+    pub indices: Indices,
 }
 
 #[derive(Debug)]
@@ -93,6 +99,7 @@ pub struct CpuMesh {
     pub p_normals: FatPtr,
     pub p_uvs: FatPtr,
     pub p_indices: FatPtr,
+    pub index_type: vk::IndexType,
     pub data: Vec<u8>,
 }
 
@@ -108,6 +115,7 @@ struct GpuMeshInner {
     p_uvs: vk::DeviceSize,
     p_indices: vk::DeviceSize,
     index_count: u32,
+    index_type: vk::IndexType,
     buffer: Buffer,
 }
 
@@ -164,11 +172,40 @@ impl TryFrom<CpuMesh> for MeshPrototype {
 
         let mut stream = std::io::Cursor::new(index_bytes);
         let s = &mut stream;
-        let mut indices = Vec::with_capacity(index_count);
-        for _ in 0..index_count {
-            let index = ris_io::read_u16(s)?;
-            indices.push(index);
-        }
+
+        let indices = match value.index_type {
+            vk::IndexType::UINT16 => {
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u16(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U16(indices)
+            },
+            vk::IndexType::UINT32 => {
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u32(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U32(indices)
+            },
+            vk::IndexType::UINT8_EXT => {
+
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u8(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U8(indices)
+            },
+            vk::IndexType::NONE_KHR => Indices::None,
+            index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
+        };
+        let indices = indices;
 
         Ok(Self {
             vertices,
@@ -186,9 +223,27 @@ impl TryFrom<MeshPrototype> for CpuMesh {
         let len = value.vertices.len();
         ris_error::assert!(value.normals.len() == len)?;
         ris_error::assert!(value.uvs.len() == len)?;
-        for &index in value.indices.iter() {
-            let index = usize::from(index);
-            ris_error::assert!(index < len)?;
+
+        match &value.indices {
+            Indices::U16(indices) => {
+                for &index in indices.iter() {
+                    let index = usize::from(index);
+                    ris_error::assert!(index < len)?;
+                }
+            },
+            Indices::U32(indices) => {
+                for &index in indices.iter() {
+                    let index = usize::try_from(index)?;
+                    ris_error::assert!(index < len)?;
+                }
+            },
+            Indices::U8(indices) => {
+                for &index in indices.iter() {
+                    let index = usize::try_from(index)?;
+                    ris_error::assert!(index < len)?;
+                }
+            },
+            Indices::None => (),
         }
 
         let mut cursor = std::io::Cursor::new(Vec::new());
@@ -207,9 +262,30 @@ impl TryFrom<MeshPrototype> for CpuMesh {
             ris_io::write_vec2(s, uv)?;
         }
         let indices_addr = ris_io::seek(s, SeekFrom::Current(0))?;
-        for index in value.indices {
-            ris_io::write_u16(s, index)?;
-        }
+        let index_type = match value.indices {
+            Indices::U16(indices) => {
+                for index in indices {
+                    ris_io::write_u16(s, index)?;
+                }
+
+                vk::IndexType::UINT16
+            },
+            Indices::U32(indices) => {
+                for index in indices {
+                    ris_io::write_u32(s, index)?;
+                }
+
+                vk::IndexType::UINT32
+            },
+            Indices::U8(indices) => {
+                for index in indices {
+                    ris_io::write_u8(s, index)?;
+                }
+
+                vk::IndexType::UINT8_EXT
+            },
+            Indices::None => vk::IndexType::NONE_KHR,
+        };
         let end = ris_io::seek(s, SeekFrom::Current(0))?;
 
         let p_vertices = FatPtr::begin_end(vertices_addr, normals_addr)?;
@@ -223,6 +299,7 @@ impl TryFrom<MeshPrototype> for CpuMesh {
             p_normals,
             p_uvs,
             p_indices,
+            index_type,
             data,
         })
     }
@@ -259,6 +336,7 @@ impl GpuMesh {
         let p_uvs = value.p_uvs.addr;
         let p_indices = value.p_indices.addr;
         let index_count = value.p_indices.len as u32 / std::mem::size_of::<u16>() as u32;
+        let index_type = value.index_type;
 
         let buffer = Buffer::alloc(
             device,
@@ -278,6 +356,7 @@ impl GpuMesh {
                 p_uvs,
                 p_indices,
                 index_count,
+                index_type,
                 buffer,
             }),
         })
@@ -327,7 +406,11 @@ impl GpuMesh {
         Ok(inner.index_count)
     }
 
-    pub fn index_type(&self) -> vk::IndexType {
-        INDEX_TYPE
+    pub fn index_type(&self) -> RisResult<vk::IndexType> {
+        let Some(inner) = self.inner.as_ref() else {
+            return ris_error::new_result!("gpu mesh was freed");
+        };
+
+        Ok(inner.index_type)
     }
 }
