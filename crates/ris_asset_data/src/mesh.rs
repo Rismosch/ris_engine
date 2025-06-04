@@ -335,7 +335,15 @@ impl GpuMesh {
         let p_normals = value.p_normals.addr;
         let p_uvs = value.p_uvs.addr;
         let p_indices = value.p_indices.addr;
-        let index_count = value.p_indices.len as u32 / std::mem::size_of::<u16>() as u32;
+        let index_size = match value.index_type {
+            vk::IndexType::UINT16 => std::mem::size_of::<u16>(),
+            vk::IndexType::UINT32 => std::mem::size_of::<u32>(),
+            vk::IndexType::UINT8_EXT => std::mem::size_of::<u8>(),
+            vk::IndexType::NONE_KHR => ris_error::new_result!("index type was none")?,
+            index_type => ris_error::new_result!("unknown index type: {:?}", index_type)?,
+        };
+
+        let index_count = value.p_indices.len as u32 / index_size as u32;
         let index_type = value.index_type;
 
         let buffer = Buffer::alloc(

@@ -29,7 +29,7 @@ impl Default for PlanetScript {
         let rng = Rng::new(seed);
 
         Self{
-            subdivisions: 1,
+            subdivisions: 11,
             noise_magnitude: 0.01,
             rng,
         }
@@ -197,6 +197,14 @@ impl Script for PlanetScript {
                     }
                 }
             }
+
+            let i0 = indices[0] as usize;
+            let i1 = indices[1] as usize;
+            let v0 = unique_vertices[i0];
+            let v1 = unique_vertices[i1];
+            let edge_distance = v0.distance(v1);
+            let edge_distance_scaled = edge_distance * 42000.0;
+            ris_log::info!("edge distance: {} scaled: {}", edge_distance, edge_distance_scaled);
 
             ris_log::trace!(
                 "vertices: {} unique: {}, indices: {}",
