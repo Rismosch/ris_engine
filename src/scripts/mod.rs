@@ -1,5 +1,5 @@
 pub mod flycam;
-pub mod planet;
+pub mod planet_cube;
 pub mod test;
 
 use ris_core::god_object::GodObject;
@@ -11,7 +11,7 @@ use ris_math::vector::Vec3;
 pub fn registry() -> RisResult<Registry> {
     Registry::new(vec![
         Registry::script::<test::TestRotationScript>()?,
-        Registry::script::<planet::PlanetScript>()?,
+        Registry::script::<planet_cube::PlanetScript>()?,
     ])
 }
 
@@ -21,7 +21,7 @@ pub fn setup_flycam(god_object: &GodObject) -> RisResult<()> {
     let flycam = GameObjectHandle::new(&god_object.state.scene)?;
     flycam.set_name(&god_object.state.scene, "flycam")?;
     flycam.add_script::<flycam::FlyCam>(&god_object.state.scene)?;
-    flycam.add_script::<planet::PlanetScript>(&god_object.state.scene)?;
+    flycam.add_script::<planet_cube::PlanetScript>(&god_object.state.scene)?;
 
     Ok(())
 }

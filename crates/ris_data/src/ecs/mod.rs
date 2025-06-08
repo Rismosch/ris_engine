@@ -17,6 +17,7 @@ pub mod script_prelude {
     pub use crate::ecs::components::script_component::ScriptInspectData;
     pub use crate::ecs::components::script_component::ScriptStartEndData;
     pub use crate::ecs::components::script_component::ScriptUpdateData;
+    pub use crate::ecs::game_object::GetFrom;
     pub use crate::ecs::scene_stream::SceneReader;
     pub use crate::ecs::scene_stream::SceneWriter;
 }

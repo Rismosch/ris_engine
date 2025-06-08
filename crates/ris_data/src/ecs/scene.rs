@@ -53,7 +53,7 @@ pub struct Scene {
     pub dynamic_game_objects: Vec<EcsPtr<GameObject>>,
     pub static_chunks: Vec<StaticChunk>,
 
-    // compontents
+    // components
     pub mesh_renderer_components: Vec<EcsPtr<MeshComponent>>,
     pub script_components: Vec<EcsPtr<DynScriptComponent>>,
 
