@@ -32,7 +32,7 @@ impl Default for PlanetScript {
 
         Self{
             rng,
-            subdivisions: 5,
+            subdivisions: 0,
             magnitude: 0.05,
         }
     }
@@ -242,10 +242,65 @@ impl Script for PlanetScript {
             let asset_id = ris_asset_data::AssetId::Path("meshes/planet_new.ris_mesh".to_string());
             mesh_component.borrow_mut().set_asset_id(Some(asset_id));
 
-            let end = std::time::Instant::now();
-            let duration = end - start;
-            let milliseconds = duration.as_secs_f32() * 1000.0;
+            let total_duration = std::time::Instant::now() - start;
+            let milliseconds = total_duration.as_secs_f32() * 1000.0;
             ris_log::trace!("done! duration: {}ms", milliseconds);
+        } // generate mesh
+
+        let p = state.camera.borrow().position;
+        let abs = p.abs();
+
+        if abs.0 > abs.1 && abs.0 > abs.2 {
+            let Vec3(x, y, z) = p;
+            let sign = x.signum();
+
+            let mz = z / x;
+            let z_ = mz * sign;
+            let my = z / y;
+            let y_ = z_ / my;
+            let p_ = Vec3(sign, y_, z_);
+            
+            ris_debug::gizmo::point(p_, Some(Rgb::red()))?;
+            ui.label_text("point", format!("{:?}", p_));
+            if p.0.is_sign_positive() {
+                ui.label_text("face", "right");
+            } else {
+                ui.label_text("face", "left");
+            }
+        } else if abs.1 > abs.0 && abs.1 > abs.2 {
+            let Vec3(x, y, z) = p;
+            let sign = y.signum();
+
+            let mz = z / y;
+            let z_ = mz * sign;
+            let mx = z / x;
+            let x_ = z_ / mx;
+            let p_ = Vec3(x_, sign, z_);
+
+            ris_debug::gizmo::point(p_, Some(Rgb::red()))?;
+            ui.label_text("point", format!("{:?}", p_));
+            if p.1.is_sign_positive() {
+                ui.label_text("face", "forward");
+            } else {
+                ui.label_text("face", "back");
+            }
+        } else {
+            let Vec3(x, y, z) = p;
+            let sign = z.signum();
+
+            let my = y / z;
+            let y_ = my * sign;
+            let mx = y / x;
+            let x_ = y_ / mx;
+            let p_ = Vec3(x_, y_, sign);
+
+            ris_debug::gizmo::point(p_, Some(Rgb::red()))?;
+            ui.label_text("point", format!("{:?}", p_));
+            if p.2.is_sign_positive() {
+                ui.label_text("face", "up");
+            } else {
+                ui.label_text("face", "down");
+            }
         }
 
         Ok(())
