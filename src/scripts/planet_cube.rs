@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::f32::consts::PI;
 use std::hash::Hash;
 use std::usize;
@@ -32,7 +33,7 @@ impl Default for PlanetScript {
 
         Self{
             rng,
-            subdivisions: 0,
+            subdivisions: 5,
             magnitude: 0.05,
         }
     }
@@ -222,12 +223,13 @@ impl Script for PlanetScript {
             let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
             ris_log::trace!("write file...");
-            let filename = format!("assets/in_use/meshes/planet_new.ris_mesh");
-            if std::fs::exists(&filename)? {
-                std::fs::remove_file(&filename)?;
+            let filepath = PathBuf::from("assets/in_use/meshes/planet_new.ris_mesh");
+
+            if filepath.exists() {
+                std::fs::remove_file(&filepath)?;
             }
 
-            let mut file = std::fs::File::create_new(filename)?;
+            let mut file = std::fs::File::create_new(filepath)?;
             let f = &mut file;
             ris_io::write(f, &bytes)?;
 
