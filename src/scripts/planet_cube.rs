@@ -15,6 +15,54 @@ use ris_math::vector::Vec3;
 use ris_math::color::Rgb;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
+/*
+
+notes
+
+radius r = 42000
+area = 2 * pi * r * r
+umfang u = 2 * pi * r
+
+sin alpha = (x / 2) / r
+2 * r * sin alpha = x / (2 * r)
+
+side_count s
+resolution length l
+l = (u / 4) / s
+s = (u / 4) / l
+s = ((2 * pi * r) / 4) / l
+
+s = ((2 * pi * 42000) / 4) / 0.5
+s ~= 131947 // resolution is acceptable, in a sense that 0..2_000_000 can be mapped in f32 between
+            // 0.0..1.0 with no loss in precision. i.e. when i is between 0.0..1.0, we can get
+            // quantized values by doing `(i * 2_000_000) as i32`;
+
+vertices = s^3 ~= 2297193026690053
+
+on my lenovo arch machine, generating 20000^2 hashes took 9.960982436s, (no mesh generation and upload to the gpu taken into account). this means on full resolution, with 0.5 meters between vertices, a 10km^2 can be generated in 10 seconds. This asumes no optimization, and every possible optimization can reduce that number.
+
+assume a horizon distance of 10km when 2km high, what is the radius of the planet?
+
+let distance = 10000
+let height = 2000
+
+distance / r = tan alpha
+distance / (height + r) = cos alpha
+
+alpha = atan distance / r
+alpha = acos distance / (height + r)
+atan distance / r = acos distance / (height + r)
+
+----
+
+(r + 2000) / r = sin alpha
+alpha = asin (2000 + r) / r
+distance / (2000 + r) = cos alpha
+distance / (2000 + r) = cos asin (2000 + r) / r
+distance = (2000 + r) * cos asin (2000 + r) / r
+distance = (2000 + r) * cos(asin((2000 + r) / r))
+
+*/
 
 #[derive(Debug)]
 pub struct PlanetScript {
@@ -68,6 +116,41 @@ impl Script for PlanetScript {
             frame,
             state,
         } = data;
+
+        if ui.button("benchmark") {
+
+            let start = std::time::Instant::now();
+
+            let count = std::hint::black_box(20000);
+            let mut actual_count = 0;
+            for i in 0..count {
+                // assuming two chunkifications
+                if i % 8 != 0 {
+                    continue;
+                }
+
+                for j in 0..count {
+                    let i = std::hint::black_box(i);
+                    let j = std::hint::black_box(j);
+                    let x = i as f32 / count as f32;
+                    let y = j as f32 / count as f32;
+                    let p = Vec3(x, y, 0.0);
+                    let hash = xxhash_vec3(p, 42);
+                    std::hint::black_box(hash);
+                    actual_count += 1;
+                }
+            }
+
+            let end = std::time::Instant::now();
+            let diff = end - start;
+            ris_log::debug!(
+                "generating {}^2 (actual {} ~= {}^2) hashes took {:?}",
+                count,
+                actual_count,
+                (actual_count as f32).sqrt(),
+                diff,
+            );
+        }
 
         let v0 = Vec3(1.0, 1.0, 1.0);
         let v1 = Vec3(-1.0, 1.0, 1.0);
@@ -309,47 +392,14 @@ impl Script for PlanetScript {
     }
 }
 
-// inspired by xxhash. i took XXH3_64bits() and inlined the specific branches for my specific use case
-fn xxhash_vec2(value: Vec2, mut seed: u64) -> u64 {
-    // XXH_PUBLIC_API XXH64_hash_t XXH3_64bits(XXH_NOESCAPE const void* input, size_t length)
-    // XXH3_64bits_internal(input, length, 0, XXH3_kSecret, sizeof(XXH3_kSecret), XXH3_hashLong_64b_default)
-    // XXH3_len_0to16_64b((const xxh_u8*)input, len, (const xxh_u8*)secret, seed64)
-    // XXH3_len_4to8_64b(input, len, secret, seed)
-
-    //let secret: [u8; 192] = [
-    //    0xb8, 0xfe, 0x6c, 0x39, 0x23, 0xa4, 0x4b, 0xbe, 0x7c, 0x01, 0x81, 0x2c, 0xf7, 0x21, 0xad, 0x1c,
-    //    0xde, 0xd4, 0x6d, 0xe9, 0x83, 0x90, 0x97, 0xdb, 0x72, 0x40, 0xa4, 0xa4, 0xb7, 0xb3, 0x67, 0x1f,
-    //    0xcb, 0x79, 0xe6, 0x4e, 0xcc, 0xc0, 0xe5, 0x78, 0x82, 0x5a, 0xd0, 0x7d, 0xcc, 0xff, 0x72, 0x21,
-    //    0xb8, 0x08, 0x46, 0x74, 0xf7, 0x43, 0x24, 0x8e, 0xe0, 0x35, 0x90, 0xe6, 0x81, 0x3a, 0x26, 0x4c,
-    //    0x3c, 0x28, 0x52, 0xbb, 0x91, 0xc3, 0x00, 0xcb, 0x88, 0xd0, 0x65, 0x8b, 0x1b, 0x53, 0x2e, 0xa3,
-    //    0x71, 0x64, 0x48, 0x97, 0xa2, 0x0d, 0xf9, 0x4e, 0x38, 0x19, 0xef, 0x46, 0xa9, 0xde, 0xac, 0xd8,
-    //    0xa8, 0xfa, 0x76, 0x3f, 0xe3, 0x9c, 0x34, 0x3f, 0xf9, 0xdc, 0xbb, 0xc7, 0xc7, 0x0b, 0x4f, 0x1d,
-    //    0x8a, 0x51, 0xe0, 0x4b, 0xcd, 0xb4, 0x59, 0x31, 0xc8, 0x9f, 0x7e, 0xc9, 0xd9, 0x78, 0x73, 0x64,
-    //    0xea, 0xc5, 0xac, 0x83, 0x34, 0xd3, 0xeb, 0xc3, 0xc5, 0x81, 0xa0, 0xff, 0xfa, 0x13, 0x63, 0xeb,
-    //    0x17, 0x0d, 0xdd, 0x51, 0xb7, 0xf0, 0xda, 0x49, 0xd3, 0x16, 0x55, 0x26, 0x29, 0xd4, 0x68, 0x9e,
-    //    0x2b, 0x16, 0xbe, 0x58, 0x7d, 0x47, 0xa1, 0xfc, 0x8f, 0xf8, 0xb8, 0xd1, 0x7a, 0xd0, 0x31, 0xce,
-    //    0x45, 0xcb, 0x3a, 0x8f, 0x95, 0x16, 0x04, 0x28, 0xaf, 0xd7, 0xfb, 0xca, 0xbb, 0x4b, 0x40, 0x7e,
-    //];
-
-    seed ^= ((seed as u32).swap_bytes() as u64) << 32;
-    let input1 = u32::from_le_bytes(value.0.to_le_bytes());
-    let input2 = u32::from_le_bytes(value.1.to_le_bytes());
-    //let bitflip = (u64::from_le_bytes(secret[8..16].try_into().unwrap()) ^ u64::from_le_bytes(secret[16..24].try_into().unwrap())).wrapping_sub(seed);
-    let bitflip = 14355981877291832738u64.wrapping_sub(seed);
-    let input64 = input2 as u64 + ((input1 as u64) << 32);
-    let keyed = input64 ^ bitflip;
-
-    // XXH3_rrmxmx(keyed, len)
-    let mut h64 = keyed;
-    let prime_mx2 = 0x9FB21C651E98DF25u64;
-    h64 ^= h64.rotate_left(49) ^ h64.rotate_left(24);
-    h64 = h64.wrapping_mul(prime_mx2);
-    h64 ^= (h64 >> 35) + 8;
-    h64 = h64.wrapping_mul(prime_mx2);
-    h64 ^ (h64 >> 28)
-}
-
+// inspired by xxhash. i took XXH3_64bits() and inlined the specific branches. i also did some
+// tweaks to avoid floating-point imprecision and to prevent naive collisions
 fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
+    let value = value * 2_000_000f32;
+    let input_0 = u64::from_le_bytes((value.0 as i64).to_le_bytes());
+    let input_1 = u64::from_le_bytes((value.1 as i64).to_le_bytes());
+    let input_2 = u64::from_le_bytes((value.2 as i64).to_le_bytes());
+
     // XXH_PUBLIC_API XXH64_hash_t XXH3_64bits(XXH_NOESCAPE const void* input, size_t length)
     // XXH3_64bits_internal(input, length, 0, XXH3_kSecret, sizeof(XXH3_kSecret), XXH3_hashLong_64b_default)
     // XXH3_len_0to16_64b((const xxh_u8*)input, len, (const xxh_u8*)secret, seed64)
@@ -371,17 +421,13 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
     
     //let bitflip1 = (u64::from_le_bytes(secret[24..32].try_into().unwrap()) ^ u64::from_le_bytes(secret[32..40].try_into().unwrap())).wrapping_add(seed);
     //let bitflip2 = (u64::from_le_bytes(secret[40..48].try_into().unwrap()) ^ u64::from_le_bytes(secret[48..56].try_into().unwrap())).wrapping_sub(seed);
+
     let bitflip1 = 7458650908927343033u64.wrapping_add(seed);
     let bitflip2 = 12634492766384443962u64.wrapping_sub(seed);
-    //let bitflip1 = bitflip1 | 0x8000_0000_8000_0000;
-    //let bitflip2 = bitflip2 | 0x8000_0000_8000_0000;
     
-    let input0 = u32::from_le_bytes(value.0.to_le_bytes()) as u64;
-    let input1 = u32::from_le_bytes(value.1.to_le_bytes()) as u64;
-    let input2 = u32::from_le_bytes(value.2.to_le_bytes()) as u64;
-    let input_lo = (input0 | (input1 << 32)) ^ bitflip1;
+    let input_lo = (input_0 | (input_1 << 32)) ^ bitflip1;
     //let input_hi = (input1 | (input2 << 32)) ^ bitflip2;
-    let input_hi = input2 ^ bitflip2;
+    let input_hi = input_2 ^ bitflip2;
 
 
     let mul128 = (input_lo as u128).wrapping_mul(input_hi as u128);
