@@ -59,8 +59,11 @@ https://www.desmos.com/calculator/u5prhqrp1n
 version 2:
 https://www.desmos.com/calculator/ag21xuhioj
 
-version 3
+version 3:
 https://www.desmos.com/calculator/kbkqho1ivt
+
+versoin 4:
+https://www.desmos.com/calculator/zgdphnszsp
 
 ----
 
@@ -130,11 +133,14 @@ impl Script for PlanetScript {
 
             let start = std::time::Instant::now();
 
-            let count = std::hint::black_box(20000);
+            let view_distance = 13000;
+            let count = std::hint::black_box(view_distance * view_distance);
             let mut actual_count = 0;
             for i in 0..count {
-                // assuming two chunkifications
-                if i % 8 != 0 {
+                // assuming chunkification. one chunkification reduces the vertices by 4
+                let chunk_steps = 2;
+                let modulo = chunk_steps * 4;
+                if i % modulo != 0 {
                     continue;
                 }
 
