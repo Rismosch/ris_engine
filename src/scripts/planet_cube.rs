@@ -53,6 +53,12 @@ alpha = atan distance / r
 alpha = acos distance / (height + r)
 atan distance / r = acos distance / (height + r)
 
+shortest distance between points on different sides of the cube:
+https://www.desmos.com/calculator/u5prhqrp1n
+
+version2:
+https://www.desmos.com/calculator/ag21xuhioj
+
 ----
 
 (r + 2000) / r = sin alpha
