@@ -56,8 +56,11 @@ atan distance / r = acos distance / (height + r)
 shortest distance between points on different sides of the cube:
 https://www.desmos.com/calculator/u5prhqrp1n
 
-version2:
+version 2:
 https://www.desmos.com/calculator/ag21xuhioj
+
+version 3
+https://www.desmos.com/calculator/kbkqho1ivt
 
 ----
 
