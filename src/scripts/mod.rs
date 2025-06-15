@@ -1,6 +1,6 @@
 pub mod flycam;
-pub mod planet_cube;
-pub mod test;
+pub mod planet_polar;
+pub mod test_rotation;
 
 use ris_core::god_object::GodObject;
 use ris_data::ecs::decl::GameObjectHandle;
@@ -10,8 +10,8 @@ use ris_math::vector::Vec3;
 
 pub fn registry() -> RisResult<Registry> {
     Registry::new(vec![
-        Registry::script::<test::TestRotationScript>()?,
-        Registry::script::<planet_cube::PlanetScript>()?,
+        Registry::script::<test_rotation::TestRotationScript>()?,
+        Registry::script::<planet_polar::PlanetScript>()?,
     ])
 }
 
@@ -21,7 +21,7 @@ pub fn setup_flycam(god_object: &GodObject) -> RisResult<()> {
     let flycam = GameObjectHandle::new(&god_object.state.scene)?;
     flycam.set_name(&god_object.state.scene, "flycam")?;
     flycam.add_script::<flycam::FlyCam>(&god_object.state.scene)?;
-    flycam.add_script::<planet_cube::PlanetScript>(&god_object.state.scene)?;
+    flycam.add_script::<planet_polar::PlanetScript>(&god_object.state.scene)?;
 
     Ok(())
 }
