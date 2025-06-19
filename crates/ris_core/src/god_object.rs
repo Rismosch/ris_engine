@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use ris_video_renderers::TerrainRenderer;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
@@ -154,13 +155,15 @@ impl GodObject {
         // scene renderer
         let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
 
+        // terrain renderer
+        let terrain_renderer = TerrainRenderer::alloc(&vulkan_core, &god_asset)?;
+
         // gizmo renderer
         let gizmo_guard = ris_debug::gizmo::init()?;
         let gizmo_segment_renderer = GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
         let gizmo_text_renderer = GizmoTextRenderer::alloc(&vulkan_core, &god_asset)?;
 
         // imgui renderer
-
         #[cfg(feature = "ui_helper_enabled")]
         let (imgui_backend, imgui_renderer) = {
             let mut imgui_backend = ImguiBackend::init(&app_info)?;
@@ -175,6 +178,7 @@ impl GodObject {
 
         let renderer = Renderer {
             scene: scene_renderer,
+            terrain: terrain_renderer,
             gizmo_segment: gizmo_segment_renderer,
             gizmo_text: gizmo_text_renderer,
             #[cfg(feature = "ui_helper_enabled")]

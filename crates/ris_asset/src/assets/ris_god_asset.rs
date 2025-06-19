@@ -15,6 +15,8 @@ pub const UNNAMED_PATH: &str = "asset_0";
 pub struct RisGodAsset {
     pub default_vert_spv: AssetId,
     pub default_frag_spv: AssetId,
+    pub terrain_vert_spv: AssetId,
+    pub terrain_frag_spv: AssetId,
     pub imgui_vert_spv: AssetId,
     pub imgui_frag_spv: AssetId,
     pub gizmo_segment_vert_spv: AssetId,
