@@ -151,6 +151,36 @@ impl TerrainRenderer {
         }?;
 
         // shaders
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.terrain_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.terrain_frag_spv.clone());
+
+        let vs_bytes = vs_asset_future.wait()?;
+        let fs_bytes = fs_asset_future.wait()?;
+
+        let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
+        let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
+        let entry = ris_video_data::shader::ENTRY.as_ptr();
+
+        let shader_stages = [
+            vk::PipelineShaderStageCreateInfo {
+                s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::PipelineShaderStageCreateFlags::empty(),
+                module: vs_module,
+                p_name: entry,
+                p_specialization_info: ptr::null(),
+                stage: vk::ShaderStageFlags::VERTEX,
+            },
+            vk::PipelineShaderStageCreateInfo {
+                s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::PipelineShaderStageCreateFlags::empty(),
+                module: fs_module,
+                p_name: entry,
+                p_specialization_info: ptr::null(),
+                stage: vk::ShaderStageFlags::FRAGMENT,
+            },
+        ];
 
         ris_error::new_result!("reached end")
     }

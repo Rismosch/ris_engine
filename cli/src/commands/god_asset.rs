@@ -101,6 +101,8 @@ impl ICommand for GodAsset {
                 match field.trim().to_lowercase().as_str() {
                     "default_vert_spv" => god_asset.default_vert_spv = AssetId::Path(value),
                     "default_frag_spv" => god_asset.default_frag_spv = AssetId::Path(value),
+                    "terrain_vert_spv" => god_asset.terrain_vert_spv = AssetId::Path(value),
+                    "terrain_frag_spv" => god_asset.terrain_frag_spv = AssetId::Path(value),
                     "imgui_vert_spv" => god_asset.imgui_vert_spv = AssetId::Path(value),
                     "imgui_frag_spv" => god_asset.imgui_frag_spv = AssetId::Path(value),
                     "gizmo_segment_vert_spv" => {
@@ -143,6 +145,8 @@ fn print_god_asset(god_asset: &RisGodAsset) {
     println!("RisGodAsset {{");
     println!("    default_vert_spv: {:?},", god_asset.default_vert_spv);
     println!("    default_frag_spv: {:?},", god_asset.default_frag_spv);
+    println!("    terrain_vert_spv: {:?},", god_asset.terrain_vert_spv);
+    println!("    terrain_frag_spv: {:?},", god_asset.terrain_frag_spv);
     println!("    imgui_vert_spv: {:?},", god_asset.imgui_vert_spv);
     println!("    imgui_frag_spv: {:?},", god_asset.imgui_frag_spv);
     println!(
