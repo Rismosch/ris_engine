@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ash::vk;
 
 use ris_asset::RisGodAsset;
@@ -58,6 +56,15 @@ impl TerrainFrame {
     }
 }
 
+#[derive(Debug)]
+struct TerrainMesh {
+    p_vertices: vk::DeviceSize,
+    p_indices: vk::DeviceSize,
+    index_count: u32,
+    index_type: vk::IndexType,
+    buffer: Buffer,
+}
+
 pub struct TerrainRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
@@ -65,6 +72,7 @@ pub struct TerrainRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<TerrainFrame>,
+    mesh: TerrainMesh,
 }
 
 impl TerrainRenderer {
@@ -487,7 +495,166 @@ impl TerrainRenderer {
 
     pub fn draw(
         &mut self,
+        core: &VulkanCore,
+        entry: &SwapchainEntry,
+        window_drawable_size: (u32, u32),
+        camera: &Camera,
     ) -> RisResult<()> {
+        let VulkanCore {
+            instance,
+            suitable_device,
+            device,
+            swapchain,
+            ..
+        } = core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let SwapchainEntry {
+            index,
+            viewport_image_view,
+            depth_image_view,
+            command_buffer,
+            ..
+        } = entry;
+
+        let TerrainFrame {
+            framebuffer,
+            descriptor_buffer,
+            descriptor_mapped,
+            descriptor_set,
+        } = &mut self.frames[*index];
+
+        // framebuffer
+        if let Some(framebuffer) = framebuffer.take() {
+            unsafe {device.destroy_framebuffer(framebuffer, None)};
+        }
+
+        let attachments = [*viewport_image_view, *depth_image_view];
+
+        let frame_buffer_create_info = vk::FramebufferCreateInfo {
+            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            p_next: std::ptr::null(),
+            flags: vk::FramebufferCreateFlags::empty(),
+            render_pass: self.render_pass,
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
+            layers: 1,
+        };
+
+        let new_framebuffer = unsafe {
+            device.create_framebuffer(&frame_buffer_create_info, None)
+        }?;
+        *framebuffer = Some(new_framebuffer);
+        let framebuffer = new_framebuffer;
+
+        // render pass
+        unsafe {
+            let clear_values = [
+                vk::ClearValue {
+                    color: vk::ClearColorValue {
+                        float32: [0.0, 0.0, 0.0, 0.0],
+                    },
+                },
+                vk::ClearValue {
+                    depth_stencil: vk::ClearDepthStencilValue {
+                        depth: 0.0,
+                        stencil: 0,
+                    },
+                },
+            ];
+
+            let render_pass_begin_info = vk::RenderPassBeginInfo {
+                s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+                p_next: std::ptr::null(),
+                render_pass: self.render_pass,
+                framebuffer,
+                render_area: vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
+                    extent: swapchain.extent,
+                },
+                clear_value_count: clear_values.len() as u32,
+                p_clear_values: clear_values.as_ptr(),
+            };
+
+            device.cmd_begin_render_pass(
+                *command_buffer,
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            );
+
+            device.cmd_bind_pipeline(
+                *command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            );
+
+            let viewports = [vk::Viewport {
+                width: window_drawable_size.0 as f32,
+                height: window_drawable_size.1 as f32,
+                max_depth: 1.0,
+                ..Default::default()
+            }];
+
+            let scissors = [vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: vk::Extent2D {
+                    width: window_drawable_size.0,
+                    height: window_drawable_size.1,
+                },
+            }];
+
+            device.cmd_set_viewport(*command_buffer, 0, &viewports);
+            device.cmd_set_scissor(*command_buffer, 0, &scissors);
+
+            let ubo = [UniformBufferObject {
+                model: Mat4::init(1.0),
+                view: camera.view_matrix(),
+                proj: camera.projection_matrix(),
+            }];
+            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo{
+                buffer: descriptor_buffer.buffer,
+                offset: 0,
+                range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
+            }];
+
+            let write_descriptor_sets = [vk::WriteDescriptorSet {
+                s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
+                p_next: std::ptr::null(),
+                dst_set: *descriptor_set,
+                dst_binding: 0,
+                dst_array_element: 0,
+                descriptor_count: descriptor_buffer_info.len() as u32,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                p_image_info: std::ptr::null(),
+                p_buffer_info: descriptor_buffer_info.as_ptr(),
+                p_texel_buffer_view: std::ptr::null(),
+            }];
+
+            device.update_descriptor_sets(&write_descriptor_sets, &[]);
+
+            device.cmd_bind_descriptor_sets(
+                *command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline_layout,
+                0,
+                &[*descriptor_set],
+                &[],
+            );
+
+            // bind vertex buffer
+            // bind index buffer
+            // draw
+
+            device.cmd_end_render_pass(*command_buffer);
+        }
+
         Ok(())
     }
 }

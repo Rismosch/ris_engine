@@ -254,18 +254,21 @@ impl OutputFrame {
 
         // terrain
         ris_debug::add_record!(r, "terrain")?;
-        self.renderer.terrain.draw()?;
+        self.renderer.terrain.draw(
+            &self.core,
+            swapchain_entry,
+            window_drawable_size,
+            &camera,
+        )?;
 
         // gizmos
-        ris_debug::add_record!(r, "gizmos")?;
-
-        ris_debug::add_record!(r, "get segment vertices")?;
+        ris_debug::add_record!(r, "gizmos get segment vertices")?;
         let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(&camera)?;
 
-        ris_debug::add_record!(r, "get text vertices")?;
+        ris_debug::add_record!(r, "gizmos get text vertices")?;
         let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
 
-        ris_debug::add_record!(r, "draw text")?;
+        ris_debug::add_record!(r, "gizmos draw text")?;
         self.renderer.gizmo_text.draw(
             &self.core,
             swapchain_entry,
@@ -275,7 +278,7 @@ impl OutputFrame {
             &camera,
         )?;
 
-        ris_debug::add_record!(r, "draw segments")?;
+        ris_debug::add_record!(r, "gizmos draw segments")?;
         self.renderer.gizmo_segment.draw(
             &self.core,
             swapchain_entry,
