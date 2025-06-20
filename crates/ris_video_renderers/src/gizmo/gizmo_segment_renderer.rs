@@ -221,7 +221,7 @@ impl GizmoSegmentRenderer {
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
-            polygon_mode: vk::PolygonMode::LINE,
+            polygon_mode: vk::PolygonMode::FILL,
             cull_mode: vk::CullModeFlags::NONE,
             front_face: vk::FrontFace::CLOCKWISE,
             depth_bias_enable: vk::FALSE,

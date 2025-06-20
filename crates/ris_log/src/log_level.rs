@@ -41,16 +41,24 @@ impl From<LogLevel> for usize {
     }
 }
 
+pub const TRACE_COLOR: Color = Color::BrightWhite;
+pub const DEBUG_COLOR: Color = Color::BrightCyan;
+pub const INFO_COLOR: Color = Color::BrightGreen;
+pub const WARNING_COLOR: Color = Color::BrightYellow;
+pub const ERROR_COLOR: Color = Color::BrightRed;
+pub const FATAL_COLOR: Color = Color::BrightRed;
+pub const NONE_COLOR: Color = Color::BrightWhite;
+
 impl LogLevel {
     pub fn to_color_string(&self) -> ColorString {
         match *self {
-            LogLevel::Trace => ColorString("Trace", Color::BrightWhite),
-            LogLevel::Debug => ColorString("Debug", Color::BrightCyan),
-            LogLevel::Info => ColorString("Info", Color::BrightGreen),
-            LogLevel::Warning => ColorString("Warning", Color::BrightYellow),
-            LogLevel::Error => ColorString("Error", Color::BrightRed),
-            LogLevel::Fatal => ColorString("Fatal", Color::BrightRed),
-            LogLevel::None => ColorString("None", Color::BrightWhite),
+            LogLevel::Trace => ColorString("Trace", TRACE_COLOR),
+            LogLevel::Debug => ColorString("Debug", DEBUG_COLOR),
+            LogLevel::Info => ColorString("Info", INFO_COLOR),
+            LogLevel::Warning => ColorString("Warning", WARNING_COLOR),
+            LogLevel::Error => ColorString("Error", ERROR_COLOR),
+            LogLevel::Fatal => ColorString("Fatal", FATAL_COLOR),
+            LogLevel::None => ColorString("None", NONE_COLOR),
         }
     }
 }

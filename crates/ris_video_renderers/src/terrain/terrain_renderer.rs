@@ -3,7 +3,7 @@ use std::ptr;
 use ash::vk;
 
 use ris_asset::RisGodAsset;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_math::vector::Vec2;
@@ -33,6 +33,7 @@ pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 1
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
+    pub model: Mat4,
     pub view: Mat4,
     pub proj: Mat4,
 }
@@ -202,7 +203,7 @@ impl TerrainRenderer {
         let vertex_binding_descriptions = VERTEX_BINDING_DESCRIPTIONS;
         let vertex_attribute_descriptions = VERTEX_ATTRIBUTE_DESCRIPTIONS;
 
-        let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo{
+        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
@@ -210,20 +211,20 @@ impl TerrainRenderer {
             p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
             vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
             p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
-        }];
+        };
 
-        let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo{
+        let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
             topology: vk::PrimitiveTopology::TRIANGLE_LIST,
             primitive_restart_enable: vk::FALSE,
-        }];
+        };
 
         let viewports = [vk::Viewport::default()];
         let scissors = [vk::Rect2D::default()];
 
-        let viewport_state = [vk::PipelineViewportStateCreateInfo{
+        let viewport_state = vk::PipelineViewportStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
@@ -231,9 +232,9 @@ impl TerrainRenderer {
             p_viewports: viewports.as_ptr(),
             scissor_count: scissors.len() as u32,
             p_scissors: scissors.as_ptr(),
-        }];
+        };
 
-        let rasterization_state = [vk::PipelineRasterizationStateCreateInfo{
+        let rasterization_state = vk::PipelineRasterizationStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
@@ -247,9 +248,9 @@ impl TerrainRenderer {
             depth_bias_clamp: 0.0,
             depth_bias_slope_factor: 0.0,
             line_width: 1.0,
-        }];
+        };
 
-        let multisample_state = [vk::PipelineMultisampleStateCreateInfo{
+        let multisample_state = vk::PipelineMultisampleStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
@@ -259,7 +260,7 @@ impl TerrainRenderer {
             p_sample_mask: std::ptr::null(),
             alpha_to_coverage_enable: vk::FALSE,
             alpha_to_one_enable: vk::FALSE,
-        }];
+        };
 
         let stencil_op_state = vk::StencilOpState {
             fail_op: vk::StencilOp::KEEP,
@@ -271,7 +272,7 @@ impl TerrainRenderer {
             reference: 0,
         };
 
-        let depth_stencil_state = [vk::PipelineDepthStencilStateCreateInfo{
+        let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
@@ -284,14 +285,14 @@ impl TerrainRenderer {
             back: stencil_op_state,
             min_depth_bounds: 0.0,
             max_depth_bounds: 1.0,
-        }];
+        };
 
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState{
             blend_enable: vk::FALSE,
             ..Default::default()
         }];
 
-        let color_blend_state = [vk::PipelineColorBlendStateCreateInfo{
+        let color_blend_state = vk::PipelineColorBlendStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineColorBlendStateCreateFlags::empty(),
@@ -300,16 +301,16 @@ impl TerrainRenderer {
             attachment_count: color_blend_attachment_states.len() as u32,
             p_attachments: color_blend_attachment_states.as_ptr(),
             blend_constants: [0.0, 0.0, 0.0, 0.0],
-        }];
+        };
 
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
-        let dynamic_state = [vk::PipelineDynamicStateCreateInfo{
+        let dynamic_state = vk::PipelineDynamicStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineDynamicStateCreateFlags::empty(),
             dynamic_state_count: dynamic_states.len() as u32,
             p_dynamic_states: dynamic_states.as_ptr(),
-        }];
+        };
 
         // pipeline layout
         let descriptor_set_layouts = [descriptor_set_layout];
@@ -329,15 +330,164 @@ impl TerrainRenderer {
         }?;
         
         // render pass
-        
+        let color_attachment = vk::AttachmentDescription {
+            flags: vk::AttachmentDescriptionFlags::empty(),
+            format: swapchain.format.format,
+            samples: vk::SampleCountFlags::TYPE_1,
+            load_op: vk::AttachmentLoadOp::LOAD,
+            store_op: vk::AttachmentStoreOp::STORE,
+            stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+            stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+            initial_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+            final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+        };
 
-        ris_error::new_result!("reached render pass")
+        let depth_attachment = vk::AttachmentDescription {
+            flags: vk::AttachmentDescriptionFlags::empty(),
+            format: ris_video_data::util::find_depth_format(
+                instance,
+                suitable_device.physical_device,
+            )?,
+            samples: vk::SampleCountFlags::TYPE_1,
+            load_op: vk::AttachmentLoadOp::LOAD,
+            store_op: vk::AttachmentStoreOp::STORE,
+            stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+            stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
+
+
+        let color_attachment_references = [vk::AttachmentReference{
+            attachment: 0,
+            layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+        }];
+
+        let depth_attachment_reference = vk::AttachmentReference {
+            attachment: 1,
+            layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
+
+        let subpass_descriptions = [vk::SubpassDescription{
+            flags: vk::SubpassDescriptionFlags::empty(),
+            pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
+            input_attachment_count: 0,
+            p_input_attachments: std::ptr::null(),
+            color_attachment_count: color_attachment_references.len() as u32,
+            p_color_attachments: color_attachment_references.as_ptr(),
+            p_resolve_attachments: std::ptr::null(),
+            p_depth_stencil_attachment: &depth_attachment_reference,
+            preserve_attachment_count: 0,
+            p_preserve_attachments: std::ptr::null(),
+        }];
+
+        let subpass_dependencies = [vk::SubpassDependency {
+            src_subpass: vk::SUBPASS_EXTERNAL,
+            dst_subpass: 0,
+            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            src_access_mask: vk::AccessFlags::empty(),
+            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+            dependency_flags: vk::DependencyFlags::empty(),
+        }];
+
+        let attachments = [color_attachment, depth_attachment];
+
+        let render_pass_create_info = vk::RenderPassCreateInfo {
+            s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
+            p_next: std::ptr::null(),
+            flags: vk::RenderPassCreateFlags::empty(),
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            subpass_count: subpass_descriptions.len() as u32,
+            p_subpasses: subpass_descriptions.as_ptr(),
+            dependency_count: subpass_dependencies.len() as u32,
+            p_dependencies: subpass_dependencies.as_ptr(),
+        };
+
+        let render_pass = unsafe{device.create_render_pass(&render_pass_create_info, None)}?;
+
+        // pipeline creation
+        let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo{
+            s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
+            p_next: std::ptr::null(),
+            flags: vk::PipelineCreateFlags::empty(),
+            stage_count: shader_stages.len() as u32,
+            p_stages: shader_stages.as_ptr(),
+            p_vertex_input_state: &vertex_input_state,
+            p_input_assembly_state: &input_assembly_state,
+            p_tessellation_state: std::ptr::null(),
+            p_viewport_state: &viewport_state,
+            p_rasterization_state: &rasterization_state,
+            p_multisample_state: &multisample_state,
+            p_depth_stencil_state: &depth_stencil_state,
+            p_color_blend_state: &color_blend_state,
+            p_dynamic_state: &dynamic_state,
+            layout: pipeline_layout,
+            render_pass,
+            subpass: 0,
+            base_pipeline_handle: vk::Pipeline::null(),
+            base_pipeline_index: -1,
+        }];
+
+        let graphics_pipelines = unsafe {device.create_graphics_pipelines(
+            vk::PipelineCache::null(),
+            &graphics_pipeline_create_info,
+            None,
+        )}
+        .map_err(|e| e.1)?;
+        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
+
+        unsafe {device.destroy_shader_module(vs_module, None)};
+        unsafe {device.destroy_shader_module(fs_module, None)};
+
+        // frames
+        let frame_count = swapchain.entries.len();
+        let mut frames = Vec::with_capacity(frame_count);
+        for descriptor_set in descriptor_sets {
+            let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+            let descriptor_buffer = Buffer::alloc(
+                device,
+                buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?;
+
+            let descriptor_mapped = unsafe {
+                device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
+
+            let frame = TerrainFrame {
+                framebuffer: None,
+                descriptor_buffer,
+                descriptor_mapped,
+                descriptor_set,
+            };
+            frames.push(frame);
+        }
+
+        Ok(Self {
+            descriptor_set_layout,
+            descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            frames,
+        })
     }
 
     pub fn draw(
         &mut self,
     ) -> RisResult<()> {
-        ris_log::info!("render terrain");
         Ok(())
     }
 }

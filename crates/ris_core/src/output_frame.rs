@@ -32,6 +32,20 @@ pub struct Renderer {
     pub imgui: ImguiRenderer,
 }
 
+impl Renderer {
+    /// # Safety
+    ///
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        self.scene.free(device);
+        self.terrain.free(device);
+        self.gizmo_segment.free(device);
+        self.gizmo_text.free(device);
+        #[cfg(feature = "ui_helper_enabled")]
+        self.imgui.free(device);
+    }
+}
+
 pub struct OutputFrame {
     pub current_frame: usize,
     pub renderer: Renderer,
@@ -57,14 +71,7 @@ impl Drop for OutputFrame {
                 return;
             }
 
-            let device = &self.core.device;
-
-            self.renderer.scene.free(device);
-            self.renderer.gizmo_segment.free(device);
-            self.renderer.gizmo_text.free(device);
-            #[cfg(feature = "ui_helper_enabled")]
-            self.renderer.imgui.free(device);
-
+            self.renderer.free(&self.core.device);
             self.core.free();
         }
     }
