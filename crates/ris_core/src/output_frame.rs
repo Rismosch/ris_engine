@@ -262,13 +262,11 @@ impl OutputFrame {
         )?;
 
         // gizmos
-        ris_debug::add_record!(r, "gizmos get segment vertices")?;
+        ris_debug::add_record!(r, "gizmos")?;
         let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(&camera)?;
 
-        ris_debug::add_record!(r, "gizmos get text vertices")?;
         let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
 
-        ris_debug::add_record!(r, "gizmos draw text")?;
         self.renderer.gizmo_text.draw(
             &self.core,
             swapchain_entry,
@@ -278,7 +276,6 @@ impl OutputFrame {
             &camera,
         )?;
 
-        ris_debug::add_record!(r, "gizmos draw segments")?;
         self.renderer.gizmo_segment.draw(
             &self.core,
             swapchain_entry,
@@ -287,7 +284,6 @@ impl OutputFrame {
             &camera,
         )?;
 
-        ris_debug::add_record!(r, "gizmo new frame")?;
         ris_debug::gizmo::new_frame()?;
 
         // imgui

@@ -1,3 +1,5 @@
+use std::io::SeekFrom;
+
 use ash::vk;
 
 use ris_asset::RisGodAsset;
@@ -81,6 +83,8 @@ impl TerrainRenderer {
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
+            self.mesh.buffer.free(device);
+
             for frame in self.frames.iter_mut() {
                 frame.free(device);
             }
@@ -144,12 +148,11 @@ impl TerrainRenderer {
             },
         ];
 
-        let total_descriptor_set_count = swapchain.entries.len();
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: total_descriptor_set_count as u32,
+            max_sets: swapchain.entries.len() as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
@@ -158,17 +161,17 @@ impl TerrainRenderer {
             device.create_descriptor_pool(&descriptor_pool_create_info, None)
         }?;
 
-        let mut descriptor_set_layouts = Vec::with_capacity(total_descriptor_set_count);
-        for _ in 0..total_descriptor_set_count {
-            descriptor_set_layouts.push(descriptor_set_layout);
+        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
+        for _ in 0..swapchain.entries.len() {
+            descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
             p_next: std::ptr::null(),
             descriptor_pool,
-            descriptor_set_count: descriptor_set_layouts.len() as u32,
-            p_set_layouts: descriptor_set_layouts.as_ptr(),
+            descriptor_set_count: descriptor_set_layout_vec.len() as u32,
+            p_set_layouts: descriptor_set_layout_vec.as_ptr(),
         };
 
         let descriptor_sets = unsafe {
@@ -264,7 +267,7 @@ impl TerrainRenderer {
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             sample_shading_enable: vk::FALSE,
-            min_sample_shading: 0.0,
+            min_sample_shading: 1.0,
             p_sample_mask: std::ptr::null(),
             alpha_to_coverage_enable: vk::FALSE,
             alpha_to_one_enable: vk::FALSE,
@@ -286,7 +289,7 @@ impl TerrainRenderer {
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::TRUE,
-            depth_compare_op: vk::CompareOp::GREATER,
+            depth_compare_op: vk::CompareOp::ALWAYS,
             depth_bounds_test_enable: vk::FALSE,
             stencil_test_enable: vk::FALSE,
             front: stencil_op_state,
@@ -297,7 +300,13 @@ impl TerrainRenderer {
 
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState{
             blend_enable: vk::FALSE,
-            ..Default::default()
+            src_color_blend_factor: vk::BlendFactor::ONE,
+            dst_color_blend_factor: vk::BlendFactor::ZERO,
+            color_blend_op: vk::BlendOp::ADD,
+            src_alpha_blend_factor: vk::BlendFactor::ONE,
+            dst_alpha_blend_factor: vk::BlendFactor::ZERO,
+            alpha_blend_op: vk::BlendOp::ADD,
+            color_write_mask: vk::ColorComponentFlags::RGBA,
         }];
 
         let color_blend_state = vk::PipelineColorBlendStateCreateInfo{
@@ -483,6 +492,56 @@ impl TerrainRenderer {
             frames.push(frame);
         }
 
+        // mesh
+        let vertices = vec![
+            Vec2(0.0, -0.5),
+            Vec2(-0.5, 0.5),
+            Vec2(0.5, 0.5),
+        ];
+
+        let indices = vec![
+            0u32,
+            1u32,
+            2u32,
+        ];
+
+        let mut stream = std::io::Cursor::new(Vec::new());
+        let s = &mut stream;
+
+        let p_vertices = ris_io::seek(s, SeekFrom::Current(0))? as vk::DeviceSize;
+
+        for vertex in vertices {
+            ris_io::write_vec2(s, vertex)?;
+        }
+
+        let p_indices = ris_io::seek(s, SeekFrom::Current(0))? as vk::DeviceSize;
+        for &index in indices.iter() {
+            ris_io::write_u32(s, index)?;
+        }
+
+        let bytes = stream.into_inner();
+
+        let buffer = Buffer::alloc(
+            device,
+            bytes.len() as vk::DeviceSize, 
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL, 
+            physical_device_memory_properties,
+        )?;
+        unsafe {buffer.write(device, &bytes)}?;
+
+        ris_log::debug!("bytes: {:?}", bytes);
+
+        let mesh = TerrainMesh {
+            p_vertices, 
+            p_indices, 
+            index_count: indices.len() as u32,
+            index_type: vk::IndexType::UINT32, 
+            buffer,
+        };
+
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -490,6 +549,7 @@ impl TerrainRenderer {
             pipeline,
             pipeline_layout,
             frames,
+            mesh,
         })
     }
 
@@ -507,10 +567,6 @@ impl TerrainRenderer {
             swapchain,
             ..
         } = core;
-
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
 
         let SwapchainEntry {
             index,
@@ -648,9 +704,34 @@ impl TerrainRenderer {
                 &[],
             );
 
-            // bind vertex buffer
-            // bind index buffer
-            // draw
+            device.cmd_bind_vertex_buffers(
+                *command_buffer,
+                0,
+                &[self.mesh.buffer.buffer],
+                &[0],
+            );
+
+            device.cmd_bind_index_buffer(
+                *command_buffer,
+                self.mesh.buffer.buffer, 
+                0,
+                self.mesh.index_type,
+            );
+
+            device.cmd_draw_indexed(
+                *command_buffer, 
+                self.mesh.index_count, 
+                1,
+                0,
+                0,
+                0,
+            );
+
+            //ris_log::debug!(
+            //    "drawed terrain {} {}",
+            //    self.mesh.p_vertices,
+            //    self.mesh.p_indices,
+            //);
 
             device.cmd_end_render_pass(*command_buffer);
         }

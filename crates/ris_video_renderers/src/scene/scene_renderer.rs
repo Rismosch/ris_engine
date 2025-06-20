@@ -442,7 +442,7 @@ impl SceneRenderer {
             p_preserve_attachments: ptr::null(),
         }];
 
-        let supbass_dependencies = [vk::SubpassDependency {
+        let subpass_dependencies = [vk::SubpassDependency {
             src_subpass: vk::SUBPASS_EXTERNAL,
             dst_subpass: 0,
             src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
@@ -465,8 +465,8 @@ impl SceneRenderer {
             p_attachments: attachments.as_ptr(),
             subpass_count: subpass_descriptions.len() as u32,
             p_subpasses: subpass_descriptions.as_ptr(),
-            dependency_count: supbass_dependencies.len() as u32,
-            p_dependencies: supbass_dependencies.as_ptr(),
+            dependency_count: subpass_dependencies.len() as u32,
+            p_dependencies: subpass_dependencies.as_ptr(),
         };
 
         let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;

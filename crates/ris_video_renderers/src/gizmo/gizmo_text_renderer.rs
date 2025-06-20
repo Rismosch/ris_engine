@@ -709,8 +709,6 @@ impl GizmoTextRenderer {
             device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
 
-            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
-
             let ubo = [UniformBufferObject {
                 view: camera.view_matrix(),
                 proj: camera.projection_matrix(),
@@ -786,6 +784,8 @@ impl GizmoTextRenderer {
                 &[*descriptor_set],
                 &[],
             );
+
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0);
 
