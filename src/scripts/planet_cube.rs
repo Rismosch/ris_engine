@@ -165,7 +165,7 @@ impl Script for PlanetScript {
                 (actual_count as f32).sqrt(),
                 diff,
             );
-        }
+        } // benchmark
 
         let v0 = Vec3(1.0, 1.0, 1.0);
         let v1 = Vec3(-1.0, 1.0, 1.0);
@@ -346,6 +346,34 @@ impl Script for PlanetScript {
             let milliseconds = total_duration.as_secs_f32() * 1000.0;
             ris_log::trace!("done! duration: {}ms", milliseconds);
         } // generate mesh
+        
+        if ui.button("generate mesh for terrain renderer") {
+
+            // vertices
+            let mut vertices = Vec::new();
+            let tiles = 4;
+            for i in 0..tiles {
+                for j in 0..tiles {
+                    let offset = tiles as f32 / 2.0;
+                    let x = j as f32 - offset;
+                    let y = i as f32 - offset;
+
+                    let v0 = Vec3(x, y, 0.0);
+                    let v1 = Vec3(x + 1.0, y, 0.0);
+                    let v2 = Vec3(x, y + 1.0, 0.0);
+                    let v3 = Vec3(x + 1.0, y + 1.0, 0.0);
+
+                    vertices.push(v0);
+                    vertices.push(v1);
+                    vertices.push(v2);
+                    vertices.push(v3);
+                    vertices.push(v2);
+                    vertices.push(v1);
+                }
+            }
+
+            // indices
+        }
 
         let p = state.camera.borrow().position;
         let abs = p.abs();

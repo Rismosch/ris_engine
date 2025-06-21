@@ -532,8 +532,6 @@ impl TerrainRenderer {
         )?;
         unsafe {buffer.write(device, &bytes)}?;
 
-        ris_log::debug!("bytes: {:?}", bytes);
-
         let mesh = TerrainMesh {
             p_vertices, 
             p_indices, 

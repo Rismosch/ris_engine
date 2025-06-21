@@ -239,7 +239,7 @@ impl TryFrom<MeshPrototype> for CpuMesh {
             },
             Indices::U8(indices) => {
                 for &index in indices.iter() {
-                    let index = usize::try_from(index)?;
+                    let index = usize::from(index);
                     ris_error::assert!(index < len)?;
                 }
             },
@@ -371,10 +371,7 @@ impl GpuMesh {
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(vec![
             inner.buffer.buffer,
             inner.buffer.buffer,
@@ -383,42 +380,34 @@ impl GpuMesh {
     }
 
     pub fn vertex_offsets(&self) -> RisResult<Vec<vk::DeviceSize>> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(vec![inner.p_vertices, inner.p_normals, inner.p_uvs])
     }
 
     pub fn index_buffer(&self) -> RisResult<vk::Buffer> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(inner.buffer.buffer)
     }
 
     pub fn index_offset(&self) -> RisResult<vk::DeviceSize> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(inner.p_indices)
     }
 
     pub fn index_count(&self) -> RisResult<u32> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(inner.index_count)
     }
 
     pub fn index_type(&self) -> RisResult<vk::IndexType> {
-        let Some(inner) = self.inner.as_ref() else {
-            return ris_error::new_result!("gpu mesh was freed");
-        };
-
+        let inner = self.get_inner()?;
         Ok(inner.index_type)
+    }
+
+    fn get_inner(&self) -> RisResult<&GpuMeshInner> {
+        match self.inner.as_ref() {
+            Some(inner) => Ok(inner),
+            None => ris_error::new_result!("gpu mesh was freed"),
+        }
     }
 }
