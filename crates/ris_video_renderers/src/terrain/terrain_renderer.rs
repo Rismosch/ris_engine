@@ -708,13 +708,13 @@ impl TerrainRenderer {
                 *command_buffer,
                 0,
                 &[self.mesh.buffer.buffer],
-                &[0],
+                &[self.mesh.p_vertices],
             );
 
             device.cmd_bind_index_buffer(
                 *command_buffer,
                 self.mesh.buffer.buffer, 
-                0,
+                self.mesh.p_indices,
                 self.mesh.index_type,
             );
 
@@ -726,12 +726,6 @@ impl TerrainRenderer {
                 0,
                 0,
             );
-
-            //ris_log::debug!(
-            //    "drawed terrain {} {}",
-            //    self.mesh.p_vertices,
-            //    self.mesh.p_indices,
-            //);
 
             device.cmd_end_render_pass(*command_buffer);
         }

@@ -21,8 +21,8 @@ layout(location = 0) out vec4 out_color;
 
 #vertex
 void main() {
-    //out_vertex = ubo.proj * ubo.view * ubo.model * vec4(in_vertex, 0.0, 1.0);
-    out_vertex = vec4(in_vertex, 0.1, 1.0);
+    out_vertex = ubo.proj * ubo.view * ubo.model * vec4(in_vertex, 0.0, 1.0);
+    //out_vertex = vec4(in_vertex, 0.1, 1.0);
 
     gl_Position = out_vertex;
 }
