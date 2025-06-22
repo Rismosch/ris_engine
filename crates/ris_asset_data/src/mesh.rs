@@ -85,6 +85,35 @@ pub enum Indices {
     None,
 }
 
+impl Indices {
+    pub fn index_type(&self) -> vk::IndexType {
+        match *self {
+            Self::U16(_) => vk::IndexType::UINT16,
+            Self::U32(_) => vk::IndexType::UINT32,
+            Self::U8(_) => vk::IndexType::UINT8_EXT,
+            Self::None => vk::IndexType::NONE_KHR,
+        }
+    }
+
+    pub fn stride(&self) -> usize {
+        let index_type = self.index_type();
+        Self::stride_of(index_type)
+    }
+
+    pub fn stride_of(index_type: vk::IndexType) -> usize {
+        match index_type {
+            vk::IndexType::UINT16 => std::mem::size_of::<u16>(),
+            vk::IndexType::UINT32 => std::mem::size_of::<u32>(),
+            vk::IndexType::UINT8_EXT => std::mem::size_of::<u8>(),
+            vk::IndexType::NONE_KHR => 0,
+            index_type => {
+                ris_log::error!("unkown index type: {:?}", index_type);
+                0
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct MeshPrototype {
     pub vertices: Vec<Vec3>,
@@ -142,7 +171,7 @@ impl TryFrom<CpuMesh> for MeshPrototype {
         let uv_count = uv_bytes.len() / uv_stride;
 
         let index_bytes = ris_io::read_at(s, value.p_indices)?;
-        let index_stride = std::mem::size_of::<u16>();
+        let index_stride = Indices::stride_of(value.index_type);
         ris_error::assert!(index_bytes.len() % index_stride == 0)?;
         let index_count = index_bytes.len() / index_stride;
 
@@ -205,7 +234,6 @@ impl TryFrom<CpuMesh> for MeshPrototype {
             vk::IndexType::NONE_KHR => Indices::None,
             index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
         };
-        let indices = indices;
 
         Ok(Self {
             vertices,

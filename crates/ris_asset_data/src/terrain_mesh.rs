@@ -39,11 +39,71 @@ struct TerrainGpuMeshInner {
     buffer: Buffer,
 }
 
-impl TryFrom<TerrainGpuMesh> for TerrainMeshPrototype {
+impl TryFrom<TerrainCpuMesh> for TerrainMeshPrototype {
     type Error = RisError;
 
-    fn try_from(value: TerrainGpuMesh) -> Result<Self, Self::Error> {
-        todo;
+    fn try_from(value: TerrainCpuMesh) -> Result<Self, Self::Error> {
+        let mut stream = std::io::Cursor::new(value.data);
+        let s = &mut stream;
+
+        let vertex_bytes = ris_io::read_at(s, value.p_vertices)?;
+        let vertex_stride = 8; // 2 ints; sizeof u32: 4; 2 * 4 = 8
+        ris_error::assert!(vertex_bytes.len() % vertex_stride == 0)?;
+        let vertex_count = vertex_bytes.len() / vertex_stride;
+
+        let index_bytes = ris_io::read_at(s, value.p_indices)?;
+        let index_stride = Indices::stride_of(value.index_type);
+        ris_error::assert!(index_bytes.len() % index_stride == 0)?;
+        let index_count = index_bytes.len() / index_stride;
+
+        let mut stream = std::io::Cursor::new(vertex_bytes);
+        let s = &mut stream;
+        let mut vertices = Vec::with_capacity(vertex_count);
+        for _ in 0..vertex_count {
+            let x = ris_io::read_i32(s)?;
+            let y = ris_io::read_i32(s)?;
+            let vertex = TerrainVertex(x, y);
+            vertices.push(vertex);
+        }
+
+        let mut stream = std::io::Cursor::new(index_bytes);
+        let s = &mut stream;
+        let indices = match value.index_type {
+            vk::IndexType::UINT16 => {
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u16(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U16(indices)
+            },
+            vk::IndexType::UINT32 => {
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u32(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U32(indices)
+            },
+            vk::IndexType::UINT8_EXT => {
+                let mut indices = Vec::with_capacity(index_count);
+                for _ in 0..index_count {
+                    let index = ris_io::read_u8(s)?;
+                    indices.push(index);
+                }
+
+                Indices::U8(indices)
+            },
+            vk::IndexType::NONE_KHR => Indices::None,
+            index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
+        };
+
+        Ok(Self{
+            vertices,
+            indices,
+        })
     }
 }
 
@@ -150,7 +210,33 @@ impl TerrainGpuMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: TerrainCpuMesh,
     ) -> RisResult<Self> {
-        todo;
+        let p_vertices = value.p_vertices.addr;
+        let p_indices = value.p_indices.addr;
+        let index_size = Indices::stride_of(value.index_type);
+        ris_error::assert!(index_size > 0)?;
+        let index_count = value.p_indices.len as u32 / index_size as u32;
+        let index_type = value.index_type;
+
+        let buffer = Buffer::alloc(
+            device,
+            value.data.len() as vk::DeviceSize,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+        buffer.write(device, &value.data)?;
+        
+        Ok(Self{
+            inner: Some(TerrainGpuMeshInner {
+                p_vertices,
+                p_indices,
+                index_count,
+                index_type,
+                buffer,
+            })
+        })
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {
@@ -187,6 +273,6 @@ impl TerrainGpuMesh {
         match self.inner.as_ref() {
             Some(inner) => Ok(inner),
             None => ris_error::new_result!("gpu mesh was freed"),
-        }
+}
     }
 }
