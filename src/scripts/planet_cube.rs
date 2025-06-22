@@ -7,6 +7,10 @@ use ris_asset::assets::ris_mesh;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::Indices;
+use ris_asset_data::terrain_mesh::TerrainVertex;
+use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
+use ris_asset_data::terrain_mesh::TerrainCpuMesh;
+use ris_asset_data::terrain_mesh::TerrainGpuMesh;
 use ris_data::ecs::script_prelude::*;
 use ris_data::ecs::components::mesh_component::MeshComponent;
 use ris_error::prelude::*;
@@ -350,18 +354,19 @@ impl Script for PlanetScript {
         if ui.button("generate mesh for terrain renderer") {
 
             // vertices
+            ris_log::trace!("vertices...");
             let mut vertices = Vec::new();
             let tiles = 4;
             for i in 0..tiles {
                 for j in 0..tiles {
-                    let offset = tiles as f32 / 2.0;
-                    let x = j as f32 - offset;
-                    let y = i as f32 - offset;
+                    let offset = tiles / 2;
+                    let x = j - offset;
+                    let y = i - offset;
 
-                    let v0 = Vec3(x, y, 0.0);
-                    let v1 = Vec3(x + 1.0, y, 0.0);
-                    let v2 = Vec3(x, y + 1.0, 0.0);
-                    let v3 = Vec3(x + 1.0, y + 1.0, 0.0);
+                    let v0 = TerrainVertex(x, y);
+                    let v1 = TerrainVertex(x + 1, y);
+                    let v2 = TerrainVertex(x, y + 1);
+                    let v3 = TerrainVertex(x + 1, y + 1);
 
                     vertices.push(v0);
                     vertices.push(v1);
@@ -373,6 +378,42 @@ impl Script for PlanetScript {
             }
 
             // indices
+            ris_log::trace!("indices...");
+            let mut indices = Vec::with_capacity(vertices.len());
+            let mut unique_vertices = Vec::new();
+            let mut lookup = std::collections::HashMap::<TerrainVertex, u32>::default();
+
+            for vertex in vertices.iter() {
+                match lookup.get(vertex) {
+                    Some(index) => {
+                        indices.push(*index);
+                    },
+                    None => {
+                        let index = unique_vertices.len() as u32;
+                        unique_vertices.push(*vertex);
+                        indices.push(index);
+                        lookup.insert(*vertex, index);
+                    },
+                }
+            }
+
+            ris_log::trace!(
+                "vertices: {}, unique: {}",
+                vertices.len(),
+                unique_vertices.len(),
+            );
+            let vertices = unique_vertices;
+
+            // generate mesh
+            ris_log::trace!("generate mesh...");
+            let prototype = TerrainMeshPrototype {
+                vertices,
+                indices: Indices::U32(indices),
+            };
+
+            ris_log::debug!("mesh: {:#?}", prototype);
+
+
         }
 
         let p = state.camera.borrow().position;

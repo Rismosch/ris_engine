@@ -8,7 +8,7 @@ use ris_video_data::buffer::Buffer;
 
 use crate::mesh::Indices;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TerrainVertex(pub i32, pub i32);
 
 #[derive(Debug)]
