@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::usize;
 
 use ris_asset::assets::ris_mesh;
+use ris_asset::assets::ris_terrain;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::Indices;
@@ -352,11 +353,13 @@ impl Script for PlanetScript {
         } // generate mesh
         
         if ui.button("generate mesh for terrain renderer") {
+            let start = std::time::Instant::now();
+            ris_log::trace!("generate prototype...");
 
             // vertices
             ris_log::trace!("vertices...");
             let mut vertices = Vec::new();
-            let tiles = 4;
+            let tiles = 1<<8;
             for i in 0..tiles {
                 for j in 0..tiles {
                     let offset = tiles / 2;
@@ -410,11 +413,27 @@ impl Script for PlanetScript {
                 vertices,
                 indices: Indices::U32(indices),
             };
+            let cpu_mesh = TerrainCpuMesh::try_from(prototype)?;
 
-            ris_log::debug!("mesh: {:#?}", prototype);
+            ris_log::trace!("serialize...");
+            let bytes = ris_terrain::serialize(&cpu_mesh)?;
+            ris_log::trace!("bytes: {}", bytes.len());
 
+            ris_log::trace!("write file...");
+            let filepath = PathBuf::from("assets/in_use/terrain/demo.ris_terrain");
 
-        }
+            if filepath.exists() {
+                std::fs::remove_file(&filepath)?;
+            }
+
+            let mut file = std::fs::File::create_new(filepath)?;
+            let f = &mut file;
+            ris_io::write(f, &bytes)?;
+
+            let total_duration = std::time::Instant::now() - start;
+            let milliseconds = total_duration.as_secs_f32() * 1000.0;
+            ris_log::trace!("done! duration: {}ms", milliseconds);
+        } // generate mesh for terrain renderer
 
         let p = state.camera.borrow().position;
         let abs = p.abs();
