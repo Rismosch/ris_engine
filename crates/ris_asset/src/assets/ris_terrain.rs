@@ -37,5 +37,24 @@ pub fn serialize(mesh: &TerrainCpuMesh) -> RisResult<Vec<u8>> {
 }
 
 pub fn deserialize(bytes: &[u8]) -> RisResult<TerrainCpuMesh> {
-    ris_error::new_result!("todo")
+    let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
+    header.assert_magic(MAGIC)?;
+
+    let decompressed = miniz_oxide::inflate::decompress_to_vec(&content)
+        .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
+
+    let mut stream = Cursor::new(decompressed);
+    let s = &mut stream;
+
+    let p_vertices = ris_io::read_fat_ptr(s)?;
+    let p_indices = ris_io::read_fat_ptr(s)?;
+    let index_type = vk::IndexType::from_raw(ris_io::read_i32(s)?);
+    let data = ris_io::read_to_end(s)?;
+
+    Ok(TerrainCpuMesh{
+        p_vertices,
+        p_indices,
+        index_type,
+        data,
+    })
 }

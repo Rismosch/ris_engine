@@ -26,6 +26,7 @@ pub struct RisGodAsset {
     pub gizmo_text_frag_spv: AssetId,
     pub debug_font_texture: AssetId,
     pub texture: AssetId,
+    pub terrain: AssetId,
 }
 
 impl RisGodAsset {
@@ -46,6 +47,7 @@ impl RisGodAsset {
                 self.gizmo_text_frag_spv.clone(),
                 self.debug_font_texture.clone(),
                 self.texture.clone(),
+                self.terrain.clone(),
             ],
         );
 
@@ -70,6 +72,7 @@ impl RisGodAsset {
         let gizmo_text_frag_spv = header.references[10].clone();
         let debug_font_texture = header.references[11].clone();
         let texture = header.references[12].clone();
+        let terrain = header.references[13].clone();
 
         let god_asset = Self {
             default_vert_spv,
@@ -85,6 +88,7 @@ impl RisGodAsset {
             gizmo_text_frag_spv,
             debug_font_texture,
             texture,
+            terrain,
         };
 
         Ok(god_asset)

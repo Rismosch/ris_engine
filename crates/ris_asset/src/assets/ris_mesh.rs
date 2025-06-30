@@ -45,10 +45,10 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
     let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
     header.assert_magic(MAGIC)?;
 
-    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
+    let decompressed = miniz_oxide::inflate::decompress_to_vec(content)
         .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
 
-    let mut stream = Cursor::new(uncompressed);
+    let mut stream = Cursor::new(decompressed);
     let s = &mut stream;
 
     let p_vertices = ris_io::read_fat_ptr(s)?;

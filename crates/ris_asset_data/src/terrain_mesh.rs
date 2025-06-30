@@ -11,6 +11,23 @@ use crate::mesh::Indices;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TerrainVertex(pub i32, pub i32);
 
+pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 1] = [
+    vk::VertexInputBindingDescription {
+        binding: 0,
+        stride: std::mem::size_of::<TerrainVertex>() as u32,
+        input_rate: vk::VertexInputRate::VERTEX,
+    },
+];
+
+pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 1] = [
+    vk::VertexInputAttributeDescription {
+        location: 0,
+        binding: 0,
+        format: vk::Format::R32G32_SINT,
+        offset: 0,
+    },
+];
+
 #[derive(Debug)]
 pub struct TerrainMeshPrototype {
     pub vertices: Vec<TerrainVertex>,

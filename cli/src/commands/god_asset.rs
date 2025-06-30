@@ -98,26 +98,24 @@ impl ICommand for GodAsset {
 
                 let mut god_asset = read_god_asset(&god_asset_path)?;
 
-                match field.trim().to_lowercase().as_str() {
-                    "default_vert_spv" => god_asset.default_vert_spv = AssetId::Path(value),
-                    "default_frag_spv" => god_asset.default_frag_spv = AssetId::Path(value),
-                    "terrain_vert_spv" => god_asset.terrain_vert_spv = AssetId::Path(value),
-                    "terrain_frag_spv" => god_asset.terrain_frag_spv = AssetId::Path(value),
-                    "imgui_vert_spv" => god_asset.imgui_vert_spv = AssetId::Path(value),
-                    "imgui_frag_spv" => god_asset.imgui_frag_spv = AssetId::Path(value),
-                    "gizmo_segment_vert_spv" => {
-                        god_asset.gizmo_segment_vert_spv = AssetId::Path(value)
-                    }
-                    "gizmo_segment_frag_spv" => {
-                        god_asset.gizmo_segment_frag_spv = AssetId::Path(value)
-                    }
-                    "gizmo_text_vert_spv" => god_asset.gizmo_text_vert_spv = AssetId::Path(value),
-                    "gizmo_text_geom_spv" => god_asset.gizmo_text_geom_spv = AssetId::Path(value),
-                    "gizmo_text_frag_spv" => god_asset.gizmo_text_frag_spv = AssetId::Path(value),
-                    "debug_font_texture" => god_asset.debug_font_texture = AssetId::Path(value),
-                    "texture" => god_asset.texture = AssetId::Path(value),
+                let mut_ref = match field.trim().to_lowercase().as_str() {
+                    "default_vert_spv" => &mut god_asset.default_vert_spv,
+                    "default_frag_spv" => &mut god_asset.default_frag_spv,
+                    "terrain_vert_spv" => &mut god_asset.terrain_vert_spv,
+                    "terrain_frag_spv" => &mut god_asset.terrain_frag_spv,
+                    "imgui_vert_spv" => &mut god_asset.imgui_vert_spv,
+                    "imgui_frag_spv" => &mut god_asset.imgui_frag_spv,
+                    "gizmo_segment_vert_spv" => &mut god_asset.gizmo_segment_vert_spv,
+                    "gizmo_segment_frag_spv" => &mut god_asset.gizmo_segment_frag_spv,
+                    "gizmo_text_vert_spv" => &mut god_asset.gizmo_text_vert_spv,
+                    "gizmo_text_geom_spv" => &mut god_asset.gizmo_text_geom_spv,
+                    "gizmo_text_frag_spv" => &mut god_asset.gizmo_text_frag_spv,
+                    "debug_font_texture" => &mut god_asset.debug_font_texture,
+                    "texture" => &mut god_asset.texture,
+                    "terrain" => &mut god_asset.terrain,
                     _ => return ris_error::new_result!("unkown field \"{}\"", field),
-                }
+                };
+                *mut_ref = AssetId::Path(value);
 
                 write_god_asset(&god_asset, god_asset_path)?;
                 print_god_asset(&god_asset);
@@ -174,6 +172,7 @@ fn print_god_asset(god_asset: &RisGodAsset) {
         god_asset.debug_font_texture
     );
     println!("    texture: {:?},", god_asset.texture);
+    println!("    terrain: {:?},", god_asset.terrain);
     println!("}}");
     eprintln!();
 }

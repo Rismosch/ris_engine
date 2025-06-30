@@ -2,7 +2,11 @@ use std::io::SeekFrom;
 
 use ash::vk;
 
+use ris_asset::assets::ris_terrain;
 use ris_asset::RisGodAsset;
+use ris_asset_data::terrain_mesh;
+use ris_asset_data::terrain_mesh::TerrainCpuMesh;
+use ris_asset_data::terrain_mesh::TerrainGpuMesh;
 use ris_error::prelude::*;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
@@ -12,23 +16,6 @@ use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-
-pub const VERTEX_BINDING_DESCRIPTIONS: [vk::VertexInputBindingDescription; 1] = [
-    vk::VertexInputBindingDescription {
-        binding: 0,
-        stride: std::mem::size_of::<Vec2>() as u32,
-        input_rate: vk::VertexInputRate::VERTEX,
-    },
-];
-
-pub const VERTEX_ATTRIBUTE_DESCRIPTIONS: [vk::VertexInputAttributeDescription; 1] = [
-    vk::VertexInputAttributeDescription {
-        location: 0,
-        binding: 0,
-        format: vk::Format::R32G32_SFLOAT,
-        offset: 0,
-    },
-];
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -58,15 +45,6 @@ impl TerrainFrame {
     }
 }
 
-#[derive(Debug)]
-struct TerrainMesh {
-    p_vertices: vk::DeviceSize,
-    p_indices: vk::DeviceSize,
-    index_count: u32,
-    index_type: vk::IndexType,
-    buffer: Buffer,
-}
-
 pub struct TerrainRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
@@ -74,7 +52,7 @@ pub struct TerrainRenderer {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<TerrainFrame>,
-    mesh: TerrainMesh,
+    mesh: TerrainGpuMesh,
 }
 
 impl TerrainRenderer {
@@ -83,7 +61,7 @@ impl TerrainRenderer {
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
-            self.mesh.buffer.free(device);
+            self.mesh.free(device);
 
             for frame in self.frames.iter_mut() {
                 frame.free(device);
@@ -117,6 +95,21 @@ impl TerrainRenderer {
         };
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
+
+        // assets
+        let vs_asset_future = ris_asset::load_raw_async(god_asset.terrain_vert_spv.clone());
+        let fs_asset_future = ris_asset::load_raw_async(god_asset.terrain_frag_spv.clone());
+
+        let cloned_device = device.clone();
+        let terrain_asset_future = ris_asset::load_async(god_asset.terrain.clone(), move |bytes| {
+            let cpu_mesh = ris_terrain::deserialize(&bytes)?;
+
+            unsafe {TerrainGpuMesh::from_cpu_mesh(
+                &cloned_device,
+                physical_device_memory_properties,
+                cpu_mesh,
+            )}
+        });
 
         // descriptor sets
         let descriptor_set_layout_bindings = [
@@ -179,9 +172,6 @@ impl TerrainRenderer {
         }?;
 
         // shaders
-        let vs_asset_future = ris_asset::load_raw_async(god_asset.terrain_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_raw_async(god_asset.terrain_frag_spv.clone());
-
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;
 
@@ -211,8 +201,8 @@ impl TerrainRenderer {
         ];
 
         // pipeline
-        let vertex_binding_descriptions = VERTEX_BINDING_DESCRIPTIONS;
-        let vertex_attribute_descriptions = VERTEX_ATTRIBUTE_DESCRIPTIONS;
+        let vertex_binding_descriptions = terrain_mesh::VERTEX_BINDING_DESCRIPTIONS;
+        let vertex_attribute_descriptions = terrain_mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
 
         let vertex_input_state = vk::PipelineVertexInputStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -251,8 +241,8 @@ impl TerrainRenderer {
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
-            polygon_mode: vk::PolygonMode::FILL,
-            cull_mode: vk::CullModeFlags::NONE,
+            polygon_mode: vk::PolygonMode::LINE,
+            cull_mode: vk::CullModeFlags::BACK,
             front_face: vk::FrontFace::CLOCKWISE,
             depth_bias_enable: vk::FALSE,
             depth_bias_constant_factor: 0.0,
@@ -493,52 +483,7 @@ impl TerrainRenderer {
         }
 
         // mesh
-        let vertices = vec![
-            Vec2(0.0, -0.5),
-            Vec2(-0.5, 0.5),
-            Vec2(0.5, 0.5),
-        ];
-
-        let indices = vec![
-            0u32,
-            1u32,
-            2u32,
-        ];
-
-        let mut stream = std::io::Cursor::new(Vec::new());
-        let s = &mut stream;
-
-        let p_vertices = ris_io::seek(s, SeekFrom::Current(0))? as vk::DeviceSize;
-
-        for vertex in vertices {
-            ris_io::write_vec2(s, vertex)?;
-        }
-
-        let p_indices = ris_io::seek(s, SeekFrom::Current(0))? as vk::DeviceSize;
-        for &index in indices.iter() {
-            ris_io::write_u32(s, index)?;
-        }
-
-        let bytes = stream.into_inner();
-
-        let buffer = Buffer::alloc(
-            device,
-            bytes.len() as vk::DeviceSize, 
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL, 
-            physical_device_memory_properties,
-        )?;
-        unsafe {buffer.write(device, &bytes)}?;
-
-        let mesh = TerrainMesh {
-            p_vertices, 
-            p_indices, 
-            index_count: indices.len() as u32,
-            index_type: vk::IndexType::UINT32, 
-            buffer,
-        };
+        let mesh = terrain_asset_future.wait()?;
 
         Ok(Self {
             descriptor_set_layout,
@@ -705,20 +650,20 @@ impl TerrainRenderer {
             device.cmd_bind_vertex_buffers(
                 *command_buffer,
                 0,
-                &[self.mesh.buffer.buffer],
-                &[self.mesh.p_vertices],
+                &self.mesh.vertex_buffers()?,
+                &self.mesh.vertex_offsets()?,
             );
 
             device.cmd_bind_index_buffer(
                 *command_buffer,
-                self.mesh.buffer.buffer, 
-                self.mesh.p_indices,
-                self.mesh.index_type,
+                self.mesh.index_buffer()?,
+                self.mesh.index_offset()?,
+                self.mesh.index_type()?,
             );
 
             device.cmd_draw_indexed(
                 *command_buffer, 
-                self.mesh.index_count, 
+                self.mesh.index_count()?,
                 1,
                 0,
                 0,

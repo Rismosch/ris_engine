@@ -359,7 +359,7 @@ impl Script for PlanetScript {
             // vertices
             ris_log::trace!("vertices...");
             let mut vertices = Vec::new();
-            let tiles = 1<<8;
+            let tiles = 1<<3;
             for i in 0..tiles {
                 for j in 0..tiles {
                     let offset = tiles / 2;
@@ -367,8 +367,8 @@ impl Script for PlanetScript {
                     let y = i - offset;
 
                     let v0 = TerrainVertex(x, y);
-                    let v1 = TerrainVertex(x + 1, y);
-                    let v2 = TerrainVertex(x, y + 1);
+                    let v1 = TerrainVertex(x, y + 1);
+                    let v2 = TerrainVertex(x + 1, y);
                     let v3 = TerrainVertex(x + 1, y + 1);
 
                     vertices.push(v0);
@@ -415,6 +415,7 @@ impl Script for PlanetScript {
             };
             let cpu_mesh = TerrainCpuMesh::try_from(prototype)?;
 
+            // file
             ris_log::trace!("serialize...");
             let bytes = ris_terrain::serialize(&cpu_mesh)?;
             ris_log::trace!("bytes: {}", bytes.len());
