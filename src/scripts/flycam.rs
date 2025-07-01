@@ -19,7 +19,7 @@ impl Default for FlyCam {
         Self {
             yaw: 0.0,
             pitch: 0.0,
-            translation_speed_in_meters_per_second: 1.0,
+            translation_speed_in_meters_per_second: 10.0,
         }
     }
 }

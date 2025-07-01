@@ -2,6 +2,8 @@
 
 #include util/util.glsl
 
+#define PLANET_RADIUS 3.0
+
 #vertex
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
@@ -22,21 +24,27 @@ layout(location = 0) out vec4 out_color;
 
 #vertex
 void main() {
-    out_vertex = ubo.proj * ubo.view * ubo.model * vec4(in_vertex, 0.0, 1.0);
-    switch (gl_VertexIndex % 3) {
-        case 0:
-            out_color = vec3(1.0, 0.0, 0.0);
-            break;
-        case 1:
-            out_color = vec3(0.0, 1.0, 0.0);
-            break;
-        case 2:
-            out_color = vec3(0.0, 0.0, 1.0);
-            break;
-        default:
-            out_color = vec3(1.0, 1.0, 1.0);
-            break;
+    vec3 cube_vertex = vec3(in_vertex / PLANET_RADIUS, 1.0);
+    float x = cube_vertex.x;
+    float y = cube_vertex.y;
+    float z = cube_vertex.z;
+    float x2 = x * x;
+    float y2 = y * y;
+    float z2 = z * z;
+    float sx = x * sqrt(1.0 - y2 / 2.0 - z2 / 2.0 + y2 * z2 / 3.0);
+    float sy = y * sqrt(1.0 - x2 / 2.0 - z2 / 2.0 + x2 * z2 / 3.0);
+    float sz = z * sqrt(1.0 - x2 / 2.0 - y2 / 2.0 + x2 * y2 / 3.0);
+    vec3 sphere_vertex = vec3(sx, sy, sz);
+
+    bool is_on_another_side = any(greaterThan(abs(cube_vertex),vec3(1.0)));
+
+    if (is_on_another_side) {
+        out_color = vec3(1.0, 0.0, 0.0);
+    } else {
+        out_color = vec3(1.0, 1.0, 1.0);
     }
+
+    out_vertex = ubo.proj * ubo.view * ubo.model * vec4(sphere_vertex, 1.0);
 
     gl_Position = out_vertex;
 }

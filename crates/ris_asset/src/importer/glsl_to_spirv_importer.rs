@@ -31,6 +31,9 @@ const MACRO_IO: &str = "#io";
 const MACRO_DEFINE: &str = "#define";
 const MACRO_INCLUDE: &str = "#include";
 
+const MACRO_COMMENT_INCLUDE: &str = "////////";
+const MACRO_COMMENT_DEFINE: &str = "////";
+
 const VERT: &str = "vert";
 const GEOM: &str = "geom";
 const FRAG: &str = "frag";
@@ -262,7 +265,14 @@ pub fn import(
                 current_region = Region::IO(i, o);
             }
             MACRO_DEFINE => {
-                add_define(&mut define_map, &splits, file, line)?;
+                add_define(
+                    &current_region,
+                    &mut shader,
+                    &mut define_map,
+                    &splits,
+                    file,
+                    line,
+                )?;
             }
             MACRO_INCLUDE => {
                 let file_path = PathBuf::from(file);
@@ -272,6 +282,8 @@ pub fn import(
                 dependency_history.push(file_path.clone());
 
                 let include_content = resolve_include(
+                    &current_region,
+                    &mut shader,
                     &splits,
                     root_dir,
                     &mut already_included,
@@ -374,6 +386,8 @@ fn preproc_fail<T>(message: &str, file: &str, line: usize) -> RisResult<T> {
 }
 
 fn resolve_include(
+    current_region: &Region,
+    shader: &mut Shader,
     splits: &[&str],
     root_dir: &Path,
     already_included: &mut Vec<PathBuf>,
@@ -432,7 +446,11 @@ fn resolve_include(
 
     // parse content
     let include_path_comment = include_path.to_str().into_ris_error()?.replace('\\', "/");
-    let mut result = format!("//////// INCLUDE {}", include_path_comment);
+    let mut result = format!(
+        "{} INCLUDE {}",
+        MACRO_COMMENT_INCLUDE,
+        include_path_comment,
+    );
 
     let mut line = 0;
     for input_line in file_content.lines().skip(1) {
@@ -443,10 +461,19 @@ fn resolve_include(
 
         match first_split {
             MACRO_DEFINE => {
-                add_define(define_map, &splits, file, line)?;
+                add_define(
+                    current_region,
+                    shader,
+                    define_map,
+                    &splits,
+                    file,
+                    line,
+                )?;
             }
             MACRO_INCLUDE => {
                 let include_content = resolve_include(
+                    current_region,
+                    shader,
                     &splits,
                     root_dir,
                     already_included,
@@ -466,11 +493,17 @@ fn resolve_include(
         }
     }
 
-    result.push_str(&format!("\n//////// END {}", include_path_comment));
+    result.push_str(&format!(
+        "\n{} END {}",
+        MACRO_COMMENT_INCLUDE,
+        include_path_comment,
+    ));
     Ok(result)
 }
 
 fn add_define(
+    current_region: &Region,
+    shader: &mut Shader,
     define_map: &mut HashMap<String, String>,
     splits: &[&str],
     file: &str,
@@ -480,8 +513,20 @@ fn add_define(
 
     let key = splits[1].to_string();
     let value = splits.iter().skip(2).cloned().collect::<Vec<_>>().join(" ");
+    let to_insert = format!("/* #define {} */ {}", key, value);
 
-    let prev = define_map.insert(key.clone(), value);
+    let define_content = splits.join(" ");
+    let define_content = format!("{} {}", MACRO_COMMENT_DEFINE, define_content);
+    add_content(
+        &define_content,
+        current_region,
+        shader,
+        define_map,
+        file,
+        line,
+    )?;
+
+    let prev = define_map.insert(key.clone(), to_insert);
     preproc_assert(
         prev.is_none(),
         &format!("define key \"{}\" was already defined", key),
