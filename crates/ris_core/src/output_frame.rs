@@ -13,10 +13,12 @@ use ris_error::RisResult;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::frame_in_flight::FrameInFlight;
 use ris_video_data::swapchain::SwapchainEntry;
+use ris_video_renderers::framebuffer_allocator::FramebufferAllocator;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
 use ris_video_renderers::TerrainRenderer;
+use ris_video_renderers::TerrainRendererArgs;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_video_renderers::{ImguiBackend, ImguiRenderer};
 
@@ -30,6 +32,8 @@ pub struct Renderer {
     pub gizmo_text: GizmoTextRenderer,
     #[cfg(feature = "ui_helper_enabled")]
     pub imgui: ImguiRenderer,
+
+    pub framebuffer_allocator: FramebufferAllocator,
 }
 
 impl Renderer {
@@ -37,6 +41,8 @@ impl Renderer {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
+        self.framebuffer_allocator.free(device);
+
         self.scene.free(device);
         self.terrain.free(device);
         self.gizmo_segment.free(device);
@@ -254,12 +260,14 @@ impl OutputFrame {
 
         // terrain
         ris_debug::add_record!(r, "terrain")?;
-        self.renderer.terrain.draw(
-            &self.core,
+        let args = TerrainRendererArgs {
+            core: &self.core,
             swapchain_entry,
             window_drawable_size,
-            &camera,
-        )?;
+            camera: &camera,
+            framebuffer_allocator: &mut self.renderer.framebuffer_allocator,
+        };
+        self.renderer.terrain.draw(args)?;
 
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;

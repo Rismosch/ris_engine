@@ -17,6 +17,9 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
 
+use crate::framebuffer_allocator::FramebufferAllocator;
+use crate::RendererId;
+
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct UniformBufferObject {
@@ -26,7 +29,6 @@ pub struct UniformBufferObject {
 }
 
 pub struct TerrainFrame {
-    framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
@@ -37,10 +39,6 @@ impl TerrainFrame {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(framebuffer) = self.framebuffer.take() {
-            device.destroy_framebuffer(framebuffer, None);
-        }
-
         self.descriptor_buffer.free(device);
     }
 }
@@ -53,6 +51,14 @@ pub struct TerrainRenderer {
     pipeline_layout: vk::PipelineLayout,
     frames: Vec<TerrainFrame>,
     mesh: TerrainGpuMesh,
+}
+
+pub struct TerrainRendererArgs<'a> {
+    pub core: &'a VulkanCore,
+    pub swapchain_entry: &'a SwapchainEntry,
+    pub window_drawable_size: (u32, u32),
+    pub camera: &'a Camera,
+    pub framebuffer_allocator: &'a mut FramebufferAllocator,
 }
 
 impl TerrainRenderer {
@@ -474,7 +480,6 @@ impl TerrainRenderer {
             }? as *mut UniformBufferObject;
 
             let frame = TerrainFrame {
-                framebuffer: None,
                 descriptor_buffer,
                 descriptor_mapped,
                 descriptor_set,
@@ -498,11 +503,16 @@ impl TerrainRenderer {
 
     pub fn draw(
         &mut self,
-        core: &VulkanCore,
-        entry: &SwapchainEntry,
-        window_drawable_size: (u32, u32),
-        camera: &Camera,
+        args: TerrainRendererArgs,
     ) -> RisResult<()> {
+        let TerrainRendererArgs {
+            core,
+            swapchain_entry,
+            window_drawable_size,
+            camera,
+            framebuffer_allocator,
+        } = args;
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -517,23 +527,18 @@ impl TerrainRenderer {
             depth_image_view,
             command_buffer,
             ..
-        } = entry;
+        } = swapchain_entry;
 
         let TerrainFrame {
-            framebuffer,
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
         } = &mut self.frames[*index];
 
         // framebuffer
-        if let Some(framebuffer) = framebuffer.take() {
-            unsafe {device.destroy_framebuffer(framebuffer, None)};
-        }
-
         let attachments = [*viewport_image_view, *depth_image_view];
 
-        let frame_buffer_create_info = vk::FramebufferCreateInfo {
+        let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
@@ -545,14 +550,14 @@ impl TerrainRenderer {
             layers: 1,
         };
 
-        let new_framebuffer = unsafe {
-            device.create_framebuffer(&frame_buffer_create_info, None)
-        }?;
-        *framebuffer = Some(new_framebuffer);
-        let framebuffer = new_framebuffer;
-
         // render pass
         unsafe {
+            let framebuffer = framebuffer_allocator.get(
+                RendererId::Terrain,
+                device, 
+                framebuffer_create_info,
+            )?;
+
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {
