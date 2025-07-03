@@ -34,8 +34,6 @@ struct GizmoTextFrame {
     descriptor_set: vk::DescriptorSet,
 }
 
-reuse frame buffer in text and segment!
-
 impl GizmoTextFrame {
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {

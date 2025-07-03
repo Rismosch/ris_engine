@@ -4,7 +4,8 @@ use ash::extensions::khr::Surface as SurfaceLoader;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use ash::vk;
 
-use ris_error::RisResult;
+use ris_error::prelude::*;
+use ris_ptr::ArefCell;
 
 use super::frame_in_flight::FrameInFlight;
 use super::image::Image;
@@ -13,6 +14,11 @@ use super::image::TransitionLayoutInfo;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::transient_command::TransientCommandSync;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FramebufferID(usize);
+
+pub struct FramebufferAllocator(Vec<Option<vk::Framebuffer>>);
 
 pub struct Swapchain {
     pub format: vk::SurfaceFormatKHR,
@@ -32,6 +38,7 @@ pub struct SwapchainEntry {
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
     pub command_buffer: vk::CommandBuffer,
+    pub framebuffer_allocator: ArefCell<FramebufferAllocator>,
 }
 
 pub struct SwapchainCreateInfo<'a> {
@@ -45,6 +52,35 @@ pub struct SwapchainCreateInfo<'a> {
     pub surface: &'a vk::SurfaceKHR,
     pub window_drawable_size: (u32, u32),
     pub frames_in_flight: Option<Vec<FrameInFlight>>,
+    pub framebuffer_count: usize,
+}
+
+impl FramebufferAllocator {
+    pub fn count(&self) -> usize {
+        self.0.len()
+    }
+
+    /// # Safety
+    ///
+    /// Caller must guarantee that the vk::FramebufferCreateInfo is properly constructed. Otherwise
+    /// usual care when dealing with Vulkan objects.
+    pub unsafe fn get(
+        &mut self,
+        id: FramebufferID,
+        device: &ash::Device,
+        framebuffer_create_info: vk::FramebufferCreateInfo,
+    ) -> RisResult<vk::Framebuffer> {
+        let framebuffer = self.0.get_mut(id.0).into_ris_error()?;
+
+        match framebuffer {
+            Some(framebuffer) => Ok(*framebuffer),
+            None => {
+                let new_framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
+                *framebuffer = Some(new_framebuffer);
+                Ok(new_framebuffer)
+            },
+        }
+    }
 }
 
 impl Swapchain {
@@ -62,6 +98,13 @@ impl Swapchain {
             }
 
             for entry in self.entries.iter_mut() {
+                let framebuffers = &mut entry.framebuffer_allocator.borrow_mut().0;
+                for framebuffer in framebuffers.iter_mut() {
+                    if let Some(framebuffer) = framebuffer.take() {
+                        device.destroy_framebuffer(framebuffer, None);
+                    }
+                }
+
                 device.destroy_image_view(entry.viewport_image_view, None);
                 entry.depth_image.free(device);
                 device.destroy_image_view(entry.depth_image_view, None);
@@ -83,6 +126,7 @@ impl Swapchain {
             surface,
             window_drawable_size,
             frames_in_flight,
+            framebuffer_count,
         } = info;
 
         let SurfaceDetails {
@@ -235,6 +279,13 @@ impl Swapchain {
             // command buffer
             let command_buffer = command_buffers[i];
 
+            // framebuffers
+            let mut framebuffers = Vec::new();
+            for _ in 0..framebuffer_count {
+                framebuffers.push(None);
+            }
+            let framebuffer_allocator = ArefCell::new(FramebufferAllocator(framebuffers));
+
             // entry
             let swapchain_entry = SwapchainEntry {
                 index: i,
@@ -244,6 +295,7 @@ impl Swapchain {
                 depth_image,
                 depth_image_view,
                 command_buffer,
+                framebuffer_allocator,
             };
 
             entries.push(swapchain_entry);
@@ -273,5 +325,20 @@ impl Swapchain {
             frames_in_flight,
             command_buffers,
         })
+    }
+
+    pub fn register_framebuffer(&self) -> FramebufferID {
+        let first_entry = ris_error::unwrap!(
+            self.entries.get(0).into_ris_error(),
+            "",
+        );
+        let id = FramebufferID(first_entry.framebuffer_allocator.borrow().0.len());
+
+        for entry in self.entries.iter() {
+
+            entry.framebuffer_allocator.borrow_mut().0.push(None);
+        }
+
+        id
     }
 }

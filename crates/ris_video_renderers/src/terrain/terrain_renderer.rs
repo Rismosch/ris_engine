@@ -14,11 +14,9 @@ use ris_math::vector::Vec2;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
+use ris_video_data::swapchain::FramebufferID;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-
-use crate::framebuffer_allocator::FramebufferAllocator;
-use crate::RendererId;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -49,6 +47,7 @@ pub struct TerrainRenderer {
     render_pass: vk::RenderPass,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
+    framebuffer_id: FramebufferID,
     frames: Vec<TerrainFrame>,
     mesh: TerrainGpuMesh,
 }
@@ -58,7 +57,6 @@ pub struct TerrainRendererArgs<'a> {
     pub swapchain_entry: &'a SwapchainEntry,
     pub window_drawable_size: (u32, u32),
     pub camera: &'a Camera,
-    pub framebuffer_allocator: &'a mut FramebufferAllocator,
 }
 
 impl TerrainRenderer {
@@ -457,6 +455,9 @@ impl TerrainRenderer {
         unsafe {device.destroy_shader_module(vs_module, None)};
         unsafe {device.destroy_shader_module(fs_module, None)};
 
+        // framebuffer
+        let framebuffer_id = swapchain.register_framebuffer();
+
         // frames
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
@@ -496,6 +497,7 @@ impl TerrainRenderer {
             render_pass,
             pipeline,
             pipeline_layout,
+            framebuffer_id,
             frames,
             mesh,
         })
@@ -510,7 +512,6 @@ impl TerrainRenderer {
             swapchain_entry,
             window_drawable_size,
             camera,
-            framebuffer_allocator,
         } = args;
 
         let VulkanCore {
@@ -526,6 +527,7 @@ impl TerrainRenderer {
             viewport_image_view,
             depth_image_view,
             command_buffer,
+            framebuffer_allocator,
             ..
         } = swapchain_entry;
 
@@ -552,11 +554,10 @@ impl TerrainRenderer {
 
         // render pass
         unsafe {
-            let framebuffer = framebuffer_allocator.get(
-                RendererId::Terrain,
-                device, 
+            let framebuffer = framebuffer_allocator.borrow_mut().get(
+                self.framebuffer_id,
+                device,
                 framebuffer_create_info,
-                *index,
             )?;
 
             let clear_values = [

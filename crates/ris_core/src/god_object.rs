@@ -151,14 +151,14 @@ impl GodObject {
             .vulkan()
             .build()?;
 
-        let vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
+        let mut vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
 
         // scene renderer
         let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
 
         // terrain renderer
-        let terrain_renderer = TerrainRenderer::alloc(&vulkan_core, &god_asset)?;
+        let terrain_renderer = TerrainRenderer::alloc(&mut vulkan_core, &god_asset)?;
 
         // gizmo renderer
         let gizmo_guard = ris_debug::gizmo::init()?;

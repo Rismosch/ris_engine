@@ -269,7 +269,6 @@ impl OutputFrame {
             swapchain_entry,
             window_drawable_size,
             camera: &camera,
-            framebuffer_allocator: &mut self.renderer.framebuffer_allocator,
         };
         self.renderer.terrain.draw(args)?;
 
