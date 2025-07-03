@@ -70,19 +70,19 @@ impl FramebufferAllocator {
             framebuffer_create_info.attachment_count as usize,
         );
 
-        //if let Some(entry) = entry.take() {
-        //    device.destroy_framebuffer(entry.framebuffer, None);
-        //}
+        if let Some(entry) = entry.take() {
+            device.destroy_framebuffer(entry.framebuffer, None);
+        }
 
-        //let attachments = new_attachments.to_vec();
-        //let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
+        let attachments = new_attachments.to_vec();
+        let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
 
-        //*entry = Some(FrameBufferAllocatorEntry{
-        //    attachments,
-        //    framebuffer,
-        //});
+        *entry = Some(FrameBufferAllocatorEntry{
+            attachments,
+            framebuffer,
+        });
 
-        //return Ok(framebuffer);
+        return Ok(framebuffer);
 
         if let Some(current_entry) = entry.as_mut() {
             let current_attachments = &current_entry.attachments;

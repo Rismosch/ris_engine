@@ -16,6 +16,9 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
 
+use crate::framebuffer_allocator::FramebufferAllocator;
+use crate::RendererId;
+
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct PushConstants {
@@ -37,7 +40,6 @@ pub struct UniformBufferObject {
 }
 
 pub struct SceneFrame {
-    framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
@@ -48,10 +50,6 @@ impl SceneFrame {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(framebuffer) = self.framebuffer.take() {
-            device.destroy_framebuffer(framebuffer, None);
-        }
-
         self.descriptor_buffer.free(device);
     }
 }
@@ -65,6 +63,15 @@ pub struct SceneRenderer {
     frames: Vec<SceneFrame>,
     texture: Texture,
     pub mesh_lookup: Option<MeshLookup>,
+}
+
+pub struct SceneRendererArgs<'a> {
+    pub core: &'a VulkanCore,
+    pub swapchain_entry: &'a SwapchainEntry,
+    pub window_drawable_size: (u32, u32),
+    pub camera: &'a Camera,
+    pub scene: &'a Scene,
+    pub framebuffer_allocator: &'a mut FramebufferAllocator,
 }
 
 impl SceneRenderer {
@@ -530,7 +537,6 @@ impl SceneRenderer {
             }? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
-                framebuffer: None,
                 descriptor_buffer,
                 descriptor_mapped,
                 descriptor_set,
@@ -558,12 +564,17 @@ impl SceneRenderer {
 
     pub fn draw(
         &mut self,
-        core: &VulkanCore,
-        entry: &SwapchainEntry,
-        window_drawable_size: (u32, u32),
-        camera: &Camera,
-        scene: &Scene,
+        args: SceneRendererArgs,
     ) -> RisResult<()> {
+        let SceneRendererArgs {
+            core,
+            swapchain_entry,
+            window_drawable_size,
+            camera,
+            scene,
+            framebuffer_allocator,
+        } = args;
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -582,10 +593,9 @@ impl SceneRenderer {
             depth_image_view,
             command_buffer,
             ..
-        } = entry;
+        } = swapchain_entry;
 
         let SceneFrame {
-            framebuffer,
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
@@ -597,10 +607,6 @@ impl SceneRenderer {
         mesh_lookup.free_unused_meshes(device)?;
 
         // framebuffer
-        if let Some(framebuffer) = framebuffer.take() {
-            unsafe { device.destroy_framebuffer(framebuffer, None) };
-        }
-
         let attachments = [*viewport_image_view, *depth_image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo {
@@ -615,13 +621,15 @@ impl SceneRenderer {
             layers: 1,
         };
 
-        let new_framebuffer =
-            unsafe { device.create_framebuffer(&frame_buffer_create_info, None) }?;
-        *framebuffer = Some(new_framebuffer);
-        let framebuffer = new_framebuffer;
-
         // render pass
         unsafe {
+            let framebuffer = framebuffer_allocator.get(
+                RendererId::Scene,
+                device,
+                frame_buffer_create_info,
+                *index,
+            )?;
+
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {

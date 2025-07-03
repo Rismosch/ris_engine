@@ -17,10 +17,11 @@ use ris_video_renderers::framebuffer_allocator::FramebufferAllocator;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
+use ris_video_renderers::SceneRendererArgs;
 use ris_video_renderers::TerrainRenderer;
 use ris_video_renderers::TerrainRendererArgs;
 #[cfg(feature = "ui_helper_enabled")]
-use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use ris_video_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
 
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::{UiHelper, UiHelperDrawData};
@@ -250,13 +251,16 @@ impl OutputFrame {
 
         // scene
         ris_debug::add_record!(r, "scene")?;
-        self.renderer.scene.draw(
-            &self.core,
+        let args = SceneRendererArgs {
+            core: &self.core,
             swapchain_entry,
             window_drawable_size,
-            &camera,
-            &state.scene,
-        )?;
+            camera: &camera,
+            scene: &state.scene,
+            framebuffer_allocator: &mut self.renderer.framebuffer_allocator,
+        };
+
+        self.renderer.scene.draw(args)?;
 
         // terrain
         ris_debug::add_record!(r, "terrain")?;
@@ -301,9 +305,14 @@ impl OutputFrame {
             let draw_data = self.imgui_backend.context().render();
 
             ris_debug::add_record!(r, "imgui frontend")?;
-            self.renderer
-                .imgui
-                .draw(&self.core, swapchain_entry, draw_data)?;
+            let args = ImguiRendererArgs{
+                core: &self.core,
+                swapchain_entry,
+                draw_data,
+                framebuffer_allocator: &mut self.renderer.framebuffer_allocator,
+            };
+
+            self.renderer.imgui.draw(args)?;
         }
 
         // end command buffer and submit
