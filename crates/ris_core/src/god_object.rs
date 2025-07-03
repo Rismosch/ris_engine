@@ -178,7 +178,7 @@ impl GodObject {
         #[cfg(feature = "ui_helper_enabled")]
         let ui_helper = UiHelper::new(&app_info)?;
 
-        let framebuffer_allocator = FramebufferAllocator::alloc();
+        let framebuffer_allocator = FramebufferAllocator::alloc(vulkan_core.swapchain.entries.len());
 
         let renderer = Renderer {
             scene: scene_renderer,

@@ -7,30 +7,46 @@ use ris_video_data::swapchain::SwapchainEntry;
 use crate::RendererId;
 
 pub struct FramebufferAllocator {
-    entries: Vec<Option<Entry>>,
+    // one framebuffer for each renderer and each swapchain entry
+    entries: Vec<Vec<Option<FrameBufferAllocatorEntry>>>,
 }
 
-#[derive(Clone)]
-struct Entry {
-    attachments: Vec<Vec<vk::ImageView>>,
+struct FrameBufferAllocatorEntry {
+    attachments: Vec<vk::ImageView>,
     framebuffer: vk::Framebuffer,
 }
 
 impl FramebufferAllocator {
     pub fn free(&mut self, device: &ash::Device) {
         for entry in self.entries.iter_mut() {
-            let Some(entry) = entry.take() else {
-                continue;
-            };
+            for entry in entry.iter_mut(){
+                let Some(entry) = entry.take() else {
+                    continue;
+                };
 
-            unsafe {device.destroy_framebuffer(entry.framebuffer, None)};
+                unsafe {device.destroy_framebuffer(entry.framebuffer, None)};
+            }
         }
 
         self.entries.clear();
     }
 
-    pub fn alloc() -> Self {
-        Self{entries: vec![None; 4]}
+    pub fn alloc(swapchain_entry_count: usize) -> Self {
+        let renderers = 4;
+        let mut renderer_entries = Vec::with_capacity(renderers);
+
+        for _ in 0..renderers {
+            let mut swapchain_entries = Vec::with_capacity(swapchain_entry_count);
+            for _ in 0..swapchain_entry_count {
+                swapchain_entries.push(None);
+            }
+
+            renderer_entries.push(swapchain_entries);
+        }
+
+        Self{
+            entries: renderer_entries,
+        }
     }
 
     /// # Safety
@@ -45,7 +61,9 @@ impl FramebufferAllocator {
         swapchain_index: usize,
     ) -> RisResult<vk::Framebuffer> {
 
-        let entry = self.entries.get_mut(id.to_usize()).into_ris_error()?;
+        let entry = self.entries
+            .get_mut(id.to_usize()).into_ris_error()?
+            .get_mut(swapchain_index).into_ris_error()?;
 
         let new_attachments = std::slice::from_raw_parts(
             framebuffer_create_info.p_attachments,
@@ -54,7 +72,7 @@ impl FramebufferAllocator {
 
         match entry.as_mut() {
             Some(current_entry) => {
-                let current_attachments = &current_entry.attachments.get(swapchain_index).into_ris_error()?;
+                let current_attachments = &current_entry.attachments;
 
                 ris_error::debug_assert!(current_attachments.len() == new_attachments.len())?;
 
@@ -72,7 +90,7 @@ impl FramebufferAllocator {
                     let attachments = new_attachments.to_vec();
                     let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
 
-                    *entry = Some(Entry{
+                    *entry = Some(FrameBufferAllocatorEntry{
                         attachments,
                         framebuffer,
                     });
@@ -88,7 +106,7 @@ impl FramebufferAllocator {
                 let attachments = new_attachments.to_vec();
                 let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
 
-                *entry = Some(Entry{
+                *entry = Some(FrameBufferAllocatorEntry{
                     attachments,
                     framebuffer,
                 });

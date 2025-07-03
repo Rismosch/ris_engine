@@ -556,6 +556,7 @@ impl TerrainRenderer {
                 RendererId::Terrain,
                 device, 
                 framebuffer_create_info,
+                *index,
             )?;
 
             let clear_values = [
