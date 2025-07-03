@@ -12,12 +12,10 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::FramebufferID;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-
-use crate::framebuffer_allocator::FramebufferAllocator;
-use crate::RendererId;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -60,6 +58,7 @@ pub struct SceneRenderer {
     render_pass: vk::RenderPass,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
+    framebuffer_id: FramebufferID,
     frames: Vec<SceneFrame>,
     texture: Texture,
     pub mesh_lookup: Option<MeshLookup>,
@@ -71,7 +70,6 @@ pub struct SceneRendererArgs<'a> {
     pub window_drawable_size: (u32, u32),
     pub camera: &'a Camera,
     pub scene: &'a Scene,
-    pub framebuffer_allocator: &'a mut FramebufferAllocator,
 }
 
 impl SceneRenderer {
@@ -515,6 +513,8 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
+        let framebuffer_id = swapchain.register_renderer();
+        
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {
@@ -556,6 +556,7 @@ impl SceneRenderer {
             render_pass,
             pipeline,
             pipeline_layout,
+            framebuffer_id,
             frames,
             texture,
             mesh_lookup,
@@ -572,7 +573,6 @@ impl SceneRenderer {
             window_drawable_size,
             camera,
             scene,
-            framebuffer_allocator,
         } = args;
 
         let VulkanCore {
@@ -592,6 +592,7 @@ impl SceneRenderer {
             viewport_image_view,
             depth_image_view,
             command_buffer,
+            framebuffer_allocator,
             ..
         } = swapchain_entry;
 
@@ -623,11 +624,10 @@ impl SceneRenderer {
 
         // render pass
         unsafe {
-            let framebuffer = framebuffer_allocator.get(
-                RendererId::Scene,
+            let framebuffer = framebuffer_allocator.borrow_mut().get(
+                self.framebuffer_id,
                 device,
                 frame_buffer_create_info,
-                *index,
             )?;
 
             let clear_values = [

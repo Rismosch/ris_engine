@@ -327,10 +327,10 @@ impl Swapchain {
         })
     }
 
-    pub fn register_framebuffer(&self) -> FramebufferID {
+    pub fn register_renderer(&self) -> FramebufferID {
         let first_entry = ris_error::unwrap!(
             self.entries.get(0).into_ris_error(),
-            "",
+            "swapchain entries were empty. this is not supposed to happen and indicates a fatal error.",
         );
         let id = FramebufferID(first_entry.framebuffer_allocator.borrow().0.len());
 

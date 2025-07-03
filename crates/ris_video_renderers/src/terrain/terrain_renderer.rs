@@ -455,10 +455,9 @@ impl TerrainRenderer {
         unsafe {device.destroy_shader_module(vs_module, None)};
         unsafe {device.destroy_shader_module(fs_module, None)};
 
-        // framebuffer
-        let framebuffer_id = swapchain.register_framebuffer();
-
         // frames
+        let framebuffer_id = swapchain.register_renderer();
+
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {

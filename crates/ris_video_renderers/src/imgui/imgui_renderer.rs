@@ -15,12 +15,10 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::FramebufferID;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-
-use crate::framebuffer_allocator::FramebufferAllocator;
-use crate::RendererId;
 
 use super::imgui_mesh::Mesh;
 
@@ -41,21 +39,21 @@ impl ImguiFrame {
 
 pub struct ImguiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
-    pipeline_layout: vk::PipelineLayout,
-    render_pass: vk::RenderPass,
-    pipeline: vk::Pipeline,
-    font_texture: Texture,
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
-    textures: Textures<vk::DescriptorSet>,
+    render_pass: vk::RenderPass,
+    pipeline: vk::Pipeline,
+    pipeline_layout: vk::PipelineLayout,
+    framebuffer_id: FramebufferID,
     frames: Vec<ImguiFrame>,
+    font_texture: Texture,
+    textures: Textures<vk::DescriptorSet>,
 }
 
 pub struct ImguiRendererArgs<'a> {
    pub core: &'a VulkanCore,
    pub swapchain_entry: &'a SwapchainEntry,
    pub draw_data: &'a DrawData,
-   pub framebuffer_allocator: &'a mut FramebufferAllocator,
 }
 
 impl ImguiRenderer {
@@ -493,6 +491,8 @@ impl ImguiRenderer {
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // frames
+        let framebuffer_id = swapchain.register_renderer();
+
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
             let frame = ImguiFrame {
@@ -507,14 +507,15 @@ impl ImguiRenderer {
 
         Ok(Self {
             descriptor_set_layout,
-            pipeline_layout,
-            render_pass,
-            pipeline,
-            font_texture,
             descriptor_pool,
             descriptor_set,
-            textures: Textures::new(),
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            framebuffer_id,
             frames,
+            font_texture,
+            textures: Textures::new(),
         })
     }
 
@@ -526,7 +527,6 @@ impl ImguiRenderer {
             core,
             swapchain_entry,
             draw_data,
-            framebuffer_allocator,
         } = args;
 
         if draw_data.total_vtx_count == 0 {
@@ -545,6 +545,7 @@ impl ImguiRenderer {
             index,
             viewport_image_view,
             command_buffer,
+            framebuffer_allocator,
             ..
         } = swapchain_entry;
 
@@ -583,11 +584,10 @@ impl ImguiRenderer {
         };
 
         // render pass
-        let framebuffer = unsafe { framebuffer_allocator.get(
-            RendererId::Imgui,
-            device,
+        let framebuffer = unsafe {framebuffer_allocator.borrow_mut().get(
+            self.framebuffer_id, 
+            device, 
             framebuffer_create_info,
-            *index,
         )}?;
         
         let clear_values = [vk::ClearValue {
