@@ -70,50 +70,57 @@ impl FramebufferAllocator {
             framebuffer_create_info.attachment_count as usize,
         );
 
-        match entry.as_mut() {
-            Some(current_entry) => {
-                let current_attachments = &current_entry.attachments;
+        //if let Some(entry) = entry.take() {
+        //    device.destroy_framebuffer(entry.framebuffer, None);
+        //}
 
-                ris_error::debug_assert!(current_attachments.len() == new_attachments.len())?;
+        //let attachments = new_attachments.to_vec();
+        //let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
 
-                for i in 0..current_attachments.len() {
-                    let left = current_attachments[i].as_raw();
-                    let right = new_attachments[i].as_raw();
+        //*entry = Some(FrameBufferAllocatorEntry{
+        //    attachments,
+        //    framebuffer,
+        //});
 
-                    if left == right {
-                        continue;
-                    }
+        //return Ok(framebuffer);
 
+        if let Some(current_entry) = entry.as_mut() {
+            let current_attachments = &current_entry.attachments;
+
+            ris_error::debug_assert!(current_attachments.len() == new_attachments.len())?;
+
+            let mut build_new_framebuffer = false;
+            for i in 0..current_attachments.len() {
+                let left = current_attachments[i].as_raw();
+                let right = new_attachments[i].as_raw();
+
+                if left != right {
                     // attachments changed! this usually happens when the swapchain was
                     // recreated. build a new framebuffer...
+                    device.destroy_framebuffer(current_entry.framebuffer, None);
 
-                    let attachments = new_attachments.to_vec();
-                    let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
-
-                    *entry = Some(FrameBufferAllocatorEntry{
-                        attachments,
-                        framebuffer,
-                    });
-
-                    ris_log::trace!("recreated framebuffer");
-
-                    return Ok(framebuffer);
+                    build_new_framebuffer = true;
+                    break;
                 }
+            }
 
-                Ok(current_entry.framebuffer)
-            },
-            None => {
-                let attachments = new_attachments.to_vec();
-                let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
+            if !build_new_framebuffer {
+                return Ok(current_entry.framebuffer);
+            }
+        };
 
-                *entry = Some(FrameBufferAllocatorEntry{
-                    attachments,
-                    framebuffer,
-                });
+        // build new frame buffer...
+        let attachments = new_attachments.to_vec();
+        let framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
 
-                Ok(framebuffer)
-            },
-        }
+        *entry = Some(FrameBufferAllocatorEntry{
+            attachments,
+            framebuffer,
+        });
+
+        ris_log::trace!("recreated framebuffer");
+
+        return Ok(framebuffer);
     }
 }
 
