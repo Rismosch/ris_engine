@@ -8,6 +8,8 @@ use ris_error::RisResult;
 
 use super::util;
 
+const LOG_BACKTRACE: bool = false;
+
 pub fn add_validation_layer(
     entry: &ash::Entry,
     instance_extensions: &mut Vec<*const i8>,
@@ -132,7 +134,20 @@ pub unsafe extern "system" fn debug_callback(
         }
     };
 
-    ris_log::log!(log_level, "VULKAN {} | {}", type_flag, message);
+    let backtrace_string = if LOG_BACKTRACE {
+        let backtrace = std::backtrace::Backtrace::force_capture();
+        format!("\nbackrace:\n{}", backtrace)
+    } else {
+        String::new()
+    };
+
+    ris_log::log!(
+        log_level,
+        "VULKAN {} | {}{}",
+        type_flag,
+        message,
+        backtrace_string,
+    );
 
     vk::FALSE
 }

@@ -178,6 +178,13 @@ impl Swapchain {
             )
         };
 
+        ris_log::trace!(
+            "swapchain_image_count {} {} {}",
+            capabilities.max_image_count,
+            preferred_swapchain_image_count,
+            swapchain_image_count,
+        );
+
         let (image_sharing_mode, queue_family_indices) =
             if suitable_device.graphics_queue_family == suitable_device.present_queue_family {
                 (vk::SharingMode::EXCLUSIVE, vec![])

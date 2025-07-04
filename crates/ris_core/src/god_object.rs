@@ -23,7 +23,6 @@ use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_video_data::core::VulkanCore;
-use ris_video_renderers::framebuffer_allocator::FramebufferAllocator;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
@@ -178,8 +177,6 @@ impl GodObject {
         #[cfg(feature = "ui_helper_enabled")]
         let ui_helper = UiHelper::new(&app_info)?;
 
-        let framebuffer_allocator = FramebufferAllocator::alloc(vulkan_core.swapchain.entries.len());
-
         let renderer = Renderer {
             scene: scene_renderer,
             terrain: terrain_renderer,
@@ -187,7 +184,6 @@ impl GodObject {
             gizmo_text: gizmo_text_renderer,
             #[cfg(feature = "ui_helper_enabled")]
             imgui: imgui_renderer,
-            framebuffer_allocator,
         };
 
         let output_frame = OutputFrame {
