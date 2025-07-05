@@ -491,7 +491,7 @@ impl ImguiRenderer {
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // frames
-        let framebuffer_id = swapchain.register_renderer();
+        let framebuffer_id = swapchain.register_renderer()?;
 
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {

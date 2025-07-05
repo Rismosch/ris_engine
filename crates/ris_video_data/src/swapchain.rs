@@ -334,11 +334,8 @@ impl Swapchain {
         })
     }
 
-    pub fn register_renderer(&self) -> FramebufferID {
-        let first_entry = ris_error::unwrap!(
-            self.entries.get(0).into_ris_error(),
-            "swapchain entries were empty. this is not supposed to happen and indicates a fatal error.",
-        );
+    pub fn register_renderer(&self) -> RisResult<FramebufferID> {
+        let first_entry = self.entries.get(0).into_ris_error()?;
         let id = FramebufferID(first_entry.framebuffer_allocator.borrow().0.len());
 
         for entry in self.entries.iter() {
@@ -346,6 +343,6 @@ impl Swapchain {
             entry.framebuffer_allocator.borrow_mut().0.push(None);
         }
 
-        id
+        Ok(id)
     }
 }

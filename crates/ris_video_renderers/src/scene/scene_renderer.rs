@@ -513,7 +513,7 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
-        let framebuffer_id = swapchain.register_renderer();
+        let framebuffer_id = swapchain.register_renderer()?;
         
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
