@@ -221,7 +221,7 @@ impl Quat {
         q_.length()
     }
 
-    // 3d transformation stuff
+    // 3d functions
     pub fn rotate(self, p: Vec3) -> Vec3 {
         let r = self;
         let r_ = self.conjugate();

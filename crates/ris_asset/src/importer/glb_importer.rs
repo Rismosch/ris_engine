@@ -2,6 +2,8 @@ use std::f32::consts::PI;
 use std::io::SeekFrom;
 use std::path::Path;
 
+use ash::vk;
+
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::MeshPrototype;
 use ris_error::prelude::*;
@@ -148,6 +150,13 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             ris_error::assert!(index_accessor.accessor_type == AccessorType::Scalar)?;
             ris_error::assert!(index_accessor.component_type == AccessorComponentType::U16)?;
 
+            let index_type = match &index_accessor.component_type {
+                AccessorComponentType::U16 => vk::IndexType::UINT16,
+                AccessorComponentType::U32 => vk::IndexType::UINT32,
+                AccessorComponentType::U8 => vk::IndexType::UINT8_EXT,
+                accessor_component_type => ris_error::new_result!("invalid accessor component type for indices: {:?}", accessor_component_type)?,
+            };
+
             let vertex_data = access_data(vertex_accessor, &bin, &gltf)?;
             let normal_data = access_data(normal_accessor, &bin, &gltf)?;
             let uv_data = access_data(uv_accessor, &bin, &gltf)?;
@@ -166,6 +175,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 p_normals,
                 p_uvs,
                 p_indices,
+                index_type,
                 data: stream.into_inner(),
             };
 

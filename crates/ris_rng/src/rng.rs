@@ -28,6 +28,7 @@ impl Seed {
     }
 }
 
+#[derive(Debug)]
 pub struct Rng {
     seed: Seed,
     pcg: Pcg32,
@@ -95,9 +96,14 @@ impl Rng {
         buf
     }
 
+    // returns a f32 between 0.0 and 1.0, using a hash
+    pub fn hash_to_f32(value: u32) -> f32 {
+        f32::from_bits(0x3F80_0000 | (value & 0x7F_FFFF)) - 1.0
+    }
+
     /// returns a random f32 between 0.0 and 1.0
     pub fn next_f32(&mut self) -> f32 {
-        f32::from_bits(0x3F80_0000 | (self.next_u32() & 0x7F_FFFF)) - 1.
+        Self::hash_to_f32(self.next_u32())
     }
 
     /// returns a random f32 between min and max

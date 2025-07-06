@@ -5,10 +5,10 @@ use std::marker::PhantomData;
 use ris_error::RisResult;
 use ris_ptr::SyncUnsafeCell;
 
-use super::components::mesh_renderer::MeshRendererComponent;
-use super::components::script::DynScript;
-use super::components::script::DynScriptComponent;
-use super::components::script::Script;
+use super::components::mesh_component::MeshComponent;
+use super::components::script_component::DynScript;
+use super::components::script_component::DynScriptComponent;
+use super::components::script_component::Script;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::handle::DynComponentHandle;
@@ -70,7 +70,7 @@ impl Registry {
     pub fn new(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<Self> {
         let components: Vec<Box<dyn IComponentFactory>> = vec![
             Self::component::<DynScriptComponent>()?,
-            Self::component::<MeshRendererComponent>()?,
+            Self::component::<MeshComponent>()?,
         ];
 
         // assert that all scripts have unique ids

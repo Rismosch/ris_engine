@@ -12,6 +12,7 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::FramebufferID;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
@@ -37,7 +38,6 @@ pub struct UniformBufferObject {
 }
 
 pub struct SceneFrame {
-    framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
@@ -48,10 +48,6 @@ impl SceneFrame {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(framebuffer) = self.framebuffer.take() {
-            device.destroy_framebuffer(framebuffer, None);
-        }
-
         self.descriptor_buffer.free(device);
     }
 }
@@ -62,9 +58,18 @@ pub struct SceneRenderer {
     render_pass: vk::RenderPass,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
+    framebuffer_id: FramebufferID,
     frames: Vec<SceneFrame>,
     texture: Texture,
     pub mesh_lookup: Option<MeshLookup>,
+}
+
+pub struct SceneRendererArgs<'a> {
+    pub core: &'a VulkanCore,
+    pub swapchain_entry: &'a SwapchainEntry,
+    pub window_drawable_size: (u32, u32),
+    pub camera: &'a Camera,
+    pub scene: &'a Scene,
 }
 
 impl SceneRenderer {
@@ -442,7 +447,7 @@ impl SceneRenderer {
             p_preserve_attachments: ptr::null(),
         }];
 
-        let supbass_dependencies = [vk::SubpassDependency {
+        let subpass_dependencies = [vk::SubpassDependency {
             src_subpass: vk::SUBPASS_EXTERNAL,
             dst_subpass: 0,
             src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
@@ -465,8 +470,8 @@ impl SceneRenderer {
             p_attachments: attachments.as_ptr(),
             subpass_count: subpass_descriptions.len() as u32,
             p_subpasses: subpass_descriptions.as_ptr(),
-            dependency_count: supbass_dependencies.len() as u32,
-            p_dependencies: supbass_dependencies.as_ptr(),
+            dependency_count: subpass_dependencies.len() as u32,
+            p_dependencies: subpass_dependencies.as_ptr(),
         };
 
         let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;
@@ -508,6 +513,8 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
+        let framebuffer_id = swapchain.register_renderer()?;
+        
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {
@@ -530,7 +537,6 @@ impl SceneRenderer {
             }? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
-                framebuffer: None,
                 descriptor_buffer,
                 descriptor_mapped,
                 descriptor_set,
@@ -550,6 +556,7 @@ impl SceneRenderer {
             render_pass,
             pipeline,
             pipeline_layout,
+            framebuffer_id,
             frames,
             texture,
             mesh_lookup,
@@ -558,12 +565,16 @@ impl SceneRenderer {
 
     pub fn draw(
         &mut self,
-        core: &VulkanCore,
-        entry: &SwapchainEntry,
-        window_drawable_size: (u32, u32),
-        camera: &Camera,
-        scene: &Scene,
+        args: SceneRendererArgs,
     ) -> RisResult<()> {
+        let SceneRendererArgs {
+            core,
+            swapchain_entry,
+            window_drawable_size,
+            camera,
+            scene,
+        } = args;
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -581,11 +592,11 @@ impl SceneRenderer {
             viewport_image_view,
             depth_image_view,
             command_buffer,
+            framebuffer_allocator,
             ..
-        } = entry;
+        } = swapchain_entry;
 
         let SceneFrame {
-            framebuffer,
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
@@ -597,10 +608,6 @@ impl SceneRenderer {
         mesh_lookup.free_unused_meshes(device)?;
 
         // framebuffer
-        if let Some(framebuffer) = framebuffer.take() {
-            unsafe { device.destroy_framebuffer(framebuffer, None) };
-        }
-
         let attachments = [*viewport_image_view, *depth_image_view];
 
         let frame_buffer_create_info = vk::FramebufferCreateInfo {
@@ -615,13 +622,14 @@ impl SceneRenderer {
             layers: 1,
         };
 
-        let new_framebuffer =
-            unsafe { device.create_framebuffer(&frame_buffer_create_info, None) }?;
-        *framebuffer = Some(new_framebuffer);
-        let framebuffer = new_framebuffer;
-
         // render pass
         unsafe {
+            let framebuffer = framebuffer_allocator.borrow_mut().get(
+                self.framebuffer_id,
+                device,
+                frame_buffer_create_info,
+            )?;
+
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {
@@ -791,7 +799,7 @@ impl SceneRenderer {
                     *command_buffer,
                     mesh.index_buffer()?,
                     mesh.index_offset()?,
-                    mesh.index_type(),
+                    mesh.index_type()?,
                 );
 
                 device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);

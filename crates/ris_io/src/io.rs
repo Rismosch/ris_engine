@@ -131,6 +131,12 @@ pub fn write_u64(stream: &mut (impl Write + Seek), value: u64) -> Result<FatPtr>
     write(stream, &bytes)
 }
 
+/// writes an `i32` and advances the stream. returns a `FatPtr` to the byte written.
+pub fn write_i32(stream: &mut (impl Write + Seek), value: i32) -> Result<FatPtr> {
+    let bytes = value.to_le_bytes();
+    write(stream, &bytes)
+}
+
 /// writes a `f64` and advances the stream. returns a `FatPtr` to the byte written.
 pub fn write_f32(stream: &mut (impl Write + Seek), value: f32) -> Result<FatPtr> {
     let bytes = value.to_le_bytes();
@@ -260,6 +266,14 @@ pub fn read_u64(stream: &mut impl Read) -> Result<u64> {
     read(stream, &mut bytes)?;
 
     Ok(u64::from_le_bytes(bytes))
+}
+
+/// reads an `i32` and advances the stream.
+pub fn read_i32(stream: &mut impl Read) -> Result<i32> {
+    let mut bytes = [0; 4];
+    read(stream, &mut bytes)?;
+
+    Ok(i32::from_le_bytes(bytes))
 }
 
 /// reads an `f32` and advances the stream.

@@ -2468,3 +2468,31 @@ impl Bvec4 {
         self.0 && self.1 && self.2 && self.3
     }
 }
+
+//
+// 3d functions
+//
+
+impl Vec3 {
+    pub fn angle(a: Self, b: Self) -> f32 {
+        let d = a.dot(b);
+        let m = a.length() * b.length();
+        let theta = f32::acos(d / m);
+        theta
+    }
+
+    pub fn signed_angle(a: Self, b: Self, axis: Self) -> f32 {
+        let theta = Self::angle(a, b);
+        let sign = f32::signum(axis.dot(a.cross(b)));
+        theta * sign
+    }
+
+    /// returns the distance between the line ab and the point p
+    pub fn distance_to_point(a: Self, b: Self, p: Self) -> f32 {
+        let ab = b - a;
+        let ap = p - a;
+        let alpha = Self::angle(ab, ap);
+        let distance = f32::sin(alpha) * ap.length();
+        distance
+    }
+}

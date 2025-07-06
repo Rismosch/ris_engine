@@ -7,9 +7,9 @@ use imgui::Ui;
 use ris_asset_data::asset_id::AssetId;
 use ris_async::SpinLock;
 use ris_async::ThreadPool;
-use ris_data::ecs::components::mesh_renderer::MeshRendererComponent;
-use ris_data::ecs::components::script::DynScriptComponent;
-use ris_data::ecs::components::script::ScriptInspectData;
+use ris_data::ecs::components::mesh_component::MeshComponent;
+use ris_data::ecs::components::script_component::DynScriptComponent;
+use ris_data::ecs::components::script_component::ScriptInspectData;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::error::EcsResult;
 use ris_data::ecs::scene::Scene;
@@ -435,7 +435,7 @@ impl IUiHelperModule for InspectorModule {
 
                     let delete_requested;
 
-                    if component.type_id() == TypeId::of::<MeshRendererComponent>() {
+                    if component.type_id() == TypeId::of::<MeshComponent>() {
                         let ptr = data.state.scene.mesh_renderer_components[index].to_weak();
                         let mut aref_mut = ptr.borrow_mut();
 

@@ -1,5 +1,7 @@
 use std::io::Cursor;
 
+use ash::vk;
+
 use ris_asset_data::mesh::CpuMesh;
 use ris_error::prelude::*;
 
@@ -21,6 +23,8 @@ pub fn serialize(mesh: &CpuMesh) -> RisResult<Vec<u8>> {
     ris_io::write_fat_ptr(s, mesh.p_normals)?;
     ris_io::write_fat_ptr(s, mesh.p_uvs)?;
     ris_io::write_fat_ptr(s, mesh.p_indices)?;
+    ris_io::write_i32(s, mesh.index_type.as_raw())?;
+
     ris_io::write(s, &mesh.data)?;
 
     let bytes = stream.into_inner();
@@ -41,16 +45,17 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
     let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
     header.assert_magic(MAGIC)?;
 
-    let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
+    let decompressed = miniz_oxide::inflate::decompress_to_vec(content)
         .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
 
-    let mut stream = Cursor::new(uncompressed);
+    let mut stream = Cursor::new(decompressed);
     let s = &mut stream;
 
     let p_vertices = ris_io::read_fat_ptr(s)?;
     let p_normals = ris_io::read_fat_ptr(s)?;
     let p_uvs = ris_io::read_fat_ptr(s)?;
     let p_indices = ris_io::read_fat_ptr(s)?;
+    let index_type = vk::IndexType::from_raw(ris_io::read_i32(s)?);
     let data = ris_io::read_to_end(s)?;
 
     Ok(CpuMesh {
@@ -58,6 +63,7 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
         p_normals,
         p_uvs,
         p_indices,
+        index_type,
         data,
     })
 }

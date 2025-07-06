@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Pcg32 {
     pub state: u64,
     pub increment: u64,
