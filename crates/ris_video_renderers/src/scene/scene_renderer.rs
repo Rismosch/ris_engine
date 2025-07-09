@@ -2,7 +2,7 @@ use std::ptr;
 
 use ash::vk;
 
-use ris_asset::assets::ris_mesh_lookup::MeshLookup;
+use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_asset::codecs::qoi;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::Scene;

@@ -6,18 +6,20 @@ use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
 
+use crate::assets::ris_mesh;
+
 #[derive(Default)]
 pub struct MeshLookup {
-    entries: Vec<MeshLookupEntry>,
+    entries: Vec<Entry>,
 }
 
-struct MeshLookupEntry {
+struct Entry {
     asset_id: AssetId,
     lookup_id: MeshLookupId,
-    value: Option<MeshLookupEntryState>,
+    value: Option<EntryState>,
 }
 
-enum MeshLookupEntryState {
+enum EntryState {
     Loading(OneshotReceiver<RisResult<GpuMesh>>),
     Loaded(GpuMesh),
 }
@@ -45,7 +47,7 @@ impl MeshLookup {
                 gpu_mesh.free(device);
             }
 
-            let state = MeshLookupEntryState::load(
+            let state = EntryState::load(
                 device,
                 physical_device_memory_properties,
                 entry.asset_id.clone(),
@@ -78,7 +80,7 @@ impl MeshLookup {
                     }
                     None => {
                         let index = self.entries.len();
-                        let entry = MeshLookupEntry {
+                        let entry = Entry {
                             asset_id,
                             lookup_id: MeshLookupId::new(index),
                             value: None,
@@ -92,17 +94,7 @@ impl MeshLookup {
         };
 
         if entry.value.is_none() {
-            //let device = device.clone();
-            //let receiver = crate::load_async(entry.asset_id.clone(), move |bytes| {
-            //    let cpu_mesh = super::ris_mesh::deserialize(&bytes)?;
-            //    unsafe {
-            //        GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh)
-            //    }
-            //});
-
-            //entry.value = Some(MeshLookupEntryState::Loading(receiver));
-
-            let state = MeshLookupEntryState::load(
+            let state = EntryState::load(
                 device,
                 physical_device_memory_properties,
                 entry.asset_id.clone(),
@@ -139,41 +131,41 @@ impl MeshLookup {
         let entry = self.entries.get_mut(id.index())?;
 
         match entry.value.take() {
-            Some(MeshLookupEntryState::Loading(receiver)) => match receiver.receive() {
-                Ok(Ok(gpu_mesh)) => entry.value = Some(MeshLookupEntryState::Loaded(gpu_mesh)),
+            Some(EntryState::Loading(receiver)) => match receiver.receive() {
+                Ok(Ok(gpu_mesh)) => entry.value = Some(EntryState::Loaded(gpu_mesh)),
                 Ok(Err(e)) => {
                     ris_log::error!("failed to load mesh {:?}: {}", entry.asset_id, e);
                     entry.value = None;
                 }
-                Err(receiver) => entry.value = Some(MeshLookupEntryState::Loading(receiver)),
+                Err(receiver) => entry.value = Some(EntryState::Loading(receiver)),
             },
             value => entry.value = value,
         }
 
         match entry.value.as_ref() {
-            Some(MeshLookupEntryState::Loaded(gpu_mesh)) => Some(gpu_mesh),
+            Some(EntryState::Loaded(gpu_mesh)) => Some(gpu_mesh),
             _ => None,
         }
     }
 }
 
-impl MeshLookupEntry {
+impl Entry {
     fn take_gpu_mesh(&mut self) -> Option<GpuMesh> {
         match self.value.take() {
-            Some(MeshLookupEntryState::Loading(receiver)) => match receiver.wait() {
+            Some(EntryState::Loading(receiver)) => match receiver.wait() {
                 Ok(gpu_mesh) => Some(gpu_mesh),
                 Err(e) => {
                     ris_log::warning!("failed to load mesh {:?}: {}", self.asset_id, e);
                     None
                 }
             },
-            Some(MeshLookupEntryState::Loaded(gpu_mesh)) => Some(gpu_mesh),
+            Some(EntryState::Loaded(gpu_mesh)) => Some(gpu_mesh),
             None => None,
         }
     }
 }
 
-impl MeshLookupEntryState {
+impl EntryState {
     fn load(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
@@ -181,10 +173,10 @@ impl MeshLookupEntryState {
     ) -> Self {
         let device = device.clone();
         let receiver = crate::load_async(asset_id, move |bytes| {
-            let cpu_mesh = super::ris_mesh::deserialize(&bytes)?;
+            let cpu_mesh = ris_mesh::deserialize(&bytes)?;
             unsafe { GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh) }
         });
 
-        MeshLookupEntryState::Loading(receiver)
+        EntryState::Loading(receiver)
     }
 }

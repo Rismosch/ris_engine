@@ -62,6 +62,7 @@ ash = "0.37.3"
 cfg-if = "1"
 chrono = "0.4"
 imgui = { version = "0.11.0", features = ["docking"] }
+libc = "^0.2.30" # required for linux
 miniz_oxide = "=0.8.2"
 png = "0.17.10"
 sdl2 = "0.34.5"
@@ -70,9 +71,6 @@ shaderc = "0.8"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-libc = "^0.2.30"
 
 [features]
 default = [
