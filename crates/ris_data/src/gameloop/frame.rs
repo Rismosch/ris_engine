@@ -1,7 +1,7 @@
 use std::time::Duration;
 use std::time::Instant;
 
-const FRAME_COUNT: usize = 5;
+const FRAME_COUNT: usize = 4;
 const MAX_DURATION: Duration = Duration::from_millis((1000. / 2.) as u64); // 2 fps
 const IDEAL_DURATION: Duration = Duration::from_millis((1000. / 60.) as u64); // 60 fps
 

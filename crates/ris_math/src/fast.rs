@@ -49,27 +49,11 @@ const SCALE_DOWN: f32 = 1.0 / SCALE_UP;
 
 /// uses the bytes of x to initialize an i32. used by fast functions
 pub fn as_int(x: f32) -> i32 {
-    #[cfg(target_endian = "big")]
-    {
-        i32::from_be_bytes(x.to_be_bytes())
-    }
-
-    #[cfg(target_endian = "little")]
-    {
-        i32::from_le_bytes(x.to_le_bytes())
-    }
+    i32::from_ne_bytes(x.to_ne_bytes())
 }
 /// uses the bytes of x to initialize an f32. used by fast functions
 pub fn as_float(x: i32) -> f32 {
-    #[cfg(target_endian = "big")]
-    {
-        f32::from_be_bytes(x.to_be_bytes())
-    }
-
-    #[cfg(target_endian = "little")]
-    {
-        f32::from_le_bytes(x.to_le_bytes())
-    }
+    f32::from_ne_bytes(x.to_ne_bytes())
 }
 
 #[deprecated(note = "benchmarking proved bitmagic is not faster than std")]
