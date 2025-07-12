@@ -1,5 +1,3 @@
-use ris_rng::rng::Seed;
-use ris_rng::rng::Rng;
 use ris_data::counter::Counter;
 
 #[test]
@@ -20,6 +18,7 @@ fn should_should_add() {
 fn should_overflow() {
     let mut counter = Counter::from_raw(usize::MAX - 2);
 
+    assert_eq!(counter.raw(), usize::MAX - 2);
     counter.add_one();
     counter.add_one();
     counter.add_one();

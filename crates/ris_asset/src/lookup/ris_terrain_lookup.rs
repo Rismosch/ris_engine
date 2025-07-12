@@ -1,9 +1,11 @@
 use ash::vk;
 
+use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::GpuMesh;
 use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
+use ris_data::counter::Counter;
 use ris_error::prelude::*;
 
 #[derive(Default)]
@@ -12,27 +14,64 @@ pub struct TerrainMeshLookup {
 }
 
 struct Entry {
+    // counter_id determines how young this mesh is. the bigger the counter, the younger the mesh
+    counter_id: Counter,
     lookup_id: MeshLookupId,
     value: Option<EntryState>,
 }
 
 enum EntryState {
-    Loading(OneshotReceiver<RisResult<GpuMesh>>),
-    Loaded(GpuMesh),
+    Loading(OneshotReceiver<RisResult<(CpuMesh, GpuMesh)>>),
+    Loaded((CpuMesh, GpuMesh)),
 }
-
 
 impl TerrainMeshLookup {
     pub fn free(&mut self, device: &ash::Device) {
-        for entry in self.entries.iter_mut() {
-            if let Some(mut gpu_mesh) = entry.take_gpu_mesh() {
-                gpu_mesh.free(device);
-            }
-        }
+        //for entry in self.entries.iter_mut() {
+        //    if let Some(mut gpu_mesh) = entry.take_gpu_mesh() {
+        //        gpu_mesh.free(device);
+        //    }
+        //}
     }
 
 
-    pub fn alloc(&mut self) -> MeshLookupId {
+    pub fn alloc(&mut self) -> RisResult<MeshLookupId> {
+        // allocate into the mesh that is either
+        //  1. not allocated or
+        //  2. is
+        //      a. unused and
+        //      b. lowest counter id
+
+        let unallocated_entry_index = self.entries.iter().position(|x| x.value.is_none());
+
+        let to_allocate_index = if let Some(unallocated_entry_index) = unallocated_entry_index {
+            unallocated_entry_index
+        } else {
+
+            let mut candidates = self.entries
+                .iter()
+                .enumerate()
+                .filter(|&(i, x)| x.lookup_id.is_unique())
+                .collect::<Vec<_>>();
+
+            let max = candidates.first().into_ris_error()?;
+
+            for (i, entry) in candidates {
+
+            }
+
+            unused_entry_index
+        };
+
+
+        let to_allocate = &mut self.entries[to_allocate_index];
+        panic!("allocate");
+    }
+
+    pub fn get(&mut self) -> Option<&(CpuMesh, GpuMesh)> {
+        // get the mesh, which is
+        //  1. allocated and
+        //  2. highest counter id
         panic!();
     }
 }
