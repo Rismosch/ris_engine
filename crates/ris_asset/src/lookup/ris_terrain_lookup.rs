@@ -34,41 +34,102 @@ impl TerrainMeshLookup {
         //}
     }
 
-
-    pub fn alloc(&mut self) -> RisResult<MeshLookupId> {
-        // allocate into the mesh that is either
-        //  1. not allocated or
-        //  2. is
-        //      a. unused and
-        //      b. lowest counter id
-
+    pub fn alloc(&mut self) -> RisResult<bool> {
         let unallocated_entry_index = self.entries.iter().position(|x| x.value.is_none());
-
-        let to_allocate_index = if let Some(unallocated_entry_index) = unallocated_entry_index {
-            unallocated_entry_index
+        
+        let (to_allocate_index, counter_id) = if let Some(unallocated_entry_index) = unallocated_entry_index {
+            //unallocated_entry_index
+            panic!();
         } else {
+            let mut min = None;
+            let mut max = None;
 
-            let mut candidates = self.entries
-                .iter()
-                .enumerate()
-                .filter(|&(i, x)| x.lookup_id.is_unique())
-                .collect::<Vec<_>>();
+            for (i, entry) in self.entries.iter_mut().enumerate() {
+                if !entry.lookup_id.is_unique() {
+                    continue;
+                }
 
-            let max = candidates.first().into_ris_error()?;
+                min = match min.take() {
+                    Some((min_index, min_counter_id)) => {
+                        if entry.counter_id < min_counter_id {
+                            Some((i, entry.counter_id))
+                        } else {
+                            Some((min_index, min_counter_id))
+                        }
+                    },
+                    None => {
+                        Some((i, entry.counter_id))
+                    },
+                };
 
-            for (i, entry) in candidates {
-
+                max = match max.take() {
+                    Some(max_counter_id) => {
+                        if entry.counter_id > max_counter_id {
+                            Some(entry.counter_id)
+                        } else {
+                            Some(max_counter_id)
+                        }
+                    },
+                    None => {
+                        Some(entry.counter_id)
+                    },
+                };
             }
 
-            unused_entry_index
+            let (Some((min_index, _)), Some(mut new_counter_id)) = (min, max) else {
+                return Ok(false); // no free entry. cannot allocate.
+            };
+
+            new_counter_id.increase();
+
+            (min_index, new_counter_id)
         };
 
-
         let to_allocate = &mut self.entries[to_allocate_index];
-        panic!("allocate");
+
+        todo!("set max coutner id");
+        todo!("only allocate on loaded/not allocate meshes");
+
+        Ok(true)
     }
 
-    pub fn get(&mut self) -> Option<&(CpuMesh, GpuMesh)> {
+    pub fn get_newest_id(&mut self) -> Option<MeshLookupId> {
+
+        let mut max = None;
+
+        for (i, entry) in self.entries.iter_mut().enumerate() {
+            match entry.value.take() {
+                Some(EntryState::Loading(receiver)) => match receiver.receive() {
+                    Ok(Ok((cpu_mesh, gpu_mesh))) => entry.value = Some(EntryState::Loaded((cpu_mesh, gpu_mesh))),
+                    Ok(Err(e)) => {
+                        ris_log::error!("failed to load terrain: {}", e)
+                    },
+                    Err(receiver) => entry.value = Some(EntryState::Loading(receiver)),
+                },
+                value => entry.value = value,
+            }
+
+            match max.take() {
+                Some((_, max_counter_id)) => {
+                    if entry.counter_id > max_counter_id {
+                        max = Some((i, entry.counter_id));
+                    }
+                },
+                None => max = Some((i, entry.counter_id)),
+            }
+        }
+
+        match max {
+            Some((newest_index, _)) => {
+                let newest_entry = self.entries.get(newest_index)?;
+                let newset_id = newest_entry.lookup_id.clone();
+                Some(newset_id)
+            },
+            None => None,
+        }
+    }
+
+    pub unsafe fn get(&mut self, id: &MeshLookupId) -> Option<(&CpuMesh, &GpuMesh)> {
         // get the mesh, which is
         //  1. allocated and
         //  2. highest counter id

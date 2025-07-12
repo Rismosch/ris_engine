@@ -31,7 +31,7 @@ impl Counter {
         Self(value)
     }
 
-    pub fn add_one(&mut self) {
+    pub fn increase(&mut self) {
         self.0 = self.0.wrapping_add(1);
     }
 }
