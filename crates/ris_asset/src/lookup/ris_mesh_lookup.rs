@@ -127,7 +127,7 @@ impl MeshLookup {
         Ok(())
     }
 
-    pub fn get(&mut self, id: &MeshLookupId) -> Option<&GpuMesh> {
+    pub unsafe fn get(&mut self, id: &MeshLookupId) -> Option<&GpuMesh> {
         let entry = self.entries.get_mut(id.index())?;
 
         match entry.value.take() {

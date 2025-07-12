@@ -1,3 +1,4 @@
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Counter(usize);
 

@@ -14,7 +14,7 @@ pub struct TerrainMeshLookup {
 }
 
 struct Entry {
-    // counter_id determines how young this mesh is. the bigger the counter, the younger the mesh
+    // counter_id determines how young this mesh is. the bigger the counter, the newer the mesh
     counter_id: Counter,
     lookup_id: MeshLookupId,
     value: Option<EntryState>,
@@ -35,60 +35,62 @@ impl TerrainMeshLookup {
     }
 
     pub fn alloc(&mut self) -> RisResult<bool> {
-        let unallocated_entry_index = self.entries.iter().position(|x| x.value.is_none());
-        
-        let (to_allocate_index, counter_id) = if let Some(unallocated_entry_index) = unallocated_entry_index {
-            //unallocated_entry_index
-            panic!();
-        } else {
-            let mut min = None;
-            let mut max = None;
 
-            for (i, entry) in self.entries.iter_mut().enumerate() {
-                if !entry.lookup_id.is_unique() {
-                    continue;
-                }
+        let mut empty = None;
+        let mut min = None;
+        let mut max = None;
 
-                min = match min.take() {
-                    Some((min_index, min_counter_id)) => {
-                        if entry.counter_id < min_counter_id {
-                            Some((i, entry.counter_id))
-                        } else {
-                            Some((min_index, min_counter_id))
-                        }
-                    },
-                    None => {
-                        Some((i, entry.counter_id))
-                    },
-                };
-
-                max = match max.take() {
-                    Some(max_counter_id) => {
-                        if entry.counter_id > max_counter_id {
-                            Some(entry.counter_id)
-                        } else {
-                            Some(max_counter_id)
-                        }
-                    },
-                    None => {
-                        Some(entry.counter_id)
-                    },
-                };
+        for (i, entry) in self.entries.iter_mut().enumerate() {
+            if !entry.lookup_id.is_unique() {
+                continue;
             }
 
-            let (Some((min_index, _)), Some(mut new_counter_id)) = (min, max) else {
-                return Ok(false); // no free entry. cannot allocate.
+            match entry.value.as_ref() {
+                Some(EntryState::Loading(_)) => continue,
+                None => empty = Some(i),
+                _ => (),
+            }
+
+            min = match min.take() {
+                Some((min_index, min_counter_id)) => {
+                    if entry.counter_id < min_counter_id {
+                        Some((i, entry.counter_id))
+                    } else {
+                        Some((min_index, min_counter_id))
+                    }
+                },
+                None => {
+                    Some((i, entry.counter_id))
+                },
             };
 
-            new_counter_id.increase();
+            max = match max.take() {
+                Some(max_counter_id) => {
+                    if entry.counter_id > max_counter_id {
+                        Some(entry.counter_id)
+                    } else {
+                        Some(max_counter_id)
+                    }
+                },
+                None => {
+                    Some(entry.counter_id)
+                },
+            };
+        }
 
-            (min_index, new_counter_id)
+        let (index, mut counter_id) = match (empty, min, max) {
+            (Some(index), _, Some(counter_id)) => (index, counter_id),
+            (_, Some((index, _)), Some(counter_id)) => (index, counter_id),
+            _ => return Ok(false), // no free entry. cannot allocate
         };
 
-        let to_allocate = &mut self.entries[to_allocate_index];
+        counter_id.increase();
 
-        todo!("set max coutner id");
-        todo!("only allocate on loaded/not allocate meshes");
+        let to_allocate = &mut self.entries[index];
+        to_allocate.counter_id = counter_id;
+
+        panic!(create mesh)
+
 
         Ok(true)
     }
@@ -109,13 +111,15 @@ impl TerrainMeshLookup {
                 value => entry.value = value,
             }
 
-            match max.take() {
-                Some((_, max_counter_id)) => {
+            max = match max.take() {
+                Some((max_index, max_counter_id)) => {
                     if entry.counter_id > max_counter_id {
-                        max = Some((i, entry.counter_id));
+                        Some((i, entry.counter_id))
+                    } else {
+                        Some((max_index, max_counter_id))
                     }
                 },
-                None => max = Some((i, entry.counter_id)),
+                None => Some((i, entry.counter_id)),
             }
         }
 
