@@ -5,12 +5,12 @@ fn should_should_add() {
     let mut counter = Counter::default();
 
     assert_eq!(counter.raw(), 0);
-    counter.add_one();
+    counter.increase();
     assert_eq!(counter.raw(), 1);
-    counter.add_one();
-    counter.add_one();
-    counter.add_one();
-    counter.add_one();
+    counter.increase();
+    counter.increase();
+    counter.increase();
+    counter.increase();
     assert_eq!(counter.raw(), 5);
 }
 
@@ -19,12 +19,12 @@ fn should_overflow() {
     let mut counter = Counter::from_raw(usize::MAX - 2);
 
     assert_eq!(counter.raw(), usize::MAX - 2);
-    counter.add_one();
-    counter.add_one();
-    counter.add_one();
+    counter.increase();
+    counter.increase();
+    counter.increase();
     assert_eq!(counter.raw(), 0);
-    counter.add_one();
-    counter.add_one();
+    counter.increase();
+    counter.increase();
     assert_eq!(counter.raw(), 2);
 }
 
