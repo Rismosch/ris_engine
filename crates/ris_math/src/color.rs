@@ -240,7 +240,11 @@ impl From<OkLch> for Vec3 {
 
 impl<T: Color3> From<Vec4> for Alpha<T> {
     fn from(value: Vec4) -> Self {
-        let color = T::from(Vec3::from(value));
+        let color = T::from(Vec3(
+            value.0,
+            value.1,
+            value.2,
+        ));
         let alpha = value.3;
 
         Self { color, alpha }

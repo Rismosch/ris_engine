@@ -112,6 +112,54 @@ impl Indices {
             },
         }
     }
+
+    pub fn usize_iter(&self) -> IndicesUsizeIter {
+        IndicesUsizeIter{
+            indices: &self,
+            i: 0,
+        }
+    }
+
+    pub fn triangles(&self) -> TriangleIter {
+        let indices = self.usize_iter();
+        TriangleIter{indices}
+    }
+}
+
+pub struct IndicesUsizeIter<'a> {
+    indices: &'a Indices,
+    i: usize,
+}
+
+pub struct TriangleIter<'a> {
+    indices: IndicesUsizeIter<'a>,
+}
+
+impl<'a> Iterator for IndicesUsizeIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = match self.indices {
+            Indices::U16(indices) => *indices.get(self.i)? as usize,
+            Indices::U32(indices) => *indices.get(self.i)? as usize,
+            Indices::U8(indices) => *indices.get(self.i)? as usize,
+            Indices::None => return None,
+        };
+
+        self.i += 1;
+        Some(index)
+    }
+}
+
+impl<'a> Iterator for TriangleIter<'a> {
+    type Item = (usize, usize, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let x = self.indices.next()?;
+        let y = self.indices.next()?;
+        let z = self.indices.next()?;
+        Some((x, y, z))
+    }
 }
 
 #[derive(Debug)]
@@ -396,6 +444,29 @@ impl GpuMesh {
                 buffer,
             }),
         })
+    }
+
+    pub fn overwrite_with_prototype(
+        &mut self,
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        value: MeshPrototype
+    ) -> RisResult<Self> {
+        let cpu_mesh = CpuMesh::try_from(value)?;
+        unsafe {self.overwrite_with_cpu_mesh(
+            device, 
+            physical_device_memory_properties,
+            cpu_mesh,
+        )}
+    }
+
+    pub unsafe fn overwrite_with_cpu_mesh(
+        &mut self,
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        value: CpuMesh,
+    ) -> RisResult<Self> {
+        todo!()
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {

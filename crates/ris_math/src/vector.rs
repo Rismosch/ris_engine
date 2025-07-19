@@ -47,12 +47,6 @@ impl From<Vec2> for [f32; 2] {
     }
 }
 
-impl From<Vec3> for Vec2 {
-    fn from(value: Vec3) -> Self {
-        Self(value.0, value.1)
-    }
-}
-
 impl Vec3 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value)
@@ -92,12 +86,6 @@ impl From<[f32; 3]> for Vec3 {
 impl From<Vec3> for [f32; 3] {
     fn from(value: Vec3) -> Self {
         [value.0, value.1, value.2]
-    }
-}
-
-impl From<Vec4> for Vec3 {
-    fn from(value: Vec4) -> Self {
-        Self(value.0, value.1, value.2)
     }
 }
 
