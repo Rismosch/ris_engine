@@ -1,14 +1,14 @@
-use ash::vk;
-
-use ris_asset_data::mesh::CpuMesh;
+use ris_asset_data::AssetId;
 use ris_asset_data::mesh::GpuMesh;
 use ris_asset_data::mesh::MeshLookupId;
-use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
 
-#[derive(Default)]
+use crate::assets::ris_terrain;
+use crate::RisGodAsset;
+
 pub struct TerrainMeshRingBuffer {
+    mesh_asset_id: AssetId,
     entries: Vec<Entry>,
     head: usize,
 }
@@ -24,6 +24,17 @@ enum EntryState {
 }
 
 impl TerrainMeshRingBuffer {
+    pub fn new(
+        god_asset: &RisGodAsset,
+        entries: usize,
+    ) -> Self {
+        Self {
+            mesh_asset_id: god_asset.terrain,
+            entries: Vec::with_capacity(entries),
+            head: 0,
+        }
+    }
+
     pub fn free(&mut self, device: &ash::Device) {
         for entry in self.entries.iter_mut() {
             if let Some(mut gpu_mesh) = entry.take_gpu_mesh() {
@@ -41,18 +52,34 @@ impl TerrainMeshRingBuffer {
             return Ok(false);
         }
 
-        if let Some(mut gpu_mesh) = entry.take_gpu_mesh() {
-            gpu_mesh.free(device);
-        }
+        let gpu_mesh = entry.take_gpu_mesh();
+        let receiver = crate::load_async(
+            self.mesh_asset_id.clone(),
+            move |bytes| {
+                let cpu_mesh = ris_terrain::deserialize(&bytes)?;
 
-        todo!("create mesh")
+                let gpu_mesh = match gpu_mesh {
+                    Some(mut gpu_mesh) => {
+                        panic!();
+                    },
+                    None => {
+                        panic!();
+                    }
+                };
+
+                Ok(gpu_mesh)
+            }
+        );
+        entry.value = Some(EntryState::Loading(receiver));
+
+        Ok(true)
     }
 
     pub fn get_latest_id(&mut self) -> Option<MeshLookupId> {
         let mut i = self.head;
         let count = self.entries.len();
         for _ in 0.. {
-            let mut entry = &mut self.entries[i];
+            let entry = &mut self.entries[i];
 
             match entry.value.take() {
                 Some(EntryState::Loading(receiver)) => match receiver.receive() {
