@@ -109,11 +109,14 @@ impl TerrainMeshRingBuffer {
 
                 let gpu_mesh = match gpu_mesh {
                     Some(mut gpu_mesh) => {
-                        gpu_mesh.overwrite_with_prototype(
+                        // # Safety
+                        //
+                        // this is safe, because the code above always creates the same amount of
+                        // data
+                        unsafe {gpu_mesh.overwrite_with_prototype(
                             &device,
-                            physical_device_memory_properties,
                             mesh_prototype,
-                        )?;
+                        )}?;
                         gpu_mesh
                     },
                     None => {

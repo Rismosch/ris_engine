@@ -407,6 +407,64 @@ impl GpuMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: CpuMesh,
     ) -> RisResult<Self> {
+        let buffer = Buffer::alloc(
+            device,
+            value.data.len() as vk::DeviceSize,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
+
+        let mut gpu_mesh = Self { inner: Some(GpuMeshInner {
+            p_vertices: Default::default(),
+            p_normals: Default::default(),
+            p_uvs: Default::default(),
+            p_indices: Default::default(),
+            index_count: Default::default(),
+            index_type: Default::default(),
+            buffer,
+        })};
+
+        gpu_mesh.overwrite_with_cpu_mesh(device, value)?;
+
+        Ok(gpu_mesh)
+    }
+
+    /// # Safety
+    ///
+    /// client code must ensure that this GpuMesh is big enough to fit
+    /// the prototype
+    pub unsafe fn overwrite_with_prototype(
+        &mut self,
+        device: &ash::Device,
+        value: MeshPrototype
+    ) -> RisResult<()> {
+        let cpu_mesh = CpuMesh::try_from(value)?;
+        self.overwrite_with_cpu_mesh(
+            device, 
+            cpu_mesh,
+        )
+    }
+
+    /// # Safety
+    ///
+    /// this method does not validate the CpuMesh. client code must
+    /// ensure that the pointers point inside the data array, and the
+    /// indices may not index outside the vertex range.
+    ///
+    /// additionally, client code must ensure that this GpuMesh is big 
+    /// enough to fit the CpuMesh.
+    pub unsafe fn overwrite_with_cpu_mesh(
+        &mut self,
+        device: &ash::Device,
+        value: CpuMesh,
+    ) -> RisResult<()> {
+        let Some(inner) = self.inner.as_mut() else {
+            return ris_error::new_result!("gpu mesh was freed");
+        };
+
         let p_vertices = value.p_vertices.addr;
         let p_normals = value.p_normals.addr;
         let p_uvs = value.p_uvs.addr;
@@ -422,51 +480,14 @@ impl GpuMesh {
         let index_count = value.p_indices.len as u32 / index_size as u32;
         let index_type = value.index_type;
 
-        let buffer = Buffer::alloc(
-            device,
-            value.data.len() as vk::DeviceSize,
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
-        unsafe { buffer.write(device, &value.data) }?;
+        inner.p_vertices = p_vertices;
+        inner.p_normals = p_normals;
+        inner.p_uvs = p_uvs;
+        inner.p_indices = p_indices;
+        inner.index_count = index_count;
+        inner.index_type = index_type;
 
-        Ok(GpuMesh {
-            inner: Some(GpuMeshInner {
-                p_vertices,
-                p_normals,
-                p_uvs,
-                p_indices,
-                index_count,
-                index_type,
-                buffer,
-            }),
-        })
-    }
-
-    pub fn overwrite_with_prototype(
-        &mut self,
-        device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        value: MeshPrototype
-    ) -> RisResult<Self> {
-        let cpu_mesh = CpuMesh::try_from(value)?;
-        unsafe {self.overwrite_with_cpu_mesh(
-            device, 
-            physical_device_memory_properties,
-            cpu_mesh,
-        )}
-    }
-
-    pub unsafe fn overwrite_with_cpu_mesh(
-        &mut self,
-        device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        value: CpuMesh,
-    ) -> RisResult<Self> {
-        todo!()
+        inner.buffer.write(device, &value.data)
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {
