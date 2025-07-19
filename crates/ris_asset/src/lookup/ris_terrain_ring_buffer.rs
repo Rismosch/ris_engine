@@ -111,8 +111,8 @@ impl TerrainMeshRingBuffer {
                     Some(mut gpu_mesh) => {
                         // # Safety
                         //
-                        // this is safe, because the code above always creates the same amount of
-                        // data
+                        // this is safe, because the code above always creates the 
+                        // same amount of data
                         unsafe {gpu_mesh.overwrite_with_prototype(
                             &device,
                             mesh_prototype,
