@@ -437,7 +437,7 @@ impl Script for PlanetScript {
 
             let width = 1 << 13;
             let height = width;
-            let grid_size = 1 << 4;
+            let grid_size = 1 << 9;
             let max_height = 0xFFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
