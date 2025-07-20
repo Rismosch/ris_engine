@@ -43,7 +43,6 @@ pub fn drag(label: impl AsRef<str>, value: &mut f32) -> RisResult<bool> {
     };
 
     Ok(changed)
-
 }
 
 pub fn drag_vec3(label: impl AsRef<str>, value: &mut Vec3) -> RisResult<bool> {

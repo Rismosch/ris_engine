@@ -8,8 +8,8 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
-use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::swapchain::FramebufferID;
+use ris_video_data::swapchain::SwapchainEntry;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -75,10 +75,7 @@ impl TerrainRenderer {
         }
     }
 
-    pub fn alloc(
-        core: &VulkanCore,
-        god_asset: &RisGodAsset,
-    ) -> RisResult<Self> {
+    pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
         ris_log::info!("building terrain renderer...");
 
         let VulkanCore {
@@ -98,15 +95,13 @@ impl TerrainRenderer {
         let fs_asset_future = ris_asset::load_raw_async(god_asset.terrain_frag_spv.clone());
 
         // descriptor sets
-        let descriptor_set_layout_bindings = [
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::VERTEX,
-                p_immutable_samplers: std::ptr::null(),
-            },
-        ];
+        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding {
+            binding: 0,
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            p_immutable_samplers: std::ptr::null(),
+        }];
 
         let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -120,12 +115,10 @@ impl TerrainRenderer {
             device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None)
         }?;
 
-        let descriptor_pool_sizes = [
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: swapchain.entries.len() as u32,
-            },
-        ];
+        let descriptor_pool_sizes = [vk::DescriptorPoolSize {
+            ty: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: swapchain.entries.len() as u32,
+        }];
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
@@ -136,9 +129,8 @@ impl TerrainRenderer {
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
 
-        let descriptor_pool = unsafe{
-            device.create_descriptor_pool(&descriptor_pool_create_info, None)
-        }?;
+        let descriptor_pool =
+            unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
@@ -153,9 +145,8 @@ impl TerrainRenderer {
             p_set_layouts: descriptor_set_layout_vec.as_ptr(),
         };
 
-        let descriptor_sets = unsafe {
-            device.allocate_descriptor_sets(&descriptor_set_allocate_info)
-        }?;
+        let descriptor_sets =
+            unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
         let vs_bytes = vs_asset_future.wait()?;
@@ -190,7 +181,7 @@ impl TerrainRenderer {
         let vertex_binding_descriptions = ris_asset_data::mesh::VERTEX_BINDING_DESCRIPTIONS;
         let vertex_attribute_descriptions = ris_asset_data::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
 
-        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo{
+        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
@@ -200,7 +191,7 @@ impl TerrainRenderer {
             p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         };
 
-        let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo{
+        let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
@@ -211,7 +202,7 @@ impl TerrainRenderer {
         let viewports = [vk::Viewport::default()];
         let scissors = [vk::Rect2D::default()];
 
-        let viewport_state = vk::PipelineViewportStateCreateInfo{
+        let viewport_state = vk::PipelineViewportStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
@@ -221,7 +212,7 @@ impl TerrainRenderer {
             p_scissors: scissors.as_ptr(),
         };
 
-        let rasterization_state = vk::PipelineRasterizationStateCreateInfo{
+        let rasterization_state = vk::PipelineRasterizationStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
@@ -237,7 +228,7 @@ impl TerrainRenderer {
             line_width: 1.0,
         };
 
-        let multisample_state = vk::PipelineMultisampleStateCreateInfo{
+        let multisample_state = vk::PipelineMultisampleStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
@@ -259,7 +250,7 @@ impl TerrainRenderer {
             reference: 0,
         };
 
-        let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo{
+        let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
@@ -274,7 +265,7 @@ impl TerrainRenderer {
             max_depth_bounds: 1.0,
         };
 
-        let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState{
+        let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
             blend_enable: vk::FALSE,
             src_color_blend_factor: vk::BlendFactor::ONE,
             dst_color_blend_factor: vk::BlendFactor::ZERO,
@@ -285,7 +276,7 @@ impl TerrainRenderer {
             color_write_mask: vk::ColorComponentFlags::RGBA,
         }];
 
-        let color_blend_state = vk::PipelineColorBlendStateCreateInfo{
+        let color_blend_state = vk::PipelineColorBlendStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineColorBlendStateCreateFlags::empty(),
@@ -297,7 +288,7 @@ impl TerrainRenderer {
         };
 
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
-        let dynamic_state = vk::PipelineDynamicStateCreateInfo{
+        let dynamic_state = vk::PipelineDynamicStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineDynamicStateCreateFlags::empty(),
@@ -318,10 +309,9 @@ impl TerrainRenderer {
             p_push_constant_ranges: std::ptr::null(),
         };
 
-        let pipeline_layout = unsafe {
-            device.create_pipeline_layout(&pipeline_layout_create_info, None)
-        }?;
-        
+        let pipeline_layout =
+            unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }?;
+
         // render pass
         let color_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
@@ -350,7 +340,7 @@ impl TerrainRenderer {
             final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         };
 
-        let color_attachment_references = [vk::AttachmentReference{
+        let color_attachment_references = [vk::AttachmentReference {
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
         }];
@@ -360,7 +350,7 @@ impl TerrainRenderer {
             layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         };
 
-        let subpass_descriptions = [vk::SubpassDescription{
+        let subpass_descriptions = [vk::SubpassDescription {
             flags: vk::SubpassDescriptionFlags::empty(),
             pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
             input_attachment_count: 0,
@@ -400,10 +390,10 @@ impl TerrainRenderer {
             p_dependencies: subpass_dependencies.as_ptr(),
         };
 
-        let render_pass = unsafe{device.create_render_pass(&render_pass_create_info, None)}?;
+        let render_pass = unsafe { device.create_render_pass(&render_pass_create_info, None) }?;
 
         // pipeline creation
-        let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo{
+        let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo {
             s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::PipelineCreateFlags::empty(),
@@ -425,11 +415,13 @@ impl TerrainRenderer {
             base_pipeline_index: -1,
         }];
 
-        let graphics_pipelines = unsafe {device.create_graphics_pipelines(
-            vk::PipelineCache::null(),
-            &graphics_pipeline_create_info,
-            None,
-        )}
+        let graphics_pipelines = unsafe {
+            device.create_graphics_pipelines(
+                vk::PipelineCache::null(),
+                &graphics_pipeline_create_info,
+                None,
+            )
+        }
         .map_err(|e| e.1)?;
         let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
@@ -472,10 +464,8 @@ impl TerrainRenderer {
         }
 
         // lookup
-        let terrain_mesh_ring_buffer = TerrainMeshRingBuffer::new(
-            god_asset,
-            core.swapchain.entries.len(),
-        );
+        let terrain_mesh_ring_buffer =
+            TerrainMeshRingBuffer::new(god_asset, core.swapchain.entries.len());
 
         // mesh
         Ok(Self {
@@ -491,10 +481,7 @@ impl TerrainRenderer {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        args: TerrainRendererArgs,
-    ) -> RisResult<()> {
+    pub fn draw(&mut self, args: TerrainRendererArgs) -> RisResult<()> {
         let TerrainRendererArgs {
             core,
             swapchain_entry,
@@ -536,10 +523,9 @@ impl TerrainRenderer {
         if elapsed > std::time::Duration::from_secs(1) {
             self.time_since_last_alloc = now;
 
-            let allocated = self.terrain_mesh_ring_buffer.alloc(
-                device,
-                physical_device_memory_properties,
-            )?;
+            let allocated = self
+                .terrain_mesh_ring_buffer
+                .alloc(device, physical_device_memory_properties)?;
 
             if !allocated {
                 ris_log::warning!("did not allocate terrain");
@@ -551,7 +537,7 @@ impl TerrainRenderer {
             Some(new_mesh_lookup_id) => {
                 *mesh_lookup_id = Some(new_mesh_lookup_id.clone());
                 new_mesh_lookup_id
-            },
+            }
             None => return Ok(()),
         };
 
@@ -642,7 +628,7 @@ impl TerrainRenderer {
             }];
             descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
 
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo{
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
                 buffer: descriptor_buffer.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
@@ -688,14 +674,7 @@ impl TerrainRenderer {
                 mesh.index_type()?,
             );
 
-            device.cmd_draw_indexed(
-                *command_buffer, 
-                mesh.index_count()?,
-                1,
-                0,
-                0,
-                0,
-            );
+            device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);
 
             device.cmd_end_render_pass(*command_buffer);
         }

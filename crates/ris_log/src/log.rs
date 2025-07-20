@@ -132,10 +132,7 @@ pub fn get_timestamp() -> DateTime<Local> {
     Local::now()
 }
 
-pub fn can_log(
-    log_level: LogLevel,
-    message_priority: LogLevel,
-) -> bool {
+pub fn can_log(log_level: LogLevel, message_priority: LogLevel) -> bool {
     match message_priority {
         LogLevel::None => false,
         message_priority => message_priority >= log_level,

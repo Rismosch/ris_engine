@@ -2465,8 +2465,7 @@ impl Vec3 {
     pub fn angle(a: Self, b: Self) -> f32 {
         let d = a.dot(b);
         let m = a.length() * b.length();
-        let theta = f32::acos(d / m);
-        theta
+        f32::acos(d / m)
     }
 
     pub fn signed_angle(a: Self, b: Self, axis: Self) -> f32 {
@@ -2480,7 +2479,6 @@ impl Vec3 {
         let ab = b - a;
         let ap = p - a;
         let alpha = Self::angle(ab, ap);
-        let distance = f32::sin(alpha) * ap.length();
-        distance
+        f32::sin(alpha) * ap.length()
     }
 }

@@ -127,6 +127,14 @@ impl MeshLookup {
         Ok(())
     }
 
+    /// # Safety
+    ///
+    /// only pass MeshLookupIds that were returned from this lookup container. this is
+    /// because the id is tied to the gpu mesh. if the id goes out of scope, the mesh
+    /// will be freed, potentially screwing a currently running render pipeline.
+    ///
+    /// additionaly, also because of the reason given above, the MeshLookupId must live
+    /// longer than the entire time the GpuMesh is bound.
     pub unsafe fn get(&mut self, id: &MeshLookupId) -> Option<&GpuMesh> {
         let entry = self.entries.get_mut(id.index())?;
 

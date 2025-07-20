@@ -53,10 +53,7 @@ impl Script for TestRotationScript {
             &mut self.rotation_axis,
         )?;
 
-        ris_core::inspector_util::drag(
-            format!("rotation axis##{}", id),
-            &mut self.rotation_speed,
-        )?;
+        ris_core::inspector_util::drag(format!("rotation axis##{}", id), &mut self.rotation_speed)?;
 
         Ok(())
     }

@@ -1,19 +1,18 @@
 use std::path::PathBuf;
-use std::usize;
 
 use ris_asset::assets::ris_mesh;
 use ris_asset::assets::ris_terrain;
-use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::Indices;
-use ris_asset_data::terrain_mesh::TerrainVertex;
-use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
+use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::terrain_mesh::TerrainCpuMesh;
-use ris_data::ecs::script_prelude::*;
+use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
+use ris_asset_data::terrain_mesh::TerrainVertex;
 use ris_data::ecs::components::mesh_component::MeshComponent;
+use ris_data::ecs::script_prelude::*;
+use ris_math::color::Rgb;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-use ris_math::color::Rgb;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 /*
@@ -86,13 +85,10 @@ pub struct PlanetScript {
 
 impl Default for PlanetScript {
     fn default() -> Self {
-        let seed = ris_error::unwrap!(
-           Seed::new(),
-           "failed to generate seed",
-        );
+        let seed = ris_error::unwrap!(Seed::new(), "failed to generate seed",);
         let rng = Rng::new(seed);
 
-        Self{
+        Self {
             _rng: rng,
             subdivisions: 5,
             magnitude: 0.05,
@@ -130,7 +126,6 @@ impl Script for PlanetScript {
         } = data;
 
         if ui.button("benchmark") {
-
             let start = std::time::Instant::now();
 
             let view_distance = 13000;
@@ -191,12 +186,8 @@ impl Script for PlanetScript {
 
             // vertices
             let mut vertices = vec![
-                v0, v4, v2, v6, v2, v4,
-                v0, v1, v4, v5, v4, v1,
-                v0, v2, v1, v3, v1, v2,
-                v7, v5, v3, v1, v3, v5,
-                v7, v3, v6, v2, v6, v3,
-                v7, v6, v5, v4, v5, v6,
+                v0, v4, v2, v6, v2, v4, v0, v1, v4, v5, v4, v1, v0, v2, v1, v3, v1, v2, v7, v5, v3,
+                v1, v3, v5, v7, v3, v6, v2, v6, v3, v7, v6, v5, v4, v5, v6,
             ];
 
             for subdivision in 0..self.subdivisions {
@@ -307,9 +298,13 @@ impl Script for PlanetScript {
             }
 
             // generate mesh
-            ris_log::trace!("generate mesh... vertices: {} indices: {}", vertices.len(), indices.len());
+            ris_log::trace!(
+                "generate mesh... vertices: {} indices: {}",
+                vertices.len(),
+                indices.len()
+            );
             let indices = Indices::U32(indices);
-            let prototype = MeshPrototype{
+            let prototype = MeshPrototype {
                 vertices,
                 normals,
                 uvs,
@@ -335,7 +330,7 @@ impl Script for PlanetScript {
             let handle = game_object.get_component::<MeshComponent>(&state.scene, GetFrom::This)?;
             let handle = match handle {
                 Some(handle) => handle,
-                None => game_object.add_component(&state.scene)?
+                None => game_object.add_component(&state.scene)?,
             };
 
             let mesh_component = state.scene.deref(handle)?;
@@ -346,7 +341,7 @@ impl Script for PlanetScript {
             let milliseconds = total_duration.as_secs_f32() * 1000.0;
             ris_log::trace!("done! duration: {}ms", milliseconds);
         } // generate mesh
-        
+
         if ui.button("generate mesh for terrain renderer") {
             let start = std::time::Instant::now();
             ris_log::trace!("generate prototype...");
@@ -354,7 +349,7 @@ impl Script for PlanetScript {
             // vertices
             ris_log::trace!("vertices...");
             let mut vertices = Vec::new();
-            let tiles = 1<<3;
+            let tiles = 1 << 3;
             for i in 0..tiles {
                 for j in 0..tiles {
                     let offset = tiles / 2;
@@ -385,13 +380,13 @@ impl Script for PlanetScript {
                 match lookup.get(vertex) {
                     Some(index) => {
                         indices.push(*index);
-                    },
+                    }
                     None => {
                         let index = unique_vertices.len() as u32;
                         unique_vertices.push(*vertex);
                         indices.push(index);
                         lookup.insert(*vertex, index);
-                    },
+                    }
                 }
             }
 
@@ -443,7 +438,7 @@ impl Script for PlanetScript {
             let my = z / y;
             let y_ = z_ / my;
             let p_ = Vec3(sign, y_, z_);
-            
+
             ris_debug::gizmo::point(p_, Some(Rgb::red()))?;
             ui.label_text("point", format!("{:?}", p_));
             if p.0.is_sign_positive() {
@@ -517,22 +512,22 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
     //    0x2b, 0x16, 0xbe, 0x58, 0x7d, 0x47, 0xa1, 0xfc, 0x8f, 0xf8, 0xb8, 0xd1, 0x7a, 0xd0, 0x31, 0xce,
     //    0x45, 0xcb, 0x3a, 0x8f, 0x95, 0x16, 0x04, 0x28, 0xaf, 0xd7, 0xfb, 0xca, 0xbb, 0x4b, 0x40, 0x7e,
     //];
-    
+
     //let bitflip1 = (u64::from_le_bytes(secret[24..32].try_into().unwrap()) ^ u64::from_le_bytes(secret[32..40].try_into().unwrap())).wrapping_add(seed);
     //let bitflip2 = (u64::from_le_bytes(secret[40..48].try_into().unwrap()) ^ u64::from_le_bytes(secret[48..56].try_into().unwrap())).wrapping_sub(seed);
 
     let bitflip1 = 7458650908927343033u64.wrapping_add(seed);
     let bitflip2 = 12634492766384443962u64.wrapping_sub(seed);
-    
+
     let input_lo = (input_0 | (input_1 << 32)) ^ bitflip1;
     //let input_hi = (input1 | (input2 << 32)) ^ bitflip2;
     let input_hi = input_2 ^ bitflip2;
 
-
     let mul128 = (input_lo as u128).wrapping_mul(input_hi as u128);
     let fold64 = (mul128 as u64) ^ ((mul128 << 64) as u64);
     let acc = 12u64
-        .wrapping_add(input_lo.swap_bytes()).wrapping_add(input_hi)
+        .wrapping_add(input_lo.swap_bytes())
+        .wrapping_add(input_hi)
         .wrapping_add(fold64);
 
     // XXH3_avalanche(acc)
@@ -543,4 +538,3 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
     h64 = h64 ^ (h64 >> 32);
     h64
 }
-

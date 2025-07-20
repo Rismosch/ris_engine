@@ -31,11 +31,7 @@ fn should_add() {
     assert_eq!(mesh, mesh_);
 }
 
-fn build_scene() -> (
-    Scene,
-    Vec<GameObjectHandle>,
-    Vec<MeshComponentHandle>,
-) {
+fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
     let scene = Scene::new(scene_create_info()).unwrap();
     let mut game_objects = Vec::new();
     let mut mesh_components = Vec::new();

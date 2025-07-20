@@ -51,9 +51,9 @@ pub struct ImguiRenderer {
 }
 
 pub struct ImguiRendererArgs<'a> {
-   pub core: &'a VulkanCore,
-   pub swapchain_entry: &'a SwapchainEntry,
-   pub draw_data: &'a DrawData,
+    pub core: &'a VulkanCore,
+    pub swapchain_entry: &'a SwapchainEntry,
+    pub draw_data: &'a DrawData,
 }
 
 impl ImguiRenderer {
@@ -497,9 +497,7 @@ impl ImguiRenderer {
 
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
-            let frame = ImguiFrame {
-                mesh: None,
-            };
+            let frame = ImguiFrame { mesh: None };
 
             frames.push(frame);
         }
@@ -521,10 +519,7 @@ impl ImguiRenderer {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        args: ImguiRendererArgs,
-    ) -> RisResult<()> {
+    pub fn draw(&mut self, args: ImguiRendererArgs) -> RisResult<()> {
         let ImguiRendererArgs {
             core,
             swapchain_entry,
@@ -586,12 +581,14 @@ impl ImguiRenderer {
         };
 
         // render pass
-        let framebuffer = unsafe {framebuffer_allocator.borrow_mut().get(
-            self.framebuffer_id, 
-            device, 
-            framebuffer_create_info,
-        )}?;
-        
+        let framebuffer = unsafe {
+            framebuffer_allocator.borrow_mut().get(
+                self.framebuffer_id,
+                device,
+                framebuffer_create_info,
+            )
+        }?;
+
         let clear_values = [vk::ClearValue {
             color: vk::ClearColorValue {
                 float32: [0.0, 0.0, 0.0, 0.0],

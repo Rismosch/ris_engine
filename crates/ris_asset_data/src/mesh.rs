@@ -109,20 +109,20 @@ impl Indices {
             index_type => {
                 ris_log::error!("unkown index type: {:?}", index_type);
                 0
-            },
+            }
         }
     }
 
     pub fn usize_iter(&self) -> IndicesUsizeIter {
-        IndicesUsizeIter{
-            indices: &self,
+        IndicesUsizeIter {
+            indices: self,
             i: 0,
         }
     }
 
     pub fn triangles(&self) -> TriangleIter {
         let indices = self.usize_iter();
-        TriangleIter{indices}
+        TriangleIter { indices }
     }
 }
 
@@ -135,7 +135,7 @@ pub struct TriangleIter<'a> {
     indices: IndicesUsizeIter<'a>,
 }
 
-impl<'a> Iterator for IndicesUsizeIter<'a> {
+impl Iterator for IndicesUsizeIter<'_> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -151,7 +151,7 @@ impl<'a> Iterator for IndicesUsizeIter<'a> {
     }
 }
 
-impl<'a> Iterator for TriangleIter<'a> {
+impl Iterator for TriangleIter<'_> {
     type Item = (usize, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -259,7 +259,7 @@ impl TryFrom<CpuMesh> for MeshPrototype {
                 }
 
                 Indices::U16(indices)
-            },
+            }
             vk::IndexType::UINT32 => {
                 let mut indices = Vec::with_capacity(index_count);
                 for _ in 0..index_count {
@@ -268,9 +268,8 @@ impl TryFrom<CpuMesh> for MeshPrototype {
                 }
 
                 Indices::U32(indices)
-            },
+            }
             vk::IndexType::UINT8_EXT => {
-
                 let mut indices = Vec::with_capacity(index_count);
                 for _ in 0..index_count {
                     let index = ris_io::read_u8(s)?;
@@ -278,7 +277,7 @@ impl TryFrom<CpuMesh> for MeshPrototype {
                 }
 
                 Indices::U8(indices)
-            },
+            }
             vk::IndexType::NONE_KHR => Indices::None,
             index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
         };
@@ -306,19 +305,19 @@ impl TryFrom<MeshPrototype> for CpuMesh {
                     let index = usize::from(index);
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::U32(indices) => {
                 for &index in indices.iter() {
                     let index = usize::try_from(index)?;
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::U8(indices) => {
                 for &index in indices.iter() {
                     let index = usize::from(index);
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::None => (),
         }
 
@@ -345,21 +344,21 @@ impl TryFrom<MeshPrototype> for CpuMesh {
                 }
 
                 vk::IndexType::UINT16
-            },
+            }
             Indices::U32(indices) => {
                 for index in indices {
                     ris_io::write_u32(s, index)?;
                 }
 
                 vk::IndexType::UINT32
-            },
+            }
             Indices::U8(indices) => {
                 for index in indices {
                     ris_io::write_u8(s, index)?;
                 }
 
                 vk::IndexType::UINT8_EXT
-            },
+            }
             Indices::None => vk::IndexType::NONE_KHR,
         };
         let end = ris_io::seek(s, SeekFrom::Current(0))?;
@@ -417,15 +416,17 @@ impl GpuMesh {
             physical_device_memory_properties,
         )?;
 
-        let mut gpu_mesh = Self { inner: Some(GpuMeshInner {
-            p_vertices: Default::default(),
-            p_normals: Default::default(),
-            p_uvs: Default::default(),
-            p_indices: Default::default(),
-            index_count: Default::default(),
-            index_type: Default::default(),
-            buffer,
-        })};
+        let mut gpu_mesh = Self {
+            inner: Some(GpuMeshInner {
+                p_vertices: Default::default(),
+                p_normals: Default::default(),
+                p_uvs: Default::default(),
+                p_indices: Default::default(),
+                index_count: Default::default(),
+                index_type: Default::default(),
+                buffer,
+            }),
+        };
 
         gpu_mesh.overwrite_with_cpu_mesh(device, value)?;
 
@@ -439,13 +440,10 @@ impl GpuMesh {
     pub unsafe fn overwrite_with_prototype(
         &mut self,
         device: &ash::Device,
-        value: MeshPrototype
+        value: MeshPrototype,
     ) -> RisResult<()> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        self.overwrite_with_cpu_mesh(
-            device, 
-            cpu_mesh,
-        )
+        self.overwrite_with_cpu_mesh(device, cpu_mesh)
     }
 
     /// # Safety
@@ -454,7 +452,7 @@ impl GpuMesh {
     /// ensure that the pointers point inside the data array, and the
     /// indices may not index outside the vertex range.
     ///
-    /// additionally, client code must ensure that this GpuMesh is big 
+    /// additionally, client code must ensure that this GpuMesh is big
     /// enough to fit the CpuMesh.
     pub unsafe fn overwrite_with_cpu_mesh(
         &mut self,

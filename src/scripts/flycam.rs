@@ -41,7 +41,8 @@ impl Script for FlyCam {
         }
 
         let rotation_speed = 2. * frame.average_seconds();
-        let translation_speed = frame.average_seconds() * self.translation_speed_in_meters_per_second;
+        let translation_speed =
+            frame.average_seconds() * self.translation_speed_in_meters_per_second;
 
         let mut camera = state.camera.borrow_mut();
 
@@ -134,14 +135,8 @@ impl Script for FlyCam {
             format!("camera position##{}", id),
             &mut camera.position,
         )?;
-        ris_core::inspector_util::drag(
-            format!("far##{}", id),
-            &mut camera.far,
-        )?;
-        ris_core::inspector_util::drag(
-            format!("near##{}", id),
-            &mut camera.near,
-        )?;
+        ris_core::inspector_util::drag(format!("far##{}", id), &mut camera.far)?;
+        ris_core::inspector_util::drag(format!("near##{}", id), &mut camera.near)?;
 
         ris_core::inspector_util::drag(
             format!("translation speed (m/s)##{}", id),

@@ -432,7 +432,7 @@ impl GizmoSegmentRenderer {
 
         // frames
         let framebuffer_id = swapchain.register_renderer()?;
-        
+
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };

@@ -2,8 +2,8 @@ use std::ptr;
 
 use ash::vk;
 
-use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_asset::codecs::qoi;
+use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
@@ -516,7 +516,7 @@ impl SceneRenderer {
 
         // frames
         let framebuffer_id = swapchain.register_renderer()?;
-        
+
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {
@@ -565,10 +565,7 @@ impl SceneRenderer {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        args: SceneRendererArgs,
-    ) -> RisResult<()> {
+    pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<()> {
         let SceneRendererArgs {
             core,
             swapchain_entry,

@@ -281,17 +281,18 @@ pub fn import(
                 let mut dependency_history = Vec::new();
                 dependency_history.push(file_path.clone());
 
-                let include_content = resolve_include(
-                    &current_region,
-                    &mut shader,
-                    &splits,
+                let args = ResolveIncludeArgs {
+                    current_region: &current_region,
+                    shader: &mut shader,
+                    splits: &splits,
                     root_dir,
-                    &mut already_included,
-                    &mut dependency_history,
-                    &mut define_map,
+                    already_included: &mut already_included,
+                    dependency_history: &mut dependency_history,
+                    define_map: &mut define_map,
                     file,
                     line,
-                )?;
+                };
+                let include_content = resolve_include(args)?;
 
                 add_content(
                     &include_content,
@@ -385,17 +386,31 @@ fn preproc_fail<T>(message: &str, file: &str, line: usize) -> RisResult<T> {
     ris_error::new_result!("preproc assert failed: {} in {}:{}", message, file, line,)
 }
 
-fn resolve_include(
-    current_region: &Region,
-    shader: &mut Shader,
-    splits: &[&str],
-    root_dir: &Path,
-    already_included: &mut Vec<PathBuf>,
-    dependency_history: &mut Vec<PathBuf>,
-    define_map: &mut HashMap<String, String>,
-    file: &str,
+struct ResolveIncludeArgs<'a> {
+    current_region: &'a Region,
+    shader: &'a mut Shader,
+    splits: &'a [&'a str],
+    root_dir: &'a Path,
+    already_included: &'a mut Vec<PathBuf>,
+    dependency_history: &'a mut Vec<PathBuf>,
+    define_map: &'a mut HashMap<String, String>,
+    file: &'a str,
     line: usize,
-) -> RisResult<String> {
+}
+
+fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
+    let ResolveIncludeArgs {
+        current_region,
+        shader,
+        splits,
+        root_dir,
+        already_included,
+        dependency_history,
+        define_map,
+        file,
+        line,
+    } = args;
+
     // create path
     preproc_assert_arg_count(splits.len(), 2, file, line)?;
     let to_include = splits[1];
@@ -446,11 +461,7 @@ fn resolve_include(
 
     // parse content
     let include_path_comment = include_path.to_str().into_ris_error()?.replace('\\', "/");
-    let mut result = format!(
-        "{} INCLUDE {}",
-        MACRO_COMMENT_INCLUDE,
-        include_path_comment,
-    );
+    let mut result = format!("{} INCLUDE {}", MACRO_COMMENT_INCLUDE, include_path_comment,);
 
     let mut line = 0;
     for input_line in file_content.lines().skip(1) {
@@ -461,27 +472,22 @@ fn resolve_include(
 
         match first_split {
             MACRO_DEFINE => {
-                add_define(
-                    current_region,
-                    shader,
-                    define_map,
-                    &splits,
-                    file,
-                    line,
-                )?;
+                add_define(current_region, shader, define_map, &splits, file, line)?;
             }
             MACRO_INCLUDE => {
-                let include_content = resolve_include(
+                let args = ResolveIncludeArgs {
                     current_region,
                     shader,
-                    &splits,
+                    splits: &splits,
                     root_dir,
                     already_included,
                     dependency_history,
                     define_map,
                     file,
                     line,
-                )?;
+                };
+
+                let include_content = resolve_include(args)?;
 
                 result.push('\n');
                 result.push_str(&include_content);
@@ -495,8 +501,7 @@ fn resolve_include(
 
     result.push_str(&format!(
         "\n{} END {}",
-        MACRO_COMMENT_INCLUDE,
-        include_path_comment,
+        MACRO_COMMENT_INCLUDE, include_path_comment,
     ));
     Ok(result)
 }

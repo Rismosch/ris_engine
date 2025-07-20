@@ -180,8 +180,7 @@ impl OutputFrame {
 
                 self.renderer.scene =
                     SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
-                self.renderer.terrain =
-                    TerrainRenderer::alloc(&self.core, god_asset)?;
+                self.renderer.terrain = TerrainRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
                 #[cfg(feature = "ui_helper_enabled")]
@@ -298,7 +297,7 @@ impl OutputFrame {
             let draw_data = self.imgui_backend.context().render();
 
             ris_debug::add_record!(r, "imgui frontend")?;
-            let args = ImguiRendererArgs{
+            let args = ImguiRendererArgs {
                 core: &self.core,
                 swapchain_entry,
                 draw_data,

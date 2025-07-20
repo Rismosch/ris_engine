@@ -1,4 +1,3 @@
-
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Counter(usize);
 
@@ -36,4 +35,3 @@ impl Counter {
         self.0 = self.0.wrapping_add(1);
     }
 }
-

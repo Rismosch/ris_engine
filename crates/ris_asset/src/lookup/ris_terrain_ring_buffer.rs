@@ -2,16 +2,16 @@ use std::f32::consts::PI;
 
 use ash::vk;
 
-use ris_asset_data::AssetId;
-use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
-use ris_asset_data::mesh::MeshPrototype;
 use ris_asset_data::mesh::GpuMesh;
 use ris_asset_data::mesh::MeshLookupId;
+use ris_asset_data::mesh::MeshPrototype;
+use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
+use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
+use ris_math::quaternion::Quat;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-use ris_math::quaternion::Quat;
 
 use crate::assets::ris_terrain;
 use crate::RisGodAsset;
@@ -23,7 +23,7 @@ pub struct TerrainMeshRingBuffer {
     offset: Vec3,
 }
 
-struct Entry{
+struct Entry {
     lookup_id: MeshLookupId,
     value: Option<EntryState>,
 }
@@ -34,10 +34,7 @@ enum EntryState {
 }
 
 impl TerrainMeshRingBuffer {
-    pub fn new(
-        god_asset: &RisGodAsset,
-        entries: usize,
-    ) -> Self {
+    pub fn new(god_asset: &RisGodAsset, entries: usize) -> Self {
         let mut entries = Vec::with_capacity(entries);
         for i in 0..entries.capacity() {
             let entry = Entry {
@@ -67,7 +64,7 @@ impl TerrainMeshRingBuffer {
     pub fn alloc(
         &mut self,
         device: &ash::Device,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<bool> {
         let new_head = (self.head + 1) % self.entries.len();
         let entry = &mut self.entries[new_head];
@@ -85,74 +82,62 @@ impl TerrainMeshRingBuffer {
         let gpu_mesh = entry.take_gpu_mesh();
         let device = device.clone();
         let offset = self.offset;
-        let receiver = crate::load_async(
-            self.mesh_asset_id.clone(),
-            move |bytes| {
-                let terrain_cpu_mesh = ris_terrain::deserialize(&bytes)?;
-                let TerrainMeshPrototype {
-                    vertices: terrain_vertices,
-                    indices,
-                } = TerrainMeshPrototype::try_from(terrain_cpu_mesh)?;
-                let vertex_count = terrain_vertices.len();
+        let receiver = crate::load_async(self.mesh_asset_id.clone(), move |bytes| {
+            let terrain_cpu_mesh = ris_terrain::deserialize(&bytes)?;
+            let TerrainMeshPrototype {
+                vertices: terrain_vertices,
+                indices,
+            } = TerrainMeshPrototype::try_from(terrain_cpu_mesh)?;
+            let vertex_count = terrain_vertices.len();
 
-                // vertices
-                let mut vertices = Vec::with_capacity(vertex_count);
-                for terrain_vertex in terrain_vertices {
-                    let vertex = Vec3(
-                        terrain_vertex.0 as f32,
-                        terrain_vertex.1 as f32,
-                        0.0,
-                    );
-                    let vertex_with_offset = vertex + offset;
-                    vertices.push(vertex_with_offset);
-                }
-
-                // normals
-                let mut normals = Vec::with_capacity(vertices.len());
-                for _ in vertices.iter() {
-                    let normal = Vec3::up();
-                    normals.push(normal);
-                }
-                
-                // uvs
-                let mut uvs = Vec::with_capacity(vertices.len());
-                for _ in vertices.iter() {
-                    let uv = Vec2(1.0, 1.0);
-                    uvs.push(uv);
-                }
-
-                let mesh_prototype = MeshPrototype {
-                    vertices,
-                    normals,
-                    uvs,
-                    indices,
-                };
-
-                let gpu_mesh = match gpu_mesh {
-                    Some(mut gpu_mesh) => {
-                        // # Safety
-                        //
-                        // this is safe, because the code above always creates the 
-                        // same amount of data
-                        unsafe {gpu_mesh.overwrite_with_prototype(
-                            &device,
-                            mesh_prototype,
-                        )}?;
-                        gpu_mesh
-                    },
-                    None => {
-                        GpuMesh::from_prototype(
-                            &device,
-                            physical_device_memory_properties,
-                            mesh_prototype,
-                        )?
-                    }
-                };
-
-                Ok(gpu_mesh)
+            // vertices
+            let mut vertices = Vec::with_capacity(vertex_count);
+            for terrain_vertex in terrain_vertices {
+                let vertex = Vec3(terrain_vertex.0 as f32, terrain_vertex.1 as f32, 0.0);
+                let vertex_with_offset = vertex + offset;
+                vertices.push(vertex_with_offset);
             }
-        );
-        
+
+            // normals
+            let mut normals = Vec::with_capacity(vertices.len());
+            for _ in vertices.iter() {
+                let normal = Vec3::up();
+                normals.push(normal);
+            }
+
+            // uvs
+            let mut uvs = Vec::with_capacity(vertices.len());
+            for _ in vertices.iter() {
+                let uv = Vec2(1.0, 1.0);
+                uvs.push(uv);
+            }
+
+            let mesh_prototype = MeshPrototype {
+                vertices,
+                normals,
+                uvs,
+                indices,
+            };
+
+            let gpu_mesh = match gpu_mesh {
+                Some(mut gpu_mesh) => {
+                    // # Safety
+                    //
+                    // this is safe, because the code above always creates the
+                    // same amount of data
+                    unsafe { gpu_mesh.overwrite_with_prototype(&device, mesh_prototype) }?;
+                    gpu_mesh
+                }
+                None => GpuMesh::from_prototype(
+                    &device,
+                    physical_device_memory_properties,
+                    mesh_prototype,
+                )?,
+            };
+
+            Ok(gpu_mesh)
+        });
+
         entry.value = Some(EntryState::Loading(receiver));
 
         Ok(true)
@@ -169,8 +154,8 @@ impl TerrainMeshRingBuffer {
                     Ok(Ok(gpu_mesh)) => {
                         entry.value = Some(EntryState::Loaded(gpu_mesh));
                         let id = entry.lookup_id.clone();
-                        return Some(id)
-                    },
+                        return Some(id);
+                    }
                     Ok(Err(e)) => ris_log::warning!("failed to load terrain: {}", e),
                     Err(receiver) => entry.value = Some(EntryState::Loading(receiver)),
                 },
@@ -180,7 +165,7 @@ impl TerrainMeshRingBuffer {
                         let id = entry.lookup_id.clone();
                         return Some(id);
                     }
-                },
+                }
             }
 
             if i == 0 {
@@ -193,6 +178,14 @@ impl TerrainMeshRingBuffer {
         None
     }
 
+    /// # Safety
+    ///
+    /// only pass MeshLookupIds that were returned from this lookup container. this is
+    /// because the id is tied to the GpuMesh. if the id goes out of scope, the mesh
+    /// will be freed, potentially screwing a currently running render pipeline.
+    ///
+    /// additionaly, also because of the reason given above, the MeshLookupId must live
+    /// longer than the entire time the GpuMesh is bound.
     pub unsafe fn get(&mut self, id: &MeshLookupId) -> RisResult<&GpuMesh> {
         let entry = self.entries.get(id.index()).into_ris_error()?;
         match entry.value.as_ref() {
@@ -217,4 +210,3 @@ impl Entry {
         }
     }
 }
-

@@ -255,7 +255,7 @@ impl VulkanCore {
 
         let frames_in_flight = swapchain.frames_in_flight.take();
 
-        let first_entry = swapchain.entries.get(0).into_ris_error()?;
+        let first_entry = swapchain.entries.first().into_ris_error()?;
         let framebuffer_count = first_entry.framebuffer_allocator.borrow().count();
 
         unsafe {

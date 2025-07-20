@@ -62,7 +62,7 @@ impl TryFrom<TerrainCpuMesh> for TerrainMeshPrototype {
                 }
 
                 Indices::U16(indices)
-            },
+            }
             vk::IndexType::UINT32 => {
                 let mut indices = Vec::with_capacity(index_count);
                 for _ in 0..index_count {
@@ -71,7 +71,7 @@ impl TryFrom<TerrainCpuMesh> for TerrainMeshPrototype {
                 }
 
                 Indices::U32(indices)
-            },
+            }
             vk::IndexType::UINT8_EXT => {
                 let mut indices = Vec::with_capacity(index_count);
                 for _ in 0..index_count {
@@ -80,15 +80,12 @@ impl TryFrom<TerrainCpuMesh> for TerrainMeshPrototype {
                 }
 
                 Indices::U8(indices)
-            },
+            }
             vk::IndexType::NONE_KHR => Indices::None,
             index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
         };
 
-        Ok(Self{
-            vertices,
-            indices,
-        })
+        Ok(Self { vertices, indices })
     }
 }
 
@@ -104,19 +101,19 @@ impl TryFrom<TerrainMeshPrototype> for TerrainCpuMesh {
                     let index = usize::from(index);
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::U32(indices) => {
                 for &index in indices.iter() {
                     let index = usize::try_from(index)?;
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::U8(indices) => {
                 for &index in indices.iter() {
                     let index = usize::from(index);
                     ris_error::assert!(index < len)?;
                 }
-            },
+            }
             Indices::None => (),
         }
 
@@ -137,21 +134,21 @@ impl TryFrom<TerrainMeshPrototype> for TerrainCpuMesh {
                 }
 
                 vk::IndexType::UINT16
-            },
+            }
             Indices::U32(indices) => {
                 for index in indices {
                     ris_io::write_u32(s, index)?;
                 }
 
                 vk::IndexType::UINT32
-            },
+            }
             Indices::U8(indices) => {
                 for index in indices {
                     ris_io::write_u8(s, index)?;
                 }
 
                 vk::IndexType::UINT8_EXT
-            },
+            }
             Indices::None => vk::IndexType::NONE_KHR,
         };
         let end = ris_io::seek(s, SeekFrom::Current(0))?;
@@ -160,7 +157,7 @@ impl TryFrom<TerrainMeshPrototype> for TerrainCpuMesh {
         let p_indices = FatPtr::begin_end(indices_addr, end)?;
         let data = cursor.into_inner();
 
-        Ok(TerrainCpuMesh{
+        Ok(TerrainCpuMesh {
             p_vertices,
             p_indices,
             index_type,
@@ -168,4 +165,3 @@ impl TryFrom<TerrainMeshPrototype> for TerrainCpuMesh {
         })
     }
 }
-

@@ -133,10 +133,7 @@ pub unsafe extern "system" fn debug_callback(
         }
     };
 
-    let log_backtrace = ris_log::log::can_log(
-        BACKTRACE_LOG_LEVEL,
-        priority,
-    );
+    let log_backtrace = ris_log::log::can_log(BACKTRACE_LOG_LEVEL, priority);
 
     let backtrace_string = if log_backtrace {
         let backtrace = std::backtrace::Backtrace::force_capture();

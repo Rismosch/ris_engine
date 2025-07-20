@@ -78,7 +78,7 @@ impl FramebufferAllocator {
                 let new_framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
                 *framebuffer = Some(new_framebuffer);
                 Ok(new_framebuffer)
-            },
+            }
         }
     }
 }
@@ -328,11 +328,10 @@ impl Swapchain {
     }
 
     pub fn register_renderer(&self) -> RisResult<FramebufferID> {
-        let first_entry = self.entries.get(0).into_ris_error()?;
+        let first_entry = self.entries.first().into_ris_error()?;
         let id = FramebufferID(first_entry.framebuffer_allocator.borrow().0.len());
 
         for entry in self.entries.iter() {
-
             entry.framebuffer_allocator.borrow_mut().0.push(None);
         }
 

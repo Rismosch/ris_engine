@@ -8,7 +8,9 @@ use ris_error::prelude::*;
 use super::ris_header::RisHeader;
 
 // ris_terrain\0\0\0\0\0
-pub const MAGIC: [u8; 16] = [0x72,0x69,0x73,0x5F,0x74,0x65,0x72,0x72,0x61,0x69,0x6E,0x00,0x00,0x00,0x00,0x00];
+pub const MAGIC: [u8; 16] = [
+    0x72, 0x69, 0x73, 0x5F, 0x74, 0x65, 0x72, 0x72, 0x61, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
 pub const EXTENSION: &str = "ris_terrain";
 pub const COMPRESSION_LEVEL: u8 = 6;
 
@@ -40,7 +42,7 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<TerrainCpuMesh> {
     let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
     header.assert_magic(MAGIC)?;
 
-    let decompressed = miniz_oxide::inflate::decompress_to_vec(&content)
+    let decompressed = miniz_oxide::inflate::decompress_to_vec(content)
         .map_err(|e| ris_error::new!("failed to decompress: {:?}", e))?;
 
     let mut stream = Cursor::new(decompressed);
@@ -51,7 +53,7 @@ pub fn deserialize(bytes: &[u8]) -> RisResult<TerrainCpuMesh> {
     let index_type = vk::IndexType::from_raw(ris_io::read_i32(s)?);
     let data = ris_io::read_to_end(s)?;
 
-    Ok(TerrainCpuMesh{
+    Ok(TerrainCpuMesh {
         p_vertices,
         p_indices,
         index_type,
