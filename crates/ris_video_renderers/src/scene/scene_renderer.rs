@@ -101,6 +101,8 @@ impl SceneRenderer {
         god_asset: &RisGodAsset,
         mesh_lookup: Option<MeshLookup>,
     ) -> RisResult<Self> {
+        ris_log::info!("building scene renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -417,7 +419,7 @@ impl SceneRenderer {
             )?,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
-            store_op: vk::AttachmentStoreOp::DONT_CARE,
+            store_op: vk::AttachmentStoreOp::STORE,
             stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
             stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
             initial_layout: vk::ImageLayout::UNDEFINED,

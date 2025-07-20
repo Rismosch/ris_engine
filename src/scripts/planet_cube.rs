@@ -1,6 +1,4 @@
 use std::path::PathBuf;
-use std::f32::consts::PI;
-use std::hash::Hash;
 use std::usize;
 
 use ris_asset::assets::ris_mesh;
@@ -11,10 +9,8 @@ use ris_asset_data::mesh::Indices;
 use ris_asset_data::terrain_mesh::TerrainVertex;
 use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
 use ris_asset_data::terrain_mesh::TerrainCpuMesh;
-use ris_asset_data::terrain_mesh::TerrainGpuMesh;
 use ris_data::ecs::script_prelude::*;
 use ris_data::ecs::components::mesh_component::MeshComponent;
-use ris_error::prelude::*;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_math::color::Rgb;
@@ -83,7 +79,7 @@ distance = (2000 + r) * cos(asin((2000 + r) / r))
 
 #[derive(Debug)]
 pub struct PlanetScript {
-    rng: Rng,
+    _rng: Rng,
     subdivisions: usize,
     magnitude: f32,
 }
@@ -97,7 +93,7 @@ impl Default for PlanetScript {
         let rng = Rng::new(seed);
 
         Self{
-            rng,
+            _rng: rng,
             subdivisions: 5,
             magnitude: 0.05,
         }
@@ -105,33 +101,32 @@ impl Default for PlanetScript {
 }
 
 impl Script for PlanetScript {
-    fn start(&mut self, data: ScriptStartEndData) -> RisResult<()> {
+    fn start(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
 
-    fn update(&mut self, data: ScriptUpdateData) -> RisResult<()> {
+    fn update(&mut self, _data: ScriptUpdateData) -> RisResult<()> {
         Ok(())
     }
 
-    fn end(&mut self, data: ScriptStartEndData) -> RisResult<()> {
+    fn end(&mut self, _data: ScriptStartEndData) -> RisResult<()> {
         Ok(())
     }
 
-    fn serialize(&mut self, stream: &mut SceneWriter) -> RisResult<()> {
+    fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
         Ok(())
     }
 
-    fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
+    fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
         Ok(())
     }
 
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
         let ScriptInspectData {
-            id,
             ui,
             game_object,
-            frame,
             state,
+            ..
         } = data;
 
         if ui.button("benchmark") {

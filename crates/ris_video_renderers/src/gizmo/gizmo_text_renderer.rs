@@ -75,6 +75,8 @@ impl GizmoTextRenderer {
     }
 
     pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+        ris_log::info!("building gizmo text renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,

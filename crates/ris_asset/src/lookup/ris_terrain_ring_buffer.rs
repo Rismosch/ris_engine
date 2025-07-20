@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use ash::vk;
 
 use ris_asset_data::AssetId;
@@ -9,6 +11,7 @@ use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
+use ris_math::quaternion::Quat;
 
 use crate::assets::ris_terrain;
 use crate::RisGodAsset;
@@ -17,6 +20,7 @@ pub struct TerrainMeshRingBuffer {
     mesh_asset_id: AssetId,
     entries: Vec<Entry>,
     head: usize,
+    offset: Vec3,
 }
 
 struct Entry{
@@ -34,10 +38,21 @@ impl TerrainMeshRingBuffer {
         god_asset: &RisGodAsset,
         entries: usize,
     ) -> Self {
+        let mut entries = Vec::with_capacity(entries);
+        for i in 0..entries.capacity() {
+            let entry = Entry {
+                lookup_id: MeshLookupId::new(i),
+                value: None,
+            };
+
+            entries.push(entry);
+        }
+
         Self {
             mesh_asset_id: god_asset.terrain.clone(),
-            entries: Vec::with_capacity(entries),
+            entries,
             head: 0,
+            offset: Vec3(1.0, 1.0, 0.0),
         }
     }
 
@@ -56,15 +71,20 @@ impl TerrainMeshRingBuffer {
     ) -> RisResult<bool> {
         let new_head = (self.head + 1) % self.entries.len();
         let entry = &mut self.entries[new_head];
+        self.head = new_head;
 
         if !entry.lookup_id.is_unique() {
             // cannot allocate into the current entry, because the mesh is still in use
             return Ok(false);
         }
 
+        let rotation = Quat::angle_axis(PI / 2.0, Vec3(0.0, 0.0, 1.0));
+        self.offset = rotation.rotate(self.offset);
+
         // allocate into the current entry
         let gpu_mesh = entry.take_gpu_mesh();
         let device = device.clone();
+        let offset = self.offset;
         let receiver = crate::load_async(
             self.mesh_asset_id.clone(),
             move |bytes| {
@@ -83,7 +103,8 @@ impl TerrainMeshRingBuffer {
                         terrain_vertex.1 as f32,
                         0.0,
                     );
-                    vertices.push(vertex)
+                    let vertex_with_offset = vertex + offset;
+                    vertices.push(vertex_with_offset);
                 }
 
                 // normals
@@ -131,6 +152,7 @@ impl TerrainMeshRingBuffer {
                 Ok(gpu_mesh)
             }
         );
+        
         entry.value = Some(EntryState::Loading(receiver));
 
         Ok(true)
@@ -139,7 +161,7 @@ impl TerrainMeshRingBuffer {
     pub fn get_latest_id(&mut self) -> Option<MeshLookupId> {
         let mut i = self.head;
         let count = self.entries.len();
-        for _ in 0.. {
+        for _ in 0..count {
             let entry = &mut self.entries[i];
 
             match entry.value.take() {

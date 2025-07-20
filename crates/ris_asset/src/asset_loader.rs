@@ -160,7 +160,7 @@ where
 
 fn load_asset_thread(receiver: Receiver<Box<dyn LoadRequest>>, mut loader: InternalLoader) {
     for mut request in receiver.iter() {
-        ris_log::trace!("loading asset {:?}...", request.id());
+        //ris_log::trace!("loading asset {:?}...", request.id());
 
         let result = match &mut loader {
             InternalLoader::Compiled(loader) => match request.id() {

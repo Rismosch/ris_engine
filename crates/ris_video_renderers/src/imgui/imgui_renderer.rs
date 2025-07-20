@@ -81,6 +81,8 @@ impl ImguiRenderer {
         god_asset: &RisGodAsset,
         context: &mut Context,
     ) -> RisResult<Self> {
+        ris_log::info!("building imgui renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,

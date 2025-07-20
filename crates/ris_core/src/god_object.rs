@@ -152,7 +152,6 @@ impl GodObject {
 
         let mut vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
-
         // scene renderer
         let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
 

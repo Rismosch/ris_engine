@@ -1,22 +1,15 @@
-use std::io::SeekFrom;
-
 use ash::vk;
 
-use ris_asset::assets::ris_terrain;
+use ris_asset::lookup::ris_terrain_ring_buffer::TerrainMeshRingBuffer;
 use ris_asset::RisGodAsset;
-use ris_asset_data::terrain_mesh;
-use ris_asset_data::terrain_mesh::TerrainCpuMesh;
-use ris_asset_data::terrain_mesh::TerrainGpuMesh;
+use ris_asset_data::mesh::MeshLookupId;
 use ris_error::prelude::*;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
-use ris_math::vector::Vec2;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::swapchain::FramebufferID;
-use ris_video_data::texture::Texture;
-use ris_video_data::texture::TextureCreateInfo;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -30,6 +23,7 @@ pub struct TerrainFrame {
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
+    mesh_lookup_id: Option<MeshLookupId>,
 }
 
 impl TerrainFrame {
@@ -49,7 +43,8 @@ pub struct TerrainRenderer {
     pipeline_layout: vk::PipelineLayout,
     framebuffer_id: FramebufferID,
     frames: Vec<TerrainFrame>,
-    mesh: TerrainGpuMesh,
+    terrain_mesh_ring_buffer: TerrainMeshRingBuffer,
+    time_since_last_alloc: std::time::Instant,
 }
 
 pub struct TerrainRendererArgs<'a> {
@@ -65,7 +60,7 @@ impl TerrainRenderer {
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
-            self.mesh.free(device);
+            self.terrain_mesh_ring_buffer.free(device);
 
             for frame in self.frames.iter_mut() {
                 frame.free(device);
@@ -84,12 +79,12 @@ impl TerrainRenderer {
         core: &VulkanCore,
         god_asset: &RisGodAsset,
     ) -> RisResult<Self> {
+        ris_log::info!("building terrain renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,
             device,
-            graphics_queue,
-            transient_command_pool,
             swapchain,
             ..
         } = core;
@@ -97,23 +92,10 @@ impl TerrainRenderer {
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
-        let physical_device_properties =
-            unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
         // assets
         let vs_asset_future = ris_asset::load_raw_async(god_asset.terrain_vert_spv.clone());
         let fs_asset_future = ris_asset::load_raw_async(god_asset.terrain_frag_spv.clone());
-
-        let cloned_device = device.clone();
-        let terrain_asset_future = ris_asset::load_async(god_asset.terrain.clone(), move |bytes| {
-            let cpu_mesh = ris_terrain::deserialize(&bytes)?;
-
-            unsafe {TerrainGpuMesh::from_cpu_mesh(
-                &cloned_device,
-                physical_device_memory_properties,
-                cpu_mesh,
-            )}
-        });
 
         // descriptor sets
         let descriptor_set_layout_bindings = [
@@ -205,8 +187,8 @@ impl TerrainRenderer {
         ];
 
         // pipeline
-        let vertex_binding_descriptions = terrain_mesh::VERTEX_BINDING_DESCRIPTIONS;
-        let vertex_attribute_descriptions = terrain_mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
+        let vertex_binding_descriptions = ris_asset_data::mesh::VERTEX_BINDING_DESCRIPTIONS;
+        let vertex_attribute_descriptions = ris_asset_data::mesh::VERTEX_ATTRIBUTE_DESCRIPTIONS;
 
         let vertex_input_state = vk::PipelineVertexInputStateCreateInfo{
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -245,7 +227,7 @@ impl TerrainRenderer {
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
-            polygon_mode: vk::PolygonMode::LINE,
+            polygon_mode: vk::PolygonMode::FILL,
             cull_mode: vk::CullModeFlags::BACK,
             front_face: vk::FrontFace::CLOCKWISE,
             depth_bias_enable: vk::FALSE,
@@ -368,7 +350,6 @@ impl TerrainRenderer {
             final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         };
 
-
         let color_attachment_references = [vk::AttachmentReference{
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
@@ -452,8 +433,10 @@ impl TerrainRenderer {
         .map_err(|e| e.1)?;
         let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
 
-        unsafe {device.destroy_shader_module(vs_module, None)};
-        unsafe {device.destroy_shader_module(fs_module, None)};
+        unsafe {
+            device.destroy_shader_module(vs_module, None);
+            device.destroy_shader_module(fs_module, None);
+        };
 
         // frames
         let framebuffer_id = swapchain.register_renderer()?;
@@ -483,13 +466,18 @@ impl TerrainRenderer {
                 descriptor_buffer,
                 descriptor_mapped,
                 descriptor_set,
+                mesh_lookup_id: None,
             };
             frames.push(frame);
         }
 
-        // mesh
-        let mesh = terrain_asset_future.wait()?;
+        // lookup
+        let terrain_mesh_ring_buffer = TerrainMeshRingBuffer::new(
+            god_asset,
+            core.swapchain.entries.len(),
+        );
 
+        // mesh
         Ok(Self {
             descriptor_set_layout,
             descriptor_pool,
@@ -498,7 +486,8 @@ impl TerrainRenderer {
             pipeline_layout,
             framebuffer_id,
             frames,
-            mesh,
+            terrain_mesh_ring_buffer,
+            time_since_last_alloc: std::time::Instant::now(),
         })
     }
 
@@ -534,7 +523,37 @@ impl TerrainRenderer {
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
+            mesh_lookup_id,
         } = &mut self.frames[*index];
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        // mesh
+        let now = std::time::Instant::now();
+        let elapsed = now - self.time_since_last_alloc;
+        if elapsed > std::time::Duration::from_secs(1) {
+            self.time_since_last_alloc = now;
+
+            let allocated = self.terrain_mesh_ring_buffer.alloc(
+                device,
+                physical_device_memory_properties,
+            )?;
+
+            if !allocated {
+                ris_log::warning!("did not allocate terrain");
+            }
+        }
+
+        drop(mesh_lookup_id.take());
+        let mesh_lookup_id = match self.terrain_mesh_ring_buffer.get_latest_id() {
+            Some(new_mesh_lookup_id) => {
+                *mesh_lookup_id = Some(new_mesh_lookup_id.clone());
+                new_mesh_lookup_id
+            },
+            None => return Ok(()),
+        };
 
         // framebuffer
         let attachments = [*viewport_image_view, *depth_image_view];
@@ -653,23 +672,25 @@ impl TerrainRenderer {
                 &[],
             );
 
+            let mesh = self.terrain_mesh_ring_buffer.get(&mesh_lookup_id)?;
+
             device.cmd_bind_vertex_buffers(
                 *command_buffer,
                 0,
-                &self.mesh.vertex_buffers()?,
-                &self.mesh.vertex_offsets()?,
+                &mesh.vertex_buffers()?,
+                &mesh.vertex_offsets()?,
             );
 
             device.cmd_bind_index_buffer(
                 *command_buffer,
-                self.mesh.index_buffer()?,
-                self.mesh.index_offset()?,
-                self.mesh.index_type()?,
+                mesh.index_buffer()?,
+                mesh.index_offset()?,
+                mesh.index_type()?,
             );
 
             device.cmd_draw_indexed(
                 *command_buffer, 
-                self.mesh.index_count()?,
+                mesh.index_count()?,
                 1,
                 0,
                 0,

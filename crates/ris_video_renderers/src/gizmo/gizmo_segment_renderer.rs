@@ -67,6 +67,8 @@ impl GizmoSegmentRenderer {
     }
 
     pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+        ris_log::info!("building gizmo segment renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,
