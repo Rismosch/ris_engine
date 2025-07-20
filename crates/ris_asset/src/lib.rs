@@ -1,6 +1,7 @@
 pub mod assets;
 pub mod codecs;
 pub mod importer;
+pub mod lookup;
 
 pub mod asset_compiler;
 pub mod asset_importer;

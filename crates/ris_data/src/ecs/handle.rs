@@ -2,8 +2,8 @@ use std::any::TypeId;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use super::components::mesh_renderer::MeshRendererComponent;
-use super::components::script::DynScriptComponent;
+use super::components::mesh_component::MeshComponent;
+use super::components::script_component::DynScriptComponent;
 use super::decl::GameObjectHandle;
 use super::error::EcsError;
 use super::error::EcsResult;
@@ -74,7 +74,7 @@ impl DynHandle {
             SceneKind::StaticGameObjct { chunk: _ } if type_id == TypeId::of::<GameObject>() => {
                 true
             }
-            SceneKind::Component if type_id == TypeId::of::<MeshRendererComponent>() => true,
+            SceneKind::Component if type_id == TypeId::of::<MeshComponent>() => true,
             SceneKind::Component if type_id == TypeId::of::<DynScriptComponent>() => true,
             _ => false,
         };

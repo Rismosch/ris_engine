@@ -11,6 +11,7 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::swapchain::FramebufferID;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
@@ -28,7 +29,6 @@ pub struct UniformBufferObject {
 
 struct GizmoTextFrame {
     mesh: Option<GizmoTextMesh>,
-    framebuffer: Option<vk::Framebuffer>,
     descriptor_buffer: Buffer,
     descriptor_mapped: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
@@ -40,20 +40,17 @@ impl GizmoTextFrame {
             mesh.free(device);
         }
 
-        if let Some(framebuffer) = self.framebuffer.take() {
-            unsafe { device.destroy_framebuffer(framebuffer, None) };
-        }
-
         self.descriptor_buffer.free(device);
     }
 }
 
 pub struct GizmoTextRenderer {
-    pipeline: vk::Pipeline,
-    pipeline_layout: vk::PipelineLayout,
-    render_pass: vk::RenderPass,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
+    render_pass: vk::RenderPass,
+    pipeline: vk::Pipeline,
+    pipeline_layout: vk::PipelineLayout,
+    framebuffer_id: FramebufferID,
     frames: Vec<GizmoTextFrame>,
     font_texture: Texture,
 }
@@ -78,6 +75,8 @@ impl GizmoTextRenderer {
     }
 
     pub fn alloc(core: &VulkanCore, god_asset: &RisGodAsset) -> RisResult<Self> {
+        ris_log::info!("building gizmo text renderer...");
+
         let VulkanCore {
             instance,
             suitable_device,
@@ -516,6 +515,8 @@ impl GizmoTextRenderer {
         })?;
 
         // frames
+        let framebuffer_id = swapchain.register_renderer()?;
+
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for descriptor_set in descriptor_sets {
             unsafe {
@@ -537,7 +538,6 @@ impl GizmoTextRenderer {
 
                 let frame = GizmoTextFrame {
                     mesh: None,
-                    framebuffer: None,
                     descriptor_buffer,
                     descriptor_mapped,
                     descriptor_set,
@@ -547,11 +547,12 @@ impl GizmoTextRenderer {
         }
 
         Ok(Self {
-            pipeline,
-            pipeline_layout,
-            render_pass,
             descriptor_set_layout,
             descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            framebuffer_id,
             frames,
             font_texture,
         })
@@ -579,12 +580,12 @@ impl GizmoTextRenderer {
             viewport_image_view,
             depth_image_view,
             command_buffer,
+            framebuffer_allocator,
             ..
         } = entry;
 
         let GizmoTextFrame {
             mesh,
-            framebuffer,
             descriptor_buffer,
             descriptor_mapped,
             descriptor_set,
@@ -622,13 +623,9 @@ impl GizmoTextRenderer {
         };
 
         // framebuffer
-        if let Some(framebuffer) = framebuffer.take() {
-            unsafe { device.destroy_framebuffer(framebuffer, None) };
-        }
-
         let attachments = [*viewport_image_view, *depth_image_view];
 
-        let frame_buffer_create_info = vk::FramebufferCreateInfo {
+        let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
@@ -640,13 +637,14 @@ impl GizmoTextRenderer {
             layers: 1,
         };
 
-        let new_framebuffer =
-            unsafe { device.create_framebuffer(&frame_buffer_create_info, None) }?;
-        *framebuffer = Some(new_framebuffer);
-        let framebuffer = new_framebuffer;
-
         // render pass
         unsafe {
+            let framebuffer = framebuffer_allocator.borrow_mut().get(
+                self.framebuffer_id,
+                device,
+                framebuffer_create_info,
+            )?;
+
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {
@@ -708,8 +706,6 @@ impl GizmoTextRenderer {
 
             device.cmd_set_viewport(*command_buffer, 0, &viewports);
             device.cmd_set_scissor(*command_buffer, 0, &scissors);
-
-            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             let ubo = [UniformBufferObject {
                 view: camera.view_matrix(),
@@ -786,6 +782,8 @@ impl GizmoTextRenderer {
                 &[*descriptor_set],
                 &[],
             );
+
+            device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             device.cmd_draw(*command_buffer, vertices.len() as u32, 1, 0, 0);
 

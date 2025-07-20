@@ -6,8 +6,8 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
-use super::components::script::DynScriptComponent;
-use super::components::script::Script;
+use super::components::script_component::DynScriptComponent;
+use super::components::script_component::Script;
 use super::decl::DynScriptComponentHandle;
 use super::decl::GameObjectHandle;
 use super::decl::ScriptComponentHandle;

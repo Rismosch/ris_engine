@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use ris_asset::assets::ris_scene;
 use ris_asset_data::asset_id::AssetId;
-use ris_data::ecs::components::script::DynScriptComponent;
+use ris_data::ecs::components::script_component::DynScriptComponent;
 use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::handle::DynComponentHandle;
 use ris_data::ecs::id::Component;

@@ -22,6 +22,29 @@ pub fn help_marker(ui: &Ui, text: &str) {
 }
 
 // fields
+pub fn drag(label: impl AsRef<str>, value: &mut f32) -> RisResult<bool> {
+    let label_cstring = CString::new(label.as_ref())?;
+    let format = CString::new("%.3f")?;
+
+    let mut array = [*value];
+    purge_negative_0(&mut array);
+    *value = array[0];
+
+    let changed = unsafe {
+        imgui::sys::igDragFloat(
+            label_cstring.as_ptr(),
+            value,
+            0.01,
+            0.0,
+            0.0,
+            format.as_ptr(),
+            0,
+        )
+    };
+
+    Ok(changed)
+}
+
 pub fn drag_vec3(label: impl AsRef<str>, value: &mut Vec3) -> RisResult<bool> {
     let label_cstring = CString::new(label.as_ref())?;
     let mut array: [f32; 3] = (*value).into();

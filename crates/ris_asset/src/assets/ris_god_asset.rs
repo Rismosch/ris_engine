@@ -15,6 +15,8 @@ pub const UNNAMED_PATH: &str = "asset_0";
 pub struct RisGodAsset {
     pub default_vert_spv: AssetId,
     pub default_frag_spv: AssetId,
+    pub terrain_vert_spv: AssetId,
+    pub terrain_frag_spv: AssetId,
     pub imgui_vert_spv: AssetId,
     pub imgui_frag_spv: AssetId,
     pub gizmo_segment_vert_spv: AssetId,
@@ -24,6 +26,7 @@ pub struct RisGodAsset {
     pub gizmo_text_frag_spv: AssetId,
     pub debug_font_texture: AssetId,
     pub texture: AssetId,
+    pub terrain: AssetId,
 }
 
 impl RisGodAsset {
@@ -33,6 +36,8 @@ impl RisGodAsset {
             vec![
                 self.default_vert_spv.clone(),
                 self.default_frag_spv.clone(),
+                self.terrain_vert_spv.clone(),
+                self.terrain_frag_spv.clone(),
                 self.imgui_vert_spv.clone(),
                 self.imgui_frag_spv.clone(),
                 self.gizmo_segment_vert_spv.clone(),
@@ -42,6 +47,7 @@ impl RisGodAsset {
                 self.gizmo_text_frag_spv.clone(),
                 self.debug_font_texture.clone(),
                 self.texture.clone(),
+                self.terrain.clone(),
             ],
         );
 
@@ -55,19 +61,24 @@ impl RisGodAsset {
 
         let default_vert_spv = header.references[0].clone();
         let default_frag_spv = header.references[1].clone();
-        let imgui_vert_spv = header.references[2].clone();
-        let imgui_frag_spv = header.references[3].clone();
-        let gizmo_segment_vert_spv = header.references[4].clone();
-        let gizmo_segment_frag_spv = header.references[5].clone();
-        let gizmo_text_vert_spv = header.references[6].clone();
-        let gizmo_text_geom_spv = header.references[7].clone();
-        let gizmo_text_frag_spv = header.references[8].clone();
-        let debug_font_texture = header.references[9].clone();
-        let texture = header.references[10].clone();
+        let terrain_vert_spv = header.references[2].clone();
+        let terrain_frag_spv = header.references[3].clone();
+        let imgui_vert_spv = header.references[4].clone();
+        let imgui_frag_spv = header.references[5].clone();
+        let gizmo_segment_vert_spv = header.references[6].clone();
+        let gizmo_segment_frag_spv = header.references[7].clone();
+        let gizmo_text_vert_spv = header.references[8].clone();
+        let gizmo_text_geom_spv = header.references[9].clone();
+        let gizmo_text_frag_spv = header.references[10].clone();
+        let debug_font_texture = header.references[11].clone();
+        let texture = header.references[12].clone();
+        let terrain = header.references[13].clone();
 
         let god_asset = Self {
             default_vert_spv,
             default_frag_spv,
+            terrain_vert_spv,
+            terrain_frag_spv,
             imgui_vert_spv,
             imgui_frag_spv,
             gizmo_segment_vert_spv,
@@ -77,6 +88,7 @@ impl RisGodAsset {
             gizmo_text_frag_spv,
             debug_font_texture,
             texture,
+            terrain,
         };
 
         Ok(god_asset)

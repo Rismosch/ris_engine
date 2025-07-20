@@ -5,8 +5,11 @@ use std::ptr;
 use ash::vk;
 
 use ris_error::RisResult;
+use ris_log::log_level::LogLevel;
 
 use super::util;
+
+const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::None;
 
 pub fn add_validation_layer(
     entry: &ash::Entry,
@@ -106,9 +109,7 @@ pub unsafe extern "system" fn debug_callback(
     p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
     _p_user_data: *mut c_void,
 ) -> vk::Bool32 {
-    use ris_log::log_level::LogLevel;
-
-    let log_level = match message_severity {
+    let priority = match message_severity {
         vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => LogLevel::Trace,
         vk::DebugUtilsMessageSeverityFlagsEXT::INFO => LogLevel::Info,
         vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => LogLevel::Warning,
@@ -132,7 +133,22 @@ pub unsafe extern "system" fn debug_callback(
         }
     };
 
-    ris_log::log!(log_level, "VULKAN {} | {}", type_flag, message);
+    let log_backtrace = ris_log::log::can_log(BACKTRACE_LOG_LEVEL, priority);
+
+    let backtrace_string = if log_backtrace {
+        let backtrace = std::backtrace::Backtrace::force_capture();
+        format!("\nbackrace:\n{}", backtrace)
+    } else {
+        String::new()
+    };
+
+    ris_log::log!(
+        priority,
+        "VULKAN {} | {}{}",
+        type_flag,
+        message,
+        backtrace_string,
+    );
 
     vk::FALSE
 }

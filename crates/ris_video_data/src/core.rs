@@ -217,6 +217,7 @@ impl VulkanCore {
             surface: &surface,
             window_drawable_size: window.vulkan_drawable_size(),
             frames_in_flight: None,
+            framebuffer_count: 0,
         })?;
 
         // renderer
@@ -254,6 +255,9 @@ impl VulkanCore {
 
         let frames_in_flight = swapchain.frames_in_flight.take();
 
+        let first_entry = swapchain.entries.first().into_ris_error()?;
+        let framebuffer_count = first_entry.framebuffer_allocator.borrow().count();
+
         unsafe {
             device.device_wait_idle()?;
             swapchain.free(device, *command_pool);
@@ -268,6 +272,7 @@ impl VulkanCore {
                 surface,
                 window_drawable_size,
                 frames_in_flight,
+                framebuffer_count,
             })?;
         }
 

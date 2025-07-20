@@ -132,14 +132,11 @@ pub fn get_timestamp() -> DateTime<Local> {
     Local::now()
 }
 
-pub fn can_log(priority: LogLevel) -> bool {
-    if matches!(priority, LogLevel::None) {
-        return false;
+pub fn can_log(log_level: LogLevel, message_priority: LogLevel) -> bool {
+    match message_priority {
+        LogLevel::None => false,
+        message_priority => message_priority >= log_level,
     }
-
-    let priority = priority as u8;
-    let log_level = log_level() as u8;
-    priority >= log_level
 }
 
 pub fn forward_to_appenders(log_message: LogMessage) {
@@ -208,8 +205,9 @@ macro_rules! fatal {
 #[cfg(feature = "logging_enabled")]
 #[macro_export]
 macro_rules! log {
-    ($priority:expr, $($arg:tt)*) => {
-        if (ris_log::log::can_log($priority)) {
+    ($priority:expr, $($arg:tt)*) => {{
+        let log_level = ris_log::log::log_level();
+        if (ris_log::log::can_log(log_level, $priority)) {
             let package = String::from(env!("CARGO_PKG_NAME"));
             let file = String::from(file!());
             let line = line!();
@@ -230,7 +228,7 @@ macro_rules! log {
 
             ris_log::log::forward_to_appenders(message);
         }
-    };
+    }};
 }
 
 #[cfg(not(feature = "logging_enabled"))]

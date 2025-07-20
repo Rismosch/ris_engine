@@ -47,12 +47,6 @@ impl From<Vec2> for [f32; 2] {
     }
 }
 
-impl From<Vec3> for Vec2 {
-    fn from(value: Vec3) -> Self {
-        Self(value.0, value.1)
-    }
-}
-
 impl Vec3 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value)
@@ -92,12 +86,6 @@ impl From<[f32; 3]> for Vec3 {
 impl From<Vec3> for [f32; 3] {
     fn from(value: Vec3) -> Self {
         [value.0, value.1, value.2]
-    }
-}
-
-impl From<Vec4> for Vec3 {
-    fn from(value: Vec4) -> Self {
-        Self(value.0, value.1, value.2)
     }
 }
 
@@ -2466,5 +2454,31 @@ impl Bvec4 {
 
     pub fn all(self) -> bool {
         self.0 && self.1 && self.2 && self.3
+    }
+}
+
+//
+// 3d functions
+//
+
+impl Vec3 {
+    pub fn angle(a: Self, b: Self) -> f32 {
+        let d = a.dot(b);
+        let m = a.length() * b.length();
+        f32::acos(d / m)
+    }
+
+    pub fn signed_angle(a: Self, b: Self, axis: Self) -> f32 {
+        let theta = Self::angle(a, b);
+        let sign = f32::signum(axis.dot(a.cross(b)));
+        theta * sign
+    }
+
+    /// returns the distance between the line ab and the point p
+    pub fn distance_to_point(a: Self, b: Self, p: Self) -> f32 {
+        let ab = b - a;
+        let ap = p - a;
+        let alpha = Self::angle(ab, ap);
+        f32::sin(alpha) * ap.length()
     }
 }

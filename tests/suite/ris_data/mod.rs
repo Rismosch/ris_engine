@@ -2,6 +2,7 @@ pub mod ecs;
 
 pub mod buttons;
 pub mod cell;
+pub mod counter;
 pub mod keys;
 pub mod ptr;
 pub mod ris_map;

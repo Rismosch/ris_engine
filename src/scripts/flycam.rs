@@ -7,10 +7,21 @@ use ris_data::input::action;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FlyCam {
     yaw: f32,
     pitch: f32,
+    translation_speed_in_meters_per_second: f32,
+}
+
+impl Default for FlyCam {
+    fn default() -> Self {
+        Self {
+            yaw: 0.0,
+            pitch: 0.0,
+            translation_speed_in_meters_per_second: 10.0,
+        }
+    }
 }
 
 impl Script for FlyCam {
@@ -30,7 +41,8 @@ impl Script for FlyCam {
         }
 
         let rotation_speed = 2. * frame.average_seconds();
-        let movement_speed = 2. * frame.average_seconds();
+        let translation_speed =
+            frame.average_seconds() * self.translation_speed_in_meters_per_second;
 
         let mut camera = state.camera.borrow_mut();
 
@@ -73,24 +85,30 @@ impl Script for FlyCam {
         let rotation2 = Quat::from((self.yaw, Vec3::up()));
         camera.rotation = rotation2 * rotation1;
 
+        let mut translation_direction = Vec3::init(0.0);
         if state.input.general.buttons.is_hold(action::MOVE_UP) {
             let forward = camera.rotation.rotate(Vec3::forward());
-            camera.position += movement_speed * forward;
+            translation_direction += forward;
         }
 
         if state.input.general.buttons.is_hold(action::MOVE_DOWN) {
             let forward = camera.rotation.rotate(Vec3::forward());
-            camera.position -= movement_speed * forward;
+            translation_direction -= forward;
         }
 
         if state.input.general.buttons.is_hold(action::MOVE_LEFT) {
             let right = camera.rotation.rotate(Vec3::right());
-            camera.position -= movement_speed * right;
+            translation_direction -= right;
         }
 
         if state.input.general.buttons.is_hold(action::MOVE_RIGHT) {
             let right = camera.rotation.rotate(Vec3::right());
-            camera.position += movement_speed * right;
+            translation_direction += right;
+        }
+
+        if translation_direction.length() > 0.5 {
+            let translation = translation_direction.normalize() * translation_speed;
+            camera.position += translation;
         }
 
         if state.input.keyboard.keys.is_down(Scancode::F) {
@@ -108,7 +126,23 @@ impl Script for FlyCam {
         Ok(())
     }
 
-    fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
+    fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
+        let ScriptInspectData { id, state, .. } = data;
+
+        let mut camera = state.camera.borrow_mut();
+
+        ris_core::inspector_util::drag_vec3(
+            format!("camera position##{}", id),
+            &mut camera.position,
+        )?;
+        ris_core::inspector_util::drag(format!("far##{}", id), &mut camera.far)?;
+        ris_core::inspector_util::drag(format!("near##{}", id), &mut camera.near)?;
+
+        ris_core::inspector_util::drag(
+            format!("translation speed (m/s)##{}", id),
+            &mut self.translation_speed_in_meters_per_second,
+        )?;
+
         Ok(())
     }
 

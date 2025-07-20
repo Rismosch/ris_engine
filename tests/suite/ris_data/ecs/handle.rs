@@ -1,4 +1,4 @@
-use ris_data::ecs::components::script::DynScriptComponent;
+use ris_data::ecs::components::script_component::DynScriptComponent;
 use ris_data::ecs::game_object::GameObject;
 use ris_data::ecs::handle::DynHandle;
 use ris_data::ecs::handle::GenericHandle;

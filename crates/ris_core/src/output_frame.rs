@@ -16,18 +16,36 @@ use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
 use ris_video_renderers::SceneRenderer;
+use ris_video_renderers::SceneRendererArgs;
+use ris_video_renderers::TerrainRenderer;
+use ris_video_renderers::TerrainRendererArgs;
 #[cfg(feature = "ui_helper_enabled")]
-use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use ris_video_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
 
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::{UiHelper, UiHelperDrawData};
 
 pub struct Renderer {
     pub scene: SceneRenderer,
+    pub terrain: TerrainRenderer,
     pub gizmo_segment: GizmoSegmentRenderer,
     pub gizmo_text: GizmoTextRenderer,
     #[cfg(feature = "ui_helper_enabled")]
     pub imgui: ImguiRenderer,
+}
+
+impl Renderer {
+    /// # Safety
+    ///
+    /// May only be called once. Memory must not be freed twice.
+    pub unsafe fn free(&mut self, device: &ash::Device) {
+        self.scene.free(device);
+        self.terrain.free(device);
+        self.gizmo_segment.free(device);
+        self.gizmo_text.free(device);
+        #[cfg(feature = "ui_helper_enabled")]
+        self.imgui.free(device);
+    }
 }
 
 pub struct OutputFrame {
@@ -55,14 +73,7 @@ impl Drop for OutputFrame {
                 return;
             }
 
-            let device = &self.core.device;
-
-            self.renderer.scene.free(device);
-            self.renderer.gizmo_segment.free(device);
-            self.renderer.gizmo_text.free(device);
-            #[cfg(feature = "ui_helper_enabled")]
-            self.renderer.imgui.free(device);
-
+            self.renderer.free(&self.core.device);
             self.core.free();
         }
     }
@@ -161,6 +172,7 @@ impl OutputFrame {
                 mesh_lookup.reimport_everything(device, physical_device_memory_properties);
 
                 self.renderer.scene.free(device);
+                self.renderer.terrain.free(device);
                 self.renderer.gizmo_segment.free(device);
                 self.renderer.gizmo_text.free(device);
                 #[cfg(feature = "ui_helper_enabled")]
@@ -168,6 +180,7 @@ impl OutputFrame {
 
                 self.renderer.scene =
                     SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
+                self.renderer.terrain = TerrainRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
                 self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
                 #[cfg(feature = "ui_helper_enabled")]
@@ -232,24 +245,32 @@ impl OutputFrame {
 
         // scene
         ris_debug::add_record!(r, "scene")?;
-        self.renderer.scene.draw(
-            &self.core,
+        let args = SceneRendererArgs {
+            core: &self.core,
             swapchain_entry,
             window_drawable_size,
-            &camera,
-            &state.scene,
-        )?;
+            camera: &camera,
+            scene: &state.scene,
+        };
+
+        self.renderer.scene.draw(args)?;
+
+        // terrain
+        ris_debug::add_record!(r, "terrain")?;
+        let args = TerrainRendererArgs {
+            core: &self.core,
+            swapchain_entry,
+            window_drawable_size,
+            camera: &camera,
+        };
+        self.renderer.terrain.draw(args)?;
 
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
-
-        ris_debug::add_record!(r, "get segment vertices")?;
         let gizmo_segment_vertices = ris_debug::gizmo::draw_segments(&camera)?;
 
-        ris_debug::add_record!(r, "get text vertices")?;
         let (gizmo_text_vertices, gizmo_text_texture) = ris_debug::gizmo::draw_text()?;
 
-        ris_debug::add_record!(r, "draw text")?;
         self.renderer.gizmo_text.draw(
             &self.core,
             swapchain_entry,
@@ -259,7 +280,6 @@ impl OutputFrame {
             &camera,
         )?;
 
-        ris_debug::add_record!(r, "draw segments")?;
         self.renderer.gizmo_segment.draw(
             &self.core,
             swapchain_entry,
@@ -268,7 +288,6 @@ impl OutputFrame {
             &camera,
         )?;
 
-        ris_debug::add_record!(r, "gizmo new frame")?;
         ris_debug::gizmo::new_frame()?;
 
         // imgui
@@ -278,9 +297,13 @@ impl OutputFrame {
             let draw_data = self.imgui_backend.context().render();
 
             ris_debug::add_record!(r, "imgui frontend")?;
-            self.renderer
-                .imgui
-                .draw(&self.core, swapchain_entry, draw_data)?;
+            let args = ImguiRendererArgs {
+                core: &self.core,
+                swapchain_entry,
+                draw_data,
+            };
+
+            self.renderer.imgui.draw(args)?;
         }
 
         // end command buffer and submit
