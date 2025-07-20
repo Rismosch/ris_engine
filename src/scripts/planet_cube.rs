@@ -429,9 +429,40 @@ impl Script for PlanetScript {
         if ui.button("make primitive") {
 
             let vertices = vec![
-                v0, v4, v2, v6, v2, v4, v0, v1, v4, v5, v4, v1, v0, v2, v1, v3, v1, v2, v7, v5, v3,
-                v1, v3, v5, v7, v3, v6, v2, v6, v3, v7, v6, v5, v4, v5, v6,
+                v0, v4, v2, v6, v2, v4, 
+                v0, v1, v4, v5, v4, v1, 
+                v0, v2, v1, v3, v1, v2, 
+                v7, v5, v3, v1, v3, v5, 
+                v7, v3, v6, v2, v6, v3, 
+                v7, v6, v5, v4, v5, v6,
             ];
+
+            let mut normals = Vec::with_capacity(vertices.len());
+            for v in vertices.chunks(3) {
+                let v0 = v[0];
+                let v1 = v[1];
+                let v2 = v[2];
+
+                let a = v2 - v1;
+                let b = v0 - v1;
+                let cross = Vec3::cross(a, b);
+                let normal = cross.normalize();
+
+                normals.push(normal);
+                normals.push(normal);
+                normals.push(normal);
+            }
+
+            let mut uvs = Vec::with_capacity(vertices.len());
+            for _ in vertices.chunks(6) {
+
+                uvs.push(Vec2(1.0, 1.0));
+                uvs.push(Vec2(0.0, 1.0));
+                uvs.push(Vec2(1.0, 0.0));
+                uvs.push(Vec2(0.0, 0.0));
+                uvs.push(Vec2(1.0, 0.0));
+                uvs.push(Vec2(0.0, 1.0));
+            }
 
             let mut indices = Vec::with_capacity(vertices.len());
             for i in 0..indices.capacity() {
