@@ -1,7 +1,13 @@
+use std::f32::consts::PI;
+
 use std::path::PathBuf;
 
 use ris_asset::assets::ris_mesh;
 use ris_asset::assets::ris_terrain;
+use ris_asset::codecs::qoi;
+use ris_asset::codecs::qoi::Channels;
+use ris_asset::codecs::qoi::ColorSpace;
+use ris_asset::codecs::qoi::QoiDesc;
 use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::Indices;
 use ris_asset_data::mesh::MeshPrototype;
@@ -10,6 +16,7 @@ use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
 use ris_asset_data::terrain_mesh::TerrainVertex;
 use ris_data::ecs::components::mesh_component::MeshComponent;
 use ris_data::ecs::script_prelude::*;
+use ris_math::color::ByteColor3;
 use ris_math::color::Rgb;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
@@ -78,7 +85,7 @@ distance = (2000 + r) * cos(asin((2000 + r) / r))
 
 #[derive(Debug)]
 pub struct PlanetScript {
-    _rng: Rng,
+    rng: Rng,
     subdivisions: usize,
     magnitude: f32,
 }
@@ -89,7 +96,7 @@ impl Default for PlanetScript {
         let rng = Rng::new(seed);
 
         Self {
-            _rng: rng,
+            rng,
             subdivisions: 5,
             magnitude: 0.05,
         }
@@ -426,63 +433,101 @@ impl Script for PlanetScript {
             ris_log::trace!("done! duration: {}ms", milliseconds);
         } // generate mesh for terrain renderer
         
-        if ui.button("make primitive") {
+        if ui.button("make heightmaps") {
 
-            let vertices = vec![
-                v0, v4, v2, v6, v2, v4, 
-                v0, v1, v4, v5, v4, v1, 
-                v0, v2, v1, v3, v1, v2, 
-                v7, v5, v3, v1, v3, v5, 
-                v7, v3, v6, v2, v6, v3, 
-                v7, v6, v5, v4, v5, v6,
+            let width = 1 << 13;
+            let height = width;
+            ris_log::trace!("resolution: {}x{}", width, height);
+
+            let sides = vec![
+                'l',
+                'r',
+                'f',
+                'b',
+                'u',
+                'd',
             ];
 
-            let mut normals = Vec::with_capacity(vertices.len());
-            for v in vertices.chunks(3) {
-                let v0 = v[0];
-                let v1 = v[1];
-                let v2 = v[2];
+            for (i, side) in sides.into_iter().enumerate() {
+                ris_log::trace!("generating side... {} ({})", side, i);
 
-                let a = v2 - v1;
-                let b = v0 - v1;
-                let cross = Vec3::cross(a, b);
-                let normal = cross.normalize();
+                let mut bytes = Vec::with_capacity(width * height * 3);
 
-                normals.push(normal);
-                normals.push(normal);
-                normals.push(normal);
-            }
+                let mut min: u32 = u32::MAX;
+                let mut max: u32 = u32::MIN;
 
-            let mut uvs = Vec::with_capacity(vertices.len());
-            for _ in vertices.chunks(6) {
+                for y in 0..width {
+                    if y % 100 == 0 {
+                        ris_log::trace!("y... {}/{}", y, width);
+                    }
 
-                uvs.push(Vec2(1.0, 1.0));
-                uvs.push(Vec2(0.0, 1.0));
-                uvs.push(Vec2(1.0, 0.0));
-                uvs.push(Vec2(0.0, 0.0));
-                uvs.push(Vec2(1.0, 0.0));
-                uvs.push(Vec2(0.0, 1.0));
-            }
+                    for x in 0..height {
+                        // height map format:
+                        // u20 for height and u4 for material
+                        //
+                        //        material
+                        //        v
+                        // 0xRRGGBB
+                        //   ^---^
+                        //    height
+                        //   
+                        // R = height middle byte
+                        // G = height LSB
+                        // B = height MSB + material
 
-            let mut indices = Vec::with_capacity(vertices.len());
-            for i in 0..indices.capacity() {
-                indices.push(i as u16);
-            }
-            let indices = Indices::U16(indices);
+                        //let height_value = self.rng.next_u16();
+                        let height_value = perlin_noise(x, y);
 
+                        min = u32::min(min, height_value);
+                        max = u32::max(max, height_value);
 
-            let prototype = MeshPrototype {
-                vertices,
-                normals,
-                uvs,
-                indices,
+                        let height_bytes = height_value.to_le_bytes();
+                        let byte0 = height_bytes[0]; // lsb
+                        let byte1 = height_bytes[1];
+                        let byte2 = height_bytes[2] & 0x0F; // msb
+
+                        let material = 0u8;
+
+                        let g = byte0;
+                        let r = byte1;
+                        let b = byte2 | (material << 4);
+
+                        bytes.push(r);
+                        bytes.push(g);
+                        bytes.push(b);
+                    }
+                }
+
+                ris_log::trace!("encoding to qoi...");
+                let desc = QoiDesc {
+                    width: width as u32,
+                    height: height as u32,
+                    channels: Channels::RGB,
+                    color_space: ColorSpace::Linear,
+                };
+                let qoi_bytes = qoi::encode(&bytes, desc)?;
+
+                ris_log::trace!(
+                    "bytes len: {} qoi len: {}",
+                    bytes.len(),
+                    qoi_bytes.len(),
+                );
+
+                ris_log::trace!("serializing...");
+
+                let path_string = format!("assets/in_use/terrain/height_map_{}.qoi", side);
+                let filepath = PathBuf::from(path_string);
+
+                if filepath.exists() {
+                    std::fs::remove_file(&filepath)?;
+                }
+
+                let mut file = std::fs::File::create_new(filepath)?;
+                let f = &mut file;
+                ris_io::write(f, &qoi_bytes)?;
             };
 
-            serialize_mesh(
-                prototype,
-                "assets/in_use/meshes/cube.ris_mesh",
-            )?;
-        } // make primitive 
+        } // make height maps
 
         let p = state.camera.borrow().position;
         let abs = p.abs();
@@ -614,4 +659,64 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
     h64 = h64.wrapping_mul(prime_mx1);
     h64 = h64 ^ (h64 >> 32);
     h64
+}
+
+// returns u20
+fn perlin_noise(x: usize, y: usize) -> u32 {
+    const GRID_SIZE: u32 = 1 << 8;
+    const MIN_VALUE: u32 = 0u32;
+    const MAX_VALUE: u32 = 0xFFFFFu32;
+
+    let x = x as f32 / GRID_SIZE as f32;
+    let y = y as f32 / GRID_SIZE as f32;
+
+    let x0 = x.floor() as i32;
+    let x1 = x0 + 1;
+    let y0 = y.floor() as i32;
+    let y1 = y0 + 1;
+
+    let sx = x - x0 as f32;
+    let sy = y - y0 as f32;
+
+    let n0 = dot_grid_gradient(x0, y0, x, y);
+    let n1 = dot_grid_gradient(x1, y0, x, y);
+    let ix0 = interpolate(n0, n1, sx);
+    let n0 = dot_grid_gradient(x0, y1, x, y);
+    let n1 = dot_grid_gradient(x1, y1, x, y);
+    let ix1 = interpolate(n0, n1, sx);
+
+    let value = interpolate(ix0, ix1, sy);
+    let scaled = 0.5 * value * f32::sqrt(2.0) + 0.5;
+    let adjusted = scaled * MAX_VALUE as f32;
+
+    //println!("{}\t{:032b}", scaled, adjusted as u32);
+    adjusted as u32
+}
+
+fn dot_grid_gradient(ix: i32, iy: i32, x: f32, y: f32) -> f32 {
+    let (grad_x, grad_y) = random_gradient(ix, iy);
+    let dx = x - ix as f32;
+    let dy = y - iy as f32;
+    dx * grad_x + dy * grad_y
+}
+
+fn random_gradient(ix: i32, iy: i32) -> (f32, f32) {
+    let w = (8 * std::mem::size_of::<u32>()) as u32;
+    let s = w / 2;
+    let a = ix as u32;
+    let b = iy as u32;
+    let a = a.wrapping_mul(3284157443);
+    let b = b ^ ((a << s) | (a >> (w-s)));
+    let b = b.wrapping_mul(1911520717);
+    let a = a ^ ((b << s) | (b >> (w-s)));
+    let a = a.wrapping_mul(2048419325);
+    let random = a as f32 * (PI / (!(!0u32 >> 1) as f32));
+    let v_x = f32::cos(random);
+    let v_y = f32::sin(random);
+    (v_x, v_y)
+}
+
+fn interpolate(a0: f32, a1: f32, x: f32) -> f32 {
+    let g = (3.0 - x * 2.0) * x * x;
+    (a1 - a0) * g + a0
 }

@@ -1,4 +1,9 @@
+use std::f32::consts::PI;
+
 use ris_error::RisResult;
+use ris_math::color::Rgb;
+use ris_math::color::OkLab;
+use ris_math::color::OkLch;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
@@ -46,6 +51,13 @@ impl Rng {
         &self.seed
     }
 
+    /// returns a random u16
+    pub fn next_u16(&mut self) -> u16 {
+        let a = self.next_u32();
+        let masked = a & 0xFFFF;
+        masked.try_into().expect("rng failed to convert u32 to u16. this is not supposed to happen, as the mask ensures that the u32 fits into an u16")
+    }
+
     /// returns a random u32
     pub fn next_u32(&mut self) -> u32 {
         self.pcg.next()
@@ -53,9 +65,9 @@ impl Rng {
 
     /// returns a random u64
     pub fn next_u64(&mut self) -> u64 {
-        let one: u64 = self.next_u32().into();
-        let two: u64 = self.next_u32().into();
-        (one << 32) | two
+        let a: u64 = self.next_u32().into();
+        let b: u64 = self.next_u32().into();
+        (a << 32) | b
     }
 
     /// returns a random i32
@@ -192,5 +204,27 @@ impl Rng {
     pub fn next_rot(&mut self) -> Quat {
         let vec4 = self.next_dir_4();
         Quat::from(vec4)
+    }
+
+    pub fn next_rgb(&mut self) -> Rgb {
+        let r = self.next_f32();
+        let g = self.next_f32();
+        let b = self.next_f32();
+        Rgb(r, g, b)
+    }
+
+    pub fn next_oklab(&mut self) -> OkLab {
+        let l = self.next_f32();
+        let a = self.next_f32_between(-0.5, 0.5);
+        let b = self.next_f32_between(-0.5, 0.5);
+        OkLab(l, a, b)
+    }
+
+    pub fn next_oklch(&mut self) -> OkLch {
+        let l = self.next_f32();
+        let c = self.next_f32();
+        let h = self.next_f32_between(0.0, 2.0 * PI);
+
+        OkLch(l, c, h)
     }
 }
