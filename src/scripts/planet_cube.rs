@@ -437,6 +437,8 @@ impl Script for PlanetScript {
 
             let width = 1 << 13;
             let height = width;
+            let grid_size = 1 << 4;
+            let max_height = 0xFFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
             let sides = vec![
@@ -476,7 +478,12 @@ impl Script for PlanetScript {
                         // B = height MSB + material
 
                         //let height_value = self.rng.next_u16();
-                        let height_value = perlin_noise(x, y);
+                        let x = x as f32 / grid_size as f32;
+                        let y = y as f32 / grid_size as f32;
+                        
+                        let noise_value = perlin_noise(x, y);
+                        let scaled = noise_value * f32::sqrt(2.0) * 0.5 + 0.5;
+                        let height_value = (scaled * max_height as f32) as u32;
 
                         min = u32::min(min, height_value);
                         max = u32::max(max, height_value);
@@ -497,6 +504,8 @@ impl Script for PlanetScript {
                         bytes.push(b);
                     }
                 }
+
+                //panic!("{} {}", min, max);
 
                 ris_log::trace!("encoding to qoi...");
                 let desc = QoiDesc {
@@ -525,6 +534,9 @@ impl Script for PlanetScript {
                 let mut file = std::fs::File::create_new(filepath)?;
                 let f = &mut file;
                 ris_io::write(f, &qoi_bytes)?;
+
+                ris_log::trace!("done!");
+                break;
             };
 
         } // make height maps
@@ -662,14 +674,7 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
 }
 
 // returns u20
-fn perlin_noise(x: usize, y: usize) -> u32 {
-    const GRID_SIZE: u32 = 1 << 8;
-    const MIN_VALUE: u32 = 0u32;
-    const MAX_VALUE: u32 = 0xFFFFFu32;
-
-    let x = x as f32 / GRID_SIZE as f32;
-    let y = y as f32 / GRID_SIZE as f32;
-
+fn perlin_noise(x: f32, y: f32) -> f32 {
     let x0 = x.floor() as i32;
     let x1 = x0 + 1;
     let y0 = y.floor() as i32;
@@ -685,12 +690,7 @@ fn perlin_noise(x: usize, y: usize) -> u32 {
     let n1 = dot_grid_gradient(x1, y1, x, y);
     let ix1 = interpolate(n0, n1, sx);
 
-    let value = interpolate(ix0, ix1, sy);
-    let scaled = 0.5 * value * f32::sqrt(2.0) + 0.5;
-    let adjusted = scaled * MAX_VALUE as f32;
-
-    //println!("{}\t{:032b}", scaled, adjusted as u32);
-    adjusted as u32
+    interpolate(ix0, ix1, sy)
 }
 
 fn dot_grid_gradient(ix: i32, iy: i32, x: f32, y: f32) -> f32 {
