@@ -425,6 +425,33 @@ impl Script for PlanetScript {
             let milliseconds = total_duration.as_secs_f32() * 1000.0;
             ris_log::trace!("done! duration: {}ms", milliseconds);
         } // generate mesh for terrain renderer
+        
+        if ui.button("make primitive") {
+
+            let vertices = vec![
+                v0, v4, v2, v6, v2, v4, v0, v1, v4, v5, v4, v1, v0, v2, v1, v3, v1, v2, v7, v5, v3,
+                v1, v3, v5, v7, v3, v6, v2, v6, v3, v7, v6, v5, v4, v5, v6,
+            ];
+
+            let mut indices = Vec::with_capacity(vertices.len());
+            for i in 0..indices.capacity() {
+                indices.push(i as u16);
+            }
+            let indices = Indices::U16(indices);
+
+
+            let prototype = MeshPrototype {
+                vertices,
+                normals,
+                uvs,
+                indices,
+            };
+
+            serialize_mesh(
+                prototype,
+                "assets/in_use/meshes/cube.ris_mesh",
+            )?;
+        } // make primitive 
 
         let p = state.camera.borrow().position;
         let abs = p.abs();
@@ -484,6 +511,25 @@ impl Script for PlanetScript {
 
         Ok(())
     }
+}
+
+fn serialize_mesh(prototype: MeshPrototype, path: impl AsRef<str>) -> RisResult<()> {
+    let cpu_mesh = CpuMesh::try_from(prototype)?;
+    ris_log::trace!("serialize...");
+    let bytes = ris_mesh::serialize(&cpu_mesh)?;
+
+    ris_log::trace!("write file...");
+    let filepath = PathBuf::from(path.as_ref());
+
+    if filepath.exists() {
+        std::fs::remove_file(&filepath)?;
+    }
+
+    let mut file = std::fs::File::create_new(filepath)?;
+    let f = &mut file;
+    ris_io::write(f, &bytes)?;
+
+    Ok(())
 }
 
 // inspired by xxhash. i took XXH3_64bits() and inlined the specific branches. i also did some

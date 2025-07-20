@@ -46,8 +46,8 @@ void main() {
     vec3 diffuse = diff * light_color;
 
     //out_color = texture(tex_sampler, in_uv);
-    out_color = vec4(in_uv, 0.0, 1.0);
+    //out_color = vec4(in_uv, 0.0, 1.0);
 
-    //vec3 result = (ambient_color + diffuse) * object_color;
-    //out_color = vec4(result, 1.0);
+    vec3 result = (ambient_color + diffuse) * object_color;
+    out_color = vec4(result, 1.0);
 }
