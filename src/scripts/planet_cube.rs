@@ -435,22 +435,81 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let width = 1 << 13;
+            let width = 1 << 12;
             let height = width;
-            let grid_size = 1 << 9;
-            let max_height = 0xFFFFF;
+            let grid_width = 1 << 8;
+            let grid_height = grid_width;
+            let max_height = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
+
+            let side_l = "l"; // -x left
+            let side_r = "r"; // +x right
+            let side_b = "b"; // -y back
+            let side_f = "f"; // +y front
+            let side_d = "d"; // -z down
+            let side_u = "u"; // +z up
+
+            let edge_lb = "lb";
+            let edge_lf = "lf";
+            let edge_ld = "ld";
+            let edge_lu = "lu";
+            let edge_rb = "rb";
+            let edge_rf = "rf";
+            let edge_rd = "rd";
+            let edge_ru = "ru";
+            let edge_bd = "bd";
+            let edge_bu = "bu";
+            let edge_fd = "fd";
+            let edge_fu = "fu";
+
+            let corn_lbd = "lbd";
+            let corn_lfd = "lfd";
+            let corn_lbu = "lbu";
+            let corn_lfu = "lfu";
+            let corn_rbd = "rbd";
+            let corn_rfd = "rfd";
+            let corn_rbu = "rbu";
+            let corn_rfu = "rfu";
+            
+            // (side, edges, corners)
             let sides = vec![
-                'l',
-                'r',
-                'f',
-                'b',
-                'u',
-                'd',
+                (side_l, [edge_lf, edge_lb, edge_lu, edge_ld], [corn_lfu, corn_lbu, corn_lfd, corn_lbd]),
+                (side_r, [edge_rb, edge_rf, edge_ru, edge_rd], [corn_rbu, corn_rfu, corn_rbd, corn_rfd]),
+                (side_b, [edge_lb, edge_rb, edge_bu, edge_bd], [corn_lbu, corn_rbu, corn_lbd, corn_rbd]),
+                (side_f, [edge_rf, edge_lf, edge_fu, edge_fd], [corn_rfu, corn_lfu, corn_rfd, corn_lfd]),
+                (side_d, [edge_ld, edge_rd, edge_bd, edge_fd], [corn_lbd, corn_rbd, corn_lfd, corn_rfd]),
+                (side_u, [edge_lu, edge_ru, edge_fu, edge_bu], [corn_lfu, corn_rfu, corn_lbu, corn_rbu]),
             ];
 
+            let mut color_lookup = std::collections::HashMap::<&str, [u8; 3]>::new();
+
+            color_lookup.insert(edge_lb, [64, 0, 0]);
+            color_lookup.insert(edge_lf, [128, 0, 0]);
+            color_lookup.insert(edge_ld, [0, 64, 64]);
+            color_lookup.insert(edge_lu, [0, 128, 128]);
+            color_lookup.insert(edge_rb, [0, 64, 0]);
+            color_lookup.insert(edge_rf, [0, 128, 0]);
+            color_lookup.insert(edge_rd, [64, 0, 64]);
+            color_lookup.insert(edge_ru, [128, 0, 128]);
+            color_lookup.insert(edge_bd, [0, 0, 64]);
+            color_lookup.insert(edge_bu, [0, 0, 128]);
+            color_lookup.insert(edge_fd, [64, 64, 0]);
+            color_lookup.insert(edge_fu, [128, 128, 0]);
+
+            color_lookup.insert(corn_lbd, [255, 0, 0]);
+            color_lookup.insert(corn_lfd, [0, 255, 255]);
+            color_lookup.insert(corn_lbu, [0, 255, 0]);
+            color_lookup.insert(corn_lfu, [255, 0, 255]);
+            color_lookup.insert(corn_rbd, [0, 0, 255]);
+            color_lookup.insert(corn_rfd, [255, 255, 0]);
+            color_lookup.insert(corn_rbu, [0, 0, 0]);
+            color_lookup.insert(corn_rfu, [255, 255, 255]);
+
             for (i, side) in sides.into_iter().enumerate() {
+
+                let (side, [edge0, edge1, edge2, edge3], [corn0, corn1, corn2, corn3]) = side;
+
                 ris_log::trace!("generating side... {} ({})", side, i);
 
                 let mut bytes = Vec::with_capacity(width * height * 3);
@@ -467,41 +526,94 @@ impl Script for PlanetScript {
                         // height map format:
                         // u20 for height and u4 for material
                         //
-                        //        material
-                        //        v
+                        //       material
+                        //       vv
                         // 0xRRGGBB
-                        //   ^---^
+                        //   ^--^
                         //    height
                         //   
                         // R = height middle byte
                         // G = height LSB
                         // B = height MSB + material
 
-                        //let height_value = self.rng.next_u16();
-                        let x = x as f32 / grid_size as f32;
-                        let y = y as f32 / grid_size as f32;
-                        
-                        let noise_value = perlin_noise(x, y);
-                        let scaled = noise_value * f32::sqrt(2.0) * 0.5 + 0.5;
-                        let height_value = (scaled * max_height as f32) as u32;
+                        if x == 0 {
+                            if y == 0 {
+                                // upper left corner (0)
+                                let color = color_lookup.get(corn0).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            } else if y == height - 1 {
+                                // lower left corner (2)
+                                let color = color_lookup.get(corn2).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            } else {
+                                // left edge (0)
+                                let color = color_lookup.get(edge0).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            }
 
-                        min = u32::min(min, height_value);
-                        max = u32::max(max, height_value);
+                        } else if x == width - 1 {
+                            if y == 0 {
+                                // upper right corner (1)
+                                let color = color_lookup.get(corn1).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            } else if y == height -1 {
+                                // lower right corner (3)
+                                let color = color_lookup.get(corn3).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            } else {
+                                // right edge (1)
+                                let color = color_lookup.get(edge1).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                            }
+                        } else if y == 0 {
+                            // upper edge (2)
+                                let color = color_lookup.get(edge2).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                        } else if y == height - 1 {
+                            // lower edge (3)
+                                let color = color_lookup.get(edge3).unwrap();
+                                bytes.push(color[0]);
+                                bytes.push(color[1]);
+                                bytes.push(color[2]);
+                        } else {
+                            // center
+                            let x = x as f32 * grid_width as f32 / width as f32;
+                            let y = y as f32 * grid_height as f32 / height as f32;
+                            
+                            let noise_value = perlin_noise(x, y);
+                            let scaled = noise_value * f32::sqrt(2.0) * 0.5 + 0.5;
+                            let height_value = (scaled * max_height as f32) as u32;
 
-                        let height_bytes = height_value.to_le_bytes();
-                        let byte0 = height_bytes[0]; // lsb
-                        let byte1 = height_bytes[1];
-                        let byte2 = height_bytes[2] & 0x0F; // msb
+                            min = u32::min(min, height_value);
+                            max = u32::max(max, height_value);
 
-                        let material = 0u8;
+                            let height_bytes = height_value.to_le_bytes();
+                            let lsb = height_bytes[0];
+                            let msb = height_bytes[1];
+                            let material = 0u8;
 
-                        let g = byte0;
-                        let r = byte1;
-                        let b = byte2 | (material << 4);
+                            let g = lsb;
+                            let r = msb;
+                            let b = material;
 
-                        bytes.push(r);
-                        bytes.push(g);
-                        bytes.push(b);
+                            bytes.push(r);
+                            bytes.push(g);
+                            bytes.push(b);
+                        }
                     }
                 }
 
@@ -536,7 +648,6 @@ impl Script for PlanetScript {
                 ris_io::write(f, &qoi_bytes)?;
 
                 ris_log::trace!("done!");
-                break;
             };
 
         } // make height maps
@@ -673,7 +784,6 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
     h64
 }
 
-// returns u20
 fn perlin_noise(x: f32, y: f32) -> f32 {
     let x0 = x.floor() as i32;
     let x1 = x0 + 1;
