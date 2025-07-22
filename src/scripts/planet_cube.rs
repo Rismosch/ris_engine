@@ -435,9 +435,10 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let width = 1 << 12;
+            //let width = 1 << 12;
+            let width = 1 << 6;
             let height = width;
-            let grid_width = 1 << 8;
+            let grid_width = 1 << 3;
             let grid_height = grid_width;
             let max_height = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
@@ -471,15 +472,112 @@ impl Script for PlanetScript {
             let corn_rfd = "rfd";
             let corn_rbu = "rbu";
             let corn_rfu = "rfu";
+
+            struct Side<'a> {
+                side: &'a str,
+                edges: [&'a str; 4],
+                corners: [&'a str; 4],
+                perlin_offset: Vec2,
+            };
             
-            // (side, edges, corners)
+            // (side, edges, corners, )
             let sides = vec![
-                (side_l, [edge_lf, edge_lb, edge_lu, edge_ld], [corn_lfu, corn_lbu, corn_lfd, corn_lbd]),
-                (side_r, [edge_rb, edge_rf, edge_ru, edge_rd], [corn_rbu, corn_rfu, corn_rbd, corn_rfd]),
-                (side_b, [edge_lb, edge_rb, edge_bu, edge_bd], [corn_lbu, corn_rbu, corn_lbd, corn_rbd]),
-                (side_f, [edge_rf, edge_lf, edge_fu, edge_fd], [corn_rfu, corn_lfu, corn_rfd, corn_lfd]),
-                (side_d, [edge_ld, edge_rd, edge_bd, edge_fd], [corn_lbd, corn_rbd, corn_lfd, corn_rfd]),
-                (side_u, [edge_lu, edge_ru, edge_fu, edge_bu], [corn_lfu, corn_rfu, corn_lbu, corn_rbu]),
+                Side {
+                    side: side_l,
+                    edges: [
+                        edge_lf, 
+                        edge_lb, 
+                        edge_lu, 
+                        edge_ld,
+                    ],
+                    corners: [
+                        corn_lfu, 
+                        corn_lbu, 
+                        corn_lfd, 
+                        corn_lbd,
+                    ],
+                    perlin_offset: Vec2(0.0, 0.0),
+                },
+                Side {
+                    side: side_r,
+                    edges: [
+                        edge_rb, 
+                        edge_rf, 
+                        edge_ru,
+                        edge_rd,
+                    ],
+                    corners: [
+                        corn_rbu, 
+                        corn_rfu, 
+                        corn_rbd, 
+                        corn_rfd,
+                    ],
+                    perlin_offset: Vec2(2.0, 0.0),
+                },
+                Side {
+                    side: side_b,
+                    edges: [
+                        edge_lb, 
+                        edge_rb, 
+                        edge_bu, 
+                        edge_bd,
+                    ],
+                    corners: [
+                        corn_lbu, 
+                        corn_rbu, 
+                        corn_lbd,
+                        corn_rbd,
+                    ],
+                    perlin_offset: Vec2(1.0, 0.0),
+                },
+                Side {
+                    side: side_f,
+                    edges: [
+                        edge_rf, 
+                        edge_lf, 
+                        edge_fu, 
+                        edge_fd,
+                    ],
+                    corners: [
+                        corn_rfu, 
+                        corn_lfu, 
+                        corn_rfd,
+                        corn_lfd,
+                    ],
+                    perlin_offset: Vec2(3.0, 0.0),
+                },
+                Side {
+                    side: side_d,
+                    edges: [
+                        edge_ld,
+                        edge_rd,
+                        edge_bd,
+                        edge_fd,
+                    ],
+                    corners: [
+                        corn_lbd,
+                        corn_rbd,
+                        corn_lfd,
+                        corn_rfd,
+                    ],
+                    perlin_offset: Vec2(1.0, -1.0),
+                },
+                Side {
+                    side: side_u,
+                    edges: [
+                        edge_lu,
+                        edge_ru,
+                        edge_fu,
+                        edge_bu,
+                    ],
+                    corners: [
+                        corn_lfu,
+                        corn_rfu,
+                        corn_lbu, 
+                        corn_rbu,
+                    ],
+                    perlin_offset: Vec2(1.0, 1.0),
+                },
             ];
 
             let mut color_lookup = std::collections::HashMap::<&str, [u8; 3]>::new();
@@ -508,7 +606,13 @@ impl Script for PlanetScript {
 
             for (i, side) in sides.into_iter().enumerate() {
 
-                let (side, [edge0, edge1, edge2, edge3], [corn0, corn1, corn2, corn3]) = side;
+                //let (side, [edge0, edge1, edge2, edge3], [corn0, corn1, corn2, corn3]) = side;
+                let Side {
+                    side,
+                    edges,
+                    corners,
+                    perlin_offset,
+                } = side;
 
                 ris_log::trace!("generating side... {} ({})", side, i);
 
@@ -539,19 +643,19 @@ impl Script for PlanetScript {
                         if x == 0 {
                             if y == 0 {
                                 // upper left corner (0)
-                                let color = color_lookup.get(corn0).unwrap();
+                                let color = color_lookup.get(corners[0]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                             } else if y == height - 1 {
                                 // lower left corner (2)
-                                let color = color_lookup.get(corn2).unwrap();
+                                let color = color_lookup.get(corners[2]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                             } else {
                                 // left edge (0)
-                                let color = color_lookup.get(edge0).unwrap();
+                                let color = color_lookup.get(edges[0]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
@@ -560,32 +664,32 @@ impl Script for PlanetScript {
                         } else if x == width - 1 {
                             if y == 0 {
                                 // upper right corner (1)
-                                let color = color_lookup.get(corn1).unwrap();
+                                let color = color_lookup.get(corners[1]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                             } else if y == height -1 {
                                 // lower right corner (3)
-                                let color = color_lookup.get(corn3).unwrap();
+                                let color = color_lookup.get(corners[3]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                             } else {
                                 // right edge (1)
-                                let color = color_lookup.get(edge1).unwrap();
+                                let color = color_lookup.get(edges[1]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                             }
                         } else if y == 0 {
                             // upper edge (2)
-                                let color = color_lookup.get(edge2).unwrap();
+                                let color = color_lookup.get(edges[2]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
                         } else if y == height - 1 {
                             // lower edge (3)
-                                let color = color_lookup.get(edge3).unwrap();
+                                let color = color_lookup.get(edges[3]).unwrap();
                                 bytes.push(color[0]);
                                 bytes.push(color[1]);
                                 bytes.push(color[2]);
