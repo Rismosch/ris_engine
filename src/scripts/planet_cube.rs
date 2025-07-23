@@ -773,9 +773,11 @@ impl Script for PlanetScript {
 
                             if xi == 0 {
                                 if yi == 0 {
-                                    perlin_sampler.corn0.unwrap_or(default)
+                                    //perlin_sampler.corn0.unwrap_or(default)
+                                    ((default_x, default_y), Mat2::init(0.0))
                                 } else if yi == grid_height {
-                                    perlin_sampler.corn2.unwrap_or(default)
+                                    //perlin_sampler.corn2.unwrap_or(default)
+                                    ((default_x, default_y), Mat2::init(0.0))
                                 } else {
                                     perlin_sampler.edge0
                                         .as_ref()
@@ -784,9 +786,11 @@ impl Script for PlanetScript {
                                 }
                             } else if xi == grid_width {
                                 if yi == 0 {
-                                    perlin_sampler.corn1.unwrap_or(default)
+                                    //perlin_sampler.corn1.unwrap_or(default)
+                                    ((default_x, default_y), Mat2::init(0.0))
                                 } else if yi == grid_height {
-                                    perlin_sampler.corn3.unwrap_or(default)
+                                    //perlin_sampler.corn3.unwrap_or(default)
+                                    ((default_x, default_y), Mat2::init(0.0))
                                 } else {
                                     perlin_sampler.edge1
                                         .as_ref()
