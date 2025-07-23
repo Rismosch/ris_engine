@@ -20,6 +20,7 @@ Barebones game engine. Home made passion project.
     - [x] RGB
     - [x] OkLab
 - [x] 3d Graphics via Vulkan
+  - [ ] Terrain
   - [x] Static Meshes
   - [ ] Skinned Meshes
   - [ ] Materials

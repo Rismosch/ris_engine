@@ -135,8 +135,15 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                             id_path.push(id);
                             let lookup_value = asset_lookup_hashmap.get(&id_path);
 
-                            let compiled_id = *lookup_value.into_ris_error()?;
-                            references.push(compiled_id);
+                            let Some(compiled_id) = lookup_value else {
+                                return ris_error::new_result!(
+                                    "failed to find compiled id for \"{}\". this probably means that asset \"{}\" references an asset that doesn't exist or doesn't have it's original name anymore.",
+                                    id_path.display(),
+                                    asset.display(),
+                                );
+                            };
+
+                            references.push(*compiled_id);
                         }
                     }
                 }
