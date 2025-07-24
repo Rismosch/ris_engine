@@ -11,7 +11,7 @@ const MIN_NORM: f32 = 0.000_001f32;
 // the first number in the type is the number of columns, the second is the number of rows. note
 // that the vecs are columns, not rows!
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat2(pub Vec2, pub Vec2);
 
@@ -27,7 +27,7 @@ pub struct Mat2x4(pub Vec4, pub Vec4);
 #[repr(C)]
 pub struct Mat3x2(pub Vec2, pub Vec2, pub Vec2);
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat3(pub Vec3, pub Vec3, pub Vec3);
 
@@ -43,7 +43,7 @@ pub struct Mat4x2(pub Vec2, pub Vec2, pub Vec2, pub Vec2);
 #[repr(C)]
 pub struct Mat4x3(pub Vec3, pub Vec3, pub Vec3, pub Vec3);
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Mat4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
 
@@ -51,13 +51,39 @@ pub struct Mat4(pub Vec4, pub Vec4, pub Vec4, pub Vec4);
 // constructors
 //
 
+impl Default for Mat2 {
+    fn default() -> Self {
+        Self::identity()
+    }
+}
+
+impl Default for Mat3 {
+    fn default() -> Self {
+        Self::identity()
+    }
+}
+
+impl Default for Mat4 {
+    fn default() -> Self {
+        Self::identity()
+    }
+}
+
 impl Mat2 {
+    pub fn identity() -> Self {
+        Self::init(1.0)
+    }
+
     pub fn init(value: f32) -> Self {
         Self(Vec2(value, 0.0), Vec2(0.0, value))
     }
 }
 
 impl Mat3 {
+    pub fn identity() -> Self {
+        Self::init(1.0)
+    }
+
     pub fn init(value: f32) -> Self {
         Self(
             Vec3(value, 0.0, 0.0),
@@ -68,6 +94,10 @@ impl Mat3 {
 }
 
 impl Mat4 {
+    pub fn identity() -> Self {
+        Self::init(1.0)
+    }
+
     pub fn init(value: f32) -> Self {
         Self(
             Vec4(value, 0.0, 0.0, 0.0),

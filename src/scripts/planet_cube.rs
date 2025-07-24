@@ -436,7 +436,7 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::new()?;
+            let seed = Seed::zero();
             //let width = 1 << 12;
             let width = 1 << 6;
             let height = width;
@@ -445,7 +445,6 @@ impl Script for PlanetScript {
             //let max_height = 0xFFFF;
             let max_height = 0xFF;
             ris_log::trace!("resolution: {}x{}", width, height);
-
 
             let side_l = "l"; // -x left
             let side_r = "r"; // +x right
@@ -558,32 +557,28 @@ impl Script for PlanetScript {
                         edge3: None,
                     },
                 },
-                //Side {
-                //    side: side_f,
-                //    edges: [
-                //        edge_rf, 
-                //        edge_lf, 
-                //        edge_fu, 
-                //        edge_fd,
-                //    ],
-                //    corners: [
-                //        corn_rfu, 
-                //        corn_lfu, 
-                //        corn_rfd,
-                //        corn_lfd,
-                //    ],
-                //    perlin_sampler: PerlinSampler {
-                //        offset: (3, 0),
-                //        edge0: None,
-                //        edge1: Some(Box::new(|yi| (0, yi))),
-                //        edge2: None,
-                //        edge3: None,
-                //        corn0: None,
-                //        corn1: Some((0, 0)),
-                //        corn2: None,
-                //        corn3: Some((0, grid_height)),
-                //    },
-                //},
+                Side {
+                    side: side_f,
+                    edges: [
+                        edge_rf, 
+                        edge_lf, 
+                        edge_fu, 
+                        edge_fd,
+                    ],
+                    corners: [
+                        corn_rfu, 
+                        corn_lfu, 
+                        corn_rfd,
+                        corn_lfd,
+                    ],
+                    perlin_sampler: PerlinSampler {
+                        offset: (3, 0),
+                        edge0: None,
+                        edge1: Some(Box::new(|yi| ((0, yi), Mat2::identity()))),
+                        edge2: None,
+                        edge3: None,
+                    },
+                },
                 //Side {
                 //    side: side_d,
                 //    edges: [
@@ -627,8 +622,8 @@ impl Script for PlanetScript {
                     perlin_sampler: PerlinSampler {
                         offset: (1, -1),
                         edge0: Some(Box::new(move |yi| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
-                        edge1: None, //Some(Box::new(move |yi| (grid_width - yi + grid_width * 2, 0))),
-                        edge2: None, //Some(Box::new(move |xi| (grid_width - xi + grid_width * 3, 0))),
+                        edge1: Some(Box::new(move |yi| ((grid_width - yi + grid_width * 2, 0), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge2: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                         edge3: None,
                     },
                 },
@@ -708,7 +703,7 @@ impl Script for PlanetScript {
                             let offset_y = perlin_sampler.offset.1 * grid_height;
                             let default_x = xi + offset_x;
                             let default_y = yi + offset_y;
-                            let default = ((default_x, default_y), Mat2::init(1.0));
+                            let default = ((default_x, default_y), Mat2::identity());
 
                             if xi == 0 {
                                 if yi == 0 {
@@ -974,13 +969,13 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
 
 fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
     let seed128 = u128::from_le_bytes(seed.0);
-    let seedA = seed128 & 0xFFFFFFFF;
-    let seedB = (seed128 >> 32) & 0xFFFFFFFF;
+    let seed_a = seed128 & 0xFFFFFFFF;
+    let seed_b = (seed128 >> 32) & 0xFFFFFFFF;
 
     let w = (8 * std::mem::size_of::<u32>()) as u32;
     let s = w / 2;
-    let a = (ix as u32) ^ (seedA as u32);
-    let b = (iy as u32) ^ (seedB as u32);
+    let a = (ix as u32) ^ (seed_a as u32);
+    let b = (iy as u32) ^ (seed_b as u32);
     let a = a.wrapping_mul(3284157443);
     let b = b ^ ((a << s) | (a >> (w-s)));
     let b = b.wrapping_mul(1911520717);
