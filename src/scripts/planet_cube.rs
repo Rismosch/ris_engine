@@ -438,7 +438,7 @@ impl Script for PlanetScript {
             let seed = Seed::zero();
             //let width = 1 << 12;
             //let width = 1 << 6;
-            let iterations = 2;
+            let iterations = 6;
             let width = (1 << iterations) + 1;
             let height = width;
             //let grid_width = 1 << 2; // the larger this number, the smaller and the more blobs
@@ -671,7 +671,7 @@ impl Script for PlanetScript {
                 let mut max = f32::MIN;
 
                 //for iteration in 0..(iterations) {
-                for iteration in 1..(iterations) {
+                for iteration in 3..(iterations) {
                     // "grid distance"
                     // distance between grid points
                     let gd = ((width - 1) / (1 << iteration), (height - 1) / (1 << iteration));
@@ -763,10 +763,14 @@ impl Script for PlanetScript {
                             let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
 
                             let p = Vec2(ix as f32, iy as f32);
-                            let q0 = Vec2(iq0.0 as f32, iq0.1 as f32);
-                            let q1 = Vec2(iq1.0 as f32, iq1.1 as f32);
-                            let q2 = Vec2(iq2.0 as f32, iq2.1 as f32);
-                            let q3 = Vec2(iq3.0 as f32, iq3.1 as f32);
+                            //let q0 = Vec2(iq0.0 as f32, iq0.1 as f32);
+                            //let q1 = Vec2(iq1.0 as f32, iq1.1 as f32);
+                            //let q2 = Vec2(iq2.0 as f32, iq2.1 as f32);
+                            //let q3 = Vec2(iq3.0 as f32, iq3.1 as f32);
+                            let q0 = Vec2(m.0 as f32, n.0 as f32);
+                            let q1 = Vec2(m.1 as f32, n.0 as f32);
+                            let q2 = Vec2(m.0 as f32, n.1 as f32);
+                            let q3 = Vec2(m.1 as f32, n.1 as f32);
 
                             let s0 = g0.dot(p - q0);
                             let s1 = g1.dot(p - q1);
@@ -775,20 +779,20 @@ impl Script for PlanetScript {
 
                             let h = |x: f32| (3.0 - x * 2.0) * x * x;
                             let Vec2(mut x, mut y) = p - q0;
-                            //x /= gd.0 as f32;
-                            //y /= gd.1 as f32;
+                            x /= gd.0 as f32;
+                            y /= gd.1 as f32;
 
-                            ris_log::debug!("{:?} {:?} {:?} {:?}", (m, n), p, q0, Vec2(x, y));
+                            //ris_log::debug!("{:?} {:?} {:?} {:?}", (m, n), p, q0, Vec2(x, y));
 
                             let f0 = s0 * h(1.0 - x) + s1 * h(x);
                             let f1 = s2 * h(1.0 - x) + s3 * h(x);
                             let f = f0 * h(1.0 - y) + f1 * h(y);
                             // perlin noise end
                             
-                            min = f32::min(min, x);
-                            max = f32::max(max, x);
+                            min = f32::min(min, f);
+                            max = f32::max(max, f);
 
-                            let scaled = f + 0.5;
+                            let scaled = f / 10.0 + 1.0;
                             let height_value = (scaled * max_height as f32) as u32;
 
                             let height_bytes = height_value.to_le_bytes();
@@ -805,7 +809,7 @@ impl Script for PlanetScript {
                     break;
                 }
 
-                //ris_log::debug!("{} {}", min, max);
+                ris_log::debug!("{} {}", min, max);
 
                 ris_log::trace!("encoding to qoi...");
                 let desc = QoiDesc {
