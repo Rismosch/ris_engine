@@ -579,32 +579,28 @@ impl Script for PlanetScript {
                         edge3: None,
                     },
                 },
-                //Side {
-                //    side: side_d,
-                //    edges: [
-                //        edge_ld,
-                //        edge_rd,
-                //        edge_bd,
-                //        edge_fd,
-                //    ],
-                //    corners: [
-                //        corn_lbd,
-                //        corn_rbd,
-                //        corn_lfd,
-                //        corn_rfd,
-                //    ],
-                //    perlin_sampler: PerlinSampler {
-                //        offset: (1, 1),
-                //        edge0: None,
-                //        edge1: None,
-                //        edge2: None,
-                //        edge3: None,
-                //        corn0: None,
-                //        corn1: None,
-                //        corn2: None,
-                //        corn3: None,
-                //    },
-                //},
+                Side {
+                    side: side_d,
+                    edges: [
+                        edge_ld,
+                        edge_rd,
+                        edge_bd,
+                        edge_fd,
+                    ],
+                    corners: [
+                        corn_lbd,
+                        corn_rbd,
+                        corn_lfd,
+                        corn_rfd,
+                    ],
+                    perlin_sampler: PerlinSampler {
+                        offset: (1, 1),
+                        edge0: Some(Box::new(move |yi| ((grid_width - yi, grid_height), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge1: Some(Box::new(move |yi| ((yi + 2 * grid_width, grid_height), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
+                        edge2: None,
+                        edge3: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, grid_height), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
+                    },
+                },
                 Side {
                     side: side_u,
                     edges: [
