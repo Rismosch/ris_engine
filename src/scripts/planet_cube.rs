@@ -436,7 +436,7 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::zero();
+            let seed = Seed::new()?;
             //let width = 1 << 12;
             let width = 1 << 6;
             let height = width;
@@ -685,12 +685,12 @@ impl Script for PlanetScript {
                         // G = height LSB
                         // B = height MSB + material
  
-                        let coord = Vec2(x as f32, y as f32);
+                        let coord = Vec2(x as f32 + 0.5, y as f32 + 0.5);
                         let size = Vec2(width as f32, height as f32);
                         let normalized = coord / size; // normalized
                         //let pos = n + perlin_sampler.offset; // position on cube/net
                         let grid = Vec2(grid_width as f32, grid_height as f32);
-                        let grid_pos = normalized * grid;
+                        let p = normalized * grid;
 
                         // this closure connects the edges and corners of different sizes, to
                         // ensure that the perlin noise ist continuous over the whole cube
@@ -739,8 +739,6 @@ impl Script for PlanetScript {
                         };
 
                         // perlin noise
-                        let p: Vec2 = grid_pos;
-
                         let m0 = p.x().floor() as i32;
                         let m1 = m0 + 1;
                         let n0 = p.y().floor() as i32;
