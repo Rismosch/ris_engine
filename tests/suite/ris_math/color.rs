@@ -13,7 +13,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_convert_rgb_to_lab() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
@@ -39,7 +39,7 @@ fn should_convert_rgb_to_lab() {
 
 #[test]
 fn should_convert_lab_to_lch() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
@@ -65,7 +65,7 @@ fn should_convert_lab_to_lch() {
 
 #[test]
 fn should_convert_rgb_to_lch() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
@@ -98,7 +98,7 @@ fn should_convert_rgb_to_lch() {
 
 #[test]
 fn should_convert_rgb_to_bytes() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {

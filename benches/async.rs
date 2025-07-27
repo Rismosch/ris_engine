@@ -11,7 +11,7 @@ use ris_rng::rng::Seed;
 fn async_runner(c: &mut Criterion) {
     let mut group = c.benchmark_group("async");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let hash_iterations = 1_000;
     let hash_input_count = 1_000;

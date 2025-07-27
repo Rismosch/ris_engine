@@ -93,7 +93,7 @@ pub struct PlanetScript {
 
 impl Default for PlanetScript {
     fn default() -> Self {
-        let seed = ris_error::unwrap!(Seed::new(), "failed to generate seed",);
+        let seed = Seed::new();
         let rng = Rng::new(seed);
 
         Self {
@@ -436,7 +436,7 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::new()?;
+            let seed = Seed::new();
             //let width = 1 << 12;
             let width = 1 << 6;
             let height = width;
@@ -962,9 +962,9 @@ fn xxhash_vec3(value: Vec3, seed: u64) -> u64 {
 }
 
 fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
-    let seed128 = u128::from_le_bytes(seed.0);
-    let seed_a = seed128 & 0xFFFFFFFF;
-    let seed_b = (seed128 >> 32) & 0xFFFFFFFF;
+    let Seed(seed_value) = seed;
+    let seed_a = seed_value & 0xFFFFFFFF;
+    let seed_b = (seed_value >> 32) & 0xFFFFFFFF;
 
     let w = (8 * std::mem::size_of::<u32>()) as u32;
     let s = w / 2;

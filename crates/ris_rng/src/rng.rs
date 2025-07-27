@@ -11,41 +11,41 @@ use ris_math::vector::Vec4;
 
 use crate::pcg::Pcg32;
 
-pub const SEED_LEN: usize = 16;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Seed(pub [u8; SEED_LEN]);
+pub struct Seed(pub u128);
+
+impl Default for Seed {
+    fn default() -> Self {
+        Self(274369434223529508508286369196229651910)
+    }
+}
 
 impl Seed {
     #[cfg(not(miri))]
-    pub fn new() -> RisResult<Self> {
+    pub fn new() -> Self {
         let now = std::time::SystemTime::now();
-        let duration_since_epoch = now.duration_since(std::time::UNIX_EPOCH)?;
-        let bytes = duration_since_epoch.as_millis().to_le_bytes();
-        let seed = Seed(bytes);
 
-        // generate a better seed
-        let mut better_seed = Self::zero();
-
-        let mut rng = Rng::new(seed);
-        let bytes = rng.next_bytes(better_seed.0.len());
-
-        for (i, byte) in bytes.into_iter().enumerate() {
-            better_seed.0[i] = byte;
+        match now.duration_since(std::time::UNIX_EPOCH) {
+            Ok(duration_since_epoch) => {
+                let millis = duration_since_epoch.as_millis();
+                let seed = Seed(millis);
+                
+                // generate a better seed
+                let mut rng = Rng::new(seed);
+                let better_seed_value = rng.next_u128();
+                Self(better_seed_value)
+            },
+            Err(_) => Seed::default(),
         }
-
-        Ok(better_seed)
     }
 
     #[cfg(miri)]
-    pub fn new() -> RisResult<Self> {
-        Ok(Self([
-            198, 237, 209, 128, 44, 192, 237, 30, 31, 198, 222, 241, 131, 161, 105, 206,
-        ]))
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn zero() -> Self {
-        Seed([0u8; SEED_LEN])
+        Seed(0)
     }
 }
 
@@ -91,6 +91,13 @@ impl Rng {
         let a: u64 = self.next_u32().into();
         let b: u64 = self.next_u32().into();
         (a << 32) | b
+    }
+
+    /// returns a random u128
+    pub fn next_u128(&mut self) -> u128 {
+        let a: u128 = self.next_u64().into();
+        let b: u128 = self.next_u64().into();
+        (a << 64) | b
     }
 
     /// returns a random i32

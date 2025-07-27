@@ -11,7 +11,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_encode_and_decode_fuzzed() {
-    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
+    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new())));
     testing::repeat(10, move |_| {
         let mut rng = rng.borrow_mut();
 

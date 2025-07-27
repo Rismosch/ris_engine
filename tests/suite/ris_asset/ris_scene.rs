@@ -94,7 +94,7 @@ impl Script for TestScript {
 
 #[test]
 fn should_serialize() {
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let registry = Registry::new(vec![Registry::script::<TestScript>().unwrap()]).unwrap();
 

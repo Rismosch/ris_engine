@@ -47,7 +47,7 @@ fn should_compare_bytes() {
 
 #[test]
 fn should_read_and_write_bytes() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -102,7 +102,7 @@ fn should_read_and_write_u8() {
 
 #[test]
 fn should_read_and_write_int() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -119,7 +119,7 @@ fn should_read_and_write_int() {
 
 #[test]
 fn should_read_and_write_uint() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -137,7 +137,7 @@ fn should_read_and_write_uint() {
 
 #[test]
 fn should_read_and_write_u64() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -156,7 +156,7 @@ fn should_read_and_write_u64() {
 
 #[test]
 fn should_read_and_write_f32() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -191,7 +191,7 @@ fn should_not_read_invalid_bool() {
 
 #[test]
 fn should_read_and_write_fat_ptr() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -214,7 +214,7 @@ fn should_read_and_write_fat_ptr() {
 
 #[test]
 fn should_read_and_write_string() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -232,7 +232,7 @@ fn should_read_and_write_string() {
 
 #[test]
 fn should_read_and_write_vec2() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -249,7 +249,7 @@ fn should_read_and_write_vec2() {
 
 #[test]
 fn should_read_and_write_vec3() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -266,7 +266,7 @@ fn should_read_and_write_vec3() {
 
 #[test]
 fn should_read_and_write_vec4() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -355,7 +355,7 @@ fn should_not_read_invalid_bvec4() {
 
 #[test]
 fn should_read_and_write_quat() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -372,7 +372,7 @@ fn should_read_and_write_quat() {
 
 #[test]
 fn should_read_and_write_mat2() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -391,7 +391,7 @@ fn should_read_and_write_mat2() {
 
 #[test]
 fn should_read_and_write_mat2x3() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -410,7 +410,7 @@ fn should_read_and_write_mat2x3() {
 
 #[test]
 fn should_read_and_write_mat2x4() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -429,7 +429,7 @@ fn should_read_and_write_mat2x4() {
 
 #[test]
 fn should_read_and_write_mat3x2() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -449,7 +449,7 @@ fn should_read_and_write_mat3x2() {
 
 #[test]
 fn should_read_and_write_mat3() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -469,7 +469,7 @@ fn should_read_and_write_mat3() {
 
 #[test]
 fn should_read_and_write_mat3x4() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -489,7 +489,7 @@ fn should_read_and_write_mat3x4() {
 
 #[test]
 fn should_read_and_write_mat4x2() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -510,7 +510,7 @@ fn should_read_and_write_mat4x2() {
 
 #[test]
 fn should_read_and_write_mat4x3() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -531,7 +531,7 @@ fn should_read_and_write_mat4x3() {
 
 #[test]
 fn should_read_and_write_mat4() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -552,7 +552,7 @@ fn should_read_and_write_mat4() {
 
 #[test]
 fn should_read_and_write_everything_via_fat_ptrs() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
