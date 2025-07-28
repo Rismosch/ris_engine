@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use std::path::PathBuf;
 
+use libc::WCOREDUMP;
 use ris_asset::assets::ris_mesh;
 use ris_asset::assets::ris_terrain;
 use ris_asset::codecs::qoi;
@@ -453,32 +454,8 @@ impl Script for PlanetScript {
             let side_d = "d"; // -z down
             let side_u = "u"; // +z up
 
-            let edge_lb = "lb";
-            let edge_lf = "lf";
-            let edge_ld = "ld";
-            let edge_lu = "lu";
-            let edge_rb = "rb";
-            let edge_rf = "rf";
-            let edge_rd = "rd";
-            let edge_ru = "ru";
-            let edge_bd = "bd";
-            let edge_bu = "bu";
-            let edge_fd = "fd";
-            let edge_fu = "fu";
-
-            let corn_lbd = "lbd";
-            let corn_lfd = "lfd";
-            let corn_lbu = "lbu";
-            let corn_lfu = "lfu";
-            let corn_rbd = "rbd";
-            let corn_rfd = "rfd";
-            let corn_rbu = "rbu";
-            let corn_rfu = "rfu";
-
             struct Side<'a> {
                 side: &'a str,
-                edges: [&'a str; 4],
-                corners: [&'a str; 4],
                 perlin_sampler: PerlinSampler,
             }
 
@@ -493,18 +470,6 @@ impl Script for PlanetScript {
             let sides = vec![
                 Side {
                     side: side_l,
-                    edges: [
-                        edge_lf, 
-                        edge_lb, 
-                        edge_lu, 
-                        edge_ld,
-                    ],
-                    corners: [
-                        corn_lfu, 
-                        corn_lbu, 
-                        corn_lfd, 
-                        corn_lbd,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (0, 0),
                         edge0: None,
@@ -515,18 +480,6 @@ impl Script for PlanetScript {
                 },
                 Side {
                     side: side_r,
-                    edges: [
-                        edge_rb, 
-                        edge_rf, 
-                        edge_ru,
-                        edge_rd,
-                    ],
-                    corners: [
-                        corn_rbu, 
-                        corn_rfu, 
-                        corn_rbd, 
-                        corn_rfd,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (2, 0),
                         edge0: None,
@@ -537,18 +490,6 @@ impl Script for PlanetScript {
                 },
                 Side {
                     side: side_b,
-                    edges: [
-                        edge_lb, 
-                        edge_rb, 
-                        edge_bu, 
-                        edge_bd,
-                    ],
-                    corners: [
-                        corn_lbu, 
-                        corn_rbu, 
-                        corn_lbd,
-                        corn_rbd,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (1, 0),
                         edge0: None,
@@ -559,18 +500,6 @@ impl Script for PlanetScript {
                 },
                 Side {
                     side: side_f,
-                    edges: [
-                        edge_rf, 
-                        edge_lf, 
-                        edge_fu, 
-                        edge_fd,
-                    ],
-                    corners: [
-                        corn_rfu, 
-                        corn_lfu, 
-                        corn_rfd,
-                        corn_lfd,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (3, 0),
                         edge0: None,
@@ -581,18 +510,6 @@ impl Script for PlanetScript {
                 },
                 Side {
                     side: side_d,
-                    edges: [
-                        edge_ld,
-                        edge_rd,
-                        edge_bd,
-                        edge_fd,
-                    ],
-                    corners: [
-                        corn_lbd,
-                        corn_rbd,
-                        corn_lfd,
-                        corn_rfd,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (1, 1),
                         edge0: Some(Box::new(move |yi| ((grid_width - yi, grid_height), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
@@ -603,18 +520,6 @@ impl Script for PlanetScript {
                 },
                 Side {
                     side: side_u,
-                    edges: [
-                        edge_lu,
-                        edge_ru,
-                        edge_fu,
-                        edge_bu,
-                    ],
-                    corners: [
-                        corn_lfu,
-                        corn_rfu,
-                        corn_lbu, 
-                        corn_rbu,
-                    ],
                     perlin_sampler: PerlinSampler {
                         offset: (1, -1),
                         edge0: Some(Box::new(move |yi| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
@@ -625,53 +530,27 @@ impl Script for PlanetScript {
                 },
             ];
 
-            let mut color_lookup = std::collections::HashMap::<&str, [u8; 3]>::new();
-
-            color_lookup.insert(edge_lb, [64, 0, 0]);
-            color_lookup.insert(edge_lf, [128, 0, 0]);
-            color_lookup.insert(edge_ld, [0, 64, 64]);
-            color_lookup.insert(edge_lu, [0, 128, 128]);
-            color_lookup.insert(edge_rb, [0, 64, 0]);
-            color_lookup.insert(edge_rf, [0, 128, 0]);
-            color_lookup.insert(edge_rd, [64, 0, 64]);
-            color_lookup.insert(edge_ru, [128, 0, 128]);
-            color_lookup.insert(edge_bd, [0, 0, 64]);
-            color_lookup.insert(edge_bu, [0, 0, 128]);
-            color_lookup.insert(edge_fd, [64, 64, 0]);
-            color_lookup.insert(edge_fu, [128, 128, 0]);
-
-            color_lookup.insert(corn_lbd, [255, 0, 0]);
-            color_lookup.insert(corn_lfd, [0, 255, 255]);
-            color_lookup.insert(corn_lbu, [0, 255, 0]);
-            color_lookup.insert(corn_lfu, [255, 0, 255]);
-            color_lookup.insert(corn_rbd, [0, 0, 255]);
-            color_lookup.insert(corn_rfd, [255, 255, 0]);
-            color_lookup.insert(corn_rbu, [0, 0, 0]);
-            color_lookup.insert(corn_rfu, [255, 255, 255]);
-
             for (i, side) in sides.into_iter().enumerate() {
 
                 //let (side, [edge0, edge1, edge2, edge3], [corn0, corn1, corn2, corn3]) = side;
                 let Side {
                     side,
-                    edges,
-                    corners,
                     perlin_sampler,
                 } = side;
 
                 ris_log::trace!("generating side... {} ({})", side, i);
 
-                let mut bytes = Vec::with_capacity(width * height * 3);
+                let mut height_map = vec![0.0; (width + 2) * (height + 2)];
 
                 let mut min: f32 = f32::MAX;
                 let mut max: f32 = f32::MIN;
 
-                for y in 0..width {
-                    if y % 100 == 0 {
-                        ris_log::trace!("y... {}/{}", y, width);
+                for iy in 0..width {
+                    if iy % 100 == 0 {
+                        ris_log::trace!("y... {}/{}", iy, width);
                     }
 
-                    for x in 0..height {
+                    for ix in 0..height {
                         // height map format:
                         // u20 for height and u4 for material
                         //
@@ -685,7 +564,7 @@ impl Script for PlanetScript {
                         // G = height LSB
                         // B = height MSB + material
  
-                        let coord = Vec2(x as f32 + 0.5, y as f32 + 0.5);
+                        let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
                         let size = Vec2(width as f32, height as f32);
                         let normalized = coord / size; // normalized
                         //let pos = n + perlin_sampler.offset; // position on cube/net
@@ -773,13 +652,16 @@ impl Script for PlanetScript {
                         min = f32::min(min, f);
                         max = f32::max(max, f);
 
-                        let scaled = f + 0.5;
-                        let height_value = (scaled * max_height as f32) as u32;
+                        let height_map_index = (ix + 1) + (iy + 1) * (width + 2);
+                        height_map[height_map_index] = f;
 
-                        let height_bytes = height_value.to_le_bytes();
-                        let lsb = height_bytes[0];
-                        let msb = height_bytes[1];
-                        let material = 0u8;
+                        //let scaled = f + 0.5;
+                        //let height_value = (scaled * max_height as f32) as u32;
+
+                        //let height_bytes = height_value.to_le_bytes();
+                        //let lsb = height_bytes[0];
+                        //let msb = height_bytes[1];
+                        //let material = 0u8;
 
                         //let g = lsb;
                         //let r = msb;
@@ -788,18 +670,28 @@ impl Script for PlanetScript {
                         //bytes.push(r);
                         //bytes.push(g);
                         //bytes.push(b);
-                        bytes.push(lsb);
-                        bytes.push(lsb);
-                        bytes.push(lsb);
                     }
                 }
 
                 println!("min max: {} {}", min, max);
+                ris_log::trace!("convert height map to bytes...");
+                let mut bytes = Vec::with_capacity(height_map.len() * 3);
+                for f in height_map.iter() {
+                    let scaled = f + 0.5;
+                    let height_value = (scaled * max_height as f32) as u32;
+                    let height_bytes = height_value.to_le_bytes();
+                    let lsb = height_bytes[0];
+                    let msb = height_bytes[1];
+
+                    bytes.push(lsb);
+                    bytes.push(lsb);
+                    bytes.push(lsb);
+                }
 
                 ris_log::trace!("encoding to qoi...");
                 let desc = QoiDesc {
-                    width: width as u32,
-                    height: height as u32,
+                    width: (width + 2) as u32,
+                    height: (height + 2) as u32,
                     channels: Channels::RGB,
                     color_space: ColorSpace::Linear,
                 };
