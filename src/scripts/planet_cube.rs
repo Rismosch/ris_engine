@@ -454,9 +454,65 @@ impl Script for PlanetScript {
             let side_d = "d"; // -z down
             let side_u = "u"; // +z up
 
-            struct Side<'a> {
+            let edge_lf = "lf";
+            let edge_lb = "lb";
+            let edge_ld = "ld";
+            let edge_lu = "lu";
+            let edge_rf = "rf";
+            let edge_rb = "rb";
+            let edge_rd = "rd";
+            let edge_ru = "ru";
+            let edge_bd = "bd";
+            let edge_bu = "bu";
+            let edge_fd = "fd";
+            let edge_fu = "fu";
+
+            struct HeightMap<'a> {
                 side: &'a str,
+                values: Vec<f32>,
+                width: usize,
+                height: usize,
+                min: f32,
+                max: f32,
+            }
+
+            impl<'a> HeightMap<'a> {
+                fn new(side: &'a str, width: usize, height: usize) -> Self {
+                    Self {
+                        side,
+                        values: vec![0.0; width * height],
+                        width,
+                        height,
+                        min: f32::MAX,
+                        max: f32::MIN,
+                    }
+                }
+
+                fn get(&self, x: usize, y: usize) -> f32 {
+                    let i = self.index(x, y);
+                    self.values[i]
+                }
+
+                fn set(&mut self, x: usize, y: usize, value: f32) {
+                    let i = self.index(x, y);
+                    self.values[i] = value;
+                    self.min = f32::min(self.min, value);
+                    self.max = f32::max(self.min, value);
+                }
+
+                fn index(&self, x: usize, y: usize) -> usize {
+                    x + y * self.width
+                }
+            }
+
+            struct Side<'a> {
                 perlin_sampler: PerlinSampler,
+                height_map: HeightMap<'a>,
+            }
+
+            struct Edge<'a> {
+                perlin_sampler: PerlinEdgeSampler,
+                height_map: HeightMap<'a>,
             }
 
             struct PerlinSampler {
@@ -467,9 +523,18 @@ impl Script for PlanetScript {
                 edge3: Option<Box<dyn Fn(i32) -> ((i32, i32), Mat2)>>,
             }
 
+            enum Direction {
+                X,
+                Y,
+            }
+
+            struct PerlinEdgeSampler {
+                offset: (i32, i32),
+                direction: Direction,
+            }
+
             let sides = vec![
                 Side {
-                    side: side_l,
                     perlin_sampler: PerlinSampler {
                         offset: (0, 0),
                         edge0: None,
@@ -477,9 +542,9 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
+                    height_map: HeightMap::new(side_l, width, height),
                 },
                 Side {
-                    side: side_r,
                     perlin_sampler: PerlinSampler {
                         offset: (2, 0),
                         edge0: None,
@@ -487,9 +552,9 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
+                    height_map: HeightMap::new(side_r, width, height),
                 },
                 Side {
-                    side: side_b,
                     perlin_sampler: PerlinSampler {
                         offset: (1, 0),
                         edge0: None,
@@ -497,9 +562,9 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
+                    height_map: HeightMap::new(side_b, width, height),
                 },
                 Side {
-                    side: side_f,
                     perlin_sampler: PerlinSampler {
                         offset: (3, 0),
                         edge0: None,
@@ -507,9 +572,9 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
+                    height_map: HeightMap::new(side_f, width, height),
                 },
                 Side {
-                    side: side_d,
                     perlin_sampler: PerlinSampler {
                         offset: (1, 1),
                         edge0: Some(Box::new(move |yi| ((grid_width - yi, grid_height), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
@@ -517,9 +582,9 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, grid_height), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                     },
+                    height_map: HeightMap::new(side_d, width, height),
                 },
                 Side {
-                    side: side_u,
                     perlin_sampler: PerlinSampler {
                         offset: (1, -1),
                         edge0: Some(Box::new(move |yi| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
@@ -527,23 +592,31 @@ impl Script for PlanetScript {
                         edge2: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                         edge3: None,
                     },
+                    height_map: HeightMap::new(side_u, width, height),
                 },
             ];
 
-            for (i, side) in sides.into_iter().enumerate() {
+            let edges = vec![
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (0, 0),
+                        direction: Direction::Y,
+                    },
+                    height_map: HeightMap::new(edge_lf, 1, height)
+                },
+            ];
 
-                //let (side, [edge0, edge1, edge2, edge3], [corn0, corn1, corn2, corn3]) = side;
+            let mut height_maps = Vec::new();
+
+            // sides
+            for (i, side) in sides.into_iter().enumerate() {
                 let Side {
-                    side,
                     perlin_sampler,
+                    mut height_map,
                 } = side;
 
-                ris_log::trace!("generating side... {} ({})", side, i);
+                ris_log::trace!("generating side... {} ({})", height_map.side, i);
 
-                let mut height_map = vec![0.0; (width + 2) * (height + 2)];
-
-                let mut min: f32 = f32::MAX;
-                let mut max: f32 = f32::MIN;
 
                 for iy in 0..width {
                     if iy % 100 == 0 {
@@ -551,19 +624,6 @@ impl Script for PlanetScript {
                     }
 
                     for ix in 0..height {
-                        // height map format:
-                        // u20 for height and u4 for material
-                        //
-                        //       material
-                        //       vv
-                        // 0xRRGGBB
-                        //   ^--^
-                        //    height
-                        //   
-                        // R = height middle byte
-                        // G = height LSB
-                        // B = height MSB + material
- 
                         let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
                         let size = Vec2(width as f32, height as f32);
                         let normalized = coord / size; // normalized
@@ -649,40 +709,65 @@ impl Script for PlanetScript {
                         let f = f0 * h(1.0 - y) + f1 * h(y);
                         // perlin noise end
 
-                        min = f32::min(min, f);
-                        max = f32::max(max, f);
-
-                        let height_map_index = (ix + 1) + (iy + 1) * (width + 2);
-                        height_map[height_map_index] = f;
-
-                        //let scaled = f + 0.5;
-                        //let height_value = (scaled * max_height as f32) as u32;
-
-                        //let height_bytes = height_value.to_le_bytes();
-                        //let lsb = height_bytes[0];
-                        //let msb = height_bytes[1];
-                        //let material = 0u8;
-
-                        //let g = lsb;
-                        //let r = msb;
-                        //let b = material;
-
-                        //bytes.push(r);
-                        //bytes.push(g);
-                        //bytes.push(b);
+                        height_map.set(ix, iy, f);
                     }
                 }
 
-                println!("min max: {} {}", min, max);
+                height_maps.push(height_map);
+            } // end sides
+
+            // edges
+            for (i, edge) in edges.into_iter().enumerate() {
+                let Edge { 
+                    perlin_sampler, 
+                    mut height_map,
+                } = edge;
+
+                height_maps.push(height_map);
+            } // end edges
+
+            let mut min = f32::MAX;
+            let mut max = f32::MIN;
+            for height_map in height_maps.iter() {
+                min = f32::min(min, height_map.min);
+                max = f32::max(max, height_map.max);
+            }
+
+            let m = 1.0 / (max - min);
+            let c = -min;
+
+            // qoi
+            for height_map in height_maps.into_iter() {
+                // height map format:
+                // u20 for height and u4 for material
+                //
+                //       material
+                //       vv
+                // 0xRRGGBB
+                //   ^--^
+                //    height
+                //   
+                // R = height middle byte
+                // G = height LSB
+                // B = height MSB + material
+ 
                 ris_log::trace!("convert height map to bytes...");
-                let mut bytes = Vec::with_capacity(height_map.len() * 3);
-                for f in height_map.iter() {
-                    let scaled = f + 0.5;
+                let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
+                for x in height_map.values.iter() {
+                    let scaled = m * x + c;
                     let height_value = (scaled * max_height as f32) as u32;
                     let height_bytes = height_value.to_le_bytes();
                     let lsb = height_bytes[0];
                     let msb = height_bytes[1];
+                    let material = 0u8;
 
+                    let g = lsb;
+                    let r = msb;
+                    let b = material;
+
+                    //bytes.push(r);
+                    //bytes.push(g);
+                    //bytes.push(b);
                     bytes.push(lsb);
                     bytes.push(lsb);
                     bytes.push(lsb);
@@ -690,8 +775,8 @@ impl Script for PlanetScript {
 
                 ris_log::trace!("encoding to qoi...");
                 let desc = QoiDesc {
-                    width: (width + 2) as u32,
-                    height: (height + 2) as u32,
+                    width: height_map.width as u32,
+                    height: height_map.height as u32,
                     channels: Channels::RGB,
                     color_space: ColorSpace::Linear,
                 };
@@ -705,7 +790,7 @@ impl Script for PlanetScript {
 
                 ris_log::trace!("serializing...");
 
-                let path_string = format!("assets/in_use/terrain/height_map_{}.qoi", side);
+                let path_string = format!("assets/in_use/terrain/height_map_{}.qoi", height_map.side);
                 let filepath = PathBuf::from(path_string);
 
                 if filepath.exists() {
@@ -715,9 +800,9 @@ impl Script for PlanetScript {
                 let mut file = std::fs::File::create_new(filepath)?;
                 let f = &mut file;
                 ris_io::write(f, &qoi_bytes)?;
+            } // end qoi
 
-                ris_log::trace!("done!");
-            };
+            ris_log::trace!("done!");
 
         } // make height maps
 
