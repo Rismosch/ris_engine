@@ -437,7 +437,7 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::new();
+            let seed = Seed::zero();
             //let width = 1 << 12;
             let width = 1 << 6;
             let height = width;
@@ -497,7 +497,7 @@ impl Script for PlanetScript {
                     let i = self.index(x, y);
                     self.values[i] = value;
                     self.min = f32::min(self.min, value);
-                    self.max = f32::max(self.min, value);
+                    self.max = f32::max(self.max, value);
                 }
 
                 fn index(&self, x: usize, y: usize) -> usize {
@@ -625,7 +625,7 @@ impl Script for PlanetScript {
 
                     for ix in 0..height {
                         let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
-                        let size = Vec2(width as f32, height as f32);
+                        let size = Vec2(height_map.width as f32, height_map.height as f32);
                         let normalized = coord / size; // normalized
                         //let pos = n + perlin_sampler.offset; // position on cube/net
                         let grid = Vec2(grid_width as f32, grid_height as f32);
@@ -723,6 +723,13 @@ impl Script for PlanetScript {
                     mut height_map,
                 } = edge;
 
+                for (i, value) in height_map.values.iter_mut().enumerate() {
+                    let coord = match perlin_sampler.direction {
+                        Direction::X => Vec2(i as f32, 0.0),
+                        Direction::Y => Vec2(0.0, i as f32),
+                    };
+                }
+
                 height_maps.push(height_map);
             } // end edges
 
@@ -732,9 +739,6 @@ impl Script for PlanetScript {
                 min = f32::min(min, height_map.min);
                 max = f32::max(max, height_map.max);
             }
-
-            let m = 1.0 / (max - min);
-            let c = -min;
 
             // qoi
             for height_map in height_maps.into_iter() {
@@ -753,9 +757,11 @@ impl Script for PlanetScript {
  
                 ris_log::trace!("convert height map to bytes...");
                 let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
-                for x in height_map.values.iter() {
-                    let scaled = m * x + c;
+                for f in height_map.values.iter() {
+
+                    let scaled = (f - min) / (max - min);
                     let height_value = (scaled * max_height as f32) as u32;
+
                     let height_bytes = height_value.to_le_bytes();
                     let lsb = height_bytes[0];
                     let msb = height_bytes[1];
