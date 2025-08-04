@@ -2,7 +2,6 @@ use std::f32::consts::PI;
 
 use std::path::PathBuf;
 
-use libc::WCOREDUMP;
 use ris_asset::assets::ris_mesh;
 use ris_asset::assets::ris_terrain;
 use ris_asset::codecs::qoi;
@@ -17,7 +16,9 @@ use ris_asset_data::terrain_mesh::TerrainMeshPrototype;
 use ris_asset_data::terrain_mesh::TerrainVertex;
 use ris_data::ecs::components::mesh_component::MeshComponent;
 use ris_data::ecs::script_prelude::*;
-use ris_math::color::ByteColor3;
+use ris_math::color::ByteColor;
+use ris_math::color::Gradient;
+use ris_math::color::OkLab;
 use ris_math::color::Rgb;
 use ris_math::matrix::Mat2;
 use ris_math::vector::Vec2;
@@ -757,6 +758,16 @@ impl Script for PlanetScript {
  
                 ris_log::trace!("convert height map to bytes...");
                 let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
+                let gradient = Gradient(vec![
+                    OkLab::from(Rgb::from_hex("#00008a")?),
+                    OkLab::from(Rgb::from_hex("#1d90ff")?),
+                    OkLab::from(Rgb::from_hex("#04e100")?),
+                    OkLab::from(Rgb::from_hex("#ffff00")?),
+                    OkLab::from(Rgb::from_hex("#ff8b00")?),
+                    OkLab::from(Rgb::from_hex("#ff0300")?),
+                    OkLab::from(Rgb::from_hex("#a64020")?),
+                ]);
+
                 for f in height_map.values.iter() {
 
                     let scaled = (f - min) / (max - min);
@@ -774,9 +785,12 @@ impl Script for PlanetScript {
                     //bytes.push(r);
                     //bytes.push(g);
                     //bytes.push(b);
-                    bytes.push(lsb);
-                    bytes.push(lsb);
-                    bytes.push(lsb);
+                    let lab = gradient.sample(scaled).into_ris_error()?;
+                    let rgb = Rgb::from(lab);
+                    let [r, g, b] = rgb.to_u8();
+                    bytes.push(r);
+                    bytes.push(g);
+                    bytes.push(b);
                 }
 
                 ris_log::trace!("encoding to qoi...");
