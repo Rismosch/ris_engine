@@ -829,25 +829,30 @@ impl ByteColor<4> for Rgba {}
 //
 
 #[derive(Debug, Default, Clone)]
-pub struct Gradient<T: Color<N>, const N: usize>(pub Vec<T>);
+pub struct Gradient<T: Color<N>, const N: usize>(Vec<T>);
 
 impl<T: Color<N>, const N: usize> Gradient<T, N> {
-    pub fn sample(&self, x: f32) -> Option<T> {
-        if self.0.is_empty() {
-            return None;
+    pub fn try_from(value: impl IntoIterator<Item = T>) -> Result<Self, NotEnoughElements> {
+        let colors = value.into_iter().collect::<Vec<_>>();
+        if colors.is_empty() {
+            Err(NotEnoughElements)
+        } else {
+            Ok(Self(colors))
         }
+    }
 
+    pub fn sample(&self, x: f32) -> T {
         if self.0.len() == 1 {
-            return Some(self.0[0]);
+            return self.0[0];
         }
 
         if x <= 0.0 {
-            return Some(self.0[0])
+            return self.0[0];
         }
 
         if x >= 1.0 {
             let last_index = self.0.len() - 1;
-            return Some(self.0[last_index])
+            return self.0[last_index]
         }
 
         let splits = (self.0.len() - 1) as f32;
@@ -856,8 +861,8 @@ impl<T: Color<N>, const N: usize> Gradient<T, N> {
         let upper = scaled.ceil() as usize;
         let lerp = scaled % 1.0;
 
-        let color_1 = self.0.get(lower)?.to_f32();
-        let color_2 = self.0.get(upper)?.to_f32();
+        let color_1 = self.0[lower].to_f32();
+        let color_2 = self.0[upper].to_f32();
 
         let mut mix = [0.0; N];
         for i in 0..N {
@@ -866,6 +871,6 @@ impl<T: Color<N>, const N: usize> Gradient<T, N> {
             mix[i] = crate::common::mix(a, b, lerp);
         }
 
-        Some(T::from_f32(mix))
+        T::from_f32(mix)
     }
 }

@@ -524,7 +524,7 @@ impl Script for PlanetScript {
             }
 
             struct PerlinEdgeSampler {
-                offset: (i32, i32),
+                offset: Vec2,
                 direction: Direction,
             }
 
@@ -594,7 +594,7 @@ impl Script for PlanetScript {
             let edges = vec![
                 Edge{
                     perlin_sampler: PerlinEdgeSampler {
-                        offset: (0, 0),
+                        offset: Vec2(0.5, 0.0),
                         direction: Direction::Y,
                     },
                     height_map: HeightMap::new(edge_lf, 1, height)
@@ -621,8 +621,7 @@ impl Script for PlanetScript {
                     for ix in 0..height {
                         let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
                         let size = Vec2(height_map.width as f32, height_map.height as f32);
-                        let normalized = coord / size; // normalized
-                        //let pos = n + perlin_sampler.offset; // position on cube/net
+                        let normalized = coord / size;
                         let grid = Vec2(grid_width as f32, grid_height as f32);
                         let p = normalized * grid;
 
@@ -723,35 +722,72 @@ impl Script for PlanetScript {
                         Direction::X => Vec2(i as f32, 0.0),
                         Direction::Y => Vec2(0.0, i as f32),
                     };
+                    let coord = coord + perlin_sampler.offset;
+
+                    let size = Vec2(height_map.width as f32, height_map.height as f32);
+                    let normalized = coord / size;
+                    let grid = Vec2(grid_width as f32, grid_height as f32);
+                    let p = normalized * grid;
+
+                    // perlin noise
+                    let m0 = p.x().floor() as i32;
+                    let n0 = p.y().floor() as i32;
+
+                    let (m1, n1) = match perlin_sampler.direction {
+                        Direction::X => (m0 + 1,n0),
+                        Direction::Y => (m0, n0 + 1),
+                    };
+
+                    // todo
+
+                    let f = 0.0;
+                    // perlin noise end
+
+                    *value = f;
                 }
 
                 height_maps.push(height_map);
             } // end edges
 
             // normalize and apply weight to heightmap
-            let mut min = f32::MAX;
-            let mut max = f32::MIN;
-            for height_map in height_maps.iter() {
-                for h in height_map.values.iter() {
-                    min = f32::min(min, *h);
-                    max = f32::max(max, *h);
+            let normalize = |height_maps: &mut [HeightMap<'_>]| {
+                let mut min = f32::MAX;
+                let mut max = f32::MIN;
+                for height_map in height_maps.iter() {
+                    for h in height_map.values.iter() {
+                        min = f32::min(min, *h);
+                        max = f32::max(max, *h);
+                    }
                 }
 
-            }
+                for height_map in height_maps.iter_mut() {
+                    for h in height_map.values.iter_mut() {
+                        *h = (*h - min) / (max - min);
+                    }
+                }
+            };
+
+            normalize(&mut height_maps);
 
             for height_map in height_maps.iter_mut() {
                 for h in height_map.values.iter_mut() {
-                    *h = (*h - min) / (max - min);
-
                     //// sigmoid
                     //let steepness = 10.0;
                     //let center = 0.5;
                     //*h = 1.0 / (1.0 + f32::exp(-steepness * (*h - center)));
+
+                    // https://www.desmos.com/calculator/9qm31r4kfd
+                    let inverse_smoothstep = 0.5 - f32::sin(f32::asin(1.0 - 2.0 * *h) / 3.0);
+                    let power = *h * *h;
+                    let weight = 1.0 - *h;
+                    *h = ris_math::common::mix(inverse_smoothstep, power, weight);
                 }
             }
 
+            normalize(&mut height_maps);
+
             // qoi
-            let gradient = Gradient(vec![
+            let gradient = Gradient::try_from([
                 OkLab::from(Rgb::from_hex("#00008a")?),
                 OkLab::from(Rgb::from_hex("#1d90ff")?),
                 OkLab::from(Rgb::from_hex("#04e100")?),
@@ -759,14 +795,14 @@ impl Script for PlanetScript {
                 OkLab::from(Rgb::from_hex("#ff8b00")?),
                 OkLab::from(Rgb::from_hex("#ff0300")?),
                 OkLab::from(Rgb::from_hex("#a64020")?),
-            ]);
+            ])?;
 
             for height_map in height_maps.into_iter() {
                 ris_log::trace!("convert height map to bytes...");
                 let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
 
                 for h in height_map.values.iter() {
-                    let lab = gradient.sample(*h).into_ris_error()?;
+                    let lab = gradient.sample(*h);
                     let rgb = Rgb::from(lab);
                     let [r, g, b] = rgb.to_u8();
                     bytes.push(r);
