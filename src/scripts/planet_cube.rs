@@ -473,8 +473,6 @@ impl Script for PlanetScript {
                 values: Vec<f32>,
                 width: usize,
                 height: usize,
-                min: f32,
-                max: f32,
             }
 
             impl<'a> HeightMap<'a> {
@@ -484,8 +482,6 @@ impl Script for PlanetScript {
                         values: vec![0.0; width * height],
                         width,
                         height,
-                        min: f32::MAX,
-                        max: f32::MIN,
                     }
                 }
 
@@ -497,8 +493,6 @@ impl Script for PlanetScript {
                 fn set(&mut self, x: usize, y: usize, value: f32) {
                     let i = self.index(x, y);
                     self.values[i] = value;
-                    self.min = f32::min(self.min, value);
-                    self.max = f32::max(self.max, value);
                 }
 
                 fn index(&self, x: usize, y: usize) -> usize {
@@ -734,58 +728,45 @@ impl Script for PlanetScript {
                 height_maps.push(height_map);
             } // end edges
 
+            // normalize and apply weight to heightmap
             let mut min = f32::MAX;
             let mut max = f32::MIN;
             for height_map in height_maps.iter() {
-                min = f32::min(min, height_map.min);
-                max = f32::max(max, height_map.max);
+                for h in height_map.values.iter() {
+                    min = f32::min(min, *h);
+                    max = f32::max(max, *h);
+                }
+
+            }
+
+            for height_map in height_maps.iter_mut() {
+                for h in height_map.values.iter_mut() {
+                    *h = (*h - min) / (max - min);
+
+                    //// sigmoid
+                    //let steepness = 10.0;
+                    //let center = 0.5;
+                    //*h = 1.0 / (1.0 + f32::exp(-steepness * (*h - center)));
+                }
             }
 
             // qoi
+            let gradient = Gradient(vec![
+                OkLab::from(Rgb::from_hex("#00008a")?),
+                OkLab::from(Rgb::from_hex("#1d90ff")?),
+                OkLab::from(Rgb::from_hex("#04e100")?),
+                OkLab::from(Rgb::from_hex("#ffff00")?),
+                OkLab::from(Rgb::from_hex("#ff8b00")?),
+                OkLab::from(Rgb::from_hex("#ff0300")?),
+                OkLab::from(Rgb::from_hex("#a64020")?),
+            ]);
+
             for height_map in height_maps.into_iter() {
-                // height map format:
-                // u20 for height and u4 for material
-                //
-                //       material
-                //       vv
-                // 0xRRGGBB
-                //   ^--^
-                //    height
-                //   
-                // R = height middle byte
-                // G = height LSB
-                // B = height MSB + material
- 
                 ris_log::trace!("convert height map to bytes...");
                 let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
-                let gradient = Gradient(vec![
-                    OkLab::from(Rgb::from_hex("#00008a")?),
-                    OkLab::from(Rgb::from_hex("#1d90ff")?),
-                    OkLab::from(Rgb::from_hex("#04e100")?),
-                    OkLab::from(Rgb::from_hex("#ffff00")?),
-                    OkLab::from(Rgb::from_hex("#ff8b00")?),
-                    OkLab::from(Rgb::from_hex("#ff0300")?),
-                    OkLab::from(Rgb::from_hex("#a64020")?),
-                ]);
 
-                for f in height_map.values.iter() {
-
-                    let scaled = (f - min) / (max - min);
-                    let height_value = (scaled * max_height as f32) as u32;
-
-                    let height_bytes = height_value.to_le_bytes();
-                    let lsb = height_bytes[0];
-                    let msb = height_bytes[1];
-                    let material = 0u8;
-
-                    let g = lsb;
-                    let r = msb;
-                    let b = material;
-
-                    //bytes.push(r);
-                    //bytes.push(g);
-                    //bytes.push(b);
-                    let lab = gradient.sample(scaled).into_ris_error()?;
+                for h in height_map.values.iter() {
+                    let lab = gradient.sample(*h).into_ris_error()?;
                     let rgb = Rgb::from(lab);
                     let [r, g, b] = rgb.to_u8();
                     bytes.push(r);

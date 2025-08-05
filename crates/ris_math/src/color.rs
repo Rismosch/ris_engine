@@ -3,6 +3,8 @@
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
+pub const MIN_NORM: f32 = 1.0 / 255.0;
+
 //
 // errors
 //
@@ -848,19 +850,20 @@ impl<T: Color<N>, const N: usize> Gradient<T, N> {
             return Some(self.0[last_index])
         }
 
-        let f = (self.0.len() - 1) as f32;
-        let m = (x * f).floor() as usize;
-        let n = m + 1;
-        let p = x - m as f32;
+        let splits = (self.0.len() - 1) as f32;
+        let scaled = x * splits;
+        let lower = scaled.floor() as usize;
+        let upper = scaled.ceil() as usize;
+        let lerp = scaled % 1.0;
 
-        let lhs = self.0[m].to_f32();
-        let rhs = self.0[n].to_f32();
+        let color_1 = self.0.get(lower)?.to_f32();
+        let color_2 = self.0.get(upper)?.to_f32();
+
         let mut mix = [0.0; N];
-
         for i in 0..N {
-            let a = lhs[i];
-            let b = rhs[i];
-            mix[i] = crate::common::mix(a, b, p);
+            let a = color_1[i];
+            let b = color_2[i];
+            mix[i] = crate::common::mix(a, b, lerp);
         }
 
         Some(T::from_f32(mix))

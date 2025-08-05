@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use std::rc::Rc;
 
 use ris_math::color;
-use ris_math::color::ByteColor3;
+use ris_math::color::ByteColor;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_bytes_eq;
@@ -109,9 +109,9 @@ fn should_convert_rgb_to_bytes() {
         let b = rng.next_f32_between(0., 1.);
 
         let rgb = color::Rgb(r, g, b);
-        let bytes = rgb.to_bytes();
-        let rgb_ = color::Rgb::from_bytes(bytes);
-        let bytes_ = rgb_.to_bytes();
+        let bytes = rgb.to_u8();
+        let rgb_ = color::Rgb::from_u8(bytes);
+        let bytes_ = rgb_.to_u8();
 
         assert_feq!(rgb.r(), rgb_.r(), color::MIN_NORM);
         assert_feq!(rgb.g(), rgb_.g(), color::MIN_NORM);
@@ -122,8 +122,26 @@ fn should_convert_rgb_to_bytes() {
 
 #[test]
 fn should_clamp_when_converting_bytes_to_rgb() {
-    let bytes = color::Rgb(-1.0, 2.0, 0.5).to_bytes();
+    let bytes = color::Rgb(-1.0, 2.0, 0.5).to_u8();
     assert_bytes_eq!(bytes, [0, 255, 127]);
+}
+
+#[test]
+fn should_sample_rgb_gradient() {
+    let gradient = color::Gradient(vec![
+        color::Rgb(1.0, 0.0, 0.0),
+        color::Rgb(0.0, 1.0, 0.0),
+        color::Rgb(0.0, 0.0, 1.0),
+    ]);
+
+    let samples = 10;
+    for i in 0..=samples {
+        let x = i as f32 / samples as f32;
+        let color = gradient.sample(x).unwrap();
+        println!("{:?}", color);
+    }
+
+    panic!();
 }
 
 fn assert_chroma_eq(left: color::OkLch, right: color::OkLch) {
