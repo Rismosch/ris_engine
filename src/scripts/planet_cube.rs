@@ -468,6 +468,8 @@ impl Script for PlanetScript {
             let edge_fd = "fd";
             let edge_fu = "fu";
 
+            let corner = "c";
+
             struct HeightMap<'a> {
                 side: &'a str,
                 values: Vec<f32>,
@@ -524,7 +526,7 @@ impl Script for PlanetScript {
             }
 
             struct PerlinEdgeSampler {
-                offset: Vec2,
+                offset: (i32, i32),
                 direction: Direction,
             }
 
@@ -594,10 +596,87 @@ impl Script for PlanetScript {
             let edges = vec![
                 Edge{
                     perlin_sampler: PerlinEdgeSampler {
-                        offset: Vec2(0.5, 0.0),
+                        offset: (0, 0),
                         direction: Direction::Y,
                     },
-                    height_map: HeightMap::new(edge_lf, 1, height)
+                    height_map: HeightMap::new(edge_lf, 1, height),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (1, 0),
+                        direction: Direction::Y,
+                    },
+                    height_map: HeightMap::new(edge_lb, 1, height),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (2, 0),
+                        direction: Direction::Y,
+                    },
+                    height_map: HeightMap::new(edge_rb, 1, height),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (3, 0),
+                        direction: Direction::Y,
+                    },
+                    height_map: HeightMap::new(edge_rf, 1, height),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (0, 0),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_lu, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (1, 0),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_bu, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (2, 0),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_ru, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (3, 0),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_fu, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (0, 1),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_ld, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (1, 1),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_bd, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (2, 1),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_rd, width, 1),
+                },
+                Edge{
+                    perlin_sampler: PerlinEdgeSampler {
+                        offset: (3, 1),
+                        direction: Direction::X,
+                    },
+                    height_map: HeightMap::new(edge_fd, width, 1),
                 },
             ];
 
@@ -711,7 +790,7 @@ impl Script for PlanetScript {
             } // end sides
 
             // edges
-            for (i, edge) in edges.into_iter().enumerate() {
+            for edge in edges.into_iter() {
                 let Edge { 
                     perlin_sampler, 
                     mut height_map,
@@ -719,28 +798,63 @@ impl Script for PlanetScript {
 
                 for (i, value) in height_map.values.iter_mut().enumerate() {
                     let coord = match perlin_sampler.direction {
-                        Direction::X => Vec2(i as f32, 0.0),
-                        Direction::Y => Vec2(0.0, i as f32),
+                        Direction::X => Vec2(i as f32 + 0.5, 0.0),
+                        Direction::Y => Vec2(0.0, i as f32 + 0.5),
                     };
-                    let coord = coord + perlin_sampler.offset;
 
                     let size = Vec2(height_map.width as f32, height_map.height as f32);
                     let normalized = coord / size;
                     let grid = Vec2(grid_width as f32, grid_height as f32);
                     let p = normalized * grid;
 
+                    let apply_net = |xi: i32, yi: i32| {
+                        let offset_x = perlin_sampler.offset.0 * grid_width;
+                        let offset_y = perlin_sampler.offset.1 * grid_height;
+                        let default_x = xi + offset_x;
+                        let default_y = yi + offset_y;
+                        let default = ((default_x, default_y), Mat2::identity());
+
+                        if xi % grid_width == 0 && yi % grid_height == 0 {
+                            ((default_x, default_y), Mat2::init(0.0))
+                        } else {
+                            default
+                        }
+                    };
+
                     // perlin noise
                     let m0 = p.x().floor() as i32;
                     let n0 = p.y().floor() as i32;
-
                     let (m1, n1) = match perlin_sampler.direction {
                         Direction::X => (m0 + 1,n0),
                         Direction::Y => (m0, n0 + 1),
                     };
 
-                    // todo
+                    ris_log::debug!("{} {} {} {}", m0, m1, n0, n1);
 
-                    let f = 0.0;
+                    let (iq0, mat0) = apply_net(m0, n0);
+                    let (iq1, mat1) = apply_net(m1, n0);
+                    let (iq2, mat2) = apply_net(m0, n1);
+                    let (iq3, mat3) = apply_net(m1, n1);
+                    let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
+                    let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
+                    let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
+                    let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
+
+                    let q0 = Vec2(m0 as f32, n0 as f32);
+                    let q1 = Vec2(m1 as f32, n0 as f32);
+                    let q2 = Vec2(m0 as f32, n1 as f32);
+                    let q3 = Vec2(m1 as f32, n1 as f32);
+
+                    let s0 = g0.dot(p - q0);
+                    let s1 = g1.dot(p - q1);
+                    let s2 = g2.dot(p - q2);
+                    let s3 = g3.dot(p - q3);
+
+                    let h = |x: f32| (3.0 - x * 2.0) * x * x;
+                    let Vec2(x, y) = p - q0;
+                    let f0 = s0 * h(1.0 - x) + s1 * h(x);
+                    let f1 = s2 * h(1.0 - x) + s3 * h(x);
+                    let f = f0 * h(1.0 - y) + f1 * h(y);
                     // perlin noise end
 
                     *value = f;
@@ -748,6 +862,18 @@ impl Script for PlanetScript {
 
                 height_maps.push(height_map);
             } // end edges
+
+            // corner
+            {
+                let height_map = HeightMap { 
+                    side: &corner,
+                    values: vec![0.0],
+                    width: 1,
+                    height: 1,
+                };
+
+                height_maps.push(height_map);
+            }
 
             // normalize and apply weight to heightmap
             let normalize = |height_maps: &mut [HeightMap<'_>]| {
