@@ -438,14 +438,13 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::zero();
-            //let width = 1 << 12;
+            let seed = Seed::new();
+            let only_generate_first_face = false;
+            let generate_edges = false;
+            //let width = 1 << 13;
             let width = 1 << 6;
             let height = width;
-            let grid_width = 1 << 2; // the larger this number, the smaller and the more blobs
-            let grid_height = grid_width;
-            //let max_height = 0xFFFF;
-            let max_height = 0xFF;
+            let max_height = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
             let side_l = "l"; // -x left
@@ -514,10 +513,10 @@ impl Script for PlanetScript {
 
             struct PerlinSampler {
                 offset: (i32, i32),
-                edge0: Option<Box<dyn Fn(i32) -> ((i32, i32), Mat2)>>,
-                edge1: Option<Box<dyn Fn(i32) -> ((i32, i32), Mat2)>>,
-                edge2: Option<Box<dyn Fn(i32) -> ((i32, i32), Mat2)>>,
-                edge3: Option<Box<dyn Fn(i32) -> ((i32, i32), Mat2)>>,
+                edge0: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
+                edge1: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
+                edge2: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
+                edge3: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
             }
 
             enum Direction {
@@ -565,7 +564,7 @@ impl Script for PlanetScript {
                     perlin_sampler: PerlinSampler {
                         offset: (3, 0),
                         edge0: None,
-                        edge1: Some(Box::new(|yi| ((0, yi), Mat2::identity()))),
+                        edge1: Some(Box::new(|yi, (gw, gh)| ((0, yi), Mat2::identity()))),
                         edge2: None,
                         edge3: None,
                     },
@@ -574,19 +573,19 @@ impl Script for PlanetScript {
                 Side {
                     perlin_sampler: PerlinSampler {
                         offset: (1, 1),
-                        edge0: Some(Box::new(move |yi| ((grid_width - yi, grid_height), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
-                        edge1: Some(Box::new(move |yi| ((yi + 2 * grid_width, grid_height), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
+                        edge0: Some(Box::new(move |yi, (gw, gh)| ((gw - yi, gh), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge1: Some(Box::new(move |yi, (gw, gh)| ((yi + 2 * gw, gh), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
                         edge2: None,
-                        edge3: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, grid_height), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
+                        edge3: Some(Box::new(move |xi, (gw, gh)| ((gw - xi + gw * 3, gh), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                     },
                     height_map: HeightMap::new(side_d, width, height),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
                         offset: (1, -1),
-                        edge0: Some(Box::new(move |yi| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
-                        edge1: Some(Box::new(move |yi| ((grid_width - yi + grid_width * 2, 0), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
-                        edge2: Some(Box::new(move |xi| ((grid_width - xi + grid_width * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
+                        edge0: Some(Box::new(move |yi, (gw, gh)| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
+                        edge1: Some(Box::new(move |yi, (gw, gh)| ((gw - yi + gw * 2, 0), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge2: Some(Box::new(move |xi, (gw, gh)| ((gw - xi + gw * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                         edge3: None,
                     },
                     height_map: HeightMap::new(side_u, width, height),
@@ -691,176 +690,202 @@ impl Script for PlanetScript {
 
                 ris_log::trace!("generating side... {} ({})", height_map.side, i);
 
+                let mut layer = 0;
+                loop {
+                    layer += 1;
+                    let grid_width: i32 = 1 << layer;
+                    let grid_height: i32 = grid_width;
+                    let grid_weight = 1.0 / (layer as f32 * layer as f32);
 
-                for iy in 0..width {
-                    if iy % 100 == 0 {
-                        ris_log::trace!("y... {}/{}", iy, width);
+                    if grid_width >= width as i32 {
+                        break;
                     }
 
-                    for ix in 0..height {
-                        let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
-                        let size = Vec2(height_map.width as f32, height_map.height as f32);
-                        let normalized = coord / size;
-                        let grid = Vec2(grid_width as f32, grid_height as f32);
-                        let p = normalized * grid;
+                    for iy in 0..width {
+                        if iy % 100 == 0 {
+                            ris_log::trace!(
+                                "generating side {} ({})... progress: {}/{} layer: {}", 
+                                height_map.side,
+                                i,
+                                iy, 
+                                width,
+                                layer,
+                            );
+                        }
 
-                        // this closure connects the edges and corners of different sizes, to
-                        // ensure that the perlin noise ist continuous over the whole cube
-                        let apply_net = |xi: i32, yi: i32| {
-                            let offset_x = perlin_sampler.offset.0 * grid_width;
-                            let offset_y = perlin_sampler.offset.1 * grid_height;
-                            let default_x = xi + offset_x;
-                            let default_y = yi + offset_y;
-                            let default = ((default_x, default_y), Mat2::identity());
+                        for ix in 0..height {
+                            let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
+                            let size = Vec2(height_map.width as f32, height_map.height as f32);
+                            let normalized = coord / size;
+                            let grid = Vec2(grid_width as f32, grid_height as f32);
+                            let p = normalized * grid;
 
-                            if xi == 0 {
-                                if yi == 0 {
-                                    ((default_x, default_y), Mat2::init(0.0))
-                                } else if yi == grid_height {
-                                    ((default_x, default_y), Mat2::init(0.0))
-                                } else {
-                                    perlin_sampler.edge0
+                            // this closure connects the edges and corners of different sizes, to
+                            // ensure that the perlin noise ist continuous over the whole cube
+                            let apply_net = |xi: i32, yi: i32| {
+                                let offset_x = perlin_sampler.offset.0 * grid_width;
+                                let offset_y = perlin_sampler.offset.1 * grid_height;
+                                let default_x = xi + offset_x;
+                                let default_y = yi + offset_y;
+                                let default = ((default_x, default_y), Mat2::identity());
+
+                                if xi == 0 {
+                                    if yi == 0 {
+                                        ((default_x, default_y), Mat2::init(0.0))
+                                    } else if yi == grid_height {
+                                        ((default_x, default_y), Mat2::init(0.0))
+                                    } else {
+                                        perlin_sampler.edge0
+                                            .as_ref()
+                                            .map(|edge| edge(yi, (grid_width, grid_height)))
+                                            .unwrap_or(default)
+                                    }
+                                } else if xi == grid_width {
+                                    if yi == 0 {
+                                        ((default_x, default_y), Mat2::init(0.0))
+                                    } else if yi == grid_height {
+                                        ((default_x, default_y), Mat2::init(0.0))
+                                    } else {
+                                        perlin_sampler.edge1
+                                            .as_ref()
+                                            .map(|edge| edge(yi, (grid_width, grid_height)))
+                                            .unwrap_or(default)
+                                    }
+                                } else if yi == 0 {
+                                    perlin_sampler.edge2
                                         .as_ref()
-                                        .map(|edge| edge(yi))
+                                        .map(|edge| edge(xi, (grid_width, grid_height)))
                                         .unwrap_or(default)
-                                }
-                            } else if xi == grid_width {
-                                if yi == 0 {
-                                    ((default_x, default_y), Mat2::init(0.0))
                                 } else if yi == grid_height {
-                                    ((default_x, default_y), Mat2::init(0.0))
-                                } else {
-                                    perlin_sampler.edge1
+                                    perlin_sampler.edge3
                                         .as_ref()
-                                        .map(|edge| edge(yi))
+                                        .map(|edge| edge(xi, (grid_width, grid_height)))
                                         .unwrap_or(default)
+                                } else {
+                                    default
                                 }
-                            } else if yi == 0 {
-                                perlin_sampler.edge2
-                                    .as_ref()
-                                    .map(|edge| edge(xi))
-                                    .unwrap_or(default)
-                            } else if yi == grid_height {
-                                perlin_sampler.edge3
-                                    .as_ref()
-                                    .map(|edge| edge(xi))
-                                    .unwrap_or(default)
-                            } else {
-                                default
-                            }
-                        };
+                            };
 
-                        // perlin noise
-                        let m0 = p.x().floor() as i32;
-                        let m1 = m0 + 1;
-                        let n0 = p.y().floor() as i32;
-                        let n1 = n0 + 1;
+                            // perlin noise
+                            let m0 = p.x().floor() as i32;
+                            let m1 = m0 + 1;
+                            let n0 = p.y().floor() as i32;
+                            let n1 = n0 + 1;
 
-                        let (iq0, mat0) = apply_net(m0, n0);
-                        let (iq1, mat1) = apply_net(m1, n0);
-                        let (iq2, mat2) = apply_net(m0, n1);
-                        let (iq3, mat3) = apply_net(m1, n1);
-                        let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
-                        let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
-                        let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
-                        let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
+                            let (iq0, mat0) = apply_net(m0, n0);
+                            let (iq1, mat1) = apply_net(m1, n0);
+                            let (iq2, mat2) = apply_net(m0, n1);
+                            let (iq3, mat3) = apply_net(m1, n1);
+                            let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
+                            let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
+                            let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
+                            let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
 
-                        let q0 = Vec2(m0 as f32, n0 as f32);
-                        let q1 = Vec2(m1 as f32, n0 as f32);
-                        let q2 = Vec2(m0 as f32, n1 as f32);
-                        let q3 = Vec2(m1 as f32, n1 as f32);
+                            let q0 = Vec2(m0 as f32, n0 as f32);
+                            let q1 = Vec2(m1 as f32, n0 as f32);
+                            let q2 = Vec2(m0 as f32, n1 as f32);
+                            let q3 = Vec2(m1 as f32, n1 as f32);
 
-                        let s0 = g0.dot(p - q0);
-                        let s1 = g1.dot(p - q1);
-                        let s2 = g2.dot(p - q2);
-                        let s3 = g3.dot(p - q3);
+                            let s0 = g0.dot(p - q0);
+                            let s1 = g1.dot(p - q1);
+                            let s2 = g2.dot(p - q2);
+                            let s3 = g3.dot(p - q3);
 
-                        let h = |x: f32| (3.0 - x * 2.0) * x * x;
-                        let Vec2(x, y) = p - q0;
-                        let f0 = s0 * h(1.0 - x) + s1 * h(x);
-                        let f1 = s2 * h(1.0 - x) + s3 * h(x);
-                        let f = f0 * h(1.0 - y) + f1 * h(y);
-                        // perlin noise end
+                            let h = |x: f32| (3.0 - x * 2.0) * x * x;
+                            let Vec2(x, y) = p - q0;
+                            let f0 = s0 * h(1.0 - x) + s1 * h(x);
+                            let f1 = s2 * h(1.0 - x) + s3 * h(x);
+                            let f = f0 * h(1.0 - y) + f1 * h(y);
+                            // perlin noise end
 
-                        height_map.set(ix, iy, f);
+                            let mut h = height_map.get(ix, iy);
+                            h += f * grid_weight;
+                            height_map.set(ix, iy, h);
+                        }
                     }
                 }
 
                 height_maps.push(height_map);
+
+                if only_generate_first_face {
+                    break;
+                }
             } // end sides
 
             // edges
-            for edge in edges.into_iter() {
-                let Edge { 
-                    perlin_sampler, 
-                    mut height_map,
-                } = edge;
+            if generate_edges {
+                //for edge in edges.into_iter() {
+                //    let Edge { 
+                //        perlin_sampler, 
+                //        mut height_map,
+                //    } = edge;
 
-                for (i, value) in height_map.values.iter_mut().enumerate() {
-                    let coord = match perlin_sampler.direction {
-                        Direction::X => Vec2(i as f32 + 0.5, 0.0),
-                        Direction::Y => Vec2(0.0, i as f32 + 0.5),
-                    };
+                //    for (i, value) in height_map.values.iter_mut().enumerate() {
+                //        let coord = match perlin_sampler.direction {
+                //            Direction::X => Vec2(i as f32 + 0.5, 0.0),
+                //            Direction::Y => Vec2(0.0, i as f32 + 0.5),
+                //        };
 
-                    let size = Vec2(height_map.width as f32, height_map.height as f32);
-                    let normalized = coord / size;
-                    let grid = Vec2(grid_width as f32, grid_height as f32);
-                    let p = normalized * grid;
+                //        let size = Vec2(height_map.width as f32, height_map.height as f32);
+                //        let normalized = coord / size;
+                //        let grid = Vec2(grid_width as f32, grid_height as f32);
+                //        let p = normalized * grid;
 
-                    let apply_net = |xi: i32, yi: i32| {
-                        let offset_x = perlin_sampler.offset.0 * grid_width;
-                        let offset_y = perlin_sampler.offset.1 * grid_height;
-                        let default_x = xi + offset_x;
-                        let default_y = yi + offset_y;
-                        let default = ((default_x, default_y), Mat2::identity());
+                //        let apply_net = |xi: i32, yi: i32| {
+                //            let offset_x = perlin_sampler.offset.0 * grid_width;
+                //            let offset_y = perlin_sampler.offset.1 * grid_height;
+                //            let default_x = xi + offset_x;
+                //            let default_y = yi + offset_y;
+                //            let default = ((default_x, default_y), Mat2::identity());
 
-                        if xi % grid_width == 0 && yi % grid_height == 0 {
-                            ((default_x, default_y), Mat2::init(0.0))
-                        } else {
-                            default
-                        }
-                    };
+                //            if xi % grid_width == 0 && yi % grid_height == 0 {
+                //                ((default_x, default_y), Mat2::init(0.0))
+                //            } else {
+                //                default
+                //            }
+                //        };
 
-                    // perlin noise
-                    let m0 = p.x().floor() as i32;
-                    let n0 = p.y().floor() as i32;
-                    let (m1, n1) = match perlin_sampler.direction {
-                        Direction::X => (m0 + 1,n0),
-                        Direction::Y => (m0, n0 + 1),
-                    };
+                //        // perlin noise
+                //        let m0 = p.x().floor() as i32;
+                //        let n0 = p.y().floor() as i32;
+                //        let (m1, n1) = match perlin_sampler.direction {
+                //            Direction::X => (m0 + 1,n0),
+                //            Direction::Y => (m0, n0 + 1),
+                //        };
 
-                    ris_log::debug!("{} {} {} {}", m0, m1, n0, n1);
+                //        ris_log::debug!("{} {} {} {}", m0, m1, n0, n1);
 
-                    let (iq0, mat0) = apply_net(m0, n0);
-                    let (iq1, mat1) = apply_net(m1, n0);
-                    let (iq2, mat2) = apply_net(m0, n1);
-                    let (iq3, mat3) = apply_net(m1, n1);
-                    let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
-                    let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
-                    let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
-                    let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
+                //        let (iq0, mat0) = apply_net(m0, n0);
+                //        let (iq1, mat1) = apply_net(m1, n0);
+                //        let (iq2, mat2) = apply_net(m0, n1);
+                //        let (iq3, mat3) = apply_net(m1, n1);
+                //        let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
+                //        let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
+                //        let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
+                //        let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
 
-                    let q0 = Vec2(m0 as f32, n0 as f32);
-                    let q1 = Vec2(m1 as f32, n0 as f32);
-                    let q2 = Vec2(m0 as f32, n1 as f32);
-                    let q3 = Vec2(m1 as f32, n1 as f32);
+                //        let q0 = Vec2(m0 as f32, n0 as f32);
+                //        let q1 = Vec2(m1 as f32, n0 as f32);
+                //        let q2 = Vec2(m0 as f32, n1 as f32);
+                //        let q3 = Vec2(m1 as f32, n1 as f32);
 
-                    let s0 = g0.dot(p - q0);
-                    let s1 = g1.dot(p - q1);
-                    let s2 = g2.dot(p - q2);
-                    let s3 = g3.dot(p - q3);
+                //        let s0 = g0.dot(p - q0);
+                //        let s1 = g1.dot(p - q1);
+                //        let s2 = g2.dot(p - q2);
+                //        let s3 = g3.dot(p - q3);
 
-                    let h = |x: f32| (3.0 - x * 2.0) * x * x;
-                    let Vec2(x, y) = p - q0;
-                    let f0 = s0 * h(1.0 - x) + s1 * h(x);
-                    let f1 = s2 * h(1.0 - x) + s3 * h(x);
-                    let f = f0 * h(1.0 - y) + f1 * h(y);
-                    // perlin noise end
+                //        let h = |x: f32| (3.0 - x * 2.0) * x * x;
+                //        let Vec2(x, y) = p - q0;
+                //        let f0 = s0 * h(1.0 - x) + s1 * h(x);
+                //        let f1 = s2 * h(1.0 - x) + s3 * h(x);
+                //        let f = f0 * h(1.0 - y) + f1 * h(y);
+                //        // perlin noise end
 
-                    *value = f;
-                }
+                //        *value = f;
+                //    }
 
-                height_maps.push(height_map);
+                //    height_maps.push(height_map);
+                //} 
             } // end edges
 
             // corner
@@ -876,6 +901,7 @@ impl Script for PlanetScript {
             }
 
             // normalize and apply weight to heightmap
+            ris_log::trace!("normalize and apply weight...");
             let normalize = |height_maps: &mut [HeightMap<'_>]| {
                 let mut min = f32::MAX;
                 let mut max = f32::MIN;
