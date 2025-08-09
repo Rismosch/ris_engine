@@ -1,5 +1,4 @@
 use std::f32::consts::PI;
-
 use std::path::PathBuf;
 
 use ris_asset::assets::ris_mesh;
@@ -438,12 +437,14 @@ impl Script for PlanetScript {
         
         if ui.button("make heightmaps") {
 
-            let seed = Seed::new();
+            let seed = Seed::default();
+            let mut rng = Rng::new(seed);
             let only_generate_first_face = false;
             let generate_edges = false;
             //let width = 1 << 13;
             let width = 1 << 6;
             let height = width;
+            let continent_count = 12;
             let max_height = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
@@ -511,6 +512,11 @@ impl Script for PlanetScript {
                 height_map: HeightMap<'a>,
             }
 
+            enum Direction {
+                X,
+                Y,
+            }
+
             struct PerlinSampler {
                 offset: (i32, i32),
                 edge0: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
@@ -519,17 +525,24 @@ impl Script for PlanetScript {
                 edge3: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
             }
 
-            enum Direction {
-                X,
-                Y,
-            }
-
             struct PerlinEdgeSampler {
                 offset: (i32, i32),
                 direction: Direction,
             }
 
-            let sides = vec![
+            #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+            struct ContinentPixel {
+                side: usize,
+                ix: usize,
+                iy: usize,
+            }
+
+            #[derive(Default, Debug, Clone)]
+            struct Continent {
+                discovered_pixels: Vec<ContinentPixel>,
+            }
+
+            let mut sides = vec![
                 Side {
                     perlin_sampler: PerlinSampler {
                         offset: (0, 0),
@@ -539,16 +552,6 @@ impl Script for PlanetScript {
                         edge3: None,
                     },
                     height_map: HeightMap::new(side_l, width, height),
-                },
-                Side {
-                    perlin_sampler: PerlinSampler {
-                        offset: (2, 0),
-                        edge0: None,
-                        edge1: None,
-                        edge2: None,
-                        edge3: None,
-                    },
-                    height_map: HeightMap::new(side_r, width, height),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -562,9 +565,19 @@ impl Script for PlanetScript {
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
+                        offset: (2, 0),
+                        edge0: None,
+                        edge1: None,
+                        edge2: None,
+                        edge3: None,
+                    },
+                    height_map: HeightMap::new(side_r, width, height),
+                },
+                Side {
+                    perlin_sampler: PerlinSampler {
                         offset: (3, 0),
                         edge0: None,
-                        edge1: Some(Box::new(|yi, (gw, gh)| ((0, yi), Mat2::identity()))),
+                        edge1: Some(Box::new(|iy, (gw, gh)| ((0, iy), Mat2::identity()))),
                         edge2: None,
                         edge3: None,
                     },
@@ -572,23 +585,23 @@ impl Script for PlanetScript {
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
-                        offset: (1, 1),
-                        edge0: Some(Box::new(move |yi, (gw, gh)| ((gw - yi, gh), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
-                        edge1: Some(Box::new(move |yi, (gw, gh)| ((yi + 2 * gw, gh), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
-                        edge2: None,
-                        edge3: Some(Box::new(move |xi, (gw, gh)| ((gw - xi + gw * 3, gh), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
-                    },
-                    height_map: HeightMap::new(side_d, width, height),
-                },
-                Side {
-                    perlin_sampler: PerlinSampler {
                         offset: (1, -1),
-                        edge0: Some(Box::new(move |yi, (gw, gh)| ((yi, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
-                        edge1: Some(Box::new(move |yi, (gw, gh)| ((gw - yi + gw * 2, 0), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
-                        edge2: Some(Box::new(move |xi, (gw, gh)| ((gw - xi + gw * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
+                        edge0: Some(Box::new(move |iy, (gw, gh)| ((iy, 0), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
+                        edge1: Some(Box::new(move |iy, (gw, gh)| ((gw - iy + gw * 2, 0), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge2: Some(Box::new(move |ix, (gw, gh)| ((gw - ix + gw * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                         edge3: None,
                     },
                     height_map: HeightMap::new(side_u, width, height),
+                },
+                Side {
+                    perlin_sampler: PerlinSampler {
+                        offset: (1, 1),
+                        edge0: Some(Box::new(move |iy, (gw, gh)| ((gw - iy, gh), Mat2(Vec2(0.0, -1.0), Vec2(1.0, 0.0))))),
+                        edge1: Some(Box::new(move |iy, (gw, gh)| ((iy + 2 * gw, gh), Mat2(Vec2(0.0, 1.0), Vec2(-1.0, 0.0))))),
+                        edge2: None,
+                        edge3: Some(Box::new(move |ix, (gw, gh)| ((gw - ix + gw * 3, gh), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
+                    },
+                    height_map: HeightMap::new(side_d, width, height),
                 },
             ];
 
@@ -679,7 +692,290 @@ impl Script for PlanetScript {
                 },
             ];
 
+            let mut continents = vec![Continent::default(); continent_count];
+
             let mut height_maps = Vec::new();
+
+            // continents
+            ris_log::trace!("determine continent starting positions...");
+            let mut starting_positions = Vec::<ContinentPixel>::with_capacity(continent_count);
+
+            for _ in 0..starting_positions.capacity() {
+
+                loop {
+                    let side = rng.next_i32_between(0, 5) as usize;
+                    let ix = rng.next_i32_between(0, width as i32 - 1) as usize;
+                    let iy = rng.next_i32_between(0, height as i32) as usize;
+
+                    let candidate = ContinentPixel {
+                        side,
+                        ix,
+                        iy,
+                    };
+
+                    let candidate_exists = starting_positions.iter().any(|x| *x == candidate);
+                    if candidate_exists {
+                        continue;
+                    }
+
+                    starting_positions.push(candidate);
+                    break;
+                }
+            }
+
+            for (i, starting_position) in starting_positions.into_iter().enumerate() {
+                continents[i].discovered_pixels.push(starting_position);
+            }
+
+            ris_log::trace!("generate continents... {:#?}", continents);
+            loop {
+                // discover new pixels
+                let mut new_pixel_was_discovered = false;
+
+                for (continent_id, continent) in continents.iter_mut().enumerate() {
+                    let mut pixel = None;
+                    loop {
+                        if continent.discovered_pixels.is_empty() {
+                            break;
+                        }
+
+                        let min = 0i32;
+                        let max = continent.discovered_pixels.len() as i32 - 1;
+                        let index = rng.next_i32_between(min, max) as usize;
+                        let candidate = continent.discovered_pixels.swap_remove(index);
+
+                        let h = sides[candidate.side].height_map.get(candidate.ix, candidate.iy);
+                        if h != 0.0 {
+                            continue;
+                        }
+
+                        new_pixel_was_discovered = true;
+                        sides[candidate.side].height_map.set(candidate.ix, candidate.iy, continent_id as f32);
+                        pixel = Some(candidate);
+                        break;
+                    }
+
+                    let Some(pixel) = pixel else {
+                        continue;
+                    };
+                    
+                    // walk left
+                    let new_pixel = if pixel.ix == 0 {
+                        match pixel.side {
+                            // left -> front
+                            0 => ContinentPixel {
+                                side: 3,
+                                ix: width - 1,
+                                iy: pixel.iy,
+                            },
+                            // back -> left
+                            1 => ContinentPixel {
+                                side: 0,
+                                ix: width - 1,
+                                iy: pixel.iy,
+                            },
+                            // right -> back
+                            2 => ContinentPixel {
+                                side: 1,
+                                ix: width - 1,
+                                iy: pixel.iy,
+                            },
+                            // front -> right
+                            3 => ContinentPixel {
+                                side: 2,
+                                ix: width - 1,
+                                iy: pixel.iy,
+                            },
+                            // up -> left
+                            4 => ContinentPixel {
+                                side: 0,
+                                ix: pixel.iy,
+                                iy: 0,
+                            },
+                            // down -> left
+                            5 => ContinentPixel {
+                                side: 0,
+                                ix: width - 1 - pixel.iy,
+                                iy: height - 1,
+                            },
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        ContinentPixel {
+                            side: pixel.side,
+                            ix: pixel.ix - 1,
+                            iy: pixel.iy,
+                        }
+                    };
+                    continent.discovered_pixels.push(new_pixel);
+
+                    // walk right
+                    let new_pixel = if pixel.ix == width - 1 {
+                        match pixel.side {
+                            // left -> back
+                            0 => ContinentPixel {
+                                side: 1,
+                                ix: 0,
+                                iy: pixel.iy,
+                            },
+                            // back -> right
+                            1 => ContinentPixel {
+                                side: 2,
+                                ix: 0,
+                                iy: pixel.iy,
+                            },
+                            // right -> front
+                            2 => ContinentPixel {
+                                side: 3,
+                                ix: 0,
+                                iy: pixel.iy,
+                            },
+                            // front -> left
+                            3 => ContinentPixel {
+                                side: 0,
+                                ix: 0,
+                                iy: pixel.iy,
+                            },
+                            // up -> right
+                            4 => ContinentPixel {
+                                side: 2,
+                                ix: width - 1 - pixel.iy,
+                                iy: 0,
+                            },
+                            // down -> right
+                            5 => ContinentPixel {
+                                side: 2,
+                                ix: pixel.iy,
+                                iy: height - 1,
+                            },
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        ContinentPixel {
+                            side: pixel.side,
+                            ix: pixel.ix + 1,
+                            iy: pixel.iy,
+                        }
+                    };
+                    continent.discovered_pixels.push(new_pixel);
+
+                    // walk up
+                    let new_pixel = if pixel.iy == 0 {
+                        match pixel.side {
+                            // left -> up
+                            0 => ContinentPixel {
+                                side: 4,
+                                ix: 0,
+                                iy: pixel.ix,
+                            },
+                            // back -> up
+                            1 => ContinentPixel {
+                                side: 4,
+                                ix: pixel.ix,
+                                iy: height - 1,
+                            },
+                            // right -> up
+                            2 => ContinentPixel {
+                                side: 4,
+                                ix: width - 1,
+                                iy: width - 1 - pixel.ix,
+                            },
+                            // front -> up
+                            3 => ContinentPixel {
+                                side: 4,
+                                ix: width - 1 - pixel.ix,
+                                iy: 0,
+                            },
+                            // up -> front
+                            4 => ContinentPixel {
+                                side: 3,
+                                ix: width - 1 - pixel.ix,
+                                iy: 0,
+                            },
+                            // down -> back
+                            5 => ContinentPixel {
+                                side: 1,
+                                ix: pixel.ix,
+                                iy: height - 1,
+                            },
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        ContinentPixel {
+                            side: pixel.side,
+                            ix: pixel.ix,
+                            iy: pixel.iy - 1,
+                        }
+                    };
+                    continent.discovered_pixels.push(new_pixel);
+
+                    // walk down
+                    let new_pixel = if pixel.iy == height - 1 {
+                        match pixel.side {
+                            // left -> down
+                            0 => ContinentPixel {
+                                side: 5,
+                                ix: 0,
+                                iy: width - 1 - pixel.ix,
+                            },
+                            // back -> down
+                            1 => ContinentPixel {
+                                side: 5,
+                                ix: pixel.ix,
+                                iy: 0,
+                            },
+                            // right -> down
+                            2 => ContinentPixel {
+                                side: 5,
+                                ix: width - 1,
+                                iy: pixel.ix,
+                            },
+                            // front -> down
+                            3 => ContinentPixel {
+                                side: 5,
+                                ix: width - 1 - pixel.ix,
+                                iy: height - 1,
+                            },
+                            // up -> back
+                            4 => ContinentPixel {
+                                side: 1,
+                                ix: pixel.ix,
+                                iy: 0,
+                            },
+                            // down -> front
+                            5 => ContinentPixel {
+                                side: 3,
+                                ix: width -1 - pixel.ix,
+                                iy: 0,
+                            },
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        ContinentPixel {
+                            side: pixel.side,
+                            ix: pixel.ix,
+                            iy: pixel.iy + 1,
+                        }
+                    };
+                    continent.discovered_pixels.push(new_pixel);
+                }
+                
+                if !new_pixel_was_discovered {
+                    break
+                }
+            }
+
+
+            // continents end
+
+            while let Some(side) = sides.pop() {
+                let Side {
+                    perlin_sampler,
+                    height_map,
+                } = side;
+
+                height_maps.push(height_map);
+            }
 
             // sides
             for (i, side) in sides.into_iter().enumerate() {
@@ -722,44 +1018,44 @@ impl Script for PlanetScript {
 
                             // this closure connects the edges and corners of different sizes, to
                             // ensure that the perlin noise ist continuous over the whole cube
-                            let apply_net = |xi: i32, yi: i32| {
+                            let apply_net = |ix: i32, iy: i32| {
                                 let offset_x = perlin_sampler.offset.0 * grid_width;
                                 let offset_y = perlin_sampler.offset.1 * grid_height;
-                                let default_x = xi + offset_x;
-                                let default_y = yi + offset_y;
+                                let default_x = ix + offset_x;
+                                let default_y = iy + offset_y;
                                 let default = ((default_x, default_y), Mat2::identity());
 
-                                if xi == 0 {
-                                    if yi == 0 {
+                                if ix == 0 {
+                                    if iy == 0 {
                                         ((default_x, default_y), Mat2::init(0.0))
-                                    } else if yi == grid_height {
+                                    } else if iy == grid_height {
                                         ((default_x, default_y), Mat2::init(0.0))
                                     } else {
                                         perlin_sampler.edge0
                                             .as_ref()
-                                            .map(|edge| edge(yi, (grid_width, grid_height)))
+                                            .map(|edge| edge(iy, (grid_width, grid_height)))
                                             .unwrap_or(default)
                                     }
-                                } else if xi == grid_width {
-                                    if yi == 0 {
+                                } else if ix == grid_width {
+                                    if iy == 0 {
                                         ((default_x, default_y), Mat2::init(0.0))
-                                    } else if yi == grid_height {
+                                    } else if iy == grid_height {
                                         ((default_x, default_y), Mat2::init(0.0))
                                     } else {
                                         perlin_sampler.edge1
                                             .as_ref()
-                                            .map(|edge| edge(yi, (grid_width, grid_height)))
+                                            .map(|edge| edge(iy, (grid_width, grid_height)))
                                             .unwrap_or(default)
                                     }
-                                } else if yi == 0 {
+                                } else if iy == 0 {
                                     perlin_sampler.edge2
                                         .as_ref()
-                                        .map(|edge| edge(xi, (grid_width, grid_height)))
+                                        .map(|edge| edge(ix, (grid_width, grid_height)))
                                         .unwrap_or(default)
-                                } else if yi == grid_height {
+                                } else if iy == grid_height {
                                     perlin_sampler.edge3
                                         .as_ref()
-                                        .map(|edge| edge(xi, (grid_width, grid_height)))
+                                        .map(|edge| edge(ix, (grid_width, grid_height)))
                                         .unwrap_or(default)
                                 } else {
                                     default
@@ -831,14 +1127,14 @@ impl Script for PlanetScript {
                 //        let grid = Vec2(grid_width as f32, grid_height as f32);
                 //        let p = normalized * grid;
 
-                //        let apply_net = |xi: i32, yi: i32| {
+                //        let apply_net = |ix: i32, iy: i32| {
                 //            let offset_x = perlin_sampler.offset.0 * grid_width;
                 //            let offset_y = perlin_sampler.offset.1 * grid_height;
-                //            let default_x = xi + offset_x;
-                //            let default_y = yi + offset_y;
+                //            let default_x = ix + offset_x;
+                //            let default_y = iy + offset_y;
                 //            let default = ((default_x, default_y), Mat2::identity());
 
-                //            if xi % grid_width == 0 && yi % grid_height == 0 {
+                //            if ix % grid_width == 0 && iy % grid_height == 0 {
                 //                ((default_x, default_y), Mat2::init(0.0))
                 //            } else {
                 //                default
