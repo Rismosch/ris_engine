@@ -232,8 +232,7 @@ impl Rng {
     }
 
     pub fn next_rot(&mut self) -> Quat {
-        let vec4 = self.next_dir_4();
-        Quat::from(vec4)
+        self.next_dir_4().into()
     }
 
     pub fn next_rgb(&mut self) -> Rgb {

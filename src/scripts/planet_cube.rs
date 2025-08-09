@@ -20,6 +20,7 @@ use ris_math::color::Gradient;
 use ris_math::color::OkLab;
 use ris_math::color::Rgb;
 use ris_math::matrix::Mat2;
+use ris_math::quaternion::Quat;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
@@ -130,6 +131,7 @@ impl Script for PlanetScript {
         let ScriptInspectData {
             ui,
             game_object,
+            frame,
             state,
             ..
         } = data;
@@ -442,9 +444,9 @@ impl Script for PlanetScript {
             let only_generate_first_face = false;
             let generate_edges = false;
             //let width = 1 << 13;
-            let width = 1 << 6;
+            let width = (1 << 6) + 1;
             let height = width;
-            let continent_count = 12;
+            let continent_count = 7;
             let max_height = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, height);
 
@@ -539,7 +541,9 @@ impl Script for PlanetScript {
 
             #[derive(Default, Debug, Clone)]
             struct Continent {
+                origin: ContinentPixel,
                 discovered_pixels: Vec<ContinentPixel>,
+                rotation_axis: Vec3,
             }
 
             let mut sides = vec![
@@ -724,7 +728,13 @@ impl Script for PlanetScript {
             }
 
             for (i, starting_position) in starting_positions.into_iter().enumerate() {
-                continents[i].discovered_pixels.push(starting_position);
+                //let side = &mut sides[starting_position.side];
+                //side.height_map.set(starting_position.ix, starting_position.iy, -1.0);
+
+                let continent = &mut continents[i];
+                continent.origin = starting_position.clone();
+                continent.discovered_pixels.push(starting_position);
+                continent.rotation_axis = rng.next_dir_3();
             }
 
             ris_log::trace!("generate continents... {:#?}", continents);
@@ -732,7 +742,9 @@ impl Script for PlanetScript {
                 // discover new pixels
                 let mut new_pixel_was_discovered = false;
 
-                for (continent_id, continent) in continents.iter_mut().enumerate() {
+                for (i, continent) in continents.iter_mut().enumerate() {
+                    let continent_id = i + 1;
+
                     let mut pixel = None;
                     loop {
                         if continent.discovered_pixels.is_empty() {
@@ -745,12 +757,16 @@ impl Script for PlanetScript {
                         let candidate = continent.discovered_pixels.swap_remove(index);
 
                         let h = sides[candidate.side].height_map.get(candidate.ix, candidate.iy);
-                        if h != 0.0 {
+                        if h > 0.0 {
                             continue;
                         }
 
                         new_pixel_was_discovered = true;
-                        sides[candidate.side].height_map.set(candidate.ix, candidate.iy, continent_id as f32);
+
+                        if h == 0.0 {
+                            sides[candidate.side].height_map.set(candidate.ix, candidate.iy, continent_id as f32);
+                        }
+
                         pixel = Some(candidate);
                         break;
                     }
@@ -965,6 +981,30 @@ impl Script for PlanetScript {
                 }
             }
 
+            ris_log::trace!("calculate height based on plate boundaries...");
+            for side in sides.iter_mut() {
+                let Side {
+                    perlin_sampler,
+                    height_map,
+                } = side;
+
+                for iy in 0..height {
+                    for ix in 0..width {
+                        let h = height_map.get(ix, iy);
+                        let continent_id = h as usize;
+                        let continent_index = continent_id - 1;
+                        let lhs = &continents[continent_index];
+
+                        for rhs in continents.iter() {
+                            if std::ptr::eq(lhs, rhs) {
+                                continue;
+                            }
+
+
+                        }
+                    }
+                }
+            }
 
             // continents end
 
@@ -1443,3 +1483,26 @@ fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
     Vec2(v_x, v_y)
 }
 
+fn position_on_sphere(side: usize, x: f32, y: f32) -> Vec3 {
+    match side {
+        0 => {
+            panic!();
+        },
+        1 => {
+            panic!();
+        },
+        2 => {
+            panic!();
+        },
+        3 => {
+            panic!();
+        },
+        4 => {
+            panic!();
+        },
+        5 => {
+            panic!();
+        },
+        _ => unreachable!(),
+    }
+}
