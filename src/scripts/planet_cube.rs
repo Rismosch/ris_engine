@@ -472,29 +472,40 @@ impl Script for PlanetScript {
 
             let corner = "c";
 
+            #[derive(Clone, Copy)]
+            struct HeightMapValue {
+                height: f32,
+                continent_index: usize,
+            }
+
             struct HeightMap<'a> {
                 side: &'a str,
-                values: Vec<f32>,
+                values: Vec<HeightMapValue>,
                 width: usize,
                 height: usize,
             }
 
             impl<'a> HeightMap<'a> {
                 fn new(side: &'a str, width: usize, height: usize) -> Self {
+                    let value = HeightMapValue {
+                        height: 0.0,
+                        continent_index: usize::MAX,
+                    };
+
                     Self {
                         side,
-                        values: vec![0.0; width * height],
+                        values: vec![value; width * height],
                         width,
                         height,
                     }
                 }
 
-                fn get(&self, x: usize, y: usize) -> f32 {
+                fn get(&self, x: usize, y: usize) -> HeightMapValue {
                     let i = self.index(x, y);
                     self.values[i]
                 }
 
-                fn set(&mut self, x: usize, y: usize, value: f32) {
+                fn set(&mut self, x: usize, y: usize, value: HeightMapValue) {
                     let i = self.index(x, y);
                     self.values[i] = value;
                 }
@@ -728,8 +739,15 @@ impl Script for PlanetScript {
             }
 
             for (i, starting_position) in starting_positions.into_iter().enumerate() {
-                //let side = &mut sides[starting_position.side];
-                //side.height_map.set(starting_position.ix, starting_position.iy, -1.0);
+                let side = &mut sides[starting_position.side];
+                side.height_map.set(
+                    starting_position.ix,
+                    starting_position.iy,
+                    HeightMapValue{
+                        height: -1.0,
+                        continent_index: usize::MAX,
+                    },
+                );
 
                 let continent = &mut continents[i];
                 continent.origin = starting_position.clone();
@@ -737,14 +755,13 @@ impl Script for PlanetScript {
                 continent.rotation_axis = rng.next_dir_3();
             }
 
-            ris_log::trace!("generate continents... {:#?}", continents);
+            ris_log::trace!("generate continents...");
+            let mut discovered_pixel_count = 0;
             loop {
                 // discover new pixels
                 let mut new_pixel_was_discovered = false;
 
-                for (i, continent) in continents.iter_mut().enumerate() {
-                    let continent_id = i + 1;
-
+                for (continent_index, continent) in continents.iter_mut().enumerate() {
                     let mut pixel = None;
                     loop {
                         if continent.discovered_pixels.is_empty() {
@@ -756,16 +773,23 @@ impl Script for PlanetScript {
                         let index = rng.next_i32_between(min, max) as usize;
                         let candidate = continent.discovered_pixels.swap_remove(index);
 
-                        let h = sides[candidate.side].height_map.get(candidate.ix, candidate.iy);
-                        if h > 0.0 {
+                        let side = &mut sides[candidate.side];
+                        let mut h = side.height_map.get(candidate.ix, candidate.iy);
+
+                        if h.continent_index != usize::MAX {
                             continue;
                         }
 
                         new_pixel_was_discovered = true;
 
-                        if h == 0.0 {
-                            sides[candidate.side].height_map.set(candidate.ix, candidate.iy, continent_id as f32);
-                        }
+                        h.continent_index = continent_index;
+                        discovered_pixel_count += 1;
+
+                        side.height_map.set(
+                            candidate.ix,
+                            candidate.iy,
+                            h,
+                        );
 
                         pixel = Some(candidate);
                         break;
@@ -981,7 +1005,8 @@ impl Script for PlanetScript {
                 }
             }
 
-            ris_log::trace!("calculate height based on plate boundaries...");
+            let angle = 2.0 * PI / (4 * width) as f32;
+            ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
             for side in sides.iter_mut() {
                 let Side {
                     perlin_sampler,
@@ -990,18 +1015,11 @@ impl Script for PlanetScript {
 
                 for iy in 0..height {
                     for ix in 0..width {
-                        let h = height_map.get(ix, iy);
-                        let continent_id = h as usize;
-                        let continent_index = continent_id - 1;
-                        let lhs = &continents[continent_index];
-
-                        for rhs in continents.iter() {
-                            if std::ptr::eq(lhs, rhs) {
-                                continue;
-                            }
-
-
-                        }
+                        let HeightMapValue {
+                            continent_index,
+                            ..
+                        } = height_map.get(ix, iy);
+                        //let continent = &continents[continent_index];
                     }
                 }
             }
@@ -1011,8 +1029,14 @@ impl Script for PlanetScript {
             while let Some(side) = sides.pop() {
                 let Side {
                     perlin_sampler,
-                    height_map,
+                    mut height_map,
                 } = side;
+
+                for h in height_map.values.iter_mut() {
+                    if h.height >= 0.0 {
+                        h.height = h.continent_index as f32;
+                    }
+                }
 
                 height_maps.push(height_map);
             }
@@ -1135,7 +1159,7 @@ impl Script for PlanetScript {
                             // perlin noise end
 
                             let mut h = height_map.get(ix, iy);
-                            h += f * grid_weight;
+                            h.height += f * grid_weight;
                             height_map.set(ix, iy, h);
                         }
                     }
@@ -1224,17 +1248,17 @@ impl Script for PlanetScript {
                 //} 
             } // end edges
 
-            // corner
-            {
-                let height_map = HeightMap { 
-                    side: &corner,
-                    values: vec![0.0],
-                    width: 1,
-                    height: 1,
-                };
+            //// corner
+            //{
+            //    let height_map = HeightMap { 
+            //        side: &corner,
+            //        values: vec![0.0],
+            //        width: 1,
+            //        height: 1,
+            //    };
 
-                height_maps.push(height_map);
-            }
+            //    height_maps.push(height_map);
+            //}
 
             // normalize and apply weight to heightmap
             ris_log::trace!("normalize and apply weight...");
@@ -1243,14 +1267,14 @@ impl Script for PlanetScript {
                 let mut max = f32::MIN;
                 for height_map in height_maps.iter() {
                     for h in height_map.values.iter() {
-                        min = f32::min(min, *h);
-                        max = f32::max(max, *h);
+                        min = f32::min(min, h.height);
+                        max = f32::max(max, h.height);
                     }
                 }
 
                 for height_map in height_maps.iter_mut() {
                     for h in height_map.values.iter_mut() {
-                        *h = (*h - min) / (max - min);
+                        h.height = (h.height - min) / (max - min);
                     }
                 }
             };
@@ -1265,10 +1289,10 @@ impl Script for PlanetScript {
                     //*h = 1.0 / (1.0 + f32::exp(-steepness * (*h - center)));
 
                     // https://www.desmos.com/calculator/9qm31r4kfd
-                    let inverse_smoothstep = 0.5 - f32::sin(f32::asin(1.0 - 2.0 * *h) / 3.0);
-                    let power = *h * *h;
-                    let weight = 1.0 - *h;
-                    *h = ris_math::common::mix(inverse_smoothstep, power, weight);
+                    let inverse_smoothstep = 0.5 - f32::sin(f32::asin(1.0 - 2.0 * h.height) / 3.0);
+                    let power = h.height * h.height;
+                    let weight = 1.0 - h.height;
+                    h.height = ris_math::common::mix(inverse_smoothstep, power, weight);
                 }
             }
 
@@ -1290,7 +1314,7 @@ impl Script for PlanetScript {
                 let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
 
                 for h in height_map.values.iter() {
-                    let lab = gradient.sample(*h);
+                    let lab = gradient.sample(h.height);
                     let rgb = Rgb::from(lab);
                     let [r, g, b] = rgb.to_u8();
                     bytes.push(r);
