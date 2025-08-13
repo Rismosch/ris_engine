@@ -1015,11 +1015,42 @@ impl Script for PlanetScript {
 
                 for iy in 0..height {
                     for ix in 0..width {
-                        let HeightMapValue {
-                            continent_index,
-                            ..
-                        } = height_map.get(ix, iy);
-                        //let continent = &continents[continent_index];
+                        let mut h = height_map.get(ix, iy);
+                        let lhs = &continents[h.continent_index];
+
+                        let x = 2.0 * (ix as f32 / width as f32) - 1.0;
+                        let y = 2.0 * (iy as f32 / height as f32) - 1.0;
+
+                        let rotation_lhs = Quat::angle_axis(angle, lhs.rotation_axis);
+                        let position_lhs = position_on_sphere((ix, iy), (width, height), height_map.side);
+                        let position_lhs_ = rotation_lhs.rotate(position_lhs);
+                        let direction_lhs = position_lhs_ - position_lhs;
+
+                        for rhs in continents.iter() {
+                            if std::ptr::addr_eq(lhs, rhs) {
+                                continue;
+                            }
+
+                            // find position and distance to nearest pixel to (ix, iy)
+                            let side = height_map.side;
+                            let position = (ix, iy);
+                            let distance = 0.1;
+                            todo;
+
+                            let rotation_rhs = Quat::angle_axis(angle, rhs.rotation_axis);
+                            let position_rhs = position_on_sphere(position, (width, height), side);
+                            let position_rhs_ = rotation_rhs.rotate(position_rhs);
+                            let direction_rhs = position_rhs_ - position_rhs;
+
+                            let center = (position_lhs + position_rhs) / 2.0;
+                            let lhs_to_center = direction_lhs - center;
+                            let rhs_to_center = direction_rhs - center;
+                            let influence_lhs = lhs_to_center.dot(position_lhs);
+                            let influence_rhs = rhs_to_center.dot(position_rhs);
+
+                            h.height = influence_lhs * influence_rhs * (1.0 - distance * distance);
+                            height_map.set(ix, iy, h);
+                        }
                     }
                 }
             }
@@ -1032,11 +1063,11 @@ impl Script for PlanetScript {
                     mut height_map,
                 } = side;
 
-                for h in height_map.values.iter_mut() {
-                    if h.height >= 0.0 {
-                        h.height = h.continent_index as f32;
-                    }
-                }
+                //for h in height_map.values.iter_mut() {
+                //    if h.height >= 0.0 {
+                //        h.height = h.continent_index as f32;
+                //    }
+                //}
 
                 height_maps.push(height_map);
             }
@@ -1507,26 +1538,58 @@ fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
     Vec2(v_x, v_y)
 }
 
-fn position_on_sphere(side: usize, x: f32, y: f32) -> Vec3 {
-    match side {
-        0 => {
-            panic!();
-        },
-        1 => {
-            panic!();
-        },
-        2 => {
-            panic!();
-        },
-        3 => {
-            panic!();
-        },
-        4 => {
-            panic!();
-        },
-        5 => {
-            panic!();
-        },
+fn position_on_sphere(
+    (ix, iy): (usize, usize),
+    (width, height): (usize, usize),
+    side: &str,
+) -> Vec3 {
+    // normalize texture coordinates
+    let x = 2.0 * (ix as f32 / width as f32) - 1.0;
+    let y = 2.0 * (iy as f32 / height as f32) - 1.0;
+
+    // get position on cube
+    let v = match side {
+        "l" => Vec3(
+            -1.0,
+            -x,
+            -y,
+        ),
+        "b" => Vec3(
+            x,
+            -1.0,
+            -y,
+        ),
+        "r" => Vec3(
+            1.0,
+            x,
+            -y,
+        ),
+        "f" => Vec3(
+            -x,
+            1.0,
+            -y,
+        ),
+        "u" => Vec3(
+            x,
+            -y,
+            1.0,
+        ),
+        "d" => Vec3(
+            x,
+            y,
+            -1.0,
+        ),
         _ => unreachable!(),
-    }
+    };
+
+    // normalize to get position on sphere
+    let Vec3(x, y, z) = v;
+    let x2 = x * x;
+    let y2 = y * y;
+    let z2 = z * z;
+    let sx = x * f32::sqrt(1.0 - y2 / 2.0 - z2 / 2.0 + y2 * z2 / 3.0);
+    let sy = y * f32::sqrt(1.0 - x2 / 2.0 - z2 / 2.0 + x2 * z2 / 3.0);
+    let sz = z * f32::sqrt(1.0 - x2 / 2.0 - y2 / 2.0 + x2 * y2 / 3.0);
+
+    Vec3(sx, sy, sz)
 }
