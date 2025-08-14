@@ -902,9 +902,33 @@ impl Script for PlanetScript {
                         // find neirest neighbor and distance to it
                         let neighbor_position = (ix, iy);
                         let neighbor_side = height_map.borrow().side;
-                        let neighbo_distance = usize::MAX;
+                        let neighbor_distance = f32::MAX;
 
-                        //let mut queue = std::collections::VecDeque::new();
+                        #[derive(Clone, Copy, Hash)]
+                        struct Neighbor<'a>{
+                            side: &'a str,
+                            position: (usize, usize),
+                            steps: Option<(isize, isize)>,
+                        }
+
+                        impl Neighbor<'_>{
+                            pub fn distance(&self) -> f32 {
+                                let xx = (self.steps.0 * self.steps.0) as f32;
+                                let yy = (self.steps.1 * self.steps.1) as f32;
+                                f32::sqrt(xx + yy)
+                            }
+                        }
+
+                        let best_candidate = Neighbor{
+                            side: height_map.borrow().side,
+                            position: (ix, iy),
+                            steps: None,
+                        };
+
+                        let mut queue = std::collections::VecDeque::new();
+                        queue.push_back(best_candidate.clone());
+                        
+                        // breadth first sears bfs
                     }
                 }
 
