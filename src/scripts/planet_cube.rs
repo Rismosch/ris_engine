@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::path::PathBuf;
 
@@ -442,13 +443,11 @@ impl Script for PlanetScript {
             let seed = Seed::default();
             let mut rng = Rng::new(seed);
             let only_generate_first_face = false;
-            let generate_edges = false;
-            //let width = 1 << 13;
+            //let width = (1 << 12) + 1; // 1 meter between vertices
             let width = (1 << 6) + 1;
-            let height = width;
             let continent_count = 7;
-            let max_height = 0xFFFF;
-            ris_log::trace!("resolution: {}x{}", width, height);
+            let max_h = 0xFFFF;
+            ris_log::trace!("resolution: {}x{}", width, width);
 
             let side_l = "l"; // -x left
             let side_r = "r"; // +x right
@@ -456,21 +455,6 @@ impl Script for PlanetScript {
             let side_f = "f"; // +y front
             let side_d = "d"; // -z down
             let side_u = "u"; // +z up
-
-            let edge_lf = "lf";
-            let edge_lb = "lb";
-            let edge_ld = "ld";
-            let edge_lu = "lu";
-            let edge_rf = "rf";
-            let edge_rb = "rb";
-            let edge_rd = "rd";
-            let edge_ru = "ru";
-            let edge_bd = "bd";
-            let edge_bu = "bu";
-            let edge_fd = "fd";
-            let edge_fu = "fu";
-
-            let corner = "c";
 
             #[derive(Clone, Copy)]
             struct HeightMapValue {
@@ -482,11 +466,10 @@ impl Script for PlanetScript {
                 side: &'a str,
                 values: Vec<HeightMapValue>,
                 width: usize,
-                height: usize,
             }
 
             impl<'a> HeightMap<'a> {
-                fn new(side: &'a str, width: usize, height: usize) -> Self {
+                fn new(side: &'a str, width: usize) -> Self {
                     let value = HeightMapValue {
                         height: 0.0,
                         continent_index: usize::MAX,
@@ -494,9 +477,8 @@ impl Script for PlanetScript {
 
                     Self {
                         side,
-                        values: vec![value; width * height],
+                        values: vec![value; width * width],
                         width,
-                        height,
                     }
                 }
 
@@ -517,17 +499,7 @@ impl Script for PlanetScript {
 
             struct Side<'a> {
                 perlin_sampler: PerlinSampler,
-                height_map: HeightMap<'a>,
-            }
-
-            struct Edge<'a> {
-                perlin_sampler: PerlinEdgeSampler,
-                height_map: HeightMap<'a>,
-            }
-
-            enum Direction {
-                X,
-                Y,
+                height_map: RefCell<HeightMap<'a>>,
             }
 
             struct PerlinSampler {
@@ -536,11 +508,6 @@ impl Script for PlanetScript {
                 edge1: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
                 edge2: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
                 edge3: Option<Box<dyn Fn(i32, (i32, i32)) -> ((i32, i32), Mat2)>>,
-            }
-
-            struct PerlinEdgeSampler {
-                offset: (i32, i32),
-                direction: Direction,
             }
 
             #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
@@ -566,7 +533,7 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
-                    height_map: HeightMap::new(side_l, width, height),
+                    height_map: RefCell::new(HeightMap::new(side_l, width)),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -576,7 +543,7 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
-                    height_map: HeightMap::new(side_b, width, height),
+                    height_map: RefCell::new(HeightMap::new(side_b, width)),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -586,7 +553,7 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
-                    height_map: HeightMap::new(side_r, width, height),
+                    height_map: RefCell::new(HeightMap::new(side_r, width)),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -596,7 +563,7 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: None,
                     },
-                    height_map: HeightMap::new(side_f, width, height),
+                    height_map: RefCell::new(HeightMap::new(side_f, width)),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -606,7 +573,7 @@ impl Script for PlanetScript {
                         edge2: Some(Box::new(move |ix, (gw, gh)| ((gw - ix + gw * 3, 0), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                         edge3: None,
                     },
-                    height_map: HeightMap::new(side_u, width, height),
+                    height_map: RefCell::new(HeightMap::new(side_u, width)),
                 },
                 Side {
                     perlin_sampler: PerlinSampler {
@@ -616,94 +583,7 @@ impl Script for PlanetScript {
                         edge2: None,
                         edge3: Some(Box::new(move |ix, (gw, gh)| ((gw - ix + gw * 3, gh), Mat2(Vec2(-1.0, 0.0), Vec2(0.0, -1.0))))),
                     },
-                    height_map: HeightMap::new(side_d, width, height),
-                },
-            ];
-
-            let edges = vec![
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (0, 0),
-                        direction: Direction::Y,
-                    },
-                    height_map: HeightMap::new(edge_lf, 1, height),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (1, 0),
-                        direction: Direction::Y,
-                    },
-                    height_map: HeightMap::new(edge_lb, 1, height),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (2, 0),
-                        direction: Direction::Y,
-                    },
-                    height_map: HeightMap::new(edge_rb, 1, height),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (3, 0),
-                        direction: Direction::Y,
-                    },
-                    height_map: HeightMap::new(edge_rf, 1, height),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (0, 0),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_lu, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (1, 0),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_bu, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (2, 0),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_ru, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (3, 0),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_fu, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (0, 1),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_ld, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (1, 1),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_bd, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (2, 1),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_rd, width, 1),
-                },
-                Edge{
-                    perlin_sampler: PerlinEdgeSampler {
-                        offset: (3, 1),
-                        direction: Direction::X,
-                    },
-                    height_map: HeightMap::new(edge_fd, width, 1),
+                    height_map: RefCell::new(HeightMap::new(side_d, width)),
                 },
             ];
 
@@ -720,7 +600,7 @@ impl Script for PlanetScript {
                 loop {
                     let side = rng.next_i32_between(0, 5) as usize;
                     let ix = rng.next_i32_between(0, width as i32 - 1) as usize;
-                    let iy = rng.next_i32_between(0, height as i32) as usize;
+                    let iy = rng.next_i32_between(0, width as i32) as usize;
 
                     let candidate = ContinentPixel {
                         side,
@@ -740,7 +620,7 @@ impl Script for PlanetScript {
 
             for (i, starting_position) in starting_positions.into_iter().enumerate() {
                 let side = &mut sides[starting_position.side];
-                side.height_map.set(
+                side.height_map.borrow_mut().set(
                     starting_position.ix,
                     starting_position.iy,
                     HeightMapValue{
@@ -774,7 +654,7 @@ impl Script for PlanetScript {
                         let candidate = continent.discovered_pixels.swap_remove(index);
 
                         let side = &mut sides[candidate.side];
-                        let mut h = side.height_map.get(candidate.ix, candidate.iy);
+                        let mut h = side.height_map.borrow().get(candidate.ix, candidate.iy);
 
                         if h.continent_index != usize::MAX {
                             continue;
@@ -785,7 +665,7 @@ impl Script for PlanetScript {
                         h.continent_index = continent_index;
                         discovered_pixel_count += 1;
 
-                        side.height_map.set(
+                        side.height_map.borrow_mut().set(
                             candidate.ix,
                             candidate.iy,
                             h,
@@ -836,7 +716,7 @@ impl Script for PlanetScript {
                             5 => ContinentPixel {
                                 side: 0,
                                 ix: width - 1 - pixel.iy,
-                                iy: height - 1,
+                                iy: width - 1,
                             },
                             _ => unreachable!(),
                         }
@@ -886,7 +766,7 @@ impl Script for PlanetScript {
                             5 => ContinentPixel {
                                 side: 2,
                                 ix: pixel.iy,
-                                iy: height - 1,
+                                iy: width - 1,
                             },
                             _ => unreachable!(),
                         }
@@ -912,7 +792,7 @@ impl Script for PlanetScript {
                             1 => ContinentPixel {
                                 side: 4,
                                 ix: pixel.ix,
-                                iy: height - 1,
+                                iy: width - 1,
                             },
                             // right -> up
                             2 => ContinentPixel {
@@ -936,7 +816,7 @@ impl Script for PlanetScript {
                             5 => ContinentPixel {
                                 side: 1,
                                 ix: pixel.ix,
-                                iy: height - 1,
+                                iy: width - 1,
                             },
                             _ => unreachable!(),
                         }
@@ -950,7 +830,7 @@ impl Script for PlanetScript {
                     continent.discovered_pixels.push(new_pixel);
 
                     // walk down
-                    let new_pixel = if pixel.iy == height - 1 {
+                    let new_pixel = if pixel.iy == width - 1 {
                         match pixel.side {
                             // left -> down
                             0 => ContinentPixel {
@@ -974,7 +854,7 @@ impl Script for PlanetScript {
                             3 => ContinentPixel {
                                 side: 5,
                                 ix: width - 1 - pixel.ix,
-                                iy: height - 1,
+                                iy: width - 1,
                             },
                             // up -> back
                             4 => ContinentPixel {
@@ -1007,52 +887,104 @@ impl Script for PlanetScript {
 
             let angle = 2.0 * PI / (4 * width) as f32;
             ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
-            for side in sides.iter_mut() {
+            for side in sides.iter() {
                 let Side {
                     perlin_sampler,
                     height_map,
                 } = side;
 
-                for iy in 0..height {
+                for iy in 0..width {
                     for ix in 0..width {
-                        let mut h = height_map.get(ix, iy);
-                        let lhs = &continents[h.continent_index];
+                        let mut h = height_map.borrow().get(ix, iy);
+                        let continent_index_lhs = h.continent_index;
+                        let continent = &continents[continent_index_lhs];
 
-                        let x = 2.0 * (ix as f32 / width as f32) - 1.0;
-                        let y = 2.0 * (iy as f32 / height as f32) - 1.0;
+                        // find neirest neighbor and distance to it
+                        let neighbor_position = (ix, iy);
+                        let neighbor_side = height_map.borrow().side;
+                        let neighbo_distance = usize::MAX;
 
-                        let rotation_lhs = Quat::angle_axis(angle, lhs.rotation_axis);
-                        let position_lhs = position_on_sphere((ix, iy), (width, height), height_map.side);
-                        let position_lhs_ = rotation_lhs.rotate(position_lhs);
-                        let direction_lhs = position_lhs_ - position_lhs;
-
-                        for rhs in continents.iter() {
-                            if std::ptr::addr_eq(lhs, rhs) {
-                                continue;
-                            }
-
-                            // find position and distance to nearest pixel to (ix, iy)
-                            let side = height_map.side;
-                            let position = (ix, iy);
-                            let distance = 0.1;
-                            todo;
-
-                            let rotation_rhs = Quat::angle_axis(angle, rhs.rotation_axis);
-                            let position_rhs = position_on_sphere(position, (width, height), side);
-                            let position_rhs_ = rotation_rhs.rotate(position_rhs);
-                            let direction_rhs = position_rhs_ - position_rhs;
-
-                            let center = (position_lhs + position_rhs) / 2.0;
-                            let lhs_to_center = direction_lhs - center;
-                            let rhs_to_center = direction_rhs - center;
-                            let influence_lhs = lhs_to_center.dot(position_lhs);
-                            let influence_rhs = rhs_to_center.dot(position_rhs);
-
-                            h.height = influence_lhs * influence_rhs * (1.0 - distance * distance);
-                            height_map.set(ix, iy, h);
-                        }
+                        //let mut queue = std::collections::VecDeque::new();
                     }
                 }
+
+                //for iy in 0..width {
+                //    for ix in 0..width {
+                //        let mut h = height_map.borrow().get(ix, iy);
+                //        let continent_index_lhs = h.continent_index;
+                //        let lhs = &continents[continent_index_lhs];
+
+                //        let x = 2.0 * (ix as f32 / width as f32) - 1.0;
+                //        let y = 2.0 * (iy as f32 / width as f32) - 1.0;
+
+                //        let rotation_lhs = Quat::angle_axis(angle, lhs.rotation_axis);
+                //        let position_lhs = position_on_sphere((ix, iy), width, height_map.borrow().side);
+                //        let position_lhs_ = rotation_lhs.rotate(position_lhs);
+                //        let direction_lhs = position_lhs_ - position_lhs;
+
+                //        for (continent_index_rhs, rhs) in continents.iter().enumerate() {
+                //            if std::ptr::addr_eq(lhs, rhs) {
+                //                continue;
+                //            }
+
+                //            // find position and distance to nearest pixel to (ix, iy)
+                //            let mut position = (ix, iy);
+                //            let mut distance = usize::MAX;
+                //            let mut side = height_map.borrow().side;
+
+                //            let mut discovered = std::collections::VecDeque::new();
+                //            discovered.push_back((position, distance, side));
+
+                //            while let Some(pixel) = discovered.pop_front() {
+                //                let pixel_side = match pixel.2 {
+                //                    "l" => &sides[0],
+                //                    "b" => &sides[1],
+                //                    "r" => &sides[2],
+                //                    "f" => &sides[3],
+                //                    "u" => &sides[4],
+                //                    "d" => &sides[5],
+                //                     _ => unreachable!(),
+                //                };
+
+                //                let h = pixel_side.height_map.borrow().get(pixel.0.0, pixel.0.1);
+                //                if h.continent_index == continent_index_rhs {
+                //                    // we found rhs continent
+                //                    if pixel.1 < distance {
+                //                        position = pixel.0;
+                //                        distance = pixel.1;
+                //                        side = pixel.2;
+                //                    }
+                //                    continue;
+                //                }
+
+                //                if h.continent_index != continent_index_lhs {
+                //                    // we found another continent that isn't rhs
+                //                    continue;
+                //                }
+
+                //                // move left
+                //                // move right
+                //                // move up
+                //                // move down
+                //            }
+
+
+                //            //let rotation_rhs = Quat::angle_axis(angle, rhs.rotation_axis);
+                //            //let position_rhs = position_on_sphere(position, width, side);
+                //            //let position_rhs_ = rotation_rhs.rotate(position_rhs);
+                //            //let direction_rhs = position_rhs_ - position_rhs;
+
+                //            //let center = (position_lhs + position_rhs) / 2.0;
+                //            //let lhs_to_center = direction_lhs - center;
+                //            //let rhs_to_center = direction_rhs - center;
+                //            //let influence_lhs = lhs_to_center.dot(position_lhs);
+                //            //let influence_rhs = rhs_to_center.dot(position_rhs);
+
+                //            //h.height = influence_lhs * influence_rhs * (1.0 - distance * distance);
+                //            //height_map.set(ix, iy, h);
+                //        }
+                //    }
+                //}
             }
 
             // continents end
@@ -1079,7 +1011,7 @@ impl Script for PlanetScript {
                     mut height_map,
                 } = side;
 
-                ris_log::trace!("generating side... {} ({})", height_map.side, i);
+                ris_log::trace!("generating side... {} ({})", height_map.borrow().side, i);
 
                 let mut layer = 0;
                 loop {
@@ -1096,7 +1028,7 @@ impl Script for PlanetScript {
                         if iy % 100 == 0 {
                             ris_log::trace!(
                                 "generating side {} ({})... progress: {}/{} layer: {}", 
-                                height_map.side,
+                                height_map.borrow().side,
                                 i,
                                 iy, 
                                 width,
@@ -1104,9 +1036,10 @@ impl Script for PlanetScript {
                             );
                         }
 
-                        for ix in 0..height {
+                        for ix in 0..width {
                             let coord = Vec2(ix as f32 + 0.5, iy as f32 + 0.5);
-                            let size = Vec2(height_map.width as f32, height_map.height as f32);
+                            let heigh_map_width = height_map.borrow().width as f32;
+                            let size = Vec2(heigh_map_width, heigh_map_width);
                             let normalized = coord / size;
                             let grid = Vec2(grid_width as f32, grid_height as f32);
                             let p = normalized * grid;
@@ -1189,9 +1122,9 @@ impl Script for PlanetScript {
                             let f = f0 * h(1.0 - y) + f1 * h(y);
                             // perlin noise end
 
-                            let mut h = height_map.get(ix, iy);
+                            let mut h = height_map.borrow().get(ix, iy);
                             h.height += f * grid_weight;
-                            height_map.set(ix, iy, h);
+                            height_map.borrow_mut().set(ix, iy, h);
                         }
                     }
                 }
@@ -1203,108 +1136,20 @@ impl Script for PlanetScript {
                 }
             } // end sides
 
-            // edges
-            if generate_edges {
-                //for edge in edges.into_iter() {
-                //    let Edge { 
-                //        perlin_sampler, 
-                //        mut height_map,
-                //    } = edge;
-
-                //    for (i, value) in height_map.values.iter_mut().enumerate() {
-                //        let coord = match perlin_sampler.direction {
-                //            Direction::X => Vec2(i as f32 + 0.5, 0.0),
-                //            Direction::Y => Vec2(0.0, i as f32 + 0.5),
-                //        };
-
-                //        let size = Vec2(height_map.width as f32, height_map.height as f32);
-                //        let normalized = coord / size;
-                //        let grid = Vec2(grid_width as f32, grid_height as f32);
-                //        let p = normalized * grid;
-
-                //        let apply_net = |ix: i32, iy: i32| {
-                //            let offset_x = perlin_sampler.offset.0 * grid_width;
-                //            let offset_y = perlin_sampler.offset.1 * grid_height;
-                //            let default_x = ix + offset_x;
-                //            let default_y = iy + offset_y;
-                //            let default = ((default_x, default_y), Mat2::identity());
-
-                //            if ix % grid_width == 0 && iy % grid_height == 0 {
-                //                ((default_x, default_y), Mat2::init(0.0))
-                //            } else {
-                //                default
-                //            }
-                //        };
-
-                //        // perlin noise
-                //        let m0 = p.x().floor() as i32;
-                //        let n0 = p.y().floor() as i32;
-                //        let (m1, n1) = match perlin_sampler.direction {
-                //            Direction::X => (m0 + 1,n0),
-                //            Direction::Y => (m0, n0 + 1),
-                //        };
-
-                //        ris_log::debug!("{} {} {} {}", m0, m1, n0, n1);
-
-                //        let (iq0, mat0) = apply_net(m0, n0);
-                //        let (iq1, mat1) = apply_net(m1, n0);
-                //        let (iq2, mat2) = apply_net(m0, n1);
-                //        let (iq3, mat3) = apply_net(m1, n1);
-                //        let g0 = mat0 * random_gradient(iq0.0, iq0.1, seed);
-                //        let g1 = mat1 * random_gradient(iq1.0, iq1.1, seed);
-                //        let g2 = mat2 * random_gradient(iq2.0, iq2.1, seed);
-                //        let g3 = mat3 * random_gradient(iq3.0, iq3.1, seed);
-
-                //        let q0 = Vec2(m0 as f32, n0 as f32);
-                //        let q1 = Vec2(m1 as f32, n0 as f32);
-                //        let q2 = Vec2(m0 as f32, n1 as f32);
-                //        let q3 = Vec2(m1 as f32, n1 as f32);
-
-                //        let s0 = g0.dot(p - q0);
-                //        let s1 = g1.dot(p - q1);
-                //        let s2 = g2.dot(p - q2);
-                //        let s3 = g3.dot(p - q3);
-
-                //        let h = |x: f32| (3.0 - x * 2.0) * x * x;
-                //        let Vec2(x, y) = p - q0;
-                //        let f0 = s0 * h(1.0 - x) + s1 * h(x);
-                //        let f1 = s2 * h(1.0 - x) + s3 * h(x);
-                //        let f = f0 * h(1.0 - y) + f1 * h(y);
-                //        // perlin noise end
-
-                //        *value = f;
-                //    }
-
-                //    height_maps.push(height_map);
-                //} 
-            } // end edges
-
-            //// corner
-            //{
-            //    let height_map = HeightMap { 
-            //        side: &corner,
-            //        values: vec![0.0],
-            //        width: 1,
-            //        height: 1,
-            //    };
-
-            //    height_maps.push(height_map);
-            //}
-
             // normalize and apply weight to heightmap
             ris_log::trace!("normalize and apply weight...");
-            let normalize = |height_maps: &mut [HeightMap<'_>]| {
+            let normalize = |height_maps: &mut [RefCell<HeightMap<'_>>]| {
                 let mut min = f32::MAX;
                 let mut max = f32::MIN;
                 for height_map in height_maps.iter() {
-                    for h in height_map.values.iter() {
+                    for h in height_map.borrow().values.iter() {
                         min = f32::min(min, h.height);
                         max = f32::max(max, h.height);
                     }
                 }
 
                 for height_map in height_maps.iter_mut() {
-                    for h in height_map.values.iter_mut() {
+                    for h in height_map.borrow_mut().values.iter_mut() {
                         h.height = (h.height - min) / (max - min);
                     }
                 }
@@ -1313,7 +1158,7 @@ impl Script for PlanetScript {
             normalize(&mut height_maps);
 
             for height_map in height_maps.iter_mut() {
-                for h in height_map.values.iter_mut() {
+                for h in height_map.borrow_mut().values.iter_mut() {
                     //// sigmoid
                     //let steepness = 10.0;
                     //let center = 0.5;
@@ -1342,9 +1187,9 @@ impl Script for PlanetScript {
 
             for height_map in height_maps.into_iter() {
                 ris_log::trace!("convert height map to bytes...");
-                let mut bytes = Vec::with_capacity(height_map.values.len() * 3);
+                let mut bytes = Vec::with_capacity(height_map.borrow().values.len() * 3);
 
-                for h in height_map.values.iter() {
+                for h in height_map.borrow().values.iter() {
                     let lab = gradient.sample(h.height);
                     let rgb = Rgb::from(lab);
                     let [r, g, b] = rgb.to_u8();
@@ -1354,9 +1199,10 @@ impl Script for PlanetScript {
                 }
 
                 ris_log::trace!("encoding to qoi...");
+                let qoi_width = height_map.borrow().width as u32;
                 let desc = QoiDesc {
-                    width: height_map.width as u32,
-                    height: height_map.height as u32,
+                    width: qoi_width,
+                    height: qoi_width,
                     channels: Channels::RGB,
                     color_space: ColorSpace::Linear,
                 };
@@ -1370,7 +1216,7 @@ impl Script for PlanetScript {
 
                 ris_log::trace!("serializing...");
 
-                let path_string = format!("assets/in_use/terrain/height_map_{}.qoi", height_map.side);
+                let path_string = format!("assets/in_use/terrain/height_map_{}.qoi", height_map.borrow().side);
                 let filepath = PathBuf::from(path_string);
 
                 if filepath.exists() {
@@ -1540,12 +1386,12 @@ fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
 
 fn position_on_sphere(
     (ix, iy): (usize, usize),
-    (width, height): (usize, usize),
+    width: usize,
     side: &str,
 ) -> Vec3 {
     // normalize texture coordinates
     let x = 2.0 * (ix as f32 / width as f32) - 1.0;
-    let y = 2.0 * (iy as f32 / height as f32) - 1.0;
+    let y = 2.0 * (iy as f32 / width as f32) - 1.0;
 
     // get position on cube
     let v = match side {
