@@ -904,111 +904,256 @@ impl Script for PlanetScript {
                         let neighbor_side = height_map.borrow().side;
                         let neighbor_distance = f32::MAX;
 
-                        #[derive(Clone, Copy, Hash)]
+                        #[derive(Clone, Copy, PartialEq, Eq, Hash)]
                         struct Neighbor<'a>{
                             side: &'a str,
                             position: (usize, usize),
-                            steps: Option<(isize, isize)>,
+                            distance: usize,
                         }
 
-                        impl Neighbor<'_>{
-                            pub fn distance(&self) -> f32 {
-                                let xx = (self.steps.0 * self.steps.0) as f32;
-                                let yy = (self.steps.1 * self.steps.1) as f32;
-                                f32::sqrt(xx + yy)
-                            }
-                        }
-
-                        let best_candidate = Neighbor{
+                        let mut best_candidate = Neighbor{
                             side: height_map.borrow().side,
                             position: (ix, iy),
-                            steps: None,
+                            distance: usize::MAX,
                         };
 
                         let mut queue = std::collections::VecDeque::new();
                         queue.push_back(best_candidate.clone());
                         
                         // breadth first sears bfs
+                        let mut discovered = std::collections::HashSet::<Neighbor>::new();
+
+                        while let Some(candidate) = queue.pop_front() {
+                            let is_new = discovered.insert(candidate);
+                            if !is_new {
+                                continue;
+                            }
+
+                            if candidate.side != height_map.borrow().side {
+                                // found new candidate!
+                                if candidate.distance < best_candidate.distance {
+                                    best_candidate = candidate;
+                                }
+                                continue;
+                            }
+
+                            let distance = if candidate.distance == usize::MAX {
+                                1
+                            } else {
+                                candidate.distance + 1
+                            };
+
+                            // move left
+                            let new_candidate = if candidate.position.0 == 0 {
+                                match candidate.side {
+                                    "l" => Neighbor{
+                                        side: "f",
+                                        position: (
+                                            width - 1,
+                                            candidate.position.1,
+                                        ),
+                                        distance,
+                                    },
+                                    "b" => Neighbor{
+                                        side: "l",
+                                        position: (
+                                            width - 1,
+                                            candidate.position.1,
+                                        ),
+                                        distance,
+                                    },
+                                    "r" => Neighbor{
+                                        side: "b",
+                                        position: (
+                                            width - 1,
+                                            candidate.position.1,
+                                        ),
+                                        distance,
+                                    },
+                                    "f" => Neighbor{
+                                        side: "r",
+                                        position: (
+                                            width - 1,
+                                            candidate.position.1,
+                                        ),
+                                        distance,
+                                    },
+                                    "u" => Neighbor{
+                                        side: "l",
+                                        position: (
+                                            candidate.position.1,
+                                            0,
+                                        ),
+                                        distance,
+                                    },
+                                    "d" => Neighbor{
+                                        side: "l",
+                                        position: (
+                                            width - 1 - candidate.position.1,
+                                            width - 1,
+                                        ),
+                                        distance,
+                                    },
+                                    _ => unreachable!(),
+                                }
+                            } else {
+                                Neighbor {
+                                    side: candidate.side,
+                                    position: (candidate.position.0 - 1, candidate.position.1),
+                                    distance,
+                                }
+                            };
+                            queue.push_back(new_candidate);
+
+                            // move right
+                            let new_candidate = if candidate.position.0 == width - 1 {
+                                match candidate.side {
+                                    "l" => Neighbor {
+                                        side: "b",
+                                        position: (0, candidate.position.1),
+                                        distance,
+                                    },
+                                    "b" => Neighbor {
+                                        side: "r",
+                                        position: (0, candidate.position.1),
+                                        distance,
+                                    },
+                                    "r" => Neighbor {
+                                        side: "f",
+                                        position: (0, candidate.position.1),
+                                        distance,
+                                    },
+                                    "f" => Neighbor {
+                                        side: "l",
+                                        position: (0, candidate.position.1),
+                                        distance,
+                                    },
+                                    "u" => Neighbor {
+                                        side: "r",
+                                        position: (width - 1 - candidate.position.1,0),
+                                        distance,
+                                    },
+                                    "d" => Neighbor {
+                                        side: "r",
+                                        position: (candidate.position.1,width - 1),
+                                        distance,
+                                    },
+                                    _ => unreachable!(),
+                                }
+                            } else {
+                                Neighbor {
+                                    side: candidate.side,
+                                    position: (candidate.position.0 + 1, candidate.position.1),
+                                    distance,
+                                }
+                            };
+                            queue.push_back(new_candidate);
+
+                            // move up
+                            let new_candidate = if candidate.position.1 == 0 {
+                                match candidate.side {
+                                    "l" => Neighbor {
+                                        side: "u",
+                                        position: (0, candidate.position.0),
+                                        distance,
+                                    },
+                                    "b" => Neighbor {
+                                        side: "u",
+                                        position: (candidate.position.0, width - 1),
+                                        distance,
+                                    },
+                                    "r" => Neighbor {
+                                        side: "u",
+                                        position: (width - 1, width - 1 - candidate.position.0),
+                                        distance,
+                                    },
+                                    "f" => Neighbor {
+                                        side: "u",
+                                        position: (width - 1 - candidate.position.0, 0),
+                                        distance,
+                                    },
+                                    "u" => Neighbor {
+                                        side: "f",
+                                        position: (width - 1 - candidate.position.0, 0),
+                                        distance,
+                                    },
+                                    "d" => Neighbor {
+                                        side: "b",
+                                        position: (candidate.position.0, width - 1),
+                                        distance,
+                                    },
+                                    _ => unreachable!(),
+                                }
+                            } else {
+                                Neighbor {
+                                    side: candidate.side,
+                                    position: (candidate.position.0, candidate.position.1 - 1),
+                                    distance,
+                                }
+                            };
+                            queue.push_back(new_candidate);
+
+                            // move down
+                            let new_candidate = if candidate.position.1 == width - 1 {
+                                match candidate.side {
+                                    "l" => Neighbor {
+                                        side: "d",
+                                        position: (0, width - 1 - candidate.position.0),
+                                        distance,
+                                    },
+                                    "b" => Neighbor {
+                                        side: "d",
+                                        position: (candidate.position.0, 0),
+                                        distance,
+                                    },
+                                    "r" => Neighbor {
+                                        side: "d",
+                                        position: (width - 1, candidate.position.0),
+                                        distance,
+                                    },
+                                    "f" => Neighbor {
+                                        side: "d",
+                                        position: (width - 1 - candidate.position.0, width - 1),
+                                        distance,
+                                    },
+                                    "u" => Neighbor {
+                                        side: "b",
+                                        position: (candidate.position.0, 0),
+                                        distance,
+                                    },
+                                    "d" => Neighbor {
+                                        side: "f",
+                                        position: (width - 1 - candidate.position.0, 0),
+                                        distance,
+                                    },
+                                    _ => unreachable!(),
+                                }
+                            } else {
+                                Neighbor {
+                                    side: candidate.side,
+                                    position: (candidate.position.0, candidate.position.1 + 1),
+                                    distance,
+                                }
+                            };
+                            queue.push_back(new_candidate);
+                        }
+
+                        todo!("compiles but loops forever. check whether this is a livelock or just a very buys/imperformant loop");
+
+                        // best candidate found:
+                        let new_h = match best_candidate.side {
+                            "l" => HeightMapValue{height: 0.0, continent_index: 0},
+                            "b" => HeightMapValue{height: 1.0, continent_index: 1},
+                            "r" => HeightMapValue{height: 2.0, continent_index: 2},
+                            "f" => HeightMapValue{height: 3.0, continent_index: 3},
+                            "u" => HeightMapValue{height: 4.0, continent_index: 4},
+                            "d" => HeightMapValue{height: 5.0, continent_index: 5},
+                            _ => unreachable!(),
+                        };
+
+                        height_map.borrow_mut().set(ix, iy, new_h);
                     }
                 }
-
-                //for iy in 0..width {
-                //    for ix in 0..width {
-                //        let mut h = height_map.borrow().get(ix, iy);
-                //        let continent_index_lhs = h.continent_index;
-                //        let lhs = &continents[continent_index_lhs];
-
-                //        let x = 2.0 * (ix as f32 / width as f32) - 1.0;
-                //        let y = 2.0 * (iy as f32 / width as f32) - 1.0;
-
-                //        let rotation_lhs = Quat::angle_axis(angle, lhs.rotation_axis);
-                //        let position_lhs = position_on_sphere((ix, iy), width, height_map.borrow().side);
-                //        let position_lhs_ = rotation_lhs.rotate(position_lhs);
-                //        let direction_lhs = position_lhs_ - position_lhs;
-
-                //        for (continent_index_rhs, rhs) in continents.iter().enumerate() {
-                //            if std::ptr::addr_eq(lhs, rhs) {
-                //                continue;
-                //            }
-
-                //            // find position and distance to nearest pixel to (ix, iy)
-                //            let mut position = (ix, iy);
-                //            let mut distance = usize::MAX;
-                //            let mut side = height_map.borrow().side;
-
-                //            let mut discovered = std::collections::VecDeque::new();
-                //            discovered.push_back((position, distance, side));
-
-                //            while let Some(pixel) = discovered.pop_front() {
-                //                let pixel_side = match pixel.2 {
-                //                    "l" => &sides[0],
-                //                    "b" => &sides[1],
-                //                    "r" => &sides[2],
-                //                    "f" => &sides[3],
-                //                    "u" => &sides[4],
-                //                    "d" => &sides[5],
-                //                     _ => unreachable!(),
-                //                };
-
-                //                let h = pixel_side.height_map.borrow().get(pixel.0.0, pixel.0.1);
-                //                if h.continent_index == continent_index_rhs {
-                //                    // we found rhs continent
-                //                    if pixel.1 < distance {
-                //                        position = pixel.0;
-                //                        distance = pixel.1;
-                //                        side = pixel.2;
-                //                    }
-                //                    continue;
-                //                }
-
-                //                if h.continent_index != continent_index_lhs {
-                //                    // we found another continent that isn't rhs
-                //                    continue;
-                //                }
-
-                //                // move left
-                //                // move right
-                //                // move up
-                //                // move down
-                //            }
-
-
-                //            //let rotation_rhs = Quat::angle_axis(angle, rhs.rotation_axis);
-                //            //let position_rhs = position_on_sphere(position, width, side);
-                //            //let position_rhs_ = rotation_rhs.rotate(position_rhs);
-                //            //let direction_rhs = position_rhs_ - position_rhs;
-
-                //            //let center = (position_lhs + position_rhs) / 2.0;
-                //            //let lhs_to_center = direction_lhs - center;
-                //            //let rhs_to_center = direction_rhs - center;
-                //            //let influence_lhs = lhs_to_center.dot(position_lhs);
-                //            //let influence_rhs = rhs_to_center.dot(position_rhs);
-
-                //            //h.height = influence_lhs * influence_rhs * (1.0 - distance * distance);
-                //            //height_map.set(ix, iy, h);
-                //        }
-                //    }
-                //}
             }
 
             // continents end
@@ -1032,7 +1177,7 @@ impl Script for PlanetScript {
             for (i, side) in sides.into_iter().enumerate() {
                 let Side {
                     perlin_sampler,
-                    mut height_map,
+                    height_map,
                 } = side;
 
                 ris_log::trace!("generating side... {} ({})", height_map.borrow().side, i);
