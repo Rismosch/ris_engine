@@ -894,6 +894,15 @@ impl Script for PlanetScript {
                 } = side;
 
                 for iy in 0..width {
+                    if iy % 10 == 0 {
+                        ris_log::trace!(
+                            "finding plate boundaries {}... progress: {}/{}", 
+                            height_map.borrow().side,
+                            iy, 
+                            width,
+                        );
+                    }
+
                     for ix in 0..width {
                         let mut h = height_map.borrow().get(ix, iy);
                         let continent_index_lhs = h.continent_index;
@@ -904,11 +913,28 @@ impl Script for PlanetScript {
                         let neighbor_side = height_map.borrow().side;
                         let neighbor_distance = f32::MAX;
 
-                        #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+                        #[derive(Debug, Clone, Copy)]
                         struct Neighbor<'a>{
                             side: &'a str,
                             position: (usize, usize),
                             distance: usize,
+                        }
+
+                        impl PartialEq for Neighbor<'_> {
+                            fn eq(&self, other: &Self) -> bool {
+                                self.side == other.side &&
+                                    self.position == other.position
+                            }
+                        }
+
+                        impl Eq for Neighbor<'_> {}
+
+                        impl std::hash::Hash for Neighbor<'_> {
+                            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                                state.write(self.side.as_bytes());
+                                state.write(&self.position.0.to_ne_bytes());
+                                state.write(&self.position.1.to_ne_bytes());
+                            }
                         }
 
                         let mut best_candidate = Neighbor{
@@ -929,7 +955,16 @@ impl Script for PlanetScript {
                                 continue;
                             }
 
-                            if candidate.side != height_map.borrow().side {
+                            let side_index = match candidate.side {
+                                "l" => 0,
+                                "b" => 1,
+                                "r" => 2,
+                                "f" => 3,
+                                "u" => 4,
+                                "d" => 5,
+                                _ => unreachable!(),
+                            };
+                            if sides[side_index].height_map.borrow().get(ix, iy).continent_index != h.continent_index {
                                 // found new candidate!
                                 if candidate.distance < best_candidate.distance {
                                     best_candidate = candidate;
@@ -1138,20 +1173,21 @@ impl Script for PlanetScript {
                             queue.push_back(new_candidate);
                         }
 
-                        todo!("compiles but loops forever. check whether this is a livelock or just a very buys/imperformant loop");
-
                         // best candidate found:
-                        let new_h = match best_candidate.side {
-                            "l" => HeightMapValue{height: 0.0, continent_index: 0},
-                            "b" => HeightMapValue{height: 1.0, continent_index: 1},
-                            "r" => HeightMapValue{height: 2.0, continent_index: 2},
-                            "f" => HeightMapValue{height: 3.0, continent_index: 3},
-                            "u" => HeightMapValue{height: 4.0, continent_index: 4},
-                            "d" => HeightMapValue{height: 5.0, continent_index: 5},
+                        let mut h = height_map.borrow().get(ix, iy);
+
+                        let side_index = match best_candidate.side {
+                            "l" => 0,
+                            "b" => 1,
+                            "r" => 2,
+                            "f" => 3,
+                            "u" => 4,
+                            "d" => 5,
                             _ => unreachable!(),
                         };
-
-                        height_map.borrow_mut().set(ix, iy, new_h);
+                        let continent_index = sides[side_index].height_map.borrow().get(ix, iy).continent_index;
+                        h.height = continent_index as f32;
+                        height_map.borrow_mut().set(ix, iy, h);
                     }
                 }
             }
