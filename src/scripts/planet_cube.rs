@@ -446,6 +446,11 @@ impl Script for PlanetScript {
             //let width = (1 << 12) + 1; // 1 meter between vertices
             let width = (1 << 6) + 1;
             let continent_count = 7;
+            const KERNEL_SIZE: usize = 5;
+            const _: () = {
+                assert!(KERNEL_SIZE % 2 == 1);
+            };
+            let kernel_sigma = 1.0;
             let max_h = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, width);
 
@@ -885,312 +890,341 @@ impl Script for PlanetScript {
                 }
             }
 
-            let angle = 2.0 * PI / (4 * width) as f32;
-            ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
-            for side in sides.iter() {
-                let Side {
-                    perlin_sampler,
-                    height_map,
-                } = side;
+            // generate kernel
+            ris_log::trace!("generate kernel");
+            let mut kernel = [[0.0; KERNEL_SIZE]; KERNEL_SIZE];
 
-                for iy in 0..width {
-                    if iy % 10 == 0 {
-                        ris_log::trace!(
-                            "finding plate boundaries {}... progress: {}/{}", 
-                            height_map.borrow().side,
-                            iy, 
-                            width,
-                        );
-                    }
+            let half = (KERNEL_SIZE / 2) as isize;
+            let mut sum = 0.0;
+            let s = 2.0 * kernel_sigma * kernel_sigma;
 
-                    for ix in 0..width {
-                        let mut h = height_map.borrow().get(ix, iy);
-                        let continent_index_lhs = h.continent_index;
-                        let continent = &continents[continent_index_lhs];
+            // fill the kernel with values
+            for (ix, column) in kernel.iter_mut().enumerate() {
+                for (iy, v) in column.iter_mut().enumerate() {
+                    let x = (ix as isize - half) as f32;
+                    let y = (iy as isize - half) as f32;
 
-                        // find neirest neighbor and distance to it
-                        let neighbor_position = (ix, iy);
-                        let neighbor_side = height_map.borrow().side;
-                        let neighbor_distance = f32::MAX;
-
-                        #[derive(Debug, Clone, Copy)]
-                        struct Neighbor<'a>{
-                            side: &'a str,
-                            position: (usize, usize),
-                            distance: usize,
-                        }
-
-                        impl PartialEq for Neighbor<'_> {
-                            fn eq(&self, other: &Self) -> bool {
-                                self.side == other.side &&
-                                    self.position == other.position
-                            }
-                        }
-
-                        impl Eq for Neighbor<'_> {}
-
-                        impl std::hash::Hash for Neighbor<'_> {
-                            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                                state.write(self.side.as_bytes());
-                                state.write(&self.position.0.to_ne_bytes());
-                                state.write(&self.position.1.to_ne_bytes());
-                            }
-                        }
-
-                        let mut best_candidate = Neighbor{
-                            side: height_map.borrow().side,
-                            position: (ix, iy),
-                            distance: usize::MAX,
-                        };
-
-                        let mut queue = std::collections::VecDeque::new();
-                        queue.push_back(best_candidate.clone());
-                        
-                        // breadth first sears bfs
-                        let mut discovered = std::collections::HashSet::<Neighbor>::new();
-
-                        while let Some(candidate) = queue.pop_front() {
-                            let is_new = discovered.insert(candidate);
-                            if !is_new {
-                                continue;
-                            }
-
-                            let side_index = match candidate.side {
-                                "l" => 0,
-                                "b" => 1,
-                                "r" => 2,
-                                "f" => 3,
-                                "u" => 4,
-                                "d" => 5,
-                                _ => unreachable!(),
-                            };
-                            if sides[side_index].height_map.borrow().get(ix, iy).continent_index != h.continent_index {
-                                // found new candidate!
-                                if candidate.distance < best_candidate.distance {
-                                    best_candidate = candidate;
-                                }
-                                continue;
-                            }
-
-                            let distance = if candidate.distance == usize::MAX {
-                                1
-                            } else {
-                                candidate.distance + 1
-                            };
-
-                            // move left
-                            let new_candidate = if candidate.position.0 == 0 {
-                                match candidate.side {
-                                    "l" => Neighbor{
-                                        side: "f",
-                                        position: (
-                                            width - 1,
-                                            candidate.position.1,
-                                        ),
-                                        distance,
-                                    },
-                                    "b" => Neighbor{
-                                        side: "l",
-                                        position: (
-                                            width - 1,
-                                            candidate.position.1,
-                                        ),
-                                        distance,
-                                    },
-                                    "r" => Neighbor{
-                                        side: "b",
-                                        position: (
-                                            width - 1,
-                                            candidate.position.1,
-                                        ),
-                                        distance,
-                                    },
-                                    "f" => Neighbor{
-                                        side: "r",
-                                        position: (
-                                            width - 1,
-                                            candidate.position.1,
-                                        ),
-                                        distance,
-                                    },
-                                    "u" => Neighbor{
-                                        side: "l",
-                                        position: (
-                                            candidate.position.1,
-                                            0,
-                                        ),
-                                        distance,
-                                    },
-                                    "d" => Neighbor{
-                                        side: "l",
-                                        position: (
-                                            width - 1 - candidate.position.1,
-                                            width - 1,
-                                        ),
-                                        distance,
-                                    },
-                                    _ => unreachable!(),
-                                }
-                            } else {
-                                Neighbor {
-                                    side: candidate.side,
-                                    position: (candidate.position.0 - 1, candidate.position.1),
-                                    distance,
-                                }
-                            };
-                            queue.push_back(new_candidate);
-
-                            // move right
-                            let new_candidate = if candidate.position.0 == width - 1 {
-                                match candidate.side {
-                                    "l" => Neighbor {
-                                        side: "b",
-                                        position: (0, candidate.position.1),
-                                        distance,
-                                    },
-                                    "b" => Neighbor {
-                                        side: "r",
-                                        position: (0, candidate.position.1),
-                                        distance,
-                                    },
-                                    "r" => Neighbor {
-                                        side: "f",
-                                        position: (0, candidate.position.1),
-                                        distance,
-                                    },
-                                    "f" => Neighbor {
-                                        side: "l",
-                                        position: (0, candidate.position.1),
-                                        distance,
-                                    },
-                                    "u" => Neighbor {
-                                        side: "r",
-                                        position: (width - 1 - candidate.position.1,0),
-                                        distance,
-                                    },
-                                    "d" => Neighbor {
-                                        side: "r",
-                                        position: (candidate.position.1,width - 1),
-                                        distance,
-                                    },
-                                    _ => unreachable!(),
-                                }
-                            } else {
-                                Neighbor {
-                                    side: candidate.side,
-                                    position: (candidate.position.0 + 1, candidate.position.1),
-                                    distance,
-                                }
-                            };
-                            queue.push_back(new_candidate);
-
-                            // move up
-                            let new_candidate = if candidate.position.1 == 0 {
-                                match candidate.side {
-                                    "l" => Neighbor {
-                                        side: "u",
-                                        position: (0, candidate.position.0),
-                                        distance,
-                                    },
-                                    "b" => Neighbor {
-                                        side: "u",
-                                        position: (candidate.position.0, width - 1),
-                                        distance,
-                                    },
-                                    "r" => Neighbor {
-                                        side: "u",
-                                        position: (width - 1, width - 1 - candidate.position.0),
-                                        distance,
-                                    },
-                                    "f" => Neighbor {
-                                        side: "u",
-                                        position: (width - 1 - candidate.position.0, 0),
-                                        distance,
-                                    },
-                                    "u" => Neighbor {
-                                        side: "f",
-                                        position: (width - 1 - candidate.position.0, 0),
-                                        distance,
-                                    },
-                                    "d" => Neighbor {
-                                        side: "b",
-                                        position: (candidate.position.0, width - 1),
-                                        distance,
-                                    },
-                                    _ => unreachable!(),
-                                }
-                            } else {
-                                Neighbor {
-                                    side: candidate.side,
-                                    position: (candidate.position.0, candidate.position.1 - 1),
-                                    distance,
-                                }
-                            };
-                            queue.push_back(new_candidate);
-
-                            // move down
-                            let new_candidate = if candidate.position.1 == width - 1 {
-                                match candidate.side {
-                                    "l" => Neighbor {
-                                        side: "d",
-                                        position: (0, width - 1 - candidate.position.0),
-                                        distance,
-                                    },
-                                    "b" => Neighbor {
-                                        side: "d",
-                                        position: (candidate.position.0, 0),
-                                        distance,
-                                    },
-                                    "r" => Neighbor {
-                                        side: "d",
-                                        position: (width - 1, candidate.position.0),
-                                        distance,
-                                    },
-                                    "f" => Neighbor {
-                                        side: "d",
-                                        position: (width - 1 - candidate.position.0, width - 1),
-                                        distance,
-                                    },
-                                    "u" => Neighbor {
-                                        side: "b",
-                                        position: (candidate.position.0, 0),
-                                        distance,
-                                    },
-                                    "d" => Neighbor {
-                                        side: "f",
-                                        position: (width - 1 - candidate.position.0, 0),
-                                        distance,
-                                    },
-                                    _ => unreachable!(),
-                                }
-                            } else {
-                                Neighbor {
-                                    side: candidate.side,
-                                    position: (candidate.position.0, candidate.position.1 + 1),
-                                    distance,
-                                }
-                            };
-                            queue.push_back(new_candidate);
-                        }
-
-                        // best candidate found:
-                        let mut h = height_map.borrow().get(ix, iy);
-
-                        let side_index = match best_candidate.side {
-                            "l" => 0,
-                            "b" => 1,
-                            "r" => 2,
-                            "f" => 3,
-                            "u" => 4,
-                            "d" => 5,
-                            _ => unreachable!(),
-                        };
-                        let continent_index = sides[side_index].height_map.borrow().get(ix, iy).continent_index;
-                        h.height = continent_index as f32;
-                        height_map.borrow_mut().set(ix, iy, h);
-                    }
+                    *v = (f32::exp(-(x * x + y * y) / (2.0 * s))) / (s * PI);
+                    sum += *v;
                 }
             }
+
+            // normalize kernel
+            for column in kernel.iter_mut() {
+                for v in column.iter_mut() {
+                    *v /= sum;
+                }
+            }
+
+            // calculate heights on continent boundaries
+            ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
+
+            //let angle = 2.0 * PI / (4 * width) as f32;
+            //ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
+            //for side in sides.iter() {
+            //    let Side {
+            //        perlin_sampler,
+            //        height_map,
+            //    } = side;
+
+            //    for iy in 0..width {
+            //        if iy % 10 == 0 {
+            //            ris_log::trace!(
+            //                "finding plate boundaries {}... progress: {}/{}", 
+            //                height_map.borrow().side,
+            //                iy, 
+            //                width,
+            //            );
+            //        }
+
+            //        for ix in 0..width {
+            //            let mut h = height_map.borrow().get(ix, iy);
+            //            let continent_index_lhs = h.continent_index;
+            //            let continent = &continents[continent_index_lhs];
+
+            //            // find neirest neighbor and distance to it
+            //            let neighbor_position = (ix, iy);
+            //            let neighbor_side = height_map.borrow().side;
+            //            let neighbor_distance = f32::MAX;
+
+            //            #[derive(Debug, Clone, Copy)]
+            //            struct Neighbor<'a>{
+            //                side: &'a str,
+            //                position: (usize, usize),
+            //                distance: usize,
+            //            }
+
+            //            impl PartialEq for Neighbor<'_> {
+            //                fn eq(&self, other: &Self) -> bool {
+            //                    self.side == other.side &&
+            //                        self.position == other.position
+            //                }
+            //            }
+
+            //            impl Eq for Neighbor<'_> {}
+
+            //            impl std::hash::Hash for Neighbor<'_> {
+            //                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+            //                    state.write(self.side.as_bytes());
+            //                    state.write(&self.position.0.to_ne_bytes());
+            //                    state.write(&self.position.1.to_ne_bytes());
+            //                }
+            //            }
+
+            //            let mut best_candidate = Neighbor{
+            //                side: height_map.borrow().side,
+            //                position: (ix, iy),
+            //                distance: usize::MAX,
+            //            };
+
+            //            let mut queue = std::collections::VecDeque::new();
+            //            queue.push_back(best_candidate.clone());
+            //            
+            //            // breadth first sears bfs
+            //            let mut discovered = std::collections::HashSet::<Neighbor>::new();
+
+            //            while let Some(candidate) = queue.pop_front() {
+            //                let is_new = discovered.insert(candidate);
+            //                if !is_new {
+            //                    continue;
+            //                }
+
+            //                let side_index = match candidate.side {
+            //                    "l" => 0,
+            //                    "b" => 1,
+            //                    "r" => 2,
+            //                    "f" => 3,
+            //                    "u" => 4,
+            //                    "d" => 5,
+            //                    _ => unreachable!(),
+            //                };
+            //                if sides[side_index].height_map.borrow().get(ix, iy).continent_index != h.continent_index {
+            //                    // found new candidate!
+            //                    if candidate.distance < best_candidate.distance {
+            //                        best_candidate = candidate;
+            //                    }
+            //                    continue;
+            //                }
+
+            //                let distance = if candidate.distance == usize::MAX {
+            //                    1
+            //                } else {
+            //                    candidate.distance + 1
+            //                };
+
+            //                // move left
+            //                let new_candidate = if candidate.position.0 == 0 {
+            //                    match candidate.side {
+            //                        "l" => Neighbor{
+            //                            side: "f",
+            //                            position: (
+            //                                width - 1,
+            //                                candidate.position.1,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        "b" => Neighbor{
+            //                            side: "l",
+            //                            position: (
+            //                                width - 1,
+            //                                candidate.position.1,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        "r" => Neighbor{
+            //                            side: "b",
+            //                            position: (
+            //                                width - 1,
+            //                                candidate.position.1,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        "f" => Neighbor{
+            //                            side: "r",
+            //                            position: (
+            //                                width - 1,
+            //                                candidate.position.1,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        "u" => Neighbor{
+            //                            side: "l",
+            //                            position: (
+            //                                candidate.position.1,
+            //                                0,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        "d" => Neighbor{
+            //                            side: "l",
+            //                            position: (
+            //                                width - 1 - candidate.position.1,
+            //                                width - 1,
+            //                            ),
+            //                            distance,
+            //                        },
+            //                        _ => unreachable!(),
+            //                    }
+            //                } else {
+            //                    Neighbor {
+            //                        side: candidate.side,
+            //                        position: (candidate.position.0 - 1, candidate.position.1),
+            //                        distance,
+            //                    }
+            //                };
+            //                queue.push_back(new_candidate);
+
+            //                // move right
+            //                let new_candidate = if candidate.position.0 == width - 1 {
+            //                    match candidate.side {
+            //                        "l" => Neighbor {
+            //                            side: "b",
+            //                            position: (0, candidate.position.1),
+            //                            distance,
+            //                        },
+            //                        "b" => Neighbor {
+            //                            side: "r",
+            //                            position: (0, candidate.position.1),
+            //                            distance,
+            //                        },
+            //                        "r" => Neighbor {
+            //                            side: "f",
+            //                            position: (0, candidate.position.1),
+            //                            distance,
+            //                        },
+            //                        "f" => Neighbor {
+            //                            side: "l",
+            //                            position: (0, candidate.position.1),
+            //                            distance,
+            //                        },
+            //                        "u" => Neighbor {
+            //                            side: "r",
+            //                            position: (width - 1 - candidate.position.1,0),
+            //                            distance,
+            //                        },
+            //                        "d" => Neighbor {
+            //                            side: "r",
+            //                            position: (candidate.position.1,width - 1),
+            //                            distance,
+            //                        },
+            //                        _ => unreachable!(),
+            //                    }
+            //                } else {
+            //                    Neighbor {
+            //                        side: candidate.side,
+            //                        position: (candidate.position.0 + 1, candidate.position.1),
+            //                        distance,
+            //                    }
+            //                };
+            //                queue.push_back(new_candidate);
+
+            //                // move up
+            //                let new_candidate = if candidate.position.1 == 0 {
+            //                    match candidate.side {
+            //                        "l" => Neighbor {
+            //                            side: "u",
+            //                            position: (0, candidate.position.0),
+            //                            distance,
+            //                        },
+            //                        "b" => Neighbor {
+            //                            side: "u",
+            //                            position: (candidate.position.0, width - 1),
+            //                            distance,
+            //                        },
+            //                        "r" => Neighbor {
+            //                            side: "u",
+            //                            position: (width - 1, width - 1 - candidate.position.0),
+            //                            distance,
+            //                        },
+            //                        "f" => Neighbor {
+            //                            side: "u",
+            //                            position: (width - 1 - candidate.position.0, 0),
+            //                            distance,
+            //                        },
+            //                        "u" => Neighbor {
+            //                            side: "f",
+            //                            position: (width - 1 - candidate.position.0, 0),
+            //                            distance,
+            //                        },
+            //                        "d" => Neighbor {
+            //                            side: "b",
+            //                            position: (candidate.position.0, width - 1),
+            //                            distance,
+            //                        },
+            //                        _ => unreachable!(),
+            //                    }
+            //                } else {
+            //                    Neighbor {
+            //                        side: candidate.side,
+            //                        position: (candidate.position.0, candidate.position.1 - 1),
+            //                        distance,
+            //                    }
+            //                };
+            //                queue.push_back(new_candidate);
+
+            //                // move down
+            //                let new_candidate = if candidate.position.1 == width - 1 {
+            //                    match candidate.side {
+            //                        "l" => Neighbor {
+            //                            side: "d",
+            //                            position: (0, width - 1 - candidate.position.0),
+            //                            distance,
+            //                        },
+            //                        "b" => Neighbor {
+            //                            side: "d",
+            //                            position: (candidate.position.0, 0),
+            //                            distance,
+            //                        },
+            //                        "r" => Neighbor {
+            //                            side: "d",
+            //                            position: (width - 1, candidate.position.0),
+            //                            distance,
+            //                        },
+            //                        "f" => Neighbor {
+            //                            side: "d",
+            //                            position: (width - 1 - candidate.position.0, width - 1),
+            //                            distance,
+            //                        },
+            //                        "u" => Neighbor {
+            //                            side: "b",
+            //                            position: (candidate.position.0, 0),
+            //                            distance,
+            //                        },
+            //                        "d" => Neighbor {
+            //                            side: "f",
+            //                            position: (width - 1 - candidate.position.0, 0),
+            //                            distance,
+            //                        },
+            //                        _ => unreachable!(),
+            //                    }
+            //                } else {
+            //                    Neighbor {
+            //                        side: candidate.side,
+            //                        position: (candidate.position.0, candidate.position.1 + 1),
+            //                        distance,
+            //                    }
+            //                };
+            //                queue.push_back(new_candidate);
+            //            }
+
+            //            // best candidate found:
+            //            let mut h = height_map.borrow().get(ix, iy);
+
+            //            let side_index = match best_candidate.side {
+            //                "l" => 0,
+            //                "b" => 1,
+            //                "r" => 2,
+            //                "f" => 3,
+            //                "u" => 4,
+            //                "d" => 5,
+            //                _ => unreachable!(),
+            //            };
+            //            let continent_index = sides[side_index].height_map.borrow().get(ix, iy).continent_index;
+            //            h.height = continent_index as f32;
+            //            height_map.borrow_mut().set(ix, iy, h);
+            //        }
+            //    }
+            //}
 
             // continents end
 
@@ -1200,11 +1234,11 @@ impl Script for PlanetScript {
                     mut height_map,
                 } = side;
 
-                //for h in height_map.values.iter_mut() {
-                //    if h.height >= 0.0 {
-                //        h.height = h.continent_index as f32;
-                //    }
-                //}
+                for h in height_map.borrow_mut().values.iter_mut() {
+                    if h.height >= 0.0 {
+                        h.height = h.continent_index as f32;
+                    }
+                }
 
                 height_maps.push(height_map);
             }
