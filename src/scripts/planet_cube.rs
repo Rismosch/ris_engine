@@ -894,15 +894,15 @@ impl Script for PlanetScript {
             ris_log::trace!("generate kernel");
             let mut kernel = [[0.0; KERNEL_SIZE]; KERNEL_SIZE];
 
-            let half = (KERNEL_SIZE / 2) as isize;
+            let kernel_half = (KERNEL_SIZE / 2) as isize;
             let mut sum = 0.0;
             let s = 2.0 * kernel_sigma * kernel_sigma;
 
             // fill the kernel with values
             for (ix, column) in kernel.iter_mut().enumerate() {
                 for (iy, v) in column.iter_mut().enumerate() {
-                    let x = (ix as isize - half) as f32;
-                    let y = (iy as isize - half) as f32;
+                    let x = (ix as isize - kernel_half) as f32;
+                    let y = (iy as isize - kernel_half) as f32;
 
                     *v = (f32::exp(-(x * x + y * y) / (2.0 * s))) / (s * PI);
                     sum += *v;
@@ -918,6 +918,82 @@ impl Script for PlanetScript {
 
             // calculate heights on continent boundaries
             ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
+
+            for side in sides.iter() {
+                let Side {
+                    perlin_sampler,
+                    height_map,
+                } = side;
+
+                for iy in 0..width {
+                    if iy % 1000 == 0 {
+                        ris_log::trace!(
+                            "finding plate boundaries {}... progress: {}/{}", 
+                            height_map.borrow().side,
+                            iy, 
+                            width,
+                        );
+                    }
+
+                    for ix in 0..width {
+                        let mut h = height_map.borrow().get(ix, iy);
+                        let continent_index_lhs = h.continent_index;
+                        let continent = &continents[continent_index_lhs];
+
+                        for (i, dx) in (-kernel_half..=kernel_half).enumerate() {
+                            for (j, dy) in (-kernel_half..=kernel_half).enumerate() {
+                                let kernel_weight = kernel[i][j];
+
+                                if dx == 0 && dy == 0 {
+                                    continue;
+                                }
+                                
+                                let mut ix_ = ix as isize + dx;
+                                let mut iy_ = iy as isize + dy;
+                                let mut side_ = height_map.borrow().side;
+
+                                let w = width as isize;
+
+                                let falls_on_upper_left = ix_ < 0 && iy_ < 0;
+                                let falls_on_upper_right = ix_ >= w && iy_ < 0;
+                                let falls_on_lower_left = ix_ < 0 && iy_ < w;
+                                let falls_on_lower_right = ix_ < w && iy_ < w;
+
+                                let falls_on_corner = 
+                                    falls_on_upper_left ||
+                                    falls_on_upper_right ||
+                                    falls_on_lower_left ||
+                                    falls_on_lower_right;
+
+                                if falls_on_corner {
+                                    continue;
+                                }
+
+                                // map ix_ and iy_ onto correct side
+                            }
+                        }
+
+                        //let angle = 2.0 * PI / (4 * width) as f32;
+                        //let rotation = Quat::angle_axis(angle, continent.rotation_axis);
+
+                        //let p = position_on_sphere(
+                        //    (ix, iy),
+                        //    width,
+                        //    height_map.borrow().side,
+                        //);
+                        //let p_ = rotation.rotate(p);
+                        //let dir = (p_ - p).normalize();
+                        //ris_log::debug!("{:?}", dir);
+
+
+                        break;
+                    }
+
+                    break;
+                }
+
+                break;
+            }
 
             //let angle = 2.0 * PI / (4 * width) as f32;
             //ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
@@ -1624,10 +1700,12 @@ fn random_gradient(ix: i32, iy: i32, seed: Seed) -> Vec2 {
 }
 
 fn position_on_sphere(
-    (ix, iy): (usize, usize),
+    texture_coordinate: (usize, usize),
     width: usize,
     side: &str,
 ) -> Vec3 {
+    let (ix, iy) = texture_coordinate;
+
     // normalize texture coordinates
     let x = 2.0 * (ix as f32 / width as f32) - 1.0;
     let y = 2.0 * (iy as f32 / width as f32) - 1.0;
