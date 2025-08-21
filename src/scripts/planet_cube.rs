@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::f32::consts::PI;
+use std::ops::Neg;
 use std::path::PathBuf;
 
 use ris_asset::assets::ris_mesh;
@@ -954,10 +955,15 @@ impl Script for PlanetScript {
 
                                 let w = width as isize;
 
-                                let falls_on_upper_left = ix_ < 0 && iy_ < 0;
-                                let falls_on_upper_right = ix_ >= w && iy_ < 0;
-                                let falls_on_lower_left = ix_ < 0 && iy_ < w;
-                                let falls_on_lower_right = ix_ < w && iy_ < w;
+                                let falls_on_left = ix_ < 0;
+                                let falls_on_right = ix_ >= w;
+                                let falls_on_upper = iy_ < 0;
+                                let falls_on_lower = iy_ < w;
+
+                                let falls_on_upper_left = falls_on_upper && falls_on_left;
+                                let falls_on_upper_right = falls_on_upper && falls_on_right;
+                                let falls_on_lower_left = falls_on_lower && falls_on_left;
+                                let falls_on_lower_right = falls_on_lower && falls_on_right;
 
                                 let falls_on_corner = 
                                     falls_on_upper_left ||
@@ -970,6 +976,32 @@ impl Script for PlanetScript {
                                 }
 
                                 // map ix_ and iy_ onto correct side
+                                let (ix_, iy_, side_) = if falls_on_left {
+                                    let d = ix as isize + 1;
+                                    // dx is negative, negate to make math more intuitive
+                                    let dx = dx.neg();
+                                    match side_ {
+                                        "l" => (w - 1 - dx, iy_, "f"),
+                                        "b" => (w - 1 - dx, iy_, "l"),
+                                        "r" => (w - 1 - dx, iy_, "b"),
+                                        "f" => (w - 1 - dx, iy_, "r"),
+                                        "u" => (iy_, dx - d, "l"),
+                                        "d" => (w - 1 - iy_, w - 1 - dx + d, "l"),
+                                        _ => unreachable!(),
+                                    }
+
+                                } else if falls_on_right {
+                                    todo
+                                    panic!();
+                                } else if falls_on_upper {
+                                    panic!();
+                                } else if falls_on_lower {
+                                    panic!();
+                                } else {
+                                    (ix_, iy_, side_)
+                                };
+
+
                             }
                         }
 
