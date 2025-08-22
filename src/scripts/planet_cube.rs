@@ -447,7 +447,7 @@ impl Script for PlanetScript {
             //let width = (1 << 12) + 1; // 1 meter between vertices
             let width = (1 << 6) + 1;
             let continent_count = 7;
-            const KERNEL_SIZE: usize = 5;
+            const KERNEL_SIZE: usize = ((1 << 6) + 1) / 2 + 1;
             const _: () = {
                 assert!(KERNEL_SIZE % 2 == 1);
             };
@@ -491,6 +491,11 @@ impl Script for PlanetScript {
                 fn get(&self, x: usize, y: usize) -> HeightMapValue {
                     let i = self.index(x, y);
                     self.values[i]
+                }
+
+                fn try_get(&self, x: usize, y: usize) -> Option<HeightMapValue> {
+                    let i = x.checked_add(y.checked_mul(self.width)?)?;
+                    self.values.get(i).cloned()
                 }
 
                 fn set(&mut self, x: usize, y: usize, value: HeightMapValue) {
@@ -958,7 +963,7 @@ impl Script for PlanetScript {
                                 let falls_on_left = ix_ < 0;
                                 let falls_on_right = ix_ >= w;
                                 let falls_on_upper = iy_ < 0;
-                                let falls_on_lower = iy_ < w;
+                                let falls_on_lower = iy_ >= w;
 
                                 let falls_on_upper_left = falls_on_upper && falls_on_left;
                                 let falls_on_upper_right = falls_on_upper && falls_on_right;
@@ -976,55 +981,93 @@ impl Script for PlanetScript {
                                 }
 
                                 // map ix_ and iy_ onto correct side
-                                let (ix_, iy_, side_) = if falls_on_left {
+                                let (ix_, iy_, mapped_side_) = if falls_on_left {
                                     let d = ix as isize + 1;
                                     // dx is negative, negate to make math more intuitive
                                     let dx = dx.neg();
                                     match side_ {
-                                        "l" => (w - 1 - dx, iy_, "f"),
-                                        "b" => (w - 1 - dx, iy_, "l"),
-                                        "r" => (w - 1 - dx, iy_, "b"),
-                                        "f" => (w - 1 - dx, iy_, "r"),
+                                        "l" => (w - 1 - dx + d, iy_, "f"),
+                                        "b" => (w - 1 - dx + d, iy_, "l"),
+                                        "r" => (w - 1 - dx + d, iy_, "b"),
+                                        "f" => (w - 1 - dx + d, iy_, "r"),
                                         "u" => (iy_, dx - d, "l"),
                                         "d" => (w - 1 - iy_, w - 1 - dx + d, "l"),
-                                        _ => unreachable!(),
+                                        s => unreachable!("{}", s),
                                     }
-
                                 } else if falls_on_right {
-                                    todo
-                                    panic!();
+                                    let d = width as isize - ix as isize;
+                                    match side_ {
+                                        "l" => (0 + dx - d, iy_, "b"),
+                                        "b" => (0 + dx - d, iy_, "r"),
+                                        "r" => (0 + dx - d, iy_, "f"),
+                                        "f" => (0 + dx - d, iy_, "l"),
+                                        "u" => (w - 1 - iy_, 0 + dx - d, "r"),
+                                        "d" => (iy_, w - 1 - dx + d, "r"),
+                                        s => unreachable!("{}", s),
+                                    }
                                 } else if falls_on_upper {
-                                    panic!();
+                                    let d = iy as isize + 1;
+                                    // dy is negative, negate to make math more intuitive
+                                    let dy = dy.neg();
+                                    match side_ {
+                                        "l" => (0 + dy - d, ix_, "u"),
+                                        "b" => (ix_, w - 1 - dy + d, "u"),
+                                        "r" => (w - 1 - dy + d, w - 1 - ix_, "u"),
+                                        "f" => (w - 1 - ix_, 0 + dy - d, "u"),
+                                        "u" => (w - 1 - ix_, 0 + dy - d, "f"),
+                                        "d" => (ix_, w - 1 - dy + d, "b"),
+                                        s => unreachable!("{}", s),
+                                    }
                                 } else if falls_on_lower {
-                                    panic!();
+                                    let d = width as isize - iy as isize;
+                                    match side_ {
+                                        "l" => (0 + dy - d, w - 1 - ix_, "d"),
+                                        "b" => (ix_, 0 + dy - d, "d"),
+                                        "r" => (w - 1 - dy + d, ix_, "d"),
+                                        "f" => (w - 1 - ix_, w - 1 - dy + d, "d"),
+                                        "u" => (ix_, 0 + dy - d, "b"),
+                                        "d" => (w - 1 - ix_, w - 1 - dy + d, "f"),
+                                        //s => unreachable!("{}", s),
+                                        _ => continue,
+                                    }
                                 } else {
                                     (ix_, iy_, side_)
                                 };
 
+                                let Some(h_) = sides
+                                    .iter()
+                                    .find(|x| x.height_map.borrow().side == mapped_side_)
+                                    .into_ris_error()?
+                                    .height_map.borrow()
+                                    .try_get(ix_ as usize, iy_ as usize) else {
+                                    println!("after map 1: {} {} {} {}", width, side_, ix_, iy_);
+                                    println!("after map 2: {} {} {} {}", dx, dy, ix, iy);
+                                    panic!();
+                                };
 
+                                if h.continent_index == h_.continent_index {
+                                    continue;
+                                }
+
+                                let mut h = height_map.borrow().get(ix, iy);
+                                h.height += kernel_weight;
+                                height_map.borrow_mut().set(ix, iy, h);
+
+                                //let angle = 2.0 * PI / (4 * width) as f32;
+                                //let rotation = Quat::angle_axis(angle, continent.rotation_axis);
+
+                                //let p = position_on_sphere(
+                                //    (ix, iy),
+                                //    width,
+                                //    height_map.borrow().side,
+                                //);
+                                //let p_ = rotation.rotate(p);
+                                //let dir = (p_ - p).normalize();
+                                //ris_log::debug!("{:?}", dir);
                             }
                         }
-
-                        //let angle = 2.0 * PI / (4 * width) as f32;
-                        //let rotation = Quat::angle_axis(angle, continent.rotation_axis);
-
-                        //let p = position_on_sphere(
-                        //    (ix, iy),
-                        //    width,
-                        //    height_map.borrow().side,
-                        //);
-                        //let p_ = rotation.rotate(p);
-                        //let dir = (p_ - p).normalize();
-                        //ris_log::debug!("{:?}", dir);
-
-
-                        break;
                     }
-
-                    break;
                 }
-
-                break;
             }
 
             //let angle = 2.0 * PI / (4 * width) as f32;
@@ -1342,11 +1385,11 @@ impl Script for PlanetScript {
                     mut height_map,
                 } = side;
 
-                for h in height_map.borrow_mut().values.iter_mut() {
-                    if h.height >= 0.0 {
-                        h.height = h.continent_index as f32;
-                    }
-                }
+                //for h in height_map.borrow_mut().values.iter_mut() {
+                //    if h.height >= 0.0 {
+                //        h.height = h.continent_index as f32;
+                //    }
+                //}
 
                 height_maps.push(height_map);
             }
