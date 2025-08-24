@@ -446,12 +446,16 @@ impl Script for PlanetScript {
             let only_generate_first_face = false;
             //let width = (1 << 12) + 1; // 1 meter between vertices
             let width = (1 << 6) + 1;
-            let continent_count = 7;
+            let continent_count = 5;
             const KERNEL_WIDTH: usize = 9;
             const _: () = {
                 assert!(KERNEL_WIDTH % 2 == 1);
             };
-            let kernel_sigma = 1.0;
+            let kernel_sigma = 2.0;
+            let fractal_weight = |layer: usize| {
+                let a = layer as f32;
+                0.75 / (a * a)
+            };
             let max_h = 0xFFFF;
             ris_log::trace!("resolution: {}x{}", width, width);
 
@@ -1111,7 +1115,7 @@ impl Script for PlanetScript {
 
                                 // apply height
                                 let mut h = height_map.borrow().get(ix, iy);
-                                h.height += boundary_height;
+                                h.height += kernel_weight * boundary_height;
                                 height_map.borrow_mut().set(ix, iy, h);
 
                                 min_continent = f32::min(min_continent, h.height);
@@ -1149,7 +1153,6 @@ impl Script for PlanetScript {
 
             // sides
             for (i, side) in sides.iter().enumerate() {
-                break;
                 let Side {
                     perlin_sampler,
                     height_map,
@@ -1161,8 +1164,7 @@ impl Script for PlanetScript {
                 loop {
                     layer += 1;
                     let grid_width: i32 = 1 << layer;
-                    let grid_height: i32 = grid_width;
-                    let grid_weight = 1.0 / (layer as f32 * layer as f32);
+                    let grid_weight = fractal_weight(layer);
 
                     if grid_width >= width as i32 {
                         break;
@@ -1185,14 +1187,14 @@ impl Script for PlanetScript {
                             let heigh_map_width = height_map.borrow().width as f32;
                             let size = Vec2(heigh_map_width, heigh_map_width);
                             let normalized = coord / size;
-                            let grid = Vec2(grid_width as f32, grid_height as f32);
+                            let grid = Vec2(grid_width as f32, grid_width as f32);
                             let p = normalized * grid;
 
                             // this closure connects the edges and corners of different sizes, to
                             // ensure that the perlin noise ist continuous over the whole cube
                             let apply_net = |ix: i32, iy: i32| {
                                 let offset_x = perlin_sampler.offset.0 * grid_width;
-                                let offset_y = perlin_sampler.offset.1 * grid_height;
+                                let offset_y = perlin_sampler.offset.1 * grid_width;
                                 let default_x = ix + offset_x;
                                 let default_y = iy + offset_y;
                                 let default = ((default_x, default_y), Mat2::identity());
@@ -1200,34 +1202,34 @@ impl Script for PlanetScript {
                                 if ix == 0 {
                                     if iy == 0 {
                                         ((default_x, default_y), Mat2::init(0.0))
-                                    } else if iy == grid_height {
+                                    } else if iy == grid_width {
                                         ((default_x, default_y), Mat2::init(0.0))
                                     } else {
                                         perlin_sampler.edge0
                                             .as_ref()
-                                            .map(|edge| edge(iy, (grid_width, grid_height)))
+                                            .map(|edge| edge(iy, (grid_width, grid_width)))
                                             .unwrap_or(default)
                                     }
                                 } else if ix == grid_width {
                                     if iy == 0 {
                                         ((default_x, default_y), Mat2::init(0.0))
-                                    } else if iy == grid_height {
+                                    } else if iy == grid_width {
                                         ((default_x, default_y), Mat2::init(0.0))
                                     } else {
                                         perlin_sampler.edge1
                                             .as_ref()
-                                            .map(|edge| edge(iy, (grid_width, grid_height)))
+                                            .map(|edge| edge(iy, (grid_width, grid_width)))
                                             .unwrap_or(default)
                                     }
                                 } else if iy == 0 {
                                     perlin_sampler.edge2
                                         .as_ref()
-                                        .map(|edge| edge(ix, (grid_width, grid_height)))
+                                        .map(|edge| edge(ix, (grid_width, grid_width)))
                                         .unwrap_or(default)
-                                } else if iy == grid_height {
+                                } else if iy == grid_width {
                                     perlin_sampler.edge3
                                         .as_ref()
-                                        .map(|edge| edge(ix, (grid_width, grid_height)))
+                                        .map(|edge| edge(ix, (grid_width, grid_width)))
                                         .unwrap_or(default)
                                 } else {
                                     default
