@@ -600,8 +600,6 @@ impl Script for PlanetScript {
 
             let mut continents = vec![Continent::default(); continent_count];
 
-            let mut height_maps = Vec::new();
-
             // continents
             ris_log::trace!("determine continent starting positions...");
             let mut starting_positions = Vec::<ContinentPixel>::with_capacity(continent_count);
@@ -1089,14 +1087,9 @@ impl Script for PlanetScript {
                                     _ => unreachable!(),
                                 };
 
-                                let o = position_on_sphere(
-                                    (origin_pixel.ix, origin_pixel.iy),
-                                    width,
-                                    origin_side,
-                                );
-
-                                let d = p - o;
-                                let d_ = p_ - o;
+                                let m = (p * p_) / 2.0;
+                                let d = p - m;
+                                let d_ = m - p_;
 
                                 let dot = Vec3::dot(v.normalize(), d.normalize());
                                 let dot_ = Vec3::dot(v_.normalize(), d_.normalize());
@@ -1132,24 +1125,31 @@ impl Script for PlanetScript {
             ris_log::trace!("continent min: {}, max: {}", min_continent, max_continent);
 
             // continents end
+            let normalize = |sides: &mut [Side]| {
+                let mut min = f32::MAX;
+                let mut max = f32::MIN;
 
-            //while let Some(side) = sides.pop() {
-            //    let Side {
-            //        perlin_sampler,
-            //        mut height_map,
-            //    } = side;
+                for side in sides.iter() {
+                    for h in side.height_map.borrow().values.iter() {
+                        min = f32::min(min, h.height);
+                        max = f32::max(max, h.height);
+                    }
+                }
 
-            //    //for h in height_map.borrow_mut().values.iter_mut() {
-            //    //    if h.height >= 0.0 {
-            //    //        h.height = h.continent_index as f32;
-            //    //    }
-            //    //}
+                for side in sides.iter_mut() {
+                    for h in side.height_map.borrow_mut().values.iter_mut() {
+                        h.height = (h.height - min) / (max - min);
+                    }
+                }
 
-            //    height_maps.push(height_map);
-            //}
+                ris_log::trace!("normalized: {} {}", min, max);
+            };
+
+            normalize(&mut sides);
 
             // sides
-            for (i, side) in sides.into_iter().enumerate() {
+            for (i, side) in sides.iter().enumerate() {
+                break;
                 let Side {
                     perlin_sampler,
                     height_map,
@@ -1273,8 +1273,6 @@ impl Script for PlanetScript {
                     }
                 }
 
-                height_maps.push(height_map);
-
                 if only_generate_first_face {
                     break;
                 }
@@ -1282,29 +1280,10 @@ impl Script for PlanetScript {
 
             // normalize and apply weight to heightmap
             ris_log::trace!("normalize and apply weight...");
-            let normalize = |height_maps: &mut [RefCell<HeightMap<'_>>]| {
-                let mut min = f32::MAX;
-                let mut max = f32::MIN;
-                for height_map in height_maps.iter() {
-                    for h in height_map.borrow().values.iter() {
-                        min = f32::min(min, h.height);
-                        max = f32::max(max, h.height);
-                    }
-                }
+            normalize(&mut sides);
 
-                for height_map in height_maps.iter_mut() {
-                    for h in height_map.borrow_mut().values.iter_mut() {
-                        h.height = (h.height - min) / (max - min);
-                    }
-                }
-
-                ris_log::trace!("normalized: {} {}", min, max);
-            };
-
-            normalize(&mut height_maps);
-
-            for height_map in height_maps.iter_mut() {
-                for h in height_map.borrow_mut().values.iter_mut() {
+            for side in sides.iter_mut() {
+                for h in side.height_map.borrow_mut().values.iter_mut() {
                     //// sigmoid
                     //let steepness = 10.0;
                     //let center = 0.5;
@@ -1318,7 +1297,7 @@ impl Script for PlanetScript {
                 }
             }
 
-            normalize(&mut height_maps);
+            normalize(&mut sides);
 
             // qoi
             let gradient = Gradient::try_from([
@@ -1331,7 +1310,9 @@ impl Script for PlanetScript {
                 OkLab::from(Rgb::from_hex("#a64020")?),
             ])?;
 
-            for height_map in height_maps.into_iter() {
+            for side in sides.into_iter() {
+                let height_map = side.height_map;
+
                 ris_log::trace!("convert height map to bytes...");
                 let mut bytes = Vec::with_capacity(height_map.borrow().values.len() * 3);
 
