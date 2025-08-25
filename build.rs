@@ -24,6 +24,7 @@ fn main() {
 
     // define dirs
     let vulkan_bin_dir = PathBuf::from(&vulkan_sdk_dir).join("Bin");
+    let vulkan_lib_dir = PathBuf::from(&vulkan_sdk_dir).join("Lib");
     let sdl2_filename = "SDL2";
     let sdl2_dll_source_path = PathBuf::from(&vulkan_bin_dir).join(sdl2_filename);
 
@@ -31,6 +32,10 @@ fn main() {
     println!(
         "cargo:rustc-link-search=native={}",
         vulkan_bin_dir.display()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}",
+        vulkan_lib_dir.display()
     );
     println!("cargo:rustc-link-lib=dylib={}", sdl2_filename);
 

@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use ris_math::color;
 use ris_math::color::ByteColor;
+use ris_math::color::Color3;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
 use ris_util::assert_bytes_eq;
@@ -128,20 +129,37 @@ fn should_clamp_when_converting_bytes_to_rgb() {
 
 #[test]
 fn should_sample_rgb_gradient() {
-    let gradient = color::Gradient(vec![
+    let gradient = color::Gradient::try_from(vec![
         color::Rgb(1.0, 0.0, 0.0),
         color::Rgb(0.0, 1.0, 0.0),
         color::Rgb(0.0, 0.0, 1.0),
-    ]);
+    ]).unwrap();
 
-    let samples = 10;
-    for i in 0..=samples {
-        let x = i as f32 / samples as f32;
-        let color = gradient.sample(x).unwrap();
-        println!("{:?}", color);
+    let mut samples = vec![color::Rgb::default(); 11];
+    for (i, sample) in samples.iter_mut().enumerate() {
+        let x = i as f32 / 10.0;
+        *sample = gradient.sample(x);
+        println!("sample: {:?}", *sample);
     }
 
-    panic!();
+    let feq = |lhs: color::Rgb, rhs: color::Rgb| {
+        println!("l: {:?} r: {:?}", lhs, rhs);
+        let lhs = lhs.to_vec3();
+        let rhs = rhs.to_vec3();
+        ris_util::assert_vec3_feq!(lhs, rhs)
+    };
+
+    feq(samples[0], color::Rgb(1.0, 0.0, 0.0));
+    feq(samples[1], color::Rgb(0.8, 0.2, 0.0));
+    feq(samples[2], color::Rgb(0.6, 0.4, 0.0));
+    feq(samples[3], color::Rgb(0.4, 0.6, 0.0));
+    feq(samples[4], color::Rgb(0.2, 0.8, 0.0));
+    feq(samples[5], color::Rgb(0.0, 1.0, 0.0));
+    feq(samples[6], color::Rgb(0.0, 0.8, 0.2));
+    feq(samples[7], color::Rgb(0.0, 0.6, 0.4));
+    feq(samples[8], color::Rgb(0.0, 0.4, 0.6));
+    feq(samples[9], color::Rgb(0.0, 0.2, 0.8));
+    feq(samples[10], color::Rgb(0.0, 0.0, 1.0));
 }
 
 fn assert_chroma_eq(left: color::OkLch, right: color::OkLch) {
