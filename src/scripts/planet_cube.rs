@@ -447,11 +447,8 @@ impl Script for PlanetScript {
             //let width = (1 << 12) + 1; // 1 meter between vertices
             let width = (1 << 6) + 1;
             let continent_count = 5;
-            const KERNEL_WIDTH: usize = 9;
-            const _: () = {
-                assert!(KERNEL_WIDTH % 2 == 1);
-            };
-            let kernel_sigma = 2.0;
+            let kernel_radius = (width as f32 * 0.065) as isize;
+            ris_log::trace!("kernel radius: {}", kernel_radius);
             let fractal_weight = |layer: usize| {
                 let a = layer as f32;
                 0.75 / (a * a)
@@ -632,23 +629,12 @@ impl Script for PlanetScript {
             }
 
             for (i, starting_position) in starting_positions.into_iter().enumerate() {
-                //let side = &mut sides[starting_position.side];
-                //side.height_map.borrow_mut().set(
-                //    starting_position.ix,
-                //    starting_position.iy,
-                //    HeightMapValue{
-                //        height: -1.0,
-                //        continent_index: usize::MAX,
-                //    },
-                //);
-
                 let continent = &mut continents[i];
                 continent.origin = starting_position.clone();
                 continent.discovered_pixels.push(starting_position);
                 continent.rotation_axis = rng.next_dir_3();
             }
 
-            ris_log::trace!("generate continents...");
             let mut discovered_pixel_count = 0;
             loop {
                 // discover new pixels
@@ -677,6 +663,12 @@ impl Script for PlanetScript {
 
                         h.continent_index = continent_index;
                         discovered_pixel_count += 1;
+
+                        if discovered_pixel_count % 1000000 == 0 {
+                            let total = width * width * 6;
+                            let percentage = discovered_pixel_count as f32 / total as f32;
+                            ris_log::trace!("generate continents... {}", percentage);
+                        }
 
                         side.height_map.borrow_mut().set(
                             candidate.ix,
@@ -900,29 +892,21 @@ impl Script for PlanetScript {
 
             // generate kernel
             ris_log::trace!("generate kernel");
-            let mut kernel = [[0.0; KERNEL_WIDTH]; KERNEL_WIDTH];
+            let kernel_diameter = (2 * kernel_radius) - 1;
+            let mut kernel = Vec::new();
 
-            let kernel_half = (KERNEL_WIDTH / 2) as isize;
-            let mut sum = 0.0;
-            let s = 2.0 * kernel_sigma * kernel_sigma;
-
-            // fill the kernel with values
-            for (ix, column) in kernel.iter_mut().enumerate() {
-                for (iy, v) in column.iter_mut().enumerate() {
-                    let x = (ix as isize - kernel_half) as f32;
-                    let y = (iy as isize - kernel_half) as f32;
-
-                    *v = (f32::exp(-(x * x + y * y) / (2.0 * s))) / (s * PI);
-                    sum += *v;
+            for iy in -kernel_radius..=kernel_radius {
+                for ix in -kernel_radius..=kernel_radius {
+                    let x = ix as f32;
+                    let y = iy as f32;
+                    let d = f32::sqrt(x * x + y * y);
+                    if d < kernel_radius as f32 {
+                        kernel.push(((ix, iy), d));
+                    }
                 }
             }
 
-            // normalize kernel
-            for column in kernel.iter_mut() {
-                for v in column.iter_mut() {
-                    *v /= sum;
-                }
-            }
+            kernel.sort_by(|l, r| l.1.total_cmp(&r.1));
 
             // calculate heights on continent boundaries
             ris_log::trace!("calculate height based on plate boundaries... {}", discovered_pixel_count);
@@ -937,7 +921,7 @@ impl Script for PlanetScript {
                 } = side;
 
                 for iy in 0..width {
-                    if iy % 1000 == 0 {
+                    if iy % 5 == 0 {
                         ris_log::trace!(
                             "finding plate boundaries {}... progress: {}/{}", 
                             height_map.borrow().side,
@@ -951,178 +935,185 @@ impl Script for PlanetScript {
                         let continent_index_lhs = h.continent_index;
                         let continent = &continents[continent_index_lhs];
 
-                        for (i, dx) in (-kernel_half..=kernel_half).enumerate() {
-                            for (j, dy) in (-kernel_half..=kernel_half).enumerate() {
-                                let kernel_weight = kernel[i][j];
-
-                                if dx == 0 && dy == 0 {
-                                    continue;
-                                }
-                                
-                                let mut ix_ = ix as isize + dx;
-                                let mut iy_ = iy as isize + dy;
-                                let mut side_ = height_map.borrow().side;
-
-                                let w = width as isize;
-
-                                let falls_on_left = ix_ < 0;
-                                let falls_on_right = ix_ >= w;
-                                let falls_on_upper = iy_ < 0;
-                                let falls_on_lower = iy_ >= w;
-
-                                let falls_on_upper_left = falls_on_upper && falls_on_left;
-                                let falls_on_upper_right = falls_on_upper && falls_on_right;
-                                let falls_on_lower_left = falls_on_lower && falls_on_left;
-                                let falls_on_lower_right = falls_on_lower && falls_on_right;
-
-                                let falls_on_corner = 
-                                    falls_on_upper_left ||
-                                    falls_on_upper_right ||
-                                    falls_on_lower_left ||
-                                    falls_on_lower_right;
-
-                                if falls_on_corner {
-                                    continue;
-                                }
-
-                                // map ix_ and iy_ onto correct side
-                                let (ix_, iy_, mapped_side_) = if falls_on_left {
-                                    let d = ix as isize + 1;
-                                    // dx is negative, negate to make math more intuitive
-                                    let dx = dx.neg();
-                                    match side_ {
-                                        "l" => (w - 1 - dx + d, iy_, "f"),
-                                        "b" => (w - 1 - dx + d, iy_, "l"),
-                                        "r" => (w - 1 - dx + d, iy_, "b"),
-                                        "f" => (w - 1 - dx + d, iy_, "r"),
-                                        "u" => (iy_, dx - d, "l"),
-                                        "d" => (w - 1 - iy_, w - 1 - dx + d, "l"),
-                                        s => unreachable!("{}", s),
-                                    }
-                                } else if falls_on_right {
-                                    let d = width as isize - ix as isize;
-                                    match side_ {
-                                        "l" => (0 + dx - d, iy_, "b"),
-                                        "b" => (0 + dx - d, iy_, "r"),
-                                        "r" => (0 + dx - d, iy_, "f"),
-                                        "f" => (0 + dx - d, iy_, "l"),
-                                        "u" => (w - 1 - iy_, 0 + dx - d, "r"),
-                                        "d" => (iy_, w - 1 - dx + d, "r"),
-                                        s => unreachable!("{}", s),
-                                    }
-                                } else if falls_on_upper {
-                                    let d = iy as isize + 1;
-                                    // dy is negative, negate to make math more intuitive
-                                    let dy = dy.neg();
-                                    match side_ {
-                                        "l" => (0 + dy - d, ix_, "u"),
-                                        "b" => (ix_, w - 1 - dy + d, "u"),
-                                        "r" => (w - 1 - dy + d, w - 1 - ix_, "u"),
-                                        "f" => (w - 1 - ix_, 0 + dy - d, "u"),
-                                        "u" => (w - 1 - ix_, 0 + dy - d, "f"),
-                                        "d" => (ix_, w - 1 - dy + d, "b"),
-                                        s => unreachable!("{}", s),
-                                    }
-                                } else if falls_on_lower {
-                                    let d = width as isize - iy as isize;
-                                    match side_ {
-                                        "l" => (0 + dy - d, w - 1 - ix_, "d"),
-                                        "b" => (ix_, 0 + dy - d, "d"),
-                                        "r" => (w - 1 - dy + d, ix_, "d"),
-                                        "f" => (w - 1 - ix_, w - 1 - dy + d, "d"),
-                                        "u" => (ix_, 0 + dy - d, "b"),
-                                        "d" => (w - 1 - ix_, w - 1 - dy + d, "f"),
-                                        //s => unreachable!("{}", s),
-                                        _ => continue,
-                                    }
-                                } else {
-                                    (ix_, iy_, side_)
-                                };
-
-                                let ix_ = ix_ as usize;
-                                let iy_ = iy_ as usize;
-
-                                let height_map_ = &sides
-                                    .iter()
-                                    .find(|x| x.height_map.borrow().side == mapped_side_)
-                                    .into_ris_error()?
-                                    .height_map;
-                                let Some(h_) = height_map_
-                                    .borrow()
-                                    .try_get(ix_ as usize, iy_ as usize) else {
-                                    println!("after map 1: {} {} {} {}", width, side_, ix_, iy_);
-                                    println!("after map 2: {} {} {} {}", dx, dy, ix, iy);
-                                    panic!();
-                                };
-
-                                if h.continent_index == h_.continent_index {
-                                    continue;
-                                }
-
-                                // boundary found, calculate height
-                                let continent_ = &continents[h_.continent_index];
-
-                                let angle = 2.0 * PI / (4 * width) as f32;
-                                let q = Quat::angle_axis(angle, continent.rotation_axis);
-                                let q_ = Quat::angle_axis(angle, continent_.rotation_axis);
-
-                                let p = position_on_sphere(
-                                    (ix, iy),
-                                    width,
-                                    height_map.borrow().side,
-                                );
-                                let p_ = position_on_sphere(
-                                    (ix_, iy_),
-                                    width,
-                                    height_map_.borrow().side,
-                                );
-
-                                let v = (q.rotate(p) - p).normalize();
-                                let v_ = (q_.rotate(p_) - p_).normalize();
-
-                                let origin_pixel = continent.origin.clone();
-                                let origin_side = match origin_pixel.side {
-                                    0 => "l",
-                                    1 => "b",
-                                    2 => "r",
-                                    3 => "f",
-                                    4 => "u",
-                                    5 => "d",
-                                    _ => unreachable!(),
-                                };
-
-                                let m = (p * p_) / 2.0;
-                                let d = p - m;
-                                let d_ = m - p_;
-
-                                let dot = Vec3::dot(v.normalize(), d.normalize());
-                                let dot_ = Vec3::dot(v_.normalize(), d_.normalize());
-
-                                let boundary_height = match (dot.is_sign_positive(), dot_.is_sign_positive()) {
-                                    (false, false) => {
-                                        dot * dot_
-                                    },
-                                    (true, false) => {
-                                        dot * dot_ * -1.0
-                                    },
-                                    (false, true) => {
-                                        dot * dot_
-                                    },
-                                    (true, true) => {
-                                        dot * dot_
-                                    },
-                                };
-
-                                // apply height
-                                let mut h = height_map.borrow().get(ix, iy);
-                                h.height += kernel_weight * boundary_height;
-                                height_map.borrow_mut().set(ix, iy, h);
-
-                                min_continent = f32::min(min_continent, h.height);
-                                max_continent = f32::max(max_continent, h.height);
+                        for &((kx, ky), kd) in kernel.iter() {
+                            if kx == 0 && ky == 0 {
+                                continue;
                             }
+                            
+                            let mut ix_ = ix as isize + kx;
+                            let mut iy_ = iy as isize + ky;
+                            let mut side_ = height_map.borrow().side;
+
+                            let w = width as isize;
+
+                            let falls_on_left = ix_ < 0;
+                            let falls_on_right = ix_ >= w;
+                            let falls_on_upper = iy_ < 0;
+                            let falls_on_lower = iy_ >= w;
+
+                            let falls_on_upper_left = falls_on_upper && falls_on_left;
+                            let falls_on_upper_right = falls_on_upper && falls_on_right;
+                            let falls_on_lower_left = falls_on_lower && falls_on_left;
+                            let falls_on_lower_right = falls_on_lower && falls_on_right;
+
+                            let falls_on_corner = 
+                                falls_on_upper_left ||
+                                falls_on_upper_right ||
+                                falls_on_lower_left ||
+                                falls_on_lower_right;
+
+                            if falls_on_corner {
+                                continue;
+                            }
+
+                            // map ix_ and iy_ onto correct side
+                            let (ix_, iy_, mapped_side_) = if falls_on_left {
+                                let d = ix as isize + 1;
+                                // kx is negative, negate to make math more intuitive
+                                let kx = kx.neg();
+                                match side_ {
+                                    "l" => (w - 1 - kx + d, iy_, "f"),
+                                    "b" => (w - 1 - kx + d, iy_, "l"),
+                                    "r" => (w - 1 - kx + d, iy_, "b"),
+                                    "f" => (w - 1 - kx + d, iy_, "r"),
+                                    "u" => (iy_, kx - d, "l"),
+                                    "d" => (w - 1 - iy_, w - 1 - kx + d, "l"),
+                                    s => unreachable!("{}", s),
+                                }
+                            } else if falls_on_right {
+                                let d = width as isize - ix as isize;
+                                match side_ {
+                                    "l" => (0 + kx - d, iy_, "b"),
+                                    "b" => (0 + kx - d, iy_, "r"),
+                                    "r" => (0 + kx - d, iy_, "f"),
+                                    "f" => (0 + kx - d, iy_, "l"),
+                                    "u" => (w - 1 - iy_, 0 + kx - d, "r"),
+                                    "d" => (iy_, w - 1 - kx + d, "r"),
+                                    s => unreachable!("{}", s),
+                                }
+                            } else if falls_on_upper {
+                                let d = iy as isize + 1;
+                                // ky is negative, negate to make math more intuitive
+                                let ky = ky.neg();
+                                match side_ {
+                                    "l" => (0 + ky - d, ix_, "u"),
+                                    "b" => (ix_, w - 1 - ky + d, "u"),
+                                    "r" => (w - 1 - ky + d, w - 1 - ix_, "u"),
+                                    "f" => (w - 1 - ix_, 0 + ky - d, "u"),
+                                    "u" => (w - 1 - ix_, 0 + ky - d, "f"),
+                                    "d" => (ix_, w - 1 - ky + d, "b"),
+                                    s => unreachable!("{}", s),
+                                }
+                            } else if falls_on_lower {
+                                let d = width as isize - iy as isize;
+                                match side_ {
+                                    "l" => (0 + ky - d, w - 1 - ix_, "d"),
+                                    "b" => (ix_, 0 + ky - d, "d"),
+                                    "r" => (w - 1 - ky + d, ix_, "d"),
+                                    "f" => (w - 1 - ix_, w - 1 - ky + d, "d"),
+                                    "u" => (ix_, 0 + ky - d, "b"),
+                                    "d" => (w - 1 - ix_, w - 1 - ky + d, "f"),
+                                    s => unreachable!("{}", s),
+                                }
+                            } else {
+                                (ix_, iy_, side_)
+                            };
+
+                            let ix_ = ix_ as usize;
+                            let iy_ = iy_ as usize;
+
+                            let height_map_ = &sides
+                                .iter()
+                                .find(|x| x.height_map.borrow().side == mapped_side_)
+                                .into_ris_error()?
+                                .height_map;
+                            let Some(h_) = height_map_
+                                .borrow()
+                                .try_get(ix_ as usize, iy_ as usize) else {
+                                println!("after map 1: {} {} {} {}", width, side_, ix_, iy_);
+                                println!("after map 2: {} {} {} {}", kx, ky, ix, iy);
+                                panic!();
+                            };
+
+                            if h.continent_index == h_.continent_index {
+                                continue;
+                            }
+
+                            // boundary found, calculate height
+                            let continent_ = &continents[h_.continent_index];
+
+                            let angle = 2.0 * PI / (4 * width) as f32;
+                            let q = Quat::angle_axis(angle, continent.rotation_axis);
+                            let q_ = Quat::angle_axis(angle, continent_.rotation_axis);
+
+                            let p = position_on_sphere(
+                                (ix, iy),
+                                width,
+                                height_map.borrow().side,
+                            );
+                            let p_ = position_on_sphere(
+                                (ix_, iy_),
+                                width,
+                                height_map_.borrow().side,
+                            );
+
+                            let v = (q.rotate(p) - p).normalize();
+                            let v_ = (q_.rotate(p_) - p_).normalize();
+
+                            let origin_pixel = continent.origin.clone();
+                            let origin_side = match origin_pixel.side {
+                                0 => "l",
+                                1 => "b",
+                                2 => "r",
+                                3 => "f",
+                                4 => "u",
+                                5 => "d",
+                                _ => unreachable!(),
+                            };
+
+                            let m = (p * p_) / 2.0;
+                            let d = p - m;
+                            let d_ = m - p_;
+
+                            let dot = Vec3::dot(v.normalize(), d.normalize());
+                            let dot_ = Vec3::dot(v_.normalize(), d_.normalize());
+
+                            let boundary_height = match (dot.is_sign_positive(), dot_.is_sign_positive()) {
+                                (false, false) => {
+                                    dot * dot_
+                                },
+                                (true, false) => {
+                                    dot * dot_ * -1.0
+                                },
+                                (false, true) => {
+                                    dot * dot_
+                                },
+                                (true, true) => {
+                                    dot * dot_
+                                },
+                            };
+
+                            // apply height
+                            //let weight = kernel_radius as f32 -  kd.abs();
+
+                            // https://www.desmos.com/calculator/wf3agxic4a
+                            let a = (kd.abs() / kernel_radius as f32) - 1.0;
+                            let weight = 1.0 - f32::sqrt(1.0 - a * a);
+
+                            let mut h = height_map.borrow().get(ix, iy);
+                            h.height += weight * boundary_height;
+                            height_map.borrow_mut().set(ix, iy, h);
+
+                            min_continent = f32::min(min_continent, h.height);
+                            max_continent = f32::max(max_continent, h.height);
+                            
+                            break;
                         }
                     }
+                }
+
+                if only_generate_first_face {
+                    break;
                 }
             }
 
@@ -1140,9 +1131,11 @@ impl Script for PlanetScript {
                     }
                 }
 
-                for side in sides.iter_mut() {
-                    for h in side.height_map.borrow_mut().values.iter_mut() {
-                        h.height = (h.height - min) / (max - min);
+                if min < max {
+                    for side in sides.iter_mut() {
+                        for h in side.height_map.borrow_mut().values.iter_mut() {
+                            h.height = (h.height - min) / (max - min);
+                        }
                     }
                 }
 
