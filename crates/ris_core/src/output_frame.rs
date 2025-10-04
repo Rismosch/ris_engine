@@ -94,6 +94,7 @@ impl OutputFrame {
         let window_flags = self.window.window_flags();
         let is_minimized = (window_flags & SDL_WindowFlags::SDL_WINDOW_MINIMIZED as u32) != 0;
         if is_minimized {
+            std::thread::sleep(std::time::Duration::from_millis((1000.0 / 15.0) as u64)); // 15 fps
             return Ok(GameloopState::WantsToContinue);
         }
 
@@ -224,9 +225,9 @@ impl OutputFrame {
         let swapchain_entry = &swapchain.entries[image_index as usize];
         let SwapchainEntry { command_buffer, .. } = swapchain_entry;
 
-        unsafe {
-            device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty())
-        }?;
+        //unsafe {
+        //    device.reset_command_buffer(*command_buffer, vk::CommandBufferResetFlags::empty())
+        //}?;
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
