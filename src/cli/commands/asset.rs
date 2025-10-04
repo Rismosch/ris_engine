@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use ris_asset::asset_compiler;
 use ris_asset::asset_compiler::CompileOptions;
@@ -9,8 +9,9 @@ use ris_error::RisResult;
 use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::ExplanationLevel;
+use super::ICommand;
+use super::util;
 
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
@@ -19,12 +20,6 @@ pub const DECOMPILE: &str = "decompile";
 pub const CLEAN: &str = "clean";
 pub const IMPORT: &str = "import";
 pub const REIMPORT: &str = "reimport";
-
-pub enum AssetCommand {
-    Compile,
-    Decompile,
-    Import,
-}
 
 pub struct Asset;
 
@@ -66,8 +61,13 @@ impl ICommand for Asset {
         }
     }
 
-    fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
-        let command = args.get(2).into_ris_error()?.to_lowercase();
+    fn run(&self, args: Vec<String>, _target_dir: &Path) -> RisResult<()> {
+
+        if args.len() < 4 {
+            return util::command_error("no args provided", self);
+        }
+
+        let command = args.get(3).into_ris_error()?.to_lowercase();
 
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];

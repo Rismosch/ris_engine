@@ -135,22 +135,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "imgui",
- "ris_asset",
- "ris_asset_data",
- "ris_core",
- "ris_data",
- "ris_error",
- "ris_io",
- "ris_log",
- "sdl2",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"

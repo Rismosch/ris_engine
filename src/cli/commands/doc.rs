@@ -1,10 +1,12 @@
+use std::path::Path;
 use std::path::PathBuf;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::cmd;
+use super::ExplanationLevel;
+use super::ICommand;
 
 pub struct Doc;
 
@@ -24,11 +26,11 @@ impl ICommand for Doc {
         }
     }
 
-    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: &Path) -> RisResult<()> {
         let cargo_doc = "cargo doc";
-        let exit_status = crate::cmd::run(cargo_doc)?;
+        let exit_status = cmd::run(cargo_doc)?;
 
-        if !crate::cmd::has_exit_code(&exit_status, 0) {
+        if !cmd::has_exit_code(&exit_status, 0) {
             return ris_error::new_result!("`{}` failed", cargo_doc);
         }
 

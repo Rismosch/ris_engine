@@ -20,7 +20,6 @@ default-run = "ris_engine"
 
 [workspace]
 members = [ 
-    "cli",
     "crates/ris_asset",
     "crates/ris_async",
     "crates/ris_core",
@@ -74,10 +73,13 @@ criterion = { version = "0.3", features = ["html_reports"] }
 
 [features]
 default = [
+    "ris_cli_enabled",
     "ris_debug_enabled",
     "ris_logging_enabled",
     "ris_validation_enabled",
 ]
+
+ris_cli_enabled = []
 
 ris_debug_enabled = [
     "ris_core/ui_helper_enabled",
@@ -93,6 +95,8 @@ ris_logging_enabled = [
 ris_validation_enabled = [
     "ris_ptr/validation_enabled",
 ]
+
+ris_windows_subsystem = []
 
 [profile.dev]
 opt-level = 0

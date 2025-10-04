@@ -1,11 +1,13 @@
 use std::io::Read;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::Path;
 
 use ris_error::RisResult;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::cmd;
+use super::ExplanationLevel;
+use super::ICommand;
+use super::util;
 
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
@@ -62,22 +64,22 @@ impl ICommand for Build {
         }
     }
 
-    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, target_dir: &Path) -> RisResult<()> {
         eprintln!("parsing args...");
 
         let mut is_release = false;
-        for arg in &args[2..] {
+        for arg in &args[3..] {
             match arg.trim().to_lowercase().as_str() {
                 ARG_RELEASE => is_release = true,
                 _ => {
-                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
+                    return util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }
 
         eprintln!("generating build info...");
 
-        let root_dir = crate::util::get_root_dir()?;
+        let root_dir = util::get_root_dir()?;
         let build_info_path = root_dir
             .join("crates")
             .join("ris_data")
@@ -91,11 +93,11 @@ impl ICommand for Build {
         let mut rustc_version = String::new();
         let mut rustup_toolchain = String::new();
 
-        crate::cmd::run_with_stdout("git config --get remote.origin.url", &mut git_repo)?;
-        crate::cmd::run_with_stdout("git rev-parse HEAD", &mut git_commit)?;
-        crate::cmd::run_with_stdout("git rev-parse --abbrev-ref HEAD", &mut git_branch)?;
-        crate::cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
-        crate::cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
+        cmd::run_with_stdout("git config --get remote.origin.url", &mut git_repo)?;
+        cmd::run_with_stdout("git rev-parse HEAD", &mut git_commit)?;
+        cmd::run_with_stdout("git rev-parse --abbrev-ref HEAD", &mut git_branch)?;
+        cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
+        cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
 
         let build_date = chrono::Local::now().to_rfc3339();
 
@@ -195,13 +197,30 @@ impl ICommand for Build {
 
         eprintln!("compiling workspace...");
 
-        let features = if is_release {
+        let mut features = if is_release {
             String::from(" --no-default-features")
         } else {
             String::new()
         };
+        features.push_str(" --features ris_windows_subsystem");
 
-        crate::cmd::run(&format!("cargo build --release{}", features))?;
+        #[cfg(not(debug_assertions))]
+        {
+            use ris_log::color_string::Color;
+            use ris_log::color_string::ColorString;
+
+            let warning = ColorString("[[ WARNING ]]", Color::Yellow).fmt(true);
+            eprintln!();
+            eprintln!("{}",warning,);
+            eprintln!("it appears the -r flag has been passed to cargo. this will most");
+            eprintln!("likely result in a linker error, because this command now");
+            eprintln!("attempts to build and overwrite this very program, the one that");
+            eprintln!("is running right now. it is recommended that you don't pass the");
+            eprintln!("-r flag to the build command.");
+            eprintln!();
+        }
+
+        cmd::run(&format!("cargo build -r{}", features))?;
 
         ris_io::util::clean_or_create_dir(&target_dir)?;
 
@@ -220,7 +239,7 @@ impl ICommand for Build {
             use ris_error::Extensions;
 
             eprintln!("moving sdl2...");
-            let where_sdl2 = crate::cmd::run_where(SDL2_NAME)?;
+            let where_sdl2 = cmd::run_where(SDL2_NAME)?;
             let src_sdl2_path = where_sdl2.first().into_ris_error()?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!(

@@ -1,5 +1,7 @@
-#![windows_subsystem = "windows"]
+#![cfg_attr(feature = "ris_windows_subsystem", windows_subsystem = "windows")]
 
+#[cfg(feature = "ris_cli_enabled")]
+pub mod cli;
 pub mod scripts;
 
 use std::path::PathBuf;
@@ -16,61 +18,85 @@ use ris_data::info::cpu_info::CpuInfo;
 use ris_data::info::file_info::FileInfo;
 use ris_data::info::sdl_info::SdlInfo;
 use ris_data::package_info;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_log::log;
 use ris_log::log::IAppender;
-use ris_log::log::LogGuard;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
-pub const LOG_LEVEL: LogLevel = LogLevel::Trace;
-pub const RESTART_CODE: i32 = 42;
+const CLI: &str = "cli";
+const LOG_LEVEL: LogLevel = LogLevel::Trace;
+const RESTART_CODE: i32 = 42;
 
-fn main() -> Result<(), String> {
-    let result = match get_app_info() {
-        Ok(app_info) => {
-            if app_info.args.no_restart {
-                run_engine(app_info)
-            } else {
-                wrap_process(app_info)
-            }
-        }
-        Err(error) => Err(error),
-    };
-
-    let remapped_result = result.map_err(|e| e.to_string());
-
-    if let Err(message) = &remapped_result {
-        let _ = sdl2::messagebox::show_simple_message_box(
-            sdl2::messagebox::MessageBoxFlag::ERROR,
-            "Fatal Error",
-            message,
-            None,
-        );
-    }
-
-    remapped_result
+#[derive(Debug, Clone)]
+enum EntryPoint {
+    #[cfg(feature = "ris_cli_enabled")]
+    Cli(Vec<String>),
+    Engine(AppInfo),
+    WrapProcess(AppInfo),
 }
 
-fn get_app_info() -> RisResult<AppInfo> {
-    let args_info = ArgsInfo::new()?;
+fn main() -> RisResult<()> {
+    let entry_point = get_entry_point().map_err(|e| {
+        display_error(&e, true);
+        e
+    })?;
+
+    let result = match entry_point.clone() {
+        #[cfg(feature = "ris_cli_enabled")]
+        EntryPoint::Cli(args) => cli::run(args),
+        EntryPoint::Engine(app_info) => run_engine(app_info),
+        EntryPoint::WrapProcess(app_info) => wrap_process(app_info),
+    };
+
+    if let Err(e) = result.as_ref() {
+        let show_popup = matches!(entry_point, EntryPoint::Engine(_));
+        display_error(e, show_popup);
+    }
+
+    result
+}
+
+fn get_entry_point() -> RisResult<EntryPoint> {
+    let args = std::env::args().collect::<Vec<_>>();
+
+    let is_cli_command = matches!(
+        args.get(1).map(|x| x.as_str()),
+        Some(CLI),
+    );
+    if is_cli_command {
+        #[cfg(feature = "ris_cli_enabled")]
+        return Ok(EntryPoint::Cli(args));
+        #[cfg(not(feature = "ris_cli_enabled"))]
+        return ris_error::new_result!("cli is not available");
+    }
+
+    let args_info = ArgsInfo::parse(args)?;
     let build_info = BuildInfo::new();
     let cpu_info = CpuInfo::new()?;
     let package_info = package_info!();
     let file_info = FileInfo::new(&package_info)?;
     let sdl_info = SdlInfo::new();
-
-    Ok(AppInfo::new(
+    let app_info = AppInfo::new(
         args_info,
         build_info,
         cpu_info,
         file_info,
         package_info,
         sdl_info,
-    ))
+    );
+
+    let entry_point = if app_info.args.no_restart {
+        EntryPoint::Engine(app_info)
+    } else {
+        EntryPoint::WrapProcess(app_info)
+    };
+
+    Ok(entry_point)
 }
 
-fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
+fn run_engine(app_info: AppInfo) -> RisResult<()> {
+    // setup logging
     let mut logs_dir = PathBuf::new();
     logs_dir.push(&app_info.file.pref_path);
     logs_dir.push("logs");
@@ -81,15 +107,11 @@ fn setup_logging(app_info: &AppInfo) -> RisResult<LogGuard> {
     let appenders: Vec<Box<dyn IAppender + Send>> =
         vec![console_appender, file_appender, ui_helper_appender];
 
-    let log_guard = log::init(LOG_LEVEL, appenders);
+    let _log_guard = log::init(LOG_LEVEL, appenders);
 
-    Ok(log_guard)
-}
-
-fn run_engine(app_info: AppInfo) -> RisResult<()> {
-    let _log_guard = setup_logging(&app_info)?;
     ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
+    // initialize engine
     let script_registry = scripts::registry()?;
 
     let god_object = match GodObject::new(app_info, script_registry) {
@@ -102,6 +124,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
 
     scripts::setup_flycam(&god_object)?;
 
+    // run engine
     let result = match god_job::run(god_object) {
         Ok(result) => result,
         Err(e) => {
@@ -110,6 +133,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
         }
     };
 
+    // prepare shutdown
     match result {
         god_job::WantsTo::Quit => Ok(()),
         god_job::WantsTo::Restart => std::process::exit(RESTART_CODE),
@@ -166,6 +190,25 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
                 Some(code) => std::process::exit(code),
                 None => return Ok(()),
             }
+        }
+    }
+}
+
+fn display_error(e: &RisError, show_popup: bool) {
+    let mut message = e.to_string();
+    if show_popup {
+        let show_message_result = sdl2::messagebox::show_simple_message_box(
+            sdl2::messagebox::MessageBoxFlag::ERROR,
+            "Fatal Error",
+            &message,
+            None,
+        );
+
+        if let Err(e) = show_message_result {
+            message.push_str(&format!(
+                "\n\nfailed to show popup: {}",
+                e,
+            ))
         }
     }
 }

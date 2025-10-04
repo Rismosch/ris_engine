@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::commands::ExplanationLevel;
+use super::commands::ICommand;
 
 pub fn print_help_for_command<T: ICommand + ?Sized>(command: &T, level: ExplanationLevel) {
     let name = command.name();
@@ -16,11 +16,12 @@ pub fn print_help_for_command<T: ICommand + ?Sized>(command: &T, level: Explanat
     eprintln!("usage: {} {} {}", cargo_pkg_name, name, args);
     eprintln!();
     eprintln!("{}", explanation);
+    eprintln!();
 }
 
 pub fn command_error<T: ICommand>(message: &str, command: &T) -> RisResult<()> {
     eprintln!("{}", message);
-    crate::util::print_help_for_command(command, ExplanationLevel::Detailed);
+    print_help_for_command(command, ExplanationLevel::Detailed);
     ris_error::new_result!("{}", message)
 }
 
