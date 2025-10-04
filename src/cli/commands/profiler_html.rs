@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
+use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
-use super::util;
 
 const ORG_NAME: &str = "Rismosch";
 const APP_NAME: &str = "ris_engine";
@@ -358,8 +358,8 @@ function render_chart() {
         );
 
         eprintln!("writing html...");
-        ris_io::util::clean_or_create_dir(&target_dir)?;
-        let dst_path = PathBuf::from(&target_dir).join("index.html");
+        ris_io::util::clean_or_create_dir(target_dir)?;
+        let dst_path = PathBuf::from(target_dir).join("index.html");
         let mut file = std::fs::File::create(&dst_path)?;
         ris_io::write(&mut file, html.as_bytes())?;
 

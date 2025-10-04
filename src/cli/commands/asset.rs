@@ -9,9 +9,9 @@ use ris_error::RisResult;
 use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
 
+use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
-use super::util;
 
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
@@ -62,7 +62,6 @@ impl ICommand for Asset {
     }
 
     fn run(&self, args: Vec<String>, _target_dir: &Path) -> RisResult<()> {
-
         if args.len() < 4 {
             return util::command_error("no args provided", self);
         }

@@ -12,23 +12,20 @@ const LIST_ALL_AVAILABLE_EXTENSIONS: bool = false;
 type Extension = &'static CStr;
 struct PreferredExtension {
     name: Extension,
-    dependencies: &'static [Extension]
+    dependencies: &'static [Extension],
 }
 
 const VK_KHR_SWAPCHAIN: Extension = ash::extensions::khr::Swapchain::name();
 const VK_EXT_MEMORY_PRIORITY: Extension = ash::vk::ExtMemoryPriorityFn::name();
-const VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY: Extension = ash::vk::ExtPageableDeviceLocalMemoryFn::name();
+const VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY: Extension =
+    ash::vk::ExtPageableDeviceLocalMemoryFn::name();
 
-const REQUIRED_DEVICE_EXTENSIONS: &[Extension] = &[
-    VK_KHR_SWAPCHAIN,
-];
+const REQUIRED_DEVICE_EXTENSIONS: &[Extension] = &[VK_KHR_SWAPCHAIN];
 
-const PREFERRED_DEVICE_EXTENSIONS: &[PreferredExtension] = &[
-    PreferredExtension {
-        name: VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY,
-        dependencies: &[VK_EXT_MEMORY_PRIORITY],
-    }
-];
+const PREFERRED_DEVICE_EXTENSIONS: &[PreferredExtension] = &[PreferredExtension {
+    name: VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY,
+    dependencies: &[VK_EXT_MEMORY_PRIORITY],
+}];
 
 pub struct SuitableDevice {
     pub name: String,
@@ -52,12 +49,18 @@ impl SuitableDevice {
         let mut suitable_devices = Vec::new();
 
         let mut log_message = "Vulkan Device Extensions: {}".to_string();
-        log_message.push_str(&format!("\n\trequired: {}", REQUIRED_DEVICE_EXTENSIONS.len()));
+        log_message.push_str(&format!(
+            "\n\trequired: {}",
+            REQUIRED_DEVICE_EXTENSIONS.len()
+        ));
         for &extension in REQUIRED_DEVICE_EXTENSIONS {
             let extension_str = extension.to_str()?;
             log_message.push_str(&format!("\n\t- {}", extension_str));
         }
-        log_message.push_str(&format!("\n\tpreferred: {}", PREFERRED_DEVICE_EXTENSIONS.len()));
+        log_message.push_str(&format!(
+            "\n\tpreferred: {}",
+            PREFERRED_DEVICE_EXTENSIONS.len()
+        ));
         for extension in PREFERRED_DEVICE_EXTENSIONS {
             let extension_str = extension.name.to_str()?;
             log_message.push_str(&format!("\n\t- {}", extension_str));
@@ -193,14 +196,17 @@ impl SuitableDevice {
                 log_message.push_str(&format!("\n\t\t- {}", name));
             }
             if LIST_ALL_AVAILABLE_EXTENSIONS {
-                log_message.push_str(&format!("\n\tavailable extensions: {}", available_extensions.len()));
+                log_message.push_str(&format!(
+                    "\n\tavailable extensions: {}",
+                    available_extensions.len()
+                ));
                 for extension in available_extensions {
-                    let name = unsafe{util::VkStr::from(&extension.extension_name)}?;
+                    let name = unsafe { util::VkStr::from(&extension.extension_name) }?;
                     log_message.push_str(&format!("\n\t\t- {}", name));
                 }
             }
 
-            let extensions = extensions.iter().map(|x| x.as_ptr()).collect::<Vec::<_>>();
+            let extensions = extensions.iter().map(|x| x.as_ptr()).collect::<Vec<_>>();
 
             // check swapchain support
             let SurfaceDetails {
@@ -300,7 +306,10 @@ impl SuitableDevice {
     }
 }
 
-fn extension_exists(extension: &CStr, available_extensions: &[vk::ExtensionProperties]) -> RisResult<bool> {
+fn extension_exists(
+    extension: &CStr,
+    available_extensions: &[vk::ExtensionProperties],
+) -> RisResult<bool> {
     for available_extension in available_extensions.iter() {
         let name = unsafe { util::VkStr::from(&available_extension.extension_name) }?;
         let left = extension.to_str()?;
@@ -311,4 +320,3 @@ fn extension_exists(extension: &CStr, available_extensions: &[vk::ExtensionPrope
     }
     Ok(false)
 }
-

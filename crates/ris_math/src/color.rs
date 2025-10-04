@@ -35,7 +35,10 @@ impl std::error::Error for InvalidHex {}
 //
 
 pub trait Color<const N: usize>: std::fmt::Debug + Default + Clone + Copy {
-    fn try_from_f32(v: impl IntoIterator<Item = f32>) -> Result<Self, NotEnoughElements> where Self: Sized {
+    fn try_from_f32(v: impl IntoIterator<Item = f32>) -> Result<Self, NotEnoughElements>
+    where
+        Self: Sized,
+    {
         let mut iterator = v.into_iter();
         let mut channels = [0.0; N];
         for entry in channels.iter_mut() {
@@ -53,7 +56,7 @@ pub trait Color<const N: usize>: std::fmt::Debug + Default + Clone + Copy {
     fn to_f32(self) -> [f32; N];
 }
 
-pub trait Color3 : Color<3> {
+pub trait Color3: Color<3> {
     fn from_vec3(v: Vec3) -> Self {
         Self::from_f32(v.into())
     }
@@ -63,7 +66,7 @@ pub trait Color3 : Color<3> {
     }
 }
 
-pub trait Color4 : Color<4> {
+pub trait Color4: Color<4> {
     fn from_vec3(v: Vec4) -> Self {
         Self::from_f32(v.into())
     }
@@ -73,7 +76,7 @@ pub trait Color4 : Color<4> {
     }
 }
 
-pub trait ByteColor<const N: usize> : Color<N> {
+pub trait ByteColor<const N: usize>: Color<N> {
     fn from_u8(v: [u8; N]) -> Self {
         let mut channels = [0.0; N];
         for (i, value) in v.into_iter().enumerate() {
@@ -96,24 +99,19 @@ pub trait ByteColor<const N: usize> : Color<N> {
 
     fn from_hex(hex: impl AsRef<str>) -> Result<Self, InvalidHex> {
         let hex = hex.as_ref();
-        let offset = if hex.starts_with('#') {
-            1
-        } else {
-            0
-        };
+        let offset = if hex.starts_with('#') { 1 } else { 0 };
 
         let hex_chars = hex.chars().collect::<Vec<_>>();
 
         let mut channels = [0u8; N];
-        for i in 0..N {
+        for (i, channel) in channels.iter_mut().enumerate() {
             let m = 2 * i + offset;
             let n = m + 1;
 
             let a = u8::from_str_radix(&hex_chars[m].to_string(), 16).map_err(|_| InvalidHex)?;
             let b = u8::from_str_radix(&hex_chars[n].to_string(), 16).map_err(|_| InvalidHex)?;
 
-            let entry = a << 4 | b;
-            channels[i] = entry;
+            *channel = a << 4 | b;
         }
 
         Ok(Self::from_u8(channels))
@@ -345,7 +343,7 @@ impl From<OkLcha> for Rgba {
     }
 }
 
-// 
+//
 // components
 //
 
@@ -529,8 +527,7 @@ impl OkLcha {
     }
 }
 
-impl std::ops::Index<usize> for Rgb
-{
+impl std::ops::Index<usize> for Rgb {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -558,8 +555,7 @@ impl std::ops::IndexMut<usize> for Rgb {
     }
 }
 
-impl std::ops::Index<usize> for OkLab
-{
+impl std::ops::Index<usize> for OkLab {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -587,8 +583,7 @@ impl std::ops::IndexMut<usize> for OkLab {
     }
 }
 
-impl std::ops::Index<usize> for OkLch
-{
+impl std::ops::Index<usize> for OkLch {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -616,8 +611,7 @@ impl std::ops::IndexMut<usize> for OkLch {
     }
 }
 
-impl std::ops::Index<usize> for Rgba
-{
+impl std::ops::Index<usize> for Rgba {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -647,8 +641,7 @@ impl std::ops::IndexMut<usize> for Rgba {
     }
 }
 
-impl std::ops::Index<usize> for OkLaba
-{
+impl std::ops::Index<usize> for OkLaba {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -678,8 +671,7 @@ impl std::ops::IndexMut<usize> for OkLaba {
     }
 }
 
-impl std::ops::Index<usize> for OkLcha
-{
+impl std::ops::Index<usize> for OkLcha {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -748,7 +740,6 @@ impl OkLcha {
         OkLch(self.0, self.1, self.2)
     }
 }
-
 
 //
 // trait impls
@@ -852,7 +843,7 @@ impl<T: Color<N>, const N: usize> Gradient<T, N> {
 
         if x >= 1.0 {
             let last_index = self.0.len() - 1;
-            return self.0[last_index]
+            return self.0[last_index];
         }
 
         let splits = (self.0.len() - 1) as f32;

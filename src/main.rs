@@ -60,10 +60,7 @@ fn main() -> RisResult<()> {
 fn get_entry_point() -> RisResult<EntryPoint> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let is_cli_command = matches!(
-        args.get(1).map(|x| x.as_str()),
-        Some(CLI),
-    );
+    let is_cli_command = matches!(args.get(1).map(|x| x.as_str()), Some(CLI),);
     if is_cli_command {
         #[cfg(feature = "ris_cli_enabled")]
         return Ok(EntryPoint::Cli(args));
@@ -205,10 +202,7 @@ fn display_error(e: &RisError, show_popup: bool) {
         );
 
         if let Err(e) = show_message_result {
-            message.push_str(&format!(
-                "\n\nfailed to show popup: {}",
-                e,
-            ))
+            message.push_str(&format!("\n\nfailed to show popup: {}", e,))
         }
     }
 }

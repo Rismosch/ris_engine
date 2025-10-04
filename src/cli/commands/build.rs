@@ -5,9 +5,9 @@ use std::path::Path;
 use ris_error::RisResult;
 
 use super::cmd;
+use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
-use super::util;
 
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
@@ -211,7 +211,7 @@ impl ICommand for Build {
 
             let warning = ColorString("[[ WARNING ]]", Color::Yellow).fmt(true);
             eprintln!();
-            eprintln!("{}",warning,);
+            eprintln!("{}", warning,);
             eprintln!("it appears the -r flag has been passed to cargo. this will most");
             eprintln!("likely result in a linker error, because this command now");
             eprintln!("attempts to build and overwrite this very program, the one that");
@@ -222,7 +222,7 @@ impl ICommand for Build {
 
         cmd::run(&format!("cargo build -r{}", features))?;
 
-        ris_io::util::clean_or_create_dir(&target_dir)?;
+        ris_io::util::clean_or_create_dir(target_dir)?;
 
         eprintln!("moving executable...");
         let src_exe_path = root_dir.join("target").join("release").join(EXE_NAME);

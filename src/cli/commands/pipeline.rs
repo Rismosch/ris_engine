@@ -4,9 +4,9 @@ use ris_error::RisResult;
 use ris_io::fallback_file::FallbackFileAppend;
 
 use super::cmd;
+use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
-use super::util;
 
 pub struct Pipeline;
 
@@ -88,7 +88,7 @@ impl ICommand for Pipeline {
             return util::command_error("no args provided", self);
         }
 
-        let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
+        let mut fallback_file_append = FallbackFileAppend::new(target_dir, ".txt", 10)?;
         let ff = &mut fallback_file_append;
 
         let mut run_check = false;
@@ -127,7 +127,7 @@ impl ICommand for Pipeline {
                 results,
                 run_check,
                 true,
-                cargo("check -r --no-default-features"),
+                cargo("check -r --no-default-features --features ris_windows_subsystem"),
             );
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
@@ -135,14 +135,16 @@ impl ICommand for Pipeline {
                 results,
                 run_test,
                 true,
-                cargo("test -r --no-default-features"),
+                cargo("test -r --no-default-features --features ris_windows_subsystem"),
             );
             test(results, run_miri, false, cargo_nightly("miri test"));
             test(
                 results,
                 run_miri,
                 false,
-                cargo_nightly("miri test -r --no-default-features"),
+                cargo_nightly(
+                    "miri test -r --no-default-features --features ris_windows_subsystem",
+                ),
             );
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
@@ -150,7 +152,7 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --no-default-features -- -Dwarnings"),
+                cargo("clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
             );
             test(
                 results,
@@ -168,7 +170,7 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --tests --no-default-features -- -Dwarnings"),
+                cargo("clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
             );
         }
 

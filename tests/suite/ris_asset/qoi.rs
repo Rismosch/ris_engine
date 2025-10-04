@@ -20,7 +20,8 @@ fn should_encode_and_decode_fuzzed() {
         let channels = rng.next_i32_between(3, 4) as u8;
         let color_space = rng.next_i32_between(0, 1) as u8;
 
-        let data = rng.next_bytes(width as usize * height as usize * channels as usize);
+        let mut data = vec![0; width as usize * height as usize * channels as usize];
+        rng.next_u8s(&mut data);
 
         let desc = QoiDesc {
             width,

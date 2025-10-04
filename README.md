@@ -141,4 +141,28 @@ Using the command above, some tests run [miri](https://github.com/rust-lang/miri
 
 ## Cli
 
-For more info about the command `cargo run -- cli`, see [`./cli/README.md`](./cli/README.md).
+The command `cargo run -- cli` is a command line utility tool. It runs features of `ris_engine` as a headless oneshot cli program. Thus it enhances the development environement and provides further utility functions.
+
+For all available commands run:
+
+```bash
+cargo run -- cli
+```
+
+To get further information on a specific command and what additional args it may be need, run:
+
+```bash
+cargo run -- cli help <command>
+```
+
+To execute a command, run:
+
+```bash
+cargo run -- cli <command> [args...]
+```
+
+For example, the command below runs the testing pipeline:
+
+```bash
+cargo run -- cli pipeline all
+```

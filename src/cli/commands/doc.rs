@@ -41,9 +41,9 @@ impl ICommand for Doc {
             .join("..")
             .join("doc");
 
-        ris_io::util::clean_or_create_dir(&target_dir)?;
+        ris_io::util::clean_or_create_dir(target_dir)?;
         eprintln!("copying files...");
-        ris_io::util::copy_dir_all(doc_dir, &target_dir)?;
+        ris_io::util::copy_dir_all(doc_dir, target_dir)?;
 
         eprintln!("done! docs can be found in \"{}\"", target_dir.display(),);
         let index_file = target_dir.join("ris_engine").join("index.html");

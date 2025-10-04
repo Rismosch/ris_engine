@@ -9,7 +9,7 @@ use ris_math::vector::Vec3;
 
 pub fn registry() -> RisResult<Registry> {
     Registry::new(vec![
-        Registry::script::<test_rotation::TestRotationScript>()?,
+        Registry::script::<test_rotation::TestRotationScript>()?
     ])
 }
 

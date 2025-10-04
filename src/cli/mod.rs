@@ -1,5 +1,5 @@
-mod commands;
 mod cmd;
+mod commands;
 mod util;
 
 use std::path::PathBuf;
@@ -12,9 +12,9 @@ use commands::ICommand;
 const OUT_DIR_NAME: &str = "cli_out";
 
 // expected args:
-// arg[0]:   [path to executable]
+// arg[0]:   <path to executable>
 // arg[1]:   "cli"
-// arg[2/3]: command/<help>
+// arg[2/3]: command/[help]
 // arg[3..]: [args for the command]
 pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
     let start = std::time::SystemTime::now();
@@ -24,8 +24,9 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
         ris_io::util::TRACE = true;
     }
 
-    let mut args = args.into_iter()
-        .map(|x|x.as_ref().to_string())
+    let mut args = args
+        .into_iter()
+        .map(|x| x.as_ref().to_string())
         .collect::<Vec<_>>();
     let verbose_position = args.iter().position(|x| is_verbose_arg(x));
     let verbose = if let Some(verbose_position) = verbose_position {
@@ -59,10 +60,7 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
             let command = commands.iter().find(|x| x.name() == trimmed_arg);
             match command {
                 Some(command) => {
-                    util::print_help_for_command(
-                        command.as_ref(),
-                        ExplanationLevel::Detailed,
-                    );
+                    util::print_help_for_command(command.as_ref(), ExplanationLevel::Detailed);
                 }
                 None => {
                     eprintln!("unkown command: {}", arg2);
@@ -84,10 +82,7 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
             if args.len() > 3 {
                 let arg3 = &args[3];
                 if is_help_arg(arg3) {
-                    util::print_help_for_command(
-                        command.as_ref(),
-                        ExplanationLevel::Detailed,
-                    );
+                    util::print_help_for_command(command.as_ref(), ExplanationLevel::Detailed);
                     return Ok(());
                 }
             }
@@ -138,11 +133,7 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     }
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
-    eprintln!(
-        "usage: {} {} [help] <command>",
-        super::CLI,
-        cargo_pkg_name,
-    );
+    eprintln!("usage: {} {} [help] <command>", super::CLI, cargo_pkg_name,);
     eprintln!("commands:");
     for command in commands {
         let mut name = command.name();

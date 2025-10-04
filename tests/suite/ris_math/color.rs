@@ -133,9 +133,10 @@ fn should_sample_rgb_gradient() {
         color::Rgb(1.0, 0.0, 0.0),
         color::Rgb(0.0, 1.0, 0.0),
         color::Rgb(0.0, 0.0, 1.0),
-    ]).unwrap();
+    ])
+    .unwrap();
 
-    let mut samples = vec![color::Rgb::default(); 11];
+    let mut samples = [color::Rgb::default(); 11];
     for (i, sample) in samples.iter_mut().enumerate() {
         let x = i as f32 / 10.0;
         *sample = gradient.sample(x);

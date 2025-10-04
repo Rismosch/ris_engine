@@ -53,7 +53,8 @@ fn should_read_and_write_bytes() {
 
     testing::repeat(miri_choose(1_000, 10), move |_| {
         let mut rng = rng.borrow_mut();
-        let input = rng.next_bytes(100);
+        let mut input = [0; 100];
+        rng.next_u8s(&mut input);
         let mut stream = Cursor::new(Vec::new());
         let mut output = vec![0; input.len()];
         ris_io::write(&mut stream, &input).unwrap();
@@ -559,7 +560,8 @@ fn should_read_and_write_everything_via_fat_ptrs() {
     testing::repeat(miri_choose(1_000, 10), move |_| {
         let mut rng = rng.borrow_mut();
 
-        let input_bytes = rng.next_bytes(10);
+        let mut input_bytes = [0; 10];
+        rng.next_u8s(&mut input_bytes);
         let input_u8 = rng.next_u8();
         let input_int = rng.next_i32() as isize;
         let input_uint = rng.next_u32() as usize;

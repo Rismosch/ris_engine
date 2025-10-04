@@ -66,18 +66,13 @@ impl std::fmt::Display for ArgsInfo {
 
 impl ArgsInfo {
     pub fn parse<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<Self> {
-        let raw_args = args.into_iter()
+        let raw_args = args
+            .into_iter()
             .map(|x| x.as_ref().to_string())
             .collect::<Vec<_>>();
-        let executable_path = raw_args
-            .get(0)
-            .into_ris_error()?
-            .clone();
+        let executable_path = raw_args.first().into_ris_error()?.clone();
 
-        let mut result = create_with_default_values(
-            raw_args,
-            executable_path,
-        );
+        let mut result = create_with_default_values(raw_args, executable_path);
 
         let mut i = 1;
         let len = result.raw_args.len();

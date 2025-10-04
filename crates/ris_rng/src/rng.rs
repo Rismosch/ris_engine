@@ -1,8 +1,8 @@
 use std::f32::consts::PI;
 
-use ris_math::color::Rgb;
 use ris_math::color::OkLab;
 use ris_math::color::OkLch;
+use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
@@ -28,12 +28,12 @@ impl Seed {
             Ok(duration_since_epoch) => {
                 let millis = duration_since_epoch.as_millis();
                 let seed = Seed(millis);
-                
+
                 // generate a better seed
                 let mut rng = Rng::new(seed);
                 let better_seed_value = rng.next_u128();
                 Self(better_seed_value)
-            },
+            }
             Err(_) => Seed::default(),
         }
     }
