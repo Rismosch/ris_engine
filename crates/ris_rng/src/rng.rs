@@ -1,6 +1,5 @@
 use std::f32::consts::PI;
 
-use ris_error::RisResult;
 use ris_math::color::Rgb;
 use ris_math::color::OkLab;
 use ris_math::color::OkLch;
@@ -57,14 +56,14 @@ pub struct Rng {
 
 impl Rng {
     pub fn new(seed: Seed) -> Rng {
-        let mut pcg = Pcg32::new_from_seed(seed.0);
+        let pcg = Pcg32::new_from_seed(seed.0);
         let mut result = Rng { seed, pcg };
         result.skip(128);
         result
     }
 
-    pub fn seed(&self) -> &Seed {
-        &self.seed
+    pub fn seed(&self) -> Seed {
+        self.seed
     }
 
     // advance internal state n times. useful for warming up the generator
@@ -74,11 +73,24 @@ impl Rng {
         }
     }
 
+    /// returns a random u8
+    pub fn next_u8(&mut self) -> u8 {
+        let x = self.next_u32();
+        (x & 0xFF) as u8
+    }
+
+    /// fills a buffer with random u8s
+    pub fn next_u8s(&mut self, buf: &mut [u8]) {
+        for entry in buf.iter_mut() {
+            *entry = self.next_u8();
+        }
+    }
+
     /// returns a random u16
     pub fn next_u16(&mut self) -> u16 {
-        let a = self.next_u32();
-        let masked = a & 0xFFFF;
-        masked.try_into().expect("rng failed to convert u32 to u16. this is not supposed to happen, as the mask ensures that the u32 fits into an u16")
+        let x = self.next_u32();
+        let x_ = x & 0xFFFF;
+        x_ as u16
     }
 
     /// returns a random u32
@@ -100,42 +112,30 @@ impl Rng {
         (a << 64) | b
     }
 
-    /// returns a random i32
-    pub fn next_i32(&mut self) -> i32 {
-        i32::from_ne_bytes(self.next_u32().to_ne_bytes())
-    }
-
     /// returns a random usize
     pub fn next_usize(&mut self) -> usize {
         const SIZE: usize = std::mem::size_of::<usize>();
-        let byte_vec = self.next_bytes(SIZE);
-        let byte_array: [u8; SIZE] = byte_vec.try_into().expect("if this panics, i'll eat a hat");
-        usize::from_ne_bytes(byte_array)
+        let mut bytes = [0u8; SIZE];
+        self.next_u8s(&mut bytes);
+        usize::from_ne_bytes(bytes)
+    }
+
+    /// returns a random i32
+    pub fn next_i32(&mut self) -> i32 {
+        let x = self.next_u32();
+        i32::from_ne_bytes(x.to_ne_bytes())
     }
 
     /// returns a random isize
     pub fn next_isize(&mut self) -> isize {
-        isize::from_ne_bytes(self.next_usize().to_ne_bytes())
+        let x = self.next_usize();
+        isize::from_ne_bytes(x.to_ne_bytes())
     }
 
     /// returns a random bool
     pub fn next_bool(&mut self) -> bool {
-        (self.next_u32() & 1) == 1
-    }
-
-    /// returns a random u8
-    pub fn next_u8(&mut self) -> u8 {
-        (self.next_u32() & 0xFF) as u8
-    }
-
-    /// returns a Vec initialized with random u8s
-    pub fn next_bytes(&mut self, buf_len: usize) -> Vec<u8> {
-        let mut buf = vec![0; buf_len];
-        for item in buf.iter_mut().take(buf_len) {
-            *item = self.next_u8();
-        }
-
-        buf
+        let x = self.next_u32();
+        (x & 1) == 1
     }
 
     // returns a f32 between 0.0 and 1.0, using a hash
@@ -145,7 +145,8 @@ impl Rng {
 
     /// returns a random f32 between 0.0 and 1.0
     pub fn next_f32(&mut self) -> f32 {
-        Self::hash_to_f32(self.next_u32())
+        let x = self.next_u32();
+        Self::hash_to_f32(x)
     }
 
     /// returns a random f32 between min and max
@@ -158,7 +159,8 @@ impl Rng {
             }
         }
 
-        let r = (max - min) * self.next_f32() + min;
+        let x = self.next_f32();
+        let r = (max - min) * x + min;
 
         if r > max {
             max
@@ -178,7 +180,8 @@ impl Rng {
             }
         }
 
-        let r = (((max - min) as f32) * self.next_f32()) as i32 + min;
+        let x = self.next_f32();
+        let r = (((max - min) as f32) * x) as i32 + min;
 
         if r > max {
             max
@@ -187,14 +190,19 @@ impl Rng {
         }
     }
 
-    pub fn next_in<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
-        assert!(!slice.is_empty());
+    /// returns a random element in a slice.
+    pub fn next_in_slice<'a, T>(&mut self, slice: &'a [T]) -> Option<&'a T> {
+        if slice.is_empty() {
+            return None;
+        }
+
         let min = 0;
         let max = (slice.len() - 1) as i32;
         let index = self.next_i32_between(min, max) as usize;
-        &slice[index]
+        slice.get(index)
     }
 
+    /// returns a random 2d position
     pub fn next_pos_2(&mut self) -> Vec2 {
         let x = self.next_f32_between(-1.0, 1.0);
         let y = self.next_f32_between(-1.0, 1.0);
@@ -202,6 +210,7 @@ impl Rng {
         Vec2(x, y)
     }
 
+    /// returns a random 3d position
     pub fn next_pos_3(&mut self) -> Vec3 {
         let x = self.next_f32_between(-1.0, 1.0);
         let y = self.next_f32_between(-1.0, 1.0);
@@ -210,6 +219,7 @@ impl Rng {
         Vec3(x, y, z)
     }
 
+    /// returns a random 4d position
     pub fn next_pos_4(&mut self) -> Vec4 {
         let x = self.next_f32_between(-1.0, 1.0);
         let y = self.next_f32_between(-1.0, 1.0);
@@ -219,22 +229,31 @@ impl Rng {
         Vec4(x, y, z, w)
     }
 
+    /// returns a random 2d direction
     pub fn next_dir_2(&mut self) -> Vec2 {
-        self.next_pos_2().normalize()
+        let p = self.next_pos_2();
+        p.normalize()
     }
 
+    /// returns a random 3d direction
     pub fn next_dir_3(&mut self) -> Vec3 {
-        self.next_pos_3().normalize()
+        let p = self.next_pos_3();
+        p.normalize()
     }
 
+    /// returns a random 4d direction
     pub fn next_dir_4(&mut self) -> Vec4 {
-        self.next_pos_4().normalize()
+        let p = self.next_pos_4();
+        p.normalize()
     }
 
+    /// returns a random rotation
     pub fn next_rot(&mut self) -> Quat {
-        self.next_dir_4().into()
+        let d = self.next_dir_4();
+        d.into()
     }
 
+    /// returns a random RGB color
     pub fn next_rgb(&mut self) -> Rgb {
         let r = self.next_f32();
         let g = self.next_f32();
@@ -242,6 +261,7 @@ impl Rng {
         Rgb(r, g, b)
     }
 
+    /// returns a random OkLab color
     pub fn next_oklab(&mut self) -> OkLab {
         let l = self.next_f32();
         let a = self.next_f32_between(-0.5, 0.5);
@@ -249,6 +269,7 @@ impl Rng {
         OkLab(l, a, b)
     }
 
+    /// returns a random OkLch color
     pub fn next_oklch(&mut self) -> OkLch {
         let l = self.next_f32();
         let c = self.next_f32();
