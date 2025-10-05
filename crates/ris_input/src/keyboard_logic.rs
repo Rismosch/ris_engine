@@ -21,19 +21,21 @@ pub fn post_events(
 
     let mut new_button_state = 0;
 
-    for (scancode, value) in keyboard_state.scancodes() {
-        if !value {
-            continue;
-        }
+    let scancodes = keyboard_state.scancodes();
+    // commented out because it's broken. see https://github.com/Rismosch/ris_engine/issues/199
+    //for (scancode, value) in scancodes {
+    //    if !value {
+    //        continue;
+    //    }
 
-        keyboard_data.keys.set(scancode);
+    //    keyboard_data.keys.set(scancode);
 
-        for i in 0..32 {
-            if keyboard_data.keymask[i] == scancode {
-                new_button_state |= 1 << i;
-            }
-        }
-    }
+    //    for i in 0..32 {
+    //        if keyboard_data.keymask[i] == scancode {
+    //            new_button_state |= 1 << i;
+    //        }
+    //    }
+    //}
 
     keyboard_data.buttons.update(new_button_state);
     keyboard_data.mod_state = mod_state;

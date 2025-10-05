@@ -37,9 +37,8 @@ enum EntryPoint {
 }
 
 fn main() -> RisResult<()> {
-    let entry_point = get_entry_point().map_err(|e| {
-        display_error(&e, true);
-        e
+    let entry_point = get_entry_point().inspect_err(|e| {
+        display_error(e, true);
     })?;
 
     let result = match entry_point.clone() {

@@ -64,8 +64,8 @@ imgui = { version = "0.11.0", features = ["docking"] }
 libc = "^0.2.30" # required for linux
 miniz_oxide = "=0.8.2"
 png = "0.17.10"
-sdl2 = "0.34.5"
-sdl2-sys = "0.34.5"
+sdl2 = "0.38.0"
+sdl2-sys = "0.38.0"
 shaderc = "0.8"
 
 [dev-dependencies]

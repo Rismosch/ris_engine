@@ -1,20 +1,12 @@
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
-use std::task::Wake;
 
 use crate::oneshot_channel;
 use crate::OneshotReceiver;
 use crate::OneshotSender;
 use crate::ThreadPool;
-
-struct EmptyWaker;
-
-impl Wake for EmptyWaker {
-    fn wake(self: Arc<Self>) {}
-}
 
 pub struct JobFuture<T> {
     receiver: OneshotReceiver<T>,

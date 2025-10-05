@@ -36,7 +36,7 @@ impl GizmoTextMesh {
             ..
         } = core;
 
-        ris_error::debug_assert!(text.len() % 4 == 0)?;
+        ris_error::debug_assert!(text.len().is_multiple_of(4))?;
 
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -93,7 +93,7 @@ impl GizmoTextMesh {
             ..
         } = core;
 
-        ris_error::debug_assert!(text.len() % 4 == 0)?;
+        ris_error::debug_assert!(text.len().is_multiple_of(4))?;
 
         let old_vertex_count = self.vertex_count;
         let new_vertex_count = vertices.len();

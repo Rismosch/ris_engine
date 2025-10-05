@@ -91,10 +91,7 @@ impl FallbackFileOverwrite {
 
     pub fn get_by_path(&self, path: &Path) -> Option<Vec<u8>> {
         match File::open(path) {
-            Ok(mut file) => match read_file_and_strip_date(&mut file) {
-                Ok(bytes) => Some(bytes),
-                Err(_) => None,
-            },
+            Ok(mut file) => read_file_and_strip_date(&mut file).ok(),
             Err(_) => None,
         }
     }

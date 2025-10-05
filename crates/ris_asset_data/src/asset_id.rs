@@ -11,8 +11,8 @@ impl AssetId {
             return false;
         };
 
-        let splits = path.split('.');
-        let Some(last) = splits.last() else {
+        let mut splits = path.split('.');
+        let Some(last) = splits.next_back() else {
             ris_log::error!("asset has no extension");
             return false;
         };

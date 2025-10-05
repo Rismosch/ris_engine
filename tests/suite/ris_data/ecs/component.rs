@@ -104,7 +104,7 @@ fn should_get_from_children() {
     ];
 
     for expected in expected {
-        assert!(actual.iter().any(|&x| x == expected));
+        assert!(actual.contains(&expected));
     }
 }
 
@@ -122,7 +122,7 @@ fn should_get_from_parent() {
     let expected = vec![mesh_components[0], mesh_components[1]];
 
     for expected in expected {
-        assert!(actual.iter().any(|&x| x == expected));
+        assert!(actual.contains(&expected));
     }
 }
 
@@ -147,7 +147,7 @@ fn should_get_from_self_and_children() {
     ];
 
     for expected in expected {
-        assert!(actual.iter().any(|&x| x == expected));
+        assert!(actual.contains(&expected));
     }
 }
 
@@ -165,7 +165,7 @@ fn should_get_from_self_and_parent() {
     let expected = vec![mesh_components[0], mesh_components[1], mesh_components[2]];
 
     for expected in expected {
-        assert!(actual.iter().any(|&x| x == expected));
+        assert!(actual.contains(&expected));
     }
 }
 
@@ -183,7 +183,7 @@ fn should_get_from_all() {
     let expected = mesh_components.clone();
 
     for expected in expected {
-        assert!(actual.iter().any(|&x| x == expected));
+        assert!(actual.contains(&expected));
     }
 }
 

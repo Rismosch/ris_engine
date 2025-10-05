@@ -430,7 +430,7 @@ fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
     let file = include_path.to_str().into_ris_error()?;
 
     // check for circular dependency
-    if dependency_history.iter().any(|x| *x == include_path) {
+    if dependency_history.contains(&include_path) {
         let mut error_message = String::from("circular dependency detected. history: \n");
         error_message.push_str(&format!("0 {:?}", include_path));
 
