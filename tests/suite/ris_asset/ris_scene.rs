@@ -94,7 +94,7 @@ impl Script for TestScript {
 
 #[test]
 fn should_serialize() {
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let registry = Registry::new(vec![Registry::script::<TestScript>().unwrap()]).unwrap();
 
@@ -315,10 +315,11 @@ fn fill_data(
     if rng.next_bool() {
         let script = game_object.add_script::<TestScript>(scene)?;
         let byte_count = rng.next_i32_between(0, 100) as usize;
-        let bytes = rng.next_bytes(byte_count);
+        let mut bytes = vec![0; byte_count];
+        rng.next_u8s(&mut bytes);
         let mut ref_mut = script.script_mut(scene).unwrap();
         ref_mut.inner.payload = bytes;
-        ref_mut.inner.game_object = *rng.next_in(game_objects);
+        ref_mut.inner.game_object = *rng.next_in_slice(game_objects).unwrap();
         ref_mut.inner.asset_id = AssetId::Path(format!("some path for {}", name.as_ref()));
     }
 

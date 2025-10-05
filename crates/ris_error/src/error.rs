@@ -17,7 +17,7 @@ pub struct RisError {
     pub message: String,
     pub file: String,
     pub line: u32,
-    pub backtrace: Arc<Backtrace>,
+    pub backtrace: Option<Arc<Backtrace>>,
 }
 
 impl std::fmt::Display for RisError {
@@ -38,7 +38,11 @@ impl std::fmt::Display for RisError {
 
 impl std::fmt::Debug for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\nbacktrace:\n{}", self, self.backtrace)
+        write!(f, "{}", self)?;
+        if let Some(backtrace) = self.backtrace.as_ref() {
+            write!(f, "\nbacktrace:\n{}", backtrace)?;
+        }
+        Ok(())
     }
 }
 
@@ -62,7 +66,7 @@ impl<E: Error + 'static> From<E> for RisError {
             message,
             file: file!().to_string(),
             line: line!(),
-            backtrace: crate::get_backtrace!(),
+            backtrace: Some(crate::get_backtrace!()),
         }
     }
 }
@@ -102,7 +106,7 @@ macro_rules! new {
         let message = format!($($arg)*);
         let file = String::from(file!());
         let line = line!();
-        let backtrace = $crate::get_backtrace!();
+        let backtrace = Some($crate::get_backtrace!());
         RisError {
             source_type_name,
             message,

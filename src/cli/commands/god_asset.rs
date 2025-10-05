@@ -8,8 +8,8 @@ use ris_asset_data::asset_id::AssetId;
 use ris_data::info::args_info::DEFAULT_ASSETS_VALUE;
 use ris_error::RisResult;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::ExplanationLevel;
+use super::ICommand;
 
 const FLAG_INPUT: &str = "-i";
 const CMD_PRINT: &str = "print";
@@ -62,11 +62,11 @@ impl ICommand for GodAsset {
         }
     }
 
-    fn run(&self, args: Vec<String>, _target_dir: PathBuf) -> RisResult<()> {
+    fn run(&self, args: Vec<String>, _target_dir: &Path) -> RisResult<()> {
         let flag_input = args.iter().position(|x| x == FLAG_INPUT);
         let (command_index, god_asset_path) = match flag_input {
             Some(flag_input_position) => {
-                let command_index = flag_input_position + 2;
+                let command_index = flag_input_position + 3;
                 let flag_input_arg = args
                     .get(flag_input_position + 1)
                     .ok_or(ris_error::new!("too few arguments"))?;
@@ -74,7 +74,7 @@ impl ICommand for GodAsset {
 
                 (command_index, god_asset_path)
             }
-            None => (2, default_asset_path()),
+            None => (3, default_asset_path()),
         };
 
         let command = args

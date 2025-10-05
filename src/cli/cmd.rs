@@ -89,6 +89,7 @@ pub fn has_exit_code(exit_status: &std::process::ExitStatus, exit_code: i32) -> 
     false
 }
 
+#[cfg(target_os = "windows")]
 pub fn run_where(cmd: &str) -> RisResult<Vec<String>> {
     let cmd = format!("where {}", cmd);
     let mut stdout = String::new();

@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use ris_math::color::Color3;
 use ris_math::color::Rgb;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -50,7 +51,7 @@ impl IUiHelperModule for GizmoModule {
         if self.draw_line {
             let color_rotation = Quat::from((self.angle, Vec3::init(1.0)));
             let color_dir = color_rotation.rotate(Vec3::right());
-            let color = Rgb::from(color_dir.normalize());
+            let color = Rgb::from_vec3(color_dir.normalize());
             ris_debug::gizmo::segment(-1.0 * Vec3::init(1.0), Vec3::init(1.0), color)?;
         }
 

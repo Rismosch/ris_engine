@@ -629,7 +629,7 @@ impl JsonMember {
         let separator_token = &tokens[1];
         let value_tokens = &tokens[2..];
 
-        let name_value = JsonValue::from_tokens(&[name_token.clone()])?;
+        let name_value = JsonValue::from_tokens(std::slice::from_ref(name_token))?;
         let JsonValue::String(name) = name_value else {
             return Err(JsonError::SyntaxError);
         };

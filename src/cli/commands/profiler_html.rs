@@ -5,8 +5,9 @@ use std::path::PathBuf;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::util;
+use super::ExplanationLevel;
+use super::ICommand;
 
 const ORG_NAME: &str = "Rismosch";
 const APP_NAME: &str = "ris_engine";
@@ -49,8 +50,8 @@ impl ICommand for ProfilerHtml {
         String::from("Renders profiler results as an Html.")
     }
 
-    fn run(&self, _args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
-        let chart_js_path = crate::util::get_root_dir()?
+    fn run(&self, _args: Vec<String>, target_dir: &Path) -> RisResult<()> {
+        let chart_js_path = util::get_root_dir()?
             .join("third_party")
             .join("Chart.js")
             .join("dist")
@@ -357,8 +358,8 @@ function render_chart() {
         );
 
         eprintln!("writing html...");
-        ris_io::util::clean_or_create_dir(&target_dir)?;
-        let dst_path = PathBuf::from(&target_dir).join("index.html");
+        ris_io::util::clean_or_create_dir(target_dir)?;
+        let dst_path = PathBuf::from(target_dir).join("index.html");
         let mut file = std::fs::File::create(&dst_path)?;
         ris_io::write(&mut file, html.as_bytes())?;
 

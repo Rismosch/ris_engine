@@ -1,19 +1,21 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use ris_error::RisResult;
 use ris_io::fallback_file::FallbackFileAppend;
 
-use crate::ExplanationLevel;
-use crate::ICommand;
+use super::cmd;
+use super::util;
+use super::ExplanationLevel;
+use super::ICommand;
 
 pub struct Pipeline;
 
-const BUILD: &str = "build";
+const CHECK: &str = "check";
 const TEST: &str = "test";
 const MIRI: &str = "miri";
 const CLIPPY: &str = "clippy";
 const ALL: &str = "all";
-const NO_BUILD: &str = "no-build";
+const NO_CHECK: &str = "no-check";
 const NO_TEST: &str = "no-test";
 const NO_MIRI: &str = "no-miri";
 const NO_CLIPPY: &str = "no-clippy";
@@ -41,7 +43,7 @@ impl ICommand for Pipeline {
     }
 
     fn args(&self) -> String {
-        format!("[{}] [{}] [{}] [{}] [{}]", BUILD, TEST, MIRI, CLIPPY, ALL,)
+        format!("[{}] [{}] [{}] [{}] [{}]", CHECK, TEST, MIRI, CLIPPY, ALL,)
     }
 
     fn explanation(&self, level: ExplanationLevel) -> String {
@@ -56,22 +58,22 @@ impl ICommand for Pipeline {
                 explanation.push('\n');
                 explanation.push_str("args:\n");
                 explanation.push('\n');
-                explanation.push_str(&format!("{}\n", BUILD));
+                explanation.push_str(&format!("{}\n", CHECK));
                 explanation.push_str(
-                    "Builds the repo: https://doc.rust-lang.org/cargo/commands/cargo-build.html\n",
+                    "checks whether the repo compiles or not: https://doc.rust-lang.org/cargo/commands/cargo-check.html\n",
                 );
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", TEST));
                 explanation.push_str(
-                    "Runs tests: https://doc.rust-lang.org/cargo/commands/cargo-test.html\n",
+                    "runs tests: https://doc.rust-lang.org/cargo/commands/cargo-test.html\n",
                 );
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", MIRI));
-                explanation.push_str("Runs tests with Miri: https://github.com/rust-lang/miri\n");
+                explanation.push_str("runs tests with Miri: https://github.com/rust-lang/miri\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", CLIPPY));
                 explanation
-                    .push_str("Linting: https://doc.rust-lang.org/stable/clippy/index.html\n");
+                    .push_str("linting: https://doc.rust-lang.org/stable/clippy/index.html\n");
                 explanation.push('\n');
                 explanation.push_str(&format!("{}\n", ALL));
                 explanation.push_str("Runs all of the above\n");
@@ -81,37 +83,37 @@ impl ICommand for Pipeline {
         }
     }
 
-    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()> {
-        if args.len() <= 2 {
-            return crate::util::command_error("no args provided", self);
+    fn run(&self, args: Vec<String>, target_dir: &Path) -> RisResult<()> {
+        if args.len() <= 3 {
+            return util::command_error("no args provided", self);
         }
 
-        let mut fallback_file_append = FallbackFileAppend::new(&target_dir, ".txt", 10)?;
+        let mut fallback_file_append = FallbackFileAppend::new(target_dir, ".txt", 10)?;
         let ff = &mut fallback_file_append;
 
-        let mut run_build = false;
+        let mut run_check = false;
         let mut run_test = false;
         let mut run_miri = false;
         let mut run_clippy = false;
 
-        for arg in &args[2..] {
+        for arg in &args[3..] {
             match arg.trim().to_lowercase().as_str() {
-                BUILD => run_build = true,
+                CHECK => run_check = true,
                 TEST => run_test = true,
                 MIRI => run_miri = true,
                 CLIPPY => run_clippy = true,
                 ALL => {
-                    run_build = true;
+                    run_check = true;
                     run_test = true;
                     run_miri = true;
                     run_clippy = true;
                 }
-                NO_BUILD => run_build = false,
+                NO_CHECK => run_check = false,
                 NO_TEST => run_test = false,
                 NO_MIRI => run_miri = false,
                 NO_CLIPPY => run_clippy = false,
                 _ => {
-                    return crate::util::command_error(&format!("unkown arg: {}", arg), self);
+                    return util::command_error(&format!("unkown arg: {}", arg), self);
                 }
             }
         }
@@ -119,13 +121,13 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
-            test(results, run_build, true, cargo("build"));
-            test(results, run_build, true, cargo("build -r"));
+            test(results, run_check, true, cargo("check"));
+            test(results, run_check, true, cargo("check -r"));
             test(
                 results,
-                run_build,
+                run_check,
                 true,
-                cargo("build -r --no-default-features"),
+                cargo("check -r --no-default-features --features ris_windows_subsystem"),
             );
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
@@ -133,14 +135,16 @@ impl ICommand for Pipeline {
                 results,
                 run_test,
                 true,
-                cargo("test -r --no-default-features"),
+                cargo("test -r --no-default-features --features ris_windows_subsystem"),
             );
             test(results, run_miri, false, cargo_nightly("miri test"));
             test(
                 results,
                 run_miri,
                 false,
-                cargo_nightly("miri test -r --no-default-features"),
+                cargo_nightly(
+                    "miri test -r --no-default-features --features ris_windows_subsystem",
+                ),
             );
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
@@ -148,7 +152,7 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --no-default-features -- -Dwarnings"),
+                cargo("clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
             );
             test(
                 results,
@@ -166,25 +170,7 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --tests --no-default-features -- -Dwarnings"),
-            );
-            test(
-                results,
-                run_clippy,
-                false,
-                cargo("clippy -p cli -- -Dwarnings"),
-            );
-            test(
-                results,
-                run_clippy,
-                false,
-                cargo("clippy -r -p cli -- -Dwarnings"),
-            );
-            test(
-                results,
-                run_clippy,
-                false,
-                cargo("clippy -r -p cli --no-default-features -- -Dwarnings"),
+                cargo("clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
             );
         }
 
@@ -255,11 +241,11 @@ fn test(
     };
 
     let (exit_status, final_cmd) = if with_env {
-        let exit_status = crate::cmd::run_with_envs(&cmd, [env]);
+        let exit_status = cmd::run_with_envs(&cmd, [env]);
         let final_cmd = format!("{} {}", env_str, cmd);
         (exit_status, final_cmd)
     } else {
-        let exit_status = crate::cmd::run(&cmd);
+        let exit_status = cmd::run(&cmd);
         let final_cmd = cmd.to_string();
         (exit_status, final_cmd)
     };
@@ -282,7 +268,7 @@ fn cargo(args: &str) -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 fn cargo_nightly(args: &str) -> Result<String, String> {
-    if let Ok(where_cargo) = crate::cmd::run_where("cargo") {
+    if let Ok(where_cargo) = cmd::run_where("cargo") {
         for cargo in where_cargo {
             if cargo.contains(".cargo") {
                 return Ok(format!("{} +nightly {}", cargo, args));

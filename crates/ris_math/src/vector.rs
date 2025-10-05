@@ -33,6 +33,14 @@ impl Vec2 {
     pub fn init(value: f32) -> Self {
         Self(value, value)
     }
+
+    pub fn zero() -> Self {
+        Self::init(0.0)
+    }
+
+    pub fn one() -> Self {
+        Self::init(1.0)
+    }
 }
 
 impl From<[f32; 2]> for Vec2 {
@@ -50,6 +58,14 @@ impl From<Vec2> for [f32; 2] {
 impl Vec3 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value)
+    }
+
+    pub fn zero() -> Self {
+        Self::init(0.0)
+    }
+
+    pub fn one() -> Self {
+        Self::init(1.0)
     }
 
     pub fn right() -> Vec3 {
@@ -92,6 +108,14 @@ impl From<Vec3> for [f32; 3] {
 impl Vec4 {
     pub fn init(value: f32) -> Self {
         Self(value, value, value, value)
+    }
+
+    pub fn zero() -> Self {
+        Self::init(0.0)
+    }
+
+    pub fn one() -> Self {
+        Self::init(1.0)
     }
 }
 

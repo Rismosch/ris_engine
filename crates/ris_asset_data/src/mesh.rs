@@ -113,14 +113,14 @@ impl Indices {
         }
     }
 
-    pub fn usize_iter(&self) -> IndicesUsizeIter {
+    pub fn usize_iter(&self) -> IndicesUsizeIter<'_> {
         IndicesUsizeIter {
             indices: self,
             i: 0,
         }
     }
 
-    pub fn triangles(&self) -> TriangleIter {
+    pub fn triangles(&self) -> TriangleIter<'_> {
         let indices = self.usize_iter();
         TriangleIter { indices }
     }

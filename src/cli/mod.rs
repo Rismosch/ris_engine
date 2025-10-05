@@ -1,25 +1,22 @@
-pub mod cmd;
-pub mod commands;
-pub mod util;
+mod cmd;
+mod commands;
+mod util;
 
 use std::path::PathBuf;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
-pub enum ExplanationLevel {
-    Short,
-    Detailed,
-}
+use commands::ExplanationLevel;
+use commands::ICommand;
 
-pub trait ICommand {
-    fn name(&self) -> String;
-    fn args(&self) -> String;
-    fn explanation(&self, level: ExplanationLevel) -> String;
-    fn run(&self, args: Vec<String>, target_dir: PathBuf) -> RisResult<()>;
-}
+const OUT_DIR_NAME: &str = "cli_out";
 
-fn main() -> Result<(), String> {
+// expected args:
+// arg[0]:   <path to executable>
+// arg[1]:   "cli"
+// arg[2/3]: command/[help]
+// arg[3..]: [args for the command]
+pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
     let start = std::time::SystemTime::now();
 
     unsafe {
@@ -27,10 +24,13 @@ fn main() -> Result<(), String> {
         ris_io::util::TRACE = true;
     }
 
-    let mut raw_args = std::env::args().collect::<Vec<_>>();
-    let verbose_position = raw_args.iter().position(|x| is_verbose_arg(x));
+    let mut args = args
+        .into_iter()
+        .map(|x| x.as_ref().to_string())
+        .collect::<Vec<_>>();
+    let verbose_position = args.iter().position(|x| is_verbose_arg(x));
     let verbose = if let Some(verbose_position) = verbose_position {
-        raw_args.remove(verbose_position);
+        args.remove(verbose_position);
         true
     } else {
         false
@@ -43,28 +43,24 @@ fn main() -> Result<(), String> {
         Box::new(commands::god_asset::GodAsset),
         Box::new(commands::pipeline::Pipeline),
         Box::new(commands::profiler_html::ProfilerHtml),
-        Box::new(commands::repeat::Repeat),
     ];
 
     // check if no arguments provided
-    if raw_args.len() < 2 {
+    if args.len() < 3 {
         print_help(&commands);
         return Ok(());
     }
 
     // check if `help` is the first command
-    let arg1 = &raw_args[1];
-    if is_help_arg(arg1) {
-        if raw_args.len() > 2 {
-            let arg2 = &raw_args[2];
-            let trimmed_arg = arg2.trim().to_lowercase();
+    let arg2 = &args[2];
+    if is_help_arg(arg2) {
+        if args.len() > 3 {
+            let arg3 = &args[3];
+            let trimmed_arg = arg3.trim().to_lowercase();
             let command = commands.iter().find(|x| x.name() == trimmed_arg);
             match command {
                 Some(command) => {
-                    crate::util::print_help_for_command(
-                        command.as_ref(),
-                        ExplanationLevel::Detailed,
-                    );
+                    util::print_help_for_command(command.as_ref(), ExplanationLevel::Detailed);
                 }
                 None => {
                     eprintln!("unkown command: {}", arg2);
@@ -77,26 +73,24 @@ fn main() -> Result<(), String> {
         return Ok(());
     }
 
-    let trimmed_arg = arg1.trim().to_lowercase();
+    let trimmed_arg = arg2.trim().to_lowercase();
     let command = commands.iter().find(|x| x.name() == trimmed_arg);
 
     match command {
         Some(command) => {
             // check if `help` is the second command
-            if raw_args.len() > 2 {
-                let arg2 = &raw_args[2];
-                if is_help_arg(arg2) {
-                    crate::util::print_help_for_command(
-                        command.as_ref(),
-                        ExplanationLevel::Detailed,
-                    );
+            if args.len() > 3 {
+                let arg3 = &args[3];
+                if is_help_arg(arg3) {
+                    util::print_help_for_command(command.as_ref(), ExplanationLevel::Detailed);
                     return Ok(());
                 }
             }
 
             // run command
-            let result = match get_target_dir(&raw_args[0], command.name()) {
-                Ok(target_dir) => command.run(raw_args, target_dir),
+            let target_dir = get_target_dir(&args[0], command.name());
+            let result = match target_dir {
+                Ok(target_dir) => command.run(args, &target_dir),
                 Err(e) => Err(e),
             };
 
@@ -107,18 +101,17 @@ fn main() -> Result<(), String> {
                 eprintln!("failed to determine duration");
             }
 
-            result.map_err(|e| {
-                if verbose {
-                    eprintln!("    {:?}", e);
-                } else {
+            result.map_err(|mut e| {
+                if !verbose {
+                    e.backtrace.take();
                     eprintln!("command failed. pass -v for more info");
                 }
 
-                e.message
+                e
             })
         }
         None => {
-            eprintln!("unkown command: {}", arg1);
+            eprintln!("unkown command: {}", arg2);
             print_help(&commands);
             Ok(())
         }
@@ -140,7 +133,7 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     }
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
-    eprintln!("usage: {} [help] <command>", cargo_pkg_name);
+    eprintln!("usage: {} {} [help] <command>", super::CLI, cargo_pkg_name,);
     eprintln!("commands:");
     for command in commands {
         let mut name = command.name();
@@ -173,6 +166,17 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     }
 }
 
+fn is_verbose_arg(arg: &str) -> bool {
+    let arg = arg.trim().to_lowercase();
+
+    arg == "v"
+        || arg == "-v"
+        || arg == "--v"
+        || arg == "verbose"
+        || arg == "-verbose"
+        || arg == "--verbose"
+}
+
 fn is_help_arg(arg: &str) -> bool {
     let arg = arg.trim().to_lowercase();
 
@@ -190,22 +194,12 @@ fn is_help_arg(arg: &str) -> bool {
         || arg == "--manual"
 }
 
-fn is_verbose_arg(arg: &str) -> bool {
-    let arg = arg.trim().to_lowercase();
-
-    arg == "v"
-        || arg == "-v"
-        || arg == "--v"
-        || arg == "verbose"
-        || arg == "-verbose"
-        || arg == "--verbose"
-}
-
 fn get_target_dir(program: impl AsRef<str>, command_name: impl AsRef<str>) -> RisResult<PathBuf> {
     let program = program.as_ref();
     let command_name = command_name.as_ref();
 
-    let parent = match crate::util::get_root_dir() {
+    let root_dir = util::get_root_dir();
+    let parent = match root_dir {
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
@@ -213,9 +207,7 @@ fn get_target_dir(program: impl AsRef<str>, command_name: impl AsRef<str>) -> Ri
             .to_path_buf(),
     };
 
-    let cargo_pkg_name = env!("CARGO_PKG_NAME");
-    let target_dir_name = format!("{}_out", cargo_pkg_name);
-    let target_dir = parent.join(target_dir_name).join(command_name);
+    let target_dir = parent.join(OUT_DIR_NAME).join(command_name);
 
     Ok(target_dir)
 }

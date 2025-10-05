@@ -10,7 +10,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_normalize_quaternion() {
-    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new().unwrap())));
+    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new())));
     testing::repeat(miri_choose(1_000_000, 100), move |_| {
         let quaternion = rng.borrow_mut().next_rot();
 
@@ -24,7 +24,7 @@ fn should_normalize_quaternion() {
 
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_0() {
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
     let angle = 0.0;
     let axis = rng.next_dir_3();
 
@@ -39,7 +39,7 @@ fn should_convert_angleaxis_to_quaternion_at_angle_0() {
 
 #[test]
 fn should_convert_angleaxis_to_quaternion_at_angle_2pi() {
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
     let angle = 2.0 * PI;
     let axis = rng.next_dir_3();
 

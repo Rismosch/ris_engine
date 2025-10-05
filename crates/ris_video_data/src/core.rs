@@ -173,8 +173,8 @@ impl VulkanCore {
             //commented out, because otherwise we get a deprecated warning
             //pp_enabled_layer_names: available_layers.1,
             //enabled_layer_count: available_layers.0,
-            pp_enabled_extension_names: super::REQUIRED_DEVICE_EXTENSIONS.as_ptr(),
-            enabled_extension_count: super::REQUIRED_DEVICE_EXTENSIONS.len() as u32,
+            pp_enabled_extension_names: suitable_device.extensions.as_ptr(),
+            enabled_extension_count: suitable_device.extensions.len() as u32,
             p_enabled_features: &physical_device_features,
             ..Default::default()
         };

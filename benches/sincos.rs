@@ -11,7 +11,7 @@ use ris_rng::rng::Seed;
 fn sin_cos(c: &mut Criterion) {
     let mut group = c.benchmark_group("sincos");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);

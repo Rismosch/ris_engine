@@ -90,7 +90,7 @@ fn map_retreive(c: &mut Criterion) {
 fn generate_random_key_values(count: usize) -> Vec<(String, u32)> {
     let mut result = Vec::with_capacity(count);
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     for _ in 0..count {
         let value = rng.next_u32();

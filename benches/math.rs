@@ -9,7 +9,7 @@ use ris_rng::rng::Seed;
 fn abs(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_abs");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -42,7 +42,7 @@ fn abs(c: &mut Criterion) {
 fn negate(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_negate");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -78,7 +78,7 @@ fn negate(c: &mut Criterion) {
 fn log2(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_log2");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -111,7 +111,7 @@ fn log2(c: &mut Criterion) {
 fn exp2(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_exp2");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -144,7 +144,7 @@ fn exp2(c: &mut Criterion) {
 fn pow(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_pow");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -178,7 +178,7 @@ fn pow(c: &mut Criterion) {
 fn sqrt(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_sqrt");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -211,7 +211,7 @@ fn sqrt(c: &mut Criterion) {
 fn inversesqrt(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_inversesqrt");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -244,7 +244,7 @@ fn inversesqrt(c: &mut Criterion) {
 fn sign(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_sign");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -287,7 +287,7 @@ fn sign(c: &mut Criterion) {
 fn min(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_min");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);
@@ -324,7 +324,7 @@ fn min(c: &mut Criterion) {
 fn max(c: &mut Criterion) {
     let mut group = c.benchmark_group("math_max");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 1_000_000;
     let mut values = Vec::with_capacity(count);

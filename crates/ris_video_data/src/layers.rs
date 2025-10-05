@@ -11,12 +11,18 @@ use super::util;
 
 const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::None;
 
+#[cfg(not(debug_assertions))]
+const VALIDATION_ENABLED: bool = false;
+#[cfg(debug_assertions)]
+const VALIDATION_ENABLED: bool = true;
+const VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
+
 pub fn add_validation_layer(
     entry: &ash::Entry,
     instance_extensions: &mut Vec<*const i8>,
 ) -> RisResult<(u32, *const *const i8)> {
-    let available_layers = if !super::VALIDATION_ENABLED {
-        ris_log::debug!("instance layers are disabled");
+    let available_layers = if !VALIDATION_ENABLED {
+        ris_log::debug!("validation layer are disabled");
         (0, ptr::null())
     } else {
         // add debug util extension
@@ -38,7 +44,7 @@ pub fn add_validation_layer(
             let mut available_layers = Vec::new();
             let mut log_message = String::from("instance layers to be enabled:");
 
-            for required_layer in super::REQUIRED_INSTANCE_LAYERS {
+            for required_layer in VALIDATION_LAYERS {
                 let mut layer_found = false;
 
                 for layer in layer_properties.iter() {
@@ -70,7 +76,7 @@ pub fn setup_debugging(
     entry: &ash::Entry,
     instance: &ash::Instance,
 ) -> RisResult<Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>> {
-    if !super::VALIDATION_ENABLED {
+    if !VALIDATION_ENABLED {
         Ok(None)
     } else {
         let debug_utils = ash::extensions::ext::DebugUtils::new(entry, instance);

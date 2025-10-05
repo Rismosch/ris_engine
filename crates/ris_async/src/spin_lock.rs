@@ -25,7 +25,7 @@ impl<T> SpinLock<T> {
         }
     }
 
-    pub fn spin_once(&self) -> Option<SpinLockGuard<T>> {
+    pub fn spin_once(&self) -> Option<SpinLockGuard<'_, T>> {
         if self.locked.swap(true, Ordering::Acquire) {
             None
         } else {
@@ -33,7 +33,7 @@ impl<T> SpinLock<T> {
         }
     }
 
-    pub fn lock(&self) -> SpinLockGuard<T> {
+    pub fn lock(&self) -> SpinLockGuard<'_, T> {
         loop {
             if let Some(guard) = self.spin_once() {
                 return guard;

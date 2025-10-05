@@ -17,7 +17,7 @@ struct TestContext {
 
 impl TestContext {
     fn new() -> Self {
-        let rng = Rng::new(Seed::new().unwrap());
+        let rng = Rng::new(Seed::new());
 
         let mut scene_create_info =
             miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());

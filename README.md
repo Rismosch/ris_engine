@@ -20,6 +20,7 @@ Barebones game engine. Home made passion project.
     - [x] RGB
     - [x] OkLab
 - [x] 3d Graphics via Vulkan
+  - [ ] Terrain
   - [x] Static Meshes
   - [ ] Skinned Meshes
   - [ ] Materials
@@ -117,7 +118,7 @@ cargo run
 Alternatively, you can build a release-ready package, by running the command below. Note that this builds with all optimizations enabled, which may take longer than just using `cargo run`.
 
 ```bash
-cargo run -p cli build
+cargo run -- cli build
 ```
 
 Passing the `-r` flag is discouraged, because asset discovery works differently in release builds. If you want to pass the `-r` flag to cargo, you must import and compile the assets manually. Infos and how to do that can be found in [`./assets/README.md`](./assets/README.md).
@@ -133,11 +134,35 @@ cargo test
 Alternatively, to run **much** more extensive tests, you can run the command below. Note that this may take several minutes.
 
 ```bash
-cargo run -p cli pipeline all
+cargo run -- cli pipeline all
 ```
 
 Using the command above, some tests run [miri](https://github.com/rust-lang/miri). If miri is not installed, then the according tests will fail.
 
 ## Cli
 
-For more info about the command `cargo run -p cli`, see [`./cli/README.md`](./cli/README.md).
+The command `cargo run -- cli` is a command line utility tool. It runs features of `ris_engine` as a headless oneshot cli program. Thus it enhances the development environement and provides further utility functions.
+
+For all available commands run:
+
+```bash
+cargo run -- cli
+```
+
+To get further information on a specific command and what additional args it may be need, run:
+
+```bash
+cargo run -- cli help <command>
+```
+
+To execute a command, run:
+
+```bash
+cargo run -- cli <command> [args...]
+```
+
+For example, the command below runs the testing pipeline:
+
+```bash
+cargo run -- cli pipeline all
+```

@@ -12,7 +12,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_convert_translation() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -30,7 +30,7 @@ fn should_convert_translation() {
 
 #[test]
 fn should_convert_rotation() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -48,7 +48,7 @@ fn should_convert_rotation() {
 
 #[test]
 fn should_convert_scale() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 
@@ -66,7 +66,7 @@ fn should_convert_scale() {
 
 #[test]
 fn should_convert_trs() {
-    let seed = Seed::new().unwrap();
+    let seed = Seed::new();
     println!("seed: {:?}", seed);
     let rng = Rc::new(RefCell::new(Rng::new(seed)));
 

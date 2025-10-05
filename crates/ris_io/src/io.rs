@@ -188,6 +188,7 @@ pub fn read(stream: &mut impl Read, buf: &mut [u8]) -> Result<()> {
     }
 }
 
+// reads and advances the stream up to the end. returns all bytes that were read
 pub fn read_to_end(stream: &mut (impl Read + Seek)) -> Result<Vec<u8>> {
     let current = seek(stream, SeekFrom::Current(0))?;
     let end = seek(stream, SeekFrom::End(0))?;

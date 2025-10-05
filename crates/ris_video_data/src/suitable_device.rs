@@ -7,6 +7,26 @@ use ris_error::RisResult;
 use super::surface_details::SurfaceDetails;
 use super::util;
 
+const LIST_ALL_AVAILABLE_EXTENSIONS: bool = false;
+
+type Extension = &'static CStr;
+struct PreferredExtension {
+    name: Extension,
+    dependencies: &'static [Extension],
+}
+
+const VK_KHR_SWAPCHAIN: Extension = ash::extensions::khr::Swapchain::name();
+const VK_EXT_MEMORY_PRIORITY: Extension = ash::vk::ExtMemoryPriorityFn::name();
+const VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY: Extension =
+    ash::vk::ExtPageableDeviceLocalMemoryFn::name();
+
+const REQUIRED_DEVICE_EXTENSIONS: &[Extension] = &[VK_KHR_SWAPCHAIN];
+
+const PREFERRED_DEVICE_EXTENSIONS: &[PreferredExtension] = &[PreferredExtension {
+    name: VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY,
+    dependencies: &[VK_EXT_MEMORY_PRIORITY],
+}];
+
 pub struct SuitableDevice {
     pub name: String,
     // the lower the suitability, the better suited the device is to render. a dedicated gpu would
@@ -15,6 +35,7 @@ pub struct SuitableDevice {
     pub graphics_queue_family: u32,
     pub present_queue_family: u32,
     pub physical_device: vk::PhysicalDevice,
+    pub extensions: Vec<*const i8>,
 }
 
 impl SuitableDevice {
@@ -27,12 +48,21 @@ impl SuitableDevice {
 
         let mut suitable_devices = Vec::new();
 
-        let mut log_message = format!(
-            "Vulkan Required Device Extensions: {}",
-            super::REQUIRED_DEVICE_EXTENSIONS.len()
-        );
-        for extension in super::REQUIRED_DEVICE_EXTENSIONS {
-            let extension_str = unsafe { CStr::from_ptr(*extension) }.to_str()?;
+        let mut log_message = "Vulkan Device Extensions: {}".to_string();
+        log_message.push_str(&format!(
+            "\n\trequired: {}",
+            REQUIRED_DEVICE_EXTENSIONS.len()
+        ));
+        for &extension in REQUIRED_DEVICE_EXTENSIONS {
+            let extension_str = extension.to_str()?;
+            log_message.push_str(&format!("\n\t- {}", extension_str));
+        }
+        log_message.push_str(&format!(
+            "\n\tpreferred: {}",
+            PREFERRED_DEVICE_EXTENSIONS.len()
+        ));
+        for extension in PREFERRED_DEVICE_EXTENSIONS {
+            let extension_str = extension.name.to_str()?;
             log_message.push_str(&format!("\n\t- {}", extension_str));
         }
         ris_log::debug!("{}", log_message);
@@ -105,23 +135,51 @@ impl SuitableDevice {
                 unsafe { instance.enumerate_device_extension_properties(physical_device)? };
 
             let mut supports_required_extensions = true;
+            let mut extensions = Vec::new();
 
-            for required_extension in super::REQUIRED_DEVICE_EXTENSIONS {
-                let mut extension_found = false;
-
-                for extension in available_extensions.iter() {
-                    let name = unsafe { util::VkStr::from(&extension.extension_name) }?;
-                    let left = unsafe { CStr::from_ptr(*required_extension) }.to_str()?;
-                    let right = name.as_str();
-                    if left == right {
-                        extension_found = true;
-                        break;
-                    }
-                }
-
-                if !extension_found {
+            for &required_extension in REQUIRED_DEVICE_EXTENSIONS {
+                if !extension_exists(required_extension, &available_extensions)? {
                     supports_required_extensions = false;
                     break;
+                }
+
+                extensions.push(required_extension);
+            }
+
+            for preferred_extension in PREFERRED_DEVICE_EXTENSIONS {
+                if !extension_exists(preferred_extension.name, &available_extensions)? {
+                    continue;
+                }
+
+                let mut can_enable_extension = true;
+                let mut dependencies_to_enable = Vec::new();
+                for &dependency in preferred_extension.dependencies {
+                    let mut dependency_is_already_enabled = false;
+                    for &extension in extensions.iter() {
+                        if extension == dependency {
+                            dependency_is_already_enabled = true;
+                            break;
+                        }
+                    }
+
+                    if dependency_is_already_enabled {
+                        continue;
+                    }
+
+                    if !extension_exists(dependency, &available_extensions)? {
+                        can_enable_extension = false;
+                        break;
+                    }
+
+                    dependencies_to_enable.push(dependency);
+                }
+
+                if can_enable_extension {
+                    for dependency in dependencies_to_enable {
+                        extensions.push(dependency);
+                    }
+
+                    extensions.push(preferred_extension.name);
                 }
             }
 
@@ -129,11 +187,26 @@ impl SuitableDevice {
                 "\n\trequired extension support: {}",
                 supports_required_extensions
             ));
-            //log_message.push_str(&format!("\n\tavailable extensions: {}", available_extensions.len()));
-            //for extension in available_extensions {
-            //    let name = unsafe{util::VkStr::from(&extension.extension_name)}?;
-            //    log_message.push_str(&format!("\n\t\t- {}", name));
-            //}
+            log_message.push_str(&format!(
+                "\n\textensions to be enabled: {}",
+                extensions.len(),
+            ));
+            for &extension in extensions.iter() {
+                let name = extension.to_str()?;
+                log_message.push_str(&format!("\n\t\t- {}", name));
+            }
+            if LIST_ALL_AVAILABLE_EXTENSIONS {
+                log_message.push_str(&format!(
+                    "\n\tavailable extensions: {}",
+                    available_extensions.len()
+                ));
+                for extension in available_extensions {
+                    let name = unsafe { util::VkStr::from(&extension.extension_name) }?;
+                    log_message.push_str(&format!("\n\t\t- {}", name));
+                }
+            }
+
+            let extensions = extensions.iter().map(|x| x.as_ptr()).collect::<Vec<_>>();
 
             // check swapchain support
             let SurfaceDetails {
@@ -224,10 +297,26 @@ impl SuitableDevice {
                 graphics_queue_family: graphics as u32,
                 present_queue_family: present as u32,
                 physical_device,
+                extensions,
             };
             suitable_devices.push(suitable_device);
         } // end find suitable physical devices
 
         Ok(suitable_devices)
     }
+}
+
+fn extension_exists(
+    extension: &CStr,
+    available_extensions: &[vk::ExtensionProperties],
+) -> RisResult<bool> {
+    for available_extension in available_extensions.iter() {
+        let name = unsafe { util::VkStr::from(&available_extension.extension_name) }?;
+        let left = extension.to_str()?;
+        let right = name.as_str();
+        if left == right {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }

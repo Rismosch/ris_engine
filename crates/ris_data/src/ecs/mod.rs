@@ -11,7 +11,7 @@ pub mod scene_stream;
 
 pub mod script_prelude {
     pub use ris_debug::sid::Sid;
-    pub use ris_error::RisResult;
+    pub use ris_error::prelude::*;
 
     pub use crate::ecs::components::script_component::Script;
     pub use crate::ecs::components::script_component::ScriptInspectData;

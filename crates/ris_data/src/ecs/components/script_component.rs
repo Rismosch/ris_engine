@@ -58,7 +58,7 @@ pub struct DynScript {
     name: &'static str,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DynScriptComponent {
     game_object: GameObjectHandle,
     script: Option<DynScript>,
@@ -83,15 +83,6 @@ impl DynScript {
         let name = ris_util::reflection::trim_type_name(type_name);
 
         Self { boxed, id, name }
-    }
-}
-
-impl Default for DynScriptComponent {
-    fn default() -> Self {
-        Self {
-            game_object: GameObjectHandle::null(),
-            script: None,
-        }
     }
 }
 

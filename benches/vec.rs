@@ -9,7 +9,7 @@ use ris_rng::rng::Seed;
 fn vec_overwrite(c: &mut Criterion) {
     let mut group = c.benchmark_group("vec_overwrite");
 
-    let mut rng = Rng::new(Seed::new().unwrap());
+    let mut rng = Rng::new(Seed::new());
 
     let count = 10;
     let max_elements = 4096;

@@ -1,28 +1,131 @@
 #![allow(clippy::excessive_precision)]
 
-use std::ops::Index;
-use std::ops::IndexMut;
-
 use crate::vector::Vec3;
 use crate::vector::Vec4;
 
 pub const MIN_NORM: f32 = 1.0 / 255.0;
 
 //
+// errors
+//
+
+#[derive(Debug)]
+pub struct NotEnoughElements;
+
+#[derive(Debug)]
+pub struct InvalidHex;
+
+impl std::fmt::Display for NotEnoughElements {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "not enough elements")
+    }
+}
+
+impl std::fmt::Display for InvalidHex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid hex")
+    }
+}
+
+impl std::error::Error for NotEnoughElements {}
+impl std::error::Error for InvalidHex {}
+
+//
 // traits
 //
 
-pub trait Color3: Default + From<Vec3> + IndexMut<usize, Output = f32> {}
-pub trait Color4: Default + From<Vec4> + IndexMut<usize, Output = f32> {}
+pub trait Color<const N: usize>: std::fmt::Debug + Default + Clone + Copy {
+    fn try_from_f32(v: impl IntoIterator<Item = f32>) -> Result<Self, NotEnoughElements>
+    where
+        Self: Sized,
+    {
+        let mut iterator = v.into_iter();
+        let mut channels = [0.0; N];
+        for entry in channels.iter_mut() {
+            let Some(value) = iterator.next() else {
+                return Err(NotEnoughElements);
+            };
 
-pub trait ByteColor3: Color3 {
-    fn from_bytes(bytes: [u8; 3]) -> Self;
-    fn to_bytes(self) -> [u8; 3];
+            *entry = value;
+        }
+
+        Ok(Self::from_f32(channels))
+    }
+
+    fn from_f32(values: [f32; N]) -> Self;
+    fn to_f32(self) -> [f32; N];
 }
 
-pub trait ByteColor4: Color4 {
-    fn from_bytes(bytes: [u8; 4]) -> Self;
-    fn to_bytes(self) -> [u8; 4];
+pub trait Color3: Color<3> {
+    fn from_vec3(v: Vec3) -> Self {
+        Self::from_f32(v.into())
+    }
+
+    fn to_vec3(self) -> Vec3 {
+        self.to_f32().into()
+    }
+}
+
+pub trait Color4: Color<4> {
+    fn from_vec3(v: Vec4) -> Self {
+        Self::from_f32(v.into())
+    }
+
+    fn to_vec4(self) -> Vec4 {
+        self.to_f32().into()
+    }
+}
+
+pub trait ByteColor<const N: usize>: Color<N> {
+    fn from_u8(v: [u8; N]) -> Self {
+        let mut channels = [0.0; N];
+        for (i, value) in v.into_iter().enumerate() {
+            channels[i] = value as f32 / 255.0;
+        }
+
+        Self::from_f32(channels)
+    }
+
+    fn to_u8(self) -> [u8; N] {
+        let channels = self.to_f32();
+        let mut bytes = [0u8; N];
+        for (i, value) in channels.into_iter().enumerate() {
+            let value = value.clamp(0.0, 1.0);
+            bytes[i] = (value * 255.0) as u8;
+        }
+
+        bytes
+    }
+
+    fn from_hex(hex: impl AsRef<str>) -> Result<Self, InvalidHex> {
+        let hex = hex.as_ref();
+        let offset = if hex.starts_with('#') { 1 } else { 0 };
+
+        let hex_chars = hex.chars().collect::<Vec<_>>();
+
+        let mut channels = [0u8; N];
+        for (i, channel) in channels.iter_mut().enumerate() {
+            let m = 2 * i + offset;
+            let n = m + 1;
+
+            let a = u8::from_str_radix(&hex_chars[m].to_string(), 16).map_err(|_| InvalidHex)?;
+            let b = u8::from_str_radix(&hex_chars[n].to_string(), 16).map_err(|_| InvalidHex)?;
+
+            *channel = a << 4 | b;
+        }
+
+        Ok(Self::from_u8(channels))
+    }
+
+    fn to_hex(self) -> String {
+        let mut hex = "#".to_string();
+        for byte in self.to_u8() {
+            let value = format!("{:02X}", byte);
+            hex.push_str(&value)
+        }
+
+        hex
+    }
 }
 
 //
@@ -33,7 +136,6 @@ pub trait ByteColor4: Color4 {
 /// g: green
 /// b: blue
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
 pub struct Rgb(pub f32, pub f32, pub f32);
 
 /// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
@@ -42,7 +144,6 @@ pub struct Rgb(pub f32, pub f32, pub f32);
 /// a: how green/red the color is
 /// b: how blue/yellow the color is
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
 pub struct OkLab(pub f32, pub f32, pub f32);
 
 /// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
@@ -51,19 +152,32 @@ pub struct OkLab(pub f32, pub f32, pub f32);
 /// c: chroma / saturation
 /// h: hue
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
 pub struct OkLch(pub f32, pub f32, pub f32);
 
+/// r: red
+/// g: green
+/// b: blue
+/// a: alpha
 #[derive(Debug, Default, Clone, Copy)]
-#[repr(C)]
-pub struct Alpha<T: Color3> {
-    pub color: T,
-    pub alpha: f32,
-}
+pub struct Rgba(pub f32, pub f32, pub f32, pub f32);
 
-pub type Rgba = Alpha<Rgb>;
-pub type OkLaba = Alpha<OkLab>;
-pub type OkLcha = Alpha<OkLch>;
+/// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
+///
+/// l: luminocity / preceived lightness
+/// a: how green/red the color is
+/// b: how blue/yellow the color is
+/// a: alpha
+#[derive(Debug, Default, Clone, Copy)]
+pub struct OkLaba(pub f32, pub f32, pub f32, pub f32);
+
+/// OK LAB by Björn Ottoson: <https://bottosson.github.io/posts/oklab/>
+///
+/// l: luminocity / preceived lightness
+/// c: chroma / saturation
+/// h: hue
+/// a: alpha
+#[derive(Debug, Default, Clone, Copy)]
+pub struct OkLcha(pub f32, pub f32, pub f32, pub f32);
 
 //
 // constructors
@@ -101,7 +215,19 @@ impl Rgb {
     pub fn yellow() -> Rgb {
         Rgb(1.0, 1.0, 0.0)
     }
+
+    pub fn gray() -> Rgb {
+        Rgb(0.5, 0.5, 0.5)
+    }
+
+    pub fn grey() -> Rgb {
+        Self::gray()
+    }
 }
+
+//
+// conversion
+//
 
 impl From<Rgb> for OkLab {
     fn from(value: Rgb) -> Self {
@@ -175,86 +301,45 @@ impl From<OkLch> for Rgb {
     }
 }
 
-impl Rgba {
-    pub fn new(r: f32, g: f32, b: f32, alpha: f32) -> Self {
-        Self {
-            color: Rgb(r, g, b),
-            alpha,
-        }
+impl From<Rgba> for OkLaba {
+    fn from(value: Rgba) -> Self {
+        let OkLab(l, a, b) = OkLab::from(value.without_alpha());
+        Self(l, a, b, value.alpha())
     }
 }
 
-impl OkLaba {
-    pub fn new(l: f32, a: f32, b: f32, alpha: f32) -> Self {
-        Self {
-            color: OkLab(l, a, b),
-            alpha,
-        }
+impl From<OkLaba> for Rgba {
+    fn from(value: OkLaba) -> Self {
+        let Rgb(r, g, b) = Rgb::from(value.without_alpha());
+        Self(r, g, b, value.alpha())
     }
 }
 
-impl OkLcha {
-    pub fn new(l: f32, c: f32, h: f32, alpha: f32) -> Self {
-        Self {
-            color: OkLch(l, c, h),
-            alpha,
-        }
+impl From<OkLcha> for OkLaba {
+    fn from(value: OkLcha) -> Self {
+        let OkLab(l, a, b) = OkLab::from(value.without_alpha());
+        Self(l, a, b, value.alpha())
     }
 }
 
-impl From<Vec3> for Rgb {
-    fn from(value: Vec3) -> Self {
-        Self(value.0, value.1, value.2)
+impl From<OkLaba> for OkLcha {
+    fn from(value: OkLaba) -> Self {
+        let OkLch(l, c, h) = OkLch::from(value.without_alpha());
+        Self(l, c, h, value.alpha())
     }
 }
 
-impl From<Rgb> for Vec3 {
-    fn from(value: Rgb) -> Self {
-        Self(value.0, value.1, value.2)
+impl From<Rgba> for OkLcha {
+    fn from(value: Rgba) -> Self {
+        let OkLch(l, c, h) = OkLch::from(value.without_alpha());
+        Self(l, c, h, value.alpha())
     }
 }
 
-impl From<Vec3> for OkLab {
-    fn from(value: Vec3) -> Self {
-        Self(value.0, value.1, value.2)
-    }
-}
-
-impl From<OkLab> for Vec3 {
-    fn from(value: OkLab) -> Self {
-        Self(value.0, value.1, value.2)
-    }
-}
-
-impl From<Vec3> for OkLch {
-    fn from(value: Vec3) -> Self {
-        Self(value.0, value.1, value.2)
-    }
-}
-
-impl From<OkLch> for Vec3 {
-    fn from(value: OkLch) -> Self {
-        Self(value.0, value.1, value.2)
-    }
-}
-
-impl<T: Color3> From<Vec4> for Alpha<T> {
-    fn from(value: Vec4) -> Self {
-        let color = T::from(Vec3(value.0, value.1, value.2));
-        let alpha = value.3;
-
-        Self { color, alpha }
-    }
-}
-
-impl<T: Color3> From<Alpha<T>> for Vec4
-where
-    Vec3: From<T>,
-{
-    fn from(value: Alpha<T>) -> Self {
-        let vec3 = Vec3::from(value.color);
-        let alpha = value.alpha;
-        Self(vec3.0, vec3.1, vec3.2, alpha)
+impl From<OkLcha> for Rgba {
+    fn from(value: OkLcha) -> Self {
+        let Rgb(r, g, b) = Rgb::from(value.without_alpha());
+        Self(r, g, b, value.alpha())
     }
 }
 
@@ -301,12 +386,12 @@ impl OkLab {
         self.2
     }
 
-    pub fn set_l(&mut self, r: f32) {
-        self.0 = r;
+    pub fn set_l(&mut self, l: f32) {
+        self.0 = l;
     }
 
-    pub fn set_a(&mut self, g: f32) {
-        self.1 = g;
+    pub fn set_a(&mut self, a: f32) {
+        self.1 = a;
     }
 
     pub fn set_b(&mut self, b: f32) {
@@ -327,20 +412,122 @@ impl OkLch {
         self.2
     }
 
-    pub fn set_l(&mut self, r: f32) {
+    pub fn set_l(&mut self, l: f32) {
+        self.0 = l;
+    }
+
+    pub fn set_c(&mut self, c: f32) {
+        self.1 = c;
+    }
+
+    pub fn set_h(&mut self, h: f32) {
+        self.2 = h;
+    }
+}
+
+impl Rgba {
+    pub fn r(self) -> f32 {
+        self.0
+    }
+
+    pub fn g(self) -> f32 {
+        self.1
+    }
+
+    pub fn b(self) -> f32 {
+        self.2
+    }
+
+    pub fn alpha(self) -> f32 {
+        self.3
+    }
+
+    pub fn set_r(&mut self, r: f32) {
         self.0 = r;
     }
 
-    pub fn set_c(&mut self, g: f32) {
+    pub fn set_g(&mut self, g: f32) {
         self.1 = g;
     }
 
-    pub fn set_h(&mut self, b: f32) {
+    pub fn set_b(&mut self, b: f32) {
         self.2 = b;
     }
+
+    pub fn set_alpha(&mut self, alpha: f32) {
+        self.3 = alpha;
+    }
 }
 
-impl Index<usize> for Rgb {
+impl OkLaba {
+    pub fn l(self) -> f32 {
+        self.0
+    }
+
+    pub fn a(self) -> f32 {
+        self.1
+    }
+
+    pub fn b(self) -> f32 {
+        self.2
+    }
+
+    pub fn alpha(self) -> f32 {
+        self.3
+    }
+
+    pub fn set_l(&mut self, l: f32) {
+        self.0 = l;
+    }
+
+    pub fn set_a(&mut self, a: f32) {
+        self.1 = a;
+    }
+
+    pub fn set_b(&mut self, b: f32) {
+        self.2 = b;
+    }
+
+    pub fn set_alpha(&mut self, alpha: f32) {
+        self.3 = alpha;
+    }
+}
+
+impl OkLcha {
+    pub fn l(self) -> f32 {
+        self.0
+    }
+
+    pub fn c(self) -> f32 {
+        self.1
+    }
+
+    pub fn h(self) -> f32 {
+        self.2
+    }
+
+    pub fn alpha(self) -> f32 {
+        self.3
+    }
+
+    pub fn set_l(&mut self, l: f32) {
+        self.0 = l;
+    }
+
+    pub fn set_c(&mut self, c: f32) {
+        self.1 = c;
+    }
+
+    pub fn set_h(&mut self, h: f32) {
+        self.2 = h;
+    }
+
+    pub fn set_alpha(&mut self, alpha: f32) {
+        self.3 = alpha;
+    }
+}
+
+impl std::ops::Index<usize> for Rgb {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -355,7 +542,7 @@ impl Index<usize> for Rgb {
     }
 }
 
-impl IndexMut<usize> for Rgb {
+impl std::ops::IndexMut<usize> for Rgb {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
 
@@ -368,7 +555,7 @@ impl IndexMut<usize> for Rgb {
     }
 }
 
-impl Index<usize> for OkLab {
+impl std::ops::Index<usize> for OkLab {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -383,7 +570,7 @@ impl Index<usize> for OkLab {
     }
 }
 
-impl IndexMut<usize> for OkLab {
+impl std::ops::IndexMut<usize> for OkLab {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
 
@@ -396,7 +583,7 @@ impl IndexMut<usize> for OkLab {
     }
 }
 
-impl Index<usize> for OkLch {
+impl std::ops::Index<usize> for OkLch {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -411,7 +598,7 @@ impl Index<usize> for OkLch {
     }
 }
 
-impl IndexMut<usize> for OkLch {
+impl std::ops::IndexMut<usize> for OkLch {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 3);
 
@@ -424,31 +611,91 @@ impl IndexMut<usize> for OkLch {
     }
 }
 
-impl<T: Color3> Index<usize> for Alpha<T> {
+impl std::ops::Index<usize> for Rgba {
     type Output = f32;
 
     fn index(&self, index: usize) -> &Self::Output {
         debug_assert!(index < 4);
 
         match index {
-            0 => self.index(0),
-            1 => self.index(1),
-            2 => self.index(2),
-            3 => &self.alpha,
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            3 => &self.3,
             _ => unreachable!(),
         }
     }
 }
 
-impl<T: Color3> IndexMut<usize> for Alpha<T> {
+impl std::ops::IndexMut<usize> for Rgba {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         debug_assert!(index < 4);
 
         match index {
-            0 => self.index_mut(0),
-            1 => self.index_mut(1),
-            2 => self.index_mut(2),
-            3 => &mut self.alpha,
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            3 => &mut self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::Index<usize> for OkLaba {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            3 => &self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for OkLaba {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            3 => &mut self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::Index<usize> for OkLcha {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            3 => &self.3,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for OkLcha {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        debug_assert!(index < 4);
+
+        match index {
+            0 => &mut self.0,
+            1 => &mut self.1,
+            2 => &mut self.2,
+            3 => &mut self.3,
             _ => unreachable!(),
         }
     }
@@ -459,24 +706,38 @@ impl<T: Color3> IndexMut<usize> for Alpha<T> {
 //
 
 impl Rgb {
-    pub fn is_valid(&self) -> bool {
-        self.0 >= 0. && self.0 <= 1. && self.1 >= 0. && self.1 <= 1. && self.2 >= 0. && self.2 <= 1.
-    }
-
-    pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha { color: self, alpha }
+    pub fn with_alpha(self, alpha: f32) -> Rgba {
+        Rgba(self.0, self.1, self.2, alpha)
     }
 }
 
 impl OkLab {
-    pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha { color: self, alpha }
+    pub fn with_alpha(self, alpha: f32) -> OkLaba {
+        OkLaba(self.0, self.1, self.2, alpha)
     }
 }
 
 impl OkLch {
-    pub fn with_alpha(self, alpha: f32) -> Alpha<Self> {
-        Alpha { color: self, alpha }
+    pub fn with_alpha(self, alpha: f32) -> OkLcha {
+        OkLcha(self.0, self.1, self.2, alpha)
+    }
+}
+
+impl Rgba {
+    pub fn without_alpha(self) -> Rgb {
+        Rgb(self.0, self.1, self.2)
+    }
+}
+
+impl OkLaba {
+    pub fn without_alpha(self) -> OkLab {
+        OkLab(self.0, self.1, self.2)
+    }
+}
+
+impl OkLcha {
+    pub fn without_alpha(self) -> OkLch {
+        OkLch(self.0, self.1, self.2)
     }
 }
 
@@ -484,40 +745,123 @@ impl OkLch {
 // trait impls
 //
 
-impl Color3 for Rgb {}
-impl Color3 for OkLab {}
-impl Color3 for OkLch {}
-impl<T: Color3> Color4 for Alpha<T> {}
-
-impl ByteColor3 for Rgb {
-    fn from_bytes(bytes: [u8; 3]) -> Self {
-        Self(
-            bytes[0] as f32 / 255.0,
-            bytes[1] as f32 / 255.0,
-            bytes[2] as f32 / 255.0,
-        )
+impl Color<3> for Rgb {
+    fn from_f32(values: [f32; 3]) -> Self {
+        Self(values[0], values[1], values[2])
     }
 
-    fn to_bytes(self) -> [u8; 3] {
-        [
-            (self.0 * 255.0) as u8,
-            (self.1 * 255.0) as u8,
-            (self.2 * 255.0) as u8,
-        ]
+    fn to_f32(self) -> [f32; 3] {
+        [self.0, self.1, self.2]
     }
 }
 
-impl<T: ByteColor3> ByteColor4 for Alpha<T> {
-    fn from_bytes(bytes: [u8; 4]) -> Self {
-        Self {
-            color: T::from_bytes([bytes[0], bytes[1], bytes[2]]),
-            alpha: bytes[3] as f32 / 255.0,
+impl Color<3> for OkLab {
+    fn from_f32(values: [f32; 3]) -> Self {
+        Self(values[0], values[1], values[2])
+    }
+
+    fn to_f32(self) -> [f32; 3] {
+        [self.0, self.1, self.2]
+    }
+}
+
+impl Color<3> for OkLch {
+    fn from_f32(values: [f32; 3]) -> Self {
+        Self(values[0], values[1], values[2])
+    }
+
+    fn to_f32(self) -> [f32; 3] {
+        [self.0, self.1, self.2]
+    }
+}
+
+impl Color<4> for Rgba {
+    fn from_f32(values: [f32; 4]) -> Self {
+        Self(values[0], values[1], values[2], values[3])
+    }
+
+    fn to_f32(self) -> [f32; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
+}
+
+impl Color<4> for OkLaba {
+    fn from_f32(values: [f32; 4]) -> Self {
+        Self(values[0], values[1], values[2], values[3])
+    }
+
+    fn to_f32(self) -> [f32; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
+}
+
+impl Color<4> for OkLcha {
+    fn from_f32(values: [f32; 4]) -> Self {
+        Self(values[0], values[1], values[2], values[3])
+    }
+
+    fn to_f32(self) -> [f32; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
+}
+
+impl Color3 for Rgb {}
+impl Color3 for OkLab {}
+impl Color3 for OkLch {}
+impl Color4 for Rgba {}
+impl Color4 for OkLaba {}
+impl Color4 for OkLcha {}
+
+impl ByteColor<3> for Rgb {}
+impl ByteColor<4> for Rgba {}
+
+//
+// other
+//
+
+#[derive(Debug, Default, Clone)]
+pub struct Gradient<T: Color<N>, const N: usize>(Vec<T>);
+
+impl<T: Color<N>, const N: usize> Gradient<T, N> {
+    pub fn try_from(value: impl IntoIterator<Item = T>) -> Result<Self, NotEnoughElements> {
+        let colors = value.into_iter().collect::<Vec<_>>();
+        if colors.is_empty() {
+            Err(NotEnoughElements)
+        } else {
+            Ok(Self(colors))
         }
     }
 
-    fn to_bytes(self) -> [u8; 4] {
-        let color_bytes = self.color.to_bytes();
-        let alpha_byte = (self.alpha * 255.0) as u8;
-        [color_bytes[0], color_bytes[1], color_bytes[2], alpha_byte]
+    pub fn sample(&self, x: f32) -> T {
+        if self.0.len() == 1 {
+            return self.0[0];
+        }
+
+        if x <= 0.0 {
+            return self.0[0];
+        }
+
+        if x >= 1.0 {
+            let last_index = self.0.len() - 1;
+            return self.0[last_index];
+        }
+
+        let splits = (self.0.len() - 1) as f32;
+        let scaled = x * splits;
+        let lower = scaled.floor() as usize;
+        let upper = scaled.ceil() as usize;
+        let lerp = scaled % 1.0;
+
+        let color_1 = self.0[lower].to_f32();
+        let color_2 = self.0[upper].to_f32();
+
+        let mut mix = [0.0; N];
+        for i in 0..N {
+            let a = color_1[i];
+            let b = color_2[i];
+            mix[i] = crate::common::mix(a, b, lerp);
+        }
+
+        T::from_f32(mix)
     }
 }

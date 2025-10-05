@@ -50,7 +50,7 @@ pub const FATAL_COLOR: Color = Color::BrightRed;
 pub const NONE_COLOR: Color = Color::BrightWhite;
 
 impl LogLevel {
-    pub fn to_color_string(&self) -> ColorString {
+    pub fn to_color_string(&self) -> ColorString<'_> {
         match *self {
             LogLevel::Trace => ColorString("Trace", TRACE_COLOR),
             LogLevel::Debug => ColorString("Debug", DEBUG_COLOR),
