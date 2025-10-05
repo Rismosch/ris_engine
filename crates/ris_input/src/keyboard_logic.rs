@@ -51,7 +51,6 @@ struct ScancodeIterator<'a> {
 impl<'a> Iterator for ScancodeIterator<'a> {
     type Item = (Scancode, bool);
     fn next(&mut self) -> Option<(Scancode, bool)> {
-
         let max = Scancode::Num as i32;
         while self.index < max {
             let current = self.index;
@@ -71,10 +70,7 @@ impl<'a> Iterator for ScancodeIterator<'a> {
 
 impl<'a> ScancodeIterator<'a> {
     fn new(state: sdl2::keyboard::KeyboardState<'a>) -> Self {
-        Self {
-            index: 0,
-            state,
-        }
+        Self { index: 0, state }
     }
 }
 
@@ -242,7 +238,9 @@ fn convert_i32_to_scancode(value: i32) -> Option<Scancode> {
         v if v == SDL_Scancode::SDL_SCANCODE_EXSEL as i32 => Scancode::ExSel,
         v if v == SDL_Scancode::SDL_SCANCODE_KP_00 as i32 => Scancode::Kp00,
         v if v == SDL_Scancode::SDL_SCANCODE_KP_000 as i32 => Scancode::Kp000,
-        v if v == SDL_Scancode::SDL_SCANCODE_THOUSANDSSEPARATOR as i32 => Scancode::ThousandsSeparator,
+        v if v == SDL_Scancode::SDL_SCANCODE_THOUSANDSSEPARATOR as i32 => {
+            Scancode::ThousandsSeparator
+        }
         v if v == SDL_Scancode::SDL_SCANCODE_DECIMALSEPARATOR as i32 => Scancode::DecimalSeparator,
         v if v == SDL_Scancode::SDL_SCANCODE_CURRENCYUNIT as i32 => Scancode::CurrencyUnit,
         v if v == SDL_Scancode::SDL_SCANCODE_CURRENCYSUBUNIT as i32 => Scancode::CurrencySubUnit,
@@ -323,7 +321,7 @@ fn convert_i32_to_scancode(value: i32) -> Option<Scancode> {
         v if v == SDL_Scancode::SDL_SCANCODE_APP1 as i32 => Scancode::App1,
         v if v == SDL_Scancode::SDL_SCANCODE_APP2 as i32 => Scancode::App2,
         v if v == SDL_Scancode::SDL_NUM_SCANCODES as i32 => Scancode::Num,
-        _  => return None,
+        _ => return None,
     };
 
     Some(scancode)
