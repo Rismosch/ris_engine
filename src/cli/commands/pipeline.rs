@@ -263,7 +263,33 @@ fn test(
 }
 
 fn cargo(args: &str) -> Result<String, String> {
-    Ok(format!("cargo {}", args))
+    let mut toolchain = String::new();
+    let exit_status = cmd::run_with_stdout(
+        "rustup show active-toolchain",
+        &mut toolchain,
+    );
+    let mut arg_toolchain = String::new();
+    let mut arg_target = String::new();
+    if exit_status.is_ok() {
+        let splits = toolchain.split(' ').collect::<Vec<_>>();
+        if let Some(toolchain) = splits.first() {
+            let splits = toolchain.split('-').collect::<Vec<_>>();
+            let toolchain = splits.first();
+            let target = splits[1..].iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join("-");
+
+            match (toolchain, target) {
+                (Some(toolchain), target) if !target.is_empty() => {
+                    arg_toolchain = format!("+{} ", toolchain);
+                    arg_target = format!(" --target {}", target);
+                }
+                _ => (),
+            }
+        }
+    }
+    Ok(format!("cargo {}{}{}", arg_toolchain, args, arg_target))
 }
 
 #[cfg(target_os = "windows")]
