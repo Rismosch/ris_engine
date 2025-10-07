@@ -31,12 +31,12 @@ impl Script for TestRotationScript {
             state: ris_data::god_state::GodState { scene, .. },
         } = data;
 
-        let rotation = game_object.local_rotation(scene)?;
+        let rotation = game_object.rotation(scene)?;
         let speed = self.rotation_speed * frame.average_seconds();
         let angle = 2.0 * PI * speed;
         let q = Quat::angle_axis(angle, self.rotation_axis);
         let new_rotation = q * rotation;
-        game_object.set_local_rotation(scene, new_rotation)?;
+        game_object.set_rotation(scene, new_rotation)?;
 
         Ok(())
     }

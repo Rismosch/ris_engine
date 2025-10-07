@@ -44,9 +44,9 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
 
         ris_io::write_string(s, handle.name(scene)?)?;
         ris_io::write_bool(s, handle.is_active(scene)?)?;
-        ris_io::write_vec3(s, handle.local_position(scene)?)?;
-        ris_io::write_quat(s, handle.local_rotation(scene)?)?;
-        ris_io::write_vec3(s, handle.local_scale(scene)?)?;
+        ris_io::write_vec3(s, handle.position(scene)?)?;
+        ris_io::write_quat(s, handle.rotation(scene)?)?;
+        ris_io::write_vec3(s, handle.scale(scene)?)?;
 
         let components = handle.components(scene)?;
         ris_io::write_uint(s, components.len())?;
@@ -151,9 +151,9 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
         game_object.set_name(scene, &name)?;
         game_object.set_active(scene, is_active)?;
-        game_object.set_local_position(scene, local_position)?;
-        game_object.set_local_rotation(scene, local_rotation)?;
-        game_object.set_local_scale(scene, local_scale)?;
+        game_object.set_position(scene, local_position)?;
+        game_object.set_rotation(scene, local_rotation)?;
+        game_object.set_scale(scene, local_scale)?;
 
         children_to_assign.push((game_object, child_ids));
         components_to_deserialize.push((game_object, component_ptrs));
@@ -173,7 +173,7 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
                 .handle
                 .into();
 
-            child.set_parent(scene, Some(game_object), i, false)?;
+            child.set_parent(scene, Some(game_object), i)?;
         }
     }
 

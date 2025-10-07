@@ -54,7 +54,7 @@ Barebones game engine. Home made passion project.
 
 ## Requirements
 
-You will need rustc and cargo to compile this repo. I am using version 1.77.2 [download link](https://www.rust-lang.org/tools/install)
+You will need rustc and cargo to compile this repo. I am using version 1.90.0 [download link](https://www.rust-lang.org/tools/install)
 
 The target platform is x86_64, Windows and Linux.
 

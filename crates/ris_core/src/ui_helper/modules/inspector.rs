@@ -10,11 +10,9 @@ use ris_async::ThreadPool;
 use ris_data::ecs::components::mesh_component::MeshComponent;
 use ris_data::ecs::components::script_component::DynScriptComponent;
 use ris_data::ecs::components::script_component::ScriptInspectData;
-use ris_data::ecs::decl::GameObjectHandle;
-use ris_data::ecs::error::EcsResult;
-use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_math::affine;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
@@ -24,17 +22,10 @@ use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Space {
-    Local,
-    World,
-}
-
 pub struct InspectorModule {
     shared_state: SharedStateWeakPtr,
 
     // game object
-    space: Space,
     cached_rotation: Quat,
     cached_xyz: Vec3,
     cached_xyw: Vec3,
@@ -58,7 +49,6 @@ impl IUiHelperModule for InspectorModule {
             shared_state,
 
             // game object
-            space: Space::Local,
             cached_rotation: Quat::identity(),
             cached_yzw: Vec3(0.0, 0.0, 1.0),
             cached_xzw: Vec3(0.0, 0.0, 1.0),
@@ -105,56 +95,17 @@ impl IUiHelperModule for InspectorModule {
 
                 data.ui.separator();
 
-                let space_items = ["Local", "World"];
-                let mut current_space_item = match self.space {
-                    Space::Local => 0,
-                    Space::World => 1,
-                };
-                data.ui
-                    .combo_simple_string("transform", &mut current_space_item, &space_items);
-                match current_space_item {
-                    0 => self.space = Space::Local,
-                    1 => self.space = Space::World,
-                    _ => unreachable!(),
-                }
-
-                let get_position: fn(GameObjectHandle, &Scene) -> EcsResult<Vec3>;
-                let set_position: fn(GameObjectHandle, &Scene, Vec3) -> EcsResult<()>;
-                let get_rotation: fn(GameObjectHandle, &Scene) -> EcsResult<Quat>;
-                let set_rotation: fn(GameObjectHandle, &Scene, Quat) -> EcsResult<()>;
-                let get_scale: fn(GameObjectHandle, &Scene) -> EcsResult<Vec3>;
-                let set_scale: fn(GameObjectHandle, &Scene, Vec3) -> EcsResult<()>;
-
-                match self.space {
-                    Space::Local => {
-                        get_position = GameObjectHandle::local_position;
-                        set_position = GameObjectHandle::set_local_position;
-                        get_rotation = GameObjectHandle::local_rotation;
-                        set_rotation = GameObjectHandle::set_local_rotation;
-                        get_scale = GameObjectHandle::local_scale;
-                        set_scale = GameObjectHandle::set_local_scale;
-                    }
-                    Space::World => {
-                        get_position = GameObjectHandle::world_position;
-                        set_position = GameObjectHandle::set_world_position;
-                        get_rotation = GameObjectHandle::world_rotation;
-                        set_rotation = GameObjectHandle::set_world_rotation;
-                        get_scale = GameObjectHandle::local_scale;
-                        set_scale = GameObjectHandle::set_local_scale;
-                    }
-                };
-
-                let mut position = get_position(game_object, &data.state.scene)?;
+                let mut position = game_object.position(&data.state.scene)?;
 
                 let changed = inspector_util::drag_vec3("position", &mut position)?;
                 if changed {
-                    set_position(game_object, &data.state.scene, position)?;
+                    game_object.set_position(&data.state.scene, position)?;
                 }
 
                 let format = CString::new("%.3f")?;
                 let label = CString::new("rotation")?;
                 if !data.ui.is_mouse_dragging(imgui::MouseButton::Left) {
-                    let rotation = get_rotation(game_object, &data.state.scene)?;
+                    let rotation = game_object.rotation(&data.state.scene)?;
                     self.cached_rotation = rotation;
                     self.cache_rotation_axes(rotation);
                 }
@@ -254,7 +205,7 @@ impl IUiHelperModule for InspectorModule {
                         Quat(x, y, z, w).normalize()
                     };
 
-                    set_rotation(game_object, &data.state.scene, q)?;
+                    game_object.set_rotation(&data.state.scene, q)?;
                 }
 
                 data.ui.same_line();
@@ -373,50 +324,32 @@ impl IUiHelperModule for InspectorModule {
                     }
 
                     if let Some(rotation) = rotation {
-                        set_rotation(game_object, &data.state.scene, rotation)?;
+                        game_object.set_rotation(&data.state.scene, rotation)?;
                         self.cache_rotation_axes(rotation);
                     }
                 }
 
-                let mut scale = get_scale(game_object, &data.state.scene)?;
+                let mut scale = game_object.scale(&data.state.scene)?;
                 let changed = inspector_util::drag_vec3("scale", &mut scale)?;
                 if changed {
-                    set_scale(game_object, &data.state.scene, scale)?;
+                    game_object.set_scale(&data.state.scene, scale)?;
                 }
 
-                let world_position = game_object.world_position(&data.state.scene)?;
-                let world_rotation = game_object.world_rotation(&data.state.scene)?;
-
-                let rotation_axis = match self.space {
-                    Space::Local => {
-                        let axis_rotation = game_object.local_rotation(&data.state.scene)?;
-                        let (_, axis) = axis_rotation.into();
-
-                        match game_object.parent(&data.state.scene)? {
-                            Some(parent) => parent.world_rotation(&data.state.scene)?.rotate(axis),
-                            None => axis,
-                        }
-                    }
-                    Space::World => {
-                        let (_, axis) = world_rotation.into();
-                        axis
-                    }
-                };
+                let model = game_object.model(&data.state.scene)?;
+                let affine::DecomposedTrs {
+                    translation: world_position,
+                    rotation: world_rotation,
+                    scale: world_scale,
+                    skew: _,
+                } = affine::decompose_trs(model);
 
                 ris_debug::gizmo::view_point(world_position, world_rotation, None)?;
-                ris_debug::gizmo::segment(
-                    world_position - rotation_axis * 0.5,
-                    world_position + rotation_axis * 0.5,
-                    ris_math::color::Rgb::white(),
-                )?;
 
                 data.ui.separator();
                 data.ui.separator();
                 data.ui.separator();
 
                 let components = game_object.components(&data.state.scene)?;
-                //data.ui.text(format!("{} components", components.len()));
-
                 for component in components {
                     let index = component.scene_id().index;
 

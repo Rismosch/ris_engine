@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use ris_video_renderers::TerrainRenderer;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
@@ -98,22 +97,6 @@ impl GodObject {
         let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
-        //#[cfg(debug_assertions)]
-        //{
-        //    use ris_asset::asset_importer;
-
-        //    ris_log::debug!("importing assets...");
-
-        //    asset_importer::import_all(
-        //        asset_importer::DEFAULT_SOURCE_DIRECTORY,
-        //        asset_importer::DEFAULT_IMPORT_DIRECTORY,
-        //        asset_importer::DEFAULT_IN_USE_DIRECTORY,
-        //        Some("temp"),
-        //    )?;
-
-        //    ris_log::debug!("assets imported!");
-        //}
-
         let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // profiling
@@ -155,9 +138,6 @@ impl GodObject {
         // scene renderer
         let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
 
-        // terrain renderer
-        let terrain_renderer = TerrainRenderer::alloc(&vulkan_core, &god_asset)?;
-
         // gizmo renderer
         let gizmo_guard = ris_debug::gizmo::init()?;
         let gizmo_segment_renderer = GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
@@ -178,7 +158,6 @@ impl GodObject {
 
         let renderer = Renderer {
             scene: scene_renderer,
-            terrain: terrain_renderer,
             gizmo_segment: gizmo_segment_renderer,
             gizmo_text: gizmo_text_renderer,
             #[cfg(feature = "ui_helper_enabled")]

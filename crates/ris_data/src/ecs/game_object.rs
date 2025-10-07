@@ -137,81 +137,39 @@ impl GameObjectHandle {
         Ok(())
     }
 
-    pub fn local_position(self, scene: &Scene) -> EcsResult<Vec3> {
+    pub fn position(self, scene: &Scene) -> EcsResult<Vec3> {
         let ptr = scene.deref(self.into())?;
         Ok(ptr.borrow().position)
     }
 
-    pub fn set_local_position(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
+    pub fn set_position(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
         aref_mut.position = value;
         Ok(())
     }
 
-    pub fn local_rotation(self, scene: &Scene) -> EcsResult<Quat> {
+    pub fn rotation(self, scene: &Scene) -> EcsResult<Quat> {
         let ptr = scene.deref(self.into())?;
         Ok(ptr.borrow().rotation)
     }
 
-    pub fn set_local_rotation(self, scene: &Scene, value: Quat) -> EcsResult<()> {
+    pub fn set_rotation(self, scene: &Scene, value: Quat) -> EcsResult<()> {
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
         aref_mut.rotation = value;
         Ok(())
     }
 
-    pub fn local_scale(self, scene: &Scene) -> EcsResult<Vec3> {
+    pub fn scale(self, scene: &Scene) -> EcsResult<Vec3> {
         let ptr = scene.deref(self.into())?;
         Ok(ptr.borrow().scale)
     }
 
-    pub fn set_local_scale(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
+    pub fn set_scale(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
         let ptr = scene.deref(self.into())?;
         let mut aref_mut = ptr.borrow_mut();
         aref_mut.scale = value;
-        Ok(())
-    }
-
-    pub fn world_position(self, scene: &Scene) -> EcsResult<Vec3> {
-        let model = self.model(scene)?;
-        let (position, _rotation, _scale) = affine::trs_decompose(model);
-        Ok(position)
-    }
-
-    pub fn set_world_position(self, scene: &Scene, value: Vec3) -> EcsResult<()> {
-        let position = match self.parent(scene)? {
-            Some(parent_handle) => {
-                let parent_trs = parent_handle.model(scene)?;
-                let (parent_world_position, parent_world_rotation, parent_world_scale) =
-                    affine::trs_decompose(parent_trs);
-
-                let p = (value - parent_world_position) / parent_world_scale;
-                parent_world_rotation.conjugate().rotate(p)
-            }
-            None => value,
-        };
-
-        self.set_local_position(scene, position)?;
-        Ok(())
-    }
-
-    pub fn world_rotation(self, scene: &Scene) -> EcsResult<Quat> {
-        let model = self.model(scene)?;
-        let (_position, rotation, _scale) = affine::trs_decompose(model);
-        Ok(rotation)
-    }
-
-    pub fn set_world_rotation(self, scene: &Scene, value: Quat) -> EcsResult<()> {
-        let rotation = match self.parent(scene)? {
-            Some(parent_handle) => {
-                let parent_world_rotation = parent_handle.world_rotation(scene)?;
-                parent_world_rotation.conjugate() * value
-            }
-            None => value,
-        };
-
-        self.set_local_rotation(scene, rotation)?;
         Ok(())
     }
 
@@ -366,7 +324,7 @@ impl GameObjectHandle {
             let ptr = scene.deref(handle.into())?;
             let aref = ptr.borrow();
 
-            model = affine::trs_compose(aref.position, aref.rotation, aref.scale) * model;
+            model = affine::trs(aref.position, aref.rotation, aref.scale) * model;
 
             drop(aref);
             option = handle.parent(scene)?;
@@ -397,7 +355,6 @@ impl GameObjectHandle {
         scene: &Scene,
         mut parent: Option<GameObjectHandle>,
         sibling_index: usize,
-        keep_world_transform: bool,
     ) -> EcsResult<()> {
         let old_handle = self.parent(scene)?;
         let new_handle = parent.take().filter(|x| x.is_alive(scene));
@@ -430,15 +387,6 @@ impl GameObjectHandle {
         }
 
         // apply changes
-        let world_transform = if keep_world_transform {
-            let position = self.world_position(scene)?;
-            let rotation = self.world_rotation(scene)?;
-
-            Some((position, rotation))
-        } else {
-            None
-        };
-
         let ptr = self.clear_destroyed_children(scene)?;
         let mut aref_mut = ptr.borrow_mut();
 
@@ -468,11 +416,6 @@ impl GameObjectHandle {
         aref_mut.parent = new_handle;
         drop(aref_mut);
 
-        if let Some((position, rotation)) = world_transform {
-            self.set_world_position(scene, position)?;
-            self.set_world_rotation(scene, rotation)?;
-        }
-
         Ok(())
     }
 
@@ -501,7 +444,7 @@ impl GameObjectHandle {
             return Ok(());
         };
 
-        self.set_parent(scene, Some(parent), sibling_index, true)?;
+        self.set_parent(scene, Some(parent), sibling_index)?;
 
         Ok(())
     }
