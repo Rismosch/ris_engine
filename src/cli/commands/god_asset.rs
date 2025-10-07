@@ -112,7 +112,6 @@ impl ICommand for GodAsset {
                     "gizmo_text_frag_spv" => &mut god_asset.gizmo_text_frag_spv,
                     "debug_font_texture" => &mut god_asset.debug_font_texture,
                     "texture" => &mut god_asset.texture,
-                    "terrain" => &mut god_asset.terrain,
                     _ => return ris_error::new_result!("unkown field \"{}\"", field),
                 };
                 *mut_ref = AssetId::Path(value);
@@ -172,7 +171,6 @@ fn print_god_asset(god_asset: &RisGodAsset) {
         god_asset.debug_font_texture
     );
     println!("    texture: {:?},", god_asset.texture);
-    println!("    terrain: {:?},", god_asset.terrain);
     println!("}}");
     eprintln!();
 }

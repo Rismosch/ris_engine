@@ -181,7 +181,7 @@ impl HierarchyModule {
             {
                 let _disabled_token = ui.begin_disabled(handle.parent(scene)?.is_none());
                 if ui.menu_item("unparent") {
-                    handle.set_parent(scene, None, usize::MAX, true)?;
+                    handle.set_parent(scene, None, usize::MAX)?;
                 }
             }
 
@@ -196,7 +196,7 @@ impl HierarchyModule {
                     return ris_error::new_result!("handle id was not a gameobject");
                 }
                 let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
-                child.set_parent(scene, Some(handle), usize::MAX, false)?;
+                child.set_parent(scene, Some(handle), usize::MAX)?;
                 ris_log::debug!("parent: {:?}", handle);
             }
 
@@ -229,7 +229,7 @@ impl HierarchyModule {
             if let Some(dragged_handle) = payload {
                 ris_log::info!("accepted drag");
 
-                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
+                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0) {
                     ris_log::error!("failed to drag: {}", e);
                 }
             }

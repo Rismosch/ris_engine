@@ -45,25 +45,25 @@ fn build_scene() -> (Scene, Vec<GameObjectHandle>, Vec<MeshComponentHandle>) {
     }
 
     game_objects[1]
-        .set_parent(&scene, Some(game_objects[0]), 0, true)
+        .set_parent(&scene, Some(game_objects[0]), 0)
         .unwrap();
     game_objects[2]
-        .set_parent(&scene, Some(game_objects[1]), 0, true)
+        .set_parent(&scene, Some(game_objects[1]), 0)
         .unwrap();
     game_objects[3]
-        .set_parent(&scene, Some(game_objects[2]), 0, true)
+        .set_parent(&scene, Some(game_objects[2]), 0)
         .unwrap();
     game_objects[4]
-        .set_parent(&scene, Some(game_objects[2]), 0, true)
+        .set_parent(&scene, Some(game_objects[2]), 0)
         .unwrap();
     game_objects[5]
-        .set_parent(&scene, Some(game_objects[3]), 0, true)
+        .set_parent(&scene, Some(game_objects[3]), 0)
         .unwrap();
     game_objects[6]
-        .set_parent(&scene, Some(game_objects[4]), 0, true)
+        .set_parent(&scene, Some(game_objects[4]), 0)
         .unwrap();
     game_objects[7]
-        .set_parent(&scene, Some(game_objects[4]), 0, true)
+        .set_parent(&scene, Some(game_objects[4]), 0)
         .unwrap();
 
     (scene, game_objects, mesh_components)
