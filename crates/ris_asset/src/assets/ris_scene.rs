@@ -7,6 +7,7 @@ use ris_data::ecs::scene_stream::SceneWriter;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_io::FatPtr;
+use ris_math::vector::Vec3;
 
 use super::ris_header::RisHeader;
 
@@ -45,7 +46,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
         ris_io::write_bool(s, handle.is_active(scene)?)?;
         ris_io::write_vec3(s, handle.local_position(scene)?)?;
         ris_io::write_quat(s, handle.local_rotation(scene)?)?;
-        ris_io::write_f32(s, handle.local_scale(scene)?)?;
+        ris_io::write_vec3(s, handle.local_scale(scene)?)?;
 
         let components = handle.components(scene)?;
         ris_io::write_uint(s, components.len())?;
@@ -126,7 +127,7 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
         let is_active = ris_io::read_bool(s)?;
         let local_position = ris_io::read_vec3(s)?;
         let local_rotation = ris_io::read_quat(s)?;
-        let local_scale = ris_io::read_f32(s)?;
+        let local_scale = ris_io::read_vec3(s)?;
 
         let component_count = ris_io::read_uint(s)?;
         let mut component_ptrs = Vec::with_capacity(component_count);
