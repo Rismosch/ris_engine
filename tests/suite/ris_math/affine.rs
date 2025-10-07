@@ -6,7 +6,6 @@ use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
-use ris_util::assert_feq;
 use ris_util::assert_quat_feq;
 use ris_util::assert_vec3_feq;
 use ris_util::testing;
@@ -81,7 +80,7 @@ fn should_convert_trs() {
         let s = rng.next_pos_3();
 
         let m = affine::trs(t, r, s);
-        let affine::DecomposedTrs{
+        let affine::DecomposedTrs {
             translation: t_,
             rotation: r_,
             scale: s_,
@@ -90,10 +89,10 @@ fn should_convert_trs() {
         let m_ = affine::trs(t_, r_, s_);
 
         // a negative scale might flip the coordinate system, because of
-        // that we might get different trs values out of decomposition 
-        // that we got in. this is fine however, as different 
-        // transformation may lead to the same results. thus this test 
-        // only tests if the decomposed trs produces the same 
+        // that we might get different trs values out of decomposition
+        // that we got in. this is fine however, as different
+        // transformation may lead to the same results. thus this test
+        // only tests if the decomposed trs produces the same
         // transformation, not if it has the same values
         for _ in 0..2 {
             let p = rng.next_pos_3();
@@ -116,6 +115,4 @@ fn should_convert_trs() {
             }
         }
     });
-
 }
-

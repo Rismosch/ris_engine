@@ -245,10 +245,7 @@ fn should_serialize() {
             left.rotation(&scene).unwrap(),
             right.rotation(&scene).unwrap(),
         );
-        ris_util::assert_vec3_feq!(
-            left.scale(&scene).unwrap(),
-            right.scale(&scene).unwrap(),
-        );
+        ris_util::assert_vec3_feq!(left.scale(&scene).unwrap(), right.scale(&scene).unwrap(),);
 
         let left_children = left.children(&scene).unwrap();
         let right_children = right.children(&scene).unwrap();

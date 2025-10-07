@@ -10,7 +10,6 @@ use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
-use ris_util::assert_feq;
 use ris_util::assert_quat_feq;
 use ris_util::assert_vec3_feq;
 use ris_util::testing;
@@ -207,11 +206,11 @@ fn should_not_assign_child_more_than_once() {
     let parent = GameObjectHandle::new(&scene).unwrap();
     let child = GameObjectHandle::new(&scene).unwrap();
 
-    child.set_parent(&scene, Some(parent), 0,).unwrap();
-    child.set_parent(&scene, Some(parent), 0,).unwrap();
-    child.set_parent(&scene, Some(parent), 0,).unwrap();
-    child.set_parent(&scene, Some(parent), 0,).unwrap();
-    child.set_parent(&scene, Some(parent), 0,).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
 
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
@@ -250,8 +249,7 @@ fn should_not_assign_destroyed_parent() {
     g1.set_parent(&scene, Some(parent), 0).unwrap();
     g2.set_parent(&scene, Some(parent), 0).unwrap();
     g3.set_parent(&scene, Some(parent), 1).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX)
-        .unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     assert!(g1.parent(&scene).unwrap().is_none());
     assert!(g2.parent(&scene).unwrap().is_none());
@@ -310,8 +308,7 @@ fn should_set_sibling_index() {
     g1.set_parent(&scene, Some(parent), 0).unwrap();
     g2.set_parent(&scene, Some(parent), 0).unwrap();
     g3.set_parent(&scene, Some(parent), 1).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX)
-        .unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     let children = parent.children(&scene).unwrap();
     assert_eq!(children.len(), 4);
@@ -357,8 +354,7 @@ fn should_destroy_child() {
     g1.set_parent(&scene, Some(parent), 0).unwrap();
     g2.set_parent(&scene, Some(parent), 0).unwrap();
     g3.set_parent(&scene, Some(parent), 1).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX)
-        .unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     g1.destroy(&scene);
     g2.destroy(&scene);
@@ -387,8 +383,7 @@ fn should_destroy_parent() {
     g1.set_parent(&scene, Some(parent), 0).unwrap();
     g2.set_parent(&scene, Some(parent), 0).unwrap();
     g3.set_parent(&scene, Some(parent), 1).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX)
-        .unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     parent.destroy(&scene);
 
@@ -411,8 +406,7 @@ fn should_not_return_destroyed_children() {
     g1.set_parent(&scene, Some(parent), 0).unwrap();
     g2.set_parent(&scene, Some(parent), 0).unwrap();
     g3.set_parent(&scene, Some(parent), 1).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX)
-        .unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     g1.destroy(&scene);
     g2.destroy(&scene);

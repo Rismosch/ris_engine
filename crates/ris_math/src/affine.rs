@@ -186,7 +186,7 @@ pub fn decompose_trs(m: Mat4) -> DecomposedTrs {
     let mut scale = Vec3(sx, sy, sz);
 
     // at this point m is a pure rotation matrix
-    // check for coordinate system flip. if the 
+    // check for coordinate system flip. if the
     // determinant is -1, then negate the matrix
     // and the scaling factors
     let d = m.0.dot(m.1.cross(m.2));
@@ -196,7 +196,7 @@ pub fn decompose_trs(m: Mat4) -> DecomposedTrs {
         m.1 *= -1.0;
         m.2 *= -1.0;
     }
-    
+
     // compute rotation
     let rotation = to_rotation(m);
 

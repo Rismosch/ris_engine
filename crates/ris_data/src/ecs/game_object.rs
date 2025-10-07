@@ -4,7 +4,6 @@ use ris_math::affine;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
-use ris_math::vector::Vec4;
 
 use super::components::script_component::DynScriptComponent;
 use super::components::script_component::Script;

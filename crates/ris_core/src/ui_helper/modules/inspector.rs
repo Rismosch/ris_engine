@@ -339,7 +339,7 @@ impl IUiHelperModule for InspectorModule {
                 let affine::DecomposedTrs {
                     translation: world_position,
                     rotation: world_rotation,
-                    scale: world_scale,
+                    scale: _,
                     skew: _,
                 } = affine::decompose_trs(model);
 
