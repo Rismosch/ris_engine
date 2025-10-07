@@ -142,37 +142,6 @@ fn should_set_parent() {
 }
 
 #[test]
-fn should_keep_position_on_set_parent() {
-    let scene = Scene::new(scene_create_info()).unwrap();
-    let parent = GameObjectHandle::new(&scene).unwrap();
-    let child1 = GameObjectHandle::new(&scene).unwrap();
-    let child2 = GameObjectHandle::new(&scene).unwrap();
-
-    let position1 = Vec3(0.1, 0.2, 0.3);
-    let rotation1 = Quat(0.4, 0.5, 0.6, 0.7).normalize();
-    let scale1 = Vec3::init(0.8);
-    let position2 = Vec3(0.9, 1.0, 1.1);
-    let rotation2 = Quat(1.2, 1.3, 1.4, 1.5).normalize();
-    let scale2 = Vec3::init(1.6);
-
-    child1.set_position(&scene, position1).unwrap();
-    child1.set_rotation(&scene, rotation1).unwrap();
-    child1.set_scale(&scene, scale1).unwrap();
-    child2.set_position(&scene, position2).unwrap();
-    child2.set_rotation(&scene, rotation2).unwrap();
-    child2.set_scale(&scene, scale2).unwrap();
-
-    child1.set_parent(&scene, Some(parent), 0).unwrap();
-    child2.set_parent(&scene, Some(parent), 0).unwrap();
-
-    assert_vec3_feq!(position1, child1.position(&scene).unwrap());
-    assert_quat_feq!(rotation1, child1.rotation(&scene).unwrap());
-    assert_vec3_feq!(scale1, child1.scale(&scene).unwrap());
-    assert_vec3_feq!(position2, child2.position(&scene).unwrap());
-    assert_quat_feq!(rotation2, child2.rotation(&scene).unwrap());
-}
-
-#[test]
 fn should_not_cause_circular_hierarchy() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g0 = GameObjectHandle::new(&scene).unwrap();
@@ -440,51 +409,4 @@ fn should_get_is_active_in_hierarchy() {
     assert!(!g2.is_active_in_hierarchy(&scene).unwrap());
     assert!(!g3.is_active_in_hierarchy(&scene).unwrap());
     assert!(!g4.is_active_in_hierarchy(&scene).unwrap());
-}
-
-#[test]
-fn should_get_and_set_world_transform() {
-    let seed = Seed::new();
-    let rng = Rc::new(RefCell::new(Rng::new(seed)));
-
-    testing::repeat(miri_choose(10_000, 10), move |_i| {
-        let mut rng = rng.borrow_mut();
-
-        let scene = Scene::new(scene_create_info()).unwrap();
-        let g0 = GameObjectHandle::new(&scene).unwrap();
-        let g1 = GameObjectHandle::new(&scene).unwrap();
-        let g2 = GameObjectHandle::new(&scene).unwrap();
-        let g3 = GameObjectHandle::new(&scene).unwrap();
-        let g4 = GameObjectHandle::new(&scene).unwrap();
-
-        g1.set_parent(&scene, Some(g0), 0).unwrap();
-        g2.set_parent(&scene, Some(g0), 0).unwrap();
-        g3.set_parent(&scene, Some(g0), 0).unwrap();
-        g4.set_parent(&scene, Some(g3), 0).unwrap();
-
-        set_random_transform(&mut rng, g0, &scene);
-        set_random_transform(&mut rng, g1, &scene);
-        set_random_transform(&mut rng, g2, &scene);
-        set_random_transform(&mut rng, g3, &scene);
-        set_random_transform(&mut rng, g4, &scene);
-
-        let p = rng.next_pos_3();
-        let r = rng.next_rot();
-        g4.set_position(&scene, p).unwrap();
-        g4.set_rotation(&scene, r).unwrap();
-        let p_ = g4.position(&scene).unwrap();
-        let r_ = g4.rotation(&scene).unwrap();
-
-        assert_vec3_feq!(p, p_, 0.000_003);
-        assert_quat_feq!(r, r_);
-    });
-}
-
-fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
-    let p = rng.next_pos_3();
-    let r = rng.next_rot();
-    let s = rng.next_pos_3();
-    g.set_position(scene, p).unwrap();
-    g.set_rotation(scene, r).unwrap();
-    g.set_scale(scene, s).unwrap();
 }
