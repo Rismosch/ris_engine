@@ -336,12 +336,18 @@ impl IUiHelperModule for InspectorModule {
                 }
 
                 let model = game_object.model(&data.state.scene)?;
-                let affine::DecomposedTrs {
-                    translation: world_position,
-                    rotation: world_rotation,
-                    scale: _,
-                    skew: _,
-                } = affine::decompose_trs(model);
+                let world_position = affine::decompose_trs(model).translation;
+                let mut world_rotation = game_object.rotation(&data.state.scene)?;
+                let mut parent = game_object.parent(&data.state.scene)?;
+                loop {
+                    parent = match parent {
+                        Some(parent) => {
+                            world_rotation = parent.rotation(&data.state.scene)? * world_rotation;
+                            parent.parent(&data.state.scene)?
+                        },
+                        None => break,
+                    }
+                }
 
                 ris_debug::gizmo::view_point(world_position, world_rotation, None)?;
 
