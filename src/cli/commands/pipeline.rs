@@ -264,10 +264,7 @@ fn test(
 
 fn cargo(args: &str) -> Result<String, String> {
     let mut toolchain = String::new();
-    let exit_status = cmd::run_with_stdout(
-        "rustup show active-toolchain",
-        &mut toolchain,
-    );
+    let exit_status = cmd::run_with_stdout("rustup show active-toolchain", &mut toolchain);
     let mut arg_toolchain = String::new();
     let mut arg_target = String::new();
     if exit_status.is_ok() {
@@ -275,7 +272,8 @@ fn cargo(args: &str) -> Result<String, String> {
         if let Some(toolchain) = splits.first() {
             let splits = toolchain.split('-').collect::<Vec<_>>();
             let toolchain = splits.first();
-            let target = splits[1..].iter()
+            let target = splits[1..]
+                .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
                 .join("-");
