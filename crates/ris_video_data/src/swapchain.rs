@@ -7,7 +7,6 @@ use ash::vk;
 use ris_error::prelude::*;
 use ris_ptr::ArefCell;
 
-use super::frame_in_flight::FrameInFlight;
 use super::image::Image;
 use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
@@ -16,9 +15,14 @@ use super::surface_details::SurfaceDetails;
 use super::transient_command::TransientCommandSync;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FramebufferID(usize);
+pub struct RendererId(usize);
 
-pub struct FramebufferAllocator(Vec<Option<vk::Framebuffer>>);
+pub struct FrameInFlight {
+    pub image_available: vk::Semaphore,
+    pub renderer_finished: Vec<vk::Semaphore>,
+    pub command_buffer_submitted: vk::Semaphore,
+    pub execution_finished: vk::Fence,
+}
 
 pub struct Swapchain {
     pub format: vk::SurfaceFormatKHR,
@@ -26,8 +30,7 @@ pub struct Swapchain {
     pub loader: SwapchainLoader,
     pub swapchain: vk::SwapchainKHR,
     pub entries: Vec<SwapchainEntry>,
-    pub frames_in_flight: Option<Vec<FrameInFlight>>,
-    command_buffers: Vec<vk::CommandBuffer>,
+    renderer_count: usize,
 }
 
 pub struct SwapchainEntry {
@@ -37,8 +40,10 @@ pub struct SwapchainEntry {
     pub depth_format: vk::Format,
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
-    pub command_buffer: vk::CommandBuffer,
-    pub framebuffer_allocator: ArefCell<FramebufferAllocator>,
+    pub command_pool: vk::CommandPool,
+    command_buffers: Vec<vk::CommandBuffer>,
+    frame_buffers: Vec<Option<vk::Framebuffer>>,
+    pub frame_in_flight: FrameInFlight,
 }
 
 pub struct SwapchainCreateInfo<'a> {
@@ -51,36 +56,7 @@ pub struct SwapchainCreateInfo<'a> {
     pub surface_loader: &'a SurfaceLoader,
     pub surface: &'a vk::SurfaceKHR,
     pub window_drawable_size: (u32, u32),
-    pub frames_in_flight: Option<Vec<FrameInFlight>>,
     pub framebuffer_count: usize,
-}
-
-impl FramebufferAllocator {
-    pub fn count(&self) -> usize {
-        self.0.len()
-    }
-
-    /// # Safety
-    ///
-    /// Caller must guarantee that the vk::FramebufferCreateInfo is properly constructed. Otherwise
-    /// usual care when dealing with Vulkan objects.
-    pub unsafe fn get(
-        &mut self,
-        id: FramebufferID,
-        device: &ash::Device,
-        framebuffer_create_info: vk::FramebufferCreateInfo,
-    ) -> RisResult<vk::Framebuffer> {
-        let framebuffer = self.0.get_mut(id.0).into_ris_error()?;
-
-        match framebuffer {
-            Some(framebuffer) => Ok(*framebuffer),
-            None => {
-                let new_framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
-                *framebuffer = Some(new_framebuffer);
-                Ok(new_framebuffer)
-            }
-        }
-    }
 }
 
 impl Swapchain {
@@ -91,11 +67,13 @@ impl Swapchain {
         unsafe {
             device.free_command_buffers(command_pool, &self.command_buffers);
 
-            if let Some(frames_in_flight) = self.frames_in_flight.take() {
-                for frame_in_flight in frames_in_flight.iter() {
-                    frame_in_flight.free(device);
-                }
-            }
+            //if let Some(frames_in_flight) = self.frames_in_flight.take() {
+            //    for frame_in_flight in frames_in_flight.iter() {
+            //        frame_in_flight.free(device);
+            //    }
+            //}
+
+            todo(implement free)
 
             for entry in self.entries.iter_mut() {
                 let framebuffers = &mut entry.framebuffer_allocator.borrow_mut().0;
@@ -327,14 +305,37 @@ impl Swapchain {
         })
     }
 
-    pub fn register_renderer(&self) -> RisResult<FramebufferID> {
-        let first_entry = self.entries.first().into_ris_error()?;
-        let id = FramebufferID(first_entry.framebuffer_allocator.borrow().0.len());
+    pub fn register_renderer(&mut self) -> RendererId {
+        let id = self.renderer_count;
+        self.renderer_count += 1;
+        RendererId(id)
+    }
+}
 
-        for entry in self.entries.iter() {
-            entry.framebuffer_allocator.borrow_mut().0.push(None);
+impl SwapchainEntry {
+    pub fn command_buffer(&self, id: RendererId) -> RisError<vk::CommandBuffer> {
+        self.command_buffers.get(id.0).into_ris_error()
+    }
+
+    pub fn frame_buffer(
+        &mut self,
+        id: RendererId,
+        device: &ash::Device,
+        framebuffer_create_info: vk::FramebufferCreateInfo,
+    ) -> RisResult<vk::Framebuffer> {
+        let framebuffer = self.frame_buffers.get_mut(id.0).into_ris_error()?;
+
+        match framebuffer {
+            Some(framebuffer) => Ok(*framebuffer),
+            None => {
+                let new_framebuffer = device.create_framebuffer(&framebuffer_create_info, None)?;
+                *framebuffer = Some(new_framebuffer);
+                Ok(new_framebuffer)
+            }
         }
+    }
 
-        Ok(id)
+    pub fn wait_for_previous_renderer() {
+
     }
 }

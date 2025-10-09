@@ -1,6 +1,5 @@
 pub mod buffer;
 pub mod core;
-pub mod frame_in_flight;
 pub mod image;
 pub mod layers;
 pub mod shader;

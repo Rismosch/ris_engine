@@ -37,6 +37,8 @@ enum EntryPoint {
 }
 
 fn main() -> RisResult<()> {
+    panic!("delete frame in flight file");
+
     let entry_point = get_entry_point().inspect_err(|e| {
         display_error(e, true);
     })?;

@@ -22,7 +22,7 @@ pub struct VulkanCore {
     pub device: ash::Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
-    pub command_pool: vk::CommandPool,
+    //pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
     pub swapchain: Swapchain,
 }
