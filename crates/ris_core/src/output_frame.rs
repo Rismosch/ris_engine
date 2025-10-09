@@ -219,6 +219,8 @@ impl OutputFrame {
         let swapchain_entry = &swapchain.entries[image_index as usize];
         let SwapchainEntry { command_buffer, .. } = swapchain_entry;
 
+        todo!("reset here");
+
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
             p_next: ptr::null(),

@@ -22,7 +22,6 @@ pub struct VulkanCore {
     pub device: ash::Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
-    //pub command_pool: vk::CommandPool,
     pub transient_command_pool: vk::CommandPool,
     pub swapchain: Swapchain,
 }
@@ -35,11 +34,10 @@ impl VulkanCore {
         ris_log::debug!("dropping vulkan core...");
 
         unsafe {
-            self.swapchain.free(&self.device, self.command_pool);
+            self.swapchain.free(&self.device);
 
             self.device
                 .destroy_command_pool(self.transient_command_pool, None);
-            self.device.destroy_command_pool(self.command_pool, None);
 
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
