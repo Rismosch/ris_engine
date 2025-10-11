@@ -60,23 +60,6 @@ pub fn find_memory_type(
     Ok(None)
 }
 
-pub fn find_depth_format(
-    instance: &ash::Instance,
-    physical_device: vk::PhysicalDevice,
-) -> RisResult<vk::Format> {
-    find_supported_format(
-        instance,
-        physical_device,
-        &[
-            vk::Format::D32_SFLOAT,
-            vk::Format::D32_SFLOAT_S8_UINT,
-            vk::Format::D24_UNORM_S8_UINT,
-        ],
-        vk::ImageTiling::OPTIMAL,
-        vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT,
-    )
-}
-
 pub fn find_supported_format(
     instance: &ash::Instance,
     physical_device: vk::PhysicalDevice,
@@ -101,7 +84,7 @@ pub fn find_supported_format(
         }
     }
 
-    ris_error::new_result!("failed to find supported format")
+    ris_error::new_result!("formats are not supported")
 }
 
 pub fn has_stencil_component(format: vk::Format) -> bool {

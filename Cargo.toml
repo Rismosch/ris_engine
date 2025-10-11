@@ -2,8 +2,8 @@
 name = "ris_engine"
 version = "0.1.0-dev"
 authors = ["Rismosch"]
-edition = "2021"
-rust-version = "1.77"
+edition = "2024"
+rust-version = "1.90"
 description = "Barebones game engine. Home made passion project."
 #documentation = "URL of the package documentation."
 readme = "README.md"

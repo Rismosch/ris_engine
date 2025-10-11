@@ -128,6 +128,7 @@ impl OutputFrame {
         unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
         unsafe { device.reset_fences(&[*in_flight]) }?;
 
+
         // ui helper
         let ui_helper_state = {
             #[cfg(feature = "ui_helper_enabled")]
