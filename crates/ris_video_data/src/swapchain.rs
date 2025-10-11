@@ -14,17 +14,20 @@ use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
 use super::transient_command::TransientCommandSync;
 
+use std::ops::Range;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RendererId {
     index: usize,
-    command_buffer_range: std::ops::Range<usize>,
+    command_buffers_start: usize,
+    command_buffers_end: usize,
 }
 
 pub struct FrameInFlight {
     pub image_available: vk::Semaphore,
     pub renderer_finished: Vec<vk::Semaphore>,
-    pub command_buffer_submitted: vk::Semaphore,
-    pub execution_finished: vk::Fence,
+    pub command_buffer_finished: vk::Semaphore,
+    pub done: vk::Fence,
 }
 
 pub struct Swapchain {
@@ -45,8 +48,8 @@ pub struct SwapchainEntry {
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
     pub command_pool: vk::CommandPool,
-    pub command_buffers: Vec<vk::CommandBuffer>,
-    pub framebuffers: Vec<Option<vk::Framebuffer>>,
+    pub command_buffers: Vec<vk::CommandBuffer>, // multiple per renderer
+    pub framebuffers: Vec<Option<vk::Framebuffer>>, // one per renderer
     pub frame_in_flight: FrameInFlight,
 }
 
@@ -57,6 +60,14 @@ pub struct SwapchainCreateInfo<'a> {
     pub surface_loader: &'a SurfaceLoader,
     pub surface: &'a vk::SurfaceKHR,
     pub window_drawable_size: (u32, u32),
+}
+
+pub struct SwapchainEntryCreateInfo<'a> {
+    pub instance: &'a ash::Instance,
+    pub suitable_device: &'a SuitableDevice,
+    pub device: &'a ash::Device,
+    pub graphics_queue: vk::Queue,
+    pub transient_command_pool: vk::CommandPool,
 }
 
 impl Swapchain {
@@ -213,41 +224,136 @@ impl Swapchain {
             swapchain,
             entries: Vec::new(),
             renderer_count: 0,
+            command_buffer_count: 0,
         })
     }
 
     pub fn register_renderer(&mut self, command_buffer_count: usize) -> RendererId {
-        let framebuffer_index = self.renderer_count;
-        let start = self.command_buffer_count;
-        let end = start + command_buffer_count;
-        let command_buffer_range = start..end;
+        let index = self.renderer_count;
+        let command_buffers_start = self.command_buffer_count;
+        let command_buffers_end = command_buffers_start + command_buffer_count;
 
         self.renderer_count += 1;
         self.command_buffer_count += command_buffer_count;
 
         RendererId {
-            framebuffer_index,
-            command_buffer_range,
+            index,
+            command_buffers_start,
+            command_buffers_end,
         }
     }
 
-    pub fn alloc_entries(&mut self) -> RisResult<()> {
+    pub fn alloc_entries(&mut self, info: SwapchainEntryCreateInfo) -> RisResult<()> {
         if !self.entries.is_empty() {
             return ris_error::new_result!("swapchain entries are already allocated");
         }
 
         let Self {
+            format,
+            extent,
             loader,
             swapchain,
-            ..
+            entries,
+            renderer_count,
+            command_buffer_count,
         } = self;
 
-        let images = unsafe { loader.get_swapchain_images(*swapchain) }?;
+        let SwapchainEntryCreateInfo {
+            instance,
+            suitable_device,
+            device,
+            graphics_queue,
+            transient_command_pool,
+        } = info;
 
-        for (i, image) in images.into_iter().enumerate() {
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let depth_format =
+            super::util::find_depth_format(instance, suitable_device.physical_device)?;
+
+        let viewport_images = unsafe { loader.get_swapchain_images(*swapchain) }?;
+
+        for (i, viewport_image) in viewport_images.into_iter().enumerate() {
+            // viewport view
+            let viewport_image_view = Image::alloc_view(
+                device,
+                viewport_image,
+                format.format,
+                vk::ImageAspectFlags::COLOR,
+            )?;
+
+            // depth
+            let depth_image = Image::alloc(ImageCreateInfo {
+                device,
+                width: extent.width,
+                height: extent.height,
+                format: depth_format,
+                tiling: vk::ImageTiling::OPTIMAL,
+                usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            })?;
+
+            let depth_image_view = Image::alloc_view(
+                device,
+                depth_image.image,
+                depth_format,
+                vk::ImageAspectFlags::DEPTH,
+            )?;
+
+            depth_image.transition_layout(TransitionLayoutInfo {
+                device,
+                queue: graphics_queue,
+                transient_command_pool,
+                format: depth_format,
+                old_layout: vk::ImageLayout::UNDEFINED,
+                new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                sync: TransientCommandSync::default(),
+            })?;
+
+            // command buffers
+            ris_error::new_result!("todo")?;
+
+            // frame buffers
+            let framebuffers = vec![None; *renderer_count];
+
+            // frame in flight
+            let semaphore_create_info = vk::SemaphoreCreateInfo {
+                s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::SemaphoreCreateFlags::empty(),
+            };
+            let fence_create_info = vk::FenceCreateInfo {
+                s_type: vk::StructureType::FENCE_CREATE_INFO,
+                p_next: ptr::null(),
+                flags: vk::FenceCreateFlags::SIGNALED,
+            };
+
+            let image_available = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
+
+            let mut renderer_finished = Vec::with_capacity(*renderer_count);
+            for _ in 0..renderer_finished.capacity() {
+                let semaphore = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
+                renderer_finished.push(semaphore);
+            }
+
+            let command_buffer_finished = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
+
+            let done = unsafe {device.create_fence(&fence_create_info, None)}?;
+
+            let frame_in_flight = FrameInFlight {
+                image_available,
+                renderer_finished,
+                command_buffer_finished,
+                done,
+            };
+
+            // construct entry
             let entry = SwapchainEntry {
                 index: i,
-                viewport_image: image,
+                viewport_image,
                 viewport_image_view,
                 depth_format,
                 depth_image,
@@ -260,110 +366,12 @@ impl Swapchain {
             self.entries.push(entry);
         }
 
-        //// command buffers
-        //let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-        //    s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-        //    p_next: ptr::null(),
-        //    command_pool,
-        //    level: vk::CommandBufferLevel::PRIMARY,
-        //    command_buffer_count: images.len() as u32,
-        //};
-
-        //let command_buffers =
-        //    unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
-
-        //// swapchain entries
-        //let physical_device_memory_properties = unsafe {
-        //    instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        //};
-
-        //let depth_format =
-        //    super::util::find_depth_format(instance, suitable_device.physical_device)?;
-
-        //let mut entries = Vec::with_capacity(images.len());
-        //for (i, viewport_image) in images.into_iter().enumerate() {
-        //    // viewport view
-        //    let viewport_image_view = Image::alloc_view(
-        //        device,
-        //        viewport_image,
-        //        format.format,
-        //        vk::ImageAspectFlags::COLOR,
-        //    )?;
-
-        //    // depth
-        //    let depth_image = Image::alloc(ImageCreateInfo {
-        //        device,
-        //        width: extent.width,
-        //        height: extent.height,
-        //        format: depth_format,
-        //        tiling: vk::ImageTiling::OPTIMAL,
-        //        usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-        //        memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    })?;
-
-        //    let depth_image_view = Image::alloc_view(
-        //        device,
-        //        depth_image.image,
-        //        depth_format,
-        //        vk::ImageAspectFlags::DEPTH,
-        //    )?;
-
-        //    depth_image.transition_layout(TransitionLayoutInfo {
-        //        device,
-        //        queue: graphics_queue,
-        //        transient_command_pool,
-        //        format: depth_format,
-        //        old_layout: vk::ImageLayout::UNDEFINED,
-        //        new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        //        sync: TransientCommandSync::default(),
-        //    })?;
-
-        //    // command buffer
-        //    let command_buffer = command_buffers[i];
-
-        //    // framebuffers
-        //    let mut framebuffers = Vec::new();
-        //    for _ in 0..framebuffer_count {
-        //        framebuffers.push(None);
-        //    }
-        //    let framebuffer_allocator = ArefCell::new(FramebufferAllocator(framebuffers));
-
-        //    // entry
-        //    let swapchain_entry = SwapchainEntry {
-        //        index: i,
-        //        viewport_image,
-        //        viewport_image_view,
-        //        depth_format,
-        //        depth_image,
-        //        depth_image_view,
-        //        command_buffer,
-        //        framebuffer_allocator,
-        //    };
-
-        //    entries.push(swapchain_entry);
-        //} // end swapchain entries
-
-        //// frames in flight
-        //let frames_in_flight = match frames_in_flight {
-        //    Some(x) => Some(x),
-        //    None => {
-        //        let mut frames_in_flight = Vec::with_capacity(command_buffers.len());
-        //        for _ in 0..super::MAX_FRAMES_IN_FLIGHT {
-        //            let frame_in_flight = FrameInFlight::alloc(device)?;
-
-        //            frames_in_flight.push(frame_in_flight);
-        //        }
-
-        //        Some(frames_in_flight)
-        //    }
-        //};
         Ok(())
     }
 }
 
 impl SwapchainEntry {
-    pub fn command_buffer(&self, id: RendererId) -> RisError<&[vk::CommandBuffer]> {
+    pub fn command_buffer(&self, id: &RendererId) -> RisError<&[vk::CommandBuffer]> {
         let RendererId {
             command_buffer_range,
             ..
@@ -374,14 +382,11 @@ impl SwapchainEntry {
 
     pub fn frame_buffer(
         &mut self,
-        id: RendererId,
+        id: &RendererId,
         device: &ash::Device,
         framebuffer_create_info: vk::FramebufferCreateInfo,
     ) -> RisResult<vk::Framebuffer> {
-        let RendererId { 
-            index,
-            ..
-        } = id;
+        let index = id.index;
 
         let framebuffer = self.framebuffers.get_mut(index).into_ris_error()?;
 
@@ -395,10 +400,21 @@ impl SwapchainEntry {
         }
     }
 
-    pub fn wait_for_previous_renderer(&self) {
-        let RendererId { 
-            index,
-            ..
-        } = id;
+    pub fn semaphore(&self, id: &RendererId) -> vk::Semaphore {
+        let index = id.index as isize;
+        self.semaphore_internal(index)
+    }
+
+    pub fn previous_semaphore(&self, id: &RendererId) -> vk::Semaphore {
+        let index = id.index as isize - 1;
+        self.semaphore_internal(index)
+    }
+
+    fn semaphore_internal(&self, index: isize) -> vk::Semaphore {
+        if index < 0 {
+            self.frame_in_flight.image_available
+        } else {
+            self.frame_in_flight.renderer_finished[index as usize]
+        }
     }
 }

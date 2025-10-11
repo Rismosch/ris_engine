@@ -162,7 +162,7 @@ impl Image {
             vk::ImageAspectFlags::COLOR
         };
 
-        let (src_access_mask, dst_access_mask, stc_stage_mask, dst_stage_mask) =
+        let (src_access_mask, dst_access_mask, src_stage_mask, dst_stage_mask) =
             match (old_layout, new_layout) {
                 (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => (
                     vk::AccessFlags::empty(),
@@ -219,7 +219,7 @@ impl Image {
         unsafe {
             device.cmd_pipeline_barrier(
                 transient_command.buffer(),
-                stc_stage_mask,
+                src_stage_mask,
                 dst_stage_mask,
                 vk::DependencyFlags::empty(),
                 &[],
