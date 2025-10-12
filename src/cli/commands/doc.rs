@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::cmd;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::cmd;
 
 pub struct Doc;
 
@@ -21,8 +21,12 @@ impl ICommand for Doc {
 
     fn explanation(&self, level: ExplanationLevel) -> String {
         match level {
-            ExplanationLevel::Short => String::from("Generates docs and moves them to another folder."),
-            ExplanationLevel::Detailed => String::from("Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable."),
+            ExplanationLevel::Short => {
+                String::from("Generates docs and moves them to another folder.")
+            }
+            ExplanationLevel::Detailed => String::from(
+                "Generates docs and moves them to another folder. This is useful, because `cargo clean` deletes the `target` dir, which includes the output of `cargo doc`. Having docs available if the workspace does not compile is invaluable.",
+            ),
         }
     }
 

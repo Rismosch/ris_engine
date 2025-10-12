@@ -32,6 +32,10 @@ struct GizmoSegmentFrame {
 }
 
 impl GizmoSegmentFrame {
+    /// # Safety
+    ///
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -63,7 +67,8 @@ pub struct GizmoSegmentRendererArgs<'a> {
 impl GizmoSegmentRenderer {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -489,11 +494,8 @@ impl GizmoSegmentRenderer {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        args: GizmoSegmentRendererArgs,
-    ) -> RisResult<Option<vk::CommandBuffer>> {
-        let GizmoSegmentRendererArgs { 
+    pub fn draw(&mut self, args: GizmoSegmentRendererArgs) -> RisResult<Option<vk::CommandBuffer>> {
+        let GizmoSegmentRendererArgs {
             core,
             swapchain_entry,
             vertices,

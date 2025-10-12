@@ -344,7 +344,7 @@ impl IUiHelperModule for InspectorModule {
                         Some(parent) => {
                             world_rotation = parent.rotation(&data.state.scene)? * world_rotation;
                             parent.parent(&data.state.scene)?
-                        },
+                        }
                         None => break,
                     }
                 }

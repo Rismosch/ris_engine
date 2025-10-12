@@ -238,24 +238,36 @@ fn should_not_set_parent_from_another_chunk() {
     let static_0_child = GameObjectHandle::new_static(&scene, 0).unwrap();
     let static_1_child = GameObjectHandle::new_static(&scene, 1).unwrap();
 
-    assert!(dynmic_child
-        .set_parent(&scene, Some(static_0_parent), 0)
-        .is_err());
-    assert!(dynmic_child
-        .set_parent(&scene, Some(static_1_parent), 0)
-        .is_err());
-    assert!(static_0_child
-        .set_parent(&scene, Some(dynmic_parent), 0)
-        .is_err());
-    assert!(static_0_child
-        .set_parent(&scene, Some(static_1_parent), 0)
-        .is_err());
-    assert!(static_1_child
-        .set_parent(&scene, Some(dynmic_parent), 0)
-        .is_err());
-    assert!(static_1_child
-        .set_parent(&scene, Some(static_0_parent), 0)
-        .is_err());
+    assert!(
+        dynmic_child
+            .set_parent(&scene, Some(static_0_parent), 0)
+            .is_err()
+    );
+    assert!(
+        dynmic_child
+            .set_parent(&scene, Some(static_1_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_0_child
+            .set_parent(&scene, Some(dynmic_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_0_child
+            .set_parent(&scene, Some(static_1_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_1_child
+            .set_parent(&scene, Some(dynmic_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_1_child
+            .set_parent(&scene, Some(static_0_parent), 0)
+            .is_err()
+    );
 }
 
 #[test]

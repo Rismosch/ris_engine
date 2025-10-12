@@ -147,7 +147,7 @@ impl GodObject {
             &vulkan_core,
             &god_asset,
             #[cfg(feature = "ui_helper_enabled")]
-            &mut imgui_backend.context(),
+            imgui_backend.context(),
         )?;
 
         let output_frame = OutputFrame {

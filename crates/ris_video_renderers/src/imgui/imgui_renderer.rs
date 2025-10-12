@@ -31,7 +31,8 @@ pub struct ImguiFrame {
 impl ImguiFrame {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -62,7 +63,8 @@ pub struct ImguiRendererArgs<'a> {
 impl ImguiRenderer {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {
@@ -595,7 +597,7 @@ impl ImguiRenderer {
         // render pass
         unsafe {
             device.begin_command_buffer(command_buffer, &command_buffer_begin_info)?;
-            
+
             let framebuffer = swapchain_entry.alloc_framebuffer(
                 self.renderer_id,
                 device,
@@ -750,7 +752,6 @@ impl ImguiRenderer {
 
             device.cmd_end_render_pass(command_buffer);
             device.end_command_buffer(command_buffer)?;
-
         }
 
         Ok(Some(command_buffer))

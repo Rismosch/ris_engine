@@ -9,9 +9,9 @@ use ris_error::RisResult;
 use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
 
-use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::util;
 
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 

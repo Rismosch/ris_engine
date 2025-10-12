@@ -62,14 +62,14 @@ pub struct RendererRegisterer<'a> {
 
 impl<'a> RendererRegisterer<'a> {
     pub fn register(&mut self, secondary_command_buffer_count: usize) -> RisResult<RendererId> {
-        let id = match self.existing_id.clone() {
+        let id = match self.existing_id {
             Some(id) => {
                 let start = id.secondary_command_buffers_start;
                 let end = id.secondary_command_buffers_end;
                 let count = end - start;
                 ris_error::assert!(count == secondary_command_buffer_count)?;
-                id.clone()
-            },
+                id
+            }
             None => self.info.register_renderer(secondary_command_buffer_count),
         };
 
@@ -88,7 +88,8 @@ impl<'a> FrameInFlightCreateInfo<'a> {
     fn register_renderer(&mut self, secondary_command_buffer_count: usize) -> RendererId {
         let index = self.renderer_count;
         let secondary_command_buffers_start = self.secondary_command_buffer_count;
-        let secondary_command_buffers_end = secondary_command_buffers_start + secondary_command_buffer_count;
+        let secondary_command_buffers_end =
+            secondary_command_buffers_start + secondary_command_buffer_count;
 
         self.renderer_count += 1;
         self.secondary_command_buffer_count += secondary_command_buffer_count;
@@ -102,27 +103,21 @@ impl<'a> FrameInFlightCreateInfo<'a> {
 }
 
 impl FramesInFlight {
+    /// # Safety
+    ///
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for entry in self.entries.iter_mut() {
             // free synchronization
-            device.destroy_fence(
-                entry.finished_fence,
-                None,
-            );
+            device.destroy_fence(entry.finished_fence, None);
 
-            device.destroy_semaphore(
-                entry.finished_semaphore,
-                None,
-            );
+            device.destroy_semaphore(entry.finished_semaphore, None);
 
-            device.destroy_semaphore(
-                entry.image_available,
-                None,
-            );
+            device.destroy_semaphore(entry.image_available, None);
 
             // free command buffers
-            if !entry.secondary_command_buffers.is_empty()
-            {
+            if !entry.secondary_command_buffers.is_empty() {
                 device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
             }
             device.free_command_buffers(entry.command_pool, &entry.primary_command_buffers);
@@ -140,7 +135,6 @@ impl FramesInFlight {
             secondary_command_buffer_count,
         } = info;
 
-
         let mut entries = Vec::with_capacity(MAX_FRAMES_IN_FLIGHT);
         for i in 0..entries.capacity() {
             // command pool
@@ -150,7 +144,8 @@ impl FramesInFlight {
                 flags: vk::CommandPoolCreateFlags::empty(),
                 queue_family_index: suitable_device.graphics_queue_family,
             };
-            let command_pool = unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
+            let command_pool =
+                unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
             let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
                 s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
@@ -160,7 +155,8 @@ impl FramesInFlight {
                 command_buffer_count: renderer_count as u32,
             };
 
-            let primary_command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
+            let primary_command_buffers =
+                unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
 
             let secondary_command_buffers = if secondary_command_buffer_count == 0 {
                 Vec::with_capacity(0)
@@ -172,7 +168,7 @@ impl FramesInFlight {
                     level: vk::CommandBufferLevel::SECONDARY,
                     command_buffer_count: secondary_command_buffer_count as u32,
                 };
-                unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?
+                unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?
             };
 
             // synchronization
@@ -187,11 +183,12 @@ impl FramesInFlight {
                 flags: vk::FenceCreateFlags::SIGNALED,
             };
 
-            let image_available = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
+            let image_available = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
 
-            let finished_semaphore = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
+            let finished_semaphore =
+                unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
 
-            let finished_fence = unsafe {device.create_fence(&fence_create_info, None)}?;
+            let finished_fence = unsafe { device.create_fence(&fence_create_info, None) }?;
 
             // construct frame
             let entry = FrameInFlight {

@@ -13,8 +13,8 @@ use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::frames_in_flight::FrameInFlight;
-use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::frames_in_flight::RendererId;
+use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
@@ -48,7 +48,8 @@ pub struct SceneFrame {
 impl SceneFrame {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.descriptor_buffer.free(device);
     }
@@ -78,7 +79,8 @@ pub struct SceneRendererArgs<'a> {
 impl SceneRenderer {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for frame in self.frames.iter_mut() {

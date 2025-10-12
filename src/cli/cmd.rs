@@ -80,10 +80,10 @@ where
 }
 
 pub fn has_exit_code(exit_status: &std::process::ExitStatus, exit_code: i32) -> bool {
-    if let Some(code) = exit_status.code() {
-        if code == exit_code {
-            return true;
-        }
+    if let Some(code) = exit_status.code()
+        && code == exit_code
+    {
+        return true;
     }
 
     false

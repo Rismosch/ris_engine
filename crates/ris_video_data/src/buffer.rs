@@ -36,7 +36,8 @@ pub struct CopyToImageInfo<'a> {
 impl Buffer {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_buffer(self.buffer, None);

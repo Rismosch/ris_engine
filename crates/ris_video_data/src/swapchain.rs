@@ -4,8 +4,8 @@ use ash::extensions::khr::Surface as SurfaceLoader;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use ash::vk;
 
-use ris_ptr::ArefCell;
 use ris_error::prelude::*;
+use ris_ptr::ArefCell;
 
 use super::frames_in_flight::RendererId;
 use super::image::Image;
@@ -49,7 +49,8 @@ pub struct SwapchainCreateInfo<'a> {
 impl Swapchain {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for entry in self.entries.iter_mut() {
@@ -69,7 +70,7 @@ impl Swapchain {
     }
 
     pub fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
-        let SwapchainCreateInfo { 
+        let SwapchainCreateInfo {
             instance,
             surface_loader,
             surface,
@@ -94,18 +95,17 @@ impl Swapchain {
             None => formats[0],
         };
 
-        let depth_format =
-            super::util::find_supported_format(
-                instance,
-                suitable_device.physical_device,
-                &[
-                    vk::Format::D32_SFLOAT,
-                    vk::Format::D32_SFLOAT_S8_UINT,
-                    vk::Format::D24_UNORM_S8_UINT,
-                ],
-                vk::ImageTiling::OPTIMAL,
-                vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT,
-            )?;
+        let depth_format = super::util::find_supported_format(
+            instance,
+            suitable_device.physical_device,
+            &[
+                vk::Format::D24_UNORM_S8_UINT,
+                vk::Format::D32_SFLOAT,
+                vk::Format::D32_SFLOAT_S8_UINT,
+            ],
+            vk::ImageTiling::OPTIMAL,
+            vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT,
+        )?;
 
         let preferred_surface_present_mode = present_modes
             .iter()
@@ -249,11 +249,7 @@ impl Swapchain {
         })
     }
 
-    pub fn reserve_framebuffers(
-        &mut self,
-        image_index: usize,
-        count: usize,
-    ) {
+    pub fn reserve_framebuffers(&mut self, image_index: usize, count: usize) {
         let entry = &mut self.entries[image_index];
         while entry.framebuffers.len() < count {
             entry.framebuffers.push(ArefCell::new(None));
@@ -269,15 +265,13 @@ impl SwapchainEntry {
         framebuffer_create_info: vk::FramebufferCreateInfo,
     ) -> RisResult<vk::Framebuffer> {
         let index = id.index();
-        let mut framebuffer = self.framebuffers
-            .get(index)
-            .into_ris_error()?
-            .borrow_mut();
+        let mut framebuffer = self.framebuffers.get(index).into_ris_error()?.borrow_mut();
 
         match *framebuffer {
             Some(framebuffer) => Ok(framebuffer),
             None => {
-                let new_framebuffer = unsafe {device.create_framebuffer(&framebuffer_create_info, None)}?;
+                let new_framebuffer =
+                    unsafe { device.create_framebuffer(&framebuffer_create_info, None) }?;
                 *framebuffer = Some(new_framebuffer);
                 Ok(new_framebuffer)
             }

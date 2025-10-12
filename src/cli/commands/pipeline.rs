@@ -3,10 +3,10 @@ use std::path::Path;
 use ris_error::RisResult;
 use ris_io::fallback_file::FallbackFileAppend;
 
-use super::cmd;
-use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::cmd;
+use super::util;
 
 pub struct Pipeline;
 
@@ -152,7 +152,9 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
+                cargo(
+                    "clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings",
+                ),
             );
             test(
                 results,
@@ -170,7 +172,9 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
+                cargo(
+                    "clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings",
+                ),
             );
         }
 

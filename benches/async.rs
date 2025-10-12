@@ -1,7 +1,7 @@
+use criterion::Criterion;
 use criterion::black_box;
 use criterion::criterion_group;
 use criterion::criterion_main;
-use criterion::Criterion;
 
 use ris_async::thread_pool::ThreadPool;
 use ris_async::thread_pool::ThreadPoolCreateInfo;

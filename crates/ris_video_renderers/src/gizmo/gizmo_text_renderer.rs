@@ -37,6 +37,10 @@ struct GizmoTextFrame {
 }
 
 impl GizmoTextFrame {
+    /// # Safety
+    ///
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
             mesh.free(device);
@@ -64,13 +68,14 @@ pub struct GizmoTextRendererArgs<'a> {
     pub text: &'a [u8],
     pub window_drawable_size: (u32, u32),
     pub camera: &'a Camera,
-    pub frames_in_flight: &'a FrameInFlight,
+    pub frame_in_flight: &'a FrameInFlight,
 }
 
 impl GizmoTextRenderer {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for frame in self.frames.iter_mut() {
             frame.free(device);
@@ -571,18 +576,15 @@ impl GizmoTextRenderer {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        args: GizmoTextRendererArgs,
-    ) -> RisResult<Option<vk::CommandBuffer>> {
-        let GizmoTextRendererArgs { 
+    pub fn draw(&mut self, args: GizmoTextRendererArgs) -> RisResult<Option<vk::CommandBuffer>> {
+        let GizmoTextRendererArgs {
             core,
             swapchain_entry,
             vertices,
             text,
             window_drawable_size,
             camera,
-            frames_in_flight,
+            frame_in_flight,
         } = args;
 
         let VulkanCore {
@@ -617,7 +619,7 @@ impl GizmoTextRenderer {
         if vertices.is_empty() {
             return Ok(None);
         }
-        
+
         let mesh = match mesh {
             Some(mesh) => {
                 mesh.update(
@@ -637,7 +639,7 @@ impl GizmoTextRenderer {
         };
 
         // command buffer
-        let command_buffer = frames_in_flight.primary_command_buffer(self.renderer_id);
+        let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
             p_next: ptr::null(),

@@ -178,7 +178,7 @@ fn wrap_process(mut app_info: AppInfo) -> RisResult<()> {
                     return ris_error::new_result!(
                         "error while formatting output.stderr: {}",
                         error
-                    )
+                    );
                 }
             }
 

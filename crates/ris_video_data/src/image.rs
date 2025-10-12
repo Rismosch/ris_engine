@@ -39,7 +39,8 @@ pub struct TransitionLayoutInfo<'a> {
 impl Image {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
         unsafe {
             device.destroy_image(self.image, None);

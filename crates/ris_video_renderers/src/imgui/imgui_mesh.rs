@@ -16,7 +16,8 @@ pub struct Mesh {
 impl Mesh {
     /// # Safety
     ///
-    /// May only be called once. Memory must not be freed twice.
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         self.vertices.free(device);
         self.indices.free(device);
