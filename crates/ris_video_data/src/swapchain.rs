@@ -4,8 +4,10 @@ use ash::extensions::khr::Surface as SurfaceLoader;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use ash::vk;
 
+use ris_ptr::ArefCell;
 use ris_error::prelude::*;
 
+use super::frames_in_flight::RendererId;
 use super::image::Image;
 use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
@@ -22,11 +24,15 @@ pub struct Swapchain {
     pub entries: Vec<SwapchainEntry>,
 }
 
+type Framebuffer = ArefCell<Option<vk::Framebuffer>>;
+
 pub struct SwapchainEntry {
+    pub index: usize,
     pub viewport_image: vk::Image,
     pub viewport_image_view: vk::ImageView,
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
+    framebuffers: Vec<Framebuffer>,
 }
 
 pub struct SwapchainCreateInfo<'a> {
@@ -47,6 +53,12 @@ impl Swapchain {
     pub unsafe fn free(&mut self, device: &ash::Device) {
         unsafe {
             for entry in self.entries.iter_mut() {
+                for framebuffer in entry.framebuffers.iter_mut() {
+                    if let Some(framebuffer) = framebuffer.borrow_mut().take() {
+                        device.destroy_framebuffer(framebuffer, None);
+                    }
+                }
+
                 device.destroy_image_view(entry.viewport_image_view, None);
                 entry.depth_image.free(device);
                 device.destroy_image_view(entry.depth_image_view, None);
@@ -180,7 +192,7 @@ impl Swapchain {
         let viewport_images = unsafe { loader.get_swapchain_images(swapchain) }?;
 
         let mut entries = Vec::with_capacity(viewport_images.len());
-        for viewport_image in viewport_images {
+        for (index, viewport_image) in viewport_images.into_iter().enumerate() {
             let viewport_image_view = Image::alloc_view(
                 device,
                 viewport_image,
@@ -217,10 +229,12 @@ impl Swapchain {
             })?;
 
             let entry = SwapchainEntry {
+                index,
                 viewport_image,
                 viewport_image_view,
                 depth_image,
                 depth_image_view,
+                framebuffers: Vec::new(),
             };
             entries.push(entry);
         }
@@ -233,5 +247,37 @@ impl Swapchain {
             swapchain,
             entries,
         })
+    }
+
+    pub fn reserve_framebuffers(&mut self, count: usize) {
+        for entry in self.entries.iter_mut() {
+            while entry.framebuffers.len() < count {
+                entry.framebuffers.push(ArefCell::new(None));
+            }
+        }
+    }
+}
+
+impl SwapchainEntry {
+    pub fn alloc_framebuffer(
+        &self,
+        id: RendererId,
+        device: &ash::Device,
+        framebuffer_create_info: vk::FramebufferCreateInfo,
+    ) -> RisResult<vk::Framebuffer> {
+        let index = id.index();
+        let mut framebuffer = self.framebuffers
+            .get(index)
+            .into_ris_error()?
+            .borrow_mut();
+
+        match *framebuffer {
+            Some(framebuffer) => Ok(framebuffer),
+            None => {
+                let new_framebuffer = unsafe {device.create_framebuffer(&framebuffer_create_info, None)}?;
+                *framebuffer = Some(new_framebuffer);
+                Ok(new_framebuffer)
+            }
+        }
     }
 }

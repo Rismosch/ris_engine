@@ -25,6 +25,19 @@ const _: () = {
     )
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RendererId {
+    index: usize,
+    command_buffers_start: usize,
+    command_buffers_end: usize,
+}
+
+impl RendererId {
+    pub fn index(&self) -> usize {
+        self.index
+    }
+}
+
 pub struct FramesInFlight {
     pub entries: Vec<FrameInFlight>,
     pub current_frame: usize,
@@ -33,35 +46,45 @@ pub struct FramesInFlight {
 pub struct FrameInFlight {
     pub index: usize,
 
-    // rendering related
     pub command_pool: vk::CommandPool,
     pub primary_command_buffer: vk::CommandBuffer,
-    pub secondary_command_buffers: Vec<vk::CommandBuffer>, // multiple per renderer
-    pub framebuffers: Vec<Option<vk::Framebuffer>>, // one per renderer
+    pub secondary_command_buffers: Vec<vk::CommandBuffer>,
 
-    // synchronization
     pub image_available: vk::Semaphore,
     pub renderer_finished: Vec<vk::Semaphore>,
     pub command_buffer_finished: vk::Semaphore,
     pub done: vk::Fence,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)] // 
-pub struct RendererId {
-    index: usize,
-    command_buffers_start: usize,
-    command_buffers_end: usize,
+pub struct RendererRegisterer<'a> {
+    pub info: FrameInFlightCreateInfo<'a>,
+    pub existing_id: Option<RendererId>,
+}
+
+impl<'a> RendererRegisterer<'a> {
+    pub fn register(&mut self, command_buffer_count: usize) -> RisResult<RendererId> {
+        match self.existing_id.clone() {
+            Some(id) => {
+                let start = id.command_buffers_start;
+                let end = id.command_buffers_end;
+                let count = end - start;
+                ris_error::assert!(count == command_buffer_count)?;
+                Ok(id.clone())
+            },
+            None => Ok(self.info.register_renderer(command_buffer_count)),
+        }
+    }
 }
 
 pub struct FrameInFlightCreateInfo<'a> {
-    suitable_device: &'a SuitableDevice,
-    device: &'a ash::Device,
-    renderer_count: usize,
-    command_buffer_count: usize,
+    pub suitable_device: &'a SuitableDevice,
+    pub device: &'a ash::Device,
+    pub renderer_count: usize,
+    pub command_buffer_count: usize,
 }
 
 impl<'a> FrameInFlightCreateInfo<'a> {
-    pub fn register_renderer(&mut self, command_buffer_count: usize) -> RendererId {
+    fn register_renderer(&mut self, command_buffer_count: usize) -> RendererId {
         let index = self.renderer_count;
         let command_buffers_start = self.command_buffer_count;
         let command_buffers_end = command_buffers_start + command_buffer_count;
@@ -101,13 +124,6 @@ impl FramesInFlight {
                 entry.image_available,
                 None,
             );
-            
-            // free frame buffers
-            for framebuffer in entry.framebuffers.iter_mut() {
-                if let Some(framebuffer) = framebuffer.take() {
-                    device.destroy_framebuffer(framebuffer, None);
-                }
-            }
 
             // free command buffers
             device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
@@ -161,9 +177,6 @@ impl FramesInFlight {
             };
             let secondary_command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
-            // frame buffers
-            let framebuffers = vec![None; renderer_count];
-
             // synchronization
             let semaphore_create_info = vk::SemaphoreCreateInfo {
                 s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
@@ -194,7 +207,6 @@ impl FramesInFlight {
                 command_pool,
                 primary_command_buffer,
                 secondary_command_buffers,
-                framebuffers,
                 image_available,
                 renderer_finished,
                 command_buffer_finished,
@@ -210,7 +222,9 @@ impl FramesInFlight {
     }
 
     pub fn acquire_next_frame(&mut self, device: &ash::Device) -> RisResult<&mut FrameInFlight> {
+        let next_frame = (self.current_frame + 1) % self.entries.len();
         let entry = &mut self.entries[self.current_frame];
+        self.current_frame = next_frame;
 
         unsafe {
             let fences = [entry.done];
@@ -224,39 +238,19 @@ impl FramesInFlight {
 }
 
 impl FrameInFlight {
-    pub fn command_buffers(&self, id: &RendererId) -> &[vk::CommandBuffer] {
+    pub fn command_buffers(&self, id: RendererId) -> &[vk::CommandBuffer] {
         let start = id.command_buffers_start;
         let end = id.command_buffers_end;
         &self.secondary_command_buffers[start..end]
     }
 
-    pub fn frame_buffer(
-        &mut self,
-        id: &RendererId,
-        device: &ash::Device,
-        framebuffer_create_info: vk::FramebufferCreateInfo,
-    ) -> RisResult<vk::Framebuffer> {
-        let index = id.index;
-
-        let framebuffer = self.framebuffers.get_mut(index).into_ris_error()?;
-
-        match framebuffer {
-            Some(framebuffer) => Ok(*framebuffer),
-            None => {
-                let new_framebuffer = unsafe {device.create_framebuffer(&framebuffer_create_info, None)}?;
-                *framebuffer = Some(new_framebuffer);
-                Ok(new_framebuffer)
-            }
-        }
-    }
-
-    pub fn semaphore(&self, id: &RendererId) -> vk::Semaphore {
-        let index = id.index as isize;
+    pub fn semaphore(&self, id: RendererId) -> vk::Semaphore {
+        let index = id.index() as isize;
         self.semaphore_internal(index)
     }
 
-    pub fn previous_semaphore(&self, id: &RendererId) -> vk::Semaphore {
-        let index = id.index as isize - 1;
+    pub fn previous_semaphore(&self, id: RendererId) -> vk::Semaphore {
+        let index = id.index() as isize - 1;
         self.semaphore_internal(index)
     }
 

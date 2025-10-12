@@ -22,11 +22,8 @@ use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
 use ris_input::gamepad_logic::GamepadLogic;
 use ris_video_data::core::VulkanCore;
-use ris_video_renderers::GizmoSegmentRenderer;
-use ris_video_renderers::GizmoTextRenderer;
-use ris_video_renderers::SceneRenderer;
 #[cfg(feature = "ui_helper_enabled")]
-use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use ris_video_renderers::ImguiBackend;
 
 use crate::output_frame::OutputFrame;
 use crate::output_frame::Renderer;
@@ -135,37 +132,25 @@ impl GodObject {
 
         let vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
-        // scene renderer
-        let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
-
-        // gizmo renderer
+        // gizmo
         let gizmo_guard = ris_debug::gizmo::init()?;
-        let gizmo_segment_renderer = GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
-        let gizmo_text_renderer = GizmoTextRenderer::alloc(&vulkan_core, &god_asset)?;
 
-        // imgui renderer
+        // imgui
         #[cfg(feature = "ui_helper_enabled")]
-        let (imgui_backend, imgui_renderer) = {
-            let mut imgui_backend = ImguiBackend::init(&app_info)?;
-            let context = imgui_backend.context();
-            let imgui_renderer = ImguiRenderer::alloc(&vulkan_core, &god_asset, context)?;
-            (imgui_backend, imgui_renderer)
-        };
+        let mut imgui_backend = ImguiBackend::init(&app_info)?;
 
         // output frame
         #[cfg(feature = "ui_helper_enabled")]
         let ui_helper = UiHelper::new(&app_info)?;
 
-        let renderer = Renderer {
-            scene: scene_renderer,
-            gizmo_segment: gizmo_segment_renderer,
-            gizmo_text: gizmo_text_renderer,
+        let renderer = Renderer::alloc(
+            &vulkan_core,
+            &god_asset,
             #[cfg(feature = "ui_helper_enabled")]
-            imgui: imgui_renderer,
-        };
+            &mut imgui_backend.context(),
+        )?;
 
         let output_frame = OutputFrame {
-            current_frame: 0,
             renderer,
             #[cfg(feature = "ui_helper_enabled")]
             imgui_backend,

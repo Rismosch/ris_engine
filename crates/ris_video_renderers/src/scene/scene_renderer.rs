@@ -12,7 +12,8 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
-use ris_video_data::swapchain::FramebufferID;
+use ris_video_data::frames_in_flight::RendererRegisterer;
+use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
@@ -58,7 +59,7 @@ pub struct SceneRenderer {
     render_pass: vk::RenderPass,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
-    framebuffer_id: FramebufferID,
+    pub renderer_id: RendererId,
     frames: Vec<SceneFrame>,
     texture: Texture,
     pub mesh_lookup: Option<MeshLookup>,
@@ -100,6 +101,7 @@ impl SceneRenderer {
         core: &VulkanCore,
         god_asset: &RisGodAsset,
         mesh_lookup: Option<MeshLookup>,
+        renderer_registerer: &mut RendererRegisterer,
     ) -> RisResult<Self> {
         ris_log::info!("building scene renderer...");
 
@@ -413,10 +415,7 @@ impl SceneRenderer {
 
         let depth_attachment = vk::AttachmentDescription {
             flags: vk::AttachmentDescriptionFlags::empty(),
-            format: ris_video_data::util::find_depth_format(
-                instance,
-                suitable_device.physical_device,
-            )?,
+            format: swapchain.depth_format,
             samples: vk::SampleCountFlags::TYPE_1,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -515,7 +514,7 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
-        let framebuffer_id = swapchain.register_renderer()?;
+        let renderer_id = renderer_registerer.register(1)?;
 
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
@@ -558,7 +557,7 @@ impl SceneRenderer {
             render_pass,
             pipeline,
             pipeline_layout,
-            framebuffer_id,
+            renderer_id,
             frames,
             texture,
             mesh_lookup,
@@ -566,7 +565,7 @@ impl SceneRenderer {
     }
 
     pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<()> {
-        let SceneRendererArgs {
+        /*let SceneRendererArgs {
             core,
             swapchain_entry,
             window_drawable_size,
@@ -805,7 +804,7 @@ impl SceneRenderer {
             }
 
             device.cmd_end_render_pass(*command_buffer);
-        }
+        }*/
 
         Ok(())
     }

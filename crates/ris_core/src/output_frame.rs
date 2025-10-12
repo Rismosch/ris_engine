@@ -1,17 +1,24 @@
+use core::option::Option::None;
 use std::ptr;
 
 use ash::vk;
+use ris_log::debug;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
 use ris_asset::RisGodAsset;
+use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_video_data::core::VulkanCore;
-use ris_video_data::frame_in_flight::FrameInFlight;
+use ris_video_data::frames_in_flight::FrameInFlight;
+use ris_video_data::frames_in_flight::FrameInFlightCreateInfo;
+use ris_video_data::frames_in_flight::FramesInFlight;
+use ris_video_data::frames_in_flight::RendererId;
+use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoTextRenderer;
@@ -29,30 +36,174 @@ pub struct Renderer {
     pub gizmo_text: GizmoTextRenderer,
     #[cfg(feature = "ui_helper_enabled")]
     pub imgui: ImguiRenderer,
+    pub frames_in_flight: Option<FramesInFlight>,
+}
+
+pub struct RendererIds {
+    pub scene: RendererId,
+    pub gizmo_segment: RendererId,
+    pub gizmo_text: RendererId,
+    #[cfg(feature = "ui_helper_enabled")]
+    pub imgui: RendererId,
 }
 
 impl Renderer {
     /// # Safety
     ///
     /// May only be called once. Memory must not be freed twice.
-    pub unsafe fn free(&mut self, device: &ash::Device) {
+    pub unsafe fn free(
+        &mut self,
+        device: &ash::Device,
+        free_frames_in_flight: bool,
+    ) {
+        if free_frames_in_flight {
+            if let Some(mut frames_in_flight) = self.frames_in_flight.take() {
+                frames_in_flight.free(device);
+            }
+        }
+
         self.scene.free(device);
         self.gizmo_segment.free(device);
         self.gizmo_text.free(device);
         #[cfg(feature = "ui_helper_enabled")]
         self.imgui.free(device);
     }
+
+    pub fn alloc(
+        core: &VulkanCore,
+        god_asset: &RisGodAsset,
+        #[cfg(feature = "ui_helper_enabled")]
+        imgui_context: &mut imgui::Context,
+    ) -> RisResult<Self> {
+        Self::alloc_internal(
+            core,
+            god_asset,
+            None,
+            None,
+            #[cfg(feature = "ui_helper_enabled")]
+            imgui_context,
+            None,
+        )
+    }
+
+    fn alloc_internal(
+        core: &VulkanCore,
+        god_asset: &RisGodAsset,
+        mesh_lookup: Option<MeshLookup>,
+        renderer_ids: Option<RendererIds>,
+        #[cfg(feature = "ui_helper_enabled")]
+        imgui_context: &mut imgui::Context,
+        frames_in_flight: Option<FramesInFlight>,
+    ) -> RisResult<Self> {
+        let frame_in_flight_create_info = FrameInFlightCreateInfo {
+            suitable_device: &core.suitable_device,
+            device: &core.device,
+            renderer_count: 0,
+            command_buffer_count: 0,
+        };
+
+        let mut renderer_registerer = RendererRegisterer {
+            info: frame_in_flight_create_info,
+            existing_id: None,
+        };
+
+        renderer_registerer.existing_id = renderer_ids.map(|x| x.scene.clone());
+        let scene = SceneRenderer::alloc(
+            core,
+            god_asset,
+            mesh_lookup,
+            &mut renderer_registerer,
+        )?;
+        let gizmo_segment = GizmoSegmentRenderer::alloc(
+            core,
+            god_asset,
+            &mut renderer_registerer,
+        )?;
+        let gizmo_text = GizmoTextRenderer::alloc(
+            core,
+            god_asset,
+            &mut renderer_registerer,
+        )?;
+        #[cfg(feature = "ui_helper_enabled")]
+        let imgui = ImguiRenderer::alloc(
+            core,
+            god_asset,
+            imgui_context,
+            &mut renderer_registerer,
+        )?;
+
+        let frames_in_flight = if let Some(frames_in_flight) = frames_in_flight {
+            Some(frames_in_flight)
+        } else {
+            Some(FramesInFlight::alloc(renderer_registerer.info)?)
+        };
+
+        Ok(Self{
+            scene,
+            gizmo_segment,
+            gizmo_text,
+            #[cfg(feature = "ui_helper_enabled")]
+            imgui,
+            frames_in_flight,
+        })
+    }
+
+    fn recreate(
+        &mut self,
+        core: &VulkanCore,
+        god_asset: &RisGodAsset,
+        #[cfg(feature = "ui_helper_enabled")]
+        imgui_context: &mut imgui::Context,
+    ) -> RisResult<()> {
+        let VulkanCore {
+            instance,
+            suitable_device,
+            device,
+            ..
+        } = core;
+
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
+
+        let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
+        mesh_lookup.reimport_everything(
+            device,
+            physical_device_memory_properties,
+        );
+
+        let renderer_ids = RendererIds {
+            scene: self.scene.renderer_id.clone(),
+            gizmo_segment: self.gizmo_segment.renderer_id.clone(),
+            gizmo_text: self.gizmo_text.renderer_id.clone(),
+            #[cfg(feature = "ui_helper_enabled")]
+            imgui: self.imgui.renderer_id.clone(),
+        };
+
+        let frames_in_flight = self.frames_in_flight.take();
+
+        unsafe {self.free(device, false)};
+        *self = Self::alloc_internal(
+            core,
+            god_asset,
+            Some(mesh_lookup),
+            Some(renderer_ids),
+            imgui_context,
+            frames_in_flight,
+        )?;
+
+        Ok(())
+    }
 }
 
 pub struct OutputFrame {
-    pub current_frame: usize,
     pub renderer: Renderer,
     #[cfg(feature = "ui_helper_enabled")]
     pub imgui_backend: ImguiBackend,
     #[cfg(feature = "ui_helper_enabled")]
     pub ui_helper: UiHelper,
 
-    // mut be dropped last
+    // must be dropped last
     pub core: VulkanCore,
     pub window: Window,
 }
@@ -69,7 +220,7 @@ impl Drop for OutputFrame {
                 return;
             }
 
-            self.renderer.free(&self.core.device);
+            self.renderer.free(&self.core.device, true);
             self.core.free();
         }
     }
@@ -106,27 +257,23 @@ impl OutputFrame {
             ..
         } = &self.core;
 
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
+        //let frames_in_flight = swapchain.frames_in_flight.as_ref().into_ris_error()?;
+        //let FrameInFlight {
+        //    image_available,
+        //    render_finished,
+        //    in_flight,
+        //} = &frames_in_flight[self.current_frame];
+        //let next_frame = (self.current_frame + 1) % frames_in_flight.len();
+        //self.current_frame = next_frame;
 
-        let frames_in_flight = swapchain.frames_in_flight.as_ref().into_ris_error()?;
-        let FrameInFlight {
-            image_available,
-            render_finished,
-            in_flight,
-        } = &frames_in_flight[self.current_frame];
-        let next_frame = (self.current_frame + 1) % frames_in_flight.len();
-        self.current_frame = next_frame;
+        //let image_available_sem = [*image_available];
+        //let render_finished_sem = [*render_finished];
 
-        let image_available_sem = [*image_available];
-        let render_finished_sem = [*render_finished];
+        //// wait for the previous frame to finish
+        //ris_debug::add_record!(r, "wait for previous frame to finish")?;
 
-        // wait for the previous frame to finish
-        ris_debug::add_record!(r, "wait for previous frame to finish")?;
-
-        unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
-        unsafe { device.reset_fences(&[*in_flight]) }?;
+        //unsafe { device.wait_for_fences(&[*in_flight], true, u64::MAX) }?;
+        //unsafe { device.reset_fences(&[*in_flight]) }?;
 
 
         // ui helper
@@ -165,29 +312,31 @@ impl OutputFrame {
             unsafe {
                 ris_log::trace!("rebuilding renderers...");
                 self.core.device.device_wait_idle()?;
-
-                let mut mesh_lookup = self.renderer.scene.mesh_lookup.take().into_ris_error()?;
-                mesh_lookup.reimport_everything(device, physical_device_memory_properties);
-
-                self.renderer.scene.free(device);
-                self.renderer.gizmo_segment.free(device);
-                self.renderer.gizmo_text.free(device);
-                #[cfg(feature = "ui_helper_enabled")]
-                self.renderer.imgui.free(device);
-
-                self.renderer.scene =
-                    SceneRenderer::alloc(&self.core, god_asset, Some(mesh_lookup))?;
-                self.renderer.gizmo_segment = GizmoSegmentRenderer::alloc(&self.core, god_asset)?;
-                self.renderer.gizmo_text = GizmoTextRenderer::alloc(&self.core, god_asset)?;
-                #[cfg(feature = "ui_helper_enabled")]
-                {
-                    self.renderer.imgui =
-                        ImguiRenderer::alloc(&self.core, god_asset, self.imgui_backend.context())?;
-                }
-
+                self.renderer.recreate(
+                    &self.core,
+                    &god_asset,
+                    #[cfg(feature = "ui_helper_enabled")]
+                    self.imgui_backend.context()
+                )?;
                 ris_log::debug!("rebuilt renderers!");
             }
         }
+
+        // dvance frame in flight
+        let FrameInFlight { 
+            index,
+            command_pool,
+            primary_command_buffer,
+            secondary_command_buffers,
+            image_available,
+            renderer_finished,
+            command_buffer_finished,
+            done,
+        } = &mut self.renderer
+            .frames_in_flight
+            .as_mut()
+            .into_ris_error()?
+            .acquire_next_frame(device)?;
 
         // acquire an image from the swap chain
         ris_debug::add_record!(r, "acquire an image from the swapchain")?;
@@ -218,17 +367,19 @@ impl OutputFrame {
         // prepare command buffer
         ris_debug::add_record!(r, "prepare command buffer")?;
         let swapchain_entry = &swapchain.entries[image_index as usize];
-        let SwapchainEntry { command_buffer, .. } = swapchain_entry;
 
-        todo!("reset here");
+        unsafe {device.reset_command_pool(
+            *command_pool,
+            vk::CommandPoolResetFlags::empty(),
+        )};
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
             p_next: ptr::null(),
-            flags: vk::CommandBufferUsageFlags::empty(),
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
             p_inheritance_info: ptr::null(),
         };
-        unsafe { device.begin_command_buffer(*command_buffer, &command_buffer_begin_info) }?;
+        unsafe { device.begin_command_buffer(*primary_command_buffer, &command_buffer_begin_info) }?;
 
         // prepare camera
         ris_debug::add_record!(r, "prepare camera")?;
@@ -292,22 +443,22 @@ impl OutputFrame {
 
         // end command buffer and submit
         ris_debug::add_record!(r, "submit command buffer")?;
-        unsafe { device.end_command_buffer(*command_buffer) }?;
-        let command_buffers = [*command_buffer];
+        unsafe { device.end_command_buffer(*primary_command_buffer) }?;
+        let command_buffers = [*primary_command_buffer];
         let wait_dst_stage_mask = [vk::PipelineStageFlags::TOP_OF_PIPE];
         let submit_infos = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
             p_next: ptr::null(),
-            wait_semaphore_count: image_available_sem.len() as u32,
-            p_wait_semaphores: image_available_sem.as_ptr(),
+            wait_semaphore_count: 1,
+            p_wait_semaphores: image_available,
             p_wait_dst_stage_mask: wait_dst_stage_mask.as_ptr(),
             command_buffer_count: command_buffers.len() as u32,
             p_command_buffers: command_buffers.as_ptr(),
-            signal_semaphore_count: render_finished_sem.len() as u32,
-            p_signal_semaphores: render_finished_sem.as_ptr(),
+            signal_semaphore_count: 1,
+            p_signal_semaphores: command_buffer_finished,
         }];
 
-        unsafe { device.queue_submit(*graphics_queue, &submit_infos, *in_flight) }?;
+        unsafe { device.queue_submit(*graphics_queue, &submit_infos, *done) }?;
 
         // present swap chain image
         ris_debug::add_record!(r, "present the swap chain image")?;
@@ -316,8 +467,8 @@ impl OutputFrame {
         let present_info = vk::PresentInfoKHR {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
             p_next: ptr::null(),
-            wait_semaphore_count: render_finished_sem.len() as u32,
-            p_wait_semaphores: render_finished_sem.as_ptr(),
+            wait_semaphore_count: 1,
+            p_wait_semaphores: command_buffer_finished,
             swapchain_count: swapchains.len() as u32,
             p_swapchains: swapchains.as_ptr(),
             p_image_indices: &image_index,

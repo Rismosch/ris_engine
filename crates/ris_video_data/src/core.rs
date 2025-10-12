@@ -8,7 +8,6 @@ use sdl2::video::Window;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::frames_in_flight::FramesInFlight;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
@@ -25,7 +24,6 @@ pub struct VulkanCore {
     pub present_queue: vk::Queue,
     pub transient_command_pool: vk::CommandPool,
     pub swapchain: Swapchain,
-    pub frames_in_flight: Option<FramesInFlight>,
 }
 
 impl VulkanCore {
@@ -222,7 +220,6 @@ impl VulkanCore {
             present_queue,
             transient_command_pool,
             swapchain,
-            frames_in_flight: None,
         })
     }
 
@@ -236,25 +233,12 @@ impl VulkanCore {
             graphics_queue,
             transient_command_pool,
             swapchain,
-            frames_in_flight,
             ..
         } = self;
 
         ris_log::trace!("recreating swapchain...");
 
         unsafe {
-            // free frame buffers
-            if let Some(frames_in_flight) = frames_in_flight.as_mut() {
-                for frame in frames_in_flight.entries.iter_mut() {
-                    for framebuffer in frame.framebuffers.iter_mut() {
-                        if let Some(framebuffer) = framebuffer.take() {
-                            device.destroy_framebuffer(framebuffer, None);
-                        }
-                    }
-                }
-            }
-
-            // free and allocate swapchain
             device.device_wait_idle()?;
             swapchain.free(device);
             *swapchain = Swapchain::alloc(SwapchainCreateInfo {
