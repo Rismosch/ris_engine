@@ -3,7 +3,9 @@ pub mod imgui;
 pub mod scene;
 
 pub use gizmo::gizmo_segment_renderer::GizmoSegmentRenderer;
+pub use gizmo::gizmo_segment_renderer::GizmoSegmentRendererArgs;
 pub use gizmo::gizmo_text_renderer::GizmoTextRenderer;
+pub use gizmo::gizmo_text_renderer::GizmoTextRendererArgs;
 pub use imgui::imgui_backend::ImguiBackend;
 pub use imgui::imgui_renderer::ImguiRenderer;
 pub use imgui::imgui_renderer::ImguiRendererArgs;

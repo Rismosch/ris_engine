@@ -12,6 +12,7 @@ use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::frames_in_flight::FrameInFlight;
 use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::swapchain::SwapchainEntry;
@@ -71,6 +72,7 @@ pub struct SceneRendererArgs<'a> {
     pub window_drawable_size: (u32, u32),
     pub camera: &'a Camera,
     pub scene: &'a Scene,
+    pub frame_in_flight: &'a FrameInFlight,
 }
 
 impl SceneRenderer {
@@ -514,7 +516,7 @@ impl SceneRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // frames
-        let renderer_id = renderer_registerer.register(1)?;
+        let renderer_id = renderer_registerer.register(0)?;
 
         let frame_count = swapchain.entries.len();
         let mut frames = Vec::with_capacity(frame_count);
@@ -564,13 +566,14 @@ impl SceneRenderer {
         })
     }
 
-    pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<()> {
-        /*let SceneRendererArgs {
+    pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<vk::CommandBuffer> {
+        let SceneRendererArgs {
             core,
             swapchain_entry,
             window_drawable_size,
             camera,
             scene,
+            frame_in_flight,
         } = args;
 
         let VulkanCore {
@@ -589,8 +592,6 @@ impl SceneRenderer {
             index,
             viewport_image_view,
             depth_image_view,
-            command_buffer,
-            framebuffer_allocator,
             ..
         } = swapchain_entry;
 
@@ -605,10 +606,19 @@ impl SceneRenderer {
         // clean up
         mesh_lookup.free_unused_meshes(device)?;
 
+        // command buffer
+        let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+            p_inheritance_info: ptr::null(),
+        };
+
         // framebuffer
         let attachments = [*viewport_image_view, *depth_image_view];
 
-        let frame_buffer_create_info = vk::FramebufferCreateInfo {
+        let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
@@ -622,10 +632,12 @@ impl SceneRenderer {
 
         // render pass
         unsafe {
-            let framebuffer = framebuffer_allocator.borrow_mut().get(
-                self.framebuffer_id,
+            device.begin_command_buffer(command_buffer, &command_buffer_begin_info)?;
+
+            let framebuffer = swapchain_entry.alloc_framebuffer(
+                self.renderer_id,
                 device,
-                frame_buffer_create_info,
+                framebuffer_create_info,
             )?;
 
             let clear_values = [
@@ -656,13 +668,13 @@ impl SceneRenderer {
             };
 
             device.cmd_begin_render_pass(
-                *command_buffer,
+                command_buffer,
                 &render_pass_begin_info,
                 vk::SubpassContents::INLINE,
             );
 
             device.cmd_bind_pipeline(
-                *command_buffer,
+                command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline,
             );
@@ -684,8 +696,8 @@ impl SceneRenderer {
                 },
             }];
 
-            device.cmd_set_viewport(*command_buffer, 0, &viewports);
-            device.cmd_set_scissor(*command_buffer, 0, &scissors);
+            device.cmd_set_viewport(command_buffer, 0, &viewports);
+            device.cmd_set_scissor(command_buffer, 0, &scissors);
 
             let ubo = [UniformBufferObject {
                 view: camera.view_matrix(),
@@ -735,7 +747,7 @@ impl SceneRenderer {
             device.update_descriptor_sets(&write_descriptor_sets, &[]);
 
             device.cmd_bind_descriptor_sets(
-                *command_buffer,
+                command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline_layout,
                 0,
@@ -779,7 +791,7 @@ impl SceneRenderer {
                 let push_constants_bytes = std::slice::from_raw_parts(push_constants_ptr, size);
 
                 device.cmd_push_constants(
-                    *command_buffer,
+                    command_buffer,
                     self.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
                     0,
@@ -787,25 +799,26 @@ impl SceneRenderer {
                 );
 
                 device.cmd_bind_vertex_buffers(
-                    *command_buffer,
+                    command_buffer,
                     0,
                     &mesh.vertex_buffers()?,
                     &mesh.vertex_offsets()?,
                 );
 
                 device.cmd_bind_index_buffer(
-                    *command_buffer,
+                    command_buffer,
                     mesh.index_buffer()?,
                     mesh.index_offset()?,
                     mesh.index_type()?,
                 );
 
-                device.cmd_draw_indexed(*command_buffer, mesh.index_count()?, 1, 0, 0, 0);
+                device.cmd_draw_indexed(command_buffer, mesh.index_count()?, 1, 0, 0, 0);
             }
 
-            device.cmd_end_render_pass(*command_buffer);
-        }*/
+            device.cmd_end_render_pass(command_buffer);
+            device.end_command_buffer(command_buffer)?;
+        }
 
-        Ok(())
+        Ok(command_buffer)
     }
 }

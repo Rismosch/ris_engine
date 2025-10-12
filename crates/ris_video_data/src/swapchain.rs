@@ -249,11 +249,14 @@ impl Swapchain {
         })
     }
 
-    pub fn reserve_framebuffers(&mut self, count: usize) {
-        for entry in self.entries.iter_mut() {
-            while entry.framebuffers.len() < count {
-                entry.framebuffers.push(ArefCell::new(None));
-            }
+    pub fn reserve_framebuffers(
+        &mut self,
+        image_index: usize,
+        count: usize,
+    ) {
+        let entry = &mut self.entries[image_index];
+        while entry.framebuffers.len() < count {
+            entry.framebuffers.push(ArefCell::new(None));
         }
     }
 }

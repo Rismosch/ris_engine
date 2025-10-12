@@ -9,7 +9,7 @@ use ris_log::log_level::LogLevel;
 
 use super::util;
 
-const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::None;
+const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::Error;
 
 #[cfg(not(debug_assertions))]
 const VALIDATION_ENABLED: bool = false;

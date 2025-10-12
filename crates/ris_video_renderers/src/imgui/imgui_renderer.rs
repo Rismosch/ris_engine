@@ -15,6 +15,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
 use ris_video_data::core::VulkanCore;
+use ris_video_data::frames_in_flight::FrameInFlight;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
@@ -55,6 +56,7 @@ pub struct ImguiRendererArgs<'a> {
     pub core: &'a VulkanCore,
     pub swapchain_entry: &'a SwapchainEntry,
     pub draw_data: &'a DrawData,
+    pub frame_in_flight: &'a FrameInFlight,
 }
 
 impl ImguiRenderer {
@@ -495,7 +497,7 @@ impl ImguiRenderer {
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
         // frames
-        let renderer_id = renderer_registerer.register(1)?;
+        let renderer_id = renderer_registerer.register(0)?;
 
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for _ in 0..swapchain.entries.len() {
@@ -521,239 +523,237 @@ impl ImguiRenderer {
         })
     }
 
-    pub fn draw(&mut self, args: ImguiRendererArgs) -> RisResult<()> {
-        //let ImguiRendererArgs {
-        //    core,
-        //    swapchain_entry,
-        //    draw_data,
-        //} = args;
+    pub fn draw(&mut self, args: ImguiRendererArgs) -> RisResult<Option<vk::CommandBuffer>> {
+        let ImguiRendererArgs {
+            core,
+            swapchain_entry,
+            draw_data,
+            frame_in_flight,
+        } = args;
 
-        //if draw_data.total_vtx_count == 0 {
-        //    return Ok(());
-        //}
+        if draw_data.total_vtx_count == 0 {
+            return Ok(None);
+        }
 
-        //let VulkanCore {
-        //    instance,
-        //    suitable_device,
-        //    device,
-        //    swapchain,
-        //    ..
-        //} = core;
+        let VulkanCore {
+            instance,
+            suitable_device,
+            device,
+            swapchain,
+            ..
+        } = core;
 
-        //let SwapchainEntry {
-        //    index,
-        //    viewport_image_view,
-        //    command_buffer,
-        //    framebuffer_allocator,
-        //    ..
-        //} = swapchain_entry;
+        let SwapchainEntry {
+            index,
+            viewport_image_view,
+            ..
+        } = swapchain_entry;
 
-        //let ImguiFrame { mesh } = &mut self.frames[*index];
+        let ImguiFrame { mesh } = &mut self.frames[*index];
 
-        //// mesh
-        //let physical_device_memory_properties = unsafe {
-        //    instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        //};
+        // mesh
+        let physical_device_memory_properties = unsafe {
+            instance.get_physical_device_memory_properties(suitable_device.physical_device)
+        };
 
-        //let mesh = match mesh {
-        //    Some(mesh) => {
-        //        mesh.update(device, physical_device_memory_properties, draw_data)?;
-        //        mesh
-        //    }
-        //    None => {
-        //        let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
-        //        *mesh = Some(new_mesh);
-        //        mesh.as_mut().into_ris_error()?
-        //    }
-        //};
+        let mesh = match mesh {
+            Some(mesh) => {
+                mesh.update(device, physical_device_memory_properties, draw_data)?;
+                mesh
+            }
+            None => {
+                let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
+                *mesh = Some(new_mesh);
+                mesh.as_mut().into_ris_error()?
+            }
+        };
 
-        //// framebuffer
-        //let attachments = [*viewport_image_view];
+        // command buffer
+        let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+            p_next: ptr::null(),
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+            p_inheritance_info: ptr::null(),
+        };
 
-        //let framebuffer_create_info = vk::FramebufferCreateInfo {
-        //    s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
-        //    p_next: ptr::null(),
-        //    flags: vk::FramebufferCreateFlags::empty(),
-        //    render_pass: self.render_pass,
-        //    attachment_count: attachments.len() as u32,
-        //    p_attachments: attachments.as_ptr(),
-        //    width: swapchain.extent.width,
-        //    height: swapchain.extent.height,
-        //    layers: 1,
-        //};
+        // framebuffer
+        let attachments = [*viewport_image_view];
 
-        //// render pass
-        //let framebuffer = unsafe {
-        //    framebuffer_allocator.borrow_mut().get(
-        //        self.framebuffer_id,
-        //        device,
-        //        framebuffer_create_info,
-        //    )
-        //}?;
+        let framebuffer_create_info = vk::FramebufferCreateInfo {
+            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::FramebufferCreateFlags::empty(),
+            render_pass: self.render_pass,
+            attachment_count: attachments.len() as u32,
+            p_attachments: attachments.as_ptr(),
+            width: swapchain.extent.width,
+            height: swapchain.extent.height,
+            layers: 1,
+        };
 
-        //let clear_values = [vk::ClearValue {
-        //    color: vk::ClearColorValue {
-        //        float32: [0.0, 0.0, 0.0, 0.0],
-        //    },
-        //}];
+        // render pass
+        unsafe {
+            device.begin_command_buffer(command_buffer, &command_buffer_begin_info)?;
+            
+            let framebuffer = swapchain_entry.alloc_framebuffer(
+                self.renderer_id,
+                device,
+                framebuffer_create_info,
+            )?;
 
-        //let render_pass_begin_info = vk::RenderPassBeginInfo {
-        //    s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-        //    p_next: ptr::null(),
-        //    render_pass: self.render_pass,
-        //    framebuffer,
-        //    render_area: vk::Rect2D {
-        //        offset: vk::Offset2D { x: 0, y: 0 },
-        //        extent: swapchain.extent,
-        //    },
-        //    clear_value_count: clear_values.len() as u32,
-        //    p_clear_values: clear_values.as_ptr(),
-        //};
+            let clear_values = [vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 0.0],
+                },
+            }];
 
-        //unsafe {
-        //    device.cmd_begin_render_pass(
-        //        *command_buffer,
-        //        &render_pass_begin_info,
-        //        vk::SubpassContents::INLINE,
-        //    )
-        //};
+            let render_pass_begin_info = vk::RenderPassBeginInfo {
+                s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
+                p_next: ptr::null(),
+                render_pass: self.render_pass,
+                framebuffer,
+                render_area: vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
+                    extent: swapchain.extent,
+                },
+                clear_value_count: clear_values.len() as u32,
+                p_clear_values: clear_values.as_ptr(),
+            };
 
-        //unsafe {
-        //    device.cmd_bind_pipeline(
-        //        *command_buffer,
-        //        vk::PipelineBindPoint::GRAPHICS,
-        //        self.pipeline,
-        //    )
-        //};
+            device.cmd_begin_render_pass(
+                command_buffer,
+                &render_pass_begin_info,
+                vk::SubpassContents::INLINE,
+            );
 
-        //let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
-        //let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
-        //let viewports = [vk::Viewport {
-        //    width: framebuffer_width,
-        //    height: framebuffer_height,
-        //    max_depth: 1.0,
-        //    ..Default::default()
-        //}];
+            device.cmd_bind_pipeline(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            );
 
-        //unsafe { device.cmd_set_viewport(*command_buffer, 0, &viewports) };
+            let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
+            let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
+            let viewports = [vk::Viewport {
+                width: framebuffer_width,
+                height: framebuffer_height,
+                max_depth: 1.0,
+                ..Default::default()
+            }];
 
-        //let mut projection = Mat4::init(1.0);
-        //let rml = draw_data.display_size[0];
-        //let rpl = draw_data.display_size[0];
-        //let tmb = -draw_data.display_size[1];
-        //let tpb = -draw_data.display_size[1];
-        //let fmn = 2.0;
-        //projection.0 .0 = 2.0 / rml;
-        //projection.1 .1 = -2.0 / tmb;
-        //projection.2 .2 = -1.0 / fmn;
-        //projection.3 .0 = -(rpl / rml);
-        //projection.3 .1 = -(tpb / tmb);
-        //projection.3 .2 = 1.0 / fmn;
-        //projection.3 .3 = 1.0;
+            device.cmd_set_viewport(command_buffer, 0, &viewports);
 
-        //unsafe {
-        //    let push_ptr = (&projection) as *const Mat4 as *const u8;
-        //    let push = std::slice::from_raw_parts(push_ptr, std::mem::size_of::<Mat4>());
+            let mut projection = Mat4::init(1.0);
+            let rml = draw_data.display_size[0];
+            let rpl = draw_data.display_size[0];
+            let tmb = -draw_data.display_size[1];
+            let tpb = -draw_data.display_size[1];
+            let fmn = 2.0;
+            projection.0 .0 = 2.0 / rml;
+            projection.1 .1 = -2.0 / tmb;
+            projection.2 .2 = -1.0 / fmn;
+            projection.3 .0 = -(rpl / rml);
+            projection.3 .1 = -(tpb / tmb);
+            projection.3 .2 = 1.0 / fmn;
+            projection.3 .3 = 1.0;
 
-        //    device.cmd_push_constants(
-        //        *command_buffer,
-        //        self.pipeline_layout,
-        //        vk::ShaderStageFlags::VERTEX,
-        //        0,
-        //        push,
-        //    );
-        //}
+            let push_ptr = (&projection) as *const Mat4 as *const u8;
+            let push = std::slice::from_raw_parts(push_ptr, std::mem::size_of::<Mat4>());
 
-        //unsafe {
-        //    device.cmd_bind_index_buffer(
-        //        *command_buffer,
-        //        mesh.indices.buffer,
-        //        0,
-        //        vk::IndexType::UINT16,
-        //    )
-        //};
+            device.cmd_push_constants(
+                command_buffer,
+                self.pipeline_layout,
+                vk::ShaderStageFlags::VERTEX,
+                0,
+                push,
+            );
 
-        //unsafe {
-        //    device.cmd_bind_vertex_buffers(*command_buffer, 0, &[mesh.vertices.buffer], &[0])
-        //};
+            device.cmd_bind_index_buffer(
+                command_buffer,
+                mesh.indices.buffer,
+                0,
+                vk::IndexType::UINT16,
+            );
 
-        //let mut index_offset = 0;
-        //let mut vertex_offset = 0;
-        //let current_texture_id: Option<TextureId> = None;
-        //let clip_offset = draw_data.display_pos;
-        //let clip_scale = draw_data.framebuffer_scale;
-        //for draw_list in draw_data.draw_lists() {
-        //    for command in draw_list.commands() {
-        //        match command {
-        //            DrawCmd::Elements {
-        //                count,
-        //                cmd_params:
-        //                    DrawCmdParams {
-        //                        clip_rect,
-        //                        texture_id,
-        //                        vtx_offset,
-        //                        idx_offset,
-        //                    },
-        //            } => {
-        //                let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
-        //                let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
-        //                let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
-        //                let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
+            device.cmd_bind_vertex_buffers(command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
-        //                let scissors = [vk::Rect2D {
-        //                    offset: vk::Offset2D {
-        //                        x: (clip_x as i32).max(0),
-        //                        y: (clip_y as i32).max(0),
-        //                    },
-        //                    extent: vk::Extent2D {
-        //                        width: clip_w as u32,
-        //                        height: clip_h as u32,
-        //                    },
-        //                }];
+            let mut index_offset = 0;
+            let mut vertex_offset = 0;
+            let current_texture_id: Option<TextureId> = None;
+            let clip_offset = draw_data.display_pos;
+            let clip_scale = draw_data.framebuffer_scale;
+            for draw_list in draw_data.draw_lists() {
+                for command in draw_list.commands() {
+                    match command {
+                        DrawCmd::Elements {
+                            count,
+                            cmd_params:
+                                DrawCmdParams {
+                                    clip_rect,
+                                    texture_id,
+                                    vtx_offset,
+                                    idx_offset,
+                                },
+                        } => {
+                            let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
+                            let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
+                            let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
+                            let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
 
-        //                unsafe { device.cmd_set_scissor(*command_buffer, 0, &scissors) };
+                            let scissors = [vk::Rect2D {
+                                offset: vk::Offset2D {
+                                    x: (clip_x as i32).max(0),
+                                    y: (clip_y as i32).max(0),
+                                },
+                                extent: vk::Extent2D {
+                                    width: clip_w as u32,
+                                    height: clip_h as u32,
+                                },
+                            }];
 
-        //                if Some(texture_id) != current_texture_id {
-        //                    let descriptor_set = self.lookup_descriptor_set(texture_id)?;
-        //                    unsafe {
-        //                        device.cmd_bind_descriptor_sets(
-        //                            *command_buffer,
-        //                            vk::PipelineBindPoint::GRAPHICS,
-        //                            self.pipeline_layout,
-        //                            0,
-        //                            &[descriptor_set],
-        //                            &[],
-        //                        )
-        //                    };
-        //                }
+                            device.cmd_set_scissor(command_buffer, 0, &scissors);
 
-        //                unsafe {
-        //                    device.cmd_draw_indexed(
-        //                        *command_buffer,
-        //                        count as u32,
-        //                        1,
-        //                        index_offset + idx_offset as u32,
-        //                        vertex_offset + vtx_offset as i32,
-        //                        0,
-        //                    )
-        //                }
-        //            }
-        //            DrawCmd::ResetRenderState => {
-        //                ris_log::warning!("reset render state not supported");
-        //            }
-        //            DrawCmd::RawCallback { .. } => {
-        //                ris_log::warning!("raw callback not supported");
-        //            }
-        //        }
-        //    }
+                            if Some(texture_id) != current_texture_id {
+                                let descriptor_set = self.lookup_descriptor_set(texture_id)?;
+                                device.cmd_bind_descriptor_sets(
+                                    command_buffer,
+                                    vk::PipelineBindPoint::GRAPHICS,
+                                    self.pipeline_layout,
+                                    0,
+                                    &[descriptor_set],
+                                    &[],
+                                );
+                            }
 
-        //    index_offset += draw_list.idx_buffer().len() as u32;
-        //    vertex_offset += draw_list.vtx_buffer().len() as i32;
-        //}
+                            device.cmd_draw_indexed(
+                                command_buffer,
+                                count as u32,
+                                1,
+                                index_offset + idx_offset as u32,
+                                vertex_offset + vtx_offset as i32,
+                                0,
+                            )
+                        }
+                        DrawCmd::ResetRenderState => {
+                            ris_log::warning!("reset render state not supported");
+                        }
+                        DrawCmd::RawCallback { .. } => {
+                            ris_log::warning!("raw callback not supported");
+                        }
+                    }
+                }
 
-        //unsafe { device.cmd_end_render_pass(*command_buffer) };
+                index_offset += draw_list.idx_buffer().len() as u32;
+                vertex_offset += draw_list.vtx_buffer().len() as i32;
+            }
 
-        Ok(())
+            device.cmd_end_render_pass(command_buffer);
+            device.end_command_buffer(command_buffer)?;
+
+        }
+
+        Ok(Some(command_buffer))
     }
 
     fn lookup_descriptor_set(&self, texture_id: TextureId) -> RisResult<vk::DescriptorSet> {

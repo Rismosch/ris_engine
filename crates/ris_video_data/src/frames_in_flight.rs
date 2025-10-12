@@ -28,8 +28,8 @@ const _: () = {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RendererId {
     index: usize,
-    command_buffers_start: usize,
-    command_buffers_end: usize,
+    secondary_command_buffers_start: usize,
+    secondary_command_buffers_end: usize,
 }
 
 impl RendererId {
@@ -47,13 +47,12 @@ pub struct FrameInFlight {
     pub index: usize,
 
     pub command_pool: vk::CommandPool,
-    pub primary_command_buffer: vk::CommandBuffer,
-    pub secondary_command_buffers: Vec<vk::CommandBuffer>,
+    pub primary_command_buffers: Vec<vk::CommandBuffer>, // one per renderer
+    pub secondary_command_buffers: Vec<vk::CommandBuffer>, // none or multiple per renderer
 
     pub image_available: vk::Semaphore,
-    pub renderer_finished: Vec<vk::Semaphore>,
-    pub command_buffer_finished: vk::Semaphore,
-    pub done: vk::Fence,
+    pub finished_semaphore: vk::Semaphore,
+    pub finished_fence: vk::Fence,
 }
 
 pub struct RendererRegisterer<'a> {
@@ -62,17 +61,19 @@ pub struct RendererRegisterer<'a> {
 }
 
 impl<'a> RendererRegisterer<'a> {
-    pub fn register(&mut self, command_buffer_count: usize) -> RisResult<RendererId> {
-        match self.existing_id.clone() {
+    pub fn register(&mut self, secondary_command_buffer_count: usize) -> RisResult<RendererId> {
+        let id = match self.existing_id.clone() {
             Some(id) => {
-                let start = id.command_buffers_start;
-                let end = id.command_buffers_end;
+                let start = id.secondary_command_buffers_start;
+                let end = id.secondary_command_buffers_end;
                 let count = end - start;
-                ris_error::assert!(count == command_buffer_count)?;
-                Ok(id.clone())
+                ris_error::assert!(count == secondary_command_buffer_count)?;
+                id.clone()
             },
-            None => Ok(self.info.register_renderer(command_buffer_count)),
-        }
+            None => self.info.register_renderer(secondary_command_buffer_count),
+        };
+
+        Ok(id)
     }
 }
 
@@ -80,22 +81,22 @@ pub struct FrameInFlightCreateInfo<'a> {
     pub suitable_device: &'a SuitableDevice,
     pub device: &'a ash::Device,
     pub renderer_count: usize,
-    pub command_buffer_count: usize,
+    pub secondary_command_buffer_count: usize,
 }
 
 impl<'a> FrameInFlightCreateInfo<'a> {
-    fn register_renderer(&mut self, command_buffer_count: usize) -> RendererId {
+    fn register_renderer(&mut self, secondary_command_buffer_count: usize) -> RendererId {
         let index = self.renderer_count;
-        let command_buffers_start = self.command_buffer_count;
-        let command_buffers_end = command_buffers_start + command_buffer_count;
+        let secondary_command_buffers_start = self.secondary_command_buffer_count;
+        let secondary_command_buffers_end = secondary_command_buffers_start + secondary_command_buffer_count;
 
         self.renderer_count += 1;
-        self.command_buffer_count += command_buffer_count;
+        self.secondary_command_buffer_count += secondary_command_buffer_count;
 
         RendererId {
             index,
-            command_buffers_start,
-            command_buffers_end,
+            secondary_command_buffers_start,
+            secondary_command_buffers_end,
         }
     }
 }
@@ -105,29 +106,26 @@ impl FramesInFlight {
         for entry in self.entries.iter_mut() {
             // free synchronization
             device.destroy_fence(
-                entry.done,
+                entry.finished_fence,
                 None,
             );
 
             device.destroy_semaphore(
-                entry.command_buffer_finished,
+                entry.finished_semaphore,
                 None,
             );
 
-            for &semaphore in entry.renderer_finished.iter() {
-                device.destroy_semaphore(
-                    semaphore,
-                    None,
-                );
-            }
             device.destroy_semaphore(
                 entry.image_available,
                 None,
             );
 
             // free command buffers
-            device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
-            device.free_command_buffers(entry.command_pool, &[entry.primary_command_buffer]);
+            if !entry.secondary_command_buffers.is_empty()
+            {
+                device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
+            }
+            device.free_command_buffers(entry.command_pool, &entry.primary_command_buffers);
             device.destroy_command_pool(entry.command_pool, None);
         }
 
@@ -139,7 +137,7 @@ impl FramesInFlight {
             suitable_device,
             device,
             renderer_count,
-            command_buffer_count,
+            secondary_command_buffer_count,
         } = info;
 
 
@@ -159,23 +157,23 @@ impl FramesInFlight {
                 p_next: ptr::null(),
                 command_pool,
                 level: vk::CommandBufferLevel::PRIMARY,
-                command_buffer_count: 1,
+                command_buffer_count: renderer_count as u32,
             };
 
-            let command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
-            let primary_command_buffer = command_buffers
-                .into_iter()
-                .next()
-                .into_ris_error()?;
+            let primary_command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
-            let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-                s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-                p_next: ptr::null(),
-                command_pool,
-                level: vk::CommandBufferLevel::SECONDARY,
-                command_buffer_count: command_buffer_count as u32,
+            let secondary_command_buffers = if secondary_command_buffer_count == 0 {
+                Vec::with_capacity(0)
+            } else {
+                let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
+                    s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+                    p_next: ptr::null(),
+                    command_pool,
+                    level: vk::CommandBufferLevel::SECONDARY,
+                    command_buffer_count: secondary_command_buffer_count as u32,
+                };
+                unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?
             };
-            let secondary_command_buffers = unsafe {device.allocate_command_buffers(&command_buffer_allocate_info)}?;
 
             // synchronization
             let semaphore_create_info = vk::SemaphoreCreateInfo {
@@ -191,26 +189,19 @@ impl FramesInFlight {
 
             let image_available = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
 
-            let mut renderer_finished = Vec::with_capacity(renderer_count);
-            for _ in 0..renderer_finished.capacity() {
-                let semaphore = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
-                renderer_finished.push(semaphore);
-            }
+            let finished_semaphore = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
 
-            let command_buffer_finished = unsafe {device.create_semaphore(&semaphore_create_info, None)}?;
-
-            let done = unsafe {device.create_fence(&fence_create_info, None)}?;
+            let finished_fence = unsafe {device.create_fence(&fence_create_info, None)}?;
 
             // construct frame
             let entry = FrameInFlight {
                 index: i,
                 command_pool,
-                primary_command_buffer,
+                primary_command_buffers,
                 secondary_command_buffers,
                 image_available,
-                renderer_finished,
-                command_buffer_finished,
-                done,
+                finished_semaphore,
+                finished_fence,
             };
             entries.push(entry);
         }
@@ -221,14 +212,13 @@ impl FramesInFlight {
         })
     }
 
-    pub fn acquire_next_frame(&mut self, device: &ash::Device) -> RisResult<&mut FrameInFlight> {
+    pub fn acquire_next_frame(&mut self, device: &ash::Device) -> RisResult<&FrameInFlight> {
         let next_frame = (self.current_frame + 1) % self.entries.len();
-        let entry = &mut self.entries[self.current_frame];
+        let entry = &self.entries[self.current_frame];
         self.current_frame = next_frame;
 
         unsafe {
-            let fences = [entry.done];
-
+            let fences = [entry.finished_fence];
             device.wait_for_fences(&fences, true, u64::MAX)?;
             device.reset_fences(&fences)?;
         }
@@ -238,27 +228,14 @@ impl FramesInFlight {
 }
 
 impl FrameInFlight {
-    pub fn command_buffers(&self, id: RendererId) -> &[vk::CommandBuffer] {
-        let start = id.command_buffers_start;
-        let end = id.command_buffers_end;
+    pub fn primary_command_buffer(&self, id: RendererId) -> vk::CommandBuffer {
+        let index = id.index();
+        self.primary_command_buffers[index]
+    }
+
+    pub fn secondary_command_buffers(&self, id: RendererId) -> &[vk::CommandBuffer] {
+        let start = id.secondary_command_buffers_start;
+        let end = id.secondary_command_buffers_end;
         &self.secondary_command_buffers[start..end]
-    }
-
-    pub fn semaphore(&self, id: RendererId) -> vk::Semaphore {
-        let index = id.index() as isize;
-        self.semaphore_internal(index)
-    }
-
-    pub fn previous_semaphore(&self, id: RendererId) -> vk::Semaphore {
-        let index = id.index() as isize - 1;
-        self.semaphore_internal(index)
-    }
-
-    fn semaphore_internal(&self, index: isize) -> vk::Semaphore {
-        if index < 0 {
-            self.image_available
-        } else {
-            self.renderer_finished[index as usize]
-        }
     }
 }
