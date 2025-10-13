@@ -5,8 +5,9 @@ use ash::vk;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::transient_command::TransientCommand;
+use super::transient_command::TransientCommandArgs;
 use super::transient_command::TransientCommandSync;
+use super::transient_command::TransientCommand;
 use super::util;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
@@ -149,7 +150,12 @@ impl Image {
             sync,
         } = info;
 
-        let transient_command = unsafe {TransientCommand::begin(device, queue, transient_command_pool)}?;
+        let args = TransientCommandArgs {
+            device,
+            queue,
+            command_pool: transient_command_pool,
+        };
+        let transient_command = unsafe {TransientCommand::begin(args)}?;
 
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
             let mut aspect_mask = vk::ImageAspectFlags::DEPTH;

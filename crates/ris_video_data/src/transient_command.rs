@@ -7,11 +7,10 @@ use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-#[derive(Default, Debug)]
-pub struct TransientCommandSync {
-    pub wait: Vec<vk::Semaphore>,
-    pub dst: Vec<vk::PipelineStageFlags>,
-    pub signal: Vec<vk::Semaphore>,
+pub struct TransientCommandArgs<'a> {
+    pub device: &'a ash::Device,
+    pub queue: vk::Queue,
+    pub command_pool: vk::CommandPool,
 }
 
 pub struct TransientCommand {
@@ -21,6 +20,13 @@ pub struct TransientCommand {
     command_buffer: vk::CommandBuffer,
     fence: vk::Fence,
     free_on_drop: bool,
+}
+
+#[derive(Default, Debug)]
+pub struct TransientCommandSync {
+    pub wait: Vec<vk::Semaphore>,
+    pub dst: Vec<vk::PipelineStageFlags>,
+    pub signal: Vec<vk::Semaphore>,
 }
 
 impl Drop for TransientCommand {
@@ -49,11 +55,11 @@ impl TransientCommand {
     /// transient command. note that dropping the transient command spawns
     /// a job that waits till it is fully executed. this means the vulkan
     /// objects must live even beyond that.
-    pub unsafe fn begin(
-        device: &ash::Device,
-        queue: vk::Queue,
-        command_pool: vk::CommandPool,
-    ) -> RisResult<Self> {
+    pub unsafe fn begin(args: TransientCommandArgs) -> RisResult<Self> {
+        let device = args.device.clone();
+        let queue = args.queue;
+        let command_pool = args.command_pool;
+
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
             p_next: ptr::null(),
@@ -83,7 +89,7 @@ impl TransientCommand {
         let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
 
         Ok(Self {
-            device: device.clone(),
+            device,
             queue,
             command_pool,
             command_buffer,

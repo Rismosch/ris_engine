@@ -2,6 +2,8 @@ use std::ptr;
 
 use ash::vk;
 
+use ris_async::JobFuture;
+use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -12,6 +14,7 @@ use super::transient_command::TransientCommandSync;
 pub struct Buffer {
     pub buffer: vk::Buffer,
     pub memory: vk::DeviceMemory,
+    size: vk::DeviceSize,
 }
 
 pub struct CopyToImageInfo<'a> {
@@ -40,7 +43,6 @@ impl Buffer {
         device: &ash::Device,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
-        memory_property_flags: vk::MemoryPropertyFlags,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
         let buffer_create_info = vk::BufferCreateInfo {
@@ -59,7 +61,7 @@ impl Buffer {
         let memory_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
         let memory_type_index = super::util::find_memory_type(
             memory_requirements.memory_type_bits,
-            memory_property_flags,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?
         .into_ris_error()?;
@@ -78,10 +80,19 @@ impl Buffer {
         Ok(Self { buffer, memory })
     }
 
-    /// # Safety
-    ///
-    /// Must make sure that the buffer is big enough to hold `data`.
-    pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<()> {
+    pub unsafe fn resize() {
+        todo!("alloc new buffer");
+        todo!("free old one");
+    }
+
+    pub fn size(&self) -> vk::DeviceSize {
+        self.size
+    }
+
+    pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<JobFuture<()>> {
+        todo!("check whether buffer is big enough");
+        todo!("use staging");
+
         let size = std::mem::size_of_val(data) as vk::DeviceSize;
         unsafe {
             let data_ptr =
@@ -95,52 +106,57 @@ impl Buffer {
         Ok(())
     }
 
-    /// # Safety
-    ///
-    /// Must make sure that the image is big enough to hold the data of this buffer.
-    pub unsafe fn copy_to_image(&self, info: CopyToImageInfo) -> RisResult<()> {
-        let CopyToImageInfo {
-            device,
-            queue,
-            transient_command_pool,
-            image,
-            width,
-            height,
-            sync,
-        } = info;
-
-        let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
-
-        let regions = [vk::BufferImageCopy {
-            buffer_offset: 0,
-            buffer_row_length: 0,
-            buffer_image_height: 0,
-            image_subresource: vk::ImageSubresourceLayers {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                mip_level: 0,
-                base_array_layer: 0,
-                layer_count: 1,
-            },
-            image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
-            image_extent: vk::Extent3D {
-                width,
-                height,
-                depth: 1,
-            },
-        }];
-
-        unsafe {
-            device.cmd_copy_buffer_to_image(
-                transient_command.buffer(),
-                self.buffer,
-                image,
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &regions,
-            )
-        };
-
-        let future = transient_command.end_and_submit(sync)?;
-        future.wait(); // todo: do better
-        Ok(())
+    pub unsafe fn read<T>(&self, offset: usize, buf: Vec<T>) -> RisResult<JobFuture<Vec<T>>> {
+        todo!("check whether buf is big enough");
+        todo!("use staging");
     }
+
+    ///// # Safety
+    /////
+    ///// Must make sure that the image is big enough to hold the data of this buffer.
+    //pub unsafe fn copy_to_image(&self, info: CopyToImageInfo) -> RisResult<()> {
+    //    let CopyToImageInfo {
+    //        device,
+    //        queue,
+    //        transient_command_pool,
+    //        image,
+    //        width,
+    //        height,
+    //        sync,
+    //    } = info;
+
+    //    let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
+
+    //    let regions = [vk::BufferImageCopy {
+    //        buffer_offset: 0,
+    //        buffer_row_length: 0,
+    //        buffer_image_height: 0,
+    //        image_subresource: vk::ImageSubresourceLayers {
+    //            aspect_mask: vk::ImageAspectFlags::COLOR,
+    //            mip_level: 0,
+    //            base_array_layer: 0,
+    //            layer_count: 1,
+    //        },
+    //        image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
+    //        image_extent: vk::Extent3D {
+    //            width,
+    //            height,
+    //            depth: 1,
+    //        },
+    //    }];
+
+    //    unsafe {
+    //        device.cmd_copy_buffer_to_image(
+    //            transient_command.buffer(),
+    //            self.buffer,
+    //            image,
+    //            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+    //            &regions,
+    //        )
+    //    };
+
+    //    let future = transient_command.end_and_submit(sync)?;
+    //    future.wait(); // todo: do better
+    //    Ok(())
+    //}
 }
