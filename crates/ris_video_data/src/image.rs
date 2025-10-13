@@ -149,7 +149,7 @@ impl Image {
             sync,
         } = info;
 
-        let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
+        let transient_command = unsafe {TransientCommand::begin(device, queue, transient_command_pool)}?;
 
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
             let mut aspect_mask = vk::ImageAspectFlags::DEPTH;
@@ -226,10 +226,11 @@ impl Image {
                 &[],
                 &[],
                 &image_memory_barriers,
-            )
-        };
+            );
 
-        transient_command.end_and_submit(sync)?;
+            transient_command.end_and_submit(sync)?;
+        }
+
         Ok(())
     }
 }

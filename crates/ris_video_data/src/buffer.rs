@@ -14,15 +14,6 @@ pub struct Buffer {
     pub memory: vk::DeviceMemory,
 }
 
-pub struct CopyToBufferInfo<'a> {
-    pub device: &'a ash::Device,
-    pub queue: vk::Queue,
-    pub transient_command_pool: vk::CommandPool,
-    pub dst: &'a Buffer,
-    pub size: vk::DeviceSize,
-    pub sync: TransientCommandSync,
-}
-
 pub struct CopyToImageInfo<'a> {
     pub device: &'a ash::Device,
     pub queue: vk::Queue,
@@ -106,40 +97,6 @@ impl Buffer {
 
     /// # Safety
     ///
-    /// Must make sure that `dst` is big enough to hold `self`.
-    pub unsafe fn copy_to_buffer(&self, info: CopyToBufferInfo) -> RisResult<()> {
-        let CopyToBufferInfo {
-            device,
-            queue,
-            transient_command_pool,
-            dst,
-            size,
-            sync,
-        } = info;
-
-        let transient_command = TransientCommand::begin(device, queue, transient_command_pool)?;
-
-        let copy_regions = [vk::BufferCopy {
-            src_offset: 0,
-            dst_offset: 0,
-            size,
-        }];
-
-        unsafe {
-            device.cmd_copy_buffer(
-                transient_command.buffer(),
-                self.buffer,
-                dst.buffer,
-                &copy_regions,
-            )
-        };
-
-        transient_command.end_and_submit(sync)?;
-        Ok(())
-    }
-
-    /// # Safety
-    ///
     /// Must make sure that the image is big enough to hold the data of this buffer.
     pub unsafe fn copy_to_image(&self, info: CopyToImageInfo) -> RisResult<()> {
         let CopyToImageInfo {
@@ -182,7 +139,8 @@ impl Buffer {
             )
         };
 
-        transient_command.end_and_submit(sync)?;
+        let future = transient_command.end_and_submit(sync)?;
+        future.wait(); // todo: do better
         Ok(())
     }
 }
