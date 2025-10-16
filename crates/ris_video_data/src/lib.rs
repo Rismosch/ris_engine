@@ -1,4 +1,5 @@
 pub mod buffer;
+pub mod buffer_io;
 pub mod core;
 pub mod frames_in_flight;
 pub mod image;

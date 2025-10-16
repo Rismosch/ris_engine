@@ -15,6 +15,7 @@ pub struct Buffer {
     pub buffer: vk::Buffer,
     pub memory: vk::DeviceMemory,
     size: vk::DeviceSize,
+    capacity: vk::DeviceSize,
 }
 
 pub struct CopyToImageInfo<'a> {
@@ -80,13 +81,14 @@ impl Buffer {
         Ok(Self { buffer, memory })
     }
 
-    pub unsafe fn resize() {
-        todo!("alloc new buffer");
-        todo!("free old one");
-    }
-
     pub fn size(&self) -> vk::DeviceSize {
         self.size
+    }
+
+    pub unsafe fn resize(&self, new_size: vk::DeviceSize) -> RisResult<()> {
+        if new_size == 0 {
+            return ris_error::new_result!()
+        }
     }
 
     pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<JobFuture<()>> {
