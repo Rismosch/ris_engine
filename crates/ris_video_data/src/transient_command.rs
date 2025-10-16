@@ -7,8 +7,9 @@ use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-pub struct TransientCommandArgs<'a> {
-    pub device: &'a ash::Device,
+#[derive(Clone)]
+pub struct TransientCommandArgs {
+    pub device: ash::Device,
     pub queue: vk::Queue,
     pub command_pool: vk::CommandPool,
 }

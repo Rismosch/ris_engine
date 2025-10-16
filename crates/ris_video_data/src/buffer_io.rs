@@ -10,6 +10,9 @@ use ris_async::JobFuture;
 use ris_error::prelude::*;
 
 use super::buffer::Buffer;
+use super::transient_command::TransientCommand;
+use super::transient_command::TransientCommandArgs;
+use super::transient_command::TransientCommandSync;
 
 const CHUNK_SIZE: usize = 1 << 20;
 
@@ -23,11 +26,12 @@ struct Staging {
 }
 
 pub struct UploadArgs<'a> {
-    pub device: &'a ash::Device,
-    pub buffer: &'a Buffer,
-    pub data: Vec<u8>,
-    pub offset: usize,
-    pub length: usize,
+    pub transient_command_args: TransientCommandArgs,
+    pub src: Vec<u8>,
+    pub dst: &'a Buffer,
+    pub src_offset: usize,
+    pub dst_offset: usize,
+    pub size: usize,
 }
 
 impl BufferIO {
@@ -69,10 +73,10 @@ impl BufferIO {
 
         let memory = unsafe {device.allocate_memory(&memory_allocate_info, None)}?;
 
-        let staging = Mutex::new(Staging{
+        let staging = Arc::new(Mutex::new(Staging{
             buffer,
             memory,
-        });
+        }));
 
         Ok(Self{staging})
     }
@@ -80,42 +84,92 @@ impl BufferIO {
     pub fn upload(
         &self,
         args: UploadArgs,
-    ) -> JobFuture<Vec<u8>>{
-        let staging = self.staging.clone();
-
+    ) -> RisResult<JobFuture<RisResult<()>>>{
         let UploadArgs { 
-            device,
-            buffer,
-            data,
-            offset,
-            length,
+            transient_command_args,
+            src,
+            dst,
+            src_offset,
+            dst_offset,
+            size,
         } = args;
 
-        let device = device.clone();
+        let src_start = src_offset;
+        let src_end = src_start + size;
+        let dst_start = dst_offset;
+        let dst_end = dst_start + size;
 
-        ThreadPool::submit(async move {
-            let mut i = offset;
-            while i < data.len() {
-                let start = i;
-                i += CHUNK_SIZE;
+        ris_error::assert!(src_end <= src.len())?;
+        ris_error::assert!(dst_end <= dst.len())?;
 
-                let end = start + CHUNK_SIZE;
-                let end = usize::min(end, data.len());
+        let device = transient_command_args.device.clone();
+        let staging = self.staging.clone();
+        let dst_buffer = dst.buffer;
 
-                let slice = &data[start..end];
+        let future = ThreadPool::submit(async move {
+            let staging = ThreadPool::lock(&staging);
+            let mut submit_future = JobFuture::finished(());
+
+            let mut src_i = src_start;
+            let mut dst_i = dst_start;
+            loop {
+                let from = src_i;
+                let dst_offset = dst_i as vk::DeviceSize;
+
+                src_i += CHUNK_SIZE;
+                dst_i += CHUNK_SIZE;
+
+                if src_i > src_end {
+                    break;
+                }
+
+                let to = from + CHUNK_SIZE;
+                let to = usize::min(to, src_end);
+                let slice = &src[from..to];
 
                 unsafe {
                     let ptr = device.map_memory(
-                        self.memory,
+                        staging.memory,
                         0,
-                        slice.len(),
+                        slice.len() as vk::DeviceSize,
                         vk::MemoryMapFlags::empty(),
+                    )? as *mut u8;
+
+                    ptr.copy_from_nonoverlapping(
+                        slice.as_ptr(),
+                        slice.len(),
                     );
+
+                    device.unmap_memory(staging.memory);
+
+                    let buffer_copy = vk::BufferCopy{
+                        src_offset: 0,
+                        dst_offset,
+                        size: slice.len() as vk::DeviceSize,
+                    };
+
+                    let args = transient_command_args.clone();
+                    let command = TransientCommand::begin(args)?;
+
+                    device.cmd_copy_buffer(
+                        command.buffer(),
+                        staging.buffer,
+                        dst_buffer,
+                        &[buffer_copy],
+                    );
+
+                    submit_future.wait();
+                    submit_future = command.end_and_submit(TransientCommandSync::default())?;
                 }
+
+
+                submit_future.wait();
             }
 
-            data
-        })
+            Ok(())
+        });
+
+        Ok(future)
     }
 
     pub fn download(

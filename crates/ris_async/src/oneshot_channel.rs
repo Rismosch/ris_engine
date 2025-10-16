@@ -46,6 +46,15 @@ impl<T> OneshotSender<T> {
 }
 
 impl<T> OneshotReceiver<T> {
+    pub fn with_value(value: T) -> Self {
+        let channel = Arc::new(OneshotChannel {
+            ready: AtomicBool::new(true),
+            data: UnsafeCell::new(MaybeUninit::new(value)),
+        });
+
+        Self {channel}
+    }
+
     pub fn receive(mut self) -> Result<T, Self> {
         match self.take() {
             Some(value) => Ok(value),

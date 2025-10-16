@@ -418,7 +418,10 @@ impl ThreadPool {
             match mutex.try_lock() {
                 Ok(guard) => return guard,
                 Err(TryLockError::WouldBlock) => {
-                    Self::run_pending_job();
+                    let job_was_run = Self::run_pending_job();
+                    if !job_was_run {
+                        std::hint::spin_loop();
+                    }
                 }
                 Err(TryLockError::Poisoned(e)) => {
                     ris_error::throw!("mutex is poisoned: {}", e);

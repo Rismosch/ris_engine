@@ -14,7 +14,7 @@ use super::transient_command::TransientCommandSync;
 pub struct Buffer {
     pub buffer: vk::Buffer,
     pub memory: vk::DeviceMemory,
-    size: vk::DeviceSize,
+    len: vk::DeviceSize,
     capacity: vk::DeviceSize,
 }
 
@@ -81,8 +81,8 @@ impl Buffer {
         Ok(Self { buffer, memory })
     }
 
-    pub fn size(&self) -> vk::DeviceSize {
-        self.size
+    pub fn len(&self) -> usize {
+        self.len as usize
     }
 
     pub unsafe fn resize(&self, new_size: vk::DeviceSize) -> RisResult<()> {
