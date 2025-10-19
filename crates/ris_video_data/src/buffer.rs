@@ -91,28 +91,6 @@ impl Buffer {
         }
     }
 
-    pub unsafe fn write<T>(&self, device: &ash::Device, data: &[T]) -> RisResult<JobFuture<()>> {
-        todo!("check whether buffer is big enough");
-        todo!("use staging");
-
-        let size = std::mem::size_of_val(data) as vk::DeviceSize;
-        unsafe {
-            let data_ptr =
-                device.map_memory(self.memory, 0, size, vk::MemoryMapFlags::empty())? as *mut T;
-
-            data_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len());
-
-            device.unmap_memory(self.memory);
-        };
-
-        Ok(())
-    }
-
-    pub unsafe fn read<T>(&self, offset: usize, buf: Vec<T>) -> RisResult<JobFuture<Vec<T>>> {
-        todo!("check whether buf is big enough");
-        todo!("use staging");
-    }
-
     ///// # Safety
     /////
     ///// Must make sure that the image is big enough to hold the data of this buffer.

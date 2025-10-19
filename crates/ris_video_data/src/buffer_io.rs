@@ -1,5 +1,3 @@
-use std::io::Read;
-use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -25,7 +23,7 @@ struct Staging {
     memory: vk::DeviceMemory,
 }
 
-pub struct UploadArgs<'a> {
+pub struct WriteToBufferArgs<'a> {
     pub transient_command_args: TransientCommandArgs,
     pub src: Vec<u8>,
     pub dst: &'a Buffer,
@@ -36,7 +34,7 @@ pub struct UploadArgs<'a> {
 
 impl BufferIO {
     pub unsafe fn free(&mut self) {
-
+        free buffer
     }
 
     pub fn alloc(
@@ -81,11 +79,8 @@ impl BufferIO {
         Ok(Self{staging})
     }
 
-    pub fn upload(
-        &self,
-        args: UploadArgs,
-    ) -> RisResult<JobFuture<RisResult<()>>>{
-        let UploadArgs { 
+    pub fn write_to_buffer(&self, args: WriteToBufferArgs) -> RisResult<JobFuture<RisResult<()>>>{
+        let WriteToBufferArgs { 
             transient_command_args,
             src,
             dst,
@@ -142,15 +137,14 @@ impl BufferIO {
 
                     device.unmap_memory(staging.memory);
 
+                    let args = transient_command_args.clone();
+                    let command = TransientCommand::begin(args)?;
+
                     let buffer_copy = vk::BufferCopy{
                         src_offset: 0,
                         dst_offset,
                         size: slice.len() as vk::DeviceSize,
                     };
-
-                    let args = transient_command_args.clone();
-                    let command = TransientCommand::begin(args)?;
-
                     device.cmd_copy_buffer(
                         command.buffer(),
                         staging.buffer,
@@ -159,24 +153,19 @@ impl BufferIO {
                     );
 
                     submit_future.wait();
-                    submit_future = command.end_and_submit(TransientCommandSync::default())?;
+                    let sync = TransientCommandSync::default();
+                    submit_future = command.end_and_submit(sync)?;
                 }
-
-
-                submit_future.wait();
             }
 
+            submit_future.wait();
             Ok(())
         });
 
         Ok(future)
     }
 
-    pub fn download(
-        &self,
-        offset: vk::DeviceSize,
-        size: vk::DeviceSize,
-    ) -> RisResult<JobFuture<Vec<u8>>>{
+    pub fn download(&self) -> RisResult<JobFuture<Vec<u8>>>{
         todo!();
     }
 }

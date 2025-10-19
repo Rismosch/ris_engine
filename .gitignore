@@ -2,7 +2,7 @@
 /*.dll
 
 # cargo
-/.cargo
+/.cargo*
 /target
 /vendor
 
