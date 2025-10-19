@@ -19,7 +19,6 @@ pub struct ImageCreateInfo<'a> {
     pub width: u32,
     pub height: u32,
     pub format: vk::Format,
-    pub tiling: vk::ImageTiling,
     pub usage: vk::ImageUsageFlags,
     pub memory_property_flags: vk::MemoryPropertyFlags,
     pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
@@ -49,7 +48,6 @@ impl Image {
             width,
             height,
             format,
-            tiling,
             usage,
             memory_property_flags,
             physical_device_memory_properties,
@@ -71,7 +69,7 @@ impl Image {
             mip_levels: 1,
             array_layers: 1,
             samples: vk::SampleCountFlags::TYPE_1,
-            tiling,
+            tiling: vk::ImageTiling::OPTIMAL,
             usage,
             sharing_mode: vk::SharingMode::EXCLUSIVE,
             queue_family_index_count: 0,
@@ -161,8 +159,8 @@ impl Image {
 
         struct Mask {
             src_access: vk::AccessFlags,
-            dst_access: vk::AccessFlags,
             src_pipeline_stage: vk::PipelineStageFlags,
+            dst_access: vk::AccessFlags,
             dst_pipeline_stage: vk::PipelineStageFlags,
         }
 
@@ -173,8 +171,8 @@ impl Image {
                     vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 ) => Mask {
                     src_access: vk::AccessFlags::empty(),
-                    dst_access: vk::AccessFlags::TRANSFER_WRITE,
                     src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+                    dst_access: vk::AccessFlags::TRANSFER_WRITE,
                     dst_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
                 },
                 (
@@ -182,8 +180,8 @@ impl Image {
                     vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
                 ) => Mask {
                     src_access: vk::AccessFlags::TRANSFER_WRITE,
-                    dst_access: vk::AccessFlags::SHADER_READ,
                     src_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
+                    dst_access: vk::AccessFlags::SHADER_READ,
                     dst_pipeline_stage: vk::PipelineStageFlags::FRAGMENT_SHADER,
                 },
                 (
@@ -191,9 +189,9 @@ impl Image {
                     vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 ) => Mask {
                     src_access: vk::AccessFlags::empty(),
+                    src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
                     dst_access: vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
                         | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-                    src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
                     dst_pipeline_stage: vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
                 },
                 transition => {
