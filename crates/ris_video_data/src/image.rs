@@ -1,14 +1,17 @@
 use ash::vk;
 
+use ris_async::JobFuture;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::transient_command::TransientCommandSync;
+use super::transient_command::prelude::*;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Image {
     pub image: vk::Image,
     pub memory: vk::DeviceMemory,
+    format: vk::Format,
+    layout: vk::ImageLayout,
 }
 
 pub struct ImageCreateInfo<'a> {
@@ -22,12 +25,8 @@ pub struct ImageCreateInfo<'a> {
     pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
 }
 
-pub struct TransitionLayoutInfo<'a> {
-    pub device: &'a ash::Device,
-    pub queue: vk::Queue,
-    pub transient_command_pool: vk::CommandPool,
-    pub format: vk::Format,
-    pub old_layout: vk::ImageLayout,
+pub struct TransitionLayoutInfo {
+    pub transient_command_args: TransientCommandArgs,
     pub new_layout: vk::ImageLayout,
     pub sync: TransientCommandSync,
 }
@@ -56,6 +55,8 @@ impl Image {
             physical_device_memory_properties,
         } = info;
 
+        let layout = vk::ImageLayout::UNDEFINED;
+
         let image_create_info = vk::ImageCreateInfo {
             s_type: vk::StructureType::IMAGE_CREATE_INFO,
             p_next: std::ptr::null(),
@@ -75,7 +76,7 @@ impl Image {
             sharing_mode: vk::SharingMode::EXCLUSIVE,
             queue_family_index_count: 0,
             p_queue_family_indices: std::ptr::null(),
-            initial_layout: vk::ImageLayout::UNDEFINED,
+            initial_layout: layout,
         };
 
         let image = unsafe { device.create_image(&image_create_info, None) }?;
@@ -98,7 +99,12 @@ impl Image {
         let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
         unsafe { device.bind_image_memory(image, memory, 0) }?;
 
-        Ok(Self { image, memory })
+        Ok(Self { 
+            image,
+            memory,
+            format,
+            layout,
+        })
     }
 
     pub fn alloc_view(
@@ -134,105 +140,110 @@ impl Image {
         Ok(view)
     }
 
-    pub fn transition_layout(&self, info: TransitionLayoutInfo) -> RisResult<()> {
-        todo!();
-        //let TransitionLayoutInfo {
-        //    device,
-        //    queue,
-        //    transient_command_pool,
-        //    format,
-        //    old_layout,
-        //    new_layout,
-        //    sync,
-        //} = info;
+    pub fn transition_layout(&mut self, info: TransitionLayoutInfo) -> RisResult<JobFuture<()>> {
+        let TransitionLayoutInfo {
+            transient_command_args,
+            new_layout,
+            sync,
+        } = info;
 
-        //let args = TransientCommandArgs {
-        //    device,
-        //    queue,
-        //    command_pool: transient_command_pool,
-        //};
-        //let transient_command = unsafe {TransientCommand::begin(args)}?;
+        let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
+            let mut aspect_mask = vk::ImageAspectFlags::DEPTH;
 
-        //let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
-        //    let mut aspect_mask = vk::ImageAspectFlags::DEPTH;
+            if super::util::has_stencil_component(self.format) {
+                aspect_mask |= vk::ImageAspectFlags::STENCIL;
+            }
 
-        //    if util::has_stencil_component(format) {
-        //        aspect_mask |= vk::ImageAspectFlags::STENCIL;
-        //    }
+            aspect_mask
+        } else {
+            vk::ImageAspectFlags::COLOR
+        };
 
-        //    aspect_mask
-        //} else {
-        //    vk::ImageAspectFlags::COLOR
-        //};
+        struct Mask {
+            src_access: vk::AccessFlags,
+            dst_access: vk::AccessFlags,
+            src_pipeline_stage: vk::PipelineStageFlags,
+            dst_pipeline_stage: vk::PipelineStageFlags,
+        }
 
-        //let (src_access_mask, dst_access_mask, src_stage_mask, dst_stage_mask) =
-        //    match (old_layout, new_layout) {
-        //        (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => (
-        //            vk::AccessFlags::empty(),
-        //            vk::AccessFlags::TRANSFER_WRITE,
-        //            vk::PipelineStageFlags::TOP_OF_PIPE,
-        //            vk::PipelineStageFlags::TRANSFER,
-        //        ),
-        //        (
-        //            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-        //            vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-        //        ) => (
-        //            vk::AccessFlags::TRANSFER_WRITE,
-        //            vk::AccessFlags::SHADER_READ,
-        //            vk::PipelineStageFlags::TRANSFER,
-        //            vk::PipelineStageFlags::FRAGMENT_SHADER,
-        //        ),
-        //        (vk::ImageLayout::UNDEFINED, vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL) => {
-        //            (
-        //                vk::AccessFlags::empty(),
-        //                vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
-        //                    | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-        //                vk::PipelineStageFlags::TOP_OF_PIPE,
-        //                vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
-        //            )
-        //        }
-        //        transition => {
-        //            return ris_error::new_result!(
-        //                "unsupported transition from {:?} to {:?}",
-        //                transition.0,
-        //                transition.1,
-        //            )
-        //        }
-        //    };
+        let mask =
+            match (self.layout, new_layout) {
+                (
+                    vk::ImageLayout::UNDEFINED,
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                ) => Mask {
+                    src_access: vk::AccessFlags::empty(),
+                    dst_access: vk::AccessFlags::TRANSFER_WRITE,
+                    src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+                    dst_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
+                },
+                (
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+                ) => Mask {
+                    src_access: vk::AccessFlags::TRANSFER_WRITE,
+                    dst_access: vk::AccessFlags::SHADER_READ,
+                    src_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
+                    dst_pipeline_stage: vk::PipelineStageFlags::FRAGMENT_SHADER,
+                },
+                (
+                    vk::ImageLayout::UNDEFINED,
+                    vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                ) => Mask {
+                    src_access: vk::AccessFlags::empty(),
+                    dst_access: vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
+                        | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+                    src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+                    dst_pipeline_stage: vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+                },
+                transition => {
+                    return ris_error::new_result!(
+                        "TODO: transition from {:?} to {:?} is not yet implemented",
+                        transition.0,
+                        transition.1,
+                    )
+                }
+            };
 
-        //let image_memory_barriers = [vk::ImageMemoryBarrier {
-        //    s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
-        //    p_next: ptr::null(),
-        //    src_access_mask,
-        //    dst_access_mask,
-        //    old_layout,
-        //    new_layout,
-        //    src_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-        //    dst_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-        //    image: self.image,
-        //    subresource_range: vk::ImageSubresourceRange {
-        //        aspect_mask,
-        //        base_mip_level: 0,
-        //        level_count: 1,
-        //        base_array_layer: 0,
-        //        layer_count: 1,
-        //    },
-        //}];
+        let image_memory_barriers = [vk::ImageMemoryBarrier {
+            s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
+            p_next: std::ptr::null(),
+            src_access_mask: mask.src_access,
+            dst_access_mask: mask.dst_access,
+            old_layout: self.layout,
+            new_layout,
+            src_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
+            dst_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
+            image: self.image,
+            subresource_range: vk::ImageSubresourceRange {
+                aspect_mask,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+        }];
 
-        //unsafe {
-        //    device.cmd_pipeline_barrier(
-        //        transient_command.buffer(),
-        //        src_stage_mask,
-        //        dst_stage_mask,
-        //        vk::DependencyFlags::empty(),
-        //        &[],
-        //        &[],
-        //        &image_memory_barriers,
-        //    );
+        let device = transient_command_args.device.clone();
 
-        //    transient_command.end_and_submit(sync)?;
-        //}
+        let future = unsafe {
+            let transient_command = TransientCommand::begin(transient_command_args)?;
 
-        //Ok(())
+            device.cmd_pipeline_barrier(
+                transient_command.buffer(),
+                mask.src_pipeline_stage,
+                mask.dst_pipeline_stage,
+                vk::DependencyFlags::empty(),
+                &[],
+                &[],
+                &image_memory_barriers,
+            );
+
+            transient_command.end_and_submit(sync)?
+        };
+
+        self.layout = new_layout;
+
+        Ok(future)
     }
 }

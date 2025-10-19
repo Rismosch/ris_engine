@@ -23,6 +23,15 @@ pub struct PushConstants {
     pub model: Mat4,
 }
 
+/// the actual push constants size can be checked using
+/// 
+///     physical_device_properties.limits.max_push_constants_size
+/// 
+/// however, the spec states that any device supports at least 128
+/// bytes. see the entry `maxPushConstantsSize` in "Table 2.
+/// Required Limits" below:
+/// 
+///     <https://docs.vulkan.org/spec/latest/chapters/limits.html>
 const _: () = {
     assert!(
         std::mem::size_of::<PushConstants>() <= 128,

@@ -200,65 +200,6 @@ impl VulkanCore {
         let transient_command_pool =
             unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
 
-        // BUFFER IO TESTS
-        unsafe {
-            use super::buffer::Buffer;
-            use super::buffer_io::BufferIO;
-            use super::buffer_io::BufferIOArgs;
-            use super::transient_command::TransientCommandArgs;
-
-            super::buffer_io::CHUNK_SIZE = 2;
-
-            let physical_device_memory_properties = 
-                instance.get_physical_device_memory_properties(suitable_device.physical_device);
-
-            let data: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-            let buffer = Buffer::alloc(
-                &device,
-                data.len(),
-                vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST,
-                physical_device_memory_properties,
-            )?;
-
-            let buffer_io = BufferIO::alloc(&device, physical_device_memory_properties)?;
-
-            let transient_command_args = TransientCommandArgs {
-                device,
-                queue: graphics_queue,
-                command_pool: transient_command_pool,
-            };
-
-            let future = buffer_io.write_to_buffer(BufferIOArgs {
-                transient_command_args: transient_command_args.clone(),
-                bytes: data.clone(),
-                buffer: &buffer,
-                bytes_offset: 2,
-                buffer_offset: 4,
-                size: 4,
-            })?;
-
-            let test1 = future.wait()?;
-
-            let future = buffer_io.read_from_buffer(BufferIOArgs {
-                transient_command_args,
-                bytes: vec![0; data.len()],
-                buffer: &buffer,
-                bytes_offset: 5,
-                buffer_offset: 6,
-                size: 2,
-            })?;
-
-            let test2 = future.wait()?;
-
-            println!("data: {:#?}", data);
-            println!("test1: {:#?}", test1);
-            println!("test2: {:#?}", test2);
-            ris_util::assert_bytes_eq!(data, test1);
-            ris_util::assert_bytes_eq!(data, test2);
-        }
-        panic!("BUFFER IO TESTS SUCCESSFUL");
-
         // swapchain
         let swapchain = Swapchain::alloc(SwapchainCreateInfo {
             instance: &instance,

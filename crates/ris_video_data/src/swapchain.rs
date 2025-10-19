@@ -11,7 +11,7 @@ use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
-use super::transient_command::TransientCommandSync;
+use super::transient_command::prelude::*;
 
 pub struct Swapchain {
     pub format: vk::SurfaceFormatKHR,
@@ -198,7 +198,7 @@ impl Swapchain {
                 vk::ImageAspectFlags::COLOR,
             )?;
 
-            let depth_image = Image::alloc(ImageCreateInfo {
+            let mut depth_image = Image::alloc(ImageCreateInfo {
                 device,
                 width: extent.width,
                 height: extent.height,
@@ -217,11 +217,11 @@ impl Swapchain {
             )?;
 
             depth_image.transition_layout(TransitionLayoutInfo {
-                device,
-                queue: graphics_queue,
-                transient_command_pool,
-                format: depth_format,
-                old_layout: vk::ImageLayout::UNDEFINED,
+                transient_command_args: TransientCommandArgs {
+                    device: device.clone(),
+                    queue: graphics_queue,
+                    command_pool: transient_command_pool,
+                },
                 new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 sync: TransientCommandSync::default(),
             })?;

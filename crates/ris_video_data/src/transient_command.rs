@@ -5,6 +5,12 @@ use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+pub mod prelude {
+    pub use super::TransientCommand;
+    pub use super::TransientCommandArgs;
+    pub use super::TransientCommandSync;
+}
+
 #[derive(Clone)]
 pub struct TransientCommandArgs {
     pub device: ash::Device,

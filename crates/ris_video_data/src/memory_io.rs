@@ -6,17 +6,16 @@ use ash::vk;
 use ris_async::ThreadPool;
 use ris_async::JobFuture;
 use ris_error::prelude::*;
-use sdl2::libc::EALREADY;
 
 use super::buffer::Buffer;
 use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandArgs;
 use super::transient_command::TransientCommandSync;
 
-pub static mut CHUNK_SIZE: usize = 1 << 20;
+pub static mut CHUNK_SIZE: usize = 1 << 16;
 
-pub struct BufferIO {
-    staging: Arc<Mutex<Staging>>,
+pub struct MemoryIO {
+    staging: Arc<Mutex<Staging>>, // TODO VEC HERE
 }
 
 struct Staging {
@@ -33,7 +32,7 @@ pub struct BufferIOArgs<'a> {
     pub size: usize,
 }
 
-impl BufferIO {
+impl MemoryIO {
     pub unsafe fn free(&mut self, device: &ash::Device) {
         let staging = ThreadPool::lock(&self.staging);
 
@@ -114,6 +113,7 @@ impl BufferIO {
         let dst_buffer = dst.buffer;
 
         let future = ThreadPool::submit(async move {
+            // TODO: do not block while holding the lock:
             let staging = ThreadPool::lock(&staging);
 
             let mut src_i = src_start;
@@ -143,17 +143,6 @@ impl BufferIO {
                     src_slice.len(),
                 );
 
-                let test = std::slice::from_raw_parts(
-                    ptr,
-                    src_slice.len(),
-                );
-
-                println!(
-                    "slice: {:?}, test: {:?}",
-                    src_slice,
-                    test,
-                );
-
                 device.unmap_memory(staging.memory);
 
                 let args = transient_command_args.clone();
@@ -164,7 +153,6 @@ impl BufferIO {
                     dst_offset,
                     size: src_slice.len() as vk::DeviceSize,
                 };
-                println!("buffer copy: {:?}", buffer_copy);
 
                 device.cmd_copy_buffer(
                     command.buffer(),
@@ -203,14 +191,6 @@ impl BufferIO {
         let dst_start = dst_offset;
         let dst_end = dst_start + size;
 
-        println!(
-            "bruh {}<={}, {}<={}",
-            src_end,
-            src.size(),
-            dst_end,
-            dst.len(),
-        );
-
         ris_error::assert!(src_end <= src.size())?;
         ris_error::assert!(dst_end <= dst.len())?;
 
@@ -219,6 +199,7 @@ impl BufferIO {
         let src_buffer = src.buffer;
 
         let future = ThreadPool::submit(async move {
+            // TODO: do not block while holding the lock:
             let staging = ThreadPool::lock(&staging);
 
             let mut src_i = src_start;
@@ -244,7 +225,6 @@ impl BufferIO {
                     dst_offset: 0,
                     size: dst_slice.len() as vk::DeviceSize,
                 };
-                println!("buffer copy: {:?}", buffer_copy);
                 device.cmd_copy_buffer(
                     command.buffer(),
                     src_buffer,
@@ -266,17 +246,6 @@ impl BufferIO {
                 ptr.copy_to_nonoverlapping(
                     dst_slice.as_mut_ptr(),
                     dst_slice.len(),
-                );
-
-                let test = std::slice::from_raw_parts(
-                    ptr,
-                    dst_slice.len(),
-                );
-
-                println!(
-                    "test: {:?}, slice: {:?}",
-                    test,
-                    dst_slice,
                 );
 
                 device.unmap_memory(staging.memory);
