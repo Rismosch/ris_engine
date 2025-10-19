@@ -1,5 +1,4 @@
 use std::ffi::CStr;
-use std::ptr;
 
 use ash::vk;
 
@@ -12,7 +11,7 @@ pub fn create_module(device: &ash::Device, bytes: &[u8]) -> RisResult<vk::Shader
 
     let shader_module_create_info = vk::ShaderModuleCreateInfo {
         s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,
-        p_next: ptr::null(),
+        p_next: std::ptr::null(),
         flags: vk::ShaderModuleCreateFlags::empty(),
         code_size: bytes.len(),
         p_code: bytes.as_ptr() as *const u32,

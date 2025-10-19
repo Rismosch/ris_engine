@@ -23,23 +23,24 @@ impl GizmoSegmentMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[GizmoSegmentVertex],
     ) -> RisResult<Self> {
-        let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        let vertex_buffer = Buffer::alloc(
-            device,
-            vertex_buffer_size,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
+        todo!();
+        //let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+        //let vertex_buffer = Buffer::alloc(
+        //    device,
+        //    vertex_buffer_size,
+        //    vk::BufferUsageFlags::VERTEX_BUFFER,
+        //    vk::MemoryPropertyFlags::HOST_VISIBLE
+        //        | vk::MemoryPropertyFlags::HOST_COHERENT
+        //        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        //    physical_device_memory_properties,
+        //)?;
 
-        unsafe { vertex_buffer.write(device, vertices) }?;
+        //unsafe { vertex_buffer.write(device, vertices) }?;
 
-        Ok(Self {
-            vertices: vertex_buffer,
-            vertex_count: vertices.len(),
-        })
+        //Ok(Self {
+        //    vertices: vertex_buffer,
+        //    vertex_count: vertices.len(),
+        //})
     }
 
     pub fn update(
@@ -48,30 +49,31 @@ impl GizmoSegmentMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[GizmoSegmentVertex],
     ) -> RisResult<()> {
-        let old_vertex_count = self.vertex_count;
-        let new_vertex_count = vertices.len();
+        todo!();
+        //let old_vertex_count = self.vertex_count;
+        //let new_vertex_count = vertices.len();
 
-        if old_vertex_count < new_vertex_count {
-            let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-            let new_vertex_buffer = Buffer::alloc(
-                device,
-                vertex_buffer_size,
-                vk::BufferUsageFlags::VERTEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE
-                    | vk::MemoryPropertyFlags::HOST_COHERENT
-                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
+        //if old_vertex_count < new_vertex_count {
+        //    let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+        //    let new_vertex_buffer = Buffer::alloc(
+        //        device,
+        //        vertex_buffer_size,
+        //        vk::BufferUsageFlags::VERTEX_BUFFER,
+        //        vk::MemoryPropertyFlags::HOST_VISIBLE
+        //            | vk::MemoryPropertyFlags::HOST_COHERENT
+        //            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        //        physical_device_memory_properties,
+        //    )?;
 
-            self.vertex_count = vertices.len();
+        //    self.vertex_count = vertices.len();
 
-            let old_buffer = self.vertices;
-            self.vertices = new_vertex_buffer;
+        //    let old_buffer = self.vertices;
+        //    self.vertices = new_vertex_buffer;
 
-            unsafe { old_buffer.free(device) };
-        }
-        unsafe { self.vertices.write(device, vertices) }?;
+        //    unsafe { old_buffer.free(device) };
+        //}
+        //unsafe { self.vertices.write(device, vertices) }?;
 
-        Ok(())
+        //Ok(())
     }
 }

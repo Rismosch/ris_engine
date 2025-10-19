@@ -1,5 +1,4 @@
 use core::option::Option::None;
-use std::ptr;
 
 use ash::vk;
 use sdl2::video::Window;
@@ -410,7 +409,7 @@ impl OutputFrame {
         let wait_dst_stage_mask = [vk::PipelineStageFlags::TOP_OF_PIPE];
         let submit_infos = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             wait_semaphore_count: 1,
             p_wait_semaphores: &frame_in_flight.image_available,
             p_wait_dst_stage_mask: wait_dst_stage_mask.as_ptr(),
@@ -433,13 +432,13 @@ impl OutputFrame {
 
         let present_info = vk::PresentInfoKHR {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             wait_semaphore_count: 1,
             p_wait_semaphores: &frame_in_flight.finished_semaphore,
             swapchain_count: 1,
             p_swapchains: &self.core.swapchain.swapchain,
             p_image_indices: &image_index,
-            p_results: ptr::null_mut(),
+            p_results: std::ptr::null_mut(),
         };
 
         let queue_present_result = unsafe {

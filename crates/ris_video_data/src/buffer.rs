@@ -1,21 +1,17 @@
-use std::ptr;
-
 use ash::vk;
 
-use ris_async::JobFuture;
-use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandSync;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Buffer {
     pub buffer: vk::Buffer,
+    usage: vk::BufferUsageFlags,
     pub memory: vk::DeviceMemory,
-    len: vk::DeviceSize,
-    capacity: vk::DeviceSize,
+    size: usize,
+    capacity: usize,
 }
 
 pub struct CopyToImageInfo<'a> {
@@ -34,27 +30,51 @@ impl Buffer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
-        unsafe {
-            device.destroy_buffer(self.buffer, None);
-            device.free_memory(self.memory, None);
-        }
+        device.destroy_buffer(self.buffer, None);
+        device.free_memory(self.memory, None);
     }
 
     pub fn alloc(
         device: &ash::Device,
-        size: vk::DeviceSize,
+        size: usize,
         usage: vk::BufferUsageFlags,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
+        let (buffer, memory) = Self::alloc_internal(
+            device,
+            size as vk::DeviceSize,
+            usage,
+            physical_device_memory_properties,
+        )?;
+
+        Ok(Self { 
+            buffer,
+            usage,
+            memory,
+            size,
+            capacity: size,
+        })
+    }
+
+    fn alloc_internal(
+        device: &ash::Device,
+        size: vk::DeviceSize,
+        usage: vk::BufferUsageFlags,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+    ) -> RisResult<(vk::Buffer, vk::DeviceMemory)> {
+        if size == 0 {
+            return ris_error::new_result!("cannot allocate memory of size 0");
+        }
+
         let buffer_create_info = vk::BufferCreateInfo {
             s_type: vk::StructureType::BUFFER_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::BufferCreateFlags::empty(),
             size,
             usage,
             sharing_mode: vk::SharingMode::EXCLUSIVE,
             queue_family_index_count: 0,
-            p_queue_family_indices: ptr::null(),
+            p_queue_family_indices: std::ptr::null(),
         };
 
         let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }?;
@@ -69,7 +89,7 @@ impl Buffer {
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             allocation_size: memory_requirements.size,
             memory_type_index,
         };
@@ -78,17 +98,37 @@ impl Buffer {
 
         unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
-        Ok(Self { buffer, memory })
+        Ok((buffer, memory))
     }
 
-    pub fn len(&self) -> usize {
-        self.len as usize
+    pub fn size(&self) -> usize {
+        self.size
     }
 
-    pub unsafe fn resize(&self, new_size: vk::DeviceSize) -> RisResult<()> {
-        if new_size == 0 {
-            return ris_error::new_result!()
+    pub unsafe fn resize(
+        &mut self,
+        new_size: usize,
+        device: &ash::Device,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+    ) -> RisResult<()> {
+        if new_size > self.capacity {
+
+            self.free(device);
+            let (buffer, memory) = Self::alloc_internal(
+                device,
+                new_size as vk::DeviceSize,
+                self.usage,
+                physical_device_memory_properties,
+            )?;
+
+            self.buffer = buffer;
+            self.memory = memory;
+            self.capacity = new_size;
         }
+
+        self.size = new_size;
+
+        Ok(())
     }
 
     ///// # Safety

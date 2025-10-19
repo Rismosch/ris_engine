@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ash::extensions::khr::Surface as SurfaceLoader;
 use ash::extensions::khr::Swapchain as SwapchainLoader;
 use ash::vk;
@@ -161,7 +159,7 @@ impl Swapchain {
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR {
             s_type: vk::StructureType::SWAPCHAIN_CREATE_INFO_KHR,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::SwapchainCreateFlagsKHR::empty(),
             surface: *surface,
             min_image_count: swapchain_image_count,

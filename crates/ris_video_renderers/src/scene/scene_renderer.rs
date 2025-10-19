@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ash::vk;
 
 use ris_asset::codecs::qoi;
@@ -162,20 +160,20 @@ impl SceneRenderer {
                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::VERTEX,
-                p_immutable_samplers: ptr::null(),
+                p_immutable_samplers: std::ptr::null(),
             },
             vk::DescriptorSetLayoutBinding {
                 binding: 1,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                p_immutable_samplers: ptr::null(),
+                p_immutable_samplers: std::ptr::null(),
             },
         ];
 
         let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::DescriptorSetLayoutCreateFlags::empty(),
             binding_count: descriptor_set_layout_bindings.len() as u32,
             p_bindings: descriptor_set_layout_bindings.as_ptr(),
@@ -199,7 +197,7 @@ impl SceneRenderer {
         let total_descriptor_set_count = swapchain.entries.len();
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
             max_sets: total_descriptor_set_count as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
@@ -216,7 +214,7 @@ impl SceneRenderer {
 
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             descriptor_pool,
             descriptor_set_count: descriptor_set_layout_vec.len() as u32,
             p_set_layouts: descriptor_set_layout_vec.as_ptr(),
@@ -240,20 +238,20 @@ impl SceneRenderer {
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_module,
                 p_name: entry,
-                p_specialization_info: ptr::null(),
+                p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_module,
                 p_name: entry,
-                p_specialization_info: ptr::null(),
+                p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
         ];
@@ -264,7 +262,7 @@ impl SceneRenderer {
 
         let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
             vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
             p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
@@ -274,7 +272,7 @@ impl SceneRenderer {
 
         let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
             topology: vk::PrimitiveTopology::TRIANGLE_LIST,
             primitive_restart_enable: vk::FALSE,
@@ -285,7 +283,7 @@ impl SceneRenderer {
 
         let viewport_state = [vk::PipelineViewportStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
             viewport_count: viewports.len() as u32,
             p_viewports: viewports.as_ptr(),
@@ -295,7 +293,7 @@ impl SceneRenderer {
 
         let rasterization_state = [vk::PipelineRasterizationStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
@@ -311,12 +309,12 @@ impl SceneRenderer {
 
         let multisample_state = [vk::PipelineMultisampleStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             sample_shading_enable: vk::FALSE,
             min_sample_shading: 0.0,
-            p_sample_mask: ptr::null(),
+            p_sample_mask: std::ptr::null(),
             alpha_to_coverage_enable: vk::FALSE,
             alpha_to_one_enable: vk::FALSE,
         }];
@@ -333,7 +331,7 @@ impl SceneRenderer {
 
         let depth_stencil_state = [vk::PipelineDepthStencilStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::TRUE,
             depth_write_enable: vk::TRUE,
@@ -370,7 +368,7 @@ impl SceneRenderer {
 
         let color_blend_state = [vk::PipelineColorBlendStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineColorBlendStateCreateFlags::empty(),
             logic_op_enable: vk::FALSE,
             logic_op: vk::LogicOp::COPY,
@@ -382,7 +380,7 @@ impl SceneRenderer {
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
         let dynamic_state = [vk::PipelineDynamicStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineDynamicStateCreateFlags::empty(),
             dynamic_state_count: dynamic_states.len() as u32,
             p_dynamic_states: dynamic_states.as_ptr(),
@@ -393,7 +391,7 @@ impl SceneRenderer {
 
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
             set_layout_count: descriptor_set_layouts.len() as u32,
             p_set_layouts: descriptor_set_layouts.as_ptr(),
@@ -443,13 +441,13 @@ impl SceneRenderer {
             flags: vk::SubpassDescriptionFlags::empty(),
             pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
             input_attachment_count: 0,
-            p_input_attachments: ptr::null(),
+            p_input_attachments: std::ptr::null(),
             color_attachment_count: color_attachment_references.len() as u32,
             p_color_attachments: color_attachment_references.as_ptr(),
-            p_resolve_attachments: ptr::null(),
+            p_resolve_attachments: std::ptr::null(),
             p_depth_stencil_attachment: depth_attachment_reference.as_ptr(),
             preserve_attachment_count: 0,
-            p_preserve_attachments: ptr::null(),
+            p_preserve_attachments: std::ptr::null(),
         }];
 
         let subpass_dependencies = [vk::SubpassDependency {
@@ -469,7 +467,7 @@ impl SceneRenderer {
 
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::RenderPassCreateFlags::empty(),
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
@@ -484,13 +482,13 @@ impl SceneRenderer {
         // pipeline creation
         let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo {
             s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineCreateFlags::empty(),
             stage_count: shader_stages.len() as u32,
             p_stages: shader_stages.as_ptr(),
             p_vertex_input_state: vertex_input_state.as_ptr(),
             p_input_assembly_state: input_assembly_state.as_ptr(),
-            p_tessellation_state: ptr::null(),
+            p_tessellation_state: std::ptr::null(),
             p_viewport_state: viewport_state.as_ptr(),
             p_rasterization_state: rasterization_state.as_ptr(),
             p_multisample_state: multisample_state.as_ptr(),
@@ -520,52 +518,53 @@ impl SceneRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        let frame_count = swapchain.entries.len();
-        let mut frames = Vec::with_capacity(frame_count);
-        for descriptor_set in descriptor_sets {
-            let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-            let descriptor_buffer = Buffer::alloc(
-                device,
-                buffer_size,
-                vk::BufferUsageFlags::UNIFORM_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                physical_device_memory_properties,
-            )?;
+        panic!();
+        //let frame_count = swapchain.entries.len();
+        //let mut frames = Vec::with_capacity(frame_count);
+        //for descriptor_set in descriptor_sets {
+        //    let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
+        //    let descriptor_buffer = Buffer::alloc(
+        //        device,
+        //        buffer_size,
+        //        vk::BufferUsageFlags::UNIFORM_BUFFER,
+        //        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        //        physical_device_memory_properties,
+        //    )?;
 
-            let descriptor_mapped = unsafe {
-                device.map_memory(
-                    descriptor_buffer.memory,
-                    0,
-                    buffer_size,
-                    vk::MemoryMapFlags::empty(),
-                )
-            }? as *mut UniformBufferObject;
+        //    let descriptor_mapped = unsafe {
+        //        device.map_memory(
+        //            descriptor_buffer.memory,
+        //            0,
+        //            buffer_size,
+        //            vk::MemoryMapFlags::empty(),
+        //        )
+        //    }? as *mut UniformBufferObject;
 
-            let frame = SceneFrame {
-                descriptor_buffer,
-                descriptor_mapped,
-                descriptor_set,
-            };
-            frames.push(frame);
-        }
+        //    let frame = SceneFrame {
+        //        descriptor_buffer,
+        //        descriptor_mapped,
+        //        descriptor_set,
+        //    };
+        //    frames.push(frame);
+        //}
 
-        // lookup
-        let mesh_lookup = match mesh_lookup {
-            Some(mesh_lookup) => Some(mesh_lookup),
-            None => Some(MeshLookup::default()),
-        };
+        //// lookup
+        //let mesh_lookup = match mesh_lookup {
+        //    Some(mesh_lookup) => Some(mesh_lookup),
+        //    None => Some(MeshLookup::default()),
+        //};
 
-        Ok(Self {
-            descriptor_set_layout,
-            descriptor_pool,
-            render_pass,
-            pipeline,
-            pipeline_layout,
-            renderer_id,
-            frames,
-            texture,
-            mesh_lookup,
-        })
+        //Ok(Self {
+        //    descriptor_set_layout,
+        //    descriptor_pool,
+        //    render_pass,
+        //    pipeline,
+        //    pipeline_layout,
+        //    renderer_id,
+        //    frames,
+        //    texture,
+        //    mesh_lookup,
+        //})
     }
 
     pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<vk::CommandBuffer> {
@@ -612,9 +611,9 @@ impl SceneRenderer {
         let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-            p_inheritance_info: ptr::null(),
+            p_inheritance_info: std::ptr::null(),
         };
 
         // framebuffer
@@ -622,7 +621,7 @@ impl SceneRenderer {
 
         let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
@@ -658,7 +657,7 @@ impl SceneRenderer {
 
             let render_pass_begin_info = vk::RenderPassBeginInfo {
                 s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 render_pass: self.render_pass,
                 framebuffer,
                 render_area: vk::Rect2D {
@@ -722,27 +721,27 @@ impl SceneRenderer {
             let write_descriptor_sets = [
                 vk::WriteDescriptorSet {
                     s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
+                    p_next: std::ptr::null(),
                     dst_set: *descriptor_set,
                     dst_binding: 0,
                     dst_array_element: 0,
                     descriptor_count: descriptor_buffer_info.len() as u32,
                     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_image_info: ptr::null(),
+                    p_image_info: std::ptr::null(),
                     p_buffer_info: descriptor_buffer_info.as_ptr(),
-                    p_texel_buffer_view: ptr::null(),
+                    p_texel_buffer_view: std::ptr::null(),
                 },
                 vk::WriteDescriptorSet {
                     s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-                    p_next: ptr::null(),
+                    p_next: std::ptr::null(),
                     dst_set: *descriptor_set,
                     dst_binding: 1,
                     dst_array_element: 0,
                     descriptor_count: descriptor_image_info.len() as u32,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                     p_image_info: descriptor_image_info.as_ptr(),
-                    p_buffer_info: ptr::null(),
-                    p_texel_buffer_view: ptr::null(),
+                    p_buffer_info: std::ptr::null(),
+                    p_texel_buffer_view: std::ptr::null(),
                 },
             ];
 

@@ -15,3 +15,4 @@ ris_async = { path = "../ris_async" }
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
 ris_ptr = { path = "../ris_ptr" }
+ris_util = { path = "../ris_util" }

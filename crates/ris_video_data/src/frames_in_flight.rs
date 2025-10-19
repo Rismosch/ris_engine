@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ash::vk;
 
 use ris_error::prelude::*;
@@ -140,7 +138,7 @@ impl FramesInFlight {
             // command pool
             let command_pool_create_info = vk::CommandPoolCreateInfo {
                 s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::CommandPoolCreateFlags::empty(),
                 queue_family_index: suitable_device.graphics_queue_family,
             };
@@ -149,7 +147,7 @@ impl FramesInFlight {
 
             let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
                 s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 command_pool,
                 level: vk::CommandBufferLevel::PRIMARY,
                 command_buffer_count: renderer_count as u32,
@@ -163,7 +161,7 @@ impl FramesInFlight {
             } else {
                 let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
                     s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-                    p_next: ptr::null(),
+                    p_next: std::ptr::null(),
                     command_pool,
                     level: vk::CommandBufferLevel::SECONDARY,
                     command_buffer_count: secondary_command_buffer_count as u32,
@@ -174,12 +172,12 @@ impl FramesInFlight {
             // synchronization
             let semaphore_create_info = vk::SemaphoreCreateInfo {
                 s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::SemaphoreCreateFlags::empty(),
             };
             let fence_create_info = vk::FenceCreateInfo {
                 s_type: vk::StructureType::FENCE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::FenceCreateFlags::SIGNALED,
             };
 

@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::ptr;
 
 use ash::vk;
 
@@ -113,14 +112,14 @@ impl ImguiRenderer {
 
         let vs_shader_module_create_info = vk::ShaderModuleCreateInfo {
             s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::ShaderModuleCreateFlags::empty(),
             code_size: vs_bytes.len(),
             p_code: vs_bytes.as_ptr() as *const u32,
         };
         let fs_shader_module_create_info = vk::ShaderModuleCreateInfo {
             s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::ShaderModuleCreateFlags::empty(),
             code_size: fs_bytes.len(),
             p_code: fs_bytes.as_ptr() as *const u32,
@@ -136,20 +135,20 @@ impl ImguiRenderer {
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_shader_module,
                 p_name: main_function_name.as_ptr(),
-                p_specialization_info: ptr::null(),
+                p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
             vk::PipelineShaderStageCreateInfo {
                 s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_shader_module,
                 p_name: main_function_name.as_ptr(),
-                p_specialization_info: ptr::null(),
+                p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
         ];
@@ -183,7 +182,7 @@ impl ImguiRenderer {
 
         let vertex_input_state = [vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
             vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
             p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
@@ -193,7 +192,7 @@ impl ImguiRenderer {
 
         let input_assembly_state = [vk::PipelineInputAssemblyStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
             topology: vk::PrimitiveTopology::TRIANGLE_LIST,
             primitive_restart_enable: vk::FALSE,
@@ -204,7 +203,7 @@ impl ImguiRenderer {
 
         let viewport_state = [vk::PipelineViewportStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineViewportStateCreateFlags::empty(),
             viewport_count: 1,
             p_viewports: viewports.as_ptr(),
@@ -214,7 +213,7 @@ impl ImguiRenderer {
 
         let rasterization_state = [vk::PipelineRasterizationStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: vk::FALSE,
             rasterizer_discard_enable: vk::FALSE,
@@ -230,19 +229,19 @@ impl ImguiRenderer {
 
         let multisample_state = [vk::PipelineMultisampleStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineMultisampleStateCreateFlags::empty(),
             rasterization_samples: vk::SampleCountFlags::TYPE_1,
             sample_shading_enable: vk::FALSE,
             min_sample_shading: 1.,
-            p_sample_mask: ptr::null(),
+            p_sample_mask: std::ptr::null(),
             alpha_to_coverage_enable: vk::FALSE,
             alpha_to_one_enable: vk::FALSE,
         }];
 
         let depth_stencil_state = [vk::PipelineDepthStencilStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
             depth_test_enable: vk::FALSE,
             depth_write_enable: vk::FALSE,
@@ -268,7 +267,7 @@ impl ImguiRenderer {
 
         let color_blend_state = [vk::PipelineColorBlendStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineColorBlendStateCreateFlags::empty(),
             logic_op_enable: vk::FALSE,
             logic_op: vk::LogicOp::COPY,
@@ -280,7 +279,7 @@ impl ImguiRenderer {
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
         let dynamic_state = [vk::PipelineDynamicStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineDynamicStateCreateFlags::empty(),
             dynamic_state_count: dynamic_states.len() as u32,
             p_dynamic_states: dynamic_states.as_ptr(),
@@ -292,12 +291,12 @@ impl ImguiRenderer {
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             descriptor_count: 1,
             stage_flags: vk::ShaderStageFlags::FRAGMENT,
-            p_immutable_samplers: ptr::null(),
+            p_immutable_samplers: std::ptr::null(),
         }];
 
         let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::DescriptorSetLayoutCreateFlags::empty(),
             binding_count: descriptor_set_layout_bindings.len() as u32,
             p_bindings: descriptor_set_layout_bindings.as_ptr(),
@@ -317,7 +316,7 @@ impl ImguiRenderer {
 
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
             set_layout_count: descriptor_set_layouts.len() as u32,
             p_set_layouts: descriptor_set_layouts.as_ptr(),
@@ -352,13 +351,13 @@ impl ImguiRenderer {
             flags: vk::SubpassDescriptionFlags::empty(),
             pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
             input_attachment_count: 0,
-            p_input_attachments: ptr::null(),
+            p_input_attachments: std::ptr::null(),
             color_attachment_count: color_attachment_references.len() as u32,
             p_color_attachments: color_attachment_references.as_ptr(),
-            p_resolve_attachments: ptr::null(),
-            p_depth_stencil_attachment: ptr::null(),
+            p_resolve_attachments: std::ptr::null(),
+            p_depth_stencil_attachment: std::ptr::null(),
             preserve_attachment_count: 0,
-            p_preserve_attachments: ptr::null(),
+            p_preserve_attachments: std::ptr::null(),
         }];
 
         let supbass_dependencies = [vk::SubpassDependency {
@@ -374,7 +373,7 @@ impl ImguiRenderer {
 
         let render_pass_create_info = vk::RenderPassCreateInfo {
             s_type: vk::StructureType::RENDER_PASS_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::RenderPassCreateFlags::empty(),
             attachment_count: attachments.len() as u32,
             p_attachments: attachments.as_ptr(),
@@ -389,13 +388,13 @@ impl ImguiRenderer {
         // pipeline creation
         let graphics_pipeline_create_info = [vk::GraphicsPipelineCreateInfo {
             s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::PipelineCreateFlags::empty(),
             stage_count: shader_stages.len() as u32,
             p_stages: shader_stages.as_ptr(),
             p_vertex_input_state: vertex_input_state.as_ptr(),
             p_input_assembly_state: input_assembly_state.as_ptr(),
-            p_tessellation_state: ptr::null(),
+            p_tessellation_state: std::ptr::null(),
             p_viewport_state: viewport_state.as_ptr(),
             p_rasterization_state: rasterization_state.as_ptr(),
             p_multisample_state: multisample_state.as_ptr(),
@@ -455,7 +454,7 @@ impl ImguiRenderer {
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
             max_sets: 1,
             pool_size_count: descriptor_pool_sizes.len() as u32,
@@ -467,7 +466,7 @@ impl ImguiRenderer {
         // descriptor set
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             descriptor_pool,
             descriptor_set_count: descriptor_set_layouts.len() as u32,
             p_set_layouts: descriptor_set_layouts.as_ptr(),
@@ -485,15 +484,15 @@ impl ImguiRenderer {
 
         let write_descriptor_sets = [vk::WriteDescriptorSet {
             s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             dst_set: descriptor_set,
             dst_binding: 0,
             dst_array_element: 0,
             descriptor_count: image_infos.len() as u32,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             p_image_info: image_infos.as_ptr(),
-            p_buffer_info: ptr::null(),
-            p_texel_buffer_view: ptr::null(),
+            p_buffer_info: std::ptr::null(),
+            p_texel_buffer_view: std::ptr::null(),
         }];
 
         unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
@@ -574,9 +573,9 @@ impl ImguiRenderer {
         let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-            p_inheritance_info: ptr::null(),
+            p_inheritance_info: std::ptr::null(),
         };
 
         // framebuffer
@@ -584,7 +583,7 @@ impl ImguiRenderer {
 
         let framebuffer_create_info = vk::FramebufferCreateInfo {
             s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::FramebufferCreateFlags::empty(),
             render_pass: self.render_pass,
             attachment_count: attachments.len() as u32,
@@ -612,7 +611,7 @@ impl ImguiRenderer {
 
             let render_pass_begin_info = vk::RenderPassBeginInfo {
                 s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-                p_next: ptr::null(),
+                p_next: std::ptr::null(),
                 render_pass: self.render_pass,
                 framebuffer,
                 render_area: vk::Rect2D {

@@ -7,3 +7,4 @@ pub mod ris_io;
 pub mod ris_math;
 pub mod ris_rng;
 pub mod ris_util;
+pub mod ris_video_data;

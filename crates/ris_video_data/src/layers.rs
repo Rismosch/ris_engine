@@ -1,7 +1,5 @@
 use std::ffi::CStr;
 use std::os::raw::c_void;
-use std::ptr;
-
 use ash::vk;
 
 use ris_error::RisResult;
@@ -17,13 +15,19 @@ const VALIDATION_ENABLED: bool = false;
 const VALIDATION_ENABLED: bool = true;
 const VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 
+#[derive(Default)]
+pub struct InstanceExtensions {
+    pub pp_enabled_layer_names: *const *const i8,
+    pub enabled_layer_count: u32,
+}
+
 pub fn add_validation_layer(
     entry: &ash::Entry,
     instance_extensions: &mut Vec<*const i8>,
-) -> RisResult<(u32, *const *const i8)> {
+) -> RisResult<InstanceExtensions> {
     let available_layers = if !VALIDATION_ENABLED {
         ris_log::debug!("validation layer are disabled");
-        (0, ptr::null())
+        InstanceExtensions::default()
     } else {
         // add debug util extension
         instance_extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
@@ -32,7 +36,7 @@ pub fn add_validation_layer(
         let layer_properties = entry.enumerate_instance_layer_properties()?;
         if layer_properties.is_empty() {
             ris_log::warning!("no available instance layers");
-            (0, ptr::null())
+            InstanceExtensions::default()
         } else {
             let mut log_message = String::from("available instance layers:");
             for layer in layer_properties.iter() {
@@ -65,7 +69,11 @@ pub fn add_validation_layer(
 
             ris_log::debug!("{}", log_message);
 
-            (0, available_layers.as_ptr())
+            InstanceExtensions {
+                pp_enabled_layer_names: available_layers.as_ptr(),
+                //enabled_layer_count: available_layers.len() as u32,
+                enabled_layer_count: 0,
+            }
         }
     };
 
@@ -83,7 +91,7 @@ pub fn setup_debugging(
 
         let debug_utils_messenger_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
             s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
             message_severity:
                 //vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
@@ -95,7 +103,7 @@ pub fn setup_debugging(
                 vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
                 vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
             pfn_user_callback: Some(debug_callback),
-            p_user_data: ptr::null_mut(),
+            p_user_data: std::ptr::null_mut(),
         };
 
         let debug_utils_messenger = unsafe {

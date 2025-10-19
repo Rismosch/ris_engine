@@ -780,6 +780,7 @@ dependencies = [
  "ris_error",
  "ris_log",
  "ris_ptr",
+ "ris_util",
  "sdl2",
  "sdl2-sys",
  "shaderc",

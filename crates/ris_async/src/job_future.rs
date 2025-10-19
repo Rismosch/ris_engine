@@ -3,11 +3,14 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
+use ris_error::prelude::*;
+
 use crate::oneshot_channel;
 use crate::OneshotReceiver;
 use crate::OneshotSender;
 use crate::ThreadPool;
 
+#[must_use]
 pub struct JobFuture<T> {
     receiver: OneshotReceiver<T>,
 }

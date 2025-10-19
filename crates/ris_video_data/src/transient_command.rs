@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ash::vk;
 
 use ris_async::JobFuture;
@@ -63,7 +61,7 @@ impl TransientCommand {
 
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             command_buffer_count: 1,
             command_pool,
             level: vk::CommandBufferLevel::PRIMARY,
@@ -75,16 +73,16 @@ impl TransientCommand {
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-            p_inheritance_info: ptr::null(),
+            p_inheritance_info: std::ptr::null(),
         };
 
         unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }?;
 
         let fence_create_info = vk::FenceCreateInfo {
             s_type: vk::StructureType::FENCE_CREATE_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             flags: vk::FenceCreateFlags::SIGNALED,
         };
         let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
@@ -126,7 +124,7 @@ impl TransientCommand {
 
         let submit_info = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
+            p_next: std::ptr::null(),
             wait_semaphore_count: sync.wait.len() as u32,
             p_wait_semaphores: sync.wait.as_ptr(),
             p_wait_dst_stage_mask: sync.dst.as_ptr(),
