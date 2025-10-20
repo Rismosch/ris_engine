@@ -32,6 +32,16 @@ pub struct BufferIOArgs<'a> {
     pub size: usize,
 }
 
+struct InternalIOArgs<'a, T> {
+    pub transient_command_args: TransientCommandArgs,
+    pub bytes: Vec<u8>,
+    pub gpu_object: &'a T,
+    pub bytes_offset: usize,
+    pub gpu_object_offset: usize,
+    pub gpu_object_size: usize,
+    pub size: usize,
+}
+
 impl MemoryIO {
     pub unsafe fn free(&mut self, device: &ash::Device) {
         let staging = ThreadPool::lock(&self.staging);
@@ -86,6 +96,96 @@ impl MemoryIO {
         Ok(Self{staging})
     }
 
+    unsafe fn write_internal<T>(&self, args: InternalIOArgs<T>) -> RisResult<JobFuture<RisResult<Vec<u8>>>> {
+        let InternalIOArgs { 
+            transient_command_args,
+            bytes: src,
+            gpu_object: dst,
+            bytes_offset: src_offset,
+            gpu_object_offset: dst_offset,
+            gpu_object_size: dst_size,
+            size,
+        } = args;
+
+        if size == 0 {
+            return Ok(JobFuture::finished(Ok(src)));
+        }
+
+        let src_start = src_offset;
+        let src_end = src_start + size;
+        let dst_start = dst_offset;
+        let dst_end = dst_start + size;
+
+        ris_error::assert!(src_end <= src.len())?;
+        ris_error::assert!(dst_end <= dst_size)?;
+
+        let device = transient_command_args.device.clone();
+        let staging = self.staging.clone();
+        //let dst_buffer = dst.buffer;
+
+        let future = ThreadPool::submit(async move {
+            let staging = ThreadPool::lock(&staging);
+
+            let mut src_i = src_start;
+            let mut dst_i = dst_start;
+            let chunk_size = unsafe {CHUNK_SIZE};
+
+            while src_i < src_end {
+                let src_from = src_i;
+                let dst_offset = dst_i as vk::DeviceSize;
+
+                src_i += chunk_size;
+                dst_i += chunk_size;
+
+                let src_to = src_from + chunk_size;
+                let src_to = usize::min(src_to, src_end);
+                let src_slice = &src[src_from..src_to];
+
+                let ptr = device.map_memory(
+                    staging.memory,
+                    0,
+                    src_slice.len() as vk::DeviceSize,
+                    vk::MemoryMapFlags::empty(),
+                )? as *mut u8;
+
+                ptr.copy_from_nonoverlapping(
+                    src_slice.as_ptr(),
+                    src_slice.len(),
+                );
+
+                device.unmap_memory(staging.memory);
+
+                let args = transient_command_args.clone();
+                let command = TransientCommand::begin(args)?;
+
+                let buffer_copy = vk::BufferCopy{
+                    src_offset: 0,
+                    dst_offset,
+                    size: src_slice.len() as vk::DeviceSize,
+                };
+
+                // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyBufferToImage.html
+                // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyImageToBuffer.html
+
+                //device.cmd_copy_buffer(
+                //    command.buffer(),
+                //    staging.buffer,
+                //    dst_buffer,
+                //    &[buffer_copy],
+                //);
+
+                let sync = TransientCommandSync::default();
+                let submit_future = command.end_and_submit(sync)?;
+                submit_future.wait();
+            }
+
+            Ok(src)
+        });
+
+        Ok(future)
+
+    }
+
     pub unsafe fn write_to_buffer(&self, args: BufferIOArgs) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
         let BufferIOArgs { 
             transient_command_args,
@@ -113,7 +213,6 @@ impl MemoryIO {
         let dst_buffer = dst.buffer;
 
         let future = ThreadPool::submit(async move {
-            // TODO: do not block while holding the lock:
             let staging = ThreadPool::lock(&staging);
 
             let mut src_i = src_start;

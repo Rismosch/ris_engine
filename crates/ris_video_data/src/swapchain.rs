@@ -200,8 +200,8 @@ impl Swapchain {
 
             let mut depth_image = Image::alloc(ImageCreateInfo {
                 device,
-                width: extent.width,
-                height: extent.height,
+                width: extent.width as usize,
+                height: extent.height as usize,
                 format: depth_format,
                 usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
                 memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,

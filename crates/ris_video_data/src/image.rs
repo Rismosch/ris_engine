@@ -10,14 +10,16 @@ use super::transient_command::prelude::*;
 pub struct Image {
     pub image: vk::Image,
     pub memory: vk::DeviceMemory,
+    width: usize,
+    height: usize,
     format: vk::Format,
     layout: vk::ImageLayout,
 }
 
 pub struct ImageCreateInfo<'a> {
     pub device: &'a ash::Device,
-    pub width: u32,
-    pub height: u32,
+    pub width: usize,
+    pub height: usize,
     pub format: vk::Format,
     pub usage: vk::ImageUsageFlags,
     pub memory_property_flags: vk::MemoryPropertyFlags,
@@ -62,8 +64,8 @@ impl Image {
             image_type: vk::ImageType::TYPE_2D,
             format,
             extent: vk::Extent3D {
-                width,
-                height,
+                width: width as u32,
+                height: width as u32,
                 depth: 1,
             },
             mip_levels: 1,
@@ -100,6 +102,8 @@ impl Image {
         Ok(Self { 
             image,
             memory,
+            width,
+            height,
             format,
             layout,
         })
@@ -136,6 +140,18 @@ impl Image {
         let view = unsafe { device.create_image_view(&image_view_create_info, None) }?;
 
         Ok(view)
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn size(&self) -> usize {
+        self.width() * self.height()
     }
 
     pub fn transition_layout(&mut self, info: TransitionLayoutInfo) -> RisResult<JobFuture<()>> {

@@ -7,7 +7,7 @@ use super::buffer::CopyToImageInfo;
 use super::image::Image;
 use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
-use super::transient_command::TransientCommandSync;
+use super::transient_command::prelude::*;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Texture {
@@ -42,6 +42,19 @@ impl Texture {
     }
 
     pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
+
+        unsafe{
+            use super::memory_io::MemoryIO;
+
+            let memory_io = MemoryIO::alloc(
+                info.device,
+                info.physical_device_memory_properties,
+            )?;
+
+        }
+
+        panic!("memory io tests passed");
+
         todo!();
         //let TextureCreateInfo {
         //    device,
