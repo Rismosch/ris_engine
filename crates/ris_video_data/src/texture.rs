@@ -44,16 +44,15 @@ impl Texture {
     pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
 
         unsafe{
-            use super::memory_io::MemoryIO;
-            use super::memory_io::MemoryIOArgs;
+            use super::gpu_io;
+            use super::gpu_io::GpuIOArgs;
             use super::transient_command::prelude::*;
-
-            super::memory_io::CHUNK_SIZE = 4;
 
             let data = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-            let memory_io = MemoryIO::alloc(
+            let staging = Buffer::alloc_staging(
                 info.device,
+                data.len(),
                 info.physical_device_memory_properties,
             )?;
 
@@ -70,23 +69,19 @@ impl Texture {
                 command_pool: info.transient_command_pool,
             };
 
-            let r1 = memory_io.write_to_buffer(MemoryIOArgs {
+            let r1 = gpu_io::write_to_buffer(GpuIOArgs {
                 transient_command_args: tcas.clone(),
                 bytes: data.clone(),
-                bytes_offset: 0,
                 gpu_object: &buffer,
-                gpu_object_offset: 0,
-                size: data.len(),
-            })?.wait()?;
+                staging: &staging,
+            })?;
 
-            let r2 = memory_io.read_from_buffer(MemoryIOArgs {
+            let r2 = gpu_io::read_from_buffer(GpuIOArgs {
                 transient_command_args: tcas.clone(),
                 bytes: vec![0; data.len()],
-                bytes_offset: 2,
                 gpu_object: &buffer,
-                gpu_object_offset: 4,
-                size: 3,
-            })?.wait()?;
+                staging: &staging,
+            })?;
 
             println!("data: {:#?}", data);
             println!("r1: {:#?}", r1);
