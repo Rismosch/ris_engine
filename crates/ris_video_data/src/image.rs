@@ -154,6 +154,10 @@ impl Image {
         self.width() * self.height()
     }
 
+    pub fn layout(&self) -> vk::ImageLayout {
+        self.layout
+    }
+
     pub fn transition_layout(&mut self, info: TransitionLayoutInfo) -> RisResult<JobFuture<()>> {
         let TransitionLayoutInfo {
             transient_command_args,

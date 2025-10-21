@@ -8,6 +8,7 @@ use ris_async::JobFuture;
 use ris_error::prelude::*;
 
 use super::buffer::Buffer;
+use super::image::Image;
 use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandArgs;
 use super::transient_command::TransientCommandSync;
@@ -23,23 +24,25 @@ struct Staging {
     memory: vk::DeviceMemory,
 }
 
-pub struct BufferIOArgs<'a> {
+pub struct MemoryIOArgs<'a, GpuObject> {
     pub transient_command_args: TransientCommandArgs,
     pub bytes: Vec<u8>,
-    pub buffer: &'a Buffer,
     pub bytes_offset: usize,
-    pub buffer_offset: usize,
+    pub gpu_object: &'a GpuObject,
+    pub gpu_object_offset: usize,
     pub size: usize,
 }
 
-struct InternalIOArgs<'a, T> {
+struct InternalIOArgs<TCallback>
+where TCallback: Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy)
+{
     pub transient_command_args: TransientCommandArgs,
     pub bytes: Vec<u8>,
-    pub gpu_object: &'a T,
     pub bytes_offset: usize,
     pub gpu_object_offset: usize,
     pub gpu_object_size: usize,
     pub size: usize,
+    pub copy_callback: TCallback,
 }
 
 impl MemoryIO {
@@ -96,15 +99,118 @@ impl MemoryIO {
         Ok(Self{staging})
     }
 
-    unsafe fn write_internal<T>(&self, args: InternalIOArgs<T>) -> RisResult<JobFuture<RisResult<Vec<u8>>>> {
+    //pub unsafe fn write_to_image(&self, args: MemoryIOArgs<Image>) -> RisResult<JobFuture<RisResult<Vec<u8>>>> {
+    //    let MemoryIOArgs { 
+    //        transient_command_args,
+    //        bytes,
+    //        bytes_offset,
+    //        gpu_object: image,
+    //        gpu_object_offset: image_offset,
+    //        size,
+    //    } = args;
+
+    //    let device = transient_command_args.device.clone();
+    //    let dst = image.image;
+    //    let layout = image.layout();
+    //    let copy_callback = move |command_buffer, src, buffer_copy| device.cmd_copy_buffer_to_image(
+    //        command_buffer,
+    //        src,
+    //        dst,
+    //        layout,
+    //        &[buffer_copy],
+    //    );
+
+    //    let args = InternalIOArgs {
+    //        transient_command_args,
+    //        bytes,
+    //        bytes_offset,
+    //        gpu_object_offset: image_offset,
+    //        gpu_object_size: image.size(),
+    //        size,
+    //        copy_callback,
+    //    };
+
+    //    self.write_internal(args)
+    //}
+
+    pub unsafe fn write_to_buffer(&self, args: MemoryIOArgs<Buffer>) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
+        let MemoryIOArgs { 
+            transient_command_args,
+            bytes,
+            bytes_offset,
+            gpu_object: buffer,
+            gpu_object_offset: buffer_offset,
+            size,
+        } = args;
+
+        let device = transient_command_args.device.clone();
+        let dst = buffer.buffer;
+        let copy_callback = move |command_buffer, src, buffer_copy| device.cmd_copy_buffer(
+            command_buffer,
+            src,
+            dst,
+            &[buffer_copy],
+        );
+
+        let args = InternalIOArgs {
+            transient_command_args,
+            bytes,
+            bytes_offset,
+            gpu_object_offset: buffer_offset,
+            gpu_object_size: buffer.size(),
+            size,
+            copy_callback,
+        };
+
+        self.write_internal(args)
+    }
+
+    pub unsafe fn read_from_buffer(&self, args: MemoryIOArgs<Buffer>) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
+        let MemoryIOArgs { 
+            transient_command_args,
+            bytes,
+            bytes_offset,
+            gpu_object: buffer,
+            gpu_object_offset: buffer_offset,
+            size,
+        } = args;
+
+        let device = transient_command_args.device.clone();
+        let src = buffer.buffer;
+        let copy_callback = move |command_buffer, dst, buffer_copy| device.cmd_copy_buffer(
+            command_buffer,
+            src,
+            dst,
+            &[buffer_copy],
+        );
+
+        let args = InternalIOArgs {
+            transient_command_args,
+            bytes,
+            bytes_offset,
+            gpu_object_offset: buffer_offset,
+            gpu_object_size: buffer.size(),
+            size,
+            copy_callback,
+        };
+
+        self.read_internal(args)
+    }
+
+    unsafe fn write_internal<TCallback>(
+        &self,
+        args: InternalIOArgs<TCallback>,
+    ) -> RisResult<JobFuture<RisResult<Vec<u8>>>>
+        where TCallback : Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy) + 'static
+    {
         let InternalIOArgs { 
             transient_command_args,
             bytes: src,
-            gpu_object: dst,
             bytes_offset: src_offset,
             gpu_object_offset: dst_offset,
             gpu_object_size: dst_size,
             size,
+            copy_callback,
         } = args;
 
         if size == 0 {
@@ -121,7 +227,6 @@ impl MemoryIO {
 
         let device = transient_command_args.device.clone();
         let staging = self.staging.clone();
-        //let dst_buffer = dst.buffer;
 
         let future = ThreadPool::submit(async move {
             let staging = ThreadPool::lock(&staging);
@@ -164,100 +269,10 @@ impl MemoryIO {
                     size: src_slice.len() as vk::DeviceSize,
                 };
 
-                // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyBufferToImage.html
-                // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyImageToBuffer.html
-
-                //device.cmd_copy_buffer(
-                //    command.buffer(),
-                //    staging.buffer,
-                //    dst_buffer,
-                //    &[buffer_copy],
-                //);
-
-                let sync = TransientCommandSync::default();
-                let submit_future = command.end_and_submit(sync)?;
-                submit_future.wait();
-            }
-
-            Ok(src)
-        });
-
-        Ok(future)
-
-    }
-
-    pub unsafe fn write_to_buffer(&self, args: BufferIOArgs) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
-        let BufferIOArgs { 
-            transient_command_args,
-            bytes: src,
-            buffer: dst,
-            bytes_offset: src_offset,
-            buffer_offset: dst_offset,
-            size,
-        } = args;
-
-        if size == 0 {
-            return Ok(JobFuture::finished(Ok(src)));
-        }
-
-        let src_start = src_offset;
-        let src_end = src_start + size;
-        let dst_start = dst_offset;
-        let dst_end = dst_start + size;
-
-        ris_error::assert!(src_end <= src.len())?;
-        ris_error::assert!(dst_end <= dst.size())?;
-
-        let device = transient_command_args.device.clone();
-        let staging = self.staging.clone();
-        let dst_buffer = dst.buffer;
-
-        let future = ThreadPool::submit(async move {
-            let staging = ThreadPool::lock(&staging);
-
-            let mut src_i = src_start;
-            let mut dst_i = dst_start;
-            let chunk_size = unsafe {CHUNK_SIZE};
-
-            while src_i < src_end {
-                let src_from = src_i;
-                let dst_offset = dst_i as vk::DeviceSize;
-
-                src_i += chunk_size;
-                dst_i += chunk_size;
-
-                let src_to = src_from + chunk_size;
-                let src_to = usize::min(src_to, src_end);
-                let src_slice = &src[src_from..src_to];
-
-                let ptr = device.map_memory(
-                    staging.memory,
-                    0,
-                    src_slice.len() as vk::DeviceSize,
-                    vk::MemoryMapFlags::empty(),
-                )? as *mut u8;
-
-                ptr.copy_from_nonoverlapping(
-                    src_slice.as_ptr(),
-                    src_slice.len(),
-                );
-
-                device.unmap_memory(staging.memory);
-
-                let args = transient_command_args.clone();
-                let command = TransientCommand::begin(args)?;
-
-                let buffer_copy = vk::BufferCopy{
-                    src_offset: 0,
-                    dst_offset,
-                    size: src_slice.len() as vk::DeviceSize,
-                };
-
-                device.cmd_copy_buffer(
+                copy_callback(
                     command.buffer(),
                     staging.buffer,
-                    dst_buffer,
-                    &[buffer_copy],
+                    buffer_copy,
                 );
 
                 let sync = TransientCommandSync::default();
@@ -271,14 +286,20 @@ impl MemoryIO {
         Ok(future)
     }
 
-    pub unsafe fn read_from_buffer(&self, args: BufferIOArgs) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
-        let BufferIOArgs { 
+    unsafe fn read_internal<TCallback>(
+        &self,
+        args: InternalIOArgs<TCallback>,
+    ) -> RisResult<JobFuture<RisResult<Vec<u8>>>>
+        where TCallback : Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy) + 'static
+    {
+        let InternalIOArgs {
             transient_command_args,
             bytes: mut dst,
-            buffer: src,
             bytes_offset: dst_offset,
-            buffer_offset: src_offset,
+            gpu_object_offset: src_offset,
+            gpu_object_size: src_size,
             size,
+            copy_callback,
         } = args;
 
         if size == 0 {
@@ -290,15 +311,14 @@ impl MemoryIO {
         let dst_start = dst_offset;
         let dst_end = dst_start + size;
 
-        ris_error::assert!(src_end <= src.size())?;
+        ris_error::assert!(src_end <= src_size)?;
         ris_error::assert!(dst_end <= dst.len())?;
 
         let device = transient_command_args.device.clone();
         let staging = self.staging.clone();
-        let src_buffer = src.buffer;
+        //let src_buffer = src.buffer;
 
         let future = ThreadPool::submit(async move {
-            // TODO: do not block while holding the lock:
             let staging = ThreadPool::lock(&staging);
 
             let mut src_i = src_start;
@@ -324,11 +344,10 @@ impl MemoryIO {
                     dst_offset: 0,
                     size: dst_slice.len() as vk::DeviceSize,
                 };
-                device.cmd_copy_buffer(
+                copy_callback(
                     command.buffer(),
-                    src_buffer,
                     staging.buffer,
-                    &[buffer_copy],
+                    buffer_copy,
                 );
 
                 let sync = TransientCommandSync::default();
