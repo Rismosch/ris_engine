@@ -1,10 +1,5 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-
 use ash::vk;
 
-use ris_async::ThreadPool;
-use ris_async::JobFuture;
 use ris_error::prelude::*;
 
 use super::buffer::Buffer;
@@ -13,10 +8,14 @@ use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandArgs;
 use super::transient_command::TransientCommandSync;
 
-pub static mut CHUNK_SIZE: usize = 1 << 16;
+const STAGING_SIZE: vk::DeviceSize = 1 << 16;
 
 pub struct MemoryIO {
-    staging: Arc<Mutex<Staging>>, // TODO VEC HERE
+    staging_buffers: Vec<Option<Staging>>,
+}
+
+pub struct StagingBuffer<'a> {
+    io: &'a mut MemoryIO
 }
 
 struct Staging {
@@ -27,351 +26,222 @@ struct Staging {
 pub struct MemoryIOArgs<'a, GpuObject> {
     pub transient_command_args: TransientCommandArgs,
     pub bytes: Vec<u8>,
-    pub bytes_offset: usize,
+    //pub bytes_offset: usize,
     pub gpu_object: &'a GpuObject,
-    pub gpu_object_offset: usize,
-    pub size: usize,
+    //pub gpu_object_offset: usize,
+    //pub size: usize,
+    pub staging_buffer: StagingBuffer,
 }
 
-struct InternalIOArgs<TCallback>
-where TCallback: Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy)
-{
-    pub transient_command_args: TransientCommandArgs,
-    pub bytes: Vec<u8>,
-    pub bytes_offset: usize,
-    pub gpu_object_offset: usize,
-    pub gpu_object_size: usize,
-    pub size: usize,
-    pub copy_callback: TCallback,
-}
+//struct InternalIOArgs<TCallback>
+//where TCallback: Fn(vk::CommandBuffer, vk::Buffer)
+//{
+//    pub transient_command_args: TransientCommandArgs,
+//    pub bytes: Vec<u8>,
+//    //pub bytes_offset: usize,
+//    //pub gpu_object_offset: usize,
+//    pub gpu_object_size: usize,
+//    //pub size: usize,
+//    pub copy_callback: TCallback,
+//    pub staging_buffer: StagingBuffer,
+//}
 
 impl MemoryIO {
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        let staging = ThreadPool::lock(&self.staging);
+        for staging in self.staging_buffers.iter() {
+            let is_in_use = staging.in_use.load(Ordering::Relaxed);
+            if is_in_use {
+                ris_error::throw!("attempted to free a staging buffer that is still in use");
+            }
 
-        device.destroy_buffer(staging.buffer, None);
-        device.free_memory(staging.memory, None);
+            device.destroy_buffer(staging.buffer, None);
+            device.free_memory(staging.memory, None);
+        }
+    }
+
+    pub fn acquire_staging_buffer(&self) -> StagingBuffer {
+        loop {
+            for (index, staging_buffer) in self.staging_buffers.iter().enumerate() {
+                if staging_buffer.in_use.swap(true, Ordering::Acquire) {
+                    continue;
+                } else {
+                    return StagingBuffer{index}
+                }
+            }
+
+            std::hint::spin_loop();
+        }
     }
 
     pub fn alloc(
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        staging_buffer_count: usize,
     ) -> RisResult<Self> {
-        let chunk_size = unsafe {CHUNK_SIZE};
+        let mut staging_buffers = Vec::with_capacity(staging_buffer_count);
+        for _ in 0..staging_buffers.capacity() {
+            let buffer_create_info = vk::BufferCreateInfo {
+                s_type: vk::StructureType::BUFFER_CREATE_INFO,
+                p_next: std::ptr::null(),
+                flags: vk::BufferCreateFlags::empty(),
+                size: STAGING_SIZE,
+                usage: vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST,
+                sharing_mode: vk::SharingMode::EXCLUSIVE,
+                queue_family_index_count: 0,
+                p_queue_family_indices: std::ptr::null(),
+            };
 
-        let buffer_create_info = vk::BufferCreateInfo {
-            s_type: vk::StructureType::BUFFER_CREATE_INFO,
-            p_next: std::ptr::null(),
-            flags: vk::BufferCreateFlags::empty(),
-            size: chunk_size as vk::DeviceSize,
-            usage: vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: std::ptr::null(),
-        };
+            let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }?;
 
-        let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }?;
+            let memory_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
+            let memory_type_index = super::util::find_memory_type(
+                memory_requirements.memory_type_bits,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?
+            .into_ris_error()?;
 
-        let memory_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-        let memory_type_index = super::util::find_memory_type(
-            memory_requirements.memory_type_bits,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            physical_device_memory_properties,
-        )?
-        .into_ris_error()?;
+            let memory_allocate_info = vk::MemoryAllocateInfo {
+                s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+                p_next: std::ptr::null(),
+                allocation_size: memory_requirements.size,
+                memory_type_index,
+            };
 
-        let memory_allocate_info = vk::MemoryAllocateInfo {
-            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: std::ptr::null(),
-            allocation_size: memory_requirements.size,
-            memory_type_index,
-        };
+            let memory = unsafe {device.allocate_memory(&memory_allocate_info, None)}?;
 
-        let memory = unsafe {device.allocate_memory(&memory_allocate_info, None)}?;
+            unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
-        unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
+            let staging = Staging {
+                buffer,
+                memory,
+                in_use: AtomicBool::new(false),
+            };
+            staging_buffers.push(staging);
+        }
 
-        let staging = Arc::new(Mutex::new(Staging{
-            buffer,
-            memory,
-        }));
-
-        Ok(Self{staging})
+        Ok(Self{staging_buffers})
     }
 
-    //pub unsafe fn write_to_image(&self, args: MemoryIOArgs<Image>) -> RisResult<JobFuture<RisResult<Vec<u8>>>> {
-    //    let MemoryIOArgs { 
-    //        transient_command_args,
-    //        bytes,
-    //        bytes_offset,
-    //        gpu_object: image,
-    //        gpu_object_offset: image_offset,
-    //        size,
-    //    } = args;
-
-    //    let device = transient_command_args.device.clone();
-    //    let dst = image.image;
-    //    let layout = image.layout();
-    //    let copy_callback = move |command_buffer, src, buffer_copy| device.cmd_copy_buffer_to_image(
-    //        command_buffer,
-    //        src,
-    //        dst,
-    //        layout,
-    //        &[buffer_copy],
-    //    );
-
-    //    let args = InternalIOArgs {
-    //        transient_command_args,
-    //        bytes,
-    //        bytes_offset,
-    //        gpu_object_offset: image_offset,
-    //        gpu_object_size: image.size(),
-    //        size,
-    //        copy_callback,
-    //    };
-
-    //    self.write_internal(args)
-    //}
-
-    pub unsafe fn write_to_buffer(&self, args: MemoryIOArgs<Buffer>) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
-        let MemoryIOArgs { 
-            transient_command_args,
-            bytes,
-            bytes_offset,
-            gpu_object: buffer,
-            gpu_object_offset: buffer_offset,
-            size,
-        } = args;
-
-        let device = transient_command_args.device.clone();
-        let dst = buffer.buffer;
-        let copy_callback = move |command_buffer, src, buffer_copy| device.cmd_copy_buffer(
-            command_buffer,
-            src,
-            dst,
-            &[buffer_copy],
-        );
-
-        let args = InternalIOArgs {
-            transient_command_args,
-            bytes,
-            bytes_offset,
-            gpu_object_offset: buffer_offset,
-            gpu_object_size: buffer.size(),
-            size,
-            copy_callback,
-        };
-
-        self.write_internal(args)
-    }
-
-    pub unsafe fn read_from_buffer(&self, args: MemoryIOArgs<Buffer>) -> RisResult<JobFuture<RisResult<Vec<u8>>>>{
-        let MemoryIOArgs { 
-            transient_command_args,
-            bytes,
-            bytes_offset,
-            gpu_object: buffer,
-            gpu_object_offset: buffer_offset,
-            size,
-        } = args;
-
-        let device = transient_command_args.device.clone();
-        let src = buffer.buffer;
-        let copy_callback = move |command_buffer, dst, buffer_copy| device.cmd_copy_buffer(
-            command_buffer,
-            src,
-            dst,
-            &[buffer_copy],
-        );
-
-        let args = InternalIOArgs {
-            transient_command_args,
-            bytes,
-            bytes_offset,
-            gpu_object_offset: buffer_offset,
-            gpu_object_size: buffer.size(),
-            size,
-            copy_callback,
-        };
-
-        self.read_internal(args)
-    }
-
-    unsafe fn write_internal<TCallback>(
+    pub unsafe fn write_to_buffer(
         &self,
-        args: InternalIOArgs<TCallback>,
-    ) -> RisResult<JobFuture<RisResult<Vec<u8>>>>
-        where TCallback : Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy) + 'static
-    {
-        let InternalIOArgs { 
+        args: MemoryIOArgs<Buffer>) -> RisResult<Vec<u8>>{
+        let MemoryIOArgs { 
             transient_command_args,
             bytes: src,
-            bytes_offset: src_offset,
-            gpu_object_offset: dst_offset,
-            gpu_object_size: dst_size,
-            size,
-            copy_callback,
+            gpu_object: dst,
+            staging_buffer,
         } = args;
 
-        if size == 0 {
-            return Ok(JobFuture::finished(Ok(src)));
-        }
+        // setup
+        let size = src.len() as vk::DeviceSize;
+        
+        ris_error::assert!(size != 0)?;
+        ris_error::assert!(size <= STAGING_SIZE)?;
+        ris_error::assert!(size == dst.size() as vk::DeviceSize)?;
 
-        let src_start = src_offset;
-        let src_end = src_start + size;
-        let dst_start = dst_offset;
-        let dst_end = dst_start + size;
-
-        ris_error::assert!(src_end <= src.len())?;
-        ris_error::assert!(dst_end <= dst_size)?;
+        let staging = self.staging_buffers
+            .get(staging_buffer.index)
+            .into_ris_error()?;
 
         let device = transient_command_args.device.clone();
-        let staging = self.staging.clone();
 
-        let future = ThreadPool::submit(async move {
-            let staging = ThreadPool::lock(&staging);
+        // write to staging buffer
+        let ptr = device.map_memory(
+            staging.memory,
+            0,
+            src.len() as vk::DeviceSize,
+            vk::MemoryMapFlags::empty(),
+        )? as *mut u8;
 
-            let mut src_i = src_start;
-            let mut dst_i = dst_start;
-            let chunk_size = unsafe {CHUNK_SIZE};
+        ptr.copy_from_nonoverlapping(
+            src.as_ptr(),
+            src.len(),
+        );
 
-            while src_i < src_end {
-                let src_from = src_i;
-                let dst_offset = dst_i as vk::DeviceSize;
+        device.unmap_memory(staging.memory);
 
-                src_i += chunk_size;
-                dst_i += chunk_size;
+        // copy from staging buffer
+        let args = transient_command_args.clone();
+        let command = TransientCommand::begin(args)?;
 
-                let src_to = src_from + chunk_size;
-                let src_to = usize::min(src_to, src_end);
-                let src_slice = &src[src_from..src_to];
+        device.cmd_copy_buffer(
+            command.buffer(),
+            staging.buffer,
+            dst.buffer,
+            &[vk::BufferCopy{
+                src_offset: 0,
+                dst_offset: 0,
+                size,
+            }],
+        );
 
-                let ptr = device.map_memory(
-                    staging.memory,
-                    0,
-                    src_slice.len() as vk::DeviceSize,
-                    vk::MemoryMapFlags::empty(),
-                )? as *mut u8;
+        // submit
+        let sync = TransientCommandSync::default();
+        let submit_future = command.end_and_submit(sync)?;
+        submit_future.wait();
 
-                ptr.copy_from_nonoverlapping(
-                    src_slice.as_ptr(),
-                    src_slice.len(),
-                );
-
-                device.unmap_memory(staging.memory);
-
-                let args = transient_command_args.clone();
-                let command = TransientCommand::begin(args)?;
-
-                let buffer_copy = vk::BufferCopy{
-                    src_offset: 0,
-                    dst_offset,
-                    size: src_slice.len() as vk::DeviceSize,
-                };
-
-                copy_callback(
-                    command.buffer(),
-                    staging.buffer,
-                    buffer_copy,
-                );
-
-                let sync = TransientCommandSync::default();
-                let submit_future = command.end_and_submit(sync)?;
-                submit_future.wait();
-            }
-
-            Ok(src)
-        });
-
-        Ok(future)
+        // done
+        Ok(src)
     }
 
-    unsafe fn read_internal<TCallback>(
-        &self,
-        args: InternalIOArgs<TCallback>,
-    ) -> RisResult<JobFuture<RisResult<Vec<u8>>>>
-        where TCallback : Fn(vk::CommandBuffer, vk::Buffer, vk::BufferCopy) + 'static
-    {
-        let InternalIOArgs {
+    pub unsafe fn read_from_buffer(&self, args: MemoryIOArgs<Buffer>) -> RisResult<Vec<u8>>{
+        let MemoryIOArgs { 
             transient_command_args,
             bytes: mut dst,
-            bytes_offset: dst_offset,
-            gpu_object_offset: src_offset,
-            gpu_object_size: src_size,
-            size,
-            copy_callback,
+            gpu_object: src,
+            staging_buffer,
         } = args;
 
-        if size == 0 {
-            return Ok(JobFuture::finished(Ok(dst)))
-        }
+        // setup
+        let size = dst.len() as vk::DeviceSize;
+        
+        ris_error::assert!(size != 0)?;
+        ris_error::assert!(size <= STAGING_SIZE)?;
+        ris_error::assert!(size == src.size() as vk::DeviceSize)?;
 
-        let src_start = src_offset;
-        let src_end = src_start + size;
-        let dst_start = dst_offset;
-        let dst_end = dst_start + size;
-
-        ris_error::assert!(src_end <= src_size)?;
-        ris_error::assert!(dst_end <= dst.len())?;
+        let staging = self.staging_buffers
+            .get(staging_buffer.index)
+            .into_ris_error()?;
 
         let device = transient_command_args.device.clone();
-        let staging = self.staging.clone();
-        //let src_buffer = src.buffer;
 
-        let future = ThreadPool::submit(async move {
-            let staging = ThreadPool::lock(&staging);
+        // copy to staging buffer
+        let args = transient_command_args.clone();
+        let command = TransientCommand::begin(args)?;
 
-            let mut src_i = src_start;
-            let mut dst_i = dst_start;
-            let chunk_size = unsafe {CHUNK_SIZE};
+        device.cmd_copy_buffer(
+            command.buffer(),
+            src.buffer,
+            staging.buffer,
+            &[vk::BufferCopy {
+                src_offset: 0,
+                dst_offset: 0,
+                size,
+            }],
+        );
 
-            while src_i < src_end {
-                let src_offset = src_i as vk::DeviceSize;
-                let dst_from = dst_i;
+        // submit
+        let sync = TransientCommandSync::default();
+        let submit_future = command.end_and_submit(sync)?;
+        submit_future.wait();
 
-                src_i += chunk_size;
-                dst_i += chunk_size;
+        // read from staging buffer
+        let ptr = device.map_memory(
+            staging.memory,
+            0,
+            size,
+            vk::MemoryMapFlags::empty(),
+        )? as *mut u8;
 
-                let dst_to = dst_from + chunk_size;
-                let dst_to = usize::min(dst_to, dst_end);
-                let dst_slice = &mut dst[dst_from..dst_to];
+        ptr.copy_to_nonoverlapping(
+            dst.as_mut_ptr(),
+            dst.len(),
+        );
 
-                let args = transient_command_args.clone();
-                let command = TransientCommand::begin(args)?;
+        device.unmap_memory(staging.memory);
 
-                let buffer_copy = vk::BufferCopy {
-                    src_offset,
-                    dst_offset: 0,
-                    size: dst_slice.len() as vk::DeviceSize,
-                };
-                copy_callback(
-                    command.buffer(),
-                    staging.buffer,
-                    buffer_copy,
-                );
-
-                let sync = TransientCommandSync::default();
-                let submit_future = command.end_and_submit(sync)?;
-                submit_future.wait();
-
-                let ptr = device.map_memory(
-                    staging.memory,
-                    0,
-                    dst_slice.len() as vk::DeviceSize,
-                    vk::MemoryMapFlags::empty(),
-                )? as *mut u8;
-
-                ptr.copy_to_nonoverlapping(
-                    dst_slice.as_mut_ptr(),
-                    dst_slice.len(),
-                );
-
-                device.unmap_memory(staging.memory);
-            }
-
-            Ok(dst)
-        });
-
-        Ok(future)
+        // done
+        Ok(dst)
     }
 }
