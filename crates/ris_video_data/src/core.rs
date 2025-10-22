@@ -59,7 +59,11 @@ impl VulkanCore {
         // instance extensions
         let mut count = 0;
         if unsafe {
-            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(window.raw(), &mut count, std::ptr::null_mut())
+            sdl2_sys::SDL_Vulkan_GetInstanceExtensions(
+                window.raw(),
+                &mut count,
+                std::ptr::null_mut(),
+            )
         } == sdl2_sys::SDL_bool::SDL_FALSE
         {
             return ris_error::new_result!("{}", sdl2::get_error());
@@ -82,8 +86,7 @@ impl VulkanCore {
         let InstanceExtensions {
             pp_enabled_layer_names,
             enabled_layer_count,
-        } =
-            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        } = super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
 
         let mut log_message = format!("Vulkan Instance Extensions: {}", instance_extensions.len());
         for extension in instance_extensions.iter() {
@@ -128,11 +131,7 @@ impl VulkanCore {
         let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
 
         // suitable devices
-        let suitable_devices = SuitableDevice::query(
-            &instance,
-            &surface_loader,
-            surface,
-        )?;
+        let suitable_devices = SuitableDevice::query(&instance, &surface_loader, surface)?;
 
         // logical device
         let Some(suitable_device) = suitable_devices.into_iter().min_by_key(|x| x.suitability)

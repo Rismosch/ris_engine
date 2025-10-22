@@ -204,7 +204,6 @@ impl Swapchain {
                 height: extent.height as usize,
                 format: depth_format,
                 usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                memory_property_flags: vk::MemoryPropertyFlags::DEVICE_LOCAL,
                 physical_device_memory_properties,
             })?;
 

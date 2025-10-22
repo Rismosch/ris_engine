@@ -52,7 +52,7 @@ impl<T> OneshotReceiver<T> {
             data: UnsafeCell::new(MaybeUninit::new(value)),
         });
 
-        Self {channel}
+        Self { channel }
     }
 
     pub fn receive(mut self) -> Result<T, Self> {

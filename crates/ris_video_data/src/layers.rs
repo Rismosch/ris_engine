@@ -1,12 +1,13 @@
+use ash::vk;
 use std::ffi::CStr;
 use std::os::raw::c_void;
-use ash::vk;
 
 use ris_error::RisResult;
 use ris_log::log_level::LogLevel;
 
 use super::util;
 
+const USE_LOGGER: bool = true;
 const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::Error;
 
 #[cfg(not(debug_assertions))]
@@ -156,13 +157,17 @@ pub unsafe extern "system" fn debug_callback(
         String::new()
     };
 
-    ris_log::log!(
-        priority,
-        "VULKAN {} | {}{}",
-        type_flag,
-        message,
-        backtrace_string,
-    );
+    if USE_LOGGER {
+        ris_log::log!(
+            priority,
+            "VULKAN {} | {}{}",
+            type_flag,
+            message,
+            backtrace_string,
+        )
+    } else {
+        println!("VULKAN {} | {}{}", type_flag, message, backtrace_string,)
+    }
 
     vk::FALSE
 }

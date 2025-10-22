@@ -79,7 +79,7 @@ impl Buffer {
             physical_device_memory_properties,
         )?;
 
-        Ok(Self { 
+        Ok(Self {
             buffer,
             memory,
             usage,
@@ -146,7 +146,6 @@ impl Buffer {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<()> {
         if new_size > self.capacity {
-
             self.free(device);
             let (buffer, memory) = Self::alloc_buffer_and_memory(
                 device,

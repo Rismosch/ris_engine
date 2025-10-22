@@ -22,7 +22,6 @@ pub struct ImageCreateInfo<'a> {
     pub height: usize,
     pub format: vk::Format,
     pub usage: vk::ImageUsageFlags,
-    pub memory_property_flags: vk::MemoryPropertyFlags,
     pub physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
 }
 
@@ -51,7 +50,6 @@ impl Image {
             height,
             format,
             usage,
-            memory_property_flags,
             physical_device_memory_properties,
         } = info;
 
@@ -82,6 +80,7 @@ impl Image {
         let image = unsafe { device.create_image(&image_create_info, None) }?;
 
         let image_memory_requirements = unsafe { device.get_image_memory_requirements(image) };
+        let memory_property_flags = vk::MemoryPropertyFlags::DEVICE_LOCAL;
         let memory_type_index = super::util::find_memory_type(
             image_memory_requirements.memory_type_bits,
             memory_property_flags,
@@ -99,7 +98,7 @@ impl Image {
         let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
         unsafe { device.bind_image_memory(image, memory, 0) }?;
 
-        Ok(Self { 
+        Ok(Self {
             image,
             memory,
             width,
@@ -158,7 +157,7 @@ impl Image {
         self.layout
     }
 
-    pub fn transition_layout(&mut self, info: TransitionLayoutInfo) -> RisResult<JobFuture<()>> {
+    pub fn transition_layout(&mut self, info: TransitionLayoutInfo) -> RisResult<()> {
         let TransitionLayoutInfo {
             transient_command_args,
             new_layout,
@@ -184,44 +183,44 @@ impl Image {
             dst_pipeline_stage: vk::PipelineStageFlags,
         }
 
-        let mask =
-            match (self.layout, new_layout) {
-                (
-                    vk::ImageLayout::UNDEFINED,
-                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                ) => Mask {
-                    src_access: vk::AccessFlags::empty(),
-                    src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
-                    dst_access: vk::AccessFlags::TRANSFER_WRITE,
-                    dst_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
-                },
-                (
-                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                ) => Mask {
+        let mask = match (self.layout, new_layout) {
+            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => Mask {
+                src_access: vk::AccessFlags::empty(),
+                src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+                dst_access: vk::AccessFlags::TRANSFER_WRITE,
+                dst_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
+            },
+            (vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL) => {
+                Mask {
                     src_access: vk::AccessFlags::TRANSFER_WRITE,
                     src_pipeline_stage: vk::PipelineStageFlags::TRANSFER,
                     dst_access: vk::AccessFlags::SHADER_READ,
                     dst_pipeline_stage: vk::PipelineStageFlags::FRAGMENT_SHADER,
-                },
-                (
-                    vk::ImageLayout::UNDEFINED,
-                    vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                ) => Mask {
+                }
+            }
+            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL) => {
+                Mask {
                     src_access: vk::AccessFlags::empty(),
                     src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
                     dst_access: vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
                         | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
                     dst_pipeline_stage: vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
-                },
-                transition => {
-                    return ris_error::new_result!(
-                        "TODO: transition from {:?} to {:?} is not yet implemented",
-                        transition.0,
-                        transition.1,
-                    )
                 }
-            };
+            }
+            (_, vk::ImageLayout::GENERAL) => Mask {
+                src_access: vk::AccessFlags::empty(),
+                src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+                dst_access: vk::AccessFlags::empty(),
+                dst_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
+            },
+            transition => {
+                return ris_error::new_result!(
+                    "TODO: transition from {:?} to {:?} is not yet implemented",
+                    transition.0,
+                    transition.1,
+                )
+            }
+        };
 
         let image_memory_barriers = [vk::ImageMemoryBarrier {
             s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
@@ -244,7 +243,7 @@ impl Image {
 
         let device = transient_command_args.device.clone();
 
-        let future = unsafe {
+        unsafe {
             let transient_command = TransientCommand::begin(transient_command_args)?;
 
             device.cmd_pipeline_barrier(
@@ -257,11 +256,12 @@ impl Image {
                 &image_memory_barriers,
             );
 
-            transient_command.end_and_submit(sync)?
-        };
+            let future = transient_command.end_and_submit(sync)?;
+            future.wait();
+        }
 
         self.layout = new_layout;
 
-        Ok(future)
+        Ok(())
     }
 }

@@ -37,9 +37,8 @@ pub struct TransientCommandSync {
 impl Drop for TransientCommand {
     fn drop(&mut self) {
         if self.free_on_drop {
-            unsafe {self.free()};
+            unsafe { self.free() };
         }
-
     }
 }
 
@@ -91,7 +90,7 @@ impl TransientCommand {
             p_next: std::ptr::null(),
             flags: vk::FenceCreateFlags::SIGNALED,
         };
-        let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
+        let fence = unsafe { device.create_fence(&fence_create_info, None) }?;
 
         Ok(Self {
             device,
@@ -140,7 +139,7 @@ impl TransientCommand {
             p_signal_semaphores: sync.signal.as_ptr(),
         }];
 
-        unsafe { 
+        unsafe {
             device.end_command_buffer(self.buffer())?;
             device.reset_fences(&[self.fence])?;
             device.queue_submit(*queue, &submit_info, self.fence)?;
@@ -160,7 +159,7 @@ fn block_on_fence(device: &ash::Device, fence: vk::Fence) {
     let fences = [fence];
 
     loop {
-        let result = unsafe {device.wait_for_fences(&fences, true, 0)};
+        let result = unsafe { device.wait_for_fences(&fences, true, 0) };
         if result.is_ok() {
             break;
         }

@@ -42,8 +42,7 @@ impl Texture {
     }
 
     pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {
-
-        unsafe{
+        unsafe {
             use super::gpu_io;
             use super::gpu_io::GpuIOArgs;
             use super::transient_command::prelude::*;
@@ -83,9 +82,40 @@ impl Texture {
                 staging: &staging,
             })?;
 
-            println!("data: {:#?}", data);
-            println!("r1: {:#?}", r1);
-            println!("r2: {:#?}", r2);
+            let mut image = Image::alloc(ImageCreateInfo {
+                device: info.device,
+                width: 5,
+                height: 2,
+                format: vk::Format::R8_UINT,
+                usage: vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST,
+                physical_device_memory_properties: info.physical_device_memory_properties,
+            })?;
+
+            image.transition_layout(TransitionLayoutInfo {
+                transient_command_args: tcas.clone(),
+                new_layout: vk::ImageLayout::GENERAL,
+                sync: TransientCommandSync::default(),
+            })?;
+
+            let r3 = gpu_io::write_to_image(GpuIOArgs {
+                transient_command_args: tcas.clone(),
+                bytes: data.clone(),
+                gpu_object: &image,
+                staging: &staging,
+            })?;
+
+            let r4 = gpu_io::read_from_image(GpuIOArgs {
+                transient_command_args: tcas.clone(),
+                bytes: vec![0; data.len()],
+                gpu_object: &image,
+                staging: &staging,
+            })?;
+
+            println!("data: {:?}", data);
+            println!("r1:   {:?}", r1);
+            println!("r2:   {:?}", r2);
+            println!("r3:   {:?}", r3);
+            println!("r4:   {:?}", r4);
         }
 
         panic!("memory io tests passed");

@@ -33,7 +33,7 @@ impl<T> Future for JobFuture<T> {
 impl<T> JobFuture<T> {
     pub fn finished(value: T) -> Self {
         let receiver = OneshotReceiver::with_value(value);
-        Self {receiver}
+        Self { receiver }
     }
 
     pub fn new() -> (Self, JobFutureSetter<T>) {
