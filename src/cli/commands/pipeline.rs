@@ -202,7 +202,7 @@ impl ICommand for Pipeline {
 
         print_empty(ff, 1)?;
 
-        println!("results stored in \"{}\"", target_dir.display());
+        eprintln!("results stored in \"{}\"", target_dir.display());
 
         print_empty(ff, 2)?;
 

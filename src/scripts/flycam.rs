@@ -112,7 +112,7 @@ impl Script for FlyCam {
         }
 
         if state.input.keyboard.keys.is_down(Scancode::F) {
-            println!(
+            eprintln!(
                 "{:?} ({} fps)",
                 frame.average_duration(),
                 frame.average_fps()

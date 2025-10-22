@@ -194,7 +194,6 @@ fn should_not_decode_when_magic_is_incorrect() {
     let data = [0; 22];
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::IncorrectMagic));
 }
 
@@ -208,7 +207,6 @@ fn should_not_decode_when_desc_width_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::DescWidthIsZero));
 }
 
@@ -223,7 +221,6 @@ fn should_not_decode_when_height_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::DescHeightIsZero));
 }
 
@@ -239,7 +236,6 @@ fn should_not_decode_when_invalid_channel() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
 }
 
@@ -257,6 +253,5 @@ fn should_not_decode_when_invalid_color_space() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
 }

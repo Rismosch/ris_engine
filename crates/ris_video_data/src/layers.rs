@@ -7,7 +7,7 @@ use ris_log::log_level::LogLevel;
 
 use super::util;
 
-const USE_LOGGER: bool = true;
+const USE_LOGGER: bool = true; // uses eprintln!() when false
 const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::Error;
 
 #[cfg(not(debug_assertions))]
@@ -166,7 +166,7 @@ pub unsafe extern "system" fn debug_callback(
             backtrace_string,
         )
     } else {
-        println!("VULKAN {} | {}{}", type_flag, message, backtrace_string,)
+        eprintln!("VULKAN {} | {}{}", type_flag, message, backtrace_string,)
     }
 
     vk::FALSE
