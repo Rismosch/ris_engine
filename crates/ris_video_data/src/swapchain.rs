@@ -192,14 +192,14 @@ impl Swapchain {
         let mut entries = Vec::with_capacity(viewport_images.len());
         for (index, viewport_image) in viewport_images.into_iter().enumerate() {
             let viewport_image_view = Image::alloc_view(
-                device,
+                device.clone(),
                 viewport_image,
                 format.format,
                 vk::ImageAspectFlags::COLOR,
             )?;
 
             let mut depth_image = Image::alloc(ImageCreateInfo {
-                device,
+                device: device.clone(),
                 width: extent.width as usize,
                 height: extent.height as usize,
                 format: depth_format,
@@ -208,7 +208,7 @@ impl Swapchain {
             })?;
 
             let depth_image_view = Image::alloc_view(
-                device,
+                device.clone(),
                 depth_image.image,
                 depth_format,
                 vk::ImageAspectFlags::DEPTH,

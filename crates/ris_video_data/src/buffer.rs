@@ -3,8 +3,6 @@ use ash::vk;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::transient_command::TransientCommandSync;
-
 #[derive(Debug)]
 pub struct Buffer {
     pub buffer: vk::Buffer,
@@ -13,16 +11,6 @@ pub struct Buffer {
     memory_property_flags: vk::MemoryPropertyFlags,
     size: usize,
     capacity: usize,
-}
-
-pub struct CopyToImageInfo<'a> {
-    pub device: &'a ash::Device,
-    pub queue: vk::Queue,
-    pub transient_command_pool: vk::CommandPool,
-    pub image: vk::Image,
-    pub width: u32,
-    pub height: u32,
-    pub sync: TransientCommandSync,
 }
 
 impl Buffer {

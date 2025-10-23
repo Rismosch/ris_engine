@@ -16,8 +16,8 @@ pub struct Image {
     layout: vk::ImageLayout,
 }
 
-pub struct ImageCreateInfo<'a> {
-    pub device: &'a ash::Device,
+pub struct ImageCreateInfo {
+    pub device: ash::Device,
     pub width: usize,
     pub height: usize,
     pub format: vk::Format,
@@ -109,7 +109,7 @@ impl Image {
     }
 
     pub fn alloc_view(
-        device: &ash::Device,
+        device: ash::Device,
         image: vk::Image,
         format: vk::Format,
         aspect_mask: vk::ImageAspectFlags,
