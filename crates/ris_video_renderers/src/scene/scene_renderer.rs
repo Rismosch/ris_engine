@@ -16,6 +16,7 @@ use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
+use ris_video_data::transient_command::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -142,18 +143,29 @@ impl SceneRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let texture = Texture::alloc(TextureCreateInfo {
+        let staging = Buffer::alloc_staging(
             device,
-            queue: *graphics_queue,
-            transient_command_pool: *transient_command_pool,
+            pixels_rgba.len(),
+            physical_device_memory_properties,
+        )?;
+
+        let texture = Texture::alloc(TextureCreateInfo {
+            transient_command_args: TransientCommandArgs {
+                device: device.clone(),
+                queue: *graphics_queue,
+                command_pool: *transient_command_pool,
+            },
+            staging: &staging,
             physical_device_memory_properties,
             physical_device_properties,
-            width: desc.width,
-            height: desc.height,
+            width: desc.width as usize,
+            height: desc.height as usize,
             format: vk::Format::R8G8B8A8_SRGB,
             filter: vk::Filter::LINEAR,
-            pixels_rgba: &pixels_rgba,
+            pixels: &pixels_rgba,
         })?;
+
+        unsafe {staging.free(device)};
 
         // push constants
         let push_constant_range = [vk::PushConstantRange {
@@ -527,53 +539,52 @@ impl SceneRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        panic!();
-        //let frame_count = swapchain.entries.len();
-        //let mut frames = Vec::with_capacity(frame_count);
-        //for descriptor_set in descriptor_sets {
-        //    let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-        //    let descriptor_buffer = Buffer::alloc(
-        //        device,
-        //        buffer_size,
-        //        vk::BufferUsageFlags::UNIFORM_BUFFER,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        //        physical_device_memory_properties,
-        //    )?;
+        let frame_count = swapchain.entries.len();
+        let mut frames = Vec::with_capacity(frame_count);
+        for descriptor_set in descriptor_sets {
+            let buffer_size = std::mem::size_of::<UniformBufferObject>();
+            let descriptor_buffer = Buffer::alloc(
+                device,
+                buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                physical_device_memory_properties,
+            )?;
 
-        //    let descriptor_mapped = unsafe {
-        //        device.map_memory(
-        //            descriptor_buffer.memory,
-        //            0,
-        //            buffer_size,
-        //            vk::MemoryMapFlags::empty(),
-        //        )
-        //    }? as *mut UniformBufferObject;
+            let descriptor_mapped = unsafe {
+                device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size as vk::DeviceSize,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
-        //    let frame = SceneFrame {
-        //        descriptor_buffer,
-        //        descriptor_mapped,
-        //        descriptor_set,
-        //    };
-        //    frames.push(frame);
-        //}
+            let frame = SceneFrame {
+                descriptor_buffer,
+                descriptor_mapped,
+                descriptor_set,
+            };
+            frames.push(frame);
+        }
 
-        //// lookup
-        //let mesh_lookup = match mesh_lookup {
-        //    Some(mesh_lookup) => Some(mesh_lookup),
-        //    None => Some(MeshLookup::default()),
-        //};
+        // lookup
+        let mesh_lookup = match mesh_lookup {
+            Some(mesh_lookup) => Some(mesh_lookup),
+            None => Some(MeshLookup::default()),
+        };
 
-        //Ok(Self {
-        //    descriptor_set_layout,
-        //    descriptor_pool,
-        //    render_pass,
-        //    pipeline,
-        //    pipeline_layout,
-        //    renderer_id,
-        //    frames,
-        //    texture,
-        //    mesh_lookup,
-        //})
+        Ok(Self {
+            descriptor_set_layout,
+            descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            renderer_id,
+            frames,
+            texture,
+            mesh_lookup,
+        })
     }
 
     pub fn draw(&mut self, args: SceneRendererArgs) -> RisResult<vk::CommandBuffer> {

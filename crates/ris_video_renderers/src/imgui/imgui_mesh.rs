@@ -5,6 +5,7 @@ use imgui::DrawVert;
 
 use ris_error::RisResult;
 use ris_video_data::buffer::Buffer;
+use ris_video_data::gpu_io;
 
 pub struct Mesh {
     pub vertices: Buffer,
@@ -28,45 +29,52 @@ impl Mesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
     ) -> RisResult<Self> {
-        todo!();
-        //let vertices = Self::create_vertices(draw_data);
-        //let vertex_count = vertices.len();
-        //let indices = Self::create_indices(draw_data);
-        //let index_count = vertices.len();
+        let vertices = Self::create_vertices(draw_data);
+        let vertex_count = vertices.len();
+        let indices = Self::create_indices(draw_data);
+        let index_count = vertices.len();
 
-        //let vertices_slice = vertices.as_slice();
-        //let vertex_buffer_size = std::mem::size_of_val(vertices_slice) as vk::DeviceSize;
-        //let vertex_buffer = Buffer::alloc(
-        //    device,
-        //    vertex_buffer_size,
-        //    vk::BufferUsageFlags::VERTEX_BUFFER,
-        //    vk::MemoryPropertyFlags::HOST_VISIBLE
-        //        | vk::MemoryPropertyFlags::HOST_COHERENT
-        //        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //    physical_device_memory_properties,
-        //)?;
+        let vertices_slice = vertices.as_slice();
+        let vertex_buffer_size = std::mem::size_of_val(vertices_slice);
+        let vertex_buffer = Buffer::alloc(
+            device,
+            vertex_buffer_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
 
-        //unsafe { vertex_buffer.write(device, &vertices) }?;
+        unsafe {gpu_io::write_to_memory(
+            device,
+            vertices,
+            vertex_buffer.memory,
+        )}?;
 
-        //let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-        //let index_buffer = Buffer::alloc(
-        //    device,
-        //    index_buffer_size,
-        //    vk::BufferUsageFlags::INDEX_BUFFER,
-        //    vk::MemoryPropertyFlags::HOST_VISIBLE
-        //        | vk::MemoryPropertyFlags::HOST_COHERENT
-        //        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //    physical_device_memory_properties,
-        //)?;
+        let index_buffer_size = std::mem::size_of_val(indices.as_slice());
+        let index_buffer = Buffer::alloc(
+            device,
+            index_buffer_size,
+            vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
 
-        //unsafe { index_buffer.write(device, &indices) }?;
+        unsafe {gpu_io::write_to_memory(
+            device,
+            indices,
+            index_buffer.memory,
+        )}?;
 
-        //Ok(Self {
-        //    vertices: vertex_buffer,
-        //    vertex_count,
-        //    indices: index_buffer,
-        //    index_count,
-        //})
+        Ok(Self {
+            vertices: vertex_buffer,
+            vertex_count,
+            indices: index_buffer,
+            index_count,
+        })
     }
 
     pub fn create_vertices(draw_data: &DrawData) -> Vec<DrawVert> {
@@ -93,57 +101,44 @@ impl Mesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
     ) -> RisResult<()> {
-        panic!();
-        //let vertices = Self::create_vertices(draw_data);
-        //let old_vertex_count = self.vertex_count;
-        //let new_vertex_count = draw_data.total_vtx_count as usize;
+        let vertices = Self::create_vertices(draw_data);
+        let old_vertex_count = self.vertex_count;
+        let new_vertex_count = draw_data.total_vtx_count as usize;
 
-        //if old_vertex_count < new_vertex_count {
-        //    let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
-        //    let new_vertex_buffer = Buffer::alloc(
-        //        device,
-        //        vertex_buffer_size,
-        //        vk::BufferUsageFlags::VERTEX_BUFFER,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE
-        //            | vk::MemoryPropertyFlags::HOST_COHERENT
-        //            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    )?;
+        if old_vertex_count < new_vertex_count {
+            let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice());
+            unsafe {self.vertices.resize(
+                vertex_buffer_size,
+                device,
+                physical_device_memory_properties,
+            )}?;
+        }
 
-        //    self.vertex_count = vertices.len();
+        unsafe { gpu_io::write_to_memory(
+            device,
+            vertices,
+            self.vertices.memory,
+        )}?;
 
-        //    let old_buffer = self.vertices;
-        //    self.vertices = new_vertex_buffer;
+        let indices = Self::create_indices(draw_data);
+        let old_index_count = self.index_count;
+        let new_index_count = draw_data.total_idx_count as usize;
 
-        //    unsafe { old_buffer.free(device) };
-        //}
-        //unsafe { self.vertices.write(device, &vertices) }?;
+        if old_index_count < new_index_count {
+            let index_buffer_size = std::mem::size_of_val(indices.as_slice());
+            unsafe {self.indices.resize(
+                index_buffer_size,
+                device,
+                physical_device_memory_properties,
+            )}?;
+        }
 
-        //let indices = Self::create_indices(draw_data);
-        //let old_index_count = self.index_count;
-        //let new_index_count = draw_data.total_idx_count as usize;
+        unsafe { gpu_io::write_to_memory(
+            device,
+            indices,
+            self.indices.memory,
+        )}?;
 
-        //if old_index_count < new_index_count {
-        //    let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-        //    let new_index_buffer = Buffer::alloc(
-        //        device,
-        //        index_buffer_size,
-        //        vk::BufferUsageFlags::INDEX_BUFFER,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE
-        //            | vk::MemoryPropertyFlags::HOST_COHERENT
-        //            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    )?;
-
-        //    self.index_count = indices.len();
-
-        //    let old_buffer = self.indices;
-        //    self.indices = new_index_buffer;
-
-        //    unsafe { old_buffer.free(device) };
-        //}
-        //unsafe { self.indices.write(device, &indices) }?;
-
-        //Ok(())
+        Ok(())
     }
 }

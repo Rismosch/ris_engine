@@ -150,7 +150,15 @@ impl Image {
     }
 
     pub fn size(&self) -> usize {
-        self.width() * self.height()
+        let pixel_width = match self.format {
+            vk::Format::R8G8B8A8_SRGB => 4,
+            format => ris_error::throw!(
+                "todo: pixel width for format {:?} is not yet implemented",
+                format,
+            ),
+        };
+
+        self.width() * self.height() * pixel_width
     }
 
     pub fn layout(&self) -> vk::ImageLayout {

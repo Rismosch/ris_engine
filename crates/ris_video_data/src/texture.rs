@@ -26,7 +26,7 @@ pub struct TextureCreateInfo<'a> {
     pub height: usize,
     pub format: vk::Format,
     pub filter: vk::Filter,
-    pub bytes: &'a [u8],
+    pub pixels: &'a [u8],
 }
 
 impl Texture {
@@ -51,15 +51,17 @@ impl Texture {
             height,
             format,
             filter,
-            bytes,
+            pixels,
         } = info;
 
         ris_error::debug_assert!(width != 0)?;
         ris_error::debug_assert!(height != 0)?;
 
-        let actual_len = bytes.len();
-        //let expected_len = (width * height * 4) as usize;
-        let expected_len = todo!("use actual len");
+        // https://github.com/Rismosch/ris_engine/issues/209
+        let pixel_width = 4;
+
+        let actual_len = pixels.len();
+        let expected_len = width * height * pixel_width;
         ris_error::debug_assert!(actual_len == expected_len)?;
 
         let device = transient_command_args.device.clone();
@@ -81,12 +83,12 @@ impl Texture {
             sync: TransientCommandSync::default(),
         })?;
 
-        gpu_io::write_to_image(GpuIOArgs {
+        unsafe {gpu_io::write_to_image(GpuIOArgs {
             transient_command_args: tcas.clone(),
-            bytes,
+            values: pixels,
             gpu_object: &image,
             staging,
-        })?;
+        })}?;
 
         image.transition_layout(TransitionLayoutInfo {
             transient_command_args: tcas.clone(),

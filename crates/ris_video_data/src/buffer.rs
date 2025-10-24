@@ -23,13 +23,13 @@ impl Buffer {
         device.free_memory(self.memory, None);
     }
 
-    pub fn alloc(
+    pub fn alloc_local(
         device: &ash::Device,
         size: usize,
         usage: vk::BufferUsageFlags,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
-        Self::alloc_internal(
+        Self::alloc(
             device,
             size,
             usage,
@@ -43,7 +43,7 @@ impl Buffer {
         size: usize,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
-        Self::alloc_internal(
+        Self::alloc(
             device,
             size,
             vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST,
@@ -52,13 +52,21 @@ impl Buffer {
         )
     }
 
-    fn alloc_internal(
+    pub fn alloc(
         device: &ash::Device,
         size: usize,
         usage: vk::BufferUsageFlags,
         memory_property_flags: vk::MemoryPropertyFlags,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<Self> {
+        if memory_property_flags.intersects(vk::MemoryPropertyFlags::HOST_COHERENT) {
+            ris_log::warning!(
+                "attempted to allocate gpu buffer with memory property {:?}. this may be slower than flushing manually. it is generally adised to avoid {:?}",
+                vk::MemoryPropertyFlags::HOST_COHERENT,
+                vk::MemoryPropertyFlags::HOST_COHERENT,
+            )
+        }
+
         let (buffer, memory) = Self::alloc_buffer_and_memory(
             device,
             size as vk::DeviceSize,

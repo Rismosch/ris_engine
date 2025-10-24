@@ -13,6 +13,7 @@ use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_math::matrix::Mat4;
+use ris_video_data::buffer::Buffer;
 use ris_video_data::core::VulkanCore;
 use ris_video_data::frames_in_flight::FrameInFlight;
 use ris_video_data::frames_in_flight::RendererId;
@@ -20,7 +21,7 @@ use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::prelude::*
+use ris_video_data::transient_command::prelude::*;
 
 use super::imgui_mesh::Mesh;
 
@@ -431,18 +432,29 @@ impl ImguiRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-        let font_texture = Texture::alloc(TextureCreateInfo {
+        let staging = Buffer::alloc_staging(
             device,
-            queue: *graphics_queue,
-            transient_command_pool: *transient_command_pool,
+            font_atlas_texture.data.len(),
+            physical_device_memory_properties,
+        )?;
+
+        let font_texture = Texture::alloc(TextureCreateInfo {
+            transient_command_args: TransientCommandArgs { 
+                device: device.clone(),
+                queue: *graphics_queue,
+                command_pool: *transient_command_pool,
+            },
+            staging: &staging,
             physical_device_memory_properties,
             physical_device_properties,
-            width: font_atlas_texture.width,
-            height: font_atlas_texture.height,
+            width: font_atlas_texture.width as usize,
+            height: font_atlas_texture.height as usize,
             format: vk::Format::R8G8B8A8_SRGB,
             filter: vk::Filter::LINEAR,
-            pixels_rgba: font_atlas_texture.data,
+            pixels: font_atlas_texture.data,
         })?;
+
+        unsafe {staging.free(device)};
 
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);

@@ -513,15 +513,14 @@ impl GizmoTextRenderer {
         let font_data = font_future.wait()?;
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 
-        //let pixels_rgba = match desc.channels {
-        //    qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
-        //    qoi::Channels::RGBA => pixels,
-        //};
-        
+        let pixels_rgba = match desc.channels {
+            qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
+            qoi::Channels::RGBA => pixels,
+        };
 
         let staging = Buffer::alloc_staging(
             device,
-            pixels.len(),
+            pixels_rgba.len(),
             physical_device_memory_properties,
         )?;
 
@@ -538,7 +537,7 @@ impl GizmoTextRenderer {
             height: desc.height as usize,
             format: vk::Format::R8G8B8A8_SRGB,
             filter: vk::Filter::NEAREST,
-            bytes: &pixels,
+            pixels: &pixels_rgba,
         })?;
 
         unsafe {staging.free(device)};
@@ -546,46 +545,45 @@ impl GizmoTextRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        todo!();
-        //let mut frames = Vec::with_capacity(swapchain.entries.len());
-        //for descriptor_set in descriptor_sets {
-        //    unsafe {
-        //        let buffer_size = std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize;
-        //        let descriptor_buffer = Buffer::alloc(
-        //            device,
-        //            buffer_size,
-        //            vk::BufferUsageFlags::UNIFORM_BUFFER,
-        //            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        //            physical_device_memory_properties,
-        //        )?;
+        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        for descriptor_set in descriptor_sets {
+            unsafe {
+                let buffer_size = std::mem::size_of::<UniformBufferObject>();
+                let descriptor_buffer = Buffer::alloc(
+                    device,
+                    buffer_size,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                    physical_device_memory_properties,
+                )?;
 
-        //        let descriptor_mapped = device.map_memory(
-        //            descriptor_buffer.memory,
-        //            0,
-        //            buffer_size,
-        //            vk::MemoryMapFlags::empty(),
-        //        )? as *mut UniformBufferObject;
+                let descriptor_mapped = device.map_memory(
+                    descriptor_buffer.memory,
+                    0,
+                    buffer_size as vk::DeviceSize,
+                    vk::MemoryMapFlags::empty(),
+                )? as *mut UniformBufferObject;
 
-        //        let frame = GizmoTextFrame {
-        //            mesh: None,
-        //            descriptor_buffer,
-        //            descriptor_mapped,
-        //            descriptor_set,
-        //        };
-        //        frames.push(frame);
-        //    }
-        //}
+                let frame = GizmoTextFrame {
+                    mesh: None,
+                    descriptor_buffer,
+                    descriptor_mapped,
+                    descriptor_set,
+                };
+                frames.push(frame);
+            }
+        }
 
-        //Ok(Self {
-        //    descriptor_set_layout,
-        //    descriptor_pool,
-        //    render_pass,
-        //    pipeline,
-        //    pipeline_layout,
-        //    renderer_id,
-        //    frames,
-        //    font_texture,
-        //})
+        Ok(Self {
+            descriptor_set_layout,
+            descriptor_pool,
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            renderer_id,
+            frames,
+            font_texture,
+        })
     }
 
     pub fn draw(&mut self, args: GizmoTextRendererArgs) -> RisResult<Option<vk::CommandBuffer>> {
