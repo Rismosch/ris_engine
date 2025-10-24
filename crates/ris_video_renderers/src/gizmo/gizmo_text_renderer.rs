@@ -15,6 +15,7 @@ use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
+use ris_video_data::transient_command::prelude::*;
 
 use super::gizmo_text_mesh::GizmoTextMesh;
 
@@ -512,23 +513,35 @@ impl GizmoTextRenderer {
         let font_data = font_future.wait()?;
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 
-        let pixels_rgba = match desc.channels {
-            qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
-            qoi::Channels::RGBA => pixels,
-        };
+        //let pixels_rgba = match desc.channels {
+        //    qoi::Channels::RGB => ris_asset::util::add_alpha_channel(&pixels)?,
+        //    qoi::Channels::RGBA => pixels,
+        //};
+        
+
+        let staging = Buffer::alloc_staging(
+            device,
+            pixels.len(),
+            physical_device_memory_properties,
+        )?;
 
         let font_texture = Texture::alloc(TextureCreateInfo {
-            device,
-            queue: *graphics_queue,
-            transient_command_pool: *transient_command_pool,
+            transient_command_args: TransientCommandArgs { 
+                device: device.clone(),
+                queue: *graphics_queue,
+                command_pool: *transient_command_pool,
+            },
+            staging: &staging,
             physical_device_memory_properties,
             physical_device_properties,
-            width: desc.width,
-            height: desc.height,
+            width: desc.width as usize,
+            height: desc.height as usize,
             format: vk::Format::R8G8B8A8_SRGB,
             filter: vk::Filter::NEAREST,
-            pixels_rgba: &pixels_rgba,
+            bytes: &pixels,
         })?;
+
+        unsafe {staging.free(device)};
 
         // frames
         let renderer_id = renderer_registerer.register(0)?;

@@ -20,6 +20,7 @@ use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
+use ris_video_data::transient_command::prelude::*
 
 use super::imgui_mesh::Mesh;
 

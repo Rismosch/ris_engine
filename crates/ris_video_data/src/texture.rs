@@ -26,7 +26,7 @@ pub struct TextureCreateInfo<'a> {
     pub height: usize,
     pub format: vk::Format,
     pub filter: vk::Filter,
-    pub pixels_rgba: &'a [u8],
+    pub bytes: &'a [u8],
 }
 
 impl Texture {
@@ -51,14 +51,15 @@ impl Texture {
             height,
             format,
             filter,
-            pixels_rgba,
+            bytes,
         } = info;
 
         ris_error::debug_assert!(width != 0)?;
         ris_error::debug_assert!(height != 0)?;
 
-        let actual_len = pixels_rgba.len();
-        let expected_len = (width * height * 4) as usize;
+        let actual_len = bytes.len();
+        //let expected_len = (width * height * 4) as usize;
+        let expected_len = todo!("use actual len");
         ris_error::debug_assert!(actual_len == expected_len)?;
 
         let device = transient_command_args.device.clone();
@@ -82,7 +83,7 @@ impl Texture {
 
         gpu_io::write_to_image(GpuIOArgs {
             transient_command_args: tcas.clone(),
-            bytes: pixels_rgba,
+            bytes,
             gpu_object: &image,
             staging,
         })?;
