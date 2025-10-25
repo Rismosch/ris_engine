@@ -17,7 +17,7 @@ use ris_video_data::gpu_io;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -91,22 +91,20 @@ impl SceneRenderer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        unsafe {
-            for frame in self.frames.iter_mut() {
-                frame.free(device);
-            }
+        for frame in self.frames.iter_mut() {
+            frame.free(device);
+        }
 
-            device.destroy_descriptor_pool(self.descriptor_pool, None);
-            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+        device.destroy_descriptor_pool(self.descriptor_pool, None);
+        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
-            device.destroy_pipeline(self.pipeline, None);
-            device.destroy_pipeline_layout(self.pipeline_layout, None);
-            device.destroy_render_pass(self.render_pass, None);
+        device.destroy_pipeline(self.pipeline, None);
+        device.destroy_pipeline_layout(self.pipeline_layout, None);
+        device.destroy_render_pass(self.render_pass, None);
 
-            self.texture.free(device);
-            if let Some(mut mesh_lookup) = self.mesh_lookup.take() {
-                mesh_lookup.free(device);
-            }
+        self.texture.free(device);
+        if let Some(mut mesh_lookup) = self.mesh_lookup.take() {
+            mesh_lookup.free(device);
         }
     }
 
@@ -144,11 +142,8 @@ impl SceneRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let staging = Buffer::alloc_staging(
-            device,
-            pixels_rgba.len(),
-            physical_device_memory_properties,
-        )?;
+        let staging =
+            Buffer::alloc_staging(device, pixels_rgba.len(), physical_device_memory_properties)?;
 
         let texture = Texture::alloc(TextureCreateInfo {
             transient_command_args: TransientCommandArgs {
@@ -166,7 +161,7 @@ impl SceneRenderer {
             pixels: &pixels_rgba,
         })?;
 
-        unsafe {staging.free(device)};
+        unsafe { staging.free(device) };
 
         // push constants
         let push_constant_range = [vk::PushConstantRange {
@@ -552,12 +547,14 @@ impl SceneRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped_memory = unsafe {device.map_memory(
-                descriptor.memory,
-                0,
-                vk::WHOLE_SIZE,
-                vk::MemoryMapFlags::empty(),
-            )}? as *mut UniformBufferObject;
+            let descriptor_mapped_memory = unsafe {
+                device.map_memory(
+                    descriptor.memory,
+                    0,
+                    vk::WHOLE_SIZE,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             let frame = SceneFrame {
                 descriptor,
@@ -727,7 +724,7 @@ impl SceneRenderer {
             }];
 
             gpu_io::write_to_mapped_memory(
-                &device,
+                device,
                 ubo,
                 descriptor.memory,
                 *descriptor_mapped_memory,

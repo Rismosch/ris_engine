@@ -21,7 +21,7 @@ use ris_video_data::frames_in_flight::RendererRegisterer;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 use super::imgui_mesh::Mesh;
 
@@ -67,19 +67,17 @@ impl ImguiRenderer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        unsafe {
-            for frame in self.frames.iter_mut() {
-                frame.free(device);
-            }
-
-            self.font_texture.free(device);
-
-            device.destroy_pipeline(self.pipeline, None);
-            device.destroy_pipeline_layout(self.pipeline_layout, None);
-            device.destroy_descriptor_pool(self.descriptor_pool, None);
-            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-            device.destroy_render_pass(self.render_pass, None);
+        for frame in self.frames.iter_mut() {
+            frame.free(device);
         }
+
+        self.font_texture.free(device);
+
+        device.destroy_pipeline(self.pipeline, None);
+        device.destroy_pipeline_layout(self.pipeline_layout, None);
+        device.destroy_descriptor_pool(self.descriptor_pool, None);
+        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+        device.destroy_render_pass(self.render_pass, None);
     }
 
     pub fn alloc(
@@ -439,7 +437,7 @@ impl ImguiRenderer {
         )?;
 
         let font_texture = Texture::alloc(TextureCreateInfo {
-            transient_command_args: TransientCommandArgs { 
+            transient_command_args: TransientCommandArgs {
                 device: device.clone(),
                 queue: *graphics_queue,
                 command_pool: *transient_command_pool,
@@ -454,7 +452,7 @@ impl ImguiRenderer {
             pixels: font_atlas_texture.data,
         })?;
 
-        unsafe {staging.free(device)};
+        unsafe { staging.free(device) };
 
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);

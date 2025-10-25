@@ -29,16 +29,11 @@ impl GizmoSegmentMesh {
             device,
             vertex_buffer_size,
             vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe {gpu_io::write_to_memory(
-            device,
-            vertices,
-            vertex_buffer.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -55,18 +50,14 @@ impl GizmoSegmentMesh {
         if self.vertex_count < vertices.len() {
             self.vertex_count = vertices.len();
             let vertex_buffer_size = std::mem::size_of_val(vertices);
-            unsafe {self.vertices.resize(
+            self.vertices.resize(
                 vertex_buffer_size,
                 device,
                 physical_device_memory_properties,
-            )}?;
+            )?;
         }
 
-        unsafe {gpu_io::write_to_memory(
-            device,
-            vertices,
-            self.vertices.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
         Ok(())
     }

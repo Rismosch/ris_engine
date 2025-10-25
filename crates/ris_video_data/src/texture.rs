@@ -8,7 +8,7 @@ use super::gpu_io::GpuIOArgs;
 use super::image::Image;
 use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
-use super::transient_command::prelude::*;
+use super::transient_command::TransientCommandArgs;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Texture {
@@ -37,7 +37,6 @@ impl Texture {
     pub unsafe fn free(&self, device: &ash::Device) {
         device.destroy_sampler(self.sampler, None);
         device.destroy_image_view(self.view, None);
-
         self.image.free(device);
     }
 
@@ -72,13 +71,7 @@ impl Texture {
             p_next: std::ptr::null(),
             flags: vk::FenceCreateFlags::empty(),
         };
-        let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
-        let sync = TransientCommandSync {
-            wait: Vec::with_capacity(0),
-            dst: Vec::with_capacity(0),
-            signal: Vec::with_capacity(0),
-            fence,
-        };
+        let fence = unsafe { device.create_fence(&fence_create_info, None) }?;
 
         // create image and copy asset to it
         let mut image = Image::alloc(ImageCreateInfo {
@@ -93,11 +86,10 @@ impl Texture {
         image.transition_layout(TransitionLayoutInfo {
             transient_command_args: tcas.clone(),
             new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            sync: sync.clone(),
+            fence: Some(fence),
         })?;
 
         unsafe {
-            device.wait_for_fences(&[fence], true, u64::MAX)?;
             device.reset_fences(&[fence])?;
 
             gpu_io::write_to_image(GpuIOArgs {
@@ -111,16 +103,20 @@ impl Texture {
         image.transition_layout(TransitionLayoutInfo {
             transient_command_args: tcas.clone(),
             new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            sync: sync.clone(),
+            fence: Some(fence),
         })?;
 
         unsafe {
-            device.wait_for_fences(&[fence], true, u64::MAX)?;
             device.destroy_fence(fence, None);
         }
 
         // create image view
-        let view = Image::alloc_view(device.clone(), image.image, format, vk::ImageAspectFlags::COLOR)?;
+        let view = Image::alloc_view(
+            device.clone(),
+            image.image,
+            format,
+            vk::ImageAspectFlags::COLOR,
+        )?;
 
         // create sampler
         let sampler_create_info = vk::SamplerCreateInfo {

@@ -16,7 +16,7 @@ use ris_video_data::gpu_io;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 use super::gizmo_text_mesh::GizmoTextMesh;
 
@@ -519,14 +519,11 @@ impl GizmoTextRenderer {
             qoi::Channels::RGBA => pixels,
         };
 
-        let staging = Buffer::alloc_staging(
-            device,
-            pixels_rgba.len(),
-            physical_device_memory_properties,
-        )?;
+        let staging =
+            Buffer::alloc_staging(device, pixels_rgba.len(), physical_device_memory_properties)?;
 
         let font_texture = Texture::alloc(TextureCreateInfo {
-            transient_command_args: TransientCommandArgs { 
+            transient_command_args: TransientCommandArgs {
                 device: device.clone(),
                 queue: *graphics_queue,
                 command_pool: *transient_command_pool,
@@ -541,7 +538,7 @@ impl GizmoTextRenderer {
             pixels: &pixels_rgba,
         })?;
 
-        unsafe {staging.free(device)};
+        unsafe { staging.free(device) };
 
         // frames
         let renderer_id = renderer_registerer.register(0)?;
@@ -557,12 +554,14 @@ impl GizmoTextRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped_memory = unsafe {device.map_memory(
-                descriptor.memory,
-                0,
-                vk::WHOLE_SIZE,
-                vk::MemoryMapFlags::empty(),
-            )}? as *mut UniformBufferObject;
+            let descriptor_mapped_memory = unsafe {
+                device.map_memory(
+                    descriptor.memory,
+                    0,
+                    vk::WHOLE_SIZE,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             let frame = GizmoTextFrame {
                 mesh: None,
@@ -744,7 +743,12 @@ impl GizmoTextRenderer {
                 screen_width: window_drawable_size.0,
                 screen_height: window_drawable_size.1,
             }];
-            gpu_io::write_to_mapped_memory(device, ubo, descriptor.memory, *descriptor_mapped_memory)?;
+            gpu_io::write_to_mapped_memory(
+                device,
+                ubo,
+                descriptor.memory,
+                *descriptor_mapped_memory,
+            )?;
 
             let infos0 = [vk::DescriptorBufferInfo {
                 buffer: descriptor.buffer,

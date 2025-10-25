@@ -464,12 +464,14 @@ impl GizmoSegmentRenderer {
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped_memory = unsafe {device.map_memory(
-                descriptor.memory,
-                0,
-                vk::WHOLE_SIZE,
-                vk::MemoryMapFlags::empty(),
-            )}? as *mut UniformBufferObject;
+            let descriptor_mapped_memory = unsafe {
+                device.map_memory(
+                    descriptor.memory,
+                    0,
+                    vk::WHOLE_SIZE,
+                    vk::MemoryMapFlags::empty(),
+                )
+            }? as *mut UniformBufferObject;
 
             let frame = GizmoSegmentFrame {
                 mesh: None,

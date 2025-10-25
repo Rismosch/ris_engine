@@ -5,7 +5,7 @@ use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 use crate::assets::ris_mesh;
 
@@ -182,11 +182,13 @@ impl EntryState {
     ) -> Self {
         let receiver = crate::load_async(asset_id, move |bytes| {
             let cpu_mesh = ris_mesh::deserialize(&bytes)?;
-            unsafe { GpuMesh::from_cpu_mesh(
-                transient_command_args,
-                physical_device_memory_properties,
-                cpu_mesh,
-            ) }
+            unsafe {
+                GpuMesh::from_cpu_mesh(
+                    transient_command_args,
+                    physical_device_memory_properties,
+                    cpu_mesh,
+                )
+            }
         });
 
         EntryState::Loading(receiver)

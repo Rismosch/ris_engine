@@ -9,7 +9,7 @@ use ris_video_data::gpu_io::GpuIOArgs;
 use ris_video_data::image::TransitionLayoutInfo;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 pub struct GizmoTextMesh {
     pub vertices: Buffer,
@@ -55,26 +55,18 @@ impl GizmoTextMesh {
         let vertex_buffer_size = std::mem::size_of_val(vertices);
         let text_data_size = std::mem::size_of_val(text);
         let staging_size = usize::max(vertex_buffer_size, text_data_size);
-        let staging = Buffer::alloc_staging(
-            device,
-            staging_size,
-            physical_device_memory_properties,
-        )?;
+        let staging =
+            Buffer::alloc_staging(device, staging_size, physical_device_memory_properties)?;
 
         let vertex_buffer = Buffer::alloc(
             device,
             vertex_buffer_size,
             vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe {gpu_io::write_to_memory(
-            device,
-            vertices,
-            vertex_buffer.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         let text_texture = Texture::alloc(TextureCreateInfo {
             transient_command_args: tcas.clone(),
@@ -88,7 +80,7 @@ impl GizmoTextMesh {
             pixels: text,
         })?;
 
-        unsafe {staging.free(device)};
+        unsafe { staging.free(device) };
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -124,23 +116,15 @@ impl GizmoTextMesh {
         if self.vertex_count < vertices.len() {
             self.vertex_count = vertices.len();
             let vertex_buffer_size = std::mem::size_of_val(vertices);
-            unsafe {self.vertices.resize(
+            self.vertices.resize(
                 vertex_buffer_size,
                 device,
                 physical_device_memory_properties,
-            )}?;
+            )?;
         }
-        unsafe {gpu_io::write_to_memory(
-            device,
-            vertices,
-            self.vertices.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
-        let staging = Buffer::alloc_staging(
-            device,
-            text.len(),
-            physical_device_memory_properties,
-        )?;
+        let staging = Buffer::alloc_staging(device, text.len(), physical_device_memory_properties)?;
 
         if self.text_len < text.len() {
             self.text_len = text.len();
@@ -171,22 +155,15 @@ impl GizmoTextMesh {
                 p_next: std::ptr::null(),
                 flags: vk::FenceCreateFlags::empty(),
             };
-            let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
-            let sync = TransientCommandSync {
-                wait: Vec::with_capacity(0),
-                dst: Vec::with_capacity(0),
-                signal: Vec::with_capacity(0),
-                fence,
-            };
+            let fence = unsafe { device.create_fence(&fence_create_info, None) }?;
 
             image.transition_layout(TransitionLayoutInfo {
                 transient_command_args: tcas.clone(),
                 new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                sync: sync.clone(),
+                fence: Some(fence),
             })?;
 
             unsafe {
-                device.wait_for_fences(&[fence], true, u64::MAX)?;
                 device.reset_fences(&[fence])?;
 
                 gpu_io::write_to_image(GpuIOArgs {
@@ -200,16 +177,15 @@ impl GizmoTextMesh {
             image.transition_layout(TransitionLayoutInfo {
                 transient_command_args: tcas.clone(),
                 new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                sync: sync.clone(),
+                fence: Some(fence),
             })?;
 
             unsafe {
-                device.wait_for_fences(&[fence], true, u64::MAX)?;
                 device.destroy_fence(fence, None);
             }
         }
 
-        unsafe {staging.free(device)};
+        unsafe { staging.free(device) };
 
         Ok(())
     }

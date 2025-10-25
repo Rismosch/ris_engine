@@ -3,7 +3,8 @@ use ash::vk;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::transient_command::prelude::*;
+use super::transient_command::TransientCommand;
+use super::transient_command::TransientCommandArgs;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default)]
 pub struct Image {
@@ -27,7 +28,7 @@ pub struct ImageCreateInfo {
 pub struct TransitionLayoutInfo {
     pub transient_command_args: TransientCommandArgs,
     pub new_layout: vk::ImageLayout,
-    pub sync: TransientCommandSync,
+    pub fence: Option<vk::Fence>,
 }
 
 impl Image {
@@ -36,10 +37,8 @@ impl Image {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
-        unsafe {
-            device.destroy_image(self.image, None);
-            device.free_memory(self.memory, None);
-        }
+        device.destroy_image(self.image, None);
+        device.free_memory(self.memory, None);
     }
 
     pub fn alloc(info: ImageCreateInfo) -> RisResult<Self> {
@@ -169,7 +168,7 @@ impl Image {
         let TransitionLayoutInfo {
             transient_command_args,
             new_layout,
-            sync,
+            fence,
         } = info;
 
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
@@ -264,7 +263,7 @@ impl Image {
                 &image_memory_barriers,
             );
 
-            transient_command.end_and_submit(sync)?;
+            transient_command.submit_and_wait(fence)?;
         }
 
         self.layout = new_layout;

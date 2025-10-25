@@ -11,7 +11,7 @@ use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
 use super::suitable_device::SuitableDevice;
 use super::surface_details::SurfaceDetails;
-use super::transient_command::prelude::*;
+use super::transient_command::TransientCommandArgs;
 
 pub struct Swapchain {
     pub format: vk::SurfaceFormatKHR,
@@ -50,21 +50,19 @@ impl Swapchain {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        unsafe {
-            for entry in self.entries.iter_mut() {
-                for framebuffer in entry.framebuffers.iter_mut() {
-                    if let Some(framebuffer) = framebuffer.borrow_mut().take() {
-                        device.destroy_framebuffer(framebuffer, None);
-                    }
+        for entry in self.entries.iter_mut() {
+            for framebuffer in entry.framebuffers.iter_mut() {
+                if let Some(framebuffer) = framebuffer.borrow_mut().take() {
+                    device.destroy_framebuffer(framebuffer, None);
                 }
-
-                device.destroy_image_view(entry.viewport_image_view, None);
-                entry.depth_image.free(device);
-                device.destroy_image_view(entry.depth_image_view, None);
             }
 
-            self.loader.destroy_swapchain(self.swapchain, None);
+            device.destroy_image_view(entry.viewport_image_view, None);
+            entry.depth_image.free(device);
+            device.destroy_image_view(entry.depth_image_view, None);
         }
+
+        self.loader.destroy_swapchain(self.swapchain, None);
     }
 
     pub fn alloc(info: SwapchainCreateInfo) -> RisResult<Self> {
@@ -221,7 +219,7 @@ impl Swapchain {
                 vk::ImageAspectFlags::DEPTH,
             )?;
 
-            let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
+            let fence = unsafe { device.create_fence(&fence_create_info, None) }?;
             fences.push(fence);
 
             depth_image.transition_layout(TransitionLayoutInfo {
@@ -231,12 +229,7 @@ impl Swapchain {
                     command_pool: transient_command_pool,
                 },
                 new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                sync: TransientCommandSync{
-                    wait: Vec::with_capacity(0),
-                    dst: Vec::with_capacity(0),
-                    signal: Vec::with_capacity(0),
-                    fence,
-                },
+                fence: Some(fence),
             })?;
 
             let entry = SwapchainEntry {

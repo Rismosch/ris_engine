@@ -10,7 +10,7 @@ use ris_math::vector::Vec3;
 use ris_video_data::buffer::Buffer;
 use ris_video_data::gpu_io;
 use ris_video_data::gpu_io::GpuIOArgs;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 
 #[derive(Debug, Clone)]
 pub struct MeshLookupId {
@@ -396,11 +396,13 @@ impl GpuMesh {
         value: MeshPrototype,
     ) -> RisResult<Self> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        unsafe { Self::from_cpu_mesh(
-            transient_command_args,
-            physical_device_memory_properties,
-            cpu_mesh,
-        ) }
+        unsafe {
+            Self::from_cpu_mesh(
+                transient_command_args,
+                physical_device_memory_properties,
+                cpu_mesh,
+            )
+        }
     }
 
     /// # Safety
@@ -416,7 +418,9 @@ impl GpuMesh {
         let buffer = Buffer::alloc_local(
             &transient_command_args.device,
             value.data.len(),
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
+            vk::BufferUsageFlags::VERTEX_BUFFER
+                | vk::BufferUsageFlags::INDEX_BUFFER
+                | vk::BufferUsageFlags::TRANSFER_DST,
             physical_device_memory_properties,
         )?;
 
@@ -503,11 +507,8 @@ impl GpuMesh {
 
         // write to gpu
         let device = &transient_command_args.device.clone();
-        let staging = Buffer::alloc_staging(
-            device,
-            value.data.len(),
-            physical_device_memory_properties,
-        )?;
+        let staging =
+            Buffer::alloc_staging(device, value.data.len(), physical_device_memory_properties)?;
         gpu_io::write_to_buffer(GpuIOArgs {
             transient_command_args,
             values: &value.data,

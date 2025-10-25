@@ -40,32 +40,22 @@ impl Mesh {
             device,
             vertex_buffer_size,
             vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe {gpu_io::write_to_memory(
-            device,
-            vertices,
-            vertex_buffer.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         let index_buffer_size = std::mem::size_of_val(indices.as_slice());
         let index_buffer = Buffer::alloc(
             device,
             index_buffer_size,
             vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe {gpu_io::write_to_memory(
-            device,
-            indices,
-            index_buffer.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, indices, index_buffer.memory) }?;
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -104,36 +94,25 @@ impl Mesh {
         if self.vertex_count < vertices.len() {
             self.vertex_count = vertices.len();
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice());
-            unsafe {self.vertices.resize(
+            self.vertices.resize(
                 vertex_buffer_size,
                 device,
                 physical_device_memory_properties,
-            )}?;
+            )?;
         }
 
-        unsafe { gpu_io::write_to_memory(
-            device,
-            vertices,
-            self.vertices.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
         let indices = Self::create_indices(draw_data);
 
         if self.index_count < indices.len() {
             self.index_count = indices.len();
             let index_buffer_size = std::mem::size_of_val(indices.as_slice());
-            unsafe {self.indices.resize(
-                index_buffer_size,
-                device,
-                physical_device_memory_properties,
-            )}?;
+            self.indices
+                .resize(index_buffer_size, device, physical_device_memory_properties)?;
         }
 
-        unsafe { gpu_io::write_to_memory(
-            device,
-            indices,
-            self.indices.memory,
-        )}?;
+        unsafe { gpu_io::write_to_memory(device, indices, self.indices.memory) }?;
 
         Ok(())
     }

@@ -490,10 +490,11 @@ impl IUiHelperModule for InspectorModule {
                         let original_lock = Arc::new(SpinLock::new(None));
                         let lock = original_lock.clone();
                         let id = id.clone();
-                        ThreadPool::submit(async move {
+                        let future = ThreadPool::submit(async move {
                             let data = ris_asset::load_raw_async(id).wait();
                             *lock.lock() = Some(data);
                         });
+                        future.ignore();
                         self.load_asset_jobs.push(original_lock);
                     }
 

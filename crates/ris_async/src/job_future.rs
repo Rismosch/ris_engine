@@ -3,8 +3,6 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
-use ris_error::prelude::*;
-
 use crate::oneshot_channel;
 use crate::OneshotReceiver;
 use crate::OneshotSender;
@@ -46,6 +44,8 @@ impl<T> JobFuture<T> {
     pub fn wait(self) -> T {
         ThreadPool::block_on(self)
     }
+
+    pub fn ignore(self) {}
 }
 
 impl<T> JobFutureSetter<T> {

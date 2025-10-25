@@ -19,7 +19,6 @@ impl Buffer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
-        return;
         device.destroy_buffer(self.buffer, None);
         device.free_memory(self.memory, None);
     }
@@ -124,9 +123,11 @@ impl Buffer {
             memory_type_index,
         };
 
-        let memory = unsafe { device.allocate_memory(&memory_allocate_info, None) }?;
-
-        unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
+        let memory = unsafe {
+            let memory = device.allocate_memory(&memory_allocate_info, None)?;
+            device.bind_buffer_memory(buffer, memory, 0)?;
+            memory
+        };
 
         Ok((buffer, memory))
     }
@@ -135,14 +136,14 @@ impl Buffer {
         self.size
     }
 
-    pub unsafe fn resize(
+    pub fn resize(
         &mut self,
         new_size: usize,
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<()> {
         if new_size > self.capacity {
-            self.free(device);
+            unsafe { self.free(device) };
             let (buffer, memory) = Self::alloc_buffer_and_memory(
                 device,
                 new_size as vk::DeviceSize,

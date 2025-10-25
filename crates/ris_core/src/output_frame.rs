@@ -16,7 +16,7 @@ use ris_video_data::frames_in_flight::FrameInFlightCreateInfo;
 use ris_video_data::frames_in_flight::FramesInFlight;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::frames_in_flight::RendererRegisterer;
-use ris_video_data::transient_command::prelude::*;
+use ris_video_data::transient_command::TransientCommandArgs;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoSegmentRendererArgs;
 use ris_video_renderers::GizmoTextRenderer;
@@ -155,7 +155,7 @@ impl Renderer {
 
         let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
         mesh_lookup.reimport_everything(
-            TransientCommandArgs { 
+            TransientCommandArgs {
                 device: device.clone(),
                 queue: *graphics_queue,
                 command_pool: *transient_command_pool,
