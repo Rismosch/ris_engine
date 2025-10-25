@@ -21,15 +21,52 @@ pub unsafe fn write_to_memory<T>(
     memory: vk::DeviceMemory,
 ) -> RisResult<()> {
     let src = values.as_ref();
-    let size = std::mem::size_of_val(src) as vk::DeviceSize;
 
     let ptr = device.map_memory(
         memory,
         0,
-        size,
+        vk::WHOLE_SIZE,
         vk::MemoryMapFlags::empty(),
     )? as *mut T;
+
     ptr.copy_from_nonoverlapping(src.as_ptr(), src.len());
+
+    device.flush_mapped_memory_ranges(&[vk::MappedMemoryRange{
+        s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
+        p_next: std::ptr::null(),
+        memory: memory,
+        offset: 0,
+        size: vk::WHOLE_SIZE,
+    }])?;
+
+    device.unmap_memory(memory);
+    Ok(())
+}
+
+pub unsafe fn read_from_memory<T>(
+    device: &ash::Device,
+    mut values: impl AsMut<[T]>,
+    memory: vk::DeviceMemory,
+) -> RisResult<()> {
+    let dst = values.as_mut();
+
+    let ptr = device.map_memory(
+        memory,
+        0,
+        vk::WHOLE_SIZE,
+        vk::MemoryMapFlags::empty(),
+    )? as *mut T;
+
+    device.invalidate_mapped_memory_ranges(&[vk::MappedMemoryRange{
+        s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
+        p_next: std::ptr::null(),
+        memory,
+        offset: 0,
+        size: vk::WHOLE_SIZE,
+    }])?;
+
+    ptr.copy_to_nonoverlapping(dst.as_mut_ptr(), dst.len());
+
     device.unmap_memory(memory);
     Ok(())
 }
@@ -37,32 +74,23 @@ pub unsafe fn write_to_memory<T>(
 pub unsafe fn write_to_buffer<T>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> RisResult<()> {
     let GpuIOArgs {
         transient_command_args,
-        values,
-        gpu_object,
+        values: src,
+        gpu_object: dst,
         staging,
     } = args;
 
     // setup
-    let (src_ptr, src_len) = fat_ptr_ref(values);
-    let dst = gpu_object;
+    let src = src.as_ref();
+    let src_size = std::mem::size_of_val(src);
 
-    ris_error::assert!(src_len == dst.size())?;
-    ris_error::assert!(src_len <= staging.size())?;
+    ris_error::assert!(src_size == dst.size())?;
+    ris_error::assert!(src_size <= staging.size())?;
 
     let device = transient_command_args.device.clone();
     let tcas = transient_command_args.clone();
 
     // write to staging buffer
-    let ptr = device.map_memory(
-        staging.memory,
-        0,
-        src_len as vk::DeviceSize,
-        vk::MemoryMapFlags::empty(),
-    )? as *mut u8;
-
-    ptr.copy_from_nonoverlapping(src_ptr, src_len);
-
-    device.unmap_memory(staging.memory);
+    write_to_memory(&device, src, staging.memory)?;
 
     // copy from staging buffer
     let command = TransientCommand::begin(tcas)?;
@@ -74,7 +102,7 @@ pub unsafe fn write_to_buffer<T>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> Ri
         &[vk::BufferCopy {
             src_offset: 0,
             dst_offset: 0,
-            size: src_len as vk::DeviceSize,
+            size: src_size as vk::DeviceSize,
         }],
     );
 
@@ -87,16 +115,16 @@ pub unsafe fn write_to_buffer<T>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> Ri
 pub unsafe fn read_from_buffer<T>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> RisResult<()> {
     let GpuIOArgs {
         transient_command_args,
-        values,
-        gpu_object,
+        values: mut dst,
+        gpu_object: src,
         staging,
     } = args;
 
     // setup
-    let src = gpu_object;
-    let (dst_ptr, dst_len) = fat_ptr_mut(values);
+    let dst = dst.as_mut();
+    let dst_size = std::mem::size_of_val(dst);
 
-    ris_error::assert!(src.size() == dst_len)?;
+    ris_error::assert!(src.size() == dst_size)?;
     ris_error::assert!(src.size() <= staging.size())?;
 
     let device = transient_command_args.device.clone();
@@ -120,16 +148,7 @@ pub unsafe fn read_from_buffer<T>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> R
     submit(&device, command)?;
 
     // read from staging buffer
-    let ptr = device.map_memory(
-        staging.memory,
-        0,
-        src.size() as vk::DeviceSize,
-        vk::MemoryMapFlags::empty(),
-    )? as *mut u8;
-
-    ptr.copy_to_nonoverlapping(dst_ptr, dst_len);
-
-    device.unmap_memory(staging.memory);
+    read_from_memory(&device, dst, staging.memory)?;
 
     Ok(())
 }
@@ -137,32 +156,23 @@ pub unsafe fn read_from_buffer<T>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> R
 pub unsafe fn write_to_image<T>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisResult<()> {
     let GpuIOArgs {
         transient_command_args,
-        values,
-        gpu_object,
+        values: src,
+        gpu_object: dst,
         staging,
     } = args;
 
     // setup
-    let (src_ptr, src_len) = fat_ptr_ref(values);
-    let dst = gpu_object;
+    let src = src.as_ref();
+    let src_size = std::mem::size_of_val(src);
 
-    ris_error::assert!(src_len == dst.size())?;
-    ris_error::assert!(src_len <= staging.size())?;
+    ris_error::assert!(src_size == dst.size())?;
+    ris_error::assert!(src_size <= staging.size())?;
 
     let device = transient_command_args.device.clone();
     let tcas = transient_command_args.clone();
 
     // write to staging buffer
-    let ptr = device.map_memory(
-        staging.memory,
-        0,
-        src_len as vk::DeviceSize,
-        vk::MemoryMapFlags::empty(),
-    )? as *mut u8;
-
-    ptr.copy_from_nonoverlapping(src_ptr, src_len);
-
-    device.unmap_memory(staging.memory);
+    write_to_memory(&device, src, staging.memory)?;
 
     // copy from staging buffer
     let command = TransientCommand::begin(tcas)?;
@@ -200,16 +210,16 @@ pub unsafe fn write_to_image<T>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisR
 pub unsafe fn read_from_image<T>(args: GpuIOArgs<Image, impl AsMut<[T]>>) -> RisResult<()> {
     let GpuIOArgs {
         transient_command_args,
-        values,
-        gpu_object,
+        values: mut dst,
+        gpu_object: src,
         staging,
     } = args;
 
     // setup
-    let src = gpu_object;
-    let (dst_ptr, dst_len) = fat_ptr_mut(values);
+    let dst = dst.as_mut();
+    let dst_size = std::mem::size_of_val(dst);
 
-    ris_error::assert!(src.size() == dst_len)?;
+    ris_error::assert!(src.size() == dst_size)?;
     ris_error::assert!(src.size() <= staging.size())?;
 
     let device = transient_command_args.device.clone();
@@ -246,32 +256,9 @@ pub unsafe fn read_from_image<T>(args: GpuIOArgs<Image, impl AsMut<[T]>>) -> Ris
     submit(&device, command)?;
 
     // read from staging buffer
-    let ptr = device.map_memory(
-        staging.memory,
-        0,
-        src.size() as vk::DeviceSize,
-        vk::MemoryMapFlags::empty(),
-    )? as *mut u8;
-
-    ptr.copy_to_nonoverlapping(dst_ptr, dst_len);
-
-    device.unmap_memory(staging.memory);
+    read_from_memory(&device, dst, staging.memory)?;
 
     Ok(())
-}
-
-fn fat_ptr_ref<T>(value: impl AsRef<[T]>) -> (*const u8, usize) {
-    let slice = value.as_ref();
-    let ptr = slice.as_ptr() as *const u8;
-    let len = slice.len() * std::mem::size_of::<T>();
-    (ptr, len)
-}
-
-fn fat_ptr_mut<T>(mut value: impl AsMut<[T]>) -> (*mut u8, usize) {
-    let slice = value.as_mut();
-    let ptr = slice.as_mut_ptr() as *mut u8;
-    let len = slice.len() * std::mem::size_of::<T>();
-    (ptr, len)
 }
 
 unsafe fn submit(device: &ash::Device, command: TransientCommand) -> RisResult<()>{

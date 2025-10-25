@@ -66,17 +66,15 @@ impl GizmoTextMesh {
             vertex_buffer_size,
             vk::BufferUsageFlags::VERTEX_BUFFER,
             vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
                 | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe {gpu_io::write_to_buffer(GpuIOArgs {
-            transient_command_args: tcas.clone(),
-            values: vertices,
-            gpu_object: &vertex_buffer,
-            staging: &staging,
-        })?};
+        unsafe {gpu_io::write_to_memory(
+            device,
+            vertices,
+            vertex_buffer.memory,
+        )}?;
 
         let text_texture = Texture::alloc(TextureCreateInfo {
             transient_command_args: tcas.clone(),

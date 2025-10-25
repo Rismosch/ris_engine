@@ -13,6 +13,7 @@ use ris_video_data::core::VulkanCore;
 use ris_video_data::frames_in_flight::FrameInFlight;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::frames_in_flight::RendererRegisterer;
+use ris_video_data::gpu_io;
 use ris_video_data::swapchain::SwapchainEntry;
 use ris_video_data::texture::Texture;
 use ris_video_data::texture::TextureCreateInfo;
@@ -48,8 +49,7 @@ pub struct UniformBufferObject {
 }
 
 pub struct SceneFrame {
-    descriptor_buffer: Buffer,
-    descriptor_mapped: *mut UniformBufferObject,
+    descriptor: Buffer,
     descriptor_set: vk::DescriptorSet,
 }
 
@@ -59,7 +59,7 @@ impl SceneFrame {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        self.descriptor_buffer.free(device);
+        self.descriptor.free(device);
     }
 }
 
@@ -543,26 +543,16 @@ impl SceneRenderer {
         let mut frames = Vec::with_capacity(frame_count);
         for descriptor_set in descriptor_sets {
             let buffer_size = std::mem::size_of::<UniformBufferObject>();
-            let descriptor_buffer = Buffer::alloc(
+            let descriptor = Buffer::alloc(
                 device,
                 buffer_size,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                vk::MemoryPropertyFlags::HOST_VISIBLE,
                 physical_device_memory_properties,
             )?;
 
-            let descriptor_mapped = unsafe {
-                device.map_memory(
-                    descriptor_buffer.memory,
-                    0,
-                    buffer_size as vk::DeviceSize,
-                    vk::MemoryMapFlags::empty(),
-                )
-            }? as *mut UniformBufferObject;
-
             let frame = SceneFrame {
-                descriptor_buffer,
-                descriptor_mapped,
+                descriptor,
                 descriptor_set,
             };
             frames.push(frame);
@@ -619,8 +609,7 @@ impl SceneRenderer {
         } = swapchain_entry;
 
         let SceneFrame {
-            descriptor_buffer,
-            descriptor_mapped,
+            descriptor,
             descriptor_set,
         } = &mut self.frames[*index];
 
@@ -726,10 +715,11 @@ impl SceneRenderer {
                 view: camera.view_matrix(),
                 proj: camera.projection_matrix(),
             }];
-            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+
+            gpu_io::write_to_memory(&device, ubo, descriptor.memory)?;
 
             let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                buffer: descriptor_buffer.buffer,
+                buffer: descriptor.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];

@@ -416,7 +416,7 @@ impl GpuMesh {
         let buffer = Buffer::alloc_local(
             &transient_command_args.device,
             value.data.len(),
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
             physical_device_memory_properties,
         )?;
 
