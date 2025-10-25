@@ -583,6 +583,7 @@ dependencies = [
  "ris_log",
  "ris_math",
  "ris_util",
+ "ris_video_data",
  "shaderc",
 ]
 

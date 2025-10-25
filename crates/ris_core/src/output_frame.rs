@@ -16,6 +16,7 @@ use ris_video_data::frames_in_flight::FrameInFlightCreateInfo;
 use ris_video_data::frames_in_flight::FramesInFlight;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::frames_in_flight::RendererRegisterer;
+use ris_video_data::transient_command::prelude::*;
 use ris_video_renderers::GizmoSegmentRenderer;
 use ris_video_renderers::GizmoSegmentRendererArgs;
 use ris_video_renderers::GizmoTextRenderer;
@@ -143,6 +144,8 @@ impl Renderer {
             instance,
             suitable_device,
             device,
+            graphics_queue,
+            transient_command_pool,
             ..
         } = core;
 
@@ -151,7 +154,14 @@ impl Renderer {
         };
 
         let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
-        mesh_lookup.reimport_everything(device, physical_device_memory_properties);
+        mesh_lookup.reimport_everything(
+            TransientCommandArgs { 
+                device: device.clone(),
+                queue: *graphics_queue,
+                command_pool: *transient_command_pool,
+            },
+            physical_device_memory_properties,
+        );
 
         let renderer_ids = RendererIds {
             scene: self.scene.renderer_id,

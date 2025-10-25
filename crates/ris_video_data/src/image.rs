@@ -152,6 +152,7 @@ impl Image {
     pub fn size(&self) -> usize {
         let pixel_width = match self.format {
             vk::Format::R8G8B8A8_SRGB => 4,
+            vk::Format::R8G8B8A8_UINT => 4,
             format => ris_error::throw!(
                 "todo: pixel width for format {:?} is not yet implemented",
                 format,
@@ -192,7 +193,7 @@ impl Image {
         }
 
         let mask = match (self.layout, new_layout) {
-            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => Mask {
+            (_, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => Mask {
                 src_access: vk::AccessFlags::empty(),
                 src_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
                 dst_access: vk::AccessFlags::TRANSFER_WRITE,

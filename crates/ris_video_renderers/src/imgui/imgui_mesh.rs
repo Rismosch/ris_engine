@@ -102,10 +102,9 @@ impl Mesh {
         draw_data: &DrawData,
     ) -> RisResult<()> {
         let vertices = Self::create_vertices(draw_data);
-        let old_vertex_count = self.vertex_count;
-        let new_vertex_count = draw_data.total_vtx_count as usize;
 
-        if old_vertex_count < new_vertex_count {
+        if self.vertex_count < vertices.len() {
+            self.vertex_count = vertices.len();
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice());
             unsafe {self.vertices.resize(
                 vertex_buffer_size,
@@ -121,10 +120,9 @@ impl Mesh {
         )}?;
 
         let indices = Self::create_indices(draw_data);
-        let old_index_count = self.index_count;
-        let new_index_count = draw_data.total_idx_count as usize;
 
-        if old_index_count < new_index_count {
+        if self.index_count < indices.len() {
+            self.index_count = indices.len();
             let index_buffer_size = std::mem::size_of_val(indices.as_slice());
             unsafe {self.indices.resize(
                 index_buffer_size,

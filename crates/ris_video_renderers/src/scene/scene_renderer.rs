@@ -601,6 +601,8 @@ impl SceneRenderer {
             instance,
             suitable_device,
             device,
+            graphics_queue,
+            transient_command_pool,
             swapchain,
             ..
         } = core;
@@ -783,8 +785,15 @@ impl SceneRenderer {
                 }
 
                 if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
-                    let lookup_id =
-                        mesh_lookup.alloc(device, physical_device_memory_properties, to_allocate);
+                    let lookup_id = mesh_lookup.alloc(
+                        TransientCommandArgs {
+                            device: device.clone(),
+                            queue: *graphics_queue,
+                            command_pool: *transient_command_pool,
+                        },
+                        physical_device_memory_properties,
+                        to_allocate,
+                    );
                     aref_mut.set_lookup_id(lookup_id);
                 }
 

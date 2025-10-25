@@ -3,6 +3,7 @@ use ash::vk;
 use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::RisResult;
 use ris_video_data::buffer::Buffer;
+use ris_video_data::gpu_io;
 
 pub struct GizmoSegmentMesh {
     pub vertices: Buffer,
@@ -23,24 +24,27 @@ impl GizmoSegmentMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[GizmoSegmentVertex],
     ) -> RisResult<Self> {
-        todo!();
-        //let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        //let vertex_buffer = Buffer::alloc(
-        //    device,
-        //    vertex_buffer_size,
-        //    vk::BufferUsageFlags::VERTEX_BUFFER,
-        //    vk::MemoryPropertyFlags::HOST_VISIBLE
-        //        | vk::MemoryPropertyFlags::HOST_COHERENT
-        //        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //    physical_device_memory_properties,
-        //)?;
+        let vertex_buffer_size = std::mem::size_of_val(vertices);
+        let vertex_buffer = Buffer::alloc(
+            device,
+            vertex_buffer_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            physical_device_memory_properties,
+        )?;
 
-        //unsafe { vertex_buffer.write(device, vertices) }?;
+        unsafe {gpu_io::write_to_memory(
+            device,
+            vertices,
+            vertex_buffer.memory,
+        )}?;
 
-        //Ok(Self {
-        //    vertices: vertex_buffer,
-        //    vertex_count: vertices.len(),
-        //})
+        Ok(Self {
+            vertices: vertex_buffer,
+            vertex_count: vertices.len(),
+        })
     }
 
     pub fn update(
@@ -49,31 +53,22 @@ impl GizmoSegmentMesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         vertices: &[GizmoSegmentVertex],
     ) -> RisResult<()> {
-        todo!();
-        //let old_vertex_count = self.vertex_count;
-        //let new_vertex_count = vertices.len();
+        if self.vertex_count < vertices.len() {
+            self.vertex_count = vertices.len();
+            let vertex_buffer_size = std::mem::size_of_val(vertices);
+            unsafe {self.vertices.resize(
+                vertex_buffer_size,
+                device,
+                physical_device_memory_properties,
+            )}?;
+        }
 
-        //if old_vertex_count < new_vertex_count {
-        //    let vertex_buffer_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        //    let new_vertex_buffer = Buffer::alloc(
-        //        device,
-        //        vertex_buffer_size,
-        //        vk::BufferUsageFlags::VERTEX_BUFFER,
-        //        vk::MemoryPropertyFlags::HOST_VISIBLE
-        //            | vk::MemoryPropertyFlags::HOST_COHERENT
-        //            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        //        physical_device_memory_properties,
-        //    )?;
+        unsafe {gpu_io::write_to_memory(
+            device,
+            vertices,
+            self.vertices.memory,
+        )}?;
 
-        //    self.vertex_count = vertices.len();
-
-        //    let old_buffer = self.vertices;
-        //    self.vertices = new_vertex_buffer;
-
-        //    unsafe { old_buffer.free(device) };
-        //}
-        //unsafe { self.vertices.write(device, vertices) }?;
-
-        //Ok(())
+        Ok(())
     }
 }
