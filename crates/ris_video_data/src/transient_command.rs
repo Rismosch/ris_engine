@@ -94,16 +94,29 @@ impl TransientCommand {
             ..
         } = &self;
 
+        let (
+            wait_semaphore_count,
+            p_wait_semaphores,
+        ) = super::util::to_vk_fat_ptr(sync.wait);
+        let (
+            _,
+            p_wait_dst_stage_mask,
+        ) = super::util::to_vk_fat_ptr(sync.dst);
+        let (
+            signal_semaphore_count,
+            p_signal_semaphores,
+        ) = super::util::to_vk_fat_ptr(sync.signal);
+
         let submit_info = [vk::SubmitInfo {
             s_type: vk::StructureType::SUBMIT_INFO,
             p_next: std::ptr::null(),
-            wait_semaphore_count: sync.wait.len() as u32,
-            p_wait_semaphores: sync.wait.as_ptr(),
-            p_wait_dst_stage_mask: sync.dst.as_ptr(),
+            wait_semaphore_count,
+            p_wait_semaphores,
+            p_wait_dst_stage_mask,
             command_buffer_count: 1,
             p_command_buffers: command_buffer,
-            signal_semaphore_count: sync.signal.len() as u32,
-            p_signal_semaphores: sync.signal.as_ptr(),
+            signal_semaphore_count,
+            p_signal_semaphores,
         }];
 
         unsafe {

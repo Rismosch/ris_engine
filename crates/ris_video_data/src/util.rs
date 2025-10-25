@@ -90,3 +90,12 @@ pub fn find_supported_format(
 pub fn has_stencil_component(format: vk::Format) -> bool {
     format == vk::Format::D32_SFLOAT_S8_UINT || format == vk::Format::D24_UNORM_S8_UINT
 }
+
+pub fn to_vk_fat_ptr<T>(value: impl AsRef<[T]>) -> (u32, *const T) {
+    let value = value.as_ref();
+    if value.is_empty() {
+        (0, std::ptr::null())
+    } else {
+        (value.len() as u32, value.as_ptr())
+    }
+}
