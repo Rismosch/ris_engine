@@ -51,7 +51,6 @@ pub unsafe fn write_to_buffer<T>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> Ri
 
     let device = transient_command_args.device.clone();
     let tcas = transient_command_args.clone();
-    let sync = TransientCommandSync::default();
 
     // write to staging buffer
     let ptr = device.map_memory(
@@ -80,8 +79,7 @@ pub unsafe fn write_to_buffer<T>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> Ri
     );
 
     // submit
-    let future = command.end_and_submit(sync)?;
-    future.wait();
+    submit(&device, command)?;
 
     Ok(())
 }
@@ -103,7 +101,6 @@ pub unsafe fn read_from_buffer<T>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> R
 
     let device = transient_command_args.device.clone();
     let tcas = transient_command_args.clone();
-    let sync = TransientCommandSync::default();
 
     // copy to staging buffer
     let command = TransientCommand::begin(tcas)?;
@@ -120,8 +117,7 @@ pub unsafe fn read_from_buffer<T>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> R
     );
 
     // submit
-    let submit_future = command.end_and_submit(sync)?;
-    submit_future.wait();
+    submit(&device, command)?;
 
     // read from staging buffer
     let ptr = device.map_memory(
@@ -155,7 +151,6 @@ pub unsafe fn write_to_image<T>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisR
 
     let device = transient_command_args.device.clone();
     let tcas = transient_command_args.clone();
-    let sync = TransientCommandSync::default();
 
     // write to staging buffer
     let ptr = device.map_memory(
@@ -197,8 +192,7 @@ pub unsafe fn write_to_image<T>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisR
     );
 
     // submit
-    let submit_future = command.end_and_submit(sync)?;
-    submit_future.wait();
+    submit(&device, command)?;
 
     Ok(())
 }
@@ -220,7 +214,6 @@ pub unsafe fn read_from_image<T>(args: GpuIOArgs<Image, impl AsMut<[T]>>) -> Ris
 
     let device = transient_command_args.device.clone();
     let args = transient_command_args.clone();
-    let sync = TransientCommandSync::default();
 
     // copy to staging buffer
     let command = TransientCommand::begin(args)?;
@@ -250,8 +243,7 @@ pub unsafe fn read_from_image<T>(args: GpuIOArgs<Image, impl AsMut<[T]>>) -> Ris
     );
 
     // submit
-    let submit_future = command.end_and_submit(sync)?;
-    submit_future.wait();
+    submit(&device, command)?;
 
     // read from staging buffer
     let ptr = device.map_memory(
@@ -280,4 +272,27 @@ fn fat_ptr_mut<T>(mut value: impl AsMut<[T]>) -> (*mut u8, usize) {
     let ptr = slice.as_mut_ptr() as *mut u8;
     let len = slice.len() * std::mem::size_of::<T>();
     (ptr, len)
+}
+
+unsafe fn submit(device: &ash::Device, command: TransientCommand) -> RisResult<()>{
+    let fence_create_info = vk::FenceCreateInfo {
+        s_type: vk::StructureType::FENCE_CREATE_INFO,
+        p_next: std::ptr::null(),
+        flags: vk::FenceCreateFlags::empty(),
+    };
+    let fence = device.create_fence(&fence_create_info, None)?;
+
+    let sync = TransientCommandSync{
+        wait: Vec::with_capacity(0),
+        dst: Vec::with_capacity(0),
+        signal: Vec::with_capacity(0),
+        fence,
+    };
+
+    command.end_and_submit(sync)?;
+
+    device.wait_for_fences(&[fence], true, u64::MAX)?;
+    device.destroy_fence(fence, None);
+
+    Ok(())
 }

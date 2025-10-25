@@ -189,6 +189,13 @@ impl Swapchain {
 
         let viewport_images = unsafe { loader.get_swapchain_images(swapchain) }?;
 
+        let fence_create_info = vk::FenceCreateInfo {
+            s_type: vk::StructureType::FENCE_CREATE_INFO,
+            p_next: std::ptr::null(),
+            flags: vk::FenceCreateFlags::empty(),
+        };
+
+        let mut fences = Vec::with_capacity(viewport_images.len());
         let mut entries = Vec::with_capacity(viewport_images.len());
         for (index, viewport_image) in viewport_images.into_iter().enumerate() {
             let viewport_image_view = Image::alloc_view(
@@ -214,6 +221,9 @@ impl Swapchain {
                 vk::ImageAspectFlags::DEPTH,
             )?;
 
+            let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
+            fences.push(fence);
+
             depth_image.transition_layout(TransitionLayoutInfo {
                 transient_command_args: TransientCommandArgs {
                     device: device.clone(),
@@ -221,7 +231,12 @@ impl Swapchain {
                     command_pool: transient_command_pool,
                 },
                 new_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                sync: TransientCommandSync::default(),
+                sync: TransientCommandSync{
+                    wait: Vec::with_capacity(0),
+                    dst: Vec::with_capacity(0),
+                    signal: Vec::with_capacity(0),
+                    fence,
+                },
             })?;
 
             let entry = SwapchainEntry {
@@ -233,6 +248,13 @@ impl Swapchain {
                 framebuffers: Vec::new(),
             };
             entries.push(entry);
+        }
+
+        unsafe {
+            device.wait_for_fences(&fences, true, u64::MAX)?;
+            for fence in fences {
+                device.destroy_fence(fence, None);
+            }
         }
 
         Ok(Self {

@@ -11,7 +11,6 @@ imgui = "0.11.0"
 sdl2 = "0.38.0"
 sdl2-sys = "0.38.0"
 shaderc = "0.8"
-ris_async = { path = "../ris_async" }
 ris_error = { path = "../ris_error" }
 ris_log = { path = "../ris_log" }
 ris_ptr = { path = "../ris_ptr" }

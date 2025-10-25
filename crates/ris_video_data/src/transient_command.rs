@@ -1,7 +1,5 @@
 use ash::vk;
 
-use ris_async::JobFuture;
-use ris_async::ThreadPool;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -23,23 +21,14 @@ pub struct TransientCommand {
     queue: vk::Queue,
     command_pool: vk::CommandPool,
     command_buffer: vk::CommandBuffer,
-    fence: vk::Fence,
-    free_on_drop: bool,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Clone)]
 pub struct TransientCommandSync {
     pub wait: Vec<vk::Semaphore>,
     pub dst: Vec<vk::PipelineStageFlags>,
     pub signal: Vec<vk::Semaphore>,
-}
-
-impl Drop for TransientCommand {
-    fn drop(&mut self) {
-        if self.free_on_drop {
-            unsafe { self.free() };
-        }
-    }
+    pub fence: vk::Fence,
 }
 
 impl TransientCommand {
@@ -47,9 +36,7 @@ impl TransientCommand {
         let device = self.device.clone();
         let command_pool = self.command_pool;
         let command_buffer = self.command_buffer;
-        let fence = self.fence;
 
-        device.destroy_fence(fence, None);
         device.free_command_buffers(command_pool, &[command_buffer]);
     }
 
@@ -85,20 +72,11 @@ impl TransientCommand {
 
         unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }?;
 
-        let fence_create_info = vk::FenceCreateInfo {
-            s_type: vk::StructureType::FENCE_CREATE_INFO,
-            p_next: std::ptr::null(),
-            flags: vk::FenceCreateFlags::SIGNALED,
-        };
-        let fence = unsafe { device.create_fence(&fence_create_info, None) }?;
-
         Ok(Self {
             device,
             queue,
             command_pool,
             command_buffer,
-            fence,
-            free_on_drop: true,
         })
     }
 
@@ -106,19 +84,8 @@ impl TransientCommand {
         self.command_buffer
     }
 
-    /// # Safety
-    ///
-    /// any vulkan objects passed into the transient command, either by
-    /// calling `begin()` or by enqueuing commands into the command
-    /// buffer, retreived by `buffer()`, must outlive a significant time
-    /// after submitting it. this is because execution is async and all
-    /// references must stay valid during execution. to help with
-    /// synchronization, this function returns a future that you can wait
-    /// on before destroying any resource.
-    pub unsafe fn end_and_submit(mut self, sync: TransientCommandSync) -> RisResult<JobFuture<()>> {
+    pub unsafe fn end_and_submit(mut self, sync: TransientCommandSync) -> RisResult<()> {
         ris_error::debug_assert!(sync.wait.len() == sync.dst.len())?;
-
-        self.free_on_drop = false;
 
         let Self {
             device,
@@ -141,31 +108,10 @@ impl TransientCommand {
 
         unsafe {
             device.end_command_buffer(self.buffer())?;
-            device.reset_fences(&[self.fence])?;
-            device.queue_submit(*queue, &submit_info, self.fence)?;
+            device.queue_submit(*queue, &submit_info, sync.fence)?;
         };
 
-        let device = self.device.clone();
-        let future = ThreadPool::submit(async move {
-            block_on_fence(&device, self.fence);
-            self.free();
-        });
-
-        Ok(future)
+        Ok(())
     }
 }
 
-fn block_on_fence(device: &ash::Device, fence: vk::Fence) {
-    let fences = [fence];
-
-    loop {
-        let result = unsafe { device.wait_for_fences(&fences, true, 0) };
-        if result.is_ok() {
-            break;
-        }
-
-        if !ThreadPool::run_pending_job() {
-            std::hint::spin_loop();
-        }
-    }
-}

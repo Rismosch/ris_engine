@@ -1,6 +1,5 @@
 use ash::vk;
 
-use ris_async::JobFuture;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
@@ -265,8 +264,7 @@ impl Image {
                 &image_memory_barriers,
             );
 
-            let future = transient_command.end_and_submit(sync)?;
-            future.wait();
+            transient_command.end_and_submit(sync)?;
         }
 
         self.layout = new_layout;

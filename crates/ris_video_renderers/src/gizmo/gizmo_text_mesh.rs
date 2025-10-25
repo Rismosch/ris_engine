@@ -168,24 +168,47 @@ impl GizmoTextMesh {
         } else {
             let mut image = self.text_texture.image;
 
+            let fence_create_info = vk::FenceCreateInfo {
+                s_type: vk::StructureType::FENCE_CREATE_INFO,
+                p_next: std::ptr::null(),
+                flags: vk::FenceCreateFlags::empty(),
+            };
+            let fence = unsafe {device.create_fence(&fence_create_info, None)}?;
+            let sync = TransientCommandSync {
+                wait: Vec::with_capacity(0),
+                dst: Vec::with_capacity(0),
+                signal: Vec::with_capacity(0),
+                fence,
+            };
+
             image.transition_layout(TransitionLayoutInfo {
                 transient_command_args: tcas.clone(),
                 new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                sync: TransientCommandSync::default(),
+                sync: sync.clone(),
             })?;
 
-            unsafe {gpu_io::write_to_image(GpuIOArgs { 
-                transient_command_args: tcas.clone(),
-                values: text,
-                gpu_object: &image,
-                staging: &staging,
-            })}?;
+            unsafe {
+                device.wait_for_fences(&[fence], true, u64::MAX)?;
+                device.reset_fences(&[fence])?;
+
+                gpu_io::write_to_image(GpuIOArgs {
+                    transient_command_args: tcas.clone(),
+                    values: text,
+                    gpu_object: &image,
+                    staging: &staging,
+                })?;
+            }
 
             image.transition_layout(TransitionLayoutInfo {
                 transient_command_args: tcas.clone(),
                 new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                sync: TransientCommandSync::default(),
+                sync: sync.clone(),
             })?;
+
+            unsafe {
+                device.wait_for_fences(&[fence], true, u64::MAX)?;
+                device.destroy_fence(fence, None);
+            }
         }
 
         unsafe {staging.free(device)};

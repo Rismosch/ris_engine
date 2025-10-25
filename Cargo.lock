@@ -777,7 +777,6 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "imgui",
- "ris_async",
  "ris_error",
  "ris_log",
  "ris_ptr",
