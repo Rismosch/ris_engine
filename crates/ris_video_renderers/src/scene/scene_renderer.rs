@@ -50,6 +50,7 @@ pub struct UniformBufferObject {
 
 pub struct SceneFrame {
     descriptor: Buffer,
+    descriptor_mapped_memory: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
 }
 
@@ -551,8 +552,16 @@ impl SceneRenderer {
                 physical_device_memory_properties,
             )?;
 
+            let descriptor_mapped_memory = unsafe {device.map_memory(
+                descriptor.memory,
+                0,
+                vk::WHOLE_SIZE,
+                vk::MemoryMapFlags::empty(),
+            )}? as *mut UniformBufferObject;
+
             let frame = SceneFrame {
                 descriptor,
+                descriptor_mapped_memory,
                 descriptor_set,
             };
             frames.push(frame);
@@ -610,6 +619,7 @@ impl SceneRenderer {
 
         let SceneFrame {
             descriptor,
+            descriptor_mapped_memory,
             descriptor_set,
         } = &mut self.frames[*index];
 
@@ -716,7 +726,12 @@ impl SceneRenderer {
                 proj: camera.projection_matrix(),
             }];
 
-            gpu_io::write_to_memory(&device, ubo, descriptor.memory)?;
+            gpu_io::write_to_mapped_memory(
+                &device,
+                ubo,
+                descriptor.memory,
+                *descriptor_mapped_memory,
+            )?;
 
             let descriptor_buffer_info = [vk::DescriptorBufferInfo {
                 buffer: descriptor.buffer,

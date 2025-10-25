@@ -61,8 +61,7 @@ impl Buffer {
     ) -> RisResult<Self> {
         if memory_property_flags.intersects(vk::MemoryPropertyFlags::HOST_COHERENT) {
             ris_log::warning!(
-                "attempted to allocate gpu buffer with memory property {:?}. this may be slower than flushing manually. it is generally adised to avoid {:?}",
-                vk::MemoryPropertyFlags::HOST_COHERENT,
+                "attempted to allocate gpu buffer with memory property {:?}. this may be slower than flushing manually.",
                 vk::MemoryPropertyFlags::HOST_COHERENT,
             )
         }

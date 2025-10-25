@@ -22,14 +22,33 @@ pub unsafe fn write_to_memory<T>(
 ) -> RisResult<()> {
     let src = values.as_ref();
 
-    let ptr = device.map_memory(
+    let mapped_memory = device.map_memory(
         memory,
         0,
         vk::WHOLE_SIZE,
         vk::MemoryMapFlags::empty(),
     )? as *mut T;
 
-    ptr.copy_from_nonoverlapping(src.as_ptr(), src.len());
+    write_to_mapped_memory(
+        device,
+        src,
+        memory,
+        mapped_memory,
+    )?;
+
+    device.unmap_memory(memory);
+    Ok(())
+}
+
+pub unsafe fn write_to_mapped_memory<T>(
+    device: &ash::Device,
+    values: impl AsRef<[T]>,
+    memory: vk::DeviceMemory,
+    mapped_memory: *mut T,
+) -> RisResult<()> {
+    let src = values.as_ref();
+
+    mapped_memory.copy_from_nonoverlapping(src.as_ptr(), src.len());
 
     device.flush_mapped_memory_ranges(&[vk::MappedMemoryRange{
         s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
@@ -39,7 +58,6 @@ pub unsafe fn write_to_memory<T>(
         size: vk::WHOLE_SIZE,
     }])?;
 
-    device.unmap_memory(memory);
     Ok(())
 }
 
@@ -50,12 +68,31 @@ pub unsafe fn read_from_memory<T>(
 ) -> RisResult<()> {
     let dst = values.as_mut();
 
-    let ptr = device.map_memory(
+    let mapped_memory = device.map_memory(
         memory,
         0,
         vk::WHOLE_SIZE,
         vk::MemoryMapFlags::empty(),
     )? as *mut T;
+
+    read_from_mapped_memory(
+        device,
+        dst,
+        memory,
+        mapped_memory,
+    )?;
+
+    device.unmap_memory(memory);
+    Ok(())
+}
+
+pub unsafe fn read_from_mapped_memory<T>(
+    device: &ash::Device,
+    mut values: impl AsMut<[T]>,
+    memory: vk::DeviceMemory,
+    mapped_memory: *mut T,
+) -> RisResult<()> {
+    let dst = values.as_mut();
 
     device.invalidate_mapped_memory_ranges(&[vk::MappedMemoryRange{
         s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
@@ -65,9 +102,8 @@ pub unsafe fn read_from_memory<T>(
         size: vk::WHOLE_SIZE,
     }])?;
 
-    ptr.copy_to_nonoverlapping(dst.as_mut_ptr(), dst.len());
+    mapped_memory.copy_to_nonoverlapping(dst.as_mut_ptr(), dst.len());
 
-    device.unmap_memory(memory);
     Ok(())
 }
 

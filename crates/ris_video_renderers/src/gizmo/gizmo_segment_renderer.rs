@@ -11,6 +11,7 @@ use ris_video_data::core::VulkanCore;
 use ris_video_data::frames_in_flight::FrameInFlight;
 use ris_video_data::frames_in_flight::RendererId;
 use ris_video_data::frames_in_flight::RendererRegisterer;
+use ris_video_data::gpu_io;
 use ris_video_data::swapchain::SwapchainEntry;
 
 use super::gizmo_segment_mesh::GizmoSegmentMesh;
@@ -24,8 +25,8 @@ pub struct UniformBufferObject {
 
 struct GizmoSegmentFrame {
     mesh: Option<GizmoSegmentMesh>,
-    descriptor_buffer: Buffer,
-    descriptor_mapped: *mut UniformBufferObject,
+    descriptor: Buffer,
+    descriptor_mapped_memory: *mut UniformBufferObject,
     descriptor_set: vk::DescriptorSet,
 }
 
@@ -39,7 +40,7 @@ impl GizmoSegmentFrame {
             mesh.free(device);
         }
 
-        self.descriptor_buffer.free(device);
+        self.descriptor.free(device);
     }
 }
 
@@ -454,31 +455,29 @@ impl GizmoSegmentRenderer {
 
         let mut frames = Vec::with_capacity(swapchain.entries.len());
         for descriptor_set in descriptor_sets {
-            unsafe {
-                let buffer_size = std::mem::size_of::<UniformBufferObject>();
-                let descriptor_buffer = Buffer::alloc(
-                    device,
-                    buffer_size,
-                    vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                    physical_device_memory_properties,
-                )?;
+            let buffer_size = std::mem::size_of::<UniformBufferObject>();
+            let descriptor = Buffer::alloc(
+                device,
+                buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE,
+                physical_device_memory_properties,
+            )?;
 
-                let descriptor_mapped = device.map_memory(
-                    descriptor_buffer.memory,
-                    0,
-                    buffer_size as vk::DeviceSize,
-                    vk::MemoryMapFlags::empty(),
-                )? as *mut UniformBufferObject;
+            let descriptor_mapped_memory = unsafe {device.map_memory(
+                descriptor.memory,
+                0,
+                vk::WHOLE_SIZE,
+                vk::MemoryMapFlags::empty(),
+            )}? as *mut UniformBufferObject;
 
-                let frame = GizmoSegmentFrame {
-                    mesh: None,
-                    descriptor_buffer,
-                    descriptor_mapped,
-                    descriptor_set,
-                };
-                frames.push(frame);
-            }
+            let frame = GizmoSegmentFrame {
+                mesh: None,
+                descriptor,
+                descriptor_mapped_memory,
+                descriptor_set,
+            };
+            frames.push(frame);
         }
 
         Ok(Self {
@@ -523,8 +522,8 @@ impl GizmoSegmentRenderer {
 
         let GizmoSegmentFrame {
             mesh,
-            descriptor_buffer,
-            descriptor_mapped,
+            descriptor,
+            descriptor_mapped_memory,
             descriptor_set,
         } = &mut self.frames[*index];
 
@@ -643,10 +642,16 @@ impl GizmoSegmentRenderer {
                 view: camera.view_matrix(),
                 proj: camera.projection_matrix(),
             }];
-            descriptor_mapped.copy_from_nonoverlapping(ubo.as_ptr(), ubo.len());
+
+            gpu_io::write_to_mapped_memory(
+                device,
+                ubo,
+                descriptor.memory,
+                *descriptor_mapped_memory,
+            )?;
 
             let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                buffer: descriptor_buffer.buffer,
+                buffer: descriptor.buffer,
                 offset: 0,
                 range: std::mem::size_of::<UniformBufferObject>() as vk::DeviceSize,
             }];
