@@ -1,5 +1,5 @@
 [package]
-name = "ris_video_data"
+name = "ris_gpu"
 version = "0.1.0"
 edition = "2021"
 

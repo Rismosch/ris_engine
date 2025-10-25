@@ -2,14 +2,12 @@ use ash::vk;
 
 use ris_debug::gizmo::GizmoTextVertex;
 use ris_error::RisResult;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::core::VulkanCore;
-use ris_video_data::gpu_io;
-use ris_video_data::gpu_io::GpuIOArgs;
-use ris_video_data::image::TransitionLayoutInfo;
-use ris_video_data::texture::Texture;
-use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::TransientCommandArgs;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::core::VulkanCore;
+use ris_gpu::image::TransitionLayoutInfo;
+use ris_gpu::texture::Texture;
+use ris_gpu::texture::TextureCreateInfo;
+use ris_gpu::transient_command::TransientCommandArgs;
 
 pub struct GizmoTextMesh {
     pub vertices: Buffer,
@@ -66,7 +64,7 @@ impl GizmoTextMesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         let text_texture = Texture::alloc(TextureCreateInfo {
             transient_command_args: tcas.clone(),
@@ -122,7 +120,7 @@ impl GizmoTextMesh {
                 physical_device_memory_properties,
             )?;
         }
-        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
         let staging = Buffer::alloc_staging(device, text.len(), physical_device_memory_properties)?;
 
@@ -166,7 +164,7 @@ impl GizmoTextMesh {
             unsafe {
                 device.reset_fences(&[fence])?;
 
-                gpu_io::write_to_image(GpuIOArgs {
+                ris_gpu::io::write_to_image(ris_gpu::io::Args {
                     transient_command_args: tcas.clone(),
                     values: text,
                     gpu_object: &image,

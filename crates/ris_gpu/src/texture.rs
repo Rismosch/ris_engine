@@ -3,8 +3,6 @@ use ash::vk;
 use ris_error::RisResult;
 
 use super::buffer::Buffer;
-use super::gpu_io;
-use super::gpu_io::GpuIOArgs;
 use super::image::Image;
 use super::image::ImageCreateInfo;
 use super::image::TransitionLayoutInfo;
@@ -92,7 +90,7 @@ impl Texture {
         unsafe {
             device.reset_fences(&[fence])?;
 
-            gpu_io::write_to_image(GpuIOArgs {
+            super::io::write_to_image(super::io::Args {
                 transient_command_args: tcas.clone(),
                 values: pixels,
                 gpu_object: &image,

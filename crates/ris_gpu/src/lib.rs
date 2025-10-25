@@ -1,8 +1,8 @@
 pub mod buffer;
 pub mod core;
 pub mod frames_in_flight;
-pub mod gpu_io;
 pub mod image;
+pub mod io;
 pub mod layers;
 pub mod shader;
 pub mod suitable_device;

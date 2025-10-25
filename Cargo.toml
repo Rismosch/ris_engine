@@ -26,6 +26,8 @@ members = [
     "crates/ris_data",
     "crates/ris_debug",
     "crates/ris_error",
+    "crates/ris_gpu",
+    "crates/ris_gpu_renderers",
     "crates/ris_input",
     "crates/ris_io",
     "crates/ris_log",
@@ -33,8 +35,6 @@ members = [
     "crates/ris_ptr",
     "crates/ris_rng",
     "crates/ris_util",
-    "crates/ris_video_data",
-    "crates/ris_video_renderers",
 ]
 
 [dependencies]
@@ -53,8 +53,8 @@ ris_math = { path = "crates/ris_math" }
 ris_ptr = { path = "crates/ris_ptr" }
 ris_rng = { path = "crates/ris_rng" }
 ris_util = { path = "crates/ris_util" }
-ris_video_data = { path = "crates/ris_video_data" }
-ris_video_renderers = { path = "crates/ris_video_renderers" }
+ris_gpu = { path = "crates/ris_gpu" }
+ris_gpu_renderers = { path = "crates/ris_gpu_renderers" }
 
 # external
 ash = "0.37.3"

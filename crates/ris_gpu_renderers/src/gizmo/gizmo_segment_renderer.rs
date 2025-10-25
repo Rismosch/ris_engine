@@ -4,15 +4,14 @@ use ris_asset::RisGodAsset;
 use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FrameInFlight;
+use ris_gpu::frames_in_flight::RendererId;
+use ris_gpu::frames_in_flight::RendererRegisterer;
+use ris_gpu::swapchain::SwapchainEntry;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::core::VulkanCore;
-use ris_video_data::frames_in_flight::FrameInFlight;
-use ris_video_data::frames_in_flight::RendererId;
-use ris_video_data::frames_in_flight::RendererRegisterer;
-use ris_video_data::gpu_io;
-use ris_video_data::swapchain::SwapchainEntry;
 
 use super::gizmo_segment_mesh::GizmoSegmentMesh;
 
@@ -157,8 +156,8 @@ impl GizmoSegmentRenderer {
         let vs_bytes = vs_future.wait()?;
         let fs_bytes = fs_future.wait()?;
 
-        let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
-        let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
+        let vs_module = ris_gpu::shader::create_module(device, &vs_bytes)?;
+        let fs_module = ris_gpu::shader::create_module(device, &fs_bytes)?;
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
@@ -166,7 +165,7 @@ impl GizmoSegmentRenderer {
                 p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: vs_module,
-                p_name: ris_video_data::shader::ENTRY.as_ptr(),
+                p_name: ris_gpu::shader::ENTRY.as_ptr(),
                 p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::VERTEX,
             },
@@ -175,7 +174,7 @@ impl GizmoSegmentRenderer {
                 p_next: std::ptr::null(),
                 flags: vk::PipelineShaderStageCreateFlags::empty(),
                 module: fs_module,
-                p_name: ris_video_data::shader::ENTRY.as_ptr(),
+                p_name: ris_gpu::shader::ENTRY.as_ptr(),
                 p_specialization_info: std::ptr::null(),
                 stage: vk::ShaderStageFlags::FRAGMENT,
             },
@@ -645,7 +644,7 @@ impl GizmoSegmentRenderer {
                 proj: camera.projection_matrix(),
             }];
 
-            gpu_io::write_to_mapped_memory(
+            ris_gpu::io::write_to_mapped_memory(
                 device,
                 ubo,
                 descriptor.memory,

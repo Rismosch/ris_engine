@@ -579,11 +579,11 @@ dependencies = [
  "ris_async",
  "ris_data",
  "ris_error",
+ "ris_gpu",
  "ris_io",
  "ris_log",
  "ris_math",
  "ris_util",
- "ris_video_data",
  "shaderc",
 ]
 
@@ -593,10 +593,10 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "ris_error",
+ "ris_gpu",
  "ris_io",
  "ris_log",
  "ris_math",
- "ris_video_data",
 ]
 
 [[package]]
@@ -622,6 +622,8 @@ dependencies = [
  "ris_data",
  "ris_debug",
  "ris_error",
+ "ris_gpu",
+ "ris_gpu_renderers",
  "ris_input",
  "ris_io",
  "ris_log",
@@ -629,8 +631,6 @@ dependencies = [
  "ris_ptr",
  "ris_rng",
  "ris_util",
- "ris_video_data",
- "ris_video_renderers",
  "sdl2",
  "sdl2-sys",
 ]
@@ -646,12 +646,12 @@ dependencies = [
  "ris_async",
  "ris_debug",
  "ris_error",
+ "ris_gpu",
  "ris_io",
  "ris_log",
  "ris_math",
  "ris_ptr",
  "ris_util",
- "ris_video_data",
  "sdl2",
 ]
 
@@ -685,6 +685,8 @@ dependencies = [
  "ris_data",
  "ris_debug",
  "ris_error",
+ "ris_gpu",
+ "ris_gpu_renderers",
  "ris_input",
  "ris_io",
  "ris_log",
@@ -692,8 +694,6 @@ dependencies = [
  "ris_ptr",
  "ris_rng",
  "ris_util",
- "ris_video_data",
- "ris_video_renderers",
  "sdl2",
  "sdl2-sys",
  "shaderc",
@@ -706,6 +706,43 @@ dependencies = [
  "chrono",
  "ris_log",
  "sdl2",
+]
+
+[[package]]
+name = "ris_gpu"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "imgui",
+ "ris_error",
+ "ris_log",
+ "ris_ptr",
+ "ris_util",
+ "sdl2",
+ "sdl2-sys",
+ "shaderc",
+]
+
+[[package]]
+name = "ris_gpu_renderers"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "imgui",
+ "ris_asset",
+ "ris_asset_data",
+ "ris_async",
+ "ris_data",
+ "ris_debug",
+ "ris_error",
+ "ris_gpu",
+ "ris_io",
+ "ris_log",
+ "ris_math",
+ "ris_util",
+ "sdl2",
+ "sdl2-sys",
+ "shaderc",
 ]
 
 [[package]]
@@ -769,43 +806,6 @@ dependencies = [
  "ris_error",
  "ris_log",
  "ris_math",
-]
-
-[[package]]
-name = "ris_video_data"
-version = "0.1.0"
-dependencies = [
- "ash",
- "imgui",
- "ris_error",
- "ris_log",
- "ris_ptr",
- "ris_util",
- "sdl2",
- "sdl2-sys",
- "shaderc",
-]
-
-[[package]]
-name = "ris_video_renderers"
-version = "0.1.0"
-dependencies = [
- "ash",
- "imgui",
- "ris_asset",
- "ris_asset_data",
- "ris_async",
- "ris_data",
- "ris_debug",
- "ris_error",
- "ris_io",
- "ris_log",
- "ris_math",
- "ris_util",
- "ris_video_data",
- "sdl2",
- "sdl2-sys",
- "shaderc",
 ]
 
 [[package]]

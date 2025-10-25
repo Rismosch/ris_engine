@@ -1,7 +1,7 @@
 pub mod god_job;
 pub mod god_object;
+pub mod gpu_frame;
 pub mod inspector_util;
-pub mod output_frame;
 
 pub mod log_appenders;
 

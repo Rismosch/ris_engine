@@ -12,16 +12,16 @@ use imgui::Textures;
 use ris_asset::RisGodAsset;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FrameInFlight;
+use ris_gpu::frames_in_flight::RendererId;
+use ris_gpu::frames_in_flight::RendererRegisterer;
+use ris_gpu::swapchain::SwapchainEntry;
+use ris_gpu::texture::Texture;
+use ris_gpu::texture::TextureCreateInfo;
+use ris_gpu::transient_command::TransientCommandArgs;
 use ris_math::matrix::Mat4;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::core::VulkanCore;
-use ris_video_data::frames_in_flight::FrameInFlight;
-use ris_video_data::frames_in_flight::RendererId;
-use ris_video_data::frames_in_flight::RendererRegisterer;
-use ris_video_data::swapchain::SwapchainEntry;
-use ris_video_data::texture::Texture;
-use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::TransientCommandArgs;
 
 use super::imgui_mesh::Mesh;
 

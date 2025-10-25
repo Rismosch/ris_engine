@@ -4,13 +4,11 @@ use std::sync::Arc;
 use ash::vk;
 
 use ris_error::prelude::*;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::transient_command::TransientCommandArgs;
 use ris_io::FatPtr;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::gpu_io;
-use ris_video_data::gpu_io::GpuIOArgs;
-use ris_video_data::transient_command::TransientCommandArgs;
 
 #[derive(Debug, Clone)]
 pub struct MeshLookupId {
@@ -509,7 +507,7 @@ impl GpuMesh {
         let device = &transient_command_args.device.clone();
         let staging =
             Buffer::alloc_staging(device, value.data.len(), physical_device_memory_properties)?;
-        gpu_io::write_to_buffer(GpuIOArgs {
+        ris_gpu::io::write_to_buffer(ris_gpu::io::Args {
             transient_command_args,
             values: &value.data,
             gpu_object: &inner.buffer,

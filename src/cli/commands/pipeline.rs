@@ -121,6 +121,8 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
+
+            // check
             test(results, run_check, true, cargo("check"));
             test(results, run_check, true, cargo("check -r"));
             test(
@@ -129,6 +131,8 @@ impl ICommand for Pipeline {
                 true,
                 cargo("check -r --no-default-features --features ris_windows_subsystem"),
             );
+
+            // test
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
             test(
@@ -137,15 +141,22 @@ impl ICommand for Pipeline {
                 true,
                 cargo("test -r --no-default-features --features ris_windows_subsystem"),
             );
+
+            // miri
             test(results, run_miri, false, cargo_nightly("miri test"));
             test(
                 results,
                 run_miri,
                 false,
                 cargo_nightly(
+                    // when passing -r to miri, it warns that it does not support optimizations. however,
+                    // passing -r removes debug assertions, overflow checks, and it changes some features
+                    // in the engine, which is exactly why passing -r still makes sense.
                     "miri test -r --no-default-features --features ris_windows_subsystem",
                 ),
             );
+
+            // clippy
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
             test(

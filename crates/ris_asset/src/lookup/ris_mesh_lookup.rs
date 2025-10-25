@@ -5,7 +5,7 @@ use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
-use ris_video_data::transient_command::TransientCommandArgs;
+use ris_gpu::transient_command::TransientCommandArgs;
 
 use crate::assets::ris_mesh;
 

@@ -11,20 +11,20 @@ use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
 use ris_error::Extensions;
 use ris_error::RisResult;
-use ris_video_data::core::VulkanCore;
-use ris_video_data::frames_in_flight::FrameInFlightCreateInfo;
-use ris_video_data::frames_in_flight::FramesInFlight;
-use ris_video_data::frames_in_flight::RendererId;
-use ris_video_data::frames_in_flight::RendererRegisterer;
-use ris_video_data::transient_command::TransientCommandArgs;
-use ris_video_renderers::GizmoSegmentRenderer;
-use ris_video_renderers::GizmoSegmentRendererArgs;
-use ris_video_renderers::GizmoTextRenderer;
-use ris_video_renderers::GizmoTextRendererArgs;
-use ris_video_renderers::SceneRenderer;
-use ris_video_renderers::SceneRendererArgs;
+use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FrameInFlightCreateInfo;
+use ris_gpu::frames_in_flight::FramesInFlight;
+use ris_gpu::frames_in_flight::RendererId;
+use ris_gpu::frames_in_flight::RendererRegisterer;
+use ris_gpu::transient_command::TransientCommandArgs;
+use ris_gpu_renderers::GizmoSegmentRenderer;
+use ris_gpu_renderers::GizmoSegmentRendererArgs;
+use ris_gpu_renderers::GizmoTextRenderer;
+use ris_gpu_renderers::GizmoTextRendererArgs;
+use ris_gpu_renderers::SceneRenderer;
+use ris_gpu_renderers::SceneRendererArgs;
 #[cfg(feature = "ui_helper_enabled")]
-use ris_video_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
+use ris_gpu_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
 
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::{UiHelper, UiHelperDrawData};
@@ -188,7 +188,7 @@ impl Renderer {
     }
 }
 
-pub struct OutputFrame {
+pub struct GpuFrame {
     pub renderer: Renderer,
     #[cfg(feature = "ui_helper_enabled")]
     pub imgui_backend: ImguiBackend,
@@ -200,7 +200,7 @@ pub struct OutputFrame {
     pub window: Window,
 }
 
-impl Drop for OutputFrame {
+impl Drop for GpuFrame {
     fn drop(&mut self) {
         unsafe {
             if let Err(e) = self.wait_idle() {
@@ -218,7 +218,7 @@ impl Drop for OutputFrame {
     }
 }
 
-impl OutputFrame {
+impl GpuFrame {
     pub fn wait_idle(&self) -> RisResult<()> {
         unsafe { self.core.device.device_wait_idle() }?;
         Ok(())

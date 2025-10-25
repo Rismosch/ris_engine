@@ -7,7 +7,7 @@ use super::image::Image;
 use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandArgs;
 
-pub struct GpuIOArgs<'a, GpuObject, Bytes> {
+pub struct Args<'a, GpuObject, Bytes> {
     pub transient_command_args: TransientCommandArgs,
     pub values: Bytes,
     pub gpu_object: &'a GpuObject,
@@ -102,8 +102,8 @@ pub unsafe fn read_from_mapped_memory<T: Copy>(
     Ok(())
 }
 
-pub fn write_to_buffer<T: Copy>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> RisResult<()> {
-    let GpuIOArgs {
+pub fn write_to_buffer<T: Copy>(args: Args<Buffer, impl AsRef<[T]>>) -> RisResult<()> {
+    let Args {
         transient_command_args,
         values: src,
         gpu_object: dst,
@@ -145,8 +145,8 @@ pub fn write_to_buffer<T: Copy>(args: GpuIOArgs<Buffer, impl AsRef<[T]>>) -> Ris
     Ok(())
 }
 
-pub fn read_from_buffer<T: Copy>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> RisResult<()> {
-    let GpuIOArgs {
+pub fn read_from_buffer<T: Copy>(args: Args<Buffer, impl AsMut<[T]>>) -> RisResult<()> {
+    let Args {
         transient_command_args,
         values: mut dst,
         gpu_object: src,
@@ -188,8 +188,8 @@ pub fn read_from_buffer<T: Copy>(args: GpuIOArgs<Buffer, impl AsMut<[T]>>) -> Ri
     Ok(())
 }
 
-pub fn write_to_image<T: Copy>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisResult<()> {
-    let GpuIOArgs {
+pub fn write_to_image<T: Copy>(args: Args<Image, impl AsRef<[T]>>) -> RisResult<()> {
+    let Args {
         transient_command_args,
         values: src,
         gpu_object: dst,
@@ -244,8 +244,8 @@ pub fn write_to_image<T: Copy>(args: GpuIOArgs<Image, impl AsRef<[T]>>) -> RisRe
     Ok(())
 }
 
-pub fn read_from_image<T: Copy>(args: GpuIOArgs<Image, impl AsMut<[T]>>) -> RisResult<()> {
-    let GpuIOArgs {
+pub fn read_from_image<T: Copy>(args: Args<Image, impl AsMut<[T]>>) -> RisResult<()> {
+    let Args {
         transient_command_args,
         values: mut dst,
         gpu_object: src,

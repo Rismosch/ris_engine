@@ -6,18 +6,17 @@ use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::Scene;
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FrameInFlight;
+use ris_gpu::frames_in_flight::RendererId;
+use ris_gpu::frames_in_flight::RendererRegisterer;
+use ris_gpu::swapchain::SwapchainEntry;
+use ris_gpu::texture::Texture;
+use ris_gpu::texture::TextureCreateInfo;
+use ris_gpu::transient_command::TransientCommandArgs;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::core::VulkanCore;
-use ris_video_data::frames_in_flight::FrameInFlight;
-use ris_video_data::frames_in_flight::RendererId;
-use ris_video_data::frames_in_flight::RendererRegisterer;
-use ris_video_data::gpu_io;
-use ris_video_data::swapchain::SwapchainEntry;
-use ris_video_data::texture::Texture;
-use ris_video_data::texture::TextureCreateInfo;
-use ris_video_data::transient_command::TransientCommandArgs;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -248,9 +247,9 @@ impl SceneRenderer {
         let vs_bytes = vs_asset_future.wait()?;
         let fs_bytes = fs_asset_future.wait()?;
 
-        let vs_module = ris_video_data::shader::create_module(device, &vs_bytes)?;
-        let fs_module = ris_video_data::shader::create_module(device, &fs_bytes)?;
-        let entry = ris_video_data::shader::ENTRY.as_ptr();
+        let vs_module = ris_gpu::shader::create_module(device, &vs_bytes)?;
+        let fs_module = ris_gpu::shader::create_module(device, &fs_bytes)?;
+        let entry = ris_gpu::shader::ENTRY.as_ptr();
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {
@@ -723,7 +722,7 @@ impl SceneRenderer {
                 proj: camera.projection_matrix(),
             }];
 
-            gpu_io::write_to_mapped_memory(
+            ris_gpu::io::write_to_mapped_memory(
                 device,
                 ubo,
                 descriptor.memory,

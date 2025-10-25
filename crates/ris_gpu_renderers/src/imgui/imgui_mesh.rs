@@ -4,8 +4,7 @@ use imgui::DrawData;
 use imgui::DrawVert;
 
 use ris_error::RisResult;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::gpu_io;
+use ris_gpu::buffer::Buffer;
 
 pub struct Mesh {
     pub vertices: Buffer,
@@ -44,7 +43,7 @@ impl Mesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         let index_buffer_size = std::mem::size_of_val(indices.as_slice());
         let index_buffer = Buffer::alloc(
@@ -55,7 +54,7 @@ impl Mesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe { gpu_io::write_to_memory(device, indices, index_buffer.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, indices, index_buffer.memory) }?;
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -101,7 +100,7 @@ impl Mesh {
             )?;
         }
 
-        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
         let indices = Self::create_indices(draw_data);
 
@@ -112,7 +111,7 @@ impl Mesh {
                 .resize(index_buffer_size, device, physical_device_memory_properties)?;
         }
 
-        unsafe { gpu_io::write_to_memory(device, indices, self.indices.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, indices, self.indices.memory) }?;
 
         Ok(())
     }

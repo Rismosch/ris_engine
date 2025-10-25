@@ -17,6 +17,8 @@ ris_async = { path = "../ris_async" }
 ris_data = { path = "../ris_data" }
 ris_debug = { path = "../ris_debug" }
 ris_error = { path = "../ris_error" }
+ris_gpu = { path = "../ris_gpu" }
+ris_gpu_renderers = { path = "../ris_gpu_renderers" }
 ris_input = { path = "../ris_input" }
 ris_io = { path = "../ris_io" }
 ris_log = { path = "../ris_log" }
@@ -24,8 +26,6 @@ ris_math = { path = "../ris_math" }
 ris_ptr = { path = "../ris_ptr" }
 ris_rng = { path = "../ris_rng" }
 ris_util = { path = "../ris_util" }
-ris_video_data = { path = "../ris_video_data" }
-ris_video_renderers = { path = "../ris_video_renderers" }
 
 [features]
 ui_helper_enabled = []

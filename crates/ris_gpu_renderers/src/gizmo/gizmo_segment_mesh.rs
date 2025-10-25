@@ -2,8 +2,7 @@ use ash::vk;
 
 use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::RisResult;
-use ris_video_data::buffer::Buffer;
-use ris_video_data::gpu_io;
+use ris_gpu::buffer::Buffer;
 
 pub struct GizmoSegmentMesh {
     pub vertices: Buffer,
@@ -33,7 +32,7 @@ impl GizmoSegmentMesh {
             physical_device_memory_properties,
         )?;
 
-        unsafe { gpu_io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, vertex_buffer.memory) }?;
 
         Ok(Self {
             vertices: vertex_buffer,
@@ -57,7 +56,7 @@ impl GizmoSegmentMesh {
             )?;
         }
 
-        unsafe { gpu_io::write_to_memory(device, vertices, self.vertices.memory) }?;
+        unsafe { ris_gpu::io::write_to_memory(device, vertices, self.vertices.memory) }?;
 
         Ok(())
     }
