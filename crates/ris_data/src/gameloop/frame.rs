@@ -53,12 +53,17 @@ impl FrameCalculator {
         };
 
         let mut sum = Duration::ZERO;
+        let mut count = 0;
         for i in 0..FRAME_COUNT - 1 {
             let start_index = (i + current_index) % FRAME_COUNT;
             let end_index = (i + current_index + 1) % FRAME_COUNT;
 
             let start = self.instants[start_index];
             let end = self.instants[end_index];
+
+            if start >= end {
+                continue;
+            }
 
             let duration = end - start;
             let duration = if duration > MAX_DURATION {
@@ -68,9 +73,14 @@ impl FrameCalculator {
             };
 
             sum += duration;
+            count += 1;
         }
 
-        let average = sum.div_f32((FRAME_COUNT - 1) as f32);
+        let average = if count > 0 {
+            sum.div_f32((FRAME_COUNT - 2) as f32)
+        } else {
+            IDEAL_DURATION
+        };
 
         let number = self.number;
         Frame {
