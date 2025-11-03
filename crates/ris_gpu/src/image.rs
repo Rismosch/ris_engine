@@ -171,6 +171,8 @@ impl Image {
             fence,
         } = info;
 
+        ris_log::warning!("this function is just a wrapper around a single command. and for that, it's way too complicated. it's probably better to expose a MakeImageMemoryBarrier function instead of handling the transition overall.");
+
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
             let mut aspect_mask = vk::ImageAspectFlags::DEPTH;
 
