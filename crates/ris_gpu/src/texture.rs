@@ -51,15 +51,15 @@ impl Texture {
             pixels,
         } = info;
 
-        ris_error::debug_assert!(width != 0)?;
-        ris_error::debug_assert!(height != 0)?;
+        ris_error::assert!(width != 0)?;
+        ris_error::assert!(height != 0)?;
 
         // https://github.com/Rismosch/ris_engine/issues/209
         let pixel_width = 4;
 
         let actual_len = pixels.len();
         let expected_len = width * height * pixel_width;
-        ris_error::debug_assert!(actual_len == expected_len)?;
+        ris_error::assert!(actual_len == expected_len)?;
 
         let device = transient_command_args.device.clone();
         let tcas = transient_command_args.clone();

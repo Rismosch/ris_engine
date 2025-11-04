@@ -61,7 +61,7 @@ impl Image {
             format,
             extent: vk::Extent3D {
                 width: width as u32,
-                height: width as u32,
+                height: height as u32,
                 depth: 1,
             },
             mip_levels: 1,
@@ -78,10 +78,9 @@ impl Image {
         let image = unsafe { device.create_image(&image_create_info, None) }?;
 
         let image_memory_requirements = unsafe { device.get_image_memory_requirements(image) };
-        let memory_property_flags = vk::MemoryPropertyFlags::DEVICE_LOCAL;
         let memory_type_index = super::util::find_memory_type(
             image_memory_requirements.memory_type_bits,
-            memory_property_flags,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?
         .into_ris_error()?;
@@ -170,8 +169,6 @@ impl Image {
             new_layout,
             fence,
         } = info;
-
-        ris_log::warning!("this function is just a wrapper around a single command. and for that, it's way too complicated. it's probably better to expose a MakeImageMemoryBarrier function instead of handling the transition overall.");
 
         let aspect_mask = if new_layout == vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL {
             let mut aspect_mask = vk::ImageAspectFlags::DEPTH;

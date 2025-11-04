@@ -12,12 +12,14 @@ use imgui::Textures;
 
 use ris_asset::RisGodAsset;
 use ris_error::prelude::*;
+use ris_gpu::buffer::Buffer;
 use ris_gpu::core::VulkanCore;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
 use ris_gpu::swapchain::SwapchainEntry;
-use ris_gpu::transient_command::TransientCommand;
+use ris_gpu::texture::Texture;
+use ris_gpu::texture::TextureCreateInfo;
 use ris_gpu::transient_command::TransientCommandArgs;
 use ris_math::matrix::Mat4;
 
@@ -47,10 +49,7 @@ pub struct ImguiRenderer {
     pipeline_layout: vk::PipelineLayout,
     pub renderer_id: RendererId,
     frames: Vec<ImguiFrame>,
-    font_image: vk::Image,
-    font_memory: vk::DeviceMemory,
-    font_image_view: vk::ImageView,
-    font_sampler: vk::Sampler,
+    font_texture: Texture,
     textures: Textures<vk::DescriptorSet>,
 }
 
@@ -71,10 +70,7 @@ impl ImguiRenderer {
                 frame.free(device);
             }
 
-            device.destroy_sampler(self.font_sampler, None);
-            device.destroy_image_view(self.font_image_view, None);
-            device.destroy_image(self.font_image, None);
-            device.free_memory(self.font_memory, None);
+            self.font_texture.free(device);
 
             device.destroy_pipeline(self.pipeline, None);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
@@ -425,7 +421,7 @@ impl ImguiRenderer {
         unsafe { device.destroy_shader_module(vs_shader_module, None) };
         unsafe { device.destroy_shader_module(fs_shader_module, None) };
 
-        // textures
+        // font texture
         let font_atlas_texture = context.fonts().build_rgba32_texture();
 
         ris_error::assert!(font_atlas_texture.width != 0)?;
@@ -441,208 +437,30 @@ impl ImguiRenderer {
         let physical_device_properties =
             unsafe { instance.get_physical_device_properties(suitable_device.physical_device) };
 
-
-        // texture: image
-        let image_create_info = vk::ImageCreateInfo{
-            s_type: vk::StructureType::IMAGE_CREATE_INFO,
-            p_next: std::ptr::null(),
-            flags: vk::ImageCreateFlags::empty(),
-            image_type: vk::ImageType::TYPE_2D,
-            format: vk::Format::R8G8B8A8_SRGB,
-            extent: vk::Extent3D{
-                width: font_atlas_texture.width,
-                height: font_atlas_texture.height,
-                depth: 1,
-            },
-            mip_levels: 1,
-            array_layers: 1,
-            samples: vk::SampleCountFlags::TYPE_1,
-            tiling: vk::ImageTiling::OPTIMAL,
-            usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: std::ptr::null(),
-            initial_layout: vk::ImageLayout::UNDEFINED,
-        };
-        let font_image = unsafe {device.create_image(&image_create_info, None)}?;
-
-        let image_memory_requirements = unsafe {device.get_image_memory_requirements(font_image)};
-        let memory_type_index = ris_gpu::util::find_memory_type(
-            image_memory_requirements.memory_type_bits,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?
-        .into_ris_error()?;
-        let memory_allocate_info = vk::MemoryAllocateInfo{
-            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: std::ptr::null(),
-            allocation_size: image_memory_requirements.size,
-            memory_type_index,
-        };
-        let font_memory = unsafe {device.allocate_memory(&memory_allocate_info, None)}?;
-
-        unsafe {device.bind_image_memory(
-            font_image,
-            font_memory,
-            0,
-        )}?;
-
-        // texture: staging
-        let (
-            staging_buffer,
-            staging_memory,
-            staging_mapped_memory,
-        ) = Mesh::alloc_buffer_and_memory::<u8>(
+        let staging = Buffer::alloc_staging(
             device,
-            font_atlas_texture.data.len() as vk::DeviceSize,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            font_atlas_texture.data.len(),
             physical_device_memory_properties,
         )?;
-        unsafe {staging_mapped_memory.copy_from_nonoverlapping(
-            font_atlas_texture.data.as_ptr(),
-            font_atlas_texture.data.len(),
-        )};
-
-        unsafe {
-            let transient_command = TransientCommand::begin(TransientCommandArgs { 
+        
+        let font_texture = Texture::alloc(TextureCreateInfo {
+            transient_command_args: TransientCommandArgs { 
                 device: device.clone(),
                 queue: *graphics_queue,
                 command_pool: *transient_command_pool,
-            })?;
-
-            device.cmd_pipeline_barrier(
-                transient_command.buffer(),
-                vk::PipelineStageFlags::TOP_OF_PIPE,
-                vk::PipelineStageFlags::TRANSFER,
-                vk::DependencyFlags::empty(),
-                &[],
-                &[],
-                &[vk::ImageMemoryBarrier{
-                    s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
-                    p_next: std::ptr::null(),
-                    src_access_mask: vk::AccessFlags::empty(),
-                    dst_access_mask: vk::AccessFlags::TRANSFER_WRITE,
-                    old_layout: vk::ImageLayout::UNDEFINED,
-                    new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    src_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-                    dst_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-                    image: font_image,
-                    subresource_range: vk::ImageSubresourceRange{
-                        aspect_mask: vk::ImageAspectFlags::COLOR,
-                        base_mip_level: 0,
-                        level_count: 1,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    },
-                }],
-            );
-
-            device.cmd_copy_buffer_to_image(
-                transient_command.buffer(),
-                staging_buffer,
-                font_image,
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &[vk::BufferImageCopy{
-                    buffer_offset: 0,
-                    buffer_row_length: 0,
-                    buffer_image_height: 0,
-                    image_subresource: vk::ImageSubresourceLayers {
-                        aspect_mask: vk::ImageAspectFlags::COLOR,
-                        mip_level: 0,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    },
-                    image_offset: vk::Offset3D {x:0,y:0,z:0},
-                    image_extent: vk::Extent3D{
-                        width: font_atlas_texture.width,
-                        height: font_atlas_texture.height,
-                        depth: 1,
-                    }
-                }],
-            );
-
-            device.cmd_pipeline_barrier(
-                transient_command.buffer(),
-                vk::PipelineStageFlags::TRANSFER,
-                vk::PipelineStageFlags::FRAGMENT_SHADER,
-                vk::DependencyFlags::empty(),
-                &[],
-                &[],
-                &[vk::ImageMemoryBarrier{
-                    s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
-                    p_next: std::ptr::null(),
-                    src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
-                    dst_access_mask: vk::AccessFlags::SHADER_READ,
-                    old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-                    src_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-                    dst_queue_family_index: vk::QUEUE_FAMILY_IGNORED,
-                    image: font_image,
-                    subresource_range: vk::ImageSubresourceRange{
-                        aspect_mask: vk::ImageAspectFlags::COLOR,
-                        base_mip_level: 0,
-                        level_count: 1,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    },
-                }],
-            );
-
-            transient_command.submit_and_wait(None)?;
-
-            device.destroy_buffer(staging_buffer, None);
-            device.free_memory(staging_memory, None);
-        }
-
-        // texture: image view
-        let image_view_create_info = vk::ImageViewCreateInfo {
-            s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
-            p_next: std::ptr::null(),
-            flags: vk::ImageViewCreateFlags::empty(),
-            image: font_image,
-            view_type: vk::ImageViewType::TYPE_2D,
+            },
+            staging: &staging,
+            physical_device_memory_properties,
+            physical_device_properties,
+            width: font_atlas_texture.width as usize,
+            height: font_atlas_texture.height as usize,
             format: vk::Format::R8G8B8A8_SRGB,
-            components: vk::ComponentMapping {
-                r: vk::ComponentSwizzle::IDENTITY,
-                g: vk::ComponentSwizzle::IDENTITY,
-                b: vk::ComponentSwizzle::IDENTITY,
-                a: vk::ComponentSwizzle::IDENTITY,
-            },
-            subresource_range: vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                base_mip_level: 0,
-                level_count: 1,
-                base_array_layer: 0,
-                layer_count: 1,
-            },
-        };
-        let font_image_view = unsafe {device.create_image_view(&image_view_create_info, None)}?;
+            filter: vk::Filter::LINEAR,
+            pixels: font_atlas_texture.data,
+        })?;
 
-        // texture: sampler
-        let sampler_create_info = vk::SamplerCreateInfo {
-            s_type: vk::StructureType::SAMPLER_CREATE_INFO,
-            p_next: std::ptr::null(),
-            flags: vk::SamplerCreateFlags::empty(),
-            mag_filter: vk::Filter::LINEAR,
-            min_filter: vk::Filter::LINEAR,
-            mipmap_mode: vk::SamplerMipmapMode::NEAREST,
-            address_mode_u: vk::SamplerAddressMode::REPEAT,
-            address_mode_v: vk::SamplerAddressMode::REPEAT,
-            address_mode_w: vk::SamplerAddressMode::REPEAT,
-            mip_lod_bias: 0.0,
-            anisotropy_enable: vk::TRUE,
-            max_anisotropy: physical_device_properties.limits.max_sampler_anisotropy,
-            compare_enable: vk::FALSE,
-            compare_op: vk::CompareOp::ALWAYS,
-            min_lod: 0.0,
-            max_lod: 0.0,
-            border_color: vk::BorderColor::INT_OPAQUE_BLACK,
-            unnormalized_coordinates: vk::FALSE,
-        };
-        let font_sampler = unsafe {device.create_sampler(&sampler_create_info, None)}?;
+        unsafe{staging.free(device)};
 
-        // fonts
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);
 
@@ -677,8 +495,8 @@ impl ImguiRenderer {
         let descriptor_set = descriptor_sets.into_iter().next().into_ris_error()?;
 
         let image_infos = [vk::DescriptorImageInfo {
-            sampler: font_sampler,
-            image_view: font_image_view,
+            sampler: font_texture.sampler,
+            image_view: font_texture.view,
             image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
         }];
 
@@ -719,10 +537,7 @@ impl ImguiRenderer {
             pipeline_layout,
             renderer_id,
             frames,
-            font_image,
-            font_memory,
-            font_image_view,
-            font_sampler,
+            font_texture,
             textures: Textures::new(),
         })
     }
