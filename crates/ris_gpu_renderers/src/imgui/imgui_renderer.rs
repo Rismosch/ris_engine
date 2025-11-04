@@ -442,9 +442,9 @@ impl ImguiRenderer {
             font_atlas_texture.data.len(),
             physical_device_memory_properties,
         )?;
-        
+
         let font_texture = Texture::alloc(TextureCreateInfo {
-            transient_command_args: TransientCommandArgs { 
+            transient_command_args: TransientCommandArgs {
                 device: device.clone(),
                 queue: *graphics_queue,
                 command_pool: *transient_command_pool,
@@ -459,7 +459,7 @@ impl ImguiRenderer {
             pixels: font_atlas_texture.data,
         })?;
 
-        unsafe{staging.free(device)};
+        unsafe { staging.free(device) };
 
         let fonts = context.fonts();
         fonts.tex_id = TextureId::from(usize::MAX);
@@ -640,7 +640,6 @@ impl ImguiRenderer {
                 p_clear_values: clear_values.as_ptr(),
             };
 
-            
             device.cmd_begin_render_pass(
                 command_buffer,
                 &render_pass_begin_info,
@@ -691,12 +690,12 @@ impl ImguiRenderer {
 
             device.cmd_bind_index_buffer(
                 command_buffer,
-                mesh.index_buffer,
+                mesh.indices.buffer,
                 0,
                 vk::IndexType::UINT16,
             );
 
-            device.cmd_bind_vertex_buffers(command_buffer, 0, &[mesh.vertex_buffer], &[0]);
+            device.cmd_bind_vertex_buffers(command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             let mut index_offset = 0;
             let mut vertex_offset = 0;

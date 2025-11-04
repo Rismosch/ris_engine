@@ -132,6 +132,19 @@ impl Buffer {
         Ok((buffer, memory))
     }
 
+    pub fn map_memory<T>(&self, device: &ash::Device) -> RisResult<*mut T> {
+        let mapped_memory = unsafe {
+            device.map_memory(self.memory, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())
+        }? as *mut T;
+
+        Ok(mapped_memory)
+    }
+
+    pub fn unmap_memory(&self, device: &ash::Device) -> RisResult<()> {
+        unsafe { device.unmap_memory(self.memory) };
+        Ok(())
+    }
+
     pub fn size(&self) -> usize {
         self.size
     }
