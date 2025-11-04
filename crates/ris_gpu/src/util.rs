@@ -4,11 +4,11 @@ use ash::vk;
 
 use ris_error::RisResult;
 
-pub fn vk_to_c_str<'a>(value: &'a [i8]) -> &'a CStr {
-    unsafe {CStr::from_ptr(value.as_ptr())}
+pub fn vk_to_c_str(value: &[i8]) -> &CStr {
+    unsafe { CStr::from_ptr(value.as_ptr()) }
 }
 
-pub fn vk_to_std_str<'a>(value: &'a [i8]) -> RisResult<&'a str> {
+pub fn vk_to_std_str(value: &[i8]) -> RisResult<&str> {
     let cstr = vk_to_c_str(value);
     let stdstr = cstr.to_str()?;
     Ok(stdstr)

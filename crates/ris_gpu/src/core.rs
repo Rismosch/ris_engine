@@ -80,7 +80,8 @@ impl VulkanCore {
         }
 
         // validation layers
-        let available_layers = super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        let available_layers =
+            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
         let mut available_layers_ptrs = Vec::with_capacity(available_layers.len());
         for layer in available_layers.iter() {
             let ptr = layer.as_ptr();
