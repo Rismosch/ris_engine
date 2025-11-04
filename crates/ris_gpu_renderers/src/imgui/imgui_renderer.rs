@@ -690,12 +690,12 @@ impl ImguiRenderer {
 
             device.cmd_bind_index_buffer(
                 command_buffer,
-                mesh.index_buffer,
+                mesh.indices.buffer,
                 0,
                 vk::IndexType::UINT16,
             );
 
-            device.cmd_bind_vertex_buffers(command_buffer, 0, &[mesh.vertex_buffer], &[0]);
+            device.cmd_bind_vertex_buffers(command_buffer, 0, &[mesh.vertices.buffer], &[0]);
 
             let mut index_offset = 0;
             let mut vertex_offset = 0;
