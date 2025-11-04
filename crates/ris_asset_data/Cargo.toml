@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 ash = "0.37.3"
 ris_error = { path = "../ris_error" }
+ris_gpu = { path = "../ris_gpu" }
 ris_io = { path = "../ris_io" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
-ris_video_data = { path = "../ris_video_data" }

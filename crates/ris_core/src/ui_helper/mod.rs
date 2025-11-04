@@ -3,7 +3,6 @@ use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::ptr;
 use std::time::Instant;
 
 use imgui::Ui;
@@ -435,7 +434,7 @@ impl UiHelper {
                     let size = imgui::sys::ImVec2 { x: 0.0, y: 0.0 };
                     let flags = 1 << 3; // ImGuiDockNodeFlags_PassthruCentralNode
 
-                    unsafe { imgui::sys::igDockSpace(id_uint, size, flags, ptr::null()) };
+                    unsafe { imgui::sys::igDockSpace(id_uint, size, flags, std::ptr::null()) };
 
                     self.menu_callback(&mut data)
                 })

@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::ptr;
 
 use ris_asset::assets::ris_scene;
 use ris_asset_data::asset_id::AssetId;
@@ -104,7 +103,7 @@ impl IUiHelperModule for HierarchyModule {
             let alive = chunk.iter().filter(|x| x.borrow().is_alive).count();
             ui.label_text("game objects", format!("{}/{}", alive, chunk.len()));
 
-            if unsafe { imgui::sys::igBeginPopupContextWindow(ptr::null(), 1) } {
+            if unsafe { imgui::sys::igBeginPopupContextWindow(std::ptr::null(), 1) } {
                 if ui.menu_item("new") {
                     GameObjectHandle::new_with_kind(scene, kind)?;
                 }
@@ -177,11 +176,11 @@ impl HierarchyModule {
 
         let open = unsafe { imgui::sys::igTreeNodeEx_Str(id.as_ptr(), flags) };
 
-        if unsafe { imgui::sys::igBeginPopupContextItem(ptr::null(), 1) } {
+        if unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) } {
             {
                 let _disabled_token = ui.begin_disabled(handle.parent(scene)?.is_none());
                 if ui.menu_item("unparent") {
-                    handle.set_parent(scene, None, usize::MAX, true)?;
+                    handle.set_parent(scene, None, usize::MAX)?;
                 }
             }
 
@@ -196,7 +195,7 @@ impl HierarchyModule {
                     return ris_error::new_result!("handle id was not a gameobject");
                 }
                 let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
-                child.set_parent(scene, Some(handle), usize::MAX, false)?;
+                child.set_parent(scene, Some(handle), usize::MAX)?;
                 ris_log::debug!("parent: {:?}", handle);
             }
 
@@ -229,7 +228,7 @@ impl HierarchyModule {
             if let Some(dragged_handle) = payload {
                 ris_log::info!("accepted drag");
 
-                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0, true) {
+                if let Err(e) = dragged_handle.set_parent(scene, Some(handle), 0) {
                     ris_log::error!("failed to drag: {}", e);
                 }
             }

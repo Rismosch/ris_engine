@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use ris_video_renderers::TerrainRenderer;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 use sdl2::EventPump;
@@ -21,35 +20,15 @@ use ris_data::settings::Settings;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;
-use ris_input::gamepad_logic::GamepadLogic;
-use ris_video_data::core::VulkanCore;
-use ris_video_renderers::GizmoSegmentRenderer;
-use ris_video_renderers::GizmoTextRenderer;
-use ris_video_renderers::SceneRenderer;
+use ris_gpu::core::VulkanCore;
 #[cfg(feature = "ui_helper_enabled")]
-use ris_video_renderers::{ImguiBackend, ImguiRenderer};
+use ris_gpu_renderers::ImguiBackend;
+use ris_input::gamepad_logic::GamepadLogic;
 
-use crate::output_frame::OutputFrame;
-use crate::output_frame::Renderer;
+use crate::gpu_frame::GpuFrame;
+use crate::gpu_frame::Renderer;
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::UiHelper;
-
-/*#[cfg(debug_assertions)]
-fn import_assets() -> RisResult<()> {
-    use ris_asset::asset_importer;
-
-    ris_log::debug!("importing assets...");
-
-    asset_importer::import_all(
-        asset_importer::DEFAULT_SOURCE_DIRECTORY,
-        asset_importer::DEFAULT_IMPORT_DIRECTORY,
-        asset_importer::DEFAULT_IN_USE_DIRECTORY,
-        Some("temp"),
-    )?;
-
-    ris_log::debug!("assets imported!");
-    Ok(())
-}*/
 
 pub struct GodObject {
     pub app_info: AppInfo,
@@ -58,7 +37,7 @@ pub struct GodObject {
     pub event_pump: EventPump,
     pub keyboard_util: KeyboardUtil,
     pub gamepad_logic: GamepadLogic,
-    pub output_frame: OutputFrame,
+    pub gpu_frame: GpuFrame,
     pub god_asset: RisGodAsset,
     pub state: GodState,
 
@@ -98,22 +77,6 @@ impl GodObject {
         let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
-        //#[cfg(debug_assertions)]
-        //{
-        //    use ris_asset::asset_importer;
-
-        //    ris_log::debug!("importing assets...");
-
-        //    asset_importer::import_all(
-        //        asset_importer::DEFAULT_SOURCE_DIRECTORY,
-        //        asset_importer::DEFAULT_IMPORT_DIRECTORY,
-        //        asset_importer::DEFAULT_IN_USE_DIRECTORY,
-        //        Some("temp"),
-        //    )?;
-
-        //    ris_log::debug!("assets imported!");
-        //}
-
         let asset_loader_guard = asset_loader::init(&app_info)?;
 
         // profiling
@@ -152,41 +115,25 @@ impl GodObject {
 
         let vulkan_core = VulkanCore::alloc(&app_info.package.name, &window)?;
 
-        // scene renderer
-        let scene_renderer = SceneRenderer::alloc(&vulkan_core, &god_asset, None)?;
-
-        // terrain renderer
-        let terrain_renderer = TerrainRenderer::alloc(&vulkan_core, &god_asset)?;
-
-        // gizmo renderer
+        // gizmo
         let gizmo_guard = ris_debug::gizmo::init()?;
-        let gizmo_segment_renderer = GizmoSegmentRenderer::alloc(&vulkan_core, &god_asset)?;
-        let gizmo_text_renderer = GizmoTextRenderer::alloc(&vulkan_core, &god_asset)?;
 
-        // imgui renderer
+        // imgui
         #[cfg(feature = "ui_helper_enabled")]
-        let (imgui_backend, imgui_renderer) = {
-            let mut imgui_backend = ImguiBackend::init(&app_info)?;
-            let context = imgui_backend.context();
-            let imgui_renderer = ImguiRenderer::alloc(&vulkan_core, &god_asset, context)?;
-            (imgui_backend, imgui_renderer)
-        };
+        let mut imgui_backend = ImguiBackend::init(&app_info)?;
 
-        // output frame
+        // gpu frame
         #[cfg(feature = "ui_helper_enabled")]
         let ui_helper = UiHelper::new(&app_info)?;
 
-        let renderer = Renderer {
-            scene: scene_renderer,
-            terrain: terrain_renderer,
-            gizmo_segment: gizmo_segment_renderer,
-            gizmo_text: gizmo_text_renderer,
+        let renderer = Renderer::alloc(
+            &vulkan_core,
+            &god_asset,
             #[cfg(feature = "ui_helper_enabled")]
-            imgui: imgui_renderer,
-        };
+            imgui_backend.context(),
+        )?;
 
-        let output_frame = OutputFrame {
-            current_frame: 0,
+        let gpu_frame = GpuFrame {
             renderer,
             #[cfg(feature = "ui_helper_enabled")]
             imgui_backend,
@@ -230,7 +177,7 @@ impl GodObject {
             event_pump,
             keyboard_util,
             gamepad_logic,
-            output_frame,
+            gpu_frame,
             god_asset,
             state,
 

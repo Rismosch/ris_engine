@@ -5,6 +5,7 @@ use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
 use ris_async::OneshotReceiver;
 use ris_error::prelude::*;
+use ris_gpu::transient_command::TransientCommandArgs;
 
 use crate::assets::ris_mesh;
 
@@ -35,7 +36,7 @@ impl MeshLookup {
 
     pub fn reimport_everything(
         &mut self,
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) {
         for entry in self.entries.iter_mut() {
@@ -44,11 +45,11 @@ impl MeshLookup {
             }
 
             if let Some(mut gpu_mesh) = entry.take_gpu_mesh() {
-                gpu_mesh.free(device);
+                gpu_mesh.free(&transient_command_args.device);
             }
 
             let state = EntryState::load(
-                device,
+                transient_command_args.clone(),
                 physical_device_memory_properties,
                 entry.asset_id.clone(),
             );
@@ -58,7 +59,7 @@ impl MeshLookup {
 
     pub fn alloc(
         &mut self,
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         asset_id: AssetId,
     ) -> MeshLookupId {
@@ -95,7 +96,7 @@ impl MeshLookup {
 
         if entry.value.is_none() {
             let state = EntryState::load(
-                device,
+                transient_command_args,
                 physical_device_memory_properties,
                 entry.asset_id.clone(),
             );
@@ -175,14 +176,19 @@ impl Entry {
 
 impl EntryState {
     fn load(
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         asset_id: AssetId,
     ) -> Self {
-        let device = device.clone();
         let receiver = crate::load_async(asset_id, move |bytes| {
             let cpu_mesh = ris_mesh::deserialize(&bytes)?;
-            unsafe { GpuMesh::from_cpu_mesh(&device, physical_device_memory_properties, cpu_mesh) }
+            unsafe {
+                GpuMesh::from_cpu_mesh(
+                    transient_command_args,
+                    physical_device_memory_properties,
+                    cpu_mesh,
+                )
+            }
         });
 
         EntryState::Loading(receiver)

@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use ris_data::ecs::decl::GameObjectHandle;
@@ -8,13 +6,8 @@ use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
-use ris_rng::rng::Rng;
-use ris_rng::rng::Seed;
-use ris_util::assert_feq;
 use ris_util::assert_quat_feq;
 use ris_util::assert_vec3_feq;
-use ris_util::testing;
-use ris_util::testing::miri_choose;
 
 fn scene_create_info() -> SceneCreateInfo {
     let mut info = SceneCreateInfo::empty();
@@ -79,9 +72,9 @@ fn should_get_and_set_local_position() {
 
     let expected1 = Vec3::init(0.0);
     let expected2 = Vec3(42.0, 13.0, -12.34);
-    let actual1 = g.local_position(&scene).unwrap();
-    g.set_local_position(&scene, expected2).unwrap();
-    let actual2 = g.local_position(&scene).unwrap();
+    let actual1 = g.position(&scene).unwrap();
+    g.set_position(&scene, expected2).unwrap();
+    let actual2 = g.position(&scene).unwrap();
 
     assert_vec3_feq!(expected1, actual1);
     assert_vec3_feq!(expected2, actual2);
@@ -94,40 +87,27 @@ fn should_get_and_set_local_rotation() {
 
     let expected1 = Quat::identity();
     let expected2 = Quat::from((42.0, Vec3(1.0, 2.0, 3.0)));
-    let actual1 = g.local_rotation(&scene).unwrap();
-    g.set_local_rotation(&scene, expected2).unwrap();
-    let actual2 = g.local_rotation(&scene).unwrap();
+    let actual1 = g.rotation(&scene).unwrap();
+    g.set_rotation(&scene, expected2).unwrap();
+    let actual2 = g.rotation(&scene).unwrap();
 
     assert_quat_feq!(expected1, actual1);
     assert_quat_feq!(expected2, actual2);
 }
 
 #[test]
-fn should_get_and_set_local_scale() {
+fn should_get_and_set_scale() {
     let scene = Scene::new(scene_create_info()).unwrap();
     let g = GameObjectHandle::new(&scene).unwrap();
 
-    let expected1 = 1.0;
-    let expected2 = 9.0;
-    let actual1 = g.local_scale(&scene).unwrap();
-    g.set_local_scale(&scene, expected2).unwrap();
-    let actual2 = g.local_scale(&scene).unwrap();
+    let expected1 = Vec3::init(1.0);
+    let expected2 = Vec3::init(9.0);
+    let actual1 = g.scale(&scene).unwrap();
+    g.set_scale(&scene, expected2).unwrap();
+    let actual2 = g.scale(&scene).unwrap();
 
     assert_eq!(expected1, actual1);
     assert_eq!(expected2, actual2);
-}
-
-#[test]
-fn should_not_set_local_scale_to_0_or_negative() {
-    unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
-    }
-
-    let scene = Scene::new(scene_create_info()).unwrap();
-    let g = GameObjectHandle::new(&scene).unwrap();
-
-    assert!(g.set_local_scale(&scene, 0.0).is_err());
-    assert!(g.set_local_scale(&scene, -20.0).is_err());
 }
 
 #[test]
@@ -137,7 +117,7 @@ fn should_set_parent() {
     let child = GameObjectHandle::new(&scene).unwrap();
 
     // set parent
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
 
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
@@ -148,43 +128,11 @@ fn should_set_parent() {
     assert_eq!(child, actual_child);
 
     // remove parent
-    child.set_parent(&scene, None, 0, false).unwrap();
+    child.set_parent(&scene, None, 0).unwrap();
 
     let children = parent.children(&scene).unwrap();
     assert!(child.parent(&scene).unwrap().is_none());
     assert_eq!(children.len(), 0);
-}
-
-#[test]
-fn should_keep_position_on_set_parent() {
-    let scene = Scene::new(scene_create_info()).unwrap();
-    let parent = GameObjectHandle::new(&scene).unwrap();
-    let child1 = GameObjectHandle::new(&scene).unwrap();
-    let child2 = GameObjectHandle::new(&scene).unwrap();
-
-    let position1 = Vec3(0.1, 0.2, 0.3);
-    let rotation1 = Quat(0.4, 0.5, 0.6, 0.7).normalize();
-    let scale1 = 0.8;
-    let position2 = Vec3(0.9, 1.0, 1.1);
-    let rotation2 = Quat(1.2, 1.3, 1.4, 1.5).normalize();
-    let scale2 = 1.6;
-
-    child1.set_local_position(&scene, position1).unwrap();
-    child1.set_local_rotation(&scene, rotation1).unwrap();
-    child1.set_local_scale(&scene, scale1).unwrap();
-    child2.set_local_position(&scene, position2).unwrap();
-    child2.set_local_rotation(&scene, rotation2).unwrap();
-    child2.set_local_scale(&scene, scale2).unwrap();
-
-    child1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    child2.set_parent(&scene, Some(parent), 0, true).unwrap();
-
-    assert_vec3_feq!(position1, child1.local_position(&scene).unwrap());
-    assert_quat_feq!(rotation1, child1.local_rotation(&scene).unwrap());
-    assert_feq!(scale1, child1.local_scale(&scene).unwrap());
-    assert_vec3_feq!(position2, child2.world_position(&scene).unwrap());
-    assert_quat_feq!(rotation2, child2.world_rotation(&scene).unwrap());
-    assert_feq!(scale2, child2.world_scale(&scene).unwrap());
 }
 
 #[test]
@@ -196,17 +144,17 @@ fn should_not_cause_circular_hierarchy() {
     let g3 = GameObjectHandle::new(&scene).unwrap();
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
-    g1.set_parent(&scene, Some(g0), 0, false).unwrap();
-    g2.set_parent(&scene, Some(g1), 0, false).unwrap();
-    g3.set_parent(&scene, Some(g2), 0, false).unwrap();
-    g4.set_parent(&scene, Some(g3), 0, false).unwrap();
+    g1.set_parent(&scene, Some(g0), 0).unwrap();
+    g2.set_parent(&scene, Some(g1), 0).unwrap();
+    g3.set_parent(&scene, Some(g2), 0).unwrap();
+    g4.set_parent(&scene, Some(g3), 0).unwrap();
 
-    assert!(g2.set_parent(&scene, Some(g2), 0, false).is_err());
-    assert!(g2.set_parent(&scene, Some(g3), 0, false).is_err());
-    assert!(g1.set_parent(&scene, Some(g3), 0, false).is_err());
-    assert!(g1.set_parent(&scene, Some(g4), 0, false).is_err());
-    assert!(g0.set_parent(&scene, Some(g3), 0, false).is_err());
-    assert!(g0.set_parent(&scene, Some(g4), 0, false).is_err());
+    assert!(g2.set_parent(&scene, Some(g2), 0).is_err());
+    assert!(g2.set_parent(&scene, Some(g3), 0).is_err());
+    assert!(g1.set_parent(&scene, Some(g3), 0).is_err());
+    assert!(g1.set_parent(&scene, Some(g4), 0).is_err());
+    assert!(g0.set_parent(&scene, Some(g3), 0).is_err());
+    assert!(g0.set_parent(&scene, Some(g4), 0).is_err());
 
     assert!(g0.parent(&scene).unwrap().is_none());
     assert_eq!(g1.parent(&scene).unwrap().unwrap(), g0);
@@ -221,11 +169,11 @@ fn should_not_assign_child_more_than_once() {
     let parent = GameObjectHandle::new(&scene).unwrap();
     let child = GameObjectHandle::new(&scene).unwrap();
 
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
-    child.set_parent(&scene, Some(parent), 0, false).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
+    child.set_parent(&scene, Some(parent), 0).unwrap();
 
     let actual_parent = child.parent(&scene).unwrap().unwrap();
     assert_eq!(parent, actual_parent);
@@ -244,7 +192,7 @@ fn should_not_assign_destroyed_child() {
 
     child.destroy(&scene);
 
-    assert!(child.set_parent(&scene, Some(parent), 0, false).is_err());
+    assert!(child.set_parent(&scene, Some(parent), 0).is_err());
 
     let children = parent.children(&scene).unwrap();
     assert_eq!(children.len(), 0);
@@ -261,11 +209,10 @@ fn should_not_assign_destroyed_parent() {
 
     parent.destroy(&scene);
 
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
+    g1.set_parent(&scene, Some(parent), 0).unwrap();
+    g2.set_parent(&scene, Some(parent), 0).unwrap();
+    g3.set_parent(&scene, Some(parent), 1).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     assert!(g1.parent(&scene).unwrap().is_none());
     assert!(g2.parent(&scene).unwrap().is_none());
@@ -291,24 +238,36 @@ fn should_not_set_parent_from_another_chunk() {
     let static_0_child = GameObjectHandle::new_static(&scene, 0).unwrap();
     let static_1_child = GameObjectHandle::new_static(&scene, 1).unwrap();
 
-    assert!(dynmic_child
-        .set_parent(&scene, Some(static_0_parent), 0, false)
-        .is_err());
-    assert!(dynmic_child
-        .set_parent(&scene, Some(static_1_parent), 0, false)
-        .is_err());
-    assert!(static_0_child
-        .set_parent(&scene, Some(dynmic_parent), 0, false)
-        .is_err());
-    assert!(static_0_child
-        .set_parent(&scene, Some(static_1_parent), 0, false)
-        .is_err());
-    assert!(static_1_child
-        .set_parent(&scene, Some(dynmic_parent), 0, false)
-        .is_err());
-    assert!(static_1_child
-        .set_parent(&scene, Some(static_0_parent), 0, false)
-        .is_err());
+    assert!(
+        dynmic_child
+            .set_parent(&scene, Some(static_0_parent), 0)
+            .is_err()
+    );
+    assert!(
+        dynmic_child
+            .set_parent(&scene, Some(static_1_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_0_child
+            .set_parent(&scene, Some(dynmic_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_0_child
+            .set_parent(&scene, Some(static_1_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_1_child
+            .set_parent(&scene, Some(dynmic_parent), 0)
+            .is_err()
+    );
+    assert!(
+        static_1_child
+            .set_parent(&scene, Some(static_0_parent), 0)
+            .is_err()
+    );
 }
 
 #[test]
@@ -321,11 +280,10 @@ fn should_set_sibling_index() {
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
     // set via parent
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
+    g1.set_parent(&scene, Some(parent), 0).unwrap();
+    g2.set_parent(&scene, Some(parent), 0).unwrap();
+    g3.set_parent(&scene, Some(parent), 1).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     let children = parent.children(&scene).unwrap();
     assert_eq!(children.len(), 4);
@@ -368,11 +326,10 @@ fn should_destroy_child() {
     let g3 = GameObjectHandle::new(&scene).unwrap();
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
+    g1.set_parent(&scene, Some(parent), 0).unwrap();
+    g2.set_parent(&scene, Some(parent), 0).unwrap();
+    g3.set_parent(&scene, Some(parent), 1).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     g1.destroy(&scene);
     g2.destroy(&scene);
@@ -398,11 +355,10 @@ fn should_destroy_parent() {
     let g3 = GameObjectHandle::new(&scene).unwrap();
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
+    g1.set_parent(&scene, Some(parent), 0).unwrap();
+    g2.set_parent(&scene, Some(parent), 0).unwrap();
+    g3.set_parent(&scene, Some(parent), 1).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     parent.destroy(&scene);
 
@@ -422,11 +378,10 @@ fn should_not_return_destroyed_children() {
     let g3 = GameObjectHandle::new(&scene).unwrap();
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
-    g1.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g2.set_parent(&scene, Some(parent), 0, false).unwrap();
-    g3.set_parent(&scene, Some(parent), 1, false).unwrap();
-    g4.set_parent(&scene, Some(parent), usize::MAX, false)
-        .unwrap();
+    g1.set_parent(&scene, Some(parent), 0).unwrap();
+    g2.set_parent(&scene, Some(parent), 0).unwrap();
+    g3.set_parent(&scene, Some(parent), 1).unwrap();
+    g4.set_parent(&scene, Some(parent), usize::MAX).unwrap();
 
     g1.destroy(&scene);
     g2.destroy(&scene);
@@ -447,10 +402,10 @@ fn should_get_is_active_in_hierarchy() {
     let g3 = GameObjectHandle::new(&scene).unwrap();
     let g4 = GameObjectHandle::new(&scene).unwrap();
 
-    g1.set_parent(&scene, Some(g0), 0, false).unwrap();
-    g2.set_parent(&scene, Some(g0), 0, false).unwrap();
-    g3.set_parent(&scene, Some(g0), 0, false).unwrap();
-    g4.set_parent(&scene, Some(g3), 0, false).unwrap();
+    g1.set_parent(&scene, Some(g0), 0).unwrap();
+    g2.set_parent(&scene, Some(g0), 0).unwrap();
+    g3.set_parent(&scene, Some(g0), 0).unwrap();
+    g4.set_parent(&scene, Some(g3), 0).unwrap();
 
     g2.set_active(&scene, false).unwrap();
     g3.set_active(&scene, false).unwrap();
@@ -460,56 +415,4 @@ fn should_get_is_active_in_hierarchy() {
     assert!(!g2.is_active_in_hierarchy(&scene).unwrap());
     assert!(!g3.is_active_in_hierarchy(&scene).unwrap());
     assert!(!g4.is_active_in_hierarchy(&scene).unwrap());
-}
-
-#[test]
-fn should_get_and_set_world_transform() {
-    let seed = Seed::new();
-    //let seed = Seed([220, 220, 101, 14, 148, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    let rng = Rc::new(RefCell::new(Rng::new(seed)));
-
-    testing::repeat(miri_choose(10_000, 10), move |_i| {
-        let mut rng = rng.borrow_mut();
-
-        let scene = Scene::new(scene_create_info()).unwrap();
-        let g0 = GameObjectHandle::new(&scene).unwrap();
-        let g1 = GameObjectHandle::new(&scene).unwrap();
-        let g2 = GameObjectHandle::new(&scene).unwrap();
-        let g3 = GameObjectHandle::new(&scene).unwrap();
-        let g4 = GameObjectHandle::new(&scene).unwrap();
-
-        g1.set_parent(&scene, Some(g0), 0, false).unwrap();
-        g2.set_parent(&scene, Some(g0), 0, false).unwrap();
-        g3.set_parent(&scene, Some(g0), 0, false).unwrap();
-        g4.set_parent(&scene, Some(g3), 0, false).unwrap();
-
-        set_random_transform(&mut rng, g0, &scene);
-        set_random_transform(&mut rng, g1, &scene);
-        set_random_transform(&mut rng, g2, &scene);
-        set_random_transform(&mut rng, g3, &scene);
-        set_random_transform(&mut rng, g4, &scene);
-
-        let p = rng.next_pos_3();
-        let r = rng.next_rot();
-        let s = rng.next_f32_between(0.000_001, 1.0);
-        g4.set_world_position(&scene, p).unwrap();
-        g4.set_world_rotation(&scene, r).unwrap();
-        g4.set_world_scale(&scene, s).unwrap();
-        let p_ = g4.world_position(&scene).unwrap();
-        let r_ = g4.world_rotation(&scene).unwrap();
-        let s_ = g4.world_scale(&scene).unwrap();
-
-        assert_vec3_feq!(p, p_, 0.000_003);
-        assert_quat_feq!(r, r_);
-        assert_feq!(s, s_, 0.000_003);
-    });
-}
-
-fn set_random_transform(rng: &mut Rng, g: GameObjectHandle, scene: &Scene) {
-    let p = rng.next_pos_3();
-    let r = rng.next_rot();
-    let s = rng.next_f32_between(0.000_001, 1.0);
-    g.set_local_position(scene, p).unwrap();
-    g.set_local_rotation(scene, r).unwrap();
-    g.set_local_scale(scene, s).unwrap();
 }

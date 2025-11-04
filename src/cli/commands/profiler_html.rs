@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use ris_error::RisResult;
 use ris_io::FatPtr;
 
-use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::util;
 
 const ORG_NAME: &str = "Rismosch";
 const APP_NAME: &str = "ris_engine";

@@ -4,10 +4,11 @@ use std::sync::Arc;
 use ash::vk;
 
 use ris_error::prelude::*;
+use ris_gpu::buffer::Buffer;
+use ris_gpu::transient_command::TransientCommandArgs;
 use ris_io::FatPtr;
 use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
-use ris_video_data::buffer::Buffer;
 
 #[derive(Debug, Clone)]
 pub struct MeshLookupId {
@@ -388,12 +389,18 @@ impl GpuMesh {
     }
 
     pub fn from_prototype(
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: MeshPrototype,
     ) -> RisResult<Self> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        unsafe { Self::from_cpu_mesh(device, physical_device_memory_properties, cpu_mesh) }
+        unsafe {
+            Self::from_cpu_mesh(
+                transient_command_args,
+                physical_device_memory_properties,
+                cpu_mesh,
+            )
+        }
     }
 
     /// # Safety
@@ -402,17 +409,16 @@ impl GpuMesh {
     /// ensure that the pointers point inside the data array, and the
     /// indices may not index outside the vertex range.
     pub unsafe fn from_cpu_mesh(
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: CpuMesh,
     ) -> RisResult<Self> {
-        let buffer = Buffer::alloc(
-            device,
-            value.data.len() as vk::DeviceSize,
-            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        let buffer = Buffer::alloc_local(
+            &transient_command_args.device,
+            value.data.len(),
+            vk::BufferUsageFlags::VERTEX_BUFFER
+                | vk::BufferUsageFlags::INDEX_BUFFER
+                | vk::BufferUsageFlags::TRANSFER_DST,
             physical_device_memory_properties,
         )?;
 
@@ -428,7 +434,11 @@ impl GpuMesh {
             }),
         };
 
-        gpu_mesh.overwrite_with_cpu_mesh(device, value)?;
+        gpu_mesh.overwrite_with_cpu_mesh(
+            transient_command_args,
+            physical_device_memory_properties,
+            value,
+        )?;
 
         Ok(gpu_mesh)
     }
@@ -439,11 +449,16 @@ impl GpuMesh {
     /// the prototype
     pub unsafe fn overwrite_with_prototype(
         &mut self,
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: MeshPrototype,
     ) -> RisResult<()> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        self.overwrite_with_cpu_mesh(device, cpu_mesh)
+        self.overwrite_with_cpu_mesh(
+            transient_command_args,
+            physical_device_memory_properties,
+            cpu_mesh,
+        )
     }
 
     /// # Safety
@@ -456,13 +471,15 @@ impl GpuMesh {
     /// enough to fit the CpuMesh.
     pub unsafe fn overwrite_with_cpu_mesh(
         &mut self,
-        device: &ash::Device,
+        transient_command_args: TransientCommandArgs,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         value: CpuMesh,
     ) -> RisResult<()> {
         let Some(inner) = self.inner.as_mut() else {
             return ris_error::new_result!("gpu mesh was freed");
         };
 
+        // prepare ptrs
         let p_vertices = value.p_vertices.addr;
         let p_normals = value.p_normals.addr;
         let p_uvs = value.p_uvs.addr;
@@ -478,6 +495,7 @@ impl GpuMesh {
         let index_count = value.p_indices.len as u32 / index_size as u32;
         let index_type = value.index_type;
 
+        // assign values
         inner.p_vertices = p_vertices;
         inner.p_normals = p_normals;
         inner.p_uvs = p_uvs;
@@ -485,7 +503,20 @@ impl GpuMesh {
         inner.index_count = index_count;
         inner.index_type = index_type;
 
-        inner.buffer.write(device, &value.data)
+        // write to gpu
+        let device = &transient_command_args.device.clone();
+        let staging =
+            Buffer::alloc_staging(device, value.data.len(), physical_device_memory_properties)?;
+        ris_gpu::io::write_to_buffer(ris_gpu::io::Args {
+            transient_command_args,
+            values: &value.data,
+            gpu_object: &inner.buffer,
+            staging: &staging,
+        })?;
+
+        staging.free(device);
+
+        Ok(())
     }
 
     pub fn vertex_buffers(&self) -> RisResult<Vec<vk::Buffer>> {

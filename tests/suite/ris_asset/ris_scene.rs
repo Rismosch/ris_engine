@@ -157,14 +157,14 @@ fn should_serialize() {
     //     -g8
     //       -g9
 
-    g1.set_parent(&scene, Some(g0), 0, false).unwrap();
-    g2.set_parent(&scene, Some(g1), 0, false).unwrap();
-    g3.set_parent(&scene, Some(g0), 1, false).unwrap();
-    g4.set_parent(&scene, Some(g3), 0, false).unwrap();
-    g6.set_parent(&scene, Some(g5), 0, false).unwrap();
-    g7.set_parent(&scene, Some(g5), 1, false).unwrap();
-    g8.set_parent(&scene, Some(g7), 0, false).unwrap();
-    g9.set_parent(&scene, Some(g8), 0, false).unwrap();
+    g1.set_parent(&scene, Some(g0), 0).unwrap();
+    g2.set_parent(&scene, Some(g1), 0).unwrap();
+    g3.set_parent(&scene, Some(g0), 1).unwrap();
+    g4.set_parent(&scene, Some(g3), 0).unwrap();
+    g6.set_parent(&scene, Some(g5), 0).unwrap();
+    g7.set_parent(&scene, Some(g5), 1).unwrap();
+    g8.set_parent(&scene, Some(g7), 0).unwrap();
+    g9.set_parent(&scene, Some(g8), 0).unwrap();
 
     let gs = [g0, g1, g2, g3, g4, g5, g6, g7, g8, g9];
     fill_data(&scene, g0, &mut rng, "zero", &gs).unwrap();
@@ -238,17 +238,14 @@ fn should_serialize() {
             right.is_active(&scene).unwrap(),
         );
         ris_util::assert_vec3_feq!(
-            left.local_position(&scene).unwrap(),
-            right.local_position(&scene).unwrap(),
+            left.position(&scene).unwrap(),
+            right.position(&scene).unwrap(),
         );
         ris_util::assert_quat_feq!(
-            left.local_rotation(&scene).unwrap(),
-            right.local_rotation(&scene).unwrap(),
+            left.rotation(&scene).unwrap(),
+            right.rotation(&scene).unwrap(),
         );
-        ris_util::assert_feq!(
-            left.local_scale(&scene).unwrap(),
-            right.local_scale(&scene).unwrap(),
-        );
+        ris_util::assert_vec3_feq!(left.scale(&scene).unwrap(), right.scale(&scene).unwrap(),);
 
         let left_children = left.children(&scene).unwrap();
         let right_children = right.children(&scene).unwrap();
@@ -304,13 +301,13 @@ fn fill_data(
     let is_active = rng.next_bool();
     let position = rng.next_pos_3();
     let rotation = rng.next_rot();
-    let scale = rng.next_f32();
+    let scale = rng.next_pos_3();
 
     game_object.set_name(scene, name.as_ref()).unwrap();
     game_object.set_active(scene, is_active).unwrap();
-    game_object.set_local_position(scene, position).unwrap();
-    game_object.set_local_rotation(scene, rotation).unwrap();
-    game_object.set_local_scale(scene, scale).unwrap();
+    game_object.set_position(scene, position).unwrap();
+    game_object.set_rotation(scene, rotation).unwrap();
+    game_object.set_scale(scene, scale).unwrap();
 
     if rng.next_bool() {
         let script = game_object.add_script::<TestScript>(scene)?;

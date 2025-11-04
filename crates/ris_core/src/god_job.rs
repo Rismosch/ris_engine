@@ -98,10 +98,10 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         }
 
         // render
-        ris_debug::add_record!(r, "output frame")?;
-        let output_result =
+        ris_debug::add_record!(r, "gpu frame")?;
+        let gpu_result =
             god_object
-                .output_frame
+                .gpu_frame
                 .run(frame, &mut god_object.state, &god_object.god_asset);
 
         // wait for jobs
@@ -142,15 +142,15 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "handle errors")?;
 
         save_settings_result?;
-        let output_state = output_result?;
+        let gpu_state = gpu_result?;
 
         ris_debug::end_record!(r)?;
 
         // continue?
         let wants_to_quit =
-            input_state == GameloopState::WantsToQuit || output_state == GameloopState::WantsToQuit;
+            input_state == GameloopState::WantsToQuit || gpu_state == GameloopState::WantsToQuit;
         let wants_to_restart = input_state == GameloopState::WantsToRestart
-            || output_state == GameloopState::WantsToRestart;
+            || gpu_state == GameloopState::WantsToRestart;
 
         let wants_to_option = if wants_to_quit {
             Some(WantsTo::Quit)
@@ -172,7 +172,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             }
         }
 
-        god_object.output_frame.wait_idle()?;
+        god_object.gpu_frame.wait_idle()?;
 
         return Ok(wants_to);
     }

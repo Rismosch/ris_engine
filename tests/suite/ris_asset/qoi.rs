@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use ris_asset::codecs::qoi;
 use ris_asset::codecs::qoi::Channels;
 use ris_asset::codecs::qoi::ColorSpace;
@@ -11,7 +14,7 @@ use ris_util::testing::miri_choose;
 
 #[test]
 fn should_encode_and_decode_fuzzed() {
-    let rng = std::rc::Rc::new(std::cell::RefCell::new(Rng::new(Seed::new())));
+    let rng = Rc::new(RefCell::new(Rng::new(Seed::new())));
     testing::repeat(10, move |_| {
         let mut rng = rng.borrow_mut();
 
@@ -41,14 +44,17 @@ fn should_encode_and_decode_fuzzed() {
 #[test]
 #[cfg(not(miri))]
 fn should_encode_and_decode_raw_assets() {
-    let executable_string = std::env::args().next().expect("no cli args");
-    let executable_path = std::path::PathBuf::from(executable_string);
-    let executable_directory = executable_path.parent().expect("executable has no parent");
-    let mut raw_assets_directory = std::path::PathBuf::from(executable_directory);
-    raw_assets_directory.push("..");
-    raw_assets_directory.push("..");
-    raw_assets_directory.push("..");
-    raw_assets_directory.push(ris_asset::asset_importer::DEFAULT_SOURCE_DIRECTORY);
+    let output = std::process::Command::new(env!("CARGO"))
+        .arg("locate-project")
+        .arg("--workspace")
+        .arg("--message-format=plain")
+        .output()
+        .unwrap()
+        .stdout;
+    let cargo_path = std::path::Path::new(std::str::from_utf8(&output).unwrap().trim());
+    let root_dir = cargo_path.parent().unwrap().to_path_buf();
+
+    let raw_assets_directory = root_dir.join(ris_asset::asset_importer::DEFAULT_SOURCE_DIRECTORY);
 
     let mut pngs = Vec::new();
     let mut directories = std::collections::VecDeque::new();
@@ -188,7 +194,6 @@ fn should_not_decode_when_magic_is_incorrect() {
     let data = [0; 22];
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::IncorrectMagic));
 }
 
@@ -202,7 +207,6 @@ fn should_not_decode_when_desc_width_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::DescWidthIsZero));
 }
 
@@ -217,7 +221,6 @@ fn should_not_decode_when_height_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::DescHeightIsZero));
 }
 
@@ -233,7 +236,6 @@ fn should_not_decode_when_invalid_channel() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
 }
 
@@ -251,6 +253,5 @@ fn should_not_decode_when_invalid_color_space() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    println!("{:?}", error.kind);
     assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
 }

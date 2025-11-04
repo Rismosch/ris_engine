@@ -3,10 +3,10 @@ use std::path::Path;
 use ris_error::RisResult;
 use ris_io::fallback_file::FallbackFileAppend;
 
-use super::cmd;
-use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::cmd;
+use super::util;
 
 pub struct Pipeline;
 
@@ -121,6 +121,8 @@ impl ICommand for Pipeline {
         let mut results = Vec::new();
         {
             let results = &mut results;
+
+            // check
             test(results, run_check, true, cargo("check"));
             test(results, run_check, true, cargo("check -r"));
             test(
@@ -129,6 +131,8 @@ impl ICommand for Pipeline {
                 true,
                 cargo("check -r --no-default-features --features ris_windows_subsystem"),
             );
+
+            // test
             test(results, run_test, true, cargo("test"));
             test(results, run_test, true, cargo("test -r"));
             test(
@@ -137,22 +141,31 @@ impl ICommand for Pipeline {
                 true,
                 cargo("test -r --no-default-features --features ris_windows_subsystem"),
             );
+
+            // miri
             test(results, run_miri, false, cargo_nightly("miri test"));
             test(
                 results,
                 run_miri,
                 false,
                 cargo_nightly(
+                    // when passing -r to miri, it warns that it does not support optimizations. however,
+                    // passing -r removes debug assertions, overflow checks, and it changes some features
+                    // in the engine, which is exactly why passing -r still makes sense.
                     "miri test -r --no-default-features --features ris_windows_subsystem",
                 ),
             );
+
+            // clippy
             test(results, run_clippy, false, cargo("clippy -- -Dwarnings"));
             test(results, run_clippy, false, cargo("clippy -r -- -Dwarnings"));
             test(
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
+                cargo(
+                    "clippy -r --no-default-features --features ris_windows_subsystem -- -Dwarnings",
+                ),
             );
             test(
                 results,
@@ -170,7 +183,9 @@ impl ICommand for Pipeline {
                 results,
                 run_clippy,
                 false,
-                cargo("clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings"),
+                cargo(
+                    "clippy -r --tests --no-default-features --features ris_windows_subsystem -- -Dwarnings",
+                ),
             );
         }
 
@@ -198,7 +213,7 @@ impl ICommand for Pipeline {
 
         print_empty(ff, 1)?;
 
-        println!("results stored in \"{}\"", target_dir.display());
+        eprintln!("results stored in \"{}\"", target_dir.display());
 
         print_empty(ff, 2)?;
 
@@ -263,7 +278,31 @@ fn test(
 }
 
 fn cargo(args: &str) -> Result<String, String> {
-    Ok(format!("cargo {}", args))
+    let mut toolchain = String::new();
+    let exit_status = cmd::run_with_stdout("rustup show active-toolchain", &mut toolchain);
+    let mut arg_toolchain = String::new();
+    let mut arg_target = String::new();
+    if exit_status.is_ok() {
+        let splits = toolchain.split(' ').collect::<Vec<_>>();
+        if let Some(toolchain) = splits.first() {
+            let splits = toolchain.split('-').collect::<Vec<_>>();
+            let toolchain = splits.first();
+            let target = splits[1..]
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join("-");
+
+            match (toolchain, target) {
+                (Some(toolchain), target) if !target.is_empty() => {
+                    arg_toolchain = format!("+{} ", toolchain);
+                    arg_target = format!(" --target {}", target);
+                }
+                _ => (),
+            }
+        }
+    }
+    Ok(format!("cargo {}{}{}", arg_toolchain, args, arg_target))
 }
 
 #[cfg(target_os = "windows")]

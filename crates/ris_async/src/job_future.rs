@@ -8,6 +8,7 @@ use crate::OneshotReceiver;
 use crate::OneshotSender;
 use crate::ThreadPool;
 
+#[must_use]
 pub struct JobFuture<T> {
     receiver: OneshotReceiver<T>,
 }
@@ -28,6 +29,11 @@ impl<T> Future for JobFuture<T> {
 }
 
 impl<T> JobFuture<T> {
+    pub fn finished(value: T) -> Self {
+        let receiver = OneshotReceiver::with_value(value);
+        Self { receiver }
+    }
+
     pub fn new() -> (Self, JobFutureSetter<T>) {
         let (sender, receiver) = oneshot_channel();
         let future = Self { receiver };
@@ -38,6 +44,8 @@ impl<T> JobFuture<T> {
     pub fn wait(self) -> T {
         ThreadPool::block_on(self)
     }
+
+    pub fn ignore(self) {}
 }
 
 impl<T> JobFutureSetter<T> {

@@ -4,10 +4,10 @@ use std::path::Path;
 
 use ris_error::RisResult;
 
-use super::cmd;
-use super::util;
 use super::ExplanationLevel;
 use super::ICommand;
+use super::cmd;
+use super::util;
 
 const AUTO_GENERATE_START: &str = "@@AUTO GENERATE START@@";
 const AUTO_GENERATE_END: &str = "@@AUTO GENERATE END@@";
@@ -269,7 +269,7 @@ fn parse_multi_line(line: &str, data: &mut AutoGenerateParseData) {
     }
 
     let end_found = (data.total_quotation_marks > 0)
-        && (data.total_quotation_marks % 2 == 0)
+        && data.total_quotation_marks.is_multiple_of(2)
         && (data.total_open_paranthesis > 0)
         && (data.total_close_paranthesis > 0)
         && (data.total_open_paranthesis == data.total_close_paranthesis);

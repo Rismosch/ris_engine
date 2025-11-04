@@ -99,7 +99,7 @@ pub fn to_rotation(m: Mat3) -> Quat {
     }
 }
 
-// returns a rotation matrix, using direction and up
+/// returns a rotation matrix, using direction and up
 pub fn look_at(direction: Vec3, up: Vec3) -> Mat3 {
     let m2 = up;
     let right = direction.cross(m2);
@@ -133,51 +133,23 @@ pub fn to_scale(m: Mat3) -> Vec3 {
 }
 
 /// returns a translation-rotation-scale matrix
-pub fn trs_compose(t: Vec3, r: Quat, s: f32) -> Mat4 {
-    ris_error::throw_debug_assert!(s > 0.0, "non-positive scale is not supported");
-
+pub fn trs(t: Vec3, r: Quat, s: Vec3) -> Mat4 {
     let t = from_translation(t);
     let r = Mat4::from(from_rotation(r));
-    let s = Mat4::from(from_scale(Vec3::init(s)));
+    let s = Mat4::from(from_scale(s));
 
     t * r * s
 }
 
-/// decomposes a trandlation-rotation-scale matrix
-pub fn trs_decompose(m: Mat4) -> (Vec3, Quat, f32) {
-    // compute translation
-    let translation = to_translation(m);
-
-    // for the next steps we only care bout the top left 3x3 matrix
-    let mut m = Mat3::from(m);
-
-    // compute scale, assume scale is uniform
-    let scale = m.0.length();
-
-    // normalize columns
-    m.0 = m.0.normalize();
-    m.1 = m.1.normalize();
-    m.2 = m.2.normalize();
-
-    // at this point m is a pure rotation matrix, compute rotation
-    let rotation = to_rotation(m);
-
-    // return
-    (translation, rotation, scale)
-}
-
-pub struct Decomposed {
+pub struct DecomposedTrs {
+    pub translation: Vec3,
+    pub rotation: Quat,
     pub scale: Vec3,
     pub skew: Vec3,
-    pub rotation: Quat,
-    pub translation: Vec3,
 }
 
-/// fully decomposes a matrix. this is a more complete implementation than `trs_decompose`. but it
-/// should be noted that this implementation is not 100% complete.
-///
-/// TODO: look into a full implementation once it is required. look into glm and Graphics Gems II
-pub fn decompose_fully(m: Mat4) -> Decomposed {
+/// decomposes a trs matrix
+pub fn decompose_trs(m: Mat4) -> DecomposedTrs {
     // compute translation
     let translation = to_translation(m);
 
@@ -209,17 +181,30 @@ pub fn decompose_fully(m: Mat4) -> Decomposed {
     sxz /= sz;
     syz /= sz;
 
-    // at this point m is a pure rotation matrix, compute rotation
+    // construct scale
+    let skew = Vec3(syz, sxz, sxy);
+    let mut scale = Vec3(sx, sy, sz);
+
+    // at this point m is a pure rotation matrix
+    // check for coordinate system flip. if the
+    // determinant is -1, then negate the matrix
+    // and the scaling factors
+    let d = m.0.dot(m.1.cross(m.2));
+    if d < 0.0 {
+        scale *= -1.0;
+        m.0 *= -1.0;
+        m.1 *= -1.0;
+        m.2 *= -1.0;
+    }
+
+    // compute rotation
     let rotation = to_rotation(m);
 
     // return
-    let skew = Vec3(syz, sxz, sxy);
-    let scale = Vec3(sx, sy, sz);
-
-    Decomposed {
+    DecomposedTrs {
+        translation,
+        rotation,
         scale,
         skew,
-        rotation,
-        translation,
     }
 }
