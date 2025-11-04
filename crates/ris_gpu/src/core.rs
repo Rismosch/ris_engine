@@ -7,7 +7,6 @@ use sdl2::video::Window;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
-use super::layers::InstanceExtensions;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
@@ -81,10 +80,13 @@ impl VulkanCore {
         }
 
         // validation layers
-        let InstanceExtensions {
-            pp_enabled_layer_names,
-            enabled_layer_count,
-        } = super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        let available_layers =
+            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        let mut available_layers_ptrs = Vec::with_capacity(available_layers.len());
+        for layer in available_layers.iter() {
+            let ptr = layer.as_ptr();
+            available_layers_ptrs.push(ptr);
+        }
 
         let mut log_message = format!("Vulkan Instance Extensions: {}", instance_extensions.len());
         for extension in instance_extensions.iter() {
@@ -110,8 +112,8 @@ impl VulkanCore {
             p_next: std::ptr::null(),
             flags: vk::InstanceCreateFlags::empty(),
             p_application_info: &vk_app_info,
-            pp_enabled_layer_names,
-            enabled_layer_count,
+            pp_enabled_layer_names: available_layers_ptrs.as_ptr(),
+            enabled_layer_count: available_layers_ptrs.len() as u32,
             pp_enabled_extension_names: instance_extensions.as_ptr(),
             enabled_extension_count: instance_extensions.len() as u32,
         };

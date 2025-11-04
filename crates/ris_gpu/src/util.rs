@@ -4,38 +4,14 @@ use ash::vk;
 
 use ris_error::RisResult;
 
-pub struct VkStr {
-    value: String,
+pub fn vk_to_c_str(value: &[i8]) -> &CStr {
+    unsafe { CStr::from_ptr(value.as_ptr()) }
 }
 
-impl std::fmt::Display for VkStr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-impl VkStr {
-    /// # Safety
-    ///
-    /// See `std::ffi::Cstr::from_ptr()`
-    pub unsafe fn from(value: &[i8]) -> RisResult<Self> {
-        let cstr = unsafe {
-            let ptr = value.as_ptr();
-            CStr::from_ptr(ptr)
-        };
-
-        let result = cstr.to_str()?.to_owned();
-
-        Ok(Self { value: result })
-    }
-
-    pub fn as_ptr(&self) -> *const i8 {
-        self.value.as_ptr() as *const i8
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.value
-    }
+pub fn vk_to_std_str(value: &[i8]) -> RisResult<&str> {
+    let cstr = vk_to_c_str(value);
+    let stdstr = cstr.to_str()?;
+    Ok(stdstr)
 }
 
 pub fn find_memory_type(

@@ -5,7 +5,6 @@ use ash::vk;
 use ris_error::RisResult;
 
 use super::surface_details::SurfaceDetails;
-use super::util;
 
 const LIST_ALL_AVAILABLE_EXTENSIONS: bool = false;
 
@@ -48,7 +47,7 @@ impl SuitableDevice {
 
         let mut suitable_devices = Vec::new();
 
-        let mut log_message = "Vulkan Device Extensions: {}".to_string();
+        let mut log_message = "Vulkan Device Extensions:".to_string();
         log_message.push_str(&format!(
             "\n\trequired: {}",
             REQUIRED_DEVICE_EXTENSIONS.len()
@@ -87,7 +86,7 @@ impl SuitableDevice {
 
             let mut log_message = format!("Vulkan Physical Device {}", i);
 
-            let device_name = unsafe { util::VkStr::from(&device_properties.device_name) }?;
+            let device_name = super::util::vk_to_std_str(&device_properties.device_name)?;
             log_message.push_str(&format!("\n\tname: {}", device_name));
             log_message.push_str(&format!("\n\tid: {}", device_properties.device_id));
             log_message.push_str(&format!("\n\ttype: {}", device_type_name));
@@ -201,7 +200,7 @@ impl SuitableDevice {
                     available_extensions.len()
                 ));
                 for extension in available_extensions {
-                    let name = unsafe { util::VkStr::from(&extension.extension_name) }?;
+                    let name = super::util::vk_to_std_str(&extension.extension_name)?;
                     log_message.push_str(&format!("\n\t\t- {}", name));
                 }
             }
@@ -311,9 +310,8 @@ fn extension_exists(
     available_extensions: &[vk::ExtensionProperties],
 ) -> RisResult<bool> {
     for available_extension in available_extensions.iter() {
-        let name = unsafe { util::VkStr::from(&available_extension.extension_name) }?;
-        let left = extension.to_str()?;
-        let right = name.as_str();
+        let left = super::util::vk_to_std_str(&available_extension.extension_name)?;
+        let right = extension.to_str()?;
         if left == right {
             return Ok(true);
         }
