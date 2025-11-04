@@ -37,49 +37,36 @@ impl Mesh {
         let vertex_count = vertices.len();
         let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
 
-        let (
-            vertex_buffer,
-            vertex_memory,
-            vertex_mapped_memory,
-        ) = Self::alloc_buffer_and_memory::<DrawVert>(
-            device,
-            vertex_buffer_size,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-            | vk::MemoryPropertyFlags::HOST_COHERENT
-            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            physical_device_memory_properties,
-        )?;
+        let (vertex_buffer, vertex_memory, vertex_mapped_memory) =
+            Self::alloc_buffer_and_memory::<DrawVert>(
+                device,
+                vertex_buffer_size,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE
+                    | vk::MemoryPropertyFlags::HOST_COHERENT
+                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                physical_device_memory_properties,
+            )?;
 
-        unsafe {vertex_mapped_memory.copy_from_nonoverlapping(
-            vertices.as_ptr(),
-            vertices.len(),
-        )};
-        
+        unsafe { vertex_mapped_memory.copy_from_nonoverlapping(vertices.as_ptr(), vertices.len()) };
+
         // indices
         let indices = Self::create_indices(draw_data);
         let index_count = vertices.len();
         let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
 
-        let (
-            index_buffer,
-            index_memory,
-            index_mapped_memory,
-        ) = Self::alloc_buffer_and_memory::<u16>(
+        let (index_buffer, index_memory, index_mapped_memory) = Self::alloc_buffer_and_memory::<u16>(
             device,
             index_buffer_size,
             vk::BufferUsageFlags::INDEX_BUFFER,
             vk::MemoryPropertyFlags::HOST_VISIBLE
-            | vk::MemoryPropertyFlags::HOST_COHERENT
-            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                | vk::MemoryPropertyFlags::HOST_COHERENT
+                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?;
 
-        unsafe { index_mapped_memory.copy_from_nonoverlapping(
-            indices.as_ptr(),
-            indices.len(),
-        )};
-        
+        unsafe { index_mapped_memory.copy_from_nonoverlapping(indices.as_ptr(), indices.len()) };
+
         // finish
         Ok(Self {
             vertex_buffer,
@@ -117,7 +104,6 @@ impl Mesh {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
     ) -> RisResult<()> {
-
         // vertices
         let vertices = Self::create_vertices(draw_data);
         if self.vertex_count < vertices.len() {
@@ -129,28 +115,25 @@ impl Mesh {
             }
 
             let vertex_buffer_size = std::mem::size_of_val(vertices.as_slice()) as vk::DeviceSize;
-            let (
-                new_buffer,
-                new_memory,
-                new_mapped_memory,
-            ) = Self::alloc_buffer_and_memory::<DrawVert>(
-                device,
-                vertex_buffer_size,
-                vk::BufferUsageFlags::VERTEX_BUFFER,
-                vk::MemoryPropertyFlags::HOST_VISIBLE
-                    | vk::MemoryPropertyFlags::HOST_COHERENT
-                    | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                physical_device_memory_properties,
-            )?;
+            let (new_buffer, new_memory, new_mapped_memory) =
+                Self::alloc_buffer_and_memory::<DrawVert>(
+                    device,
+                    vertex_buffer_size,
+                    vk::BufferUsageFlags::VERTEX_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE
+                        | vk::MemoryPropertyFlags::HOST_COHERENT
+                        | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    physical_device_memory_properties,
+                )?;
 
             self.vertex_buffer = new_buffer;
             self.vertex_memory = new_memory;
             self.vertex_mapped_memory = new_mapped_memory;
         }
-        unsafe {self.vertex_mapped_memory.copy_from_nonoverlapping(
-            vertices.as_ptr(),
-            vertices.len(),
-        )};
+        unsafe {
+            self.vertex_mapped_memory
+                .copy_from_nonoverlapping(vertices.as_ptr(), vertices.len())
+        };
 
         // indices
         let indices = Self::create_indices(draw_data);
@@ -163,11 +146,7 @@ impl Mesh {
             }
 
             let index_buffer_size = std::mem::size_of_val(indices.as_slice()) as vk::DeviceSize;
-            let (
-                new_buffer,
-                new_memory,
-                new_mapped_memory,
-            ) = Self::alloc_buffer_and_memory(
+            let (new_buffer, new_memory, new_mapped_memory) = Self::alloc_buffer_and_memory(
                 device,
                 index_buffer_size,
                 vk::BufferUsageFlags::INDEX_BUFFER,
@@ -181,21 +160,21 @@ impl Mesh {
             self.index_memory = new_memory;
             self.index_mapped_memory = new_mapped_memory;
         }
-        unsafe { self.index_mapped_memory.copy_from_nonoverlapping(
-            indices.as_ptr(),
-            indices.len(),
-        )};
+        unsafe {
+            self.index_mapped_memory
+                .copy_from_nonoverlapping(indices.as_ptr(), indices.len())
+        };
 
         Ok(())
     }
 
     pub fn alloc_buffer_and_memory<T>(
-            device: &ash::Device,
-            size: vk::DeviceSize,
-            usage: vk::BufferUsageFlags,
-            memory_property_flags: vk::MemoryPropertyFlags,
-            physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        ) -> RisResult<(vk::Buffer, vk::DeviceMemory, *mut T)> {
+        device: &ash::Device,
+        size: vk::DeviceSize,
+        usage: vk::BufferUsageFlags,
+        memory_property_flags: vk::MemoryPropertyFlags,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+    ) -> RisResult<(vk::Buffer, vk::DeviceMemory, *mut T)> {
         // buffer
         let buffer_create_info = vk::BufferCreateInfo {
             s_type: vk::StructureType::BUFFER_CREATE_INFO,
@@ -230,12 +209,8 @@ impl Mesh {
 
         unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
-        let mapped_memory = unsafe {device.map_memory(
-            memory,
-            0,
-            size,
-            vk::MemoryMapFlags::empty(),
-        )}? as *mut T;
+        let mapped_memory =
+            unsafe { device.map_memory(memory, 0, size, vk::MemoryMapFlags::empty()) }? as *mut T;
 
         Ok((buffer, memory, mapped_memory))
     }
