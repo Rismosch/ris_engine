@@ -1,11 +1,10 @@
 use ash::vk;
 use std::ffi::CStr;
+use std::ffi::CString;
 use std::os::raw::c_void;
 
 use ris_error::RisResult;
 use ris_log::log_level::LogLevel;
-
-use super::util;
 
 const USE_LOGGER: bool = true; // uses eprintln!() when false
 const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::Error;
@@ -16,19 +15,15 @@ const VALIDATION_ENABLED: bool = false;
 const VALIDATION_ENABLED: bool = true;
 const VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 
-#[derive(Default)]
-pub struct InstanceExtensions {
-    pub pp_enabled_layer_names: *const *const i8,
-    pub enabled_layer_count: u32,
-}
+pub type AvailableLayers = Vec<CString>;
 
 pub fn add_validation_layer(
     entry: &ash::Entry,
     instance_extensions: &mut Vec<*const i8>,
-) -> RisResult<InstanceExtensions> {
-    let available_layers = if !VALIDATION_ENABLED {
+) -> RisResult<AvailableLayers> {
+    if !VALIDATION_ENABLED {
         ris_log::debug!("validation layer are disabled");
-        InstanceExtensions::default()
+        Ok(Vec::with_capacity(0))
     } else {
         // add debug util extension
         instance_extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
@@ -37,11 +32,11 @@ pub fn add_validation_layer(
         let layer_properties = entry.enumerate_instance_layer_properties()?;
         if layer_properties.is_empty() {
             ris_log::warning!("no available instance layers");
-            InstanceExtensions::default()
+            Ok(Vec::with_capacity(0))
         } else {
             let mut log_message = String::from("available instance layers:");
             for layer in layer_properties.iter() {
-                let name = unsafe { util::VkStr::from(&layer.layer_name) }?;
+                let name = super::util::vk_to_std_str(&layer.layer_name)?;
                 log_message.push_str(&format!("\n\t- {}", name));
             }
             ris_log::trace!("{}", log_message);
@@ -49,13 +44,14 @@ pub fn add_validation_layer(
             let mut available_layers = Vec::new();
             let mut log_message = String::from("instance layers to be enabled:");
 
-            for required_layer in VALIDATION_LAYERS {
+            for &required_layer in VALIDATION_LAYERS {
                 let mut layer_found = false;
 
                 for layer in layer_properties.iter() {
-                    let name = unsafe { util::VkStr::from(&layer.layer_name) }?;
-                    if (*required_layer) == name.as_str() {
-                        available_layers.push(layer.layer_name.as_ptr());
+                    let name = super::util::vk_to_c_str(&layer.layer_name);
+                    if required_layer == name.to_str()? {
+                        let owned = name.to_owned();
+                        available_layers.push(owned);
                         layer_found = true;
                         break;
                     }
@@ -69,16 +65,9 @@ pub fn add_validation_layer(
             }
 
             ris_log::debug!("{}", log_message);
-
-            InstanceExtensions {
-                pp_enabled_layer_names: available_layers.as_ptr(),
-                //enabled_layer_count: available_layers.len() as u32,
-                enabled_layer_count: 0,
-            }
+            Ok(available_layers)
         }
-    };
-
-    Ok(available_layers)
+    }
 }
 
 pub fn setup_debugging(
