@@ -35,7 +35,7 @@ impl ImguiFrame {
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
-            mesh.free(device);
+            //mesh.free(device);
         }
     }
 }
@@ -556,6 +556,7 @@ impl ImguiRenderer {
 
         let VulkanCore {
             instance,
+            debugger,
             suitable_device,
             device,
             swapchain,
@@ -575,17 +576,41 @@ impl ImguiRenderer {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let mesh = match mesh {
+        let (mesh, set_mesh_names) = match mesh {
             Some(mesh) => {
-                mesh.update(device, physical_device_memory_properties, draw_data)?;
-                mesh
+                let was_resized = mesh.update(device, physical_device_memory_properties, draw_data)?;
+                (mesh, was_resized)
             }
             None => {
                 let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
                 *mesh = Some(new_mesh);
-                mesh.as_mut().into_ris_error()?
+                let mesh = mesh.as_mut().into_ris_error()?;
+                (mesh, true)
             }
         };
+
+        if set_mesh_names {
+            debugger.set_name(
+                device,
+                mesh.vertices.buffer,
+                format!("imgui_vertex_buffer_{}", *index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.vertices.memory,
+                format!("imgui_vertex_memory_{}", *index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.indices.buffer,
+                format!("imgui_index_buffer_{}", *index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.indices.memory,
+                format!("imgui_index_memory_{}", *index),
+            )?;
+        }
 
         // command buffer
         let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);

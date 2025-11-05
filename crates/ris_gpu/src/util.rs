@@ -1,4 +1,6 @@
+use std::any::TypeId;
 use std::ffi::CStr;
+use std::ffi::CString;
 
 use ash::vk;
 
@@ -75,3 +77,4 @@ pub fn to_vk_fat_ptr<T>(value: impl AsRef<[T]>) -> (u32, *const T) {
         (value.len() as u32, value.as_ptr())
     }
 }
+

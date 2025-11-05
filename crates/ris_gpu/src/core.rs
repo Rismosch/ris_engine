@@ -7,6 +7,7 @@ use sdl2::video::Window;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use super::debug::Debugger;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
@@ -14,7 +15,7 @@ use super::swapchain::SwapchainCreateInfo;
 pub struct VulkanCore {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
-    pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    pub debugger: Debugger,
     pub surface_loader: ash::extensions::khr::Surface,
     pub surface: vk::SurfaceKHR,
     pub suitable_device: SuitableDevice,
@@ -41,9 +42,7 @@ impl VulkanCore {
         self.device.destroy_device(None);
         self.surface_loader.destroy_surface(self.surface, None);
 
-        if let Some((debug_utils, debug_utils_messenger)) = self.debug_utils.take() {
-            debug_utils.destroy_debug_utils_messenger(debug_utils_messenger, None);
-        }
+        self.debugger.free();
 
         self.instance.destroy_instance(None);
 
@@ -80,8 +79,7 @@ impl VulkanCore {
         }
 
         // validation layers
-        let available_layers =
-            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        let available_layers = super::debug::get_layers(&entry, &mut instance_extensions)?;
         let mut available_layers_ptrs = Vec::with_capacity(available_layers.len());
         for layer in available_layers.iter() {
             let ptr = layer.as_ptr();
@@ -120,7 +118,7 @@ impl VulkanCore {
 
         let instance = unsafe { entry.create_instance(&create_info, None)? };
 
-        let debug_utils = super::layers::setup_debugging(&entry, &instance)?;
+        let debugger = Debugger::alloc(&entry, &instance)?;
 
         // surface
         let instance_handle = vk::Handle::as_raw(instance.handle());
@@ -215,7 +213,7 @@ impl VulkanCore {
         Ok(Self {
             entry,
             instance,
-            debug_utils,
+            debugger,
             surface_loader,
             surface,
             suitable_device,
