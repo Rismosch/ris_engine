@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -11,6 +10,7 @@ use ris_log::log_level::LogLevel;
 const USE_LOGGER: bool = true; // uses eprintln!() when false
 const BACKTRACE_LOG_LEVEL: LogLevel = LogLevel::Error;
 
+#[cfg(debug_assertions)]
 const VALIDATION_LAYERS: &[&str] = &["VK_LAYER_KHRONOS_validation"];
 
 pub fn get_layers(
@@ -19,6 +19,8 @@ pub fn get_layers(
 ) -> RisResult<Vec<CString>> {
     #[cfg(not(debug_assertions))]
     {
+        _ = entry;
+        _ = instance_extensions;
         Ok(Vec::with_capacity(0))
     }
 
@@ -81,26 +83,25 @@ struct DebuggerInner {
 }
 
 impl Debugger {
+    /// # Safety
+    ///
+    /// - May only be called once. Memory must not be freed twice.
+    /// - This object must not be used after it was freed
     pub unsafe fn free(&self) {
         #[cfg(debug_assertions)]
         {
-            self.inner.utils.destroy_debug_utils_messenger(
-                self.inner.messenger,
-                None,
-            );
+            self.inner
+                .utils
+                .destroy_debug_utils_messenger(self.inner.messenger, None);
         }
     }
 
-    pub fn alloc(
-        entry: &ash::Entry,
-        instance: &ash::Instance,
-    ) -> RisResult<Self> {
-
+    pub fn alloc(entry: &ash::Entry, instance: &ash::Instance) -> RisResult<Self> {
         #[cfg(not(debug_assertions))]
         {
             _ = entry;
             _ = instance;
-            Ok(Self{})
+            Ok(Self {})
         }
 
         #[cfg(debug_assertions)]
@@ -125,14 +126,15 @@ impl Debugger {
             };
 
             let debug_utils_messenger = unsafe {
-                debug_utils.create_debug_utils_messenger(&debug_utils_messenger_create_info, None)?
+                debug_utils
+                    .create_debug_utils_messenger(&debug_utils_messenger_create_info, None)?
             };
 
             let inner = DebuggerInner {
                 utils: debug_utils,
                 messenger: debug_utils_messenger,
             };
-            Ok(Self{inner})
+            Ok(Self { inner })
         }
     }
 
@@ -142,7 +144,6 @@ impl Debugger {
         object: T,
         name: impl AsRef<str>,
     ) -> RisResult<()> {
-
         #[cfg(not(debug_assertions))]
         {
             _ = device;
@@ -153,35 +154,63 @@ impl Debugger {
 
         #[cfg(debug_assertions)]
         {
+            use std::any::TypeId;
+
             let name = CString::new(name.as_ref())?;
 
             let type_id = std::any::TypeId::of::<T>();
-            let object_type = if type_id == TypeId::of::<vk::Instance>() { vk::ObjectType::INSTANCE
-            } else if type_id == TypeId::of::<vk::PhysicalDevice>(){ vk::ObjectType::PHYSICAL_DEVICE
-            } else if type_id == TypeId::of::<vk::Device>(){ vk::ObjectType::DEVICE
-            } else if type_id == TypeId::of::<vk::Queue>(){ vk::ObjectType::QUEUE
-            } else if type_id == TypeId::of::<vk::Semaphore>(){ vk::ObjectType::SEMAPHORE
-            } else if type_id == TypeId::of::<vk::CommandBuffer>(){ vk::ObjectType::COMMAND_BUFFER
-            } else if type_id == TypeId::of::<vk::Fence>(){ vk::ObjectType::FENCE
-            } else if type_id == TypeId::of::<vk::DeviceMemory>(){ vk::ObjectType::DEVICE_MEMORY
-            } else if type_id == TypeId::of::<vk::Buffer>(){ vk::ObjectType::BUFFER
-            } else if type_id == TypeId::of::<vk::Image>(){ vk::ObjectType::IMAGE
-            } else if type_id == TypeId::of::<vk::Event>(){ vk::ObjectType::EVENT
-            } else if type_id == TypeId::of::<vk::QueryPool>(){ vk::ObjectType::QUERY_POOL
-            } else if type_id == TypeId::of::<vk::BufferView>(){ vk::ObjectType::BUFFER_VIEW
-            } else if type_id == TypeId::of::<vk::ImageView>(){ vk::ObjectType::IMAGE_VIEW
-            } else if type_id == TypeId::of::<vk::ShaderModule>(){ vk::ObjectType::SHADER_MODULE
-            } else if type_id == TypeId::of::<vk::PipelineCache>(){ vk::ObjectType::PIPELINE_CACHE
-            } else if type_id == TypeId::of::<vk::PipelineLayout>(){ vk::ObjectType::PIPELINE_LAYOUT
-            } else if type_id == TypeId::of::<vk::RenderPass>(){ vk::ObjectType::RENDER_PASS
-            } else if type_id == TypeId::of::<vk::Pipeline>(){ vk::ObjectType::PIPELINE
-            } else if type_id == TypeId::of::<vk::DescriptorSetLayout>(){ vk::ObjectType::DESCRIPTOR_SET_LAYOUT
-            } else if type_id == TypeId::of::<vk::Sampler>(){ vk::ObjectType::SAMPLER
-            } else if type_id == TypeId::of::<vk::DescriptorPool>(){ vk::ObjectType::DESCRIPTOR_POOL
-            } else if type_id == TypeId::of::<vk::DescriptorSet>(){ vk::ObjectType::DESCRIPTOR_SET
-            } else if type_id == TypeId::of::<vk::Framebuffer>(){ vk::ObjectType::FRAMEBUFFER
-            } else if type_id == TypeId::of::<vk::CommandPool>(){ vk::ObjectType::COMMAND_POOL
-            } else { vk::ObjectType::UNKNOWN
+            let object_type = if type_id == TypeId::of::<vk::Instance>() {
+                vk::ObjectType::INSTANCE
+            } else if type_id == TypeId::of::<vk::PhysicalDevice>() {
+                vk::ObjectType::PHYSICAL_DEVICE
+            } else if type_id == TypeId::of::<vk::Device>() {
+                vk::ObjectType::DEVICE
+            } else if type_id == TypeId::of::<vk::Queue>() {
+                vk::ObjectType::QUEUE
+            } else if type_id == TypeId::of::<vk::Semaphore>() {
+                vk::ObjectType::SEMAPHORE
+            } else if type_id == TypeId::of::<vk::CommandBuffer>() {
+                vk::ObjectType::COMMAND_BUFFER
+            } else if type_id == TypeId::of::<vk::Fence>() {
+                vk::ObjectType::FENCE
+            } else if type_id == TypeId::of::<vk::DeviceMemory>() {
+                vk::ObjectType::DEVICE_MEMORY
+            } else if type_id == TypeId::of::<vk::Buffer>() {
+                vk::ObjectType::BUFFER
+            } else if type_id == TypeId::of::<vk::Image>() {
+                vk::ObjectType::IMAGE
+            } else if type_id == TypeId::of::<vk::Event>() {
+                vk::ObjectType::EVENT
+            } else if type_id == TypeId::of::<vk::QueryPool>() {
+                vk::ObjectType::QUERY_POOL
+            } else if type_id == TypeId::of::<vk::BufferView>() {
+                vk::ObjectType::BUFFER_VIEW
+            } else if type_id == TypeId::of::<vk::ImageView>() {
+                vk::ObjectType::IMAGE_VIEW
+            } else if type_id == TypeId::of::<vk::ShaderModule>() {
+                vk::ObjectType::SHADER_MODULE
+            } else if type_id == TypeId::of::<vk::PipelineCache>() {
+                vk::ObjectType::PIPELINE_CACHE
+            } else if type_id == TypeId::of::<vk::PipelineLayout>() {
+                vk::ObjectType::PIPELINE_LAYOUT
+            } else if type_id == TypeId::of::<vk::RenderPass>() {
+                vk::ObjectType::RENDER_PASS
+            } else if type_id == TypeId::of::<vk::Pipeline>() {
+                vk::ObjectType::PIPELINE
+            } else if type_id == TypeId::of::<vk::DescriptorSetLayout>() {
+                vk::ObjectType::DESCRIPTOR_SET_LAYOUT
+            } else if type_id == TypeId::of::<vk::Sampler>() {
+                vk::ObjectType::SAMPLER
+            } else if type_id == TypeId::of::<vk::DescriptorPool>() {
+                vk::ObjectType::DESCRIPTOR_POOL
+            } else if type_id == TypeId::of::<vk::DescriptorSet>() {
+                vk::ObjectType::DESCRIPTOR_SET
+            } else if type_id == TypeId::of::<vk::Framebuffer>() {
+                vk::ObjectType::FRAMEBUFFER
+            } else if type_id == TypeId::of::<vk::CommandPool>() {
+                vk::ObjectType::COMMAND_POOL
+            } else {
+                vk::ObjectType::UNKNOWN
             };
 
             let info = vk::DebugUtilsObjectNameInfoEXT {
@@ -192,10 +221,11 @@ impl Debugger {
                 p_object_name: name.as_ptr(),
             };
 
-            unsafe {self.inner.utils.set_debug_utils_object_name(
-                device.handle(),
-                &info,
-            )}?;
+            unsafe {
+                self.inner
+                    .utils
+                    .set_debug_utils_object_name(device.handle(), &info)
+            }?;
 
             Ok(())
         }

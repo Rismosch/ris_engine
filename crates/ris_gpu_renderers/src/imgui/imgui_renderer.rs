@@ -35,7 +35,7 @@ impl ImguiFrame {
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
         if let Some(mut mesh) = self.mesh.take() {
-            //mesh.free(device);
+            mesh.free(device);
         }
     }
 }
@@ -578,7 +578,8 @@ impl ImguiRenderer {
 
         let (mesh, set_mesh_names) = match mesh {
             Some(mesh) => {
-                let was_resized = mesh.update(device, physical_device_memory_properties, draw_data)?;
+                let was_resized =
+                    mesh.update(device, physical_device_memory_properties, draw_data)?;
                 (mesh, was_resized)
             }
             None => {
