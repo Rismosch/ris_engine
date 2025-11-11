@@ -16,12 +16,7 @@ use super::suitable_device::SuitableDevice;
 //
 // no frames in flight provide the lowest latency
 pub const FRAMES_IN_FLIGHT: usize = 2;
-const _: () = {
-    assert!(
-        FRAMES_IN_FLIGHT > 0,
-        "FRAMES_IN_FLIGHT may not be 0",
-    )
-};
+const _: () = { assert!(FRAMES_IN_FLIGHT > 0, "FRAMES_IN_FLIGHT may not be 0",) };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RendererId {
@@ -144,8 +139,8 @@ impl FramesInFlight {
                 unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
             debugger.set_name(
                 device,
-                 command_pool,
-                  format!("frame_in_flight_{}_command_pool", i)
+                command_pool,
+                format!("frame_in_flight_{}_command_pool", i),
             )?;
 
             let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
@@ -162,7 +157,7 @@ impl FramesInFlight {
                 debugger.set_name(
                     device,
                     *primary_command_buffer,
-                     format!("frame_in_flight_{}_primary_command_buffer_{}", i, j)
+                    format!("frame_in_flight_{}_primary_command_buffer_{}", i, j),
                 )?;
             }
 
@@ -182,7 +177,7 @@ impl FramesInFlight {
                 debugger.set_name(
                     device,
                     *secondary_command_buffer,
-                     format!("frame_in_flight_{}_secondary_command_buffer_{}", i, j)
+                    format!("frame_in_flight_{}_secondary_command_buffer_{}", i, j),
                 )?;
             }
 
@@ -200,8 +195,16 @@ impl FramesInFlight {
 
             let image_available = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
             let finished_fence = unsafe { device.create_fence(&fence_create_info, None) }?;
-            debugger.set_name(device, image_available, format!("frame_in_flight_{}_image_available", i))?;
-            debugger.set_name(device, finished_fence, format!("frame_in_flight_{}_finished_fence", i))?;
+            debugger.set_name(
+                device,
+                image_available,
+                format!("frame_in_flight_{}_image_available", i),
+            )?;
+            debugger.set_name(
+                device,
+                finished_fence,
+                format!("frame_in_flight_{}_finished_fence", i),
+            )?;
 
             // construct frame
             let entry = FrameInFlight {

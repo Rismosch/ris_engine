@@ -209,41 +209,67 @@ impl Debugger {
                 vk::ObjectType::FRAMEBUFFER
             } else if type_id == TypeId::of::<vk::CommandPool>() {
                 vk::ObjectType::COMMAND_POOL
-            } else if type_id == TypeId::of::<vk::DescriptorUpdateTemplate>() { vk::ObjectType::DESCRIPTOR_UPDATE_TEMPLATE
-            } else if type_id == TypeId::of::<vk::SamplerYcbcrConversion>() { vk::ObjectType::SAMPLER_YCBCR_CONVERSION
-            } else if type_id == TypeId::of::<vk::PrivateDataSlot>() { vk::ObjectType::PRIVATE_DATA_SLOT
-            } else if type_id == TypeId::of::<vk::SurfaceKHR>() { vk::ObjectType::SURFACE_KHR
-            } else if type_id == TypeId::of::<vk::SwapchainKHR>() { vk::ObjectType::SWAPCHAIN_KHR
-            } else if type_id == TypeId::of::<vk::DisplayKHR>() { vk::ObjectType::DISPLAY_KHR
-            } else if type_id == TypeId::of::<vk::DisplayModeKHR>() { vk::ObjectType::DISPLAY_MODE_KHR
-            } else if type_id == TypeId::of::<vk::DebugReportCallbackEXT>() { vk::ObjectType::DEBUG_REPORT_CALLBACK_EXT
-            } else if type_id == TypeId::of::<vk::VideoSessionKHR>() { vk::ObjectType::VIDEO_SESSION_KHR
-            } else if type_id == TypeId::of::<vk::VideoSessionParametersKHR>() { vk::ObjectType::VIDEO_SESSION_PARAMETERS_KHR
-            } else if type_id == TypeId::of::<vk::CuModuleNVX>() { vk::ObjectType::CU_MODULE_NVX
-            } else if type_id == TypeId::of::<vk::CuFunctionNVX>() { vk::ObjectType::CU_FUNCTION_NVX
-            } else if type_id == TypeId::of::<vk::DebugUtilsMessengerEXT>() { vk::ObjectType::DEBUG_UTILS_MESSENGER_EXT
-            } else if type_id == TypeId::of::<vk::AccelerationStructureKHR>() { vk::ObjectType::ACCELERATION_STRUCTURE_KHR
-            } else if type_id == TypeId::of::<vk::ValidationCacheEXT>() { vk::ObjectType::VALIDATION_CACHE_EXT
-            } else if type_id == TypeId::of::<vk::AccelerationStructureNV>() { vk::ObjectType::ACCELERATION_STRUCTURE_NV
-            } else if type_id == TypeId::of::<vk::PerformanceConfigurationINTEL>() { vk::ObjectType::PERFORMANCE_CONFIGURATION_INTEL
-            } else if type_id == TypeId::of::<vk::DeferredOperationKHR>() { vk::ObjectType::DEFERRED_OPERATION_KHR
-            } else if type_id == TypeId::of::<vk::IndirectCommandsLayoutNV>() { vk::ObjectType::INDIRECT_COMMANDS_LAYOUT_NV
+            } else if type_id == TypeId::of::<vk::DescriptorUpdateTemplate>() {
+                vk::ObjectType::DESCRIPTOR_UPDATE_TEMPLATE
+            } else if type_id == TypeId::of::<vk::SamplerYcbcrConversion>() {
+                vk::ObjectType::SAMPLER_YCBCR_CONVERSION
+            } else if type_id == TypeId::of::<vk::PrivateDataSlot>() {
+                vk::ObjectType::PRIVATE_DATA_SLOT
+            } else if type_id == TypeId::of::<vk::SurfaceKHR>() {
+                vk::ObjectType::SURFACE_KHR
+            } else if type_id == TypeId::of::<vk::SwapchainKHR>() {
+                vk::ObjectType::SWAPCHAIN_KHR
+            } else if type_id == TypeId::of::<vk::DisplayKHR>() {
+                vk::ObjectType::DISPLAY_KHR
+            } else if type_id == TypeId::of::<vk::DisplayModeKHR>() {
+                vk::ObjectType::DISPLAY_MODE_KHR
+            } else if type_id == TypeId::of::<vk::DebugReportCallbackEXT>() {
+                vk::ObjectType::DEBUG_REPORT_CALLBACK_EXT
+            } else if type_id == TypeId::of::<vk::VideoSessionKHR>() {
+                vk::ObjectType::VIDEO_SESSION_KHR
+            } else if type_id == TypeId::of::<vk::VideoSessionParametersKHR>() {
+                vk::ObjectType::VIDEO_SESSION_PARAMETERS_KHR
+            } else if type_id == TypeId::of::<vk::CuModuleNVX>() {
+                vk::ObjectType::CU_MODULE_NVX
+            } else if type_id == TypeId::of::<vk::CuFunctionNVX>() {
+                vk::ObjectType::CU_FUNCTION_NVX
+            } else if type_id == TypeId::of::<vk::DebugUtilsMessengerEXT>() {
+                vk::ObjectType::DEBUG_UTILS_MESSENGER_EXT
+            } else if type_id == TypeId::of::<vk::AccelerationStructureKHR>() {
+                vk::ObjectType::ACCELERATION_STRUCTURE_KHR
+            } else if type_id == TypeId::of::<vk::ValidationCacheEXT>() {
+                vk::ObjectType::VALIDATION_CACHE_EXT
+            } else if type_id == TypeId::of::<vk::AccelerationStructureNV>() {
+                vk::ObjectType::ACCELERATION_STRUCTURE_NV
+            } else if type_id == TypeId::of::<vk::PerformanceConfigurationINTEL>() {
+                vk::ObjectType::PERFORMANCE_CONFIGURATION_INTEL
+            } else if type_id == TypeId::of::<vk::DeferredOperationKHR>() {
+                vk::ObjectType::DEFERRED_OPERATION_KHR
+            } else if type_id == TypeId::of::<vk::IndirectCommandsLayoutNV>() {
+                vk::ObjectType::INDIRECT_COMMANDS_LAYOUT_NV
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::CUDA_MODULE_NV
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::CUDA_FUNCTION_NV
-            } else if type_id == TypeId::of::<vk::BufferCollectionFUCHSIA>() { vk::ObjectType::BUFFER_COLLECTION_FUCHSIA
-            } else if type_id == TypeId::of::<vk::MicromapEXT>() { vk::ObjectType::MICROMAP_EXT
+            } else if type_id == TypeId::of::<vk::BufferCollectionFUCHSIA>() {
+                vk::ObjectType::BUFFER_COLLECTION_FUCHSIA
+            } else if type_id == TypeId::of::<vk::MicromapEXT>() {
+                vk::ObjectType::MICROMAP_EXT
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::TENSOR_ARM
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::TENSOR_VIEW_ARM
-            } else if type_id == TypeId::of::<vk::OpticalFlowSessionNV>() { vk::ObjectType::OPTICAL_FLOW_SESSION_NV
-            } else if type_id == TypeId::of::<vk::ShaderEXT>() { vk::ObjectType::SHADER_EXT
+            } else if type_id == TypeId::of::<vk::OpticalFlowSessionNV>() {
+                vk::ObjectType::OPTICAL_FLOW_SESSION_NV
+            } else if type_id == TypeId::of::<vk::ShaderEXT>() {
+                vk::ObjectType::SHADER_EXT
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::PIPELINE_BINARY_KHR
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::DATA_GRAPH_PIPELINE_SESSION_ARM
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::EXTERNAL_COMPUTE_QUEUE_NV
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::INDIRECT_COMMANDS_LAYOUT_EXT
             //} else if type_id == TypeId::of::<>() { vk::ObjectType::INDIRECT_EXECUTION_SET_EXT
-            } else if type_id == TypeId::of::<vk::DescriptorUpdateTemplateKHR>() { vk::ObjectType::DESCRIPTOR_UPDATE_TEMPLATE_KHR
-            } else if type_id == TypeId::of::<vk::SamplerYcbcrConversionKHR>() { vk::ObjectType::SAMPLER_YCBCR_CONVERSION_KHR
-            } else if type_id == TypeId::of::<vk::PrivateDataSlotEXT>() { vk::ObjectType::PRIVATE_DATA_SLOT_EXT
+            } else if type_id == TypeId::of::<vk::DescriptorUpdateTemplateKHR>() {
+                vk::ObjectType::DESCRIPTOR_UPDATE_TEMPLATE_KHR
+            } else if type_id == TypeId::of::<vk::SamplerYcbcrConversionKHR>() {
+                vk::ObjectType::SAMPLER_YCBCR_CONVERSION_KHR
+            } else if type_id == TypeId::of::<vk::PrivateDataSlotEXT>() {
+                vk::ObjectType::PRIVATE_DATA_SLOT_EXT
             } else {
                 vk::ObjectType::UNKNOWN
             };

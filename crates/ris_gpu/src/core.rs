@@ -139,7 +139,7 @@ impl VulkanCore {
             );
         };
 
-        ris_log::info!("chosen Vulkan Physical Device: {}",suitable_device.name);
+        ris_log::info!("chosen Vulkan Physical Device: {}", suitable_device.name);
 
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(suitable_device.graphics_queue_family);
@@ -220,7 +220,11 @@ impl VulkanCore {
             transient_command_pool,
             window_drawable_size: window.vulkan_drawable_size(),
         })?;
-        debugger.set_name(&device, swapchain.swapchain, format!("swapchain_gen_{}", swapchain.generation))?;
+        debugger.set_name(
+            &device,
+            swapchain.swapchain,
+            format!("swapchain_gen_{}", swapchain.generation),
+        )?;
         ris_log::trace!("swapchain created! entries: {}", swapchain.entries.len());
 
         // renderer
@@ -273,8 +277,12 @@ impl VulkanCore {
         }
 
         swapchain.generation = previous_generation + 1;
-        debugger.set_name(&device, swapchain.swapchain, format!("swapchain_gen_{}", swapchain.generation))?;
-        
+        debugger.set_name(
+            device,
+            swapchain.swapchain,
+            format!("swapchain_gen_{}", swapchain.generation),
+        )?;
+
         ris_log::trace!(
             "swapchain recreated! gen: {} entries: {}",
             swapchain.generation,

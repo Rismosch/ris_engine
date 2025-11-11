@@ -234,14 +234,16 @@ impl Swapchain {
                 fence: Some(fence),
             })?;
 
-            let present_semaphore = unsafe{device.create_semaphore(
-                &vk::SemaphoreCreateInfo{
-                    s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
-                    p_next: std::ptr::null(),
-                    flags: vk::SemaphoreCreateFlags::empty(),
-                },
-                 None,
-            )}?;
+            let present_semaphore = unsafe {
+                device.create_semaphore(
+                    &vk::SemaphoreCreateInfo {
+                        s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+                        p_next: std::ptr::null(),
+                        flags: vk::SemaphoreCreateFlags::empty(),
+                    },
+                    None,
+                )
+            }?;
 
             let entry = SwapchainEntry {
                 viewport_image,

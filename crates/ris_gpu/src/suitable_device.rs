@@ -15,7 +15,8 @@ struct PreferredExtension {
 }
 
 const VK_KHR_SWAPCHAIN: Extension = ash::extensions::khr::Swapchain::name();
-const VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2: Extension = ash::extensions::khr::GetPhysicalDeviceProperties2::name();
+const VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2: Extension =
+    ash::extensions::khr::GetPhysicalDeviceProperties2::name();
 const VK_EXT_MEMORY_PRIORITY: Extension = ash::vk::ExtMemoryPriorityFn::name();
 const VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY: Extension =
     ash::vk::ExtPageableDeviceLocalMemoryFn::name();
@@ -24,7 +25,10 @@ const REQUIRED_DEVICE_EXTENSIONS: &[Extension] = &[VK_KHR_SWAPCHAIN];
 
 const PREFERRED_DEVICE_EXTENSIONS: &[PreferredExtension] = &[PreferredExtension {
     name: VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY,
-    dependencies: &[VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2, VK_EXT_MEMORY_PRIORITY],
+    dependencies: &[
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2,
+        VK_EXT_MEMORY_PRIORITY,
+    ],
 }];
 
 pub struct SuitableDevice {
