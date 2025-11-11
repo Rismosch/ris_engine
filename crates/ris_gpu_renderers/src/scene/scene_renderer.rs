@@ -8,6 +8,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_gpu::buffer::Buffer;
 use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
@@ -202,15 +203,15 @@ impl SceneRenderer {
         let descriptor_pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: swapchain.entries.len() as u32,
+                descriptor_count: FRAMES_IN_FLIGHT as u32,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: swapchain.entries.len() as u32,
+                descriptor_count: FRAMES_IN_FLIGHT as u32,
             },
         ];
 
-        let total_descriptor_set_count = swapchain.entries.len();
+        let total_descriptor_set_count = FRAMES_IN_FLIGHT;
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: std::ptr::null(),
@@ -534,8 +535,7 @@ impl SceneRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        let frame_count = swapchain.entries.len();
-        let mut frames = Vec::with_capacity(frame_count);
+        let mut frames = Vec::with_capacity(FRAMES_IN_FLIGHT);
         for descriptor_set in descriptor_sets {
             let buffer_size = std::mem::size_of::<UniformBufferObject>();
             let descriptor = Buffer::alloc(
@@ -607,7 +607,6 @@ impl SceneRenderer {
         };
 
         let SwapchainEntry {
-            index,
             viewport_image_view,
             depth_image_view,
             ..
@@ -617,7 +616,7 @@ impl SceneRenderer {
             descriptor,
             descriptor_mapped_memory,
             descriptor_set,
-        } = &mut self.frames[*index];
+        } = &mut self.frames[frame_in_flight.index];
 
         let mesh_lookup = self.mesh_lookup.as_mut().into_ris_error()?;
 

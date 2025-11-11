@@ -518,8 +518,8 @@ impl ImguiRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for _ in 0..swapchain.entries.len() {
+        let mut frames = Vec::with_capacity(ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT);
+        for _ in 0..frames.capacity() {
             let frame = ImguiFrame { mesh: None };
 
             frames.push(frame);
@@ -564,12 +564,11 @@ impl ImguiRenderer {
         } = core;
 
         let SwapchainEntry {
-            index,
             viewport_image_view,
             ..
         } = swapchain_entry;
 
-        let ImguiFrame { mesh } = &mut self.frames[*index];
+        let ImguiFrame { mesh } = &mut self.frames[frame_in_flight.index];
 
         // mesh
         let physical_device_memory_properties = unsafe {
@@ -594,22 +593,22 @@ impl ImguiRenderer {
             debugger.set_name(
                 device,
                 mesh.vertices.buffer,
-                format!("imgui_vertex_buffer_{}", *index),
+                format!("imgui_vertex_buffer_{}", frame_in_flight.index),
             )?;
             debugger.set_name(
                 device,
                 mesh.vertices.memory,
-                format!("imgui_vertex_memory_{}", *index),
+                format!("imgui_vertex_memory_{}", frame_in_flight.index),
             )?;
             debugger.set_name(
                 device,
                 mesh.indices.buffer,
-                format!("imgui_index_buffer_{}", *index),
+                format!("imgui_index_buffer_{}", frame_in_flight.index),
             )?;
             debugger.set_name(
                 device,
                 mesh.indices.memory,
-                format!("imgui_index_memory_{}", *index),
+                format!("imgui_index_memory_{}", frame_in_flight.index),
             )?;
         }
 

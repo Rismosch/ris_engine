@@ -6,6 +6,7 @@ use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_gpu::buffer::Buffer;
 use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
@@ -118,14 +119,14 @@ impl GizmoSegmentRenderer {
 
         let descriptor_pool_sizes = [vk::DescriptorPoolSize {
             ty: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: swapchain.entries.len() as u32,
+            descriptor_count: FRAMES_IN_FLIGHT as u32,
         }];
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: swapchain.entries.len() as u32,
+            max_sets: FRAMES_IN_FLIGHT as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
@@ -133,8 +134,8 @@ impl GizmoSegmentRenderer {
         let descriptor_pool =
             unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
-        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
-        for _ in 0..swapchain.entries.len() {
+        let mut descriptor_set_layout_vec = Vec::with_capacity(FRAMES_IN_FLIGHT);
+        for _ in 0..descriptor_set_layout_vec.capacity() {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
@@ -452,7 +453,7 @@ impl GizmoSegmentRenderer {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        let mut frames = Vec::with_capacity(FRAMES_IN_FLIGHT);
         for descriptor_set in descriptor_sets {
             let buffer_size = std::mem::size_of::<UniformBufferObject>();
             let descriptor = Buffer::alloc(
@@ -515,7 +516,6 @@ impl GizmoSegmentRenderer {
         } = core;
 
         let SwapchainEntry {
-            index,
             viewport_image_view,
             depth_image_view,
             ..
@@ -526,7 +526,7 @@ impl GizmoSegmentRenderer {
             descriptor,
             descriptor_mapped_memory,
             descriptor_set,
-        } = &mut self.frames[*index];
+        } = &mut self.frames[frame_in_flight.index];
 
         // command buffer
         let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);
