@@ -1,9 +1,9 @@
 pub mod buffer;
 pub mod core;
+pub mod debug;
 pub mod frames_in_flight;
 pub mod image;
 pub mod io;
-pub mod layers;
 pub mod shader;
 pub mod suitable_device;
 pub mod surface_details;

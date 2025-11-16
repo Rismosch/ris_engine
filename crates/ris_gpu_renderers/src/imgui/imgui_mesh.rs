@@ -107,10 +107,11 @@ impl Mesh {
         device: &ash::Device,
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
         draw_data: &DrawData,
-    ) -> RisResult<()> {
+    ) -> RisResult<bool> {
         // vertices
         let vertices = Self::create_vertices(draw_data);
-        if self.vertex_count < vertices.len() {
+        let resize_vertex_buffer = self.vertex_count < vertices.len();
+        if resize_vertex_buffer {
             self.vertex_count = vertices.len();
 
             let new_size = std::mem::size_of_val(vertices.as_slice());
@@ -129,7 +130,8 @@ impl Mesh {
 
         // indices
         let indices = Self::create_indices(draw_data);
-        if self.index_count < indices.len() {
+        let resize_index_buffer = self.index_count < indices.len();
+        if resize_index_buffer {
             self.index_count = indices.len();
 
             let new_size = std::mem::size_of_val(indices.as_slice());
@@ -146,6 +148,7 @@ impl Mesh {
             )
         }?;
 
-        Ok(())
+        let was_resized = resize_vertex_buffer || resize_index_buffer;
+        Ok(was_resized)
     }
 }

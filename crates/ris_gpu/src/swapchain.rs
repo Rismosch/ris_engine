@@ -20,16 +20,17 @@ pub struct Swapchain {
     pub loader: SwapchainLoader,
     pub swapchain: vk::SwapchainKHR,
     pub entries: Vec<SwapchainEntry>,
+    pub generation: usize,
 }
 
 type Framebuffer = ArefCell<Option<vk::Framebuffer>>;
 
 pub struct SwapchainEntry {
-    pub index: usize,
     pub viewport_image: vk::Image,
     pub viewport_image_view: vk::ImageView,
     pub depth_image: Image,
     pub depth_image_view: vk::ImageView,
+    pub present_semaphore: vk::Semaphore,
     framebuffers: Vec<Framebuffer>,
 }
 
@@ -57,6 +58,7 @@ impl Swapchain {
                 }
             }
 
+            device.destroy_semaphore(entry.present_semaphore, None);
             device.destroy_image_view(entry.viewport_image_view, None);
             entry.depth_image.free(device);
             device.destroy_image_view(entry.depth_image_view, None);
@@ -195,7 +197,7 @@ impl Swapchain {
 
         let mut fences = Vec::with_capacity(viewport_images.len());
         let mut entries = Vec::with_capacity(viewport_images.len());
-        for (index, viewport_image) in viewport_images.into_iter().enumerate() {
+        for viewport_image in viewport_images.into_iter() {
             let viewport_image_view = Image::alloc_view(
                 device.clone(),
                 viewport_image,
@@ -232,12 +234,23 @@ impl Swapchain {
                 fence: Some(fence),
             })?;
 
+            let present_semaphore = unsafe {
+                device.create_semaphore(
+                    &vk::SemaphoreCreateInfo {
+                        s_type: vk::StructureType::SEMAPHORE_CREATE_INFO,
+                        p_next: std::ptr::null(),
+                        flags: vk::SemaphoreCreateFlags::empty(),
+                    },
+                    None,
+                )
+            }?;
+
             let entry = SwapchainEntry {
-                index,
                 viewport_image,
                 viewport_image_view,
                 depth_image,
                 depth_image_view,
+                present_semaphore,
                 framebuffers: Vec::new(),
             };
             entries.push(entry);
@@ -257,6 +270,7 @@ impl Swapchain {
             loader,
             swapchain,
             entries,
+            generation: 0,
         })
     }
 

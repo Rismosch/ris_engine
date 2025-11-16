@@ -10,6 +10,7 @@ use ris_gpu::core::VulkanCore;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
+use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::swapchain::SwapchainEntry;
 use ris_gpu::texture::Texture;
 use ris_gpu::texture::TextureCreateInfo;
@@ -153,15 +154,15 @@ impl GizmoTextRenderer {
         let descriptor_pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: swapchain.entries.len() as u32,
+                descriptor_count: FRAMES_IN_FLIGHT as u32,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: swapchain.entries.len() as u32,
+                descriptor_count: FRAMES_IN_FLIGHT as u32,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: swapchain.entries.len() as u32,
+                descriptor_count: FRAMES_IN_FLIGHT as u32,
             },
         ];
 
@@ -169,7 +170,7 @@ impl GizmoTextRenderer {
             s_type: vk::StructureType::DESCRIPTOR_POOL_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::DescriptorPoolCreateFlags::empty(),
-            max_sets: swapchain.entries.len() as u32,
+            max_sets: FRAMES_IN_FLIGHT as u32,
             pool_size_count: descriptor_pool_sizes.len() as u32,
             p_pool_sizes: descriptor_pool_sizes.as_ptr(),
         };
@@ -177,8 +178,8 @@ impl GizmoTextRenderer {
         let descriptor_pool =
             unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
-        let mut descriptor_set_layout_vec = Vec::with_capacity(swapchain.entries.len());
-        for _ in 0..swapchain.entries.len() {
+        let mut descriptor_set_layout_vec = Vec::with_capacity(FRAMES_IN_FLIGHT);
+        for _ in 0..descriptor_set_layout_vec.capacity() {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 
@@ -542,7 +543,7 @@ impl GizmoTextRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        let mut frames = Vec::with_capacity(swapchain.entries.len());
+        let mut frames = Vec::with_capacity(FRAMES_IN_FLIGHT);
         for descriptor_set in descriptor_sets {
             let buffer_size = std::mem::size_of::<UniformBufferObject>();
             let descriptor = Buffer::alloc(
@@ -603,7 +604,6 @@ impl GizmoTextRenderer {
         } = core;
 
         let SwapchainEntry {
-            index,
             viewport_image_view,
             depth_image_view,
             ..
@@ -614,7 +614,7 @@ impl GizmoTextRenderer {
             descriptor,
             descriptor_mapped_memory,
             descriptor_set,
-        } = &mut self.frames[*index];
+        } = &mut self.frames[frame_in_flight.index];
 
         // mesh
         let physical_device_memory_properties = unsafe {

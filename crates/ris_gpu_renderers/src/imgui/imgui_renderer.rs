@@ -518,8 +518,8 @@ impl ImguiRenderer {
         // frames
         let renderer_id = renderer_registerer.register(0)?;
 
-        let mut frames = Vec::with_capacity(swapchain.entries.len());
-        for _ in 0..swapchain.entries.len() {
+        let mut frames = Vec::with_capacity(ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT);
+        for _ in 0..frames.capacity() {
             let frame = ImguiFrame { mesh: None };
 
             frames.push(frame);
@@ -556,6 +556,7 @@ impl ImguiRenderer {
 
         let VulkanCore {
             instance,
+            debugger,
             suitable_device,
             device,
             swapchain,
@@ -563,29 +564,53 @@ impl ImguiRenderer {
         } = core;
 
         let SwapchainEntry {
-            index,
             viewport_image_view,
             ..
         } = swapchain_entry;
 
-        let ImguiFrame { mesh } = &mut self.frames[*index];
+        let ImguiFrame { mesh } = &mut self.frames[frame_in_flight.index];
 
         // mesh
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
         };
 
-        let mesh = match mesh {
+        let (mesh, set_mesh_names) = match mesh {
             Some(mesh) => {
-                mesh.update(device, physical_device_memory_properties, draw_data)?;
-                mesh
+                let was_resized =
+                    mesh.update(device, physical_device_memory_properties, draw_data)?;
+                (mesh, was_resized)
             }
             None => {
                 let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
                 *mesh = Some(new_mesh);
-                mesh.as_mut().into_ris_error()?
+                let mesh = mesh.as_mut().into_ris_error()?;
+                (mesh, true)
             }
         };
+
+        if set_mesh_names {
+            debugger.set_name(
+                device,
+                mesh.vertices.buffer,
+                format!("imgui_vertex_buffer_{}", frame_in_flight.index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.vertices.memory,
+                format!("imgui_vertex_memory_{}", frame_in_flight.index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.indices.buffer,
+                format!("imgui_index_buffer_{}", frame_in_flight.index),
+            )?;
+            debugger.set_name(
+                device,
+                mesh.indices.memory,
+                format!("imgui_index_memory_{}", frame_in_flight.index),
+            )?;
+        }
 
         // command buffer
         let command_buffer = frame_in_flight.primary_command_buffer(self.renderer_id);

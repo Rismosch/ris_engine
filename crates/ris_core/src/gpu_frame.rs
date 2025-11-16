@@ -91,6 +91,7 @@ impl Renderer {
         frames_in_flight: Option<FramesInFlight>,
     ) -> RisResult<Self> {
         let frame_in_flight_create_info = FrameInFlightCreateInfo {
+            debugger: &core.debugger,
             suitable_device: &core.suitable_device,
             device: &core.device,
             renderer_count: 0,
@@ -141,27 +142,18 @@ impl Renderer {
         #[cfg(feature = "ui_helper_enabled")] imgui_context: &mut imgui::Context,
     ) -> RisResult<()> {
         let VulkanCore {
-            instance,
-            suitable_device,
             device,
             graphics_queue,
             transient_command_pool,
             ..
         } = core;
 
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
-
         let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
-        mesh_lookup.reimport_everything(
-            TransientCommandArgs {
-                device: device.clone(),
-                queue: *graphics_queue,
-                command_pool: *transient_command_pool,
-            },
-            physical_device_memory_properties,
-        );
+        mesh_lookup.reimport_everything(TransientCommandArgs {
+            device: device.clone(),
+            queue: *graphics_queue,
+            command_pool: *transient_command_pool,
+        });
 
         let renderer_ids = RendererIds {
             scene: self.scene.renderer_id,
@@ -426,7 +418,8 @@ impl GpuFrame {
             command_buffer_count: command_buffers.len() as u32,
             p_command_buffers: command_buffers.as_ptr(),
             signal_semaphore_count: 1,
-            p_signal_semaphores: &frame_in_flight.finished_semaphore,
+            //p_signal_semaphores: &frame_in_flight.finished_semaphore,
+            p_signal_semaphores: &swapchain_entry.present_semaphore,
         }];
 
         unsafe {
@@ -444,7 +437,8 @@ impl GpuFrame {
             s_type: vk::StructureType::PRESENT_INFO_KHR,
             p_next: std::ptr::null(),
             wait_semaphore_count: 1,
-            p_wait_semaphores: &frame_in_flight.finished_semaphore,
+            //p_wait_semaphores: &frame_in_flight.finished_semaphore,
+            p_wait_semaphores: &swapchain_entry.present_semaphore,
             swapchain_count: 1,
             p_swapchains: &self.core.swapchain.swapchain,
             p_image_indices: &image_index,

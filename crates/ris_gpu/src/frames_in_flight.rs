@@ -2,26 +2,21 @@ use ash::vk;
 
 use ris_error::prelude::*;
 
+use super::debug::Debugger;
 use super::suitable_device::SuitableDevice;
 
-// with no frames in flight (MAX_FRAMES_IN_FLIGHT == 1), we
-// always need to wait for the command buffers to be done
-// executing before recording them again. recording may be
-// expensive, thus leaving the GPU to run idle. to maximize
-// hardware usage, we allow recording of new command buffers,
-// while previous ones are being executed. higher values for
-// MAX_FRAMES_IN_FLIGHT allow more parallelism, but also more
-// frames produce more latency, as the GPU may lag behind the
-// CPU.
+// with no frames in flight (FRAMES_IN_FLIGHT == 1), we always
+// need to wait for the command buffers to be done executing
+// before recording them again. recording may be expensive,
+// thus leaving the GPU to run idle. to maximize hardware usage,
+// we allow recording of newcommand buffers, while previous ones
+// are being executed. higher values for MAX_FRAMES_IN_FLIGHT
+// allow more parallelism, but also more frames produce more
+// latency, as the GPU may lag behind the CPU.
 //
 // no frames in flight provide the lowest latency
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
-const _: () = {
-    assert!(
-        MAX_FRAMES_IN_FLIGHT > 0,
-        "MAX_FRAMES_IN_FLIGHT may not be 0",
-    )
-};
+pub const FRAMES_IN_FLIGHT: usize = 2;
+const _: () = assert!(FRAMES_IN_FLIGHT > 0, "FRAMES_IN_FLIGHT may not be 0");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RendererId {
@@ -49,7 +44,6 @@ pub struct FrameInFlight {
     pub secondary_command_buffers: Vec<vk::CommandBuffer>, // none or multiple per renderer
 
     pub image_available: vk::Semaphore,
-    pub finished_semaphore: vk::Semaphore,
     pub finished_fence: vk::Fence,
 }
 
@@ -76,6 +70,7 @@ impl<'a> RendererRegisterer<'a> {
 }
 
 pub struct FrameInFlightCreateInfo<'a> {
+    pub debugger: &'a Debugger,
     pub suitable_device: &'a SuitableDevice,
     pub device: &'a ash::Device,
     pub renderer_count: usize,
@@ -109,9 +104,6 @@ impl FramesInFlight {
         for entry in self.entries.iter_mut() {
             // free synchronization
             device.destroy_fence(entry.finished_fence, None);
-
-            device.destroy_semaphore(entry.finished_semaphore, None);
-
             device.destroy_semaphore(entry.image_available, None);
 
             // free command buffers
@@ -127,13 +119,14 @@ impl FramesInFlight {
 
     pub fn alloc(info: FrameInFlightCreateInfo) -> RisResult<Self> {
         let FrameInFlightCreateInfo {
+            debugger,
             suitable_device,
             device,
             renderer_count,
             secondary_command_buffer_count,
         } = info;
 
-        let mut entries = Vec::with_capacity(MAX_FRAMES_IN_FLIGHT);
+        let mut entries = Vec::with_capacity(FRAMES_IN_FLIGHT);
         for i in 0..entries.capacity() {
             // command pool
             let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -144,6 +137,11 @@ impl FramesInFlight {
             };
             let command_pool =
                 unsafe { device.create_command_pool(&command_pool_create_info, None) }?;
+            debugger.set_name(
+                device,
+                command_pool,
+                format!("frame_in_flight_{}_command_pool", i),
+            )?;
 
             let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
                 s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
@@ -155,6 +153,13 @@ impl FramesInFlight {
 
             let primary_command_buffers =
                 unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
+            for (j, primary_command_buffer) in primary_command_buffers.iter().enumerate() {
+                debugger.set_name(
+                    device,
+                    *primary_command_buffer,
+                    format!("frame_in_flight_{}_primary_command_buffer_{}", i, j),
+                )?;
+            }
 
             let secondary_command_buffers = if secondary_command_buffer_count == 0 {
                 Vec::with_capacity(0)
@@ -168,6 +173,13 @@ impl FramesInFlight {
                 };
                 unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?
             };
+            for (j, secondary_command_buffer) in secondary_command_buffers.iter().enumerate() {
+                debugger.set_name(
+                    device,
+                    *secondary_command_buffer,
+                    format!("frame_in_flight_{}_secondary_command_buffer_{}", i, j),
+                )?;
+            }
 
             // synchronization
             let semaphore_create_info = vk::SemaphoreCreateInfo {
@@ -182,11 +194,17 @@ impl FramesInFlight {
             };
 
             let image_available = unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
-
-            let finished_semaphore =
-                unsafe { device.create_semaphore(&semaphore_create_info, None) }?;
-
             let finished_fence = unsafe { device.create_fence(&fence_create_info, None) }?;
+            debugger.set_name(
+                device,
+                image_available,
+                format!("frame_in_flight_{}_image_available", i),
+            )?;
+            debugger.set_name(
+                device,
+                finished_fence,
+                format!("frame_in_flight_{}_finished_fence", i),
+            )?;
 
             // construct frame
             let entry = FrameInFlight {
@@ -195,7 +213,6 @@ impl FramesInFlight {
                 primary_command_buffers,
                 secondary_command_buffers,
                 image_available,
-                finished_semaphore,
                 finished_fence,
             };
             entries.push(entry);
@@ -208,9 +225,11 @@ impl FramesInFlight {
     }
 
     pub fn acquire_next_frame(&mut self, device: &ash::Device) -> RisResult<&FrameInFlight> {
+        let previous_frame = self.current_frame;
         let next_frame = (self.current_frame + 1) % self.entries.len();
-        let entry = &self.entries[self.current_frame];
         self.current_frame = next_frame;
+
+        let entry = &self.entries[previous_frame];
 
         unsafe {
             let fences = [entry.finished_fence];

@@ -1,5 +1,6 @@
 use ash::vk;
 
+use ris_asset_data::mesh::CpuMesh;
 use ris_asset_data::mesh::GpuMesh;
 use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
@@ -21,7 +22,7 @@ struct Entry {
 }
 
 enum EntryState {
-    Loading(OneshotReceiver<RisResult<GpuMesh>>),
+    Loading(OneshotReceiver<RisResult<CpuMesh>>),
     Loaded(GpuMesh),
 }
 
@@ -34,11 +35,7 @@ impl MeshLookup {
         }
     }
 
-    pub fn reimport_everything(
-        &mut self,
-        transient_command_args: TransientCommandArgs,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-    ) {
+    pub fn reimport_everything(&mut self, transient_command_args: TransientCommandArgs) {
         for entry in self.entries.iter_mut() {
             if entry.value.is_none() {
                 continue;
@@ -48,21 +45,12 @@ impl MeshLookup {
                 gpu_mesh.free(&transient_command_args.device);
             }
 
-            let state = EntryState::load(
-                transient_command_args.clone(),
-                physical_device_memory_properties,
-                entry.asset_id.clone(),
-            );
+            let state = EntryState::load(entry.asset_id.clone());
             entry.value = Some(state);
         }
     }
 
-    pub fn alloc(
-        &mut self,
-        transient_command_args: TransientCommandArgs,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        asset_id: AssetId,
-    ) -> MeshLookupId {
+    pub fn alloc(&mut self, asset_id: AssetId) -> MeshLookupId {
         let position = self.entries.iter().position(|x| x.asset_id == asset_id);
 
         let entry = match position {
@@ -95,11 +83,7 @@ impl MeshLookup {
         };
 
         if entry.value.is_none() {
-            let state = EntryState::load(
-                transient_command_args,
-                physical_device_memory_properties,
-                entry.asset_id.clone(),
-            );
+            let state = EntryState::load(entry.asset_id.clone());
             entry.value = Some(state);
         }
 
@@ -136,12 +120,31 @@ impl MeshLookup {
     ///
     /// additionaly, also because of the reason given above, the MeshLookupId must live
     /// longer than the entire time the GpuMesh is bound.
-    pub unsafe fn get(&mut self, id: &MeshLookupId) -> Option<&GpuMesh> {
+    pub unsafe fn get(
+        &mut self,
+        transient_command_args: TransientCommandArgs,
+        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
+        id: &MeshLookupId,
+    ) -> Option<&GpuMesh> {
         let entry = self.entries.get_mut(id.index())?;
 
         match entry.value.take() {
             Some(EntryState::Loading(receiver)) => match receiver.receive() {
-                Ok(Ok(gpu_mesh)) => entry.value = Some(EntryState::Loaded(gpu_mesh)),
+                Ok(Ok(cpu_mesh)) => {
+                    let value = match GpuMesh::from_cpu_mesh(
+                        transient_command_args,
+                        physical_device_memory_properties,
+                        cpu_mesh,
+                    ) {
+                        Ok(gpu_mesh) => Some(EntryState::Loaded(gpu_mesh)),
+                        Err(e) => {
+                            ris_log::error!("failed to convert cpu mesh to gpu mesh: {}", e);
+                            None
+                        }
+                    };
+
+                    entry.value = value;
+                }
                 Ok(Err(e)) => {
                     ris_log::error!("failed to load mesh {:?}: {}", entry.asset_id, e);
                     entry.value = None;
@@ -161,35 +164,15 @@ impl MeshLookup {
 impl Entry {
     fn take_gpu_mesh(&mut self) -> Option<GpuMesh> {
         match self.value.take() {
-            Some(EntryState::Loading(receiver)) => match receiver.wait() {
-                Ok(gpu_mesh) => Some(gpu_mesh),
-                Err(e) => {
-                    ris_log::warning!("failed to load mesh {:?}: {}", self.asset_id, e);
-                    None
-                }
-            },
             Some(EntryState::Loaded(gpu_mesh)) => Some(gpu_mesh),
-            None => None,
+            _ => None,
         }
     }
 }
 
 impl EntryState {
-    fn load(
-        transient_command_args: TransientCommandArgs,
-        physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
-        asset_id: AssetId,
-    ) -> Self {
-        let receiver = crate::load_async(asset_id, move |bytes| {
-            let cpu_mesh = ris_mesh::deserialize(&bytes)?;
-            unsafe {
-                GpuMesh::from_cpu_mesh(
-                    transient_command_args,
-                    physical_device_memory_properties,
-                    cpu_mesh,
-                )
-            }
-        });
+    fn load(asset_id: AssetId) -> Self {
+        let receiver = crate::load_async(asset_id, move |bytes| ris_mesh::deserialize(&bytes));
 
         EntryState::Loading(receiver)
     }

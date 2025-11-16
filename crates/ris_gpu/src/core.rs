@@ -7,6 +7,7 @@ use sdl2::video::Window;
 use ris_error::Extensions;
 use ris_error::RisResult;
 
+use super::debug::Debugger;
 use super::suitable_device::SuitableDevice;
 use super::swapchain::Swapchain;
 use super::swapchain::SwapchainCreateInfo;
@@ -14,7 +15,7 @@ use super::swapchain::SwapchainCreateInfo;
 pub struct VulkanCore {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
-    pub debug_utils: Option<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    pub debugger: Debugger,
     pub surface_loader: ash::extensions::khr::Surface,
     pub surface: vk::SurfaceKHR,
     pub suitable_device: SuitableDevice,
@@ -41,9 +42,7 @@ impl VulkanCore {
         self.device.destroy_device(None);
         self.surface_loader.destroy_surface(self.surface, None);
 
-        if let Some((debug_utils, debug_utils_messenger)) = self.debug_utils.take() {
-            debug_utils.destroy_debug_utils_messenger(debug_utils_messenger, None);
-        }
+        self.debugger.free();
 
         self.instance.destroy_instance(None);
 
@@ -80,8 +79,7 @@ impl VulkanCore {
         }
 
         // validation layers
-        let available_layers =
-            super::layers::add_validation_layer(&entry, &mut instance_extensions)?;
+        let available_layers = super::debug::get_layers(&entry, &mut instance_extensions)?;
         let mut available_layers_ptrs = Vec::with_capacity(available_layers.len());
         for layer in available_layers.iter() {
             let ptr = layer.as_ptr();
@@ -120,7 +118,7 @@ impl VulkanCore {
 
         let instance = unsafe { entry.create_instance(&create_info, None)? };
 
-        let debug_utils = super::layers::setup_debugging(&entry, &instance)?;
+        let debugger = Debugger::alloc(&entry, &instance)?;
 
         // surface
         let instance_handle = vk::Handle::as_raw(instance.handle());
@@ -169,14 +167,19 @@ impl VulkanCore {
             ..Default::default()
         };
 
+        let mut enabled_extension_names = Vec::with_capacity(suitable_device.extensions.len());
+        for extension_name in suitable_device.extensions.iter() {
+            enabled_extension_names.push(extension_name.as_ptr());
+        }
+
         let device_create_info = vk::DeviceCreateInfo {
             s_type: vk::StructureType::DEVICE_CREATE_INFO,
             p_next: std::ptr::null(),
             flags: vk::DeviceCreateFlags::empty(),
             queue_create_info_count: queue_create_infos.len() as u32,
             p_queue_create_infos: queue_create_infos.as_ptr(),
-            pp_enabled_extension_names: suitable_device.extensions.as_ptr(),
-            enabled_extension_count: suitable_device.extensions.len() as u32,
+            pp_enabled_extension_names: enabled_extension_names.as_ptr(),
+            enabled_extension_count: enabled_extension_names.len() as u32,
             p_enabled_features: &physical_device_features,
             ..Default::default()
         };
@@ -188,6 +191,13 @@ impl VulkanCore {
             unsafe { device.get_device_queue(suitable_device.graphics_queue_family, 0) };
         let present_queue =
             unsafe { device.get_device_queue(suitable_device.present_queue_family, 0) };
+
+        if graphics_queue == present_queue {
+            debugger.set_name(&device, graphics_queue, "graphics_present_queue")?;
+        } else {
+            debugger.set_name(&device, graphics_queue, "graphics_queue")?;
+            debugger.set_name(&device, present_queue, "present_queue")?;
+        }
 
         // command pool
         let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -210,12 +220,18 @@ impl VulkanCore {
             transient_command_pool,
             window_drawable_size: window.vulkan_drawable_size(),
         })?;
+        debugger.set_name(
+            &device,
+            swapchain.swapchain,
+            format!("swapchain_gen_{}", swapchain.generation),
+        )?;
+        ris_log::trace!("swapchain created! entries: {}", swapchain.entries.len());
 
         // renderer
         Ok(Self {
             entry,
             instance,
-            debug_utils,
+            debugger,
             surface_loader,
             surface,
             suitable_device,
@@ -230,6 +246,7 @@ impl VulkanCore {
     pub fn recreate_swapchain(&mut self, window_drawable_size: (u32, u32)) -> RisResult<()> {
         let Self {
             instance,
+            debugger,
             surface_loader,
             surface,
             suitable_device,
@@ -241,6 +258,8 @@ impl VulkanCore {
         } = self;
 
         ris_log::trace!("recreating swapchain...");
+
+        let previous_generation = swapchain.generation;
 
         unsafe {
             device.device_wait_idle()?;
@@ -257,8 +276,18 @@ impl VulkanCore {
             })?;
         }
 
-        ris_log::trace!("swapchain recreated!");
+        swapchain.generation = previous_generation + 1;
+        debugger.set_name(
+            device,
+            swapchain.swapchain,
+            format!("swapchain_gen_{}", swapchain.generation),
+        )?;
 
+        ris_log::trace!(
+            "swapchain recreated! gen: {} entries: {}",
+            swapchain.generation,
+            swapchain.entries.len(),
+        );
         Ok(())
     }
 }
