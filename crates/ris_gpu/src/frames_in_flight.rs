@@ -16,7 +16,7 @@ use super::suitable_device::SuitableDevice;
 //
 // no frames in flight provide the lowest latency
 pub const FRAMES_IN_FLIGHT: usize = 2;
-const _: () = { assert!(FRAMES_IN_FLIGHT > 0, "FRAMES_IN_FLIGHT may not be 0",) };
+const _: () = assert!(FRAMES_IN_FLIGHT > 0, "FRAMES_IN_FLIGHT may not be 0");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RendererId {

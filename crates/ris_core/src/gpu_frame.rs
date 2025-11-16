@@ -142,27 +142,18 @@ impl Renderer {
         #[cfg(feature = "ui_helper_enabled")] imgui_context: &mut imgui::Context,
     ) -> RisResult<()> {
         let VulkanCore {
-            instance,
-            suitable_device,
             device,
             graphics_queue,
             transient_command_pool,
             ..
         } = core;
 
-        let physical_device_memory_properties = unsafe {
-            instance.get_physical_device_memory_properties(suitable_device.physical_device)
-        };
-
         let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
-        mesh_lookup.reimport_everything(
-            TransientCommandArgs {
-                device: device.clone(),
-                queue: *graphics_queue,
-                command_pool: *transient_command_pool,
-            },
-            physical_device_memory_properties,
-        );
+        mesh_lookup.reimport_everything(TransientCommandArgs {
+            device: device.clone(),
+            queue: *graphics_queue,
+            command_pool: *transient_command_pool,
+        });
 
         let renderer_ids = RendererIds {
             scene: self.scene.renderer_id,

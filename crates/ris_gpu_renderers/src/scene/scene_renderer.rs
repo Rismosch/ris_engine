@@ -785,15 +785,7 @@ impl SceneRenderer {
                 }
 
                 if let Some(to_allocate) = aref_mut.poll_asset_id_to_allocate() {
-                    let lookup_id = mesh_lookup.alloc(
-                        TransientCommandArgs {
-                            device: device.clone(),
-                            queue: *graphics_queue,
-                            command_pool: *transient_command_pool,
-                        },
-                        physical_device_memory_properties,
-                        to_allocate,
-                    );
+                    let lookup_id = mesh_lookup.alloc(to_allocate);
                     aref_mut.set_lookup_id(lookup_id);
                 }
 
@@ -801,7 +793,15 @@ impl SceneRenderer {
                     continue;
                 };
 
-                let Some(mesh) = mesh_lookup.get(lookup_id) else {
+                let Some(mesh) = mesh_lookup.get(
+                    TransientCommandArgs {
+                        device: device.clone(),
+                        queue: *graphics_queue,
+                        command_pool: *transient_command_pool,
+                    },
+                    physical_device_memory_properties,
+                    lookup_id,
+                ) else {
                     continue;
                 };
 
