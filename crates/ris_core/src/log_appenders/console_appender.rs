@@ -10,6 +10,7 @@ impl IAppender for ConsoleAppender {
             ansi_support: true,
             show_timestamp: false,
             show_priority: true,
+            show_priority_padding: true,
             show_foot: false,
         };
 

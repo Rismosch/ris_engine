@@ -50,8 +50,8 @@ pub const FATAL_COLOR: Color = Color::BrightRed;
 pub const NONE_COLOR: Color = Color::BrightWhite;
 
 impl LogLevel {
-    pub fn to_color_string(&self) -> ColorString<'_> {
-        match *self {
+    pub fn to_color_string(self) -> ColorString<'static> {
+        match self {
             LogLevel::Trace => ColorString("Trace", TRACE_COLOR),
             LogLevel::Debug => ColorString("Debug", DEBUG_COLOR),
             LogLevel::Info => ColorString("Info", INFO_COLOR),
@@ -59,6 +59,18 @@ impl LogLevel {
             LogLevel::Error => ColorString("Error", ERROR_COLOR),
             LogLevel::Fatal => ColorString("Fatal", FATAL_COLOR),
             LogLevel::None => ColorString("None", NONE_COLOR),
+        }
+    }
+
+    pub fn padding(self) -> &'static str {
+        match self {
+            LogLevel::Trace => "  ",
+            LogLevel::Debug => "  ",
+            LogLevel::Info => "   ",
+            LogLevel::Warning => "",
+            LogLevel::Error => "  ",
+            LogLevel::Fatal => "  ",
+            LogLevel::None => "   ",
         }
     }
 }

@@ -18,6 +18,7 @@ pub struct ConstructedLogFormatArgs {
     pub ansi_support: bool,
     pub show_timestamp: bool,
     pub show_priority: bool,
+    pub show_priority_padding: bool,
     pub show_foot: bool,
 }
 
@@ -27,6 +28,7 @@ impl ConstructedLogMessage {
             ansi_support,
             show_timestamp,
             show_priority,
+            show_priority_padding,
             show_foot,
         } = args;
 
@@ -42,8 +44,18 @@ impl ConstructedLogMessage {
             let priority_color_string = self.priority.to_color_string();
             let priority = priority_color_string.fmt(ansi_support);
             let colon = ColorString(":", Color::White).fmt(ansi_support);
+            let padding = if show_priority_padding {
+                self.priority.padding()
+            } else {
+                ""
+            };
 
-            result.push_str(&format!("{}{} ", priority, colon));
+            result.push_str(&format!(
+                "{}{}{} ",
+                priority,
+                colon,
+                padding,
+            ));
         }
 
         let message = ColorString(&self.message, Color::BrightWhite).fmt(ansi_support);

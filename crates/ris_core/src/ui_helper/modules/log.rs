@@ -111,6 +111,7 @@ impl LogModule {
                 ansi_support: false,
                 show_timestamp: true,
                 show_priority: true,
+                show_priority_padding: false,
                 show_foot: true,
             };
             let formatted_message = message.fmt(args);
