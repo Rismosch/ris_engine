@@ -50,12 +50,7 @@ impl ConstructedLogMessage {
                 ""
             };
 
-            result.push_str(&format!(
-                "{}{}{} ",
-                priority,
-                colon,
-                padding,
-            ));
+            result.push_str(&format!("{}{}{} ", priority, colon, padding,));
         }
 
         let message = ColorString(&self.message, Color::BrightWhite).fmt(ansi_support);
