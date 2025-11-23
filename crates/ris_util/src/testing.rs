@@ -230,6 +230,8 @@ macro_rules! prep_test_dir {
             panic!("failed to create \"{:?}\"", &result);
         }
 
+        eprintln!("created dir \"{}\"", result.display());
+
         result
     }};
 }

@@ -43,7 +43,10 @@ fn should_delete_expired_files() {
         let mut file_path = PathBuf::from(&old_dir);
         file_path.push(format!("{}", i));
 
-        std::fs::File::create(&file_path).unwrap();
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        let content = format!("{}\n\nhello world", i);
+        ris_io::write(&mut file, content.as_bytes()).unwrap();
+
         file_paths.push(file_path);
     }
 
@@ -62,27 +65,23 @@ fn should_delete_expired_files() {
 }
 
 #[test]
-fn should_create_current_file_with_timestamp() {
-    todo!();
-    //let test_dir = ris_util::prep_test_dir!();
-    //FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
+fn should_create_current_file_with_counter() {
+    let test_dir = ris_util::prep_test_dir!();
 
-    //let mut current_file_path = PathBuf::from(&test_dir);
-    //current_file_path.push("current.test");
+    for i in 0..10 {
+        FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
-    //let mut file = std::fs::File::open(current_file_path).unwrap();
-    //let mut content = String::new();
-    //file.read_to_string(&mut content).unwrap();
+        let mut current_file_path = PathBuf::from(&test_dir);
+        current_file_path.push("current.test");
 
-    //let first_line = content.lines().next().unwrap();
-    //let file_date = DateTime::parse_from_rfc3339(first_line)
-    //    .unwrap()
-    //    .with_timezone(&Local);
-    //let now = Local::now();
+        let mut file = std::fs::File::open(current_file_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
 
-    //let diff = now - file_date;
-    //let one_second = Duration::seconds(1);
-    //assert!(diff < one_second);
+        let first_line = content.lines().next().unwrap();
+        let value = first_line.parse::<u32>().unwrap();
+        assert_eq!(value, i);
+    }
 }
 
 #[test]
@@ -96,62 +95,50 @@ fn should_move_current_file() {
     old_path.push("old");
 
     // move file 1
-    // should use first line as file name
+    // should use Counter::MAX when first line is not an unsigned integer
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am a unique file").unwrap();
+    writeln!(current_file, "i am incorrectly formatted").unwrap();
     FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am a unique file.test");
+    let file_path = PathBuf::from(&old_path)
+        .join("4294967295.test");
     let mut file = std::fs::File::open(&file_path).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
     assert!(file_path.exists());
-    assert_eq!(content, "i am a unique file\n");
+    assert_eq!(content, "i am incorrectly formatted\n");
 
     // move file 2
-    // should use first line as file name, sanitizing invalid chars
-    std::fs::remove_file(&current_path).unwrap();
-    let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am not unique :(").unwrap();
-    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am not unique _(.test");
-    let mut file = std::fs::File::open(&file_path).unwrap();
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
-    assert!(file_path.exists());
-    assert_eq!(content, "i am not unique :(\n");
-
-    // move file 3
-    // should generate new unique filename, which does not correspont to its first line
-    std::fs::remove_file(&current_path).unwrap();
-    let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am not unique :(").unwrap();
-    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let entries = std::fs::read_dir(&old_path).unwrap();
-    for entry in entries {
-        let unique_path = entry.unwrap().path();
-        let mut file = std::fs::File::open(&unique_path).unwrap();
+    // should create a unique filename, when for some reason (ie user modifying the files) creates
+    // duplicated filenames
+    for i in 1..5 {
+        std::fs::remove_file(&current_path).unwrap();
+        let mut current_file = std::fs::File::create(&current_path).unwrap();
+        writeln!(current_file, "i am incorrectly formatted {}", i).unwrap();
+        let mut fallback_file = FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
+        write!(&mut fallback_file.current(), "i am correctly formatted").unwrap();
+        let file_path = PathBuf::from(&old_path)
+            .join(format!("4294967295({}).test", i));
+        let mut file = std::fs::File::open(&file_path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();
-
-        if unique_path == file_path {
-            continue;
-        }
-
-        if !unique_path.exists() {
-            continue;
-        }
-
-        if content != "i am not unique :(\n" {
-            continue;
-        }
-
-        return; // test passed
+        assert!(file_path.exists());
+        assert_eq!(content, format!("i am incorrectly formatted {}\n", i));
     }
-
-    panic!("test failed, either because a unique path was not generated, or no entries exist");
+    
+    // move file 3
+    // file is correctly formatted and uses the line as its filename
+    for i in 0..5 {
+        let mut fallback_file = FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
+        write!(&mut fallback_file.current(), "i am correctly formatted").unwrap();
+        let file_path = PathBuf::from(&old_path)
+            .join(format!("{}.test", i));
+        let mut file = std::fs::File::open(&file_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        assert!(file_path.exists());
+        assert_eq!(content, format!("{}\n\ni am correctly formatted", i));
+    }
 }
 
 #[test]
@@ -175,8 +162,7 @@ fn should_give_access_to_current_file() {
 
     let lines = content.lines().collect::<Vec<&str>>();
     assert_eq!(lines.len(), 3);
-    //assert!(DateTime::parse_from_rfc3339(lines[0]).is_ok());
-    todo!();
+    assert_eq!(lines[0], "0");
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "i am a very important message");
 }
