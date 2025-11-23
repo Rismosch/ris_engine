@@ -1,5 +1,7 @@
+const MAX_DISTANCE: u32 = 0x80000000;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Counter(usize);
+pub struct Counter(u32);
 
 impl PartialOrd for Counter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -13,7 +15,6 @@ impl Ord for Counter {
         let rhs = other.0;
         let distance = lhs.abs_diff(rhs);
 
-        const MAX_DISTANCE: usize = 0x80usize.swap_bytes();
         if distance < MAX_DISTANCE {
             lhs.cmp(&rhs)
         } else {
@@ -23,11 +24,13 @@ impl Ord for Counter {
 }
 
 impl Counter {
-    pub fn raw(self) -> usize {
+    pub const MAX: Self = Counter(u32::MAX);
+
+    pub fn raw(self) -> u32 {
         self.0
     }
 
-    pub fn from_raw(value: usize) -> Self {
+    pub fn from_raw(value: u32) -> Self {
         Self(value)
     }
 

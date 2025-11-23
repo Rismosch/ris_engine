@@ -4,10 +4,6 @@ use std::io::SeekFrom;
 use std::io::Write;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Duration;
-use chrono::Local;
-
 use ris_io::fallback_file::FallbackFileAppend;
 
 #[test]
@@ -67,25 +63,26 @@ fn should_delete_expired_files() {
 
 #[test]
 fn should_create_current_file_with_timestamp() {
-    let test_dir = ris_util::prep_test_dir!();
-    FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
+    todo!();
+    //let test_dir = ris_util::prep_test_dir!();
+    //FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
 
-    let mut current_file_path = PathBuf::from(&test_dir);
-    current_file_path.push("current.test");
+    //let mut current_file_path = PathBuf::from(&test_dir);
+    //current_file_path.push("current.test");
 
-    let mut file = std::fs::File::open(current_file_path).unwrap();
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
+    //let mut file = std::fs::File::open(current_file_path).unwrap();
+    //let mut content = String::new();
+    //file.read_to_string(&mut content).unwrap();
 
-    let first_line = content.lines().next().unwrap();
-    let file_date = DateTime::parse_from_rfc3339(first_line)
-        .unwrap()
-        .with_timezone(&Local);
-    let now = Local::now();
+    //let first_line = content.lines().next().unwrap();
+    //let file_date = DateTime::parse_from_rfc3339(first_line)
+    //    .unwrap()
+    //    .with_timezone(&Local);
+    //let now = Local::now();
 
-    let diff = now - file_date;
-    let one_second = Duration::seconds(1);
-    assert!(diff < one_second);
+    //let diff = now - file_date;
+    //let one_second = Duration::seconds(1);
+    //assert!(diff < one_second);
 }
 
 #[test]
@@ -178,7 +175,8 @@ fn should_give_access_to_current_file() {
 
     let lines = content.lines().collect::<Vec<&str>>();
     assert_eq!(lines.len(), 3);
-    assert!(DateTime::parse_from_rfc3339(lines[0]).is_ok());
+    //assert!(DateTime::parse_from_rfc3339(lines[0]).is_ok());
+    todo!();
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "i am a very important message");
 }

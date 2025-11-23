@@ -5,6 +5,7 @@ use sdl2::messagebox::MessageBoxFlag;
 
 use ris_error::RisResult;
 use ris_io::fallback_file::FallbackFileAppend;
+use ris_log::constructed_log_message::ConstructedLogFormatArgs;
 use ris_log::log::IAppender;
 use ris_log::log_message::LogMessage;
 
@@ -25,10 +26,16 @@ impl FileAppender {
 
 impl IAppender for FileAppender {
     fn print(&mut self, message: &LogMessage) {
-        let to_log = message.fmt(false);
+        let args = ConstructedLogFormatArgs {
+            ansi_support: false,
+            show_timestamp: false,
+            show_priority: true,
+            show_foot: false,
+        };
+        let to_log = message.fmt(args);
 
         let file = self.fallback_file.current();
-        let result = writeln!(file, "\n{}", to_log);
+        let result = writeln!(file, "{}", to_log);
 
         if result.is_err() {
             let error_message = format!("failed to log the following message: {}", to_log);

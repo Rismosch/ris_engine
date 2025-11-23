@@ -2,10 +2,6 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Duration;
-use chrono::Local;
-
 use ris_io::fallback_file::FallbackFileOverwrite;
 
 #[test]
@@ -57,14 +53,15 @@ fn should_write_file() {
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "hello world");
 
-    let file_date = DateTime::parse_from_rfc3339(lines[0])
-        .unwrap()
-        .with_timezone(&Local);
-    let now = Local::now();
+    todo!();
+    //let file_date = DateTime::parse_from_rfc3339(lines[0])
+    //    .unwrap()
+    //    .with_timezone(&Local);
+    //let now = Local::now();
 
-    let diff = now - file_date;
-    let one_second = Duration::seconds(1);
-    assert!(diff < one_second);
+    //let diff = now - file_date;
+    //let one_second = Duration::seconds(1);
+    //assert!(diff < one_second);
 }
 
 #[test]
@@ -233,11 +230,11 @@ fn should_get_file_contents_by_path() {
     let result3 = overwriter.get_by_path(&available_args[3]);
     let result4 = overwriter.get_by_path(&available_args[4]);
 
-    assert!(result0.is_some());
-    assert!(result1.is_none());
-    assert!(result2.is_some());
-    assert!(result3.is_none());
-    assert!(result4.is_some());
+    assert!(result0.is_ok());
+    assert!(result1.is_err());
+    assert!(result2.is_ok());
+    assert!(result3.is_err());
+    assert!(result4.is_ok());
 
     let current = String::from_utf8(result0.unwrap()).unwrap();
     let old2 = String::from_utf8(result2.unwrap()).unwrap();
@@ -253,7 +250,7 @@ fn should_get_file_contents_by_index() {
     let test_dir = ris_util::prep_test_dir!();
     let overwriter = FallbackFileOverwrite::new(&test_dir, ".test", 10);
 
-    assert!(overwriter.get_by_index(0).is_none());
+    assert!(overwriter.get_by_index(0).is_err());
 
     overwriter.overwrite_current("un".as_bytes()).unwrap();
     overwriter.overwrite_current("deux".as_bytes()).unwrap();
@@ -272,5 +269,5 @@ fn should_get_file_contents_by_index() {
     assert_eq!(old2, "trois");
     assert_eq!(old3, "deux");
     assert_eq!(old4, "un");
-    assert!(overwriter.get_by_index(5).is_none());
+    assert!(overwriter.get_by_index(5).is_err());
 }

@@ -7,9 +7,7 @@ use std::{
     thread::JoinHandle,
 };
 
-use chrono::DateTime;
-use chrono::Local;
-
+use crate::counter::Counter;
 use crate::log_level::LogLevel;
 use crate::log_message::LogMessage;
 
@@ -36,6 +34,7 @@ impl Drop for LogGuard {
 
 #[cfg(feature = "logging_enabled")]
 pub struct Logger {
+    counter: Counter,
     log_level: LogLevel,
     sender: Option<Sender<LogMessage>>,
     thread_handle: Option<JoinHandle<()>>,
@@ -71,6 +70,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> L
         }));
 
         let logger = Logger {
+            counter: Counter::default(),
             log_level,
             sender,
             thread_handle,
@@ -128,8 +128,22 @@ pub fn log_level() -> LogLevel {
     LogLevel::None
 }
 
-pub fn get_timestamp() -> DateTime<Local> {
-    Local::now()
+pub fn get_timestamp() -> Counter {
+    #[cfg(feature = "logging_enabled")]
+    {
+        match LOG.lock() {
+            Err(e) => eprintln!("error while getting log_level: {}", e),
+            Ok(mut log) => {
+                if let Some(logger) = log.as_mut() {
+                    let previous = logger.counter.clone();
+                    logger.counter.increase();
+                    return previous;
+                }
+            }
+        }
+    }
+
+    Counter::default()
 }
 
 pub fn can_log(log_level: LogLevel, message_priority: LogLevel) -> bool {

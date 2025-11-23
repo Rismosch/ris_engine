@@ -99,7 +99,9 @@ impl ICommand for Build {
         cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
         cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
 
-        let build_date = chrono::Local::now().to_rfc3339();
+        todo!();
+        //let build_date = chrono::Local::now().to_rfc3339();
+        let build_date = String::new();
 
         let git_repo = git_repo.trim();
         let git_commit = git_commit.trim();
