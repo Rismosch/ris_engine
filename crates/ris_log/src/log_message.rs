@@ -1,5 +1,5 @@
-use crate::constructed_log_message::ConstructedLogMessage;
 use crate::constructed_log_message::ConstructedLogFormatArgs;
+use crate::constructed_log_message::ConstructedLogMessage;
 
 #[derive(Clone)]
 pub enum LogMessage {

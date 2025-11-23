@@ -1,7 +1,7 @@
 use std::io::BufRead;
+use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
-use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use ris_error::prelude::*;
 use ris_log::counter::Counter;
 
-use crate::FatPtr;
 use crate::path::SanitizeInfo;
+use crate::FatPtr;
 
 pub struct FallbackFileAppend {
     current_file: std::fs::File,
@@ -90,7 +90,10 @@ impl FallbackFileOverwrite {
     }
 
     pub fn get_by_path(&self, path: &Path) -> RisResult<Vec<u8>> {
-        let FileStructure { counter: _, p_content } = parse_file_header(path)?;
+        let FileStructure {
+            counter: _,
+            p_content,
+        } = parse_file_header(path)?;
         let mut file = std::fs::File::open(path)?;
         let bytes = crate::io::read_at(&mut file, p_content)?;
         Ok(bytes)
@@ -147,15 +150,21 @@ fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
         .collect();
 
     result.sort_by(|left, right| {
-        let left = match parse_file_header(left){
-            Ok(FileStructure { counter: Some(counter), p_content: _ }) => counter,
+        let left = match parse_file_header(left) {
+            Ok(FileStructure {
+                counter: Some(counter),
+                p_content: _,
+            }) => counter,
             _ => Counter::MAX,
         };
-        let right = match parse_file_header(right){
-            Ok(FileStructure { counter: Some(counter), p_content: _ }) => counter,
+        let right = match parse_file_header(right) {
+            Ok(FileStructure {
+                counter: Some(counter),
+                p_content: _,
+            }) => counter,
             _ => Counter::MAX,
         };
-        
+
         right.cmp(&left)
     });
 
@@ -178,7 +187,7 @@ fn move_current_file(
         Some(Ok(line)) => match line.trim().parse::<u32>() {
             Ok(n) => Counter::from_raw(n),
             _ => Counter::MAX,
-        }
+        },
         _ => Counter::MAX,
     };
     let previous_filename_without_extension = previous_counter.raw().to_string();
@@ -205,12 +214,8 @@ fn move_current_file(
             format!("({})", i)
         };
 
-        let new_previous_filename = format!(
-            "{}{}{}",
-            previous_counter.raw(),
-            post_fix,
-            file_extension,
-        );
+        let new_previous_filename =
+            format!("{}{}{}", previous_counter.raw(), post_fix, file_extension,);
         let sanitized_new_previous_filename = crate::path::sanitize(
             &new_previous_filename,
             SanitizeInfo::RemoveInvalidCharsAndSlashes,
@@ -271,16 +276,15 @@ fn parse_file_header(path: impl AsRef<Path>) -> RisResult<FileStructure> {
         }
     }
 
-    let mut result = FileStructure{
+    let mut result = FileStructure {
         counter: None,
         p_content: FatPtr::begin_end(begin, end)?,
     };
 
-    let (
-        Some(first_line_break_index),
-        Some(second_line_break_index),
-    ) = (first_line_break_index, second_line_break_index) else {
-        return Ok(result)
+    let (Some(first_line_break_index), Some(second_line_break_index)) =
+        (first_line_break_index, second_line_break_index)
+    else {
+        return Ok(result);
     };
 
     // expect the second line to be empty
@@ -302,10 +306,7 @@ fn parse_file_header(path: impl AsRef<Path>) -> RisResult<FileStructure> {
 
     // first two lines are as expected, we can strip them away
     result.counter = Some(Counter::from_raw(integer));
-    result.p_content = FatPtr::begin_end(
-        second_line_break_index as u64 + 1,
-        end,
-    )?;
+    result.p_content = FatPtr::begin_end(second_line_break_index as u64 + 1, end)?;
 
     Ok(result)
 }

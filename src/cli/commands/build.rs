@@ -103,10 +103,7 @@ impl ICommand for Build {
 
         #[cfg(target_os = "windows")]
         {
-            cmd::run_with_stdout(
-                "powershell (Get-Date).ToString(\"o\")",
-                &mut build_date,
-            )?;
+            cmd::run_with_stdout("powershell (Get-Date).ToString(\"o\")", &mut build_date)?;
         }
 
         #[cfg(target_os = "linux")]
@@ -116,7 +113,6 @@ impl ICommand for Build {
                 &mut build_date,
             )?;
         }
-
 
         let git_repo = git_repo.trim();
         let git_commit = git_commit.trim();

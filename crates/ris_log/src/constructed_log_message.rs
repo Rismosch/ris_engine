@@ -23,7 +23,7 @@ pub struct ConstructedLogFormatArgs {
 
 impl ConstructedLogMessage {
     pub fn fmt(&self, args: ConstructedLogFormatArgs) -> String {
-        let ConstructedLogFormatArgs { 
+        let ConstructedLogFormatArgs {
             ansi_support,
             show_timestamp,
             show_priority,
@@ -33,7 +33,8 @@ impl ConstructedLogMessage {
         let mut result = String::new();
 
         if show_timestamp {
-            let timestamp = ColorString(&format!("[{}]", self.timestamp.raw()),Color::White).fmt(ansi_support);
+            let timestamp =
+                ColorString(&format!("[{}]", self.timestamp.raw()), Color::White).fmt(ansi_support);
             result.push_str(&format!("{} ", timestamp));
         }
 

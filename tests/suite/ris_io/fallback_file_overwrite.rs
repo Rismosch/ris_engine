@@ -88,7 +88,9 @@ fn should_move_file() {
         std::fs::remove_file(&current_path).unwrap();
         let mut current_file = std::fs::File::create(&current_path).unwrap();
         writeln!(current_file, "i am incorrectly formatted").unwrap();
-        overwriter.overwrite_current("i am correctly formatted".as_bytes()).unwrap();
+        overwriter
+            .overwrite_current("i am correctly formatted".as_bytes())
+            .unwrap();
         let mut file_path = PathBuf::from(&old_path);
         file_path.push(format!("4294967295({}).test", i));
         let mut file = std::fs::File::open(&file_path).unwrap();
@@ -101,7 +103,9 @@ fn should_move_file() {
     // move file 3
     // file is correctly formatted and uses the line as its filename
     for i in 0..5 {
-        overwriter.overwrite_current("i am correctly formatted".as_bytes()).unwrap();
+        overwriter
+            .overwrite_current("i am correctly formatted".as_bytes())
+            .unwrap();
         let mut file_path = PathBuf::from(&old_path);
         file_path.push(format!("{}.test", i));
         let mut file = std::fs::File::open(&file_path).unwrap();
@@ -159,17 +163,22 @@ fn should_get_available_files() {
         let mut file_path = PathBuf::from(&old_dir);
         file_path.push(format!("{}", i));
 
-        std::fs::File::create(&file_path).unwrap();
+        let mut file = std::fs::File::create(&file_path).unwrap();
+
+        let content = format!("{}\n\nhello world", i);
+        ris_io::write(&mut file, content.as_bytes()).unwrap();
         file_paths.push(file_path);
     }
 
     let available_paths = overwriter.available_paths();
+    println!("available_paths: {:#?}", available_paths);
+    println!("file_paths: {:#?}", file_paths);
     assert_eq!(available_paths.len(), 5);
-    assert_eq!(available_paths[0], file_paths[4]);
-    assert_eq!(available_paths[1], file_paths[3]);
+    assert_eq!(available_paths[0], file_paths[0]);
+    assert_eq!(available_paths[1], file_paths[1]);
     assert_eq!(available_paths[2], file_paths[2]);
-    assert_eq!(available_paths[3], file_paths[1]);
-    assert_eq!(available_paths[4], file_paths[0]);
+    assert_eq!(available_paths[3], file_paths[3]);
+    assert_eq!(available_paths[4], file_paths[4]);
 
     overwriter.overwrite_current("i am new".as_bytes()).unwrap();
 
@@ -178,11 +187,11 @@ fn should_get_available_files() {
     let mut current_path = PathBuf::from(&test_dir);
     current_path.push("current.test");
     assert_eq!(available_paths[0], current_path);
-    assert_eq!(available_paths[1], file_paths[4]);
-    assert_eq!(available_paths[2], file_paths[3]);
+    assert_eq!(available_paths[1], file_paths[0]);
+    assert_eq!(available_paths[2], file_paths[1]);
     assert_eq!(available_paths[3], file_paths[2]);
-    assert_eq!(available_paths[4], file_paths[1]);
-    assert_eq!(available_paths[5], file_paths[0]);
+    assert_eq!(available_paths[4], file_paths[3]);
+    assert_eq!(available_paths[5], file_paths[4]);
 }
 
 #[test]

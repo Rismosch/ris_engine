@@ -497,21 +497,19 @@ impl JsonValue {
         for token in &tokens[start..end] {
             match token.len() {
                 0 => return Err(JsonError::SyntaxError),
-                1 => {
-                    match token.chars().next() {
-                        Some(BEGIN_OBJECT) => object_generation += 1,
-                        Some(BEGIN_ARRAY) => array_generation += 1,
-                        Some(END_OBJECT) => object_generation -= 1,
-                        Some(END_ARRAY) => array_generation -= 1,
-                        Some(VALUE_SEPARATOR) => {
-                            if object_generation == 0 && array_generation == 0 {
-                                elements.push(Vec::new());
-                                continue;
-                            }
-                        },
-                        Some(_) => {},
-                        None => return Err(JsonError::SyntaxError),
+                1 => match token.chars().next() {
+                    Some(BEGIN_OBJECT) => object_generation += 1,
+                    Some(BEGIN_ARRAY) => array_generation += 1,
+                    Some(END_OBJECT) => object_generation -= 1,
+                    Some(END_ARRAY) => array_generation -= 1,
+                    Some(VALUE_SEPARATOR) => {
+                        if object_generation == 0 && array_generation == 0 {
+                            elements.push(Vec::new());
+                            continue;
+                        }
                     }
+                    Some(_) => {}
+                    None => return Err(JsonError::SyntaxError),
                 },
                 _ => {}
             }

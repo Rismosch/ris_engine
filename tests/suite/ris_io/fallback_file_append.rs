@@ -100,8 +100,7 @@ fn should_move_current_file() {
     let mut current_file = std::fs::File::create(&current_path).unwrap();
     writeln!(current_file, "i am incorrectly formatted").unwrap();
     FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
-    let file_path = PathBuf::from(&old_path)
-        .join("4294967295.test");
+    let file_path = PathBuf::from(&old_path).join("4294967295.test");
     let mut file = std::fs::File::open(&file_path).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
@@ -117,22 +116,20 @@ fn should_move_current_file() {
         writeln!(current_file, "i am incorrectly formatted {}", i).unwrap();
         let mut fallback_file = FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
         write!(&mut fallback_file.current(), "i am correctly formatted").unwrap();
-        let file_path = PathBuf::from(&old_path)
-            .join(format!("4294967295({}).test", i));
+        let file_path = PathBuf::from(&old_path).join(format!("4294967295({}).test", i));
         let mut file = std::fs::File::open(&file_path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();
         assert!(file_path.exists());
         assert_eq!(content, format!("i am incorrectly formatted {}\n", i));
     }
-    
+
     // move file 3
     // file is correctly formatted and uses the line as its filename
     for i in 0..5 {
         let mut fallback_file = FallbackFileAppend::new(&test_dir, ".test", 10).unwrap();
         write!(&mut fallback_file.current(), "i am correctly formatted").unwrap();
-        let file_path = PathBuf::from(&old_path)
-            .join(format!("{}.test", i));
+        let file_path = PathBuf::from(&old_path).join(format!("{}.test", i));
         let mut file = std::fs::File::open(&file_path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();

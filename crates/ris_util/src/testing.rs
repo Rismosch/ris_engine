@@ -215,7 +215,9 @@ macro_rules! prep_test_dir {
 
         let executable_string = std::env::args().next().expect("cli args to exist");
         let executable_path = std::path::PathBuf::from(executable_string);
-        let executable_directory = executable_path.parent().expect("executable to have a parent");
+        let executable_directory = executable_path
+            .parent()
+            .expect("executable to have a parent");
 
         let mut result = std::path::PathBuf::new();
         result.push(executable_directory);

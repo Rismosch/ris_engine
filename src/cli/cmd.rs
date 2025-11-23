@@ -40,9 +40,7 @@ where
 
     for arg in &splits[1..] {
         let trimmed_arg = arg.trim();
-        let is_combined_arg =
-            !complete_arg.is_empty() ||
-            trimmed_arg.starts_with("\"");
+        let is_combined_arg = !complete_arg.is_empty() || trimmed_arg.starts_with("\"");
         if !is_combined_arg {
             command.arg(trimmed_arg);
             continue;
@@ -51,9 +49,7 @@ where
         complete_arg.push(' ');
         complete_arg.push_str(trimmed_arg);
 
-        let combined_arg_is_done =
-            trimmed_arg.ends_with("\"") &&
-            !trimmed_arg.ends_with("\\\""); // an escaped `"` does not end the combined arg
+        let combined_arg_is_done = trimmed_arg.ends_with("\"") && !trimmed_arg.ends_with("\\\""); // an escaped `"` does not end the combined arg
 
         if combined_arg_is_done {
             let trimmed = complete_arg.trim();
