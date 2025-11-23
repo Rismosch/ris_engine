@@ -130,7 +130,7 @@ impl ImguiRenderer {
         let fs_shader_module =
             unsafe { device.create_shader_module(&fs_shader_module_create_info, None) }?;
 
-        let main_function_name = CString::new("main").unwrap();
+        let main_function_name = CString::new("main")?;
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {

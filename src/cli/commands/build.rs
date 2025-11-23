@@ -99,9 +99,24 @@ impl ICommand for Build {
         cmd::run_with_stdout("rustc --version", &mut rustc_version)?;
         cmd::run_with_stdout("rustup show active-toolchain", &mut rustup_toolchain)?;
 
-        todo!();
-        //let build_date = chrono::Local::now().to_rfc3339();
-        let build_date = String::new();
+        let mut build_date = String::new();
+
+        #[cfg(target_os = "windows")]
+        {
+            cmd::run_with_stdout(
+                "powershell (Get-Date).ToString(\"o\")",
+                &mut build_date,
+            )?;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            cmd::run_with_stdout(
+                "bash -c \"date +\\\"%Y-%m-%dT%H:%M:%S.%N%:z\\\"\"",
+                &mut build_date,
+            )?;
+        }
+
 
         let git_repo = git_repo.trim();
         let git_commit = git_commit.trim();

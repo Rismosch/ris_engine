@@ -36,8 +36,36 @@ where
     }
 
     let mut command = std::process::Command::new(splits[0]);
+    let mut complete_arg = String::new();
+
     for arg in &splits[1..] {
-        command.arg(arg);
+        let trimmed_arg = arg.trim();
+        let is_combined_arg =
+            !complete_arg.is_empty() ||
+            trimmed_arg.starts_with("\"");
+        if !is_combined_arg {
+            command.arg(trimmed_arg);
+            continue;
+        }
+
+        complete_arg.push(' ');
+        complete_arg.push_str(trimmed_arg);
+
+        let combined_arg_is_done =
+            trimmed_arg.ends_with("\"") &&
+            !trimmed_arg.ends_with("\\\""); // an escaped `"` does not end the combined arg
+
+        if combined_arg_is_done {
+            let trimmed = complete_arg.trim();
+            let sub = &trimmed[1..(trimmed.len() - 1)];
+            let cleaned = sub.replace("\\\"", "\"");
+            command.arg(cleaned);
+            complete_arg = String::new(); // reset complete_arg
+        }
+    }
+
+    if !complete_arg.is_empty() {
+        return ris_error::new_result!("syntax error: failed to find closing quotation mark");
     }
 
     if stdout.is_some() {

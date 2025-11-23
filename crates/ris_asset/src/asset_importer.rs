@@ -114,7 +114,7 @@ pub fn import_all(
                 let mut target_path = PathBuf::new();
                 target_path.push(target_directory.clone());
                 target_path.push(&target_path_part);
-                let target_path = PathBuf::from(target_path.parent().unwrap());
+                let target_path = PathBuf::from(target_path.parent().into_ris_error()?);
 
                 ris_log::debug!(
                     "import \"{}\" to \"{}\"",

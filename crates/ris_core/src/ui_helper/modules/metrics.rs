@@ -5,7 +5,6 @@ use std::time::Instant;
 use ris_data::gameloop::frame::Frame;
 use ris_debug::profiler::ProfilerState;
 use ris_error::prelude::*;
-use ris_io::path::SanitizeInfo;
 
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;

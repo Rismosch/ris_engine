@@ -138,8 +138,11 @@ fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
     let mut result: Vec<_> = entries
         .filter(|x| x.is_ok())
         .map(|x| {
-            x.expect("somehow, x is Err, despite being filtered out previously")
-                .path()
+            let dir_entry = ris_error::unwrap!(
+                x,
+                "somehow, x is Err, despite being filtered out previously",
+            );
+            dir_entry.path()
         })
         .collect();
 
@@ -220,7 +223,7 @@ fn move_current_file(
     } else {
         std::fs::rename(current_path, &previous_path)?;
 
-        let mut new_counter = previous_counter.clone();
+        let mut new_counter = previous_counter;
         new_counter.increase();
         Ok(new_counter)
     }

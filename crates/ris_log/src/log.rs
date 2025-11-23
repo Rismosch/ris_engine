@@ -135,7 +135,7 @@ pub fn get_timestamp() -> Counter {
             Err(e) => eprintln!("error while getting log_level: {}", e),
             Ok(mut log) => {
                 if let Some(logger) = log.as_mut() {
-                    let previous = logger.counter.clone();
+                    let previous = logger.counter;
                     logger.counter.increase();
                     return previous;
                 }

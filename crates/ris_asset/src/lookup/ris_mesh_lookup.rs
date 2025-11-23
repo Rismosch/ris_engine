@@ -75,7 +75,10 @@ impl MeshLookup {
                             value: None,
                         };
                         self.entries.push(entry);
-                        let entry = self.entries.last_mut().unwrap();
+                        let entry = ris_error::unwrap!(
+                            self.entries.last_mut().into_ris_error(),
+                            "we just added the entry, thus this should never be None",
+                        );
                         entry
                     }
                 }
