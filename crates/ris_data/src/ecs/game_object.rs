@@ -247,12 +247,9 @@ impl GameObjectHandle {
             }
         }
 
-        if search_parents {
-            if let Some(parent) = self.parent(scene)? {
-                let mut parent_components =
-                    parent.get_components(scene, GetFrom::ThisAndParents)?;
-                result.append(&mut parent_components);
-            }
+        if search_parents && let Some(parent) = self.parent(scene)? {
+            let mut parent_components = parent.get_components(scene, GetFrom::ThisAndParents)?;
+            result.append(&mut parent_components);
         }
 
         Ok(result)

@@ -1,4 +1,4 @@
-use ris_data::counter::Counter;
+use ris_log::counter::Counter;
 
 #[test]
 fn should_should_add() {
@@ -16,9 +16,9 @@ fn should_should_add() {
 
 #[test]
 fn should_overflow() {
-    let mut counter = Counter::from_raw(usize::MAX - 2);
+    let mut counter = Counter::from_raw(u32::MAX - 2);
 
-    assert_eq!(counter.raw(), usize::MAX - 2);
+    assert_eq!(counter.raw(), u32::MAX - 2);
     counter.increase();
     counter.increase();
     counter.increase();
@@ -68,13 +68,13 @@ fn should_sort_case_2() {
         Counter::from_raw(1),
         Counter::from_raw(5),
         Counter::from_raw(0),
-        Counter::from_raw(18446744073709551610),
+        Counter::from_raw(4294967290),
         Counter::from_raw(5),
-        Counter::from_raw(18446744073709551611),
+        Counter::from_raw(4294967291),
         Counter::from_raw(6),
-        Counter::from_raw(18446744073709551612),
+        Counter::from_raw(4294967292),
         Counter::from_raw(4),
-        Counter::from_raw(18446744073709551610),
+        Counter::from_raw(4294967290),
     ];
 
     counters.sort();
@@ -82,10 +82,10 @@ fn should_sort_case_2() {
     assert_eq!(
         counters,
         vec![
-            Counter::from_raw(18446744073709551610),
-            Counter::from_raw(18446744073709551610),
-            Counter::from_raw(18446744073709551611),
-            Counter::from_raw(18446744073709551612),
+            Counter::from_raw(4294967290),
+            Counter::from_raw(4294967290),
+            Counter::from_raw(4294967291),
+            Counter::from_raw(4294967292),
             Counter::from_raw(0),
             Counter::from_raw(1),
             Counter::from_raw(4),

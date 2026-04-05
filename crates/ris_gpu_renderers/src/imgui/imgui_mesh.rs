@@ -20,8 +20,10 @@ impl Mesh {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        self.vertices.free(device);
-        self.indices.free(device);
+        unsafe {
+            self.vertices.free(device);
+            self.indices.free(device);
+        }
     }
 
     pub fn alloc(

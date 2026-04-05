@@ -2,10 +2,6 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Duration;
-use chrono::Local;
-
 use ris_io::fallback_file::FallbackFileOverwrite;
 
 #[test]
@@ -54,17 +50,9 @@ fn should_write_file() {
     let lines = content.lines().collect::<Vec<&str>>();
 
     assert_eq!(lines.len(), 3);
+    assert_eq!(lines[0], "0");
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "hello world");
-
-    let file_date = DateTime::parse_from_rfc3339(lines[0])
-        .unwrap()
-        .with_timezone(&Local);
-    let now = Local::now();
-
-    let diff = now - file_date;
-    let one_second = Duration::seconds(1);
-    assert!(diff < one_second);
 }
 
 #[test]
@@ -80,62 +68,52 @@ fn should_move_file() {
     overwriter.overwrite_current("zero".as_bytes()).unwrap();
 
     // move file 1
-    // should use first line as file name
+    // should use Counter::MAX when first line is not an unsigned integer
     std::fs::remove_file(&current_path).unwrap();
     let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am a unique file").unwrap();
+    writeln!(current_file, "i am incorrectly formatted").unwrap();
     overwriter.overwrite_current("un".as_bytes()).unwrap();
     let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am a unique file.test");
+    file_path.push("4294967295.test");
     let mut file = std::fs::File::open(&file_path).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
     assert!(file_path.exists());
-    assert_eq!(content, "i am a unique file\n");
+    assert_eq!(content, "i am incorrectly formatted\n");
 
     // move file 2
-    // should use first line as file name, sanitizing invalid chars
-    std::fs::remove_file(&current_path).unwrap();
-    let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am not unique :(").unwrap();
-    overwriter.overwrite_current("deux".as_bytes()).unwrap();
-    let mut file_path = PathBuf::from(&old_path);
-    file_path.push("i am not unique _(.test");
-    let mut file = std::fs::File::open(&file_path).unwrap();
-    let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
-    assert!(file_path.exists());
-    assert_eq!(content, "i am not unique :(\n");
-
-    // move file 3
-    // should generate new unique filename, which does not correspont to its first line
-    std::fs::remove_file(&current_path).unwrap();
-    let mut current_file = std::fs::File::create(&current_path).unwrap();
-    writeln!(current_file, "i am not unique :(").unwrap();
-    overwriter.overwrite_current("trois".as_bytes()).unwrap();
-    let entries = std::fs::read_dir(&old_path).unwrap();
-    for entry in entries {
-        let unique_path = entry.unwrap().path();
-        let mut file = std::fs::File::open(&unique_path).unwrap();
+    // should create a unique filename, when for some reason (ie user modifying the files) creates
+    // duplicated filenames
+    for i in 1..5 {
+        std::fs::remove_file(&current_path).unwrap();
+        let mut current_file = std::fs::File::create(&current_path).unwrap();
+        writeln!(current_file, "i am incorrectly formatted").unwrap();
+        overwriter
+            .overwrite_current("i am correctly formatted".as_bytes())
+            .unwrap();
+        let mut file_path = PathBuf::from(&old_path);
+        file_path.push(format!("4294967295({}).test", i));
+        let mut file = std::fs::File::open(&file_path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();
-
-        if unique_path == file_path {
-            continue;
-        }
-
-        if !unique_path.exists() {
-            continue;
-        }
-
-        if content != "i am not unique :(\n" {
-            continue;
-        }
-
-        return; // test passed
+        assert!(file_path.exists());
+        assert_eq!(content, "i am incorrectly formatted\n");
     }
 
-    panic!("test failed, either because a unique path was not generated, or no entries exist");
+    // move file 3
+    // file is correctly formatted and uses the line as its filename
+    for i in 0..5 {
+        overwriter
+            .overwrite_current("i am correctly formatted".as_bytes())
+            .unwrap();
+        let mut file_path = PathBuf::from(&old_path);
+        file_path.push(format!("{}.test", i));
+        let mut file = std::fs::File::open(&file_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        assert!(file_path.exists());
+        assert_eq!(content, format!("{}\n\ni am correctly formatted", i));
+    }
 }
 
 #[test]
@@ -151,7 +129,10 @@ fn should_delete_expired_files() {
         let mut file_path = PathBuf::from(&old_dir);
         file_path.push(format!("{}", i));
 
-        std::fs::File::create(&file_path).unwrap();
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        let content = format!("{}\n\nhello world", i);
+        ris_io::write(&mut file, content.as_bytes()).unwrap();
+
         file_paths.push(file_path);
     }
 
@@ -182,11 +163,16 @@ fn should_get_available_files() {
         let mut file_path = PathBuf::from(&old_dir);
         file_path.push(format!("{}", i));
 
-        std::fs::File::create(&file_path).unwrap();
+        let mut file = std::fs::File::create(&file_path).unwrap();
+
+        let content = format!("{}\n\nhello world", i);
+        ris_io::write(&mut file, content.as_bytes()).unwrap();
         file_paths.push(file_path);
     }
 
     let available_paths = overwriter.available_paths();
+    println!("available_paths: {:#?}", available_paths);
+    println!("file_paths: {:#?}", file_paths);
     assert_eq!(available_paths.len(), 5);
     assert_eq!(available_paths[0], file_paths[0]);
     assert_eq!(available_paths[1], file_paths[1]);
@@ -233,11 +219,11 @@ fn should_get_file_contents_by_path() {
     let result3 = overwriter.get_by_path(&available_args[3]);
     let result4 = overwriter.get_by_path(&available_args[4]);
 
-    assert!(result0.is_some());
-    assert!(result1.is_none());
-    assert!(result2.is_some());
-    assert!(result3.is_none());
-    assert!(result4.is_some());
+    assert!(result0.is_ok());
+    assert!(result1.is_err());
+    assert!(result2.is_ok());
+    assert!(result3.is_err());
+    assert!(result4.is_ok());
 
     let current = String::from_utf8(result0.unwrap()).unwrap();
     let old2 = String::from_utf8(result2.unwrap()).unwrap();
@@ -253,7 +239,7 @@ fn should_get_file_contents_by_index() {
     let test_dir = ris_util::prep_test_dir!();
     let overwriter = FallbackFileOverwrite::new(&test_dir, ".test", 10);
 
-    assert!(overwriter.get_by_index(0).is_none());
+    assert!(overwriter.get_by_index(0).is_err());
 
     overwriter.overwrite_current("un".as_bytes()).unwrap();
     overwriter.overwrite_current("deux".as_bytes()).unwrap();
@@ -272,5 +258,5 @@ fn should_get_file_contents_by_index() {
     assert_eq!(old2, "trois");
     assert_eq!(old3, "deux");
     assert_eq!(old4, "un");
-    assert!(overwriter.get_by_index(5).is_none());
+    assert!(overwriter.get_by_index(5).is_err());
 }

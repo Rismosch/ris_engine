@@ -75,7 +75,10 @@ impl MeshLookup {
                             value: None,
                         };
                         self.entries.push(entry);
-                        let entry = self.entries.last_mut().unwrap();
+                        let entry = ris_error::unwrap!(
+                            self.entries.last_mut().into_ris_error(),
+                            "we just added the entry, thus this should never be None",
+                        );
                         entry
                     }
                 }
@@ -131,11 +134,11 @@ impl MeshLookup {
         match entry.value.take() {
             Some(EntryState::Loading(receiver)) => match receiver.receive() {
                 Ok(Ok(cpu_mesh)) => {
-                    let value = match GpuMesh::from_cpu_mesh(
+                    let value = match unsafe {GpuMesh::from_cpu_mesh(
                         transient_command_args,
                         physical_device_memory_properties,
                         cpu_mesh,
-                    ) {
+                    )} {
                         Ok(gpu_mesh) => Some(EntryState::Loaded(gpu_mesh)),
                         Err(e) => {
                             ris_log::error!("failed to convert cpu mesh to gpu mesh: {}", e);

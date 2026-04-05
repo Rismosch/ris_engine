@@ -53,17 +53,17 @@ impl Renderer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device, free_frames_in_flight: bool) {
-        if free_frames_in_flight {
-            if let Some(mut frames_in_flight) = self.frames_in_flight.take() {
+        unsafe {
+            if free_frames_in_flight && let Some(mut frames_in_flight) = self.frames_in_flight.take() {
                 frames_in_flight.free(device);
             }
-        }
 
-        self.scene.free(device);
-        self.gizmo_segment.free(device);
-        self.gizmo_text.free(device);
-        #[cfg(feature = "ui_helper_enabled")]
-        self.imgui.free(device);
+            self.scene.free(device);
+            self.gizmo_segment.free(device);
+            self.gizmo_text.free(device);
+            #[cfg(feature = "ui_helper_enabled")]
+            self.imgui.free(device);
+        }
     }
 
     pub fn alloc(

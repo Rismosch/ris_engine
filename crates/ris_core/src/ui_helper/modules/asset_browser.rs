@@ -132,24 +132,20 @@ impl AssetBrowser {
         } else if path.is_file()
             && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) }
         {
-            if data.ui.menu_item("delete") {
-                if let Err(e) = std::fs::remove_file(path) {
-                    ris_log::error!("failed to delete file: {}", e)
-                }
+            if data.ui.menu_item("delete") && let Err(e) = std::fs::remove_file(path) {
+                ris_log::error!("failed to delete file: {}", e)
             }
 
             unsafe { imgui::sys::igEndPopup() };
         }
 
         // drag and drop
-        if path.is_file() {
-            if let Some(guard) = inspector_util::drag_drop_source() {
-                let asset_id = AssetId::Path(path_without_root.display().to_string());
-                let mut aref_mut = self.shared_state.borrow_mut();
-                aref_mut.set_drag_drop_payload(&guard, "asset", asset_id)?;
-                data.ui.text(file_name);
-                self.is_dragging = true;
-            }
+        if path.is_file() && let Some(guard) = inspector_util::drag_drop_source() {
+            let asset_id = AssetId::Path(path_without_root.display().to_string());
+            let mut aref_mut = self.shared_state.borrow_mut();
+            aref_mut.set_drag_drop_payload(&guard, "asset", asset_id)?;
+            data.ui.text(file_name);
+            self.is_dragging = true;
         }
 
         // click
@@ -160,24 +156,22 @@ impl AssetBrowser {
             self.clicked_path = Some(path_without_root.to_path_buf());
         }
 
-        if unsafe { imgui::sys::igIsMouseReleased_Nil(0) } {
-            if let Some(clicked_path) = self.clicked_path.take() {
-                if !self.is_dragging {
-                    let selection = Some(Selection::AssetPath(clicked_path));
-                    ris_log::debug!(
-                        "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
-                        selection,
-                        path,
-                        root
-                    );
-                    self.shared_state
-                        .borrow_mut()
-                        .selector
-                        .set_selection(selection);
-                }
-
-                self.is_dragging = false;
+        if unsafe { imgui::sys::igIsMouseReleased_Nil(0) } && let Some(clicked_path) = self.clicked_path.take() {
+            if !self.is_dragging {
+                let selection = Some(Selection::AssetPath(clicked_path));
+                ris_log::debug!(
+                    "select: \"{:?}\" path: \"{:?}\" root: \"{:?}\"",
+                    selection,
+                    path,
+                    root
+                );
+                self.shared_state
+                    .borrow_mut()
+                    .selector
+                    .set_selection(selection);
             }
+
+            self.is_dragging = false;
         }
 
         // draw children

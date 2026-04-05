@@ -221,10 +221,8 @@ impl ThreadPool {
         drop(g);
 
         // initial main worker setup
-        if set_affinity {
-            if let Err(e) = crate::affinity::set_affinity(&affinities[0]) {
-                ris_log::error!("failed to set affinities for main worker: {}", e);
-            }
+        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]){
+            ris_log::error!("failed to set affinities for main worker: {}", e);
         }
         let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
         let waker = if use_parking {
@@ -252,10 +250,8 @@ impl ThreadPool {
                 .name(format!("thread_pool.worker.{}", i))
                 .spawn(move || {
                     // worker initial setup
-                    if set_affinity {
-                        if let Err(e) = crate::affinity::set_affinity(&core_ids) {
-                            ris_log::error!("failed to set affinities for worker {}: {}", i, e);
-                        }
+                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids){
+                        ris_log::error!("failed to set affinities for worker {}: {}", i, e);
                     }
                     let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
                     let waker = if use_parking {

@@ -1,19 +1,19 @@
-use std::fs::File;
 use std::io::BufRead;
+use std::io::Read;
+use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Local;
-
-use ris_error::RisResult;
+use ris_error::prelude::*;
+use ris_log::counter::Counter;
 
 use crate::path::SanitizeInfo;
+use crate::FatPtr;
 
 pub struct FallbackFileAppend {
-    current_file: File,
+    current_file: std::fs::File,
 }
 
 impl FallbackFileAppend {
@@ -21,13 +21,13 @@ impl FallbackFileAppend {
         let (current_path, old_directory) = generate_paths(directory, file_extension);
         std::fs::create_dir_all(&old_directory)?;
         delete_expired_files(&old_directory, old_file_count)?;
-        move_current_file(&current_path, &old_directory, file_extension)?;
-        let current_file = create_current_file(&current_path)?;
+        let counter = move_current_file(&current_path, &old_directory, file_extension)?;
+        let current_file = create_current_file(&current_path, counter)?;
 
         Ok(Self { current_file })
     }
 
-    pub fn current(&mut self) -> &mut File {
+    pub fn current(&mut self) -> &mut std::fs::File {
         &mut self.current_file
     }
 }
@@ -56,12 +56,12 @@ impl FallbackFileOverwrite {
     pub fn overwrite_current(&self, buf: &[u8]) -> RisResult<()> {
         std::fs::create_dir_all(&self.old_directory)?;
         delete_expired_files(&self.old_directory, self.old_file_count)?;
-        move_current_file(
+        let counter = move_current_file(
             &self.current_path,
             &self.old_directory,
             &self.file_extension,
         )?;
-        let mut current_file = create_current_file(&self.current_path)?;
+        let mut current_file = create_current_file(&self.current_path, counter)?;
 
         let written_bytes = current_file.write(buf)?;
         if written_bytes != buf.len() {
@@ -89,20 +89,20 @@ impl FallbackFileOverwrite {
         result
     }
 
-    pub fn get_by_path(&self, path: &Path) -> Option<Vec<u8>> {
-        match File::open(path) {
-            Ok(mut file) => read_file_and_strip_date(&mut file).ok(),
-            Err(_) => None,
-        }
+    pub fn get_by_path(&self, path: &Path) -> RisResult<Vec<u8>> {
+        let FileStructure {
+            counter: _,
+            p_content,
+        } = parse_file_header(path)?;
+        let mut file = std::fs::File::open(path)?;
+        let bytes = crate::io::read_at(&mut file, p_content)?;
+        Ok(bytes)
     }
 
-    pub fn get_by_index(&self, index: usize) -> Option<Vec<u8>> {
+    pub fn get_by_index(&self, index: usize) -> RisResult<Vec<u8>> {
         let available_paths = self.available_paths();
-        let path_option = available_paths.get(index);
-        match path_option {
-            Some(path_buf) => self.get_by_path(path_buf),
-            None => None,
-        }
+        let path = available_paths.get(index).into_ris_error()?;
+        self.get_by_path(path)
     }
 }
 
@@ -141,12 +141,32 @@ fn get_sorted_entries(directory: &Path) -> RisResult<Vec<PathBuf>> {
     let mut result: Vec<_> = entries
         .filter(|x| x.is_ok())
         .map(|x| {
-            x.expect("somehow, x is Err, despite being filtered out previously")
-                .path()
+            let dir_entry = ris_error::unwrap!(
+                x,
+                "somehow, x is Err, despite being filtered out previously",
+            );
+            dir_entry.path()
         })
         .collect();
 
-    result.sort_by(|left, right| right.cmp(left));
+    result.sort_by(|left, right| {
+        let left = match parse_file_header(left) {
+            Ok(FileStructure {
+                counter: Some(counter),
+                p_content: _,
+            }) => counter,
+            _ => Counter::MAX,
+        };
+        let right = match parse_file_header(right) {
+            Ok(FileStructure {
+                counter: Some(counter),
+                p_content: _,
+            }) => counter,
+            _ => Counter::MAX,
+        };
+
+        right.cmp(&left)
+    });
 
     Ok(result)
 }
@@ -155,30 +175,30 @@ fn move_current_file(
     current_path: &Path,
     old_directory: &Path,
     file_extension: &str,
-) -> RisResult<()> {
+) -> RisResult<Counter> {
     if !current_path.exists() {
-        return Ok(());
+        return Ok(Counter::default());
     }
 
-    let file = File::open(current_path)?;
+    let file = std::fs::File::open(current_path)?;
 
     let mut lines = std::io::BufReader::new(file).lines();
-    let previous_filename_unsanitized = match lines.next() {
-        Some(Ok(line)) => line,
-        _ => format!("{}", Local::now()),
+    let previous_counter = match lines.next() {
+        Some(Ok(line)) => match line.trim().parse::<u32>() {
+            Ok(n) => Counter::from_raw(n),
+            _ => Counter::MAX,
+        },
+        _ => Counter::MAX,
     };
-    let previous_filename_without_extension = crate::path::sanitize(
-        previous_filename_unsanitized,
-        SanitizeInfo::RemoveInvalidCharsAndSlashes,
-    );
+    let previous_filename_without_extension = previous_counter.raw().to_string();
 
     let mut previous_path = PathBuf::new();
     previous_path.push(old_directory);
-    let previous_filename = format!("{}{}", previous_filename_without_extension, file_extension,);
+    let previous_filename = format!("{}{}", previous_filename_without_extension, file_extension);
     previous_path.push(previous_filename);
 
     let attempts = 100;
-    for _ in 0..attempts {
+    for i in 0..attempts {
         if !previous_path.exists() {
             break;
         }
@@ -187,7 +207,15 @@ fn move_current_file(
 
         previous_path = PathBuf::new();
         previous_path.push(old_directory);
-        let new_previous_filename = format!("{}{}", Local::now().to_rfc3339(), file_extension);
+
+        let post_fix = if i == 0 {
+            String::new()
+        } else {
+            format!("({})", i)
+        };
+
+        let new_previous_filename =
+            format!("{}{}{}", previous_counter.raw(), post_fix, file_extension,);
         let sanitized_new_previous_filename = crate::path::sanitize(
             &new_previous_filename,
             SanitizeInfo::RemoveInvalidCharsAndSlashes,
@@ -200,72 +228,85 @@ fn move_current_file(
     } else {
         std::fs::rename(current_path, &previous_path)?;
 
-        Ok(())
+        let mut new_counter = previous_counter;
+        new_counter.increase();
+        Ok(new_counter)
     }
 }
 
-fn create_current_file(current_path: &Path) -> RisResult<File> {
-    let mut current_file = File::create(current_path)?;
-
-    writeln!(current_file, "{}\n", Local::now().to_rfc3339())?;
-
+fn create_current_file(current_path: &Path, counter: Counter) -> RisResult<std::fs::File> {
+    let mut current_file = std::fs::File::create(current_path)?;
+    writeln!(current_file, "{}\n", counter.raw())?;
     Ok(current_file)
 }
 
-fn read_file_and_strip_date(file: &mut File) -> RisResult<Vec<u8>> {
-    let file_size = crate::seek(file, SeekFrom::End(0))?;
+struct FileStructure {
+    counter: Option<Counter>,
+    p_content: FatPtr,
+}
 
-    let mut buf = vec![0u8; file_size as usize];
-    crate::seek(file, SeekFrom::Start(0))?;
-    crate::read(file, &mut buf)?;
+fn parse_file_header(path: impl AsRef<Path>) -> RisResult<FileStructure> {
+    let mut file = std::fs::File::open(path.as_ref())?;
+    let file = &mut file;
 
-    let mut first_new_line = None;
-    let mut second_new_line = None;
-    for (i, char) in buf.iter().enumerate().take(file_size as usize) {
+    let mut begin = 0u64;
+    let end = crate::seek(file, SeekFrom::End(0))?;
+
+    // max u32 `4294967295` has 10 character. plus two line breaks
+    // (assuming `\r\n`) gives us 14 character thus a buffer of size
+    // 2^5=16 should be enough to check whether the file header is
+    // correctly formatted or not
+    let mut buf = vec![0u8; 16];
+    file.seek(SeekFrom::Start(0))?;
+    let read_bytes = file.read(&mut buf)?;
+
+    let mut first_line_break_index = None;
+    let mut second_line_break_index = None;
+    for (i, char) in buf.iter().enumerate().take(read_bytes as usize) {
         if *char != b'\n' {
             continue;
         }
 
-        if first_new_line.is_none() {
-            first_new_line = Some(i);
+        if first_line_break_index.is_none() {
+            first_line_break_index = Some(i);
         } else {
-            second_new_line = Some(i);
+            second_line_break_index = Some(i);
+            begin = i as u64 + 1;
             break;
         }
     }
 
-    match (first_new_line, second_new_line) {
-        (Some(first_new_line), Some(second_new_line)) => {
-            // expect the second line to be empty
-            if first_new_line + 1 != second_new_line {
-                return Ok(buf);
-            }
+    let mut result = FileStructure {
+        counter: None,
+        p_content: FatPtr::begin_end(begin, end)?,
+    };
 
-            // expect the first line to be a string
-            let mut first_line_buf = vec![0u8; first_new_line];
-            crate::seek(file, SeekFrom::Start(0))?;
-            crate::read(file, &mut first_line_buf)?;
-            let first_line_string = String::from_utf8(first_line_buf);
-            match first_line_string {
-                Ok(date_string) => {
-                    // expect first line to be a valid date
-                    let date = DateTime::parse_from_rfc3339(&date_string);
-                    if date.is_err() {
-                        return Ok(buf);
-                    }
+    let (Some(first_line_break_index), Some(second_line_break_index)) =
+        (first_line_break_index, second_line_break_index)
+    else {
+        return Ok(result);
+    };
 
-                    // first two lines are as expected, we can strip them away
-                    let content_addr = (second_new_line + 1) as u64;
-                    let content_len = file_size - content_addr;
-                    let mut content = vec![0; content_len as usize];
-                    crate::seek(file, SeekFrom::Start(content_addr))?;
-                    crate::read(file, &mut content)?;
-
-                    Ok(content)
-                }
-                Err(_) => Ok(buf),
-            }
-        }
-        _ => Ok(buf),
+    // expect the second line to be empty
+    if first_line_break_index + 1 != second_line_break_index {
+        return Ok(result);
     }
+
+    // expect the first line to be a string
+    let first_line_bytes = &buf[0..first_line_break_index];
+    let first_line = str::from_utf8(first_line_bytes);
+    let Ok(number_string) = first_line else {
+        return Ok(result);
+    };
+
+    // expect first line to be an unsigned integer
+    let Ok(integer) = number_string.parse::<u32>() else {
+        return Ok(result);
+    };
+
+    // first two lines are as expected, we can strip them away
+    result.counter = Some(Counter::from_raw(integer));
+    result.p_content = FatPtr::begin_end(second_line_break_index as u64 + 1, end)?;
+
+    Ok(result)
 }

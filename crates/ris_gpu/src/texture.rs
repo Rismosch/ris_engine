@@ -33,9 +33,11 @@ impl Texture {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&self, device: &ash::Device) {
-        device.destroy_sampler(self.sampler, None);
-        device.destroy_image_view(self.view, None);
-        self.image.free(device);
+        unsafe {
+            device.destroy_sampler(self.sampler, None);
+            device.destroy_image_view(self.view, None);
+            self.image.free(device);
+        }
     }
 
     pub fn alloc(info: TextureCreateInfo) -> RisResult<Self> {

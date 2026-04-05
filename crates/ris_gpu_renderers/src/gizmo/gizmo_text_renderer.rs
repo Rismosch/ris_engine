@@ -42,11 +42,13 @@ impl GizmoTextFrame {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(mut mesh) = self.mesh.take() {
-            mesh.free(device);
-        }
+        unsafe {
+            if let Some(mut mesh) = self.mesh.take() {
+                mesh.free(device);
+            }
 
-        self.descriptor.free(device);
+            self.descriptor.free(device);
+        }
     }
 }
 
@@ -77,18 +79,20 @@ impl GizmoTextRenderer {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        for frame in self.frames.iter_mut() {
-            frame.free(device);
+        unsafe {
+            for frame in self.frames.iter_mut() {
+                frame.free(device);
+            }
+
+            device.destroy_descriptor_pool(self.descriptor_pool, None);
+            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+
+            device.destroy_pipeline(self.pipeline, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
+            device.destroy_render_pass(self.render_pass, None);
+
+            self.font_texture.free(device);
         }
-
-        device.destroy_descriptor_pool(self.descriptor_pool, None);
-        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-
-        device.destroy_pipeline(self.pipeline, None);
-        device.destroy_pipeline_layout(self.pipeline_layout, None);
-        device.destroy_render_pass(self.render_pass, None);
-
-        self.font_texture.free(device);
     }
 
     pub fn alloc(

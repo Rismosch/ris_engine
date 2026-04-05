@@ -7,7 +7,6 @@ use crate::info::app_info::AppInfo;
 use crate::ris_yaml::RisYaml;
 use crate::settings::Settings;
 
-//pub const DEFAULT: &str = "default";
 pub const DIRECTORY_NAME: &str = "settings";
 pub const EXTENSION: &str = ".ris_yaml";
 
@@ -54,7 +53,7 @@ impl SettingsSerializer {
         ris_log::debug!("deserializing settings...");
 
         for available_path in self.fallback_file.available_paths() {
-            if let Some(bytes) = self.fallback_file.get_by_path(&available_path) {
+            if let Ok(bytes) = self.fallback_file.get_by_path(&available_path) {
                 match deserialize(&bytes, app_info) {
                     Ok(settings) => {
                         ris_log::debug!("settings deserialized!");

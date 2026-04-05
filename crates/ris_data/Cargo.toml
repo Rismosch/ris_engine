@@ -1,13 +1,12 @@
 [package]
 name = "ris_data"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ash = "0.37.3"
-chrono = "0.4"
 imgui = "0.11.0"
 sdl2 = "0.38.0"
 ris_asset_data = { path = "../ris_asset_data" }

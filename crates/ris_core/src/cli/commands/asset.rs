@@ -3,11 +3,12 @@ use std::path::Path;
 use ris_asset::asset_compiler;
 use ris_asset::asset_compiler::CompileOptions;
 use ris_asset::asset_importer;
-use ris_core::log_appenders::console_appender::ConsoleAppender;
 use ris_error::Extensions;
 use ris_error::RisResult;
 use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
+
+use crate::log_appenders::console_appender::ConsoleAppender;
 
 use super::ExplanationLevel;
 use super::ICommand;

@@ -128,10 +128,8 @@ impl ImguiBackend {
                 None
             };
 
-            if let Some(pressed) = event {
-                if let Some(scancode) = Scancode::from_i32(i as i32) {
-                    forward_keyboard_key_event(io, scancode, pressed);
-                }
+            if let Some(pressed) = event && let Some(scancode) = Scancode::from_i32(i as i32) {
+                forward_keyboard_key_event(io, scancode, pressed);
             }
         }
 

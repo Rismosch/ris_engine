@@ -34,8 +34,10 @@ impl ImguiFrame {
     ///
     /// May only be called once. Memory must not be freed twice.
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        if let Some(mut mesh) = self.mesh.take() {
-            mesh.free(device);
+        unsafe {
+            if let Some(mut mesh) = self.mesh.take() {
+                mesh.free(device);
+            }
         }
     }
 }
@@ -130,7 +132,7 @@ impl ImguiRenderer {
         let fs_shader_module =
             unsafe { device.create_shader_module(&fs_shader_module_create_info, None) }?;
 
-        let main_function_name = CString::new("main").unwrap();
+        let main_function_name = CString::new("main")?;
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo {

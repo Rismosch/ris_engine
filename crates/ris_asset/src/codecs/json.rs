@@ -200,13 +200,15 @@ impl TryFrom<&JsonValue> for i32 {
     type Error = JsonError;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of invalid number should be impossible
-                Ok(inner.parse().unwrap())
-            }
-            _ => Err(JsonError::InvalidCast),
-        }
+        let JsonValue::Number(JsonNumber { inner }) = value else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        let Ok(number) = inner.parse() else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        Ok(number)
     }
 }
 
@@ -214,13 +216,15 @@ impl TryFrom<&JsonValue> for usize {
     type Error = JsonError;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of invalid number should be impossible
-                Ok(inner.parse().unwrap())
-            }
-            _ => Err(JsonError::InvalidCast),
-        }
+        let JsonValue::Number(JsonNumber { inner }) = value else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        let Ok(number) = inner.parse() else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        Ok(number)
     }
 }
 
@@ -228,13 +232,15 @@ impl TryFrom<&JsonValue> for isize {
     type Error = JsonError;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of invalid number should be impossible
-                Ok(inner.parse().unwrap())
-            }
-            _ => Err(JsonError::InvalidCast),
-        }
+        let JsonValue::Number(JsonNumber { inner }) = value else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        let Ok(number) = inner.parse() else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        Ok(number)
     }
 }
 
@@ -242,13 +248,15 @@ impl TryFrom<&JsonValue> for f32 {
     type Error = JsonError;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
-        match value {
-            JsonValue::Number(JsonNumber { inner }) => {
-                // safety: construction of number that cannot be parsed should be impossible
-                Ok(inner.parse().unwrap())
-            }
-            _ => Err(JsonError::InvalidCast),
-        }
+        let JsonValue::Number(JsonNumber { inner }) = value else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        let Ok(number) = inner.parse() else {
+            return Err(JsonError::InvalidCast);
+        };
+
+        Ok(number)
     }
 }
 
@@ -463,8 +471,14 @@ impl JsonValue {
             return Err(JsonError::SyntaxError);
         }
 
-        let first = first_token.chars().next().unwrap();
-        let last = last_token.chars().next().unwrap();
+        // these two should never be None, because of the asserts above. but we do error handling
+        // anyway, just in case
+        let Some(first) = first_token.chars().next() else {
+            return Err(JsonError::SyntaxError);
+        };
+        let Some(last) = last_token.chars().next() else {
+            return Err(JsonError::SyntaxError);
+        };
 
         let is_object = first == BEGIN_OBJECT && last == END_OBJECT;
         let is_array = first == BEGIN_ARRAY && last == END_ARRAY;
@@ -483,18 +497,19 @@ impl JsonValue {
         for token in &tokens[start..end] {
             match token.len() {
                 0 => return Err(JsonError::SyntaxError),
-                1 => match token.chars().next().unwrap() {
-                    BEGIN_OBJECT => object_generation += 1,
-                    BEGIN_ARRAY => array_generation += 1,
-                    END_OBJECT => object_generation -= 1,
-                    END_ARRAY => array_generation -= 1,
-                    VALUE_SEPARATOR => {
+                1 => match token.chars().next() {
+                    Some(BEGIN_OBJECT) => object_generation += 1,
+                    Some(BEGIN_ARRAY) => array_generation += 1,
+                    Some(END_OBJECT) => object_generation -= 1,
+                    Some(END_ARRAY) => array_generation -= 1,
+                    Some(VALUE_SEPARATOR) => {
                         if object_generation == 0 && array_generation == 0 {
                             elements.push(Vec::new());
                             continue;
                         }
                     }
-                    _ => {}
+                    Some(_) => {}
+                    None => return Err(JsonError::SyntaxError),
                 },
                 _ => {}
             }
@@ -638,7 +653,10 @@ impl JsonMember {
             return Err(JsonError::SyntaxError);
         }
 
-        let separator = separator_token.chars().next().unwrap();
+        let Some(separator) = separator_token.chars().next() else {
+            return Err(JsonError::SyntaxError);
+        };
+
         if separator != NAME_SEPARATOR {
             return Err(JsonError::SyntaxError);
         }

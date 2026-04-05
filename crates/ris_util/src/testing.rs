@@ -213,9 +213,11 @@ macro_rules! prep_test_dir {
         let sanitized_test_path =
             ris_io::path::sanitize(test_path, ris_io::path::SanitizeInfo::RemoveInvalidChars);
 
-        let executable_string = std::env::args().next().expect("no cli args");
+        let executable_string = std::env::args().next().expect("cli args to exist");
         let executable_path = std::path::PathBuf::from(executable_string);
-        let executable_directory = executable_path.parent().expect("executable has no parent");
+        let executable_directory = executable_path
+            .parent()
+            .expect("executable to have a parent");
 
         let mut result = std::path::PathBuf::new();
         result.push(executable_directory);
@@ -229,6 +231,8 @@ macro_rules! prep_test_dir {
         if !result.exists() {
             panic!("failed to create \"{:?}\"", &result);
         }
+
+        eprintln!("created dir \"{}\"", result.display());
 
         result
     }};

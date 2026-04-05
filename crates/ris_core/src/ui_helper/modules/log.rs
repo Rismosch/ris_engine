@@ -2,6 +2,7 @@ use std::ffi::CString;
 
 use ris_error::Extensions;
 use ris_error::RisResult;
+use ris_log::constructed_log_message::ConstructedLogFormatArgs;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
@@ -106,7 +107,14 @@ impl LogModule {
                 }
             };
 
-            let formatted_message = message.fmt(false);
+            let args = ConstructedLogFormatArgs {
+                ansi_support: false,
+                show_timestamp: true,
+                show_priority: true,
+                show_priority_padding: false,
+                show_foot: true,
+            };
+            let formatted_message = message.fmt(args);
             if !formatted_message
                 .to_lowercase()
                 .contains(&self.filter.to_lowercase())

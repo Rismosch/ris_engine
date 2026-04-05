@@ -4,8 +4,7 @@ use std::time::Instant;
 
 use ris_data::gameloop::frame::Frame;
 use ris_debug::profiler::ProfilerState;
-use ris_error::RisResult;
-use ris_io::path::SanitizeInfo;
+use ris_error::prelude::*;
 
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
@@ -140,13 +139,19 @@ impl IUiHelperModule for MetricsModule {
             if let Some(evaluations) = profiler_evaluations {
                 let csv = ris_debug::profiler::generate_csv(&evaluations, ';');
 
-                let filename = ris_io::path::sanitize(
-                    chrono::Local::now().to_rfc3339(),
-                    SanitizeInfo::RemoveInvalidCharsAndSlashes,
-                );
-                let filename = format!("{}.csv", filename);
-                let filepath = PathBuf::from(&dir).join(filename);
+                let mut filepath = None;
 
+                for i in 0..usize::MAX {
+                    let filename = format!("{}.csv", i);
+                    let candidate = PathBuf::from(&dir).join(filename);
+
+                    if !std::fs::exists(&candidate)? {
+                        filepath = Some(candidate);
+                        break;
+                    }
+                }
+
+                let filepath = filepath.into_ris_error()?;
                 std::fs::create_dir_all(&dir)?;
                 let mut file = std::fs::File::create(&filepath)?;
 

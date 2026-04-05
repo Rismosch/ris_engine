@@ -11,17 +11,18 @@ pub struct BuildInfo {
 
 impl BuildInfo {
     pub fn new() -> BuildInfo {
+        // the section below is modified by the cli build command. take care when modifying it
         //@@AUTO GENERATE START@@
         BuildInfo {
             git_repo: String::from(r"https://github.com/Rismosch/ris_engine.git"),
-            git_commit: String::from(r"5acc3a14226e8525c9f0fea13c81c055ceb225b2"),
+            git_commit: String::from(r"7dff47b1a88175a76c88450c339fe873efd861c0"),
             git_branch: String::from(r"dev"),
             rustc_version: String::from(r"rustc 1.90.0 (1159e78c4 2025-09-14)"),
             rustup_toolchain: String::from(
                 r"stable-x86_64-unknown-linux-gnu (overridden by environment variable RUSTUP_TOOLCHAIN)",
             ),
             build_profile: profile(),
-            build_date: String::from(r"2025-11-04T23:19:08.899928199+01:00"),
+            build_date: String::from(r"2025-11-23T23:14:03.366810690+01:00"),
         }
         //@@AUTO GENERATE END@@
     }

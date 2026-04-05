@@ -2,9 +2,6 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
-use chrono::DateTime;
-use chrono::Local;
-
 pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
 // useful, for finding errors that are not logged
 pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
@@ -91,10 +88,6 @@ impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
             Err(e) => crate::new_result!("{}", e),
         }
     }
-}
-
-pub fn get_timestamp() -> DateTime<Local> {
-    Local::now()
 }
 
 #[macro_export]

@@ -29,7 +29,7 @@ impl TransientCommand {
         let command_pool = self.command_pool;
         let command_buffer = self.command_buffer;
 
-        device.free_command_buffers(command_pool, &[command_buffer]);
+        unsafe {device.free_command_buffers(command_pool, &[command_buffer])};
     }
 
     /// # Safety

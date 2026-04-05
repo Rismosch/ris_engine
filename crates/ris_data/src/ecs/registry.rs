@@ -158,8 +158,10 @@ impl<T: Script + Default + 'static> IScriptFactory for ScriptFactory<T> {
 ///
 /// i recommend you call it once before ever calling `get()` and then never again
 pub unsafe fn init(scripts: Vec<Box<dyn IScriptFactory>>) -> RisResult<()> {
-    let new_registry = Registry::new(scripts)?;
-    *REGISTRY.get() = Some(new_registry);
+    unsafe {
+        let new_registry = Registry::new(scripts)?;
+        *REGISTRY.get() = Some(new_registry);
+    }
 
     Ok(())
 }

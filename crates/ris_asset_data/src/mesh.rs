@@ -434,11 +434,11 @@ impl GpuMesh {
             }),
         };
 
-        gpu_mesh.overwrite_with_cpu_mesh(
+        unsafe {gpu_mesh.overwrite_with_cpu_mesh(
             transient_command_args,
             physical_device_memory_properties,
             value,
-        )?;
+        )}?;
 
         Ok(gpu_mesh)
     }
@@ -454,11 +454,12 @@ impl GpuMesh {
         value: MeshPrototype,
     ) -> RisResult<()> {
         let cpu_mesh = CpuMesh::try_from(value)?;
-        self.overwrite_with_cpu_mesh(
+
+        unsafe {self.overwrite_with_cpu_mesh(
             transient_command_args,
             physical_device_memory_properties,
             cpu_mesh,
-        )
+        )}
     }
 
     /// # Safety
@@ -514,7 +515,7 @@ impl GpuMesh {
             staging: &staging,
         })?;
 
-        staging.free(device);
+        unsafe {staging.free(device)};
 
         Ok(())
     }

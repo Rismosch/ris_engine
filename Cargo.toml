@@ -59,7 +59,6 @@ ris_gpu_renderers = { path = "crates/ris_gpu_renderers" }
 # external
 ash = "0.37.3"
 cfg-if = "1"
-chrono = "0.4"
 imgui = { version = "0.11.0", features = ["docking"] }
 libc = "^0.2.30" # required for linux
 miniz_oxide = "=0.8.2"
@@ -79,7 +78,9 @@ default = [
     "ris_validation_enabled",
 ]
 
-ris_cli_enabled = []
+ris_cli_enabled = [
+    "ris_core/cli_enabled",
+]
 
 ris_debug_enabled = [
     "ris_core/ui_helper_enabled",
