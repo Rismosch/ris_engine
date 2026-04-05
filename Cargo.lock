@@ -711,9 +711,6 @@ dependencies = [
 [[package]]
 name = "ris_log"
 version = "0.1.0"
-dependencies = [
- "sdl2",
-]
 
 [[package]]
 name = "ris_math"
