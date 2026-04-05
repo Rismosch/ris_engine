@@ -598,9 +598,13 @@ impl Gltf {
         };
 
         // asset
-        let json_asset = json_gltf.get::<&JsonObject>("asset").ris_expect("the JSON field `asset` to exist")?;
+        let json_asset = json_gltf
+            .get::<&JsonObject>("asset")
+            .ris_expect("the JSON field `asset` to exist")?;
 
-        let version_string = json_asset.get::<String>("version").ris_expect("the JSON field `version` to exist")?;
+        let version_string = json_asset
+            .get::<String>("version")
+            .ris_expect("the JSON field `version` to exist")?;
         ris_error::assert!(version_string == "2.0")?;
         let copyright = json_asset.get::<String>("copyright");
         let generator = json_asset.get::<String>("generator");
@@ -682,13 +686,19 @@ impl Gltf {
                     let mut rotation = [0.0, 0.0, 0.0, 1.0];
                     let mut scale = [1.0, 1.0, 1.0];
 
-                    if let Some(t) = t && let Ok(t) = t.try_into() {
+                    if let Some(t) = t
+                        && let Ok(t) = t.try_into()
+                    {
                         translation = t;
                     }
-                    if let Some(r) = r && let Ok(r) = r.try_into() {
+                    if let Some(r) = r
+                        && let Ok(r) = r.try_into()
+                    {
                         rotation = r;
                     }
-                    if let Some(s) = s && let Ok(s) = s.try_into() {
+                    if let Some(s) = s
+                        && let Ok(s) = s.try_into()
+                    {
                         scale = s;
                     }
 
@@ -753,7 +763,9 @@ impl Gltf {
         let mut buffers = Vec::with_capacity(json_buffers.len());
         for json_buffer in json_buffers {
             let uri = json_buffer.get::<String>("uri");
-            let byte_length = json_buffer.get::<usize>("byteLength").ris_expect("the JSON field `byteLength` to exist")?;
+            let byte_length = json_buffer
+                .get::<usize>("byteLength")
+                .ris_expect("the JSON field `byteLength` to exist")?;
             ris_error::assert!(byte_length >= 1)?;
             let name = json_buffer.get::<String>("name");
             let extensions = json_buffer.get::<&JsonObject>("extensions").cloned();
@@ -777,7 +789,9 @@ impl Gltf {
 
         let mut buffer_views = Vec::with_capacity(json_buffer_views.len());
         for json_buffer_view in json_buffer_views {
-            let buffer = json_buffer_view.get::<usize>("buffer").ris_expect("the JSON field `buffer` to exist")?;
+            let buffer = json_buffer_view
+                .get::<usize>("buffer")
+                .ris_expect("the JSON field `buffer` to exist")?;
             let byte_offset = json_buffer_view.get::<usize>("byteOffset").unwrap_or(0);
             let byte_length = json_buffer_view
                 .get::<usize>("byteLength")
@@ -788,7 +802,7 @@ impl Gltf {
                 Some(34962) => Some(BufferViewTarget::ArrayBuffer),
                 Some(34963) => Some(BufferViewTarget::ElementArrayBuffer),
                 Some(target) => {
-                    return ris_error::new_result!("invalid buffer view target: {}", target)
+                    return ris_error::new_result!("invalid buffer view target: {}", target);
                 }
             };
             let name = json_buffer_view.get::<String>("name");
@@ -825,11 +839,13 @@ impl Gltf {
                 Some(5125) => AccessorComponentType::U32,
                 Some(5126) => AccessorComponentType::F32,
                 component_type => {
-                    return ris_error::new_result!("invalid component type: {:?}", component_type)
+                    return ris_error::new_result!("invalid component type: {:?}", component_type);
                 }
             };
             let normalized = json_accessor.get::<bool>("normalized").unwrap_or(false);
-            let count = json_accessor.get::<usize>("count").ris_expect("the JSON field `count` to exist")?;
+            let count = json_accessor
+                .get::<usize>("count")
+                .ris_expect("the JSON field `count` to exist")?;
             let accessor_type = match json_accessor.get::<&str>("type") {
                 Some("SCALAR") => AccessorType::Scalar,
                 Some("VEC2") => AccessorType::Vec2,
@@ -839,7 +855,7 @@ impl Gltf {
                 Some("MAT3") => AccessorType::Mat3,
                 Some("MAT4") => AccessorType::Mat4,
                 accessor_type => {
-                    return ris_error::new_result!("invalid accessor type: {:?}", accessor_type)
+                    return ris_error::new_result!("invalid accessor type: {:?}", accessor_type);
                 }
             };
             let max = json_accessor
@@ -849,9 +865,15 @@ impl Gltf {
                 .get::<Vec<JsonNumber>>("min")
                 .unwrap_or(Vec::with_capacity(0));
             let sparse = if let Some(json_sparse) = json_accessor.get::<&JsonObject>("sparse") {
-                let count = json_sparse.get::<usize>("count").ris_expect("the JSON field `count` to exist")?;
-                let json_indices = json_sparse.get::<&JsonObject>("indices").ris_expect("the JSON field `indices` to exist")?;
-                let buffer_view = json_indices.get::<usize>("bufferView").ris_expect("the JSON field `bufferView` to exist")?;
+                let count = json_sparse
+                    .get::<usize>("count")
+                    .ris_expect("the JSON field `count` to exist")?;
+                let json_indices = json_sparse
+                    .get::<&JsonObject>("indices")
+                    .ris_expect("the JSON field `indices` to exist")?;
+                let buffer_view = json_indices
+                    .get::<usize>("bufferView")
+                    .ris_expect("the JSON field `bufferView` to exist")?;
                 let byte_offset = json_indices.get::<usize>("bufferOffset").unwrap_or(0);
                 let component_type = match json_indices.get::<usize>("componentType") {
                     Some(5121) => AccessorSparseIndicesComponentType::U8,
@@ -861,7 +883,7 @@ impl Gltf {
                         return ris_error::new_result!(
                             "invalid accessor spare indices component type: {:?}",
                             component_type
-                        )
+                        );
                     }
                 };
                 let extensions = json_indices.get::<&JsonObject>("extensions").cloned();
@@ -873,8 +895,12 @@ impl Gltf {
                     extensions,
                     extras,
                 };
-                let json_values = json_sparse.get::<&JsonObject>("values").ris_expect("the JSON field `values` to exist")?;
-                let buffer_view = json_values.get::<usize>("bufferView").ris_expect("the JSON field `bufferView` to exist")?;
+                let json_values = json_sparse
+                    .get::<&JsonObject>("values")
+                    .ris_expect("the JSON field `values` to exist")?;
+                let buffer_view = json_values
+                    .get::<usize>("bufferView")
+                    .ris_expect("the JSON field `bufferView` to exist")?;
                 let byte_offset = json_values.get::<usize>("byteOffset").unwrap_or(0);
                 let extensions = json_values.get::<&JsonObject>("extensions").cloned();
                 let extras = json_values.get::<&JsonValue>("extras").cloned();
@@ -966,7 +992,7 @@ impl Gltf {
                             return ris_error::new_result!(
                                 "invalid mesh primitive attribute name: {:?}",
                                 json_name
-                            )
+                            );
                         }
                     };
                     let accessor = usize::try_from(json_value)?;
@@ -990,7 +1016,7 @@ impl Gltf {
                     Some(5) => MeshPrimitiveMode::TriangleStrip,
                     Some(6) => MeshPrimitiveMode::TriangleFan,
                     mode => {
-                        return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode)
+                        return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode);
                     }
                 };
                 let json_targets = json_mesh
@@ -1021,7 +1047,7 @@ impl Gltf {
                                 return ris_error::new_result!(
                                     "invalid mesh primitive attribute name: {:?}",
                                     json_name
-                                )
+                                );
                             }
                         };
                         let accessor = usize::try_from(json_value)?;
@@ -1072,7 +1098,9 @@ impl Gltf {
         for json_skin in json_skins {
             let inverse_bind_matrices = json_skin.get::<usize>("inverseBindMatrices");
             let skeleton = json_skin.get::<usize>("skeleton");
-            let joints = json_skin.get::<Vec<usize>>("joints").ris_expect("the JSON field `joints` to exist")?;
+            let joints = json_skin
+                .get::<Vec<usize>>("joints")
+                .ris_expect("the JSON field `joints` to exist")?;
             let name = json_skin.get::<String>("name");
             let extensions = json_skin.get::<&JsonObject>("extensions").cloned();
             let extras = json_skin.get::<&JsonValue>("extras").cloned();
@@ -1160,7 +1188,7 @@ impl Gltf {
                 Some(9729) => Some(SamplerMagFilter::Linear),
                 None => None,
                 mag_filter => {
-                    return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter)
+                    return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter);
                 }
             };
             let min_filter = match json_sampler.get::<usize>("minFilter") {
@@ -1172,7 +1200,7 @@ impl Gltf {
                 Some(9987) => Some(SamplerMinFilter::LinearMipmapLinear),
                 None => None,
                 min_filter => {
-                    return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter)
+                    return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter);
                 }
             };
             let wrap_s = match json_sampler.get::<usize>("wrapS") {
@@ -1334,7 +1362,7 @@ impl Gltf {
                 Some("MASK") => MaterialAlphaMode::Mask,
                 Some("BLEND") => MaterialAlphaMode::Blend,
                 Some(alpha_mode) => {
-                    return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode)
+                    return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode);
                 }
             };
             let alpha_cutoff = json_material.get::<f32>("alphaCutoff").unwrap_or(0.5);
@@ -1367,7 +1395,8 @@ impl Gltf {
             let json_camera_orthographic = json_camera.get::<&JsonObject>("orthographic");
             let kind = match json_camera.get::<&str>("type") {
                 Some("perspective") => {
-                    let json_camera_perspective = json_camera_perspective.ris_expect("perspective camera to exist")?;
+                    let json_camera_perspective =
+                        json_camera_perspective.ris_expect("perspective camera to exist")?;
                     ris_error::assert!(json_camera_orthographic.is_none())?;
 
                     let aspect_ratio = json_camera_perspective.get::<f32>("aspectRatio");
@@ -1402,7 +1431,8 @@ impl Gltf {
                 }
                 Some("orthographic") => {
                     ris_error::assert!(json_camera_perspective.is_none())?;
-                    let json_camera_orthographic = json_camera_orthographic.ris_expect("orthographic camera to exist")?;
+                    let json_camera_orthographic =
+                        json_camera_orthographic.ris_expect("orthographic camera to exist")?;
 
                     let xmag = json_camera_orthographic
                         .get::<f32>("xmag")
@@ -1435,7 +1465,7 @@ impl Gltf {
                     })
                 }
                 camera_type => {
-                    return ris_error::new_result!("invalid camera type: {:?}", camera_type)
+                    return ris_error::new_result!("invalid camera type: {:?}", camera_type);
                 }
             };
 
@@ -1464,8 +1494,12 @@ impl Gltf {
             ris_error::assert!(!json_channels.is_empty())?;
             let mut channels = Vec::with_capacity(json_channels.len());
             for json_channel in json_channels {
-                let sampler = json_channel.get::<usize>("sampler").ris_expect("the JSON field `sampler` to exist")?;
-                let json_target = json_channel.get::<&JsonObject>("target").ris_expect("the JSON field `target` to exist")?;
+                let sampler = json_channel
+                    .get::<usize>("sampler")
+                    .ris_expect("the JSON field `sampler` to exist")?;
+                let json_target = json_channel
+                    .get::<&JsonObject>("target")
+                    .ris_expect("the JSON field `target` to exist")?;
                 let node = json_target.get::<usize>("node");
                 let path = match json_target.get::<&str>("path") {
                     Some("translation") => AnimationChannelTargetPath::Translation,
@@ -1476,7 +1510,7 @@ impl Gltf {
                         return ris_error::new_result!(
                             "invalid animation channel target path: {:?}",
                             path
-                        )
+                        );
                     }
                 };
                 let extensions = json_target.get::<&JsonObject>("extensions").cloned();
@@ -1505,7 +1539,9 @@ impl Gltf {
             ris_error::assert!(!json_samplers.is_empty())?;
             let mut samplers = Vec::with_capacity(json_samplers.len());
             for json_sampler in json_samplers {
-                let input = json_sampler.get::<usize>("input").ris_expect("the JSON field `input` to exist")?;
+                let input = json_sampler
+                    .get::<usize>("input")
+                    .ris_expect("the JSON field `input` to exist")?;
                 let interpolation = match json_sampler.get::<&str>("interpolation") {
                     Some("LINEAR") => AnimationSamplerInterpolation::Linear,
                     Some("STEP") => AnimationSamplerInterpolation::Step,
@@ -1514,10 +1550,12 @@ impl Gltf {
                         return ris_error::new_result!(
                             "invalid animation sampler interpolation: {:?}",
                             interpolation
-                        )
+                        );
                     }
                 };
-                let output = json_sampler.get::<usize>("output").ris_expect("the JSON field `output` to exist")?;
+                let output = json_sampler
+                    .get::<usize>("output")
+                    .ris_expect("the JSON field `output` to exist")?;
                 let extensions = json_sampler.get::<&JsonObject>("extensions").cloned();
                 let extras = json_sampler.get::<&JsonValue>("extras").cloned();
 
@@ -1605,7 +1643,9 @@ fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(
 }
 
 fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
-    let index = value.get::<usize>("index").ris_expect("the JSON field `index` to exist")?;
+    let index = value
+        .get::<usize>("index")
+        .ris_expect("the JSON field `index` to exist")?;
     let tex_coord = value.get::<usize>("index").unwrap_or(0);
     let extensions = value.get::<&JsonObject>("extensions").cloned();
     let extras = value.get::<&JsonValue>("extras").cloned();

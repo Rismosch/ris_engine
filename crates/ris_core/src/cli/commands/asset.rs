@@ -66,7 +66,10 @@ impl ICommand for Asset {
             return util::command_error("no args provided", self);
         }
 
-        let command = args.get(3).ris_expect("args to have 4 elements")?.to_lowercase();
+        let command = args
+            .get(3)
+            .ris_expect("args to have 4 elements")?
+            .to_lowercase();
 
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];

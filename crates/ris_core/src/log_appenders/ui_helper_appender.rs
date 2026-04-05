@@ -35,7 +35,9 @@ impl IAppender for UiHelperAppender {
         let mut mutex_guard = ris_error::unwrap!(MESSAGES.lock(), "failed to lock messages");
 
         let messages = ris_error::unwrap!(
-            mutex_guard.as_mut().ris_expect("UiHelperAppender to be set up"),
+            mutex_guard
+                .as_mut()
+                .ris_expect("UiHelperAppender to be set up"),
             "messages were not initialized",
         );
 

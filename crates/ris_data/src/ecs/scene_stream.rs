@@ -69,7 +69,11 @@ impl<'a> SceneWriter<'a> {
         };
 
         if self.chunk != chunk {
-            return ris_error::new_result!("during serialization, a chunk may only reference gameobjects in the same chunk. expected: {} actual: {}", self.chunk, chunk);
+            return ris_error::new_result!(
+                "during serialization, a chunk may only reference gameobjects in the same chunk. expected: {} actual: {}",
+                self.chunk,
+                chunk
+            );
         }
 
         let fat_ptr = ris_io::write_uint(self, scene_id.index)?;
@@ -107,7 +111,10 @@ impl<'a> SceneReader<'a> {
 
     pub fn read_game_object(&mut self) -> RisResult<GameObjectHandle> {
         let index = ris_io::read_uint(self)?;
-        let scene_index = self.lookup.get(index).ris_expect("index to point to a valid game object")?;
+        let scene_index = self
+            .lookup
+            .get(index)
+            .ris_expect("index to point to a valid game object")?;
         let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk].game_objects
             [*scene_index]
             .borrow()
@@ -119,7 +126,10 @@ impl<'a> SceneReader<'a> {
 
     pub fn read_asset_id(&mut self) -> RisResult<AssetId> {
         let index = ris_io::read_uint(self)?;
-        let asset_id = self.assets_ids.get(index).ris_expect("index to point to a valid asset id")?;
+        let asset_id = self
+            .assets_ids
+            .get(index)
+            .ris_expect("index to point to a valid asset id")?;
         Ok(asset_id.clone())
     }
 }

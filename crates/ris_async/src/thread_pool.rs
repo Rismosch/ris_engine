@@ -1,14 +1,14 @@
 use std::cell::UnsafeCell;
 use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::pin;
 use std::pin::Pin;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
+use std::pin::pin;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::TryLockError;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::task::Context;
 use std::task::Poll;
 use std::task::Wake;
@@ -17,12 +17,12 @@ use std::thread::Thread;
 
 use ris_error::prelude::*;
 
-use crate::job_channel;
 use crate::JobFuture;
 use crate::JobReceiver;
 use crate::JobSender;
 use crate::JobStealer;
 use crate::SpinLock;
+use crate::job_channel;
 
 type Job = Box<dyn Future<Output = ()>>;
 
@@ -220,7 +220,7 @@ impl ThreadPool {
         drop(g);
 
         // initial main worker setup
-        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]){
+        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]) {
             ris_log::error!("failed to set affinities for main worker: {}", e);
         }
         let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
@@ -249,7 +249,7 @@ impl ThreadPool {
                 .name(format!("thread_pool.worker.{}", i))
                 .spawn(move || {
                     // worker initial setup
-                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids){
+                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids) {
                         ris_log::error!("failed to set affinities for worker {}: {}", i, e);
                     }
                     let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);

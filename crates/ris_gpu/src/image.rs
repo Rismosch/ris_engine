@@ -225,7 +225,7 @@ impl Image {
                     "TODO: transition from {:?} to {:?} is not yet implemented",
                     transition.0,
                     transition.1,
-                )
+                );
             }
         };
 

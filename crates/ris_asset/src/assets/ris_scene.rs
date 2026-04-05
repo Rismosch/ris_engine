@@ -104,7 +104,8 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
     let chunk = &scene.static_chunks[index];
 
-    let (header, content) = RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
+    let (header, content) =
+        RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
     header.assert_magic(MAGIC)?;
 
     let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
@@ -160,7 +161,10 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     // assign children
     for (game_object, child_ids) in children_to_assign {
         for (i, &child_id) in child_ids.iter().enumerate() {
-            let actual_id = s.lookup.get(child_id).ris_expect("child to be registered in the lookup")?;
+            let actual_id = s
+                .lookup
+                .get(child_id)
+                .ris_expect("child to be registered in the lookup")?;
 
             let child: GameObjectHandle = chunk
                 .game_objects

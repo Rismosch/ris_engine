@@ -9,10 +9,10 @@ use ris_data::ecs::scene::SceneCreateInfo;
 use ris_error::prelude::*;
 
 use crate::inspector_util;
-use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
+use crate::ui_helper::selection::Selection;
 
 pub struct AssetBrowser {
     shared_state: SharedStateWeakPtr,
@@ -131,7 +131,9 @@ impl AssetBrowser {
         } else if path.is_file()
             && unsafe { imgui::sys::igBeginPopupContextItem(std::ptr::null(), 1) }
         {
-            if data.ui.menu_item("delete") && let Err(e) = std::fs::remove_file(path) {
+            if data.ui.menu_item("delete")
+                && let Err(e) = std::fs::remove_file(path)
+            {
                 ris_log::error!("failed to delete file: {}", e)
             }
 
@@ -139,7 +141,9 @@ impl AssetBrowser {
         }
 
         // drag and drop
-        if path.is_file() && let Some(guard) = inspector_util::drag_drop_source() {
+        if path.is_file()
+            && let Some(guard) = inspector_util::drag_drop_source()
+        {
             let asset_id = AssetId::Path(path_without_root.display().to_string());
             let mut aref_mut = self.shared_state.borrow_mut();
             aref_mut.set_drag_drop_payload(&guard, "asset", asset_id)?;
@@ -155,7 +159,9 @@ impl AssetBrowser {
             self.clicked_path = Some(path_without_root.to_path_buf());
         }
 
-        if unsafe { imgui::sys::igIsMouseReleased_Nil(0) } && let Some(clicked_path) = self.clicked_path.take() {
+        if unsafe { imgui::sys::igIsMouseReleased_Nil(0) }
+            && let Some(clicked_path) = self.clicked_path.take()
+        {
             if !self.is_dragging {
                 let selection = Some(Selection::AssetPath(clicked_path));
                 ris_log::debug!(

@@ -112,11 +112,11 @@ impl From<Mat2> for Mat3 {
     fn from(value: Mat2) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
 
         r
     }
@@ -126,11 +126,11 @@ impl From<Mat3> for Mat2 {
     fn from(value: Mat3) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
 
         r
     }
@@ -140,11 +140,11 @@ impl From<Mat2> for Mat4 {
     fn from(value: Mat2) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
 
         r
     }
@@ -154,11 +154,11 @@ impl From<Mat4> for Mat2 {
     fn from(value: Mat4) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
 
         r
     }
@@ -168,17 +168,17 @@ impl From<Mat3> for Mat4 {
     fn from(value: Mat3) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
-        r.2 .0 = value.2 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
+        r.2.0 = value.2.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
-        r.2 .1 = value.2 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
+        r.2.1 = value.2.1;
 
-        r.0 .2 = value.0 .2;
-        r.1 .2 = value.1 .2;
-        r.2 .2 = value.2 .2;
+        r.0.2 = value.0.2;
+        r.1.2 = value.1.2;
+        r.2.2 = value.2.2;
 
         r
     }
@@ -188,17 +188,17 @@ impl From<Mat4> for Mat3 {
     fn from(value: Mat4) -> Self {
         let mut r = Self::init(1.0);
 
-        r.0 .0 = value.0 .0;
-        r.1 .0 = value.1 .0;
-        r.2 .0 = value.2 .0;
+        r.0.0 = value.0.0;
+        r.1.0 = value.1.0;
+        r.2.0 = value.2.0;
 
-        r.0 .1 = value.0 .1;
-        r.1 .1 = value.1 .1;
-        r.2 .1 = value.2 .1;
+        r.0.1 = value.0.1;
+        r.1.1 = value.1.1;
+        r.2.1 = value.2.1;
 
-        r.0 .2 = value.0 .2;
-        r.1 .2 = value.1 .2;
-        r.2 .2 = value.2 .2;
+        r.0.2 = value.0.2;
+        r.1.2 = value.1.2;
+        r.2.2 = value.2.2;
 
         r
     }
@@ -520,8 +520,8 @@ impl std::ops::Mul<Vec2> for Mat2 {
         let mut u = Vec2::default();
         let m = self;
 
-        u.0 = m.0 .0 * v.0 + m.1 .0 * v.1;
-        u.1 = m.0 .1 * v.0 + m.1 .1 * v.1;
+        u.0 = m.0.0 * v.0 + m.1.0 * v.1;
+        u.1 = m.0.1 * v.0 + m.1.1 * v.1;
 
         u
     }
@@ -535,9 +535,9 @@ impl std::ops::Mul<Vec3> for Mat3 {
         let mut u = Vec3::default();
         let m = self;
 
-        u.0 = m.0 .0 * v.0 + m.1 .0 * v.1 + m.2 .0 * v.2;
-        u.1 = m.0 .1 * v.0 + m.1 .1 * v.1 + m.2 .1 * v.2;
-        u.2 = m.0 .2 * v.0 + m.1 .2 * v.1 + m.2 .2 * v.2;
+        u.0 = m.0.0 * v.0 + m.1.0 * v.1 + m.2.0 * v.2;
+        u.1 = m.0.1 * v.0 + m.1.1 * v.1 + m.2.1 * v.2;
+        u.2 = m.0.2 * v.0 + m.1.2 * v.1 + m.2.2 * v.2;
 
         u
     }
@@ -551,10 +551,10 @@ impl std::ops::Mul<Vec4> for Mat4 {
         let mut u = Vec4::default();
         let m = self;
 
-        u.0 = m.0 .0 * v.0 + m.1 .0 * v.1 + m.2 .0 * v.2 + m.3 .0 * v.3;
-        u.1 = m.0 .1 * v.0 + m.1 .1 * v.1 + m.2 .1 * v.2 + m.3 .1 * v.3;
-        u.2 = m.0 .2 * v.0 + m.1 .2 * v.1 + m.2 .2 * v.2 + m.3 .2 * v.3;
-        u.3 = m.0 .3 * v.0 + m.1 .3 * v.1 + m.2 .3 * v.2 + m.3 .3 * v.3;
+        u.0 = m.0.0 * v.0 + m.1.0 * v.1 + m.2.0 * v.2 + m.3.0 * v.3;
+        u.1 = m.0.1 * v.0 + m.1.1 * v.1 + m.2.1 * v.2 + m.3.1 * v.3;
+        u.2 = m.0.2 * v.0 + m.1.2 * v.1 + m.2.2 * v.2 + m.3.2 * v.3;
+        u.3 = m.0.3 * v.0 + m.1.3 * v.1 + m.2.3 * v.2 + m.3.3 * v.3;
 
         u
     }
@@ -568,11 +568,11 @@ impl std::ops::Mul<Mat2> for Mat2 {
         let n = rhs;
         let mut r = Mat2::default();
 
-        r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1;
-        r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1;
+        r.0.0 = m.0.0 * n.0.0 + m.1.0 * n.0.1;
+        r.1.0 = m.0.0 * n.1.0 + m.1.0 * n.1.1;
 
-        r.0 .1 = m.0 .1 * n.0 .0 + m.1 .1 * n.0 .1;
-        r.1 .1 = m.0 .1 * n.1 .0 + m.1 .1 * n.1 .1;
+        r.0.1 = m.0.1 * n.0.0 + m.1.1 * n.0.1;
+        r.1.1 = m.0.1 * n.1.0 + m.1.1 * n.1.1;
 
         r
     }
@@ -586,17 +586,17 @@ impl std::ops::Mul<Mat3> for Mat3 {
         let n = rhs;
         let mut r = Mat3::default();
 
-        r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1 + m.2 .0 * n.0 .2;
-        r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1 + m.2 .0 * n.1 .2;
-        r.2 .0 = m.0 .0 * n.2 .0 + m.1 .0 * n.2 .1 + m.2 .0 * n.2 .2;
+        r.0.0 = m.0.0 * n.0.0 + m.1.0 * n.0.1 + m.2.0 * n.0.2;
+        r.1.0 = m.0.0 * n.1.0 + m.1.0 * n.1.1 + m.2.0 * n.1.2;
+        r.2.0 = m.0.0 * n.2.0 + m.1.0 * n.2.1 + m.2.0 * n.2.2;
 
-        r.0 .1 = m.0 .1 * n.0 .0 + m.1 .1 * n.0 .1 + m.2 .1 * n.0 .2;
-        r.1 .1 = m.0 .1 * n.1 .0 + m.1 .1 * n.1 .1 + m.2 .1 * n.1 .2;
-        r.2 .1 = m.0 .1 * n.2 .0 + m.1 .1 * n.2 .1 + m.2 .1 * n.2 .2;
+        r.0.1 = m.0.1 * n.0.0 + m.1.1 * n.0.1 + m.2.1 * n.0.2;
+        r.1.1 = m.0.1 * n.1.0 + m.1.1 * n.1.1 + m.2.1 * n.1.2;
+        r.2.1 = m.0.1 * n.2.0 + m.1.1 * n.2.1 + m.2.1 * n.2.2;
 
-        r.0 .2 = m.0 .2 * n.0 .0 + m.1 .2 * n.0 .1 + m.2 .2 * n.0 .2;
-        r.1 .2 = m.0 .2 * n.1 .0 + m.1 .2 * n.1 .1 + m.2 .2 * n.1 .2;
-        r.2 .2 = m.0 .2 * n.2 .0 + m.1 .2 * n.2 .1 + m.2 .2 * n.2 .2;
+        r.0.2 = m.0.2 * n.0.0 + m.1.2 * n.0.1 + m.2.2 * n.0.2;
+        r.1.2 = m.0.2 * n.1.0 + m.1.2 * n.1.1 + m.2.2 * n.1.2;
+        r.2.2 = m.0.2 * n.2.0 + m.1.2 * n.2.1 + m.2.2 * n.2.2;
 
         r
     }
@@ -610,25 +610,25 @@ impl std::ops::Mul<Mat4> for Mat4 {
         let n = rhs;
         let mut r = Mat4::default();
 
-        r.0 .0 = m.0 .0 * n.0 .0 + m.1 .0 * n.0 .1 + m.2 .0 * n.0 .2 + m.3 .0 * n.0 .3;
-        r.1 .0 = m.0 .0 * n.1 .0 + m.1 .0 * n.1 .1 + m.2 .0 * n.1 .2 + m.3 .0 * n.1 .3;
-        r.2 .0 = m.0 .0 * n.2 .0 + m.1 .0 * n.2 .1 + m.2 .0 * n.2 .2 + m.3 .0 * n.2 .3;
-        r.3 .0 = m.0 .0 * n.3 .0 + m.1 .0 * n.3 .1 + m.2 .0 * n.3 .2 + m.3 .0 * n.3 .3;
+        r.0.0 = m.0.0 * n.0.0 + m.1.0 * n.0.1 + m.2.0 * n.0.2 + m.3.0 * n.0.3;
+        r.1.0 = m.0.0 * n.1.0 + m.1.0 * n.1.1 + m.2.0 * n.1.2 + m.3.0 * n.1.3;
+        r.2.0 = m.0.0 * n.2.0 + m.1.0 * n.2.1 + m.2.0 * n.2.2 + m.3.0 * n.2.3;
+        r.3.0 = m.0.0 * n.3.0 + m.1.0 * n.3.1 + m.2.0 * n.3.2 + m.3.0 * n.3.3;
 
-        r.0 .1 = m.0 .1 * n.0 .0 + m.1 .1 * n.0 .1 + m.2 .1 * n.0 .2 + m.3 .1 * n.0 .3;
-        r.1 .1 = m.0 .1 * n.1 .0 + m.1 .1 * n.1 .1 + m.2 .1 * n.1 .2 + m.3 .1 * n.1 .3;
-        r.2 .1 = m.0 .1 * n.2 .0 + m.1 .1 * n.2 .1 + m.2 .1 * n.2 .2 + m.3 .1 * n.2 .3;
-        r.3 .1 = m.0 .1 * n.3 .0 + m.1 .1 * n.3 .1 + m.2 .1 * n.3 .2 + m.3 .1 * n.3 .3;
+        r.0.1 = m.0.1 * n.0.0 + m.1.1 * n.0.1 + m.2.1 * n.0.2 + m.3.1 * n.0.3;
+        r.1.1 = m.0.1 * n.1.0 + m.1.1 * n.1.1 + m.2.1 * n.1.2 + m.3.1 * n.1.3;
+        r.2.1 = m.0.1 * n.2.0 + m.1.1 * n.2.1 + m.2.1 * n.2.2 + m.3.1 * n.2.3;
+        r.3.1 = m.0.1 * n.3.0 + m.1.1 * n.3.1 + m.2.1 * n.3.2 + m.3.1 * n.3.3;
 
-        r.0 .2 = m.0 .2 * n.0 .0 + m.1 .2 * n.0 .1 + m.2 .2 * n.0 .2 + m.3 .2 * n.0 .3;
-        r.1 .2 = m.0 .2 * n.1 .0 + m.1 .2 * n.1 .1 + m.2 .2 * n.1 .2 + m.3 .2 * n.1 .3;
-        r.2 .2 = m.0 .2 * n.2 .0 + m.1 .2 * n.2 .1 + m.2 .2 * n.2 .2 + m.3 .2 * n.2 .3;
-        r.3 .2 = m.0 .2 * n.3 .0 + m.1 .2 * n.3 .1 + m.2 .2 * n.3 .2 + m.3 .2 * n.3 .3;
+        r.0.2 = m.0.2 * n.0.0 + m.1.2 * n.0.1 + m.2.2 * n.0.2 + m.3.2 * n.0.3;
+        r.1.2 = m.0.2 * n.1.0 + m.1.2 * n.1.1 + m.2.2 * n.1.2 + m.3.2 * n.1.3;
+        r.2.2 = m.0.2 * n.2.0 + m.1.2 * n.2.1 + m.2.2 * n.2.2 + m.3.2 * n.2.3;
+        r.3.2 = m.0.2 * n.3.0 + m.1.2 * n.3.1 + m.2.2 * n.3.2 + m.3.2 * n.3.3;
 
-        r.0 .3 = m.0 .3 * n.0 .0 + m.1 .3 * n.0 .1 + m.2 .3 * n.0 .2 + m.3 .3 * n.0 .3;
-        r.1 .3 = m.0 .3 * n.1 .0 + m.1 .3 * n.1 .1 + m.2 .3 * n.1 .2 + m.3 .3 * n.1 .3;
-        r.2 .3 = m.0 .3 * n.2 .0 + m.1 .3 * n.2 .1 + m.2 .3 * n.2 .2 + m.3 .3 * n.2 .3;
-        r.3 .3 = m.0 .3 * n.3 .0 + m.1 .3 * n.3 .1 + m.2 .3 * n.3 .2 + m.3 .3 * n.3 .3;
+        r.0.3 = m.0.3 * n.0.0 + m.1.3 * n.0.1 + m.2.3 * n.0.2 + m.3.3 * n.0.3;
+        r.1.3 = m.0.3 * n.1.0 + m.1.3 * n.1.1 + m.2.3 * n.1.2 + m.3.3 * n.1.3;
+        r.2.3 = m.0.3 * n.2.0 + m.1.3 * n.2.1 + m.2.3 * n.2.2 + m.3.3 * n.2.3;
+        r.3.3 = m.0.3 * n.3.0 + m.1.3 * n.3.1 + m.2.3 * n.3.2 + m.3.3 * n.3.3;
 
         r
     }
@@ -648,11 +648,11 @@ impl Mat2 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
 
         r
     }
@@ -663,11 +663,11 @@ impl Mat2 {
     pub fn outer_product(c: Vec2, r: Vec2) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
 
         r_
     }
@@ -676,11 +676,11 @@ impl Mat2 {
     pub fn transpose(self) -> Self {
         let mut r = Self::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
 
         r
     }
@@ -721,14 +721,14 @@ impl Mat2x3 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
 
         r
     }
@@ -739,14 +739,14 @@ impl Mat2x3 {
     pub fn outer_product(c: Vec3, r: Vec2) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
 
         r_
     }
@@ -755,13 +755,13 @@ impl Mat2x3 {
     pub fn transpose(self) -> Mat3x2 {
         let mut r = Mat3x2::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
 
         r
     }
@@ -777,17 +777,17 @@ impl Mat2x4 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
 
-        r.0 .3 = x.0 .3 * y.0 .3;
-        r.1 .3 = x.1 .3 * y.1 .3;
+        r.0.3 = x.0.3 * y.0.3;
+        r.1.3 = x.1.3 * y.1.3;
 
         r
     }
@@ -798,17 +798,17 @@ impl Mat2x4 {
     pub fn outer_product(c: Vec4, r: Vec2) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
 
-        r_.0 .3 = c.3 * r.0;
-        r_.1 .3 = c.3 * r.1;
+        r_.0.3 = c.3 * r.0;
+        r_.1.3 = c.3 * r.1;
 
         r_
     }
@@ -817,15 +817,15 @@ impl Mat2x4 {
     pub fn transpose(self) -> Mat4x2 {
         let mut r = Mat4x2::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
-        r.3 .0 = self.0 .3;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+        r.3.0 = self.0.3;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
-        r.3 .1 = self.1 .3;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+        r.3.1 = self.1.3;
 
         r
     }
@@ -841,13 +841,13 @@ impl Mat3x2 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
 
         r
     }
@@ -858,13 +858,13 @@ impl Mat3x2 {
     pub fn outer_product(c: Vec2, r: Vec3) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
 
         r_
     }
@@ -873,14 +873,14 @@ impl Mat3x2 {
     pub fn transpose(self) -> Mat2x3 {
         let mut r = Mat2x3::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
 
         r
     }
@@ -896,17 +896,17 @@ impl Mat3 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
-        r.2 .2 = x.2 .2 * y.2 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
 
         r
     }
@@ -917,17 +917,17 @@ impl Mat3 {
     pub fn outer_product(c: Vec3, r: Vec3) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
-        r_.2 .2 = c.2 * r.2;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
 
         r_
     }
@@ -936,17 +936,17 @@ impl Mat3 {
     pub fn transpose(self) -> Self {
         let mut r = Self::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
-        r.2 .2 = self.2 .2;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
 
         r
     }
@@ -973,25 +973,25 @@ impl Mat3 {
         // matrix of minors
         let mut mm = Mat3::default();
 
-        mm.0 .0 = Mat2(Vec2(e, f), Vec2(h, i)).determinant();
-        mm.1 .0 = Mat2(Vec2(b, c), Vec2(h, i)).determinant();
-        mm.2 .0 = Mat2(Vec2(b, c), Vec2(e, f)).determinant();
+        mm.0.0 = Mat2(Vec2(e, f), Vec2(h, i)).determinant();
+        mm.1.0 = Mat2(Vec2(b, c), Vec2(h, i)).determinant();
+        mm.2.0 = Mat2(Vec2(b, c), Vec2(e, f)).determinant();
 
-        mm.0 .1 = Mat2(Vec2(d, f), Vec2(g, i)).determinant();
-        mm.1 .1 = Mat2(Vec2(a, c), Vec2(g, i)).determinant();
-        mm.2 .1 = Mat2(Vec2(a, c), Vec2(d, f)).determinant();
+        mm.0.1 = Mat2(Vec2(d, f), Vec2(g, i)).determinant();
+        mm.1.1 = Mat2(Vec2(a, c), Vec2(g, i)).determinant();
+        mm.2.1 = Mat2(Vec2(a, c), Vec2(d, f)).determinant();
 
-        mm.0 .2 = Mat2(Vec2(d, e), Vec2(g, h)).determinant();
-        mm.1 .2 = Mat2(Vec2(a, b), Vec2(g, h)).determinant();
-        mm.2 .2 = Mat2(Vec2(a, b), Vec2(d, e)).determinant();
+        mm.0.2 = Mat2(Vec2(d, e), Vec2(g, h)).determinant();
+        mm.1.2 = Mat2(Vec2(a, b), Vec2(g, h)).determinant();
+        mm.2.2 = Mat2(Vec2(a, b), Vec2(d, e)).determinant();
 
         // matrix of cofactors
         let mut mcf = mm;
 
-        mcf.0 .1 *= -1.;
-        mcf.1 .0 *= -1.;
-        mcf.1 .2 *= -1.;
-        mcf.2 .1 *= -1.;
+        mcf.0.1 *= -1.;
+        mcf.1.0 *= -1.;
+        mcf.1.2 *= -1.;
+        mcf.2.1 *= -1.;
 
         // adjucate matrix
         let madj = mcf.transpose();
@@ -1013,21 +1013,21 @@ impl Mat3x4 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
-        r.2 .2 = x.2 .2 * y.2 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
 
-        r.0 .3 = x.0 .3 * y.0 .3;
-        r.1 .3 = x.1 .3 * y.1 .3;
-        r.2 .3 = x.2 .3 * y.2 .3;
+        r.0.3 = x.0.3 * y.0.3;
+        r.1.3 = x.1.3 * y.1.3;
+        r.2.3 = x.2.3 * y.2.3;
 
         r
     }
@@ -1038,21 +1038,21 @@ impl Mat3x4 {
     pub fn outer_product(c: Vec4, r: Vec3) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
-        r_.2 .2 = c.2 * r.2;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
 
-        r_.0 .3 = c.3 * r.0;
-        r_.1 .3 = c.3 * r.1;
-        r_.2 .3 = c.3 * r.2;
+        r_.0.3 = c.3 * r.0;
+        r_.1.3 = c.3 * r.1;
+        r_.2.3 = c.3 * r.2;
 
         r_
     }
@@ -1061,20 +1061,20 @@ impl Mat3x4 {
     pub fn transpose(self) -> Mat4x3 {
         let mut r = Mat4x3::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
-        r.3 .0 = self.0 .3;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+        r.3.0 = self.0.3;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
-        r.3 .1 = self.1 .3;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+        r.3.1 = self.1.3;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
-        r.2 .2 = self.2 .2;
-        r.3 .2 = self.2 .3;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
+        r.3.2 = self.2.3;
 
         r
     }
@@ -1090,15 +1090,15 @@ impl Mat4x2 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
-        r.3 .0 = x.3 .0 * y.3 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+        r.3.0 = x.3.0 * y.3.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
-        r.3 .1 = x.3 .1 * y.3 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+        r.3.1 = x.3.1 * y.3.1;
 
         r
     }
@@ -1109,15 +1109,15 @@ impl Mat4x2 {
     pub fn outer_product(c: Vec2, r: Vec4) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
-        r_.3 .0 = c.0 * r.3;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+        r_.3.0 = c.0 * r.3;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
-        r_.3 .1 = c.1 * r.3;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+        r_.3.1 = c.1 * r.3;
 
         r_
     }
@@ -1126,17 +1126,17 @@ impl Mat4x2 {
     pub fn transpose(self) -> Mat2x4 {
         let mut r = Mat2x4::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
 
-        r.0 .3 = self.3 .0;
-        r.1 .3 = self.3 .1;
+        r.0.3 = self.3.0;
+        r.1.3 = self.3.1;
 
         r
     }
@@ -1152,20 +1152,20 @@ impl Mat4x3 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
-        r.3 .0 = x.3 .0 * y.3 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+        r.3.0 = x.3.0 * y.3.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
-        r.3 .1 = x.3 .1 * y.3 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+        r.3.1 = x.3.1 * y.3.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
-        r.2 .2 = x.2 .2 * y.2 .2;
-        r.3 .2 = x.3 .2 * y.3 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
+        r.3.2 = x.3.2 * y.3.2;
 
         r
     }
@@ -1176,20 +1176,20 @@ impl Mat4x3 {
     pub fn outer_product(c: Vec3, r: Vec4) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
-        r_.3 .0 = c.0 * r.3;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+        r_.3.0 = c.0 * r.3;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
-        r_.3 .1 = c.1 * r.3;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+        r_.3.1 = c.1 * r.3;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
-        r_.2 .2 = c.2 * r.2;
-        r_.3 .2 = c.2 * r.3;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
+        r_.3.2 = c.2 * r.3;
 
         r_
     }
@@ -1198,21 +1198,21 @@ impl Mat4x3 {
     pub fn transpose(self) -> Mat3x4 {
         let mut r = Mat3x4::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
-        r.2 .2 = self.2 .2;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
 
-        r.0 .3 = self.3 .0;
-        r.1 .3 = self.3 .1;
-        r.2 .3 = self.3 .2;
+        r.0.3 = self.3.0;
+        r.1.3 = self.3.1;
+        r.2.3 = self.3.2;
 
         r
     }
@@ -1228,25 +1228,25 @@ impl Mat4 {
         let y = rhs;
         let mut r = Self::default();
 
-        r.0 .0 = x.0 .0 * y.0 .0;
-        r.1 .0 = x.1 .0 * y.1 .0;
-        r.2 .0 = x.2 .0 * y.2 .0;
-        r.3 .0 = x.3 .0 * y.3 .0;
+        r.0.0 = x.0.0 * y.0.0;
+        r.1.0 = x.1.0 * y.1.0;
+        r.2.0 = x.2.0 * y.2.0;
+        r.3.0 = x.3.0 * y.3.0;
 
-        r.0 .1 = x.0 .1 * y.0 .1;
-        r.1 .1 = x.1 .1 * y.1 .1;
-        r.2 .1 = x.2 .1 * y.2 .1;
-        r.3 .1 = x.3 .1 * y.3 .1;
+        r.0.1 = x.0.1 * y.0.1;
+        r.1.1 = x.1.1 * y.1.1;
+        r.2.1 = x.2.1 * y.2.1;
+        r.3.1 = x.3.1 * y.3.1;
 
-        r.0 .2 = x.0 .2 * y.0 .2;
-        r.1 .2 = x.1 .2 * y.1 .2;
-        r.2 .2 = x.2 .2 * y.2 .2;
-        r.3 .2 = x.3 .2 * y.3 .2;
+        r.0.2 = x.0.2 * y.0.2;
+        r.1.2 = x.1.2 * y.1.2;
+        r.2.2 = x.2.2 * y.2.2;
+        r.3.2 = x.3.2 * y.3.2;
 
-        r.0 .3 = x.0 .3 * y.0 .3;
-        r.1 .3 = x.1 .3 * y.1 .3;
-        r.2 .3 = x.2 .3 * y.2 .3;
-        r.3 .3 = x.3 .3 * y.3 .3;
+        r.0.3 = x.0.3 * y.0.3;
+        r.1.3 = x.1.3 * y.1.3;
+        r.2.3 = x.2.3 * y.2.3;
+        r.3.3 = x.3.3 * y.3.3;
 
         r
     }
@@ -1257,25 +1257,25 @@ impl Mat4 {
     pub fn outer_product(c: Vec4, r: Vec4) -> Self {
         let mut r_ = Self::default();
 
-        r_.0 .0 = c.0 * r.0;
-        r_.1 .0 = c.0 * r.1;
-        r_.2 .0 = c.0 * r.2;
-        r_.3 .0 = c.0 * r.3;
+        r_.0.0 = c.0 * r.0;
+        r_.1.0 = c.0 * r.1;
+        r_.2.0 = c.0 * r.2;
+        r_.3.0 = c.0 * r.3;
 
-        r_.0 .1 = c.1 * r.0;
-        r_.1 .1 = c.1 * r.1;
-        r_.2 .1 = c.1 * r.2;
-        r_.3 .1 = c.1 * r.3;
+        r_.0.1 = c.1 * r.0;
+        r_.1.1 = c.1 * r.1;
+        r_.2.1 = c.1 * r.2;
+        r_.3.1 = c.1 * r.3;
 
-        r_.0 .2 = c.2 * r.0;
-        r_.1 .2 = c.2 * r.1;
-        r_.2 .2 = c.2 * r.2;
-        r_.3 .2 = c.2 * r.3;
+        r_.0.2 = c.2 * r.0;
+        r_.1.2 = c.2 * r.1;
+        r_.2.2 = c.2 * r.2;
+        r_.3.2 = c.2 * r.3;
 
-        r_.0 .3 = c.3 * r.0;
-        r_.1 .3 = c.3 * r.1;
-        r_.2 .3 = c.3 * r.2;
-        r_.3 .3 = c.3 * r.3;
+        r_.0.3 = c.3 * r.0;
+        r_.1.3 = c.3 * r.1;
+        r_.2.3 = c.3 * r.2;
+        r_.3.3 = c.3 * r.3;
 
         r_
     }
@@ -1284,25 +1284,25 @@ impl Mat4 {
     pub fn transpose(self) -> Self {
         let mut r = Self::default();
 
-        r.0 .0 = self.0 .0;
-        r.1 .0 = self.0 .1;
-        r.2 .0 = self.0 .2;
-        r.3 .0 = self.0 .3;
+        r.0.0 = self.0.0;
+        r.1.0 = self.0.1;
+        r.2.0 = self.0.2;
+        r.3.0 = self.0.3;
 
-        r.0 .1 = self.1 .0;
-        r.1 .1 = self.1 .1;
-        r.2 .1 = self.1 .2;
-        r.3 .1 = self.1 .3;
+        r.0.1 = self.1.0;
+        r.1.1 = self.1.1;
+        r.2.1 = self.1.2;
+        r.3.1 = self.1.3;
 
-        r.0 .2 = self.2 .0;
-        r.1 .2 = self.2 .1;
-        r.2 .2 = self.2 .2;
-        r.3 .2 = self.2 .3;
+        r.0.2 = self.2.0;
+        r.1.2 = self.2.1;
+        r.2.2 = self.2.2;
+        r.3.2 = self.2.3;
 
-        r.0 .3 = self.3 .0;
-        r.1 .3 = self.3 .1;
-        r.2 .3 = self.3 .2;
-        r.3 .3 = self.3 .3;
+        r.0.3 = self.3.0;
+        r.1.3 = self.3.1;
+        r.2.3 = self.3.2;
+        r.3.3 = self.3.3;
 
         r
     }
@@ -1330,37 +1330,37 @@ impl Mat4 {
         // matrix of minors
         let mut mm = Mat4::default();
 
-        mm.0 .0 = Mat3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p)).determinant();
-        mm.1 .0 = Mat3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p)).determinant();
-        mm.2 .0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p)).determinant();
-        mm.3 .0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l)).determinant();
+        mm.0.0 = Mat3(Vec3(f, g, h), Vec3(j, k, l), Vec3(n, o, p)).determinant();
+        mm.1.0 = Mat3(Vec3(b, c, d), Vec3(j, k, l), Vec3(n, o, p)).determinant();
+        mm.2.0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(n, o, p)).determinant();
+        mm.3.0 = Mat3(Vec3(b, c, d), Vec3(f, g, h), Vec3(j, k, l)).determinant();
 
-        mm.0 .1 = Mat3(Vec3(e, g, h), Vec3(i, k, l), Vec3(m, o, p)).determinant();
-        mm.1 .1 = Mat3(Vec3(a, c, d), Vec3(i, k, l), Vec3(m, o, p)).determinant();
-        mm.2 .1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(m, o, p)).determinant();
-        mm.3 .1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(i, k, l)).determinant();
+        mm.0.1 = Mat3(Vec3(e, g, h), Vec3(i, k, l), Vec3(m, o, p)).determinant();
+        mm.1.1 = Mat3(Vec3(a, c, d), Vec3(i, k, l), Vec3(m, o, p)).determinant();
+        mm.2.1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(m, o, p)).determinant();
+        mm.3.1 = Mat3(Vec3(a, c, d), Vec3(e, g, h), Vec3(i, k, l)).determinant();
 
-        mm.0 .2 = Mat3(Vec3(e, f, h), Vec3(i, j, l), Vec3(m, n, p)).determinant();
-        mm.1 .2 = Mat3(Vec3(a, b, d), Vec3(i, j, l), Vec3(m, n, p)).determinant();
-        mm.2 .2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(m, n, p)).determinant();
-        mm.3 .2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(i, j, l)).determinant();
+        mm.0.2 = Mat3(Vec3(e, f, h), Vec3(i, j, l), Vec3(m, n, p)).determinant();
+        mm.1.2 = Mat3(Vec3(a, b, d), Vec3(i, j, l), Vec3(m, n, p)).determinant();
+        mm.2.2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(m, n, p)).determinant();
+        mm.3.2 = Mat3(Vec3(a, b, d), Vec3(e, f, h), Vec3(i, j, l)).determinant();
 
-        mm.0 .3 = Mat3(Vec3(e, f, g), Vec3(i, j, k), Vec3(m, n, o)).determinant();
-        mm.1 .3 = Mat3(Vec3(a, b, c), Vec3(i, j, k), Vec3(m, n, o)).determinant();
-        mm.2 .3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(m, n, o)).determinant();
-        mm.3 .3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(i, j, k)).determinant();
+        mm.0.3 = Mat3(Vec3(e, f, g), Vec3(i, j, k), Vec3(m, n, o)).determinant();
+        mm.1.3 = Mat3(Vec3(a, b, c), Vec3(i, j, k), Vec3(m, n, o)).determinant();
+        mm.2.3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(m, n, o)).determinant();
+        mm.3.3 = Mat3(Vec3(a, b, c), Vec3(e, f, g), Vec3(i, j, k)).determinant();
 
         // matrix of cofactors
         let mut mcf = mm;
 
-        mcf.0 .1 *= -1.;
-        mcf.0 .3 *= -1.;
-        mcf.1 .0 *= -1.;
-        mcf.1 .2 *= -1.;
-        mcf.2 .1 *= -1.;
-        mcf.2 .3 *= -1.;
-        mcf.3 .0 *= -1.;
-        mcf.3 .2 *= -1.;
+        mcf.0.1 *= -1.;
+        mcf.0.3 *= -1.;
+        mcf.1.0 *= -1.;
+        mcf.1.2 *= -1.;
+        mcf.2.1 *= -1.;
+        mcf.2.3 *= -1.;
+        mcf.3.0 *= -1.;
+        mcf.3.2 *= -1.;
 
         // adjugate matrix
         let madj = mcf.transpose();

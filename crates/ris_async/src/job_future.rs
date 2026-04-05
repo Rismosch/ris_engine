@@ -3,10 +3,10 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
-use crate::oneshot_channel;
 use crate::OneshotReceiver;
 use crate::OneshotSender;
 use crate::ThreadPool;
+use crate::oneshot_channel;
 
 #[must_use]
 pub struct JobFuture<T> {

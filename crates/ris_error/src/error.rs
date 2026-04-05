@@ -112,8 +112,10 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
 
-        if unsafe {$crate::error::PRINT_WARNING_ON_BACKTRACE} {
-            ris_log::warning!("created backtrace. this operation is expensive. excessive use may cost performance");
+        if unsafe { $crate::error::PRINT_WARNING_ON_BACKTRACE } {
+            ris_log::warning!(
+                "created backtrace. this operation is expensive. excessive use may cost performance"
+            );
         }
 
         if $crate::error::PRINT_BACKTRACE_WHEN_GENERATED {
@@ -121,7 +123,7 @@ macro_rules! get_backtrace {
         }
 
         backtrace
-    }}
+    }};
 }
 
 #[macro_export]
@@ -170,4 +172,3 @@ macro_rules! declare_error {
         impl std::error::Error for $error_name {}
     };
 }
-

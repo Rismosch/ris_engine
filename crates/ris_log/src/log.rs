@@ -1,8 +1,8 @@
 #[cfg(feature = "logging_enabled")]
 use std::{
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Mutex,
+        mpsc::{Receiver, Sender, channel},
     },
     thread::JoinHandle,
 };
@@ -48,7 +48,9 @@ impl Drop for Logger {
     fn drop(&mut self) {
         self.sender.take();
 
-        if let Some(thread_handle) = self.thread_handle.take() && thread_handle.join().is_err(){
+        if let Some(thread_handle) = self.thread_handle.take()
+            && thread_handle.join().is_err()
+        {
             eprintln!("error: couldn't join logger handle")
         }
     }
@@ -157,7 +159,9 @@ pub fn forward_to_appenders(log_message: LogMessage) {
         match LOG.lock() {
             Err(e) => eprintln!("error while forwarding to appenders: {}", e),
             Ok(mut log) => {
-                if let Some(logger) = &mut *log  && let Some(sender) = &mut logger.sender {
+                if let Some(logger) = &mut *log
+                    && let Some(sender) = &mut logger.sender
+                {
                     let _ = sender.send(log_message);
                 }
             }

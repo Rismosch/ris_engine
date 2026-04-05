@@ -90,7 +90,9 @@ impl LogModule {
     fn draw_child(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
         let mutex = &crate::log_appenders::ui_helper_appender::MESSAGES;
         let mut mutex_guard = mutex.lock()?;
-        let messages = mutex_guard.as_mut().ris_expect("UiHelperAppender to be set up")?;
+        let messages = mutex_guard
+            .as_mut()
+            .ris_expect("UiHelperAppender to be set up")?;
 
         for message in messages.iter() {
             match message {

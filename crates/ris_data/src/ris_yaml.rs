@@ -104,7 +104,7 @@ impl RisYaml {
                                 return error_on_line(
                                     i,
                                     &format!("invalid syntax \"{}\"", key_value),
-                                )
+                                );
                             }
                         }
                     }

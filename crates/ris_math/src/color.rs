@@ -9,26 +9,8 @@ pub const MIN_NORM: f32 = 1.0 / 255.0;
 // errors
 //
 
-#[derive(Debug)]
-pub struct NotEnoughElements;
-
-#[derive(Debug)]
-pub struct InvalidHex;
-
-impl std::fmt::Display for NotEnoughElements {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not enough elements")
-    }
-}
-
-impl std::fmt::Display for InvalidHex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "invalid hex")
-    }
-}
-
-impl std::error::Error for NotEnoughElements {}
-impl std::error::Error for InvalidHex {}
+ris_error::declare_error!(NotEnoughElements, "not enough elements");
+ris_error::declare_error!(InvalidHex, "invalid hex");
 
 //
 // traits

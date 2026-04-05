@@ -113,7 +113,11 @@ pub fn import_all(
                 let mut target_path = PathBuf::new();
                 target_path.push(target_directory.clone());
                 target_path.push(&target_path_part);
-                let target_path = PathBuf::from(target_path.parent().ris_expect("target_path to have a parent")?);
+                let target_path = PathBuf::from(
+                    target_path
+                        .parent()
+                        .ris_expect("target_path to have a parent")?,
+                );
 
                 ris_log::debug!(
                     "import \"{}\" to \"{}\"",
@@ -260,7 +264,9 @@ pub fn create_file(
     let target = target_dir.join(format!("{}.{}", file_stem, extension,));
 
     let parent = target.parent();
-    if let Some(parent) = parent && !parent.exists() {
+    if let Some(parent) = parent
+        && !parent.exists()
+    {
         std::fs::create_dir_all(parent)?;
     }
 
@@ -281,8 +287,12 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_path = info.source_file_path;
             let target_directory = info.target_directory;
 
-            let source_extension = source_path.extension().ris_expect("source_path to have an extension")?;
-            let source_extension = source_extension.to_str().ris_expect("the extension to be valid UTF-8")?;
+            let source_extension = source_path
+                .extension()
+                .ris_expect("source_path to have an extension")?;
+            let source_extension = source_extension
+                .to_str()
+                .ris_expect("the extension to be valid UTF-8")?;
             let source_extension = source_extension.to_lowercase();
 
             let importer = match source_extension.as_str() {

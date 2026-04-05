@@ -1,5 +1,5 @@
-use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_data::settings::serializer::SettingsSerializer;
 use ris_error::RisResult;
 
 use crate::ui_helper::IUiHelperModule;

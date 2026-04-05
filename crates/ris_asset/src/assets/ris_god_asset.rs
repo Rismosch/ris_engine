@@ -53,7 +53,8 @@ impl RisGodAsset {
     }
 
     pub fn deserialize(bytes: &[u8]) -> RisResult<Self> {
-        let (header, _content) = RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
+        let (header, _content) =
+            RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
         header.assert_magic(MAGIC)?;
 
         let default_vert_spv = header.references[0].clone();

@@ -130,10 +130,16 @@ impl Component for DynScriptComponent {
 
     fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
         match self.script.as_mut() {
-            Some(script) => ris_error::new_result!("script was Some({:?}). make sure that the script is not started before deserializing", script),
+            Some(script) => ris_error::new_result!(
+                "script was Some({:?}). make sure that the script is not started before deserializing",
+                script
+            ),
             None => {
                 let position = ris_io::read_uint(stream)?;
-                let factory = stream.scene.registry.script_factories()
+                let factory = stream
+                    .scene
+                    .registry
+                    .script_factories()
                     .get(position)
                     .ris_expect("position to be in range")?;
 
@@ -147,7 +153,7 @@ impl Component for DynScriptComponent {
                 self.script = Some(script);
 
                 Ok(())
-            },
+            }
         }
     }
 }
@@ -291,7 +297,10 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().ris_expect("script to be started"),
+            self.reference
+                .script
+                .as_ref()
+                .ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -314,7 +323,10 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().ris_expect("script to be started"),
+            self.reference
+                .script
+                .as_ref()
+                .ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -335,7 +347,10 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_mut().ris_expect("script to be started"),
+            self.reference
+                .script
+                .as_mut()
+                .ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref_mut();

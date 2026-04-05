@@ -4,4 +4,3 @@ fn main() -> ris_error::RisResult<()> {
     let info = ris_data::package_info!();
     ris_core::entry::run(info)
 }
-

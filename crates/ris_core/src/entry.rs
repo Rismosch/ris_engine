@@ -57,7 +57,7 @@ fn get_entry_point(package_info: PackageInfo) -> RisResult<EntryPoint> {
     let is_cli_command = matches!(args.get(1).map(|x| x.as_str()), Some(CLI),);
     if is_cli_command {
         #[cfg(feature = "cli_enabled")]
-        return Ok( EntryPoint::Cli(args));
+        return Ok(EntryPoint::Cli(args));
         #[cfg(not(feature = "cli_enabled"))]
         return ris_error::new_result!("cli is not available");
     }

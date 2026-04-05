@@ -5,11 +5,7 @@ pub fn mix(x: f32, y: f32, a: f32) -> f32 {
 
 /// returns 0.0 if x < edge, otherwise it returns 1.0
 pub fn step(edge: f32, x: f32) -> f32 {
-    if x < edge {
-        0.0
-    } else {
-        1.0
-    }
+    if x < edge { 0.0 } else { 1.0 }
 }
 
 /// returns 0.0 if x <= edge0 and 1.0 if x >= edge1 and performs smooth Hermite interpolation

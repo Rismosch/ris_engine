@@ -121,7 +121,7 @@ impl Vec4 {
 
 impl From<Mat2> for Vec4 {
     fn from(value: Mat2) -> Self {
-        Self(value.0 .0, value.0 .1, value.1 .0, value.1 .1)
+        Self(value.0.0, value.0.1, value.1.0, value.1.1)
     }
 }
 
@@ -2116,11 +2116,7 @@ impl Vec2 {
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
-        if n_ref.dot(i) < 0. {
-            self
-        } else {
-            -self
-        }
+        if n_ref.dot(i) < 0. { self } else { -self }
     }
 
     /// for the incident vector self and surface orientation n, returns the reflection direction
@@ -2181,11 +2177,7 @@ impl Vec3 {
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
-        if n_ref.dot(i) < 0. {
-            self
-        } else {
-            -self
-        }
+        if n_ref.dot(i) < 0. { self } else { -self }
     }
 
     /// for the incident vector self and surface orientation n, returns the reflection direction
@@ -2238,11 +2230,7 @@ impl Vec4 {
     }
 
     pub fn face_forward(self, i: Self, n_ref: Self) -> Self {
-        if n_ref.dot(i) < 0. {
-            self
-        } else {
-            -self
-        }
+        if n_ref.dot(i) < 0. { self } else { -self }
     }
 
     /// for the incident vector self and surface orientation n, returns the reflection direction

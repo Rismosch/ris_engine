@@ -36,7 +36,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             return ris_error::new_result!(
                 "cannot encode qoi. unsupported color type: {:?}",
                 color_type
-            )
+            );
         }
     };
     let color_space = ColorSpace::SRGB;

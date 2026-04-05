@@ -133,7 +133,11 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     }
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
-    eprintln!("usage: {} {} [help] <command>", crate::entry::CLI, cargo_pkg_name,);
+    eprintln!(
+        "usage: {} {} [help] <command>",
+        crate::entry::CLI,
+        cargo_pkg_name,
+    );
     eprintln!("commands:");
     for command in commands {
         let mut name = command.name();

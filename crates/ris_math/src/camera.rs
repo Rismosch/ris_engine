@@ -60,13 +60,13 @@ impl Camera {
         let e = 1.0 / f32::tan(self.fovy * 0.5);
 
         let mut mat = Mat4::init(0.0);
-        mat.0 .0 = e / self.aspect_ratio;
-        mat.1 .1 = e;
+        mat.0.0 = e / self.aspect_ratio;
+        mat.1.1 = e;
         //mat.2 .2 = f / (f - n);
-        mat.2 .2 = -n / (f - n);
-        mat.2 .3 = 1.0;
+        mat.2.2 = -n / (f - n);
+        mat.2.3 = 1.0;
         //mat.3 .2 = -(f * n) / (f - n);
-        mat.3 .2 = f * n / (f - n);
+        mat.3.2 = f * n / (f - n);
 
         mat
     }

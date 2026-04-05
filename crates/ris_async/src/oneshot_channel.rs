@@ -1,8 +1,8 @@
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 
 use crate::ThreadPool;
 

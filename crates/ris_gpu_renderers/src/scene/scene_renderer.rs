@@ -1,16 +1,16 @@
 use ash::vk;
 
+use ris_asset::RisGodAsset;
 use ris_asset::codecs::qoi;
 use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
-use ris_asset::RisGodAsset;
 use ris_data::ecs::scene::Scene;
 use ris_error::prelude::*;
 use ris_gpu::buffer::Buffer;
 use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
-use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::swapchain::SwapchainEntry;
 use ris_gpu::texture::Texture;
 use ris_gpu::texture::TextureCreateInfo;
@@ -59,7 +59,7 @@ impl SceneFrame {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        unsafe {self.descriptor.free(device)}
+        unsafe { self.descriptor.free(device) }
     }
 }
 
@@ -528,7 +528,10 @@ impl SceneRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().ris_expect("a graphics pipline to be created")?;
+        let pipeline = graphics_pipelines
+            .into_iter()
+            .next()
+            .ris_expect("a graphics pipline to be created")?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };

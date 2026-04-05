@@ -109,7 +109,8 @@ impl FramesInFlight {
 
                 // free command buffers
                 if !entry.secondary_command_buffers.is_empty() {
-                    device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
+                    device
+                        .free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
                 }
                 device.free_command_buffers(entry.command_pool, &entry.primary_command_buffers);
                 device.destroy_command_pool(entry.command_pool, None);
