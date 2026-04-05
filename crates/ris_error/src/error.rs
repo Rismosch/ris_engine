@@ -151,3 +151,23 @@ macro_rules! debug_assert {
         }
     }};
 }
+
+#[macro_export]
+macro_rules! declare_error {
+    (
+        $error_name:ident,
+        $error_msg:literal $(,)?
+    ) => {
+        #[derive(Debug)]
+        pub struct $error_name;
+
+        impl std::fmt::Display for $error_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, $error_msg)
+            }
+        }
+
+        impl std::error::Error for $error_name {}
+    };
+}
+
