@@ -101,7 +101,7 @@ impl FallbackFileOverwrite {
 
     pub fn get_by_index(&self, index: usize) -> RisResult<Vec<u8>> {
         let available_paths = self.available_paths();
-        let path = available_paths.get(index).into_ris_error()?;
+        let path = available_paths.get(index).ris_expect("index to be in range")?;
         self.get_by_path(path)
     }
 }

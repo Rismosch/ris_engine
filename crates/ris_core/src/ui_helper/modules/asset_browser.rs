@@ -6,8 +6,7 @@ use ris_asset::assets::ris_scene;
 use ris_asset_data::AssetId;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene::SceneCreateInfo;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::inspector_util;
 use crate::ui_helper::selection::Selection;
@@ -72,16 +71,16 @@ impl AssetBrowser {
 
         let file_name = path
             .file_name()
-            .into_ris_error()?
+            .ris_expect("path to have a file name")?
             .to_str()
-            .into_ris_error()?;
+            .ris_expect("path to be valid UTF-8")?;
 
         let empty_path = PathBuf::from("");
         let parent_path = path
             .parent()
             .unwrap_or(&empty_path)
             .to_str()
-            .into_ris_error()?;
+            .ris_expect("path parent to be valid UTF-8")?;
 
         let id = CString::new(format!("{}##{}", file_name, parent_path))?;
 

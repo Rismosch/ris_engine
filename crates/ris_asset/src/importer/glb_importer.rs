@@ -37,9 +37,9 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
     let source_file_stem = source
         .file_stem()
-        .into_ris_error()?
+        .ris_expect("source to have a file stem")?
         .to_str()
-        .into_ris_error()?;
+        .ris_expect("file stem to be valid UTF-8")?;
 
     let mut file = std::fs::File::open(source)?;
     let f = &mut file;
@@ -92,8 +92,8 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
     ris_error::assert!(chunks.len() == 2)?;
 
     let mut chunks = chunks.into_iter();
-    let json_chunk = chunks.next().into_ris_error()?;
-    let bin_chunk = chunks.next().into_ris_error()?;
+    let json_chunk = chunks.next().ris_expect("chunks to have at least 1 element")?;
+    let bin_chunk = chunks.next().ris_expect("chunks to have at least 2 elements")?;
     ris_error::assert!(json_chunk.chunk_type == ChunkType::Json)?;
     ris_error::assert!(bin_chunk.chunk_type == ChunkType::Bin)?;
 
@@ -119,25 +119,25 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
             let vertex_attribute = primitive
                 .get_attribute(MeshPrimitiveAttributeName::Position)
-                .into_ris_error()?;
+                .ris_expect("mesh attribute position")?;
             let normal_attribute = primitive
                 .get_attribute(MeshPrimitiveAttributeName::Normal)
-                .into_ris_error()?;
+                .ris_expect("mesh attribute normal")?;
             let uv_attribute = primitive
                 .get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
-                .into_ris_error()?;
-            let index_accessor_index = primitive.indices.into_ris_error()?;
+                .ris_expect("mesh attribute tex coord 0")?;
+            let index_accessor_index = primitive.indices.ris_expect("indices to exist")?;
 
             let vertex_accessor = gltf
                 .accessors
                 .get(vertex_attribute.accessor)
-                .into_ris_error()?;
+                .ris_expect("vertex_attribute.accessor to be in range")?;
             let normal_accessor = gltf
                 .accessors
                 .get(normal_attribute.accessor)
-                .into_ris_error()?;
-            let uv_accessor = gltf.accessors.get(uv_attribute.accessor).into_ris_error()?;
-            let index_accessor = gltf.accessors.get(index_accessor_index).into_ris_error()?;
+                .ris_expect("normal_attribute.accessor to be in range")?;
+            let uv_accessor = gltf.accessors.get(uv_attribute.accessor).ris_expect("uv_attribute.accessor to be in range")?;
+            let index_accessor = gltf.accessors.get(index_accessor_index).ris_expect("index_attribute.accessor to be in range")?;
 
             ris_error::assert!(vertex_accessor.count == normal_accessor.count)?;
             ris_error::assert!(vertex_accessor.count == uv_accessor.count)?;
@@ -215,8 +215,8 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 }
 
 fn access_data<'a>(accessor: &Accessor, bin: &'a [u8], gltf: &'a Gltf) -> RisResult<&'a [u8]> {
-    let buffer_view_index = accessor.buffer_view.into_ris_error()?;
-    let buffer_view = gltf.buffer_views.get(buffer_view_index).into_ris_error()?;
+    let buffer_view_index = accessor.buffer_view.ris_expect("buffer_view to be Some")?;
+    let buffer_view = gltf.buffer_views.get(buffer_view_index).ris_expect("buffer_view_index to be in range")?;
     ris_error::assert!(buffer_view.buffer == 0)?;
     ris_error::assert!(buffer_view.byte_stride.is_none())?;
 

@@ -76,7 +76,7 @@ impl MeshLookup {
                         };
                         self.entries.push(entry);
                         let entry = ris_error::unwrap!(
-                            self.entries.last_mut().into_ris_error(),
+                            self.entries.last_mut().ris_expect("an entry to exist"),
                             "we just added the entry, thus this should never be None",
                         );
                         entry

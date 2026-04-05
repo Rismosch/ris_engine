@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_log::log::IAppender;
 use ris_log::log_message::LogMessage;
 
@@ -36,7 +35,7 @@ impl IAppender for UiHelperAppender {
         let mut mutex_guard = ris_error::unwrap!(MESSAGES.lock(), "failed to lock messages");
 
         let messages = ris_error::unwrap!(
-            mutex_guard.as_mut().into_ris_error(),
+            mutex_guard.as_mut().ris_expect("UiHelperAppender to be set up"),
             "messages were not initialized",
         );
 

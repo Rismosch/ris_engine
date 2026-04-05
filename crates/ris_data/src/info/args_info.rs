@@ -70,7 +70,7 @@ impl ArgsInfo {
             .into_iter()
             .map(|x| x.as_ref().to_string())
             .collect::<Vec<_>>();
-        let executable_path = raw_args.first().into_ris_error()?.clone();
+        let executable_path = raw_args.first().ris_expect("the first arg to exist")?.clone();
 
         let mut result = create_with_default_values(raw_args, executable_path);
 

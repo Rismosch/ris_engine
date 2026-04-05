@@ -598,9 +598,9 @@ impl Gltf {
         };
 
         // asset
-        let json_asset = json_gltf.get::<&JsonObject>("asset").into_ris_error()?;
+        let json_asset = json_gltf.get::<&JsonObject>("asset").ris_expect("the JSON field `asset` to exist")?;
 
-        let version_string = json_asset.get::<String>("version").into_ris_error()?;
+        let version_string = json_asset.get::<String>("version").ris_expect("the JSON field `version` to exist")?;
         ris_error::assert!(version_string == "2.0")?;
         let copyright = json_asset.get::<String>("copyright");
         let generator = json_asset.get::<String>("generator");
@@ -753,7 +753,7 @@ impl Gltf {
         let mut buffers = Vec::with_capacity(json_buffers.len());
         for json_buffer in json_buffers {
             let uri = json_buffer.get::<String>("uri");
-            let byte_length = json_buffer.get::<usize>("byteLength").into_ris_error()?;
+            let byte_length = json_buffer.get::<usize>("byteLength").ris_expect("the JSON field `byteLength` to exist")?;
             ris_error::assert!(byte_length >= 1)?;
             let name = json_buffer.get::<String>("name");
             let extensions = json_buffer.get::<&JsonObject>("extensions").cloned();
@@ -777,11 +777,11 @@ impl Gltf {
 
         let mut buffer_views = Vec::with_capacity(json_buffer_views.len());
         for json_buffer_view in json_buffer_views {
-            let buffer = json_buffer_view.get::<usize>("buffer").into_ris_error()?;
+            let buffer = json_buffer_view.get::<usize>("buffer").ris_expect("the JSON field `buffer` to exist")?;
             let byte_offset = json_buffer_view.get::<usize>("byteOffset").unwrap_or(0);
             let byte_length = json_buffer_view
                 .get::<usize>("byteLength")
-                .into_ris_error()?;
+                .ris_expect("the JSON field `byteLength` to exist")?;
             let byte_stride = json_buffer_view.get::<usize>("byteStride");
             let target = match json_buffer_view.get::<usize>("target") {
                 None => None,
@@ -829,7 +829,7 @@ impl Gltf {
                 }
             };
             let normalized = json_accessor.get::<bool>("normalized").unwrap_or(false);
-            let count = json_accessor.get::<usize>("count").into_ris_error()?;
+            let count = json_accessor.get::<usize>("count").ris_expect("the JSON field `count` to exist")?;
             let accessor_type = match json_accessor.get::<&str>("type") {
                 Some("SCALAR") => AccessorType::Scalar,
                 Some("VEC2") => AccessorType::Vec2,
@@ -849,9 +849,9 @@ impl Gltf {
                 .get::<Vec<JsonNumber>>("min")
                 .unwrap_or(Vec::with_capacity(0));
             let sparse = if let Some(json_sparse) = json_accessor.get::<&JsonObject>("sparse") {
-                let count = json_sparse.get::<usize>("count").into_ris_error()?;
-                let json_indices = json_sparse.get::<&JsonObject>("indices").into_ris_error()?;
-                let buffer_view = json_indices.get::<usize>("bufferView").into_ris_error()?;
+                let count = json_sparse.get::<usize>("count").ris_expect("the JSON field `count` to exist")?;
+                let json_indices = json_sparse.get::<&JsonObject>("indices").ris_expect("the JSON field `indices` to exist")?;
+                let buffer_view = json_indices.get::<usize>("bufferView").ris_expect("the JSON field `bufferView` to exist")?;
                 let byte_offset = json_indices.get::<usize>("bufferOffset").unwrap_or(0);
                 let component_type = match json_indices.get::<usize>("componentType") {
                     Some(5121) => AccessorSparseIndicesComponentType::U8,
@@ -873,8 +873,8 @@ impl Gltf {
                     extensions,
                     extras,
                 };
-                let json_values = json_sparse.get::<&JsonObject>("values").into_ris_error()?;
-                let buffer_view = json_values.get::<usize>("bufferView").into_ris_error()?;
+                let json_values = json_sparse.get::<&JsonObject>("values").ris_expect("the JSON field `values` to exist")?;
+                let buffer_view = json_values.get::<usize>("bufferView").ris_expect("the JSON field `bufferView` to exist")?;
                 let byte_offset = json_values.get::<usize>("byteOffset").unwrap_or(0);
                 let extensions = json_values.get::<&JsonObject>("extensions").cloned();
                 let extras = json_values.get::<&JsonValue>("extras").cloned();
@@ -930,13 +930,13 @@ impl Gltf {
         for json_mesh in json_meshes {
             let json_primitives = json_mesh
                 .get::<Vec<&JsonObject>>("primitives")
-                .into_ris_error()?;
+                .ris_expect("the JSON field `primitives` to exist")?;
             ris_error::assert!(!json_primitives.is_empty())?;
             let mut primitives = Vec::with_capacity(json_primitives.len());
             for json_primitive in json_primitives {
                 let json_attributes = json_primitive
                     .get::<&JsonObject>("attributes")
-                    .into_ris_error()?;
+                    .ris_expect("the JSON field `attributes` to exist")?;
                 let mut attributes = Vec::with_capacity(json_attributes.members.len());
                 for JsonMember {
                     name: json_name,
@@ -1072,7 +1072,7 @@ impl Gltf {
         for json_skin in json_skins {
             let inverse_bind_matrices = json_skin.get::<usize>("inverseBindMatrices");
             let skeleton = json_skin.get::<usize>("skeleton");
-            let joints = json_skin.get::<Vec<usize>>("joints").into_ris_error()?;
+            let joints = json_skin.get::<Vec<usize>>("joints").ris_expect("the JSON field `joints` to exist")?;
             let name = json_skin.get::<String>("name");
             let extensions = json_skin.get::<&JsonObject>("extensions").cloned();
             let extras = json_skin.get::<&JsonValue>("extras").cloned();
@@ -1367,7 +1367,7 @@ impl Gltf {
             let json_camera_orthographic = json_camera.get::<&JsonObject>("orthographic");
             let kind = match json_camera.get::<&str>("type") {
                 Some("perspective") => {
-                    let json_camera_perspective = json_camera_perspective.into_ris_error()?;
+                    let json_camera_perspective = json_camera_perspective.ris_expect("perspective camera to exist")?;
                     ris_error::assert!(json_camera_orthographic.is_none())?;
 
                     let aspect_ratio = json_camera_perspective.get::<f32>("aspectRatio");
@@ -1376,7 +1376,7 @@ impl Gltf {
                     }
                     let yfov = json_camera_perspective
                         .get::<f32>("yfov")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `fovy` to exist")?;
                     ris_error::assert!(yfov > 0.0)?;
                     let zfar = json_camera_perspective.get::<f32>("zfar");
                     if let Some(zfar) = zfar {
@@ -1384,7 +1384,7 @@ impl Gltf {
                     }
                     let znear = json_camera_perspective
                         .get::<f32>("znear")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `znear` to exist")?;
                     ris_error::assert!(znear > 0.0)?;
                     let extensions = json_camera_perspective
                         .get::<&JsonObject>("extensions")
@@ -1402,21 +1402,21 @@ impl Gltf {
                 }
                 Some("orthographic") => {
                     ris_error::assert!(json_camera_perspective.is_none())?;
-                    let json_camera_orthographic = json_camera_orthographic.into_ris_error()?;
+                    let json_camera_orthographic = json_camera_orthographic.ris_expect("orthographic camera to exist")?;
 
                     let xmag = json_camera_orthographic
                         .get::<f32>("xmag")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `xmag` to exist")?;
                     let ymag = json_camera_orthographic
                         .get::<f32>("ymag")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `ymag` to exist")?;
                     let zfar = json_camera_orthographic
                         .get::<f32>("zfar")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `zfar` to exist")?;
                     ris_error::assert!(zfar > 0.0)?;
                     let znear = json_camera_orthographic
                         .get::<f32>("znear")
-                        .into_ris_error()?;
+                        .ris_expect("the JSON field `znead` to exist")?;
                     ris_error::assert!(znear >= 0.0)?;
                     let extensions = json_camera_orthographic
                         .get::<&JsonObject>("extensions")
@@ -1464,8 +1464,8 @@ impl Gltf {
             ris_error::assert!(!json_channels.is_empty())?;
             let mut channels = Vec::with_capacity(json_channels.len());
             for json_channel in json_channels {
-                let sampler = json_channel.get::<usize>("sampler").into_ris_error()?;
-                let json_target = json_channel.get::<&JsonObject>("target").into_ris_error()?;
+                let sampler = json_channel.get::<usize>("sampler").ris_expect("the JSON field `sampler` to exist")?;
+                let json_target = json_channel.get::<&JsonObject>("target").ris_expect("the JSON field `target` to exist")?;
                 let node = json_target.get::<usize>("node");
                 let path = match json_target.get::<&str>("path") {
                     Some("translation") => AnimationChannelTargetPath::Translation,
@@ -1505,7 +1505,7 @@ impl Gltf {
             ris_error::assert!(!json_samplers.is_empty())?;
             let mut samplers = Vec::with_capacity(json_samplers.len());
             for json_sampler in json_samplers {
-                let input = json_sampler.get::<usize>("input").into_ris_error()?;
+                let input = json_sampler.get::<usize>("input").ris_expect("the JSON field `input` to exist")?;
                 let interpolation = match json_sampler.get::<&str>("interpolation") {
                     Some("LINEAR") => AnimationSamplerInterpolation::Linear,
                     Some("STEP") => AnimationSamplerInterpolation::Step,
@@ -1517,7 +1517,7 @@ impl Gltf {
                         )
                     }
                 };
-                let output = json_sampler.get::<usize>("output").into_ris_error()?;
+                let output = json_sampler.get::<usize>("output").ris_expect("the JSON field `output` to exist")?;
                 let extensions = json_sampler.get::<&JsonObject>("extensions").cloned();
                 let extras = json_sampler.get::<&JsonValue>("extras").cloned();
 
@@ -1605,7 +1605,7 @@ fn parse_postfix<F: FromStr<Err = E>, E: std::error::Error + 'static>(
 }
 
 fn parse_texture_info(value: &JsonObject) -> RisResult<TextureInfo> {
-    let index = value.get::<usize>("index").into_ris_error()?;
+    let index = value.get::<usize>("index").ris_expect("the JSON field `index` to exist")?;
     let tex_coord = value.get::<usize>("index").unwrap_or(0);
     let extensions = value.get::<&JsonObject>("extensions").cloned();
     let extras = value.get::<&JsonValue>("extras").cloned();

@@ -116,7 +116,7 @@ impl Buffer {
             memory_property_flags,
             physical_device_memory_properties,
         )?
-        .into_ris_error()?;
+        .ris_expect("memory type to exist. if this function fails, chances are the current hardware is not supported")?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,

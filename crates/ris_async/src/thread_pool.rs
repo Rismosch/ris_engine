@@ -15,8 +15,7 @@ use std::task::Wake;
 use std::thread::JoinHandle;
 use std::thread::Thread;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::job_channel;
 use crate::JobFuture;
@@ -271,7 +270,7 @@ impl ThreadPool {
                     // prepare worker
                     let mut g = prepared_worker_data.lock();
                     let others = ris_error::unwrap!(
-                        g[i].take().into_ris_error(),
+                        g[i].take().ris_expect("worker to be prepared"),
                         "something has gone terribly wrong. this option should never be none"
                     );
                     drop(g);
@@ -286,7 +285,7 @@ impl ThreadPool {
                     }));
 
                     let worker = ris_error::unwrap!(
-                        get_worker().into_ris_error(),
+                        get_worker().ris_expect("worker to be set"),
                         "something has gone terribly wrong. this option should never be none"
                     );
 
@@ -324,7 +323,7 @@ impl ThreadPool {
 
                 let original = &g[j];
                 let other = ris_error::unwrap!(
-                    original.as_ref().into_ris_error(),
+                    original.as_ref().ris_expect("worker to be set up"),
                     "something has gone terribly wrong. this option should never be none"
                 );
 
@@ -342,7 +341,7 @@ impl ThreadPool {
         // prepare main worker
         let mut g = prepared_worker_data.lock();
         let others = ris_error::unwrap!(
-            g[0].take().into_ris_error(),
+            g[0].take().ris_expect("worker to be prepared"),
             "something has gone terribly wrong. this option should never be none"
         );
         drop(g);

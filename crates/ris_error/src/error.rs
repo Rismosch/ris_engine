@@ -43,17 +43,6 @@ impl std::fmt::Debug for RisError {
     }
 }
 
-#[derive(Debug)]
-pub struct OptionError;
-
-impl Error for OptionError {}
-
-impl std::fmt::Display for OptionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Option was None")
-    }
-}
-
 impl<E: Error + 'static> From<E> for RisError {
     fn from(value: E) -> Self {
         let source_type_name = Some(std::any::type_name::<E>().to_string());
@@ -69,23 +58,20 @@ impl<E: Error + 'static> From<E> for RisError {
 }
 
 pub trait Extensions<T> {
-    fn into_ris_error(self) -> Result<T, RisError>;
+    fn ris_expect(self, msg: &str) -> Result<T, RisError>;
 }
 
 impl<T> Extensions<T> for Option<T> {
-    fn into_ris_error(self) -> Result<T, RisError> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(RisError::from(OptionError)),
-        }
+    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+        self.ok_or("Option was None").ris_expect(msg)
     }
 }
 
 impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn into_ris_error(self) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
         match self {
             Ok(value) => Ok(value),
-            Err(e) => crate::new_result!("{}", e),
+            Err(e) => crate::new_result!("expected {}. error: {}", msg, e),
         }
     }
 }

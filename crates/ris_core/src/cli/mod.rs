@@ -203,7 +203,7 @@ fn get_target_dir(program: impl AsRef<str>, command_name: impl AsRef<str>) -> Ri
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
-            .into_ris_error()?
+            .ris_expect("program to have a parent")?
             .to_path_buf(),
     };
 

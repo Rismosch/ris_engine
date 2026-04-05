@@ -197,7 +197,7 @@ impl Profiler {
                 durations.sort();
                 let median = durations[durations.len() / 2];
 
-                let total = total_durations.get(&id.parent).into_ris_error()?;
+                let total = total_durations.get(&id.parent).ris_expect("id to be in range")?;
                 let percentage = sum.as_secs_f32() / total.as_secs_f32();
 
                 RecordEvaluation {

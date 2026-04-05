@@ -4,8 +4,7 @@ use std::marker::PhantomData;
 
 use imgui::Ui;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_ptr::Aref;
 use ris_ptr::ArefMut;
 
@@ -119,7 +118,7 @@ impl Component for DynScriptComponent {
                     .script_factories()
                     .iter()
                     .position(|x| x.script_id() == script.id)
-                    .into_ris_error()?;
+                    .ris_expect("script to be registered")?;
                 ris_io::write_uint(stream, position)?;
                 script.boxed.serialize(stream)
             }
@@ -136,7 +135,7 @@ impl Component for DynScriptComponent {
                 let position = ris_io::read_uint(stream)?;
                 let factory = stream.scene.registry.script_factories()
                     .get(position)
-                    .into_ris_error()?;
+                    .ris_expect("position to be in range")?;
 
                 let mut script = factory.make();
                 script.boxed.deserialize(stream)?;
@@ -292,7 +291,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().into_ris_error(),
+            self.reference.script.as_ref().ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -304,7 +303,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRef<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.into_ris_error(),
+            reference.ris_expect("script to be started"),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -315,7 +314,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 
     fn deref(&self) -> &Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_ref().into_ris_error(),
+            self.reference.script.as_ref().ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref();
@@ -327,7 +326,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_ref() };
 
         ris_error::unwrap!(
-            reference.into_ris_error(),
+            reference.ris_expect("script to be started"),
             "honestly, something is very wrong if reference manages to be none",
         )
     }
@@ -336,7 +335,7 @@ impl<T: Script + 'static> std::ops::Deref for ScriptComponentRefMut<T> {
 impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let script = ris_error::unwrap!(
-            self.reference.script.as_mut().into_ris_error(),
+            self.reference.script.as_mut().ris_expect("script to be started"),
             "script component did not store a script",
         );
         let deref = script.boxed.deref_mut();
@@ -348,7 +347,7 @@ impl<T: Script + 'static> std::ops::DerefMut for ScriptComponentRefMut<T> {
         let reference = unsafe { t_ptr.as_mut() };
 
         ris_error::unwrap!(
-            reference.into_ris_error(),
+            reference.ris_expect("script to be started"),
             "honestly, something is very wrong if reference manages to be none",
         )
     }

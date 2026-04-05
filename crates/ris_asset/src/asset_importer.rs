@@ -4,8 +4,7 @@ use std::io::BufRead;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::importer::*;
 
@@ -107,14 +106,14 @@ pub fn import_all(
                     target_directory.push('/');
                 }
 
-                let source_path = entry_path.to_str().into_ris_error()?;
+                let source_path = entry_path.to_str().ris_expect("path to be valid UTF-8")?;
                 let mut target_path_part = source_path.replace('\\', "/");
                 target_path_part.replace_range(0..source_directory.len(), "");
 
                 let mut target_path = PathBuf::new();
                 target_path.push(target_directory.clone());
                 target_path.push(&target_path_part);
-                let target_path = PathBuf::from(target_path.parent().into_ris_error()?);
+                let target_path = PathBuf::from(target_path.parent().ris_expect("target_path to have a parent")?);
 
                 ris_log::debug!(
                     "import \"{}\" to \"{}\"",
@@ -234,7 +233,7 @@ pub fn import_all(
                 target.display(),
             );
 
-            let target_parent = target.parent().into_ris_error()?;
+            let target_parent = target.parent().ris_expect("target to have a parent")?;
             std::fs::create_dir_all(target_parent)?;
             std::fs::copy(source, target)?;
         }
@@ -254,9 +253,9 @@ pub fn create_file(
 
     let file_stem = source
         .file_stem()
-        .into_ris_error()?
+        .ris_expect("source to have a file_stem")?
         .to_str()
-        .into_ris_error()?;
+        .ris_expect("path to be valid UTF-8")?;
 
     let target = target_dir.join(format!("{}.{}", file_stem, extension,));
 
@@ -282,8 +281,8 @@ fn import(info: ImporterInfo, temp_directory: Option<&Path>) -> RisResult<()> {
             let source_path = info.source_file_path;
             let target_directory = info.target_directory;
 
-            let source_extension = source_path.extension().into_ris_error()?;
-            let source_extension = source_extension.to_str().into_ris_error()?;
+            let source_extension = source_path.extension().ris_expect("source_path to have an extension")?;
+            let source_extension = source_extension.to_str().ris_expect("the extension to be valid UTF-8")?;
             let source_extension = source_extension.to_lowercase();
 
             let importer = match source_extension.as_str() {

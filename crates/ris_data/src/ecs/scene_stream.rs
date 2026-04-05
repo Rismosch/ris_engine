@@ -5,8 +5,7 @@ use std::io::SeekFrom;
 use std::io::Write;
 
 use ris_asset_data::asset_id::AssetId;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_io::FatPtr;
 
 use crate::ecs::decl::GameObjectHandle;
@@ -49,7 +48,7 @@ impl<'a> SceneWriter<'a> {
             let actual_index = lookup
                 .iter()
                 .position(|&x| x == scene_index)
-                .into_ris_error()?;
+                .ris_expect("scene_index to exist")?;
 
             ris_io::seek(f, SeekFrom::Start(placeholder.addr))?;
             ris_io::write_uint(f, actual_index)?;
@@ -108,7 +107,7 @@ impl<'a> SceneReader<'a> {
 
     pub fn read_game_object(&mut self) -> RisResult<GameObjectHandle> {
         let index = ris_io::read_uint(self)?;
-        let scene_index = self.lookup.get(index).into_ris_error()?;
+        let scene_index = self.lookup.get(index).ris_expect("index to point to a valid game object")?;
         let game_object: GameObjectHandle = self.scene.static_chunks[self.chunk].game_objects
             [*scene_index]
             .borrow()
@@ -120,7 +119,7 @@ impl<'a> SceneReader<'a> {
 
     pub fn read_asset_id(&mut self) -> RisResult<AssetId> {
         let index = ris_io::read_uint(self)?;
-        let asset_id = self.assets_ids.get(index).into_ris_error()?;
+        let asset_id = self.assets_ids.get(index).ris_expect("index to point to a valid asset id")?;
         Ok(asset_id.clone())
     }
 }

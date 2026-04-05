@@ -7,8 +7,7 @@ use std::path::PathBuf;
 
 use shaderc::CompilationArtifact;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 pub const IN_EXT_GLSL: &str = "glsl";
 pub const OUT_EXT_VERT: &str = "vert.spv";
@@ -116,10 +115,10 @@ impl ShaderStage {
         };
 
         let file_path = PathBuf::from(file);
-        let file_stem = file_path.file_stem().into_ris_error()?;
-        let file_stem = file_stem.to_str().into_ris_error()?;
-        let file_extension = file_path.extension().into_ris_error()?;
-        let file_extension = file_extension.to_str().into_ris_error()?;
+        let file_stem = file_path.file_stem().ris_expect("file_path to have a file stem")?;
+        let file_stem = file_stem.to_str().ris_expect("file_stem to be valid UTF-8")?;
+        let file_extension = file_path.extension().ris_expect("file_path to have an extension")?;
+        let file_extension = file_extension.to_str().ris_expect("file_extension to be valid UTF-8")?;
 
         let shader_extension = match self.kind {
             ShaderKind::Vertex => VERT,
@@ -130,8 +129,8 @@ impl ShaderStage {
         let file = format!("{}.{}.{}", file_stem, shader_extension, file_extension);
 
         if let Some(temp_dir) = temp_dir {
-            let parent = file_path.parent().into_ris_error()?;
-            let parent = parent.to_str().into_ris_error()?;
+            let parent = file_path.parent().ris_expect("file_path to have a parent")?;
+            let parent = parent.to_str().ris_expect("parent to be valid UTF-8")?;
             let parent = parent.replace('\\', "/");
             let parent = match parent.strip_prefix(PATH_PREFIX) {
                 Some(parent) => parent.to_string(),
@@ -187,7 +186,7 @@ pub fn import(
     let temp_dir = temp_dir.as_ref().map(|x| x.as_ref());
 
     // read file
-    let file = source.to_str().into_ris_error()?;
+    let file = source.to_str().ris_expect("source to be valid UTF-8")?;
     let mut source_file = File::open(source)?;
     let f = &mut source_file;
 
@@ -199,7 +198,7 @@ pub fn import(
 
     // pre processor
     // init shaders
-    let first_line = source_text.lines().next().into_ris_error()?;
+    let first_line = source_text.lines().next().ris_expect("source_text should consist of at least one line")?;
 
     preproc_assert(
         first_line.starts_with(MAGIC),
@@ -274,7 +273,7 @@ pub fn import(
             }
             MACRO_INCLUDE => {
                 let file_path = PathBuf::from(file);
-                let root_dir = file_path.parent().into_ris_error()?;
+                let root_dir = file_path.parent().ris_expect("file_path to have a parent")?;
 
                 let mut dependency_history = Vec::new();
                 dependency_history.push(file_path.clone());
@@ -315,8 +314,8 @@ pub fn import(
     }
 
     // compile to spirv
-    let compiler = shaderc::Compiler::new().into_ris_error()?;
-    let mut options = shaderc::CompileOptions::new().into_ris_error()?;
+    let compiler = shaderc::Compiler::new().ris_expect("no error initializing the underlying compiler")?;
+    let mut options = shaderc::CompileOptions::new().ris_expect("no error initializing the underlying options object")?;
     options.set_warnings_as_errors();
     options.set_optimization_level(shaderc::OptimizationLevel::Performance);
 
@@ -425,7 +424,7 @@ fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
 
     already_included.push(include_path.clone());
 
-    let file = include_path.to_str().into_ris_error()?;
+    let file = include_path.to_str().ris_expect("include_path to be valid UTF-8")?;
 
     // check for circular dependency
     if dependency_history.contains(&include_path) {
@@ -447,7 +446,7 @@ fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
     let mut file_content = String::new();
     include_file.read_to_string(&mut file_content)?;
 
-    let first_line = file_content.lines().next().into_ris_error()?;
+    let first_line = file_content.lines().next().ris_expect("file_content to have at least one line of content")?;
 
     let magic = "#ris_glsl header";
     preproc_assert(
@@ -458,7 +457,7 @@ fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
     )?;
 
     // parse content
-    let include_path_comment = include_path.to_str().into_ris_error()?.replace('\\', "/");
+    let include_path_comment = include_path.to_str().ris_expect("include_path to be valid UTF-8")?.replace('\\', "/");
     let mut result = format!("{} INCLUDE {}", MACRO_COMMENT_INCLUDE, include_path_comment,);
 
     let mut line = 0;

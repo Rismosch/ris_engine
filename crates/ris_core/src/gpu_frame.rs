@@ -9,8 +9,7 @@ use ris_asset::RisGodAsset;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_gpu::core::VulkanCore;
 use ris_gpu::frames_in_flight::FrameInFlightCreateInfo;
 use ris_gpu::frames_in_flight::FramesInFlight;
@@ -148,7 +147,7 @@ impl Renderer {
             ..
         } = core;
 
-        let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
+        let mut mesh_lookup = self.scene.mesh_lookup.take().ris_expect("mesh_lookup to be Some")?;
         mesh_lookup.reimport_everything(TransientCommandArgs {
             device: device.clone(),
             queue: *graphics_queue,
@@ -286,7 +285,7 @@ impl GpuFrame {
             .renderer
             .frames_in_flight
             .as_mut()
-            .into_ris_error()?
+            .ris_expect("frames_in_flight to be Some")?
             .acquire_next_frame(&device)?;
 
         // acquire an image from the swap chain

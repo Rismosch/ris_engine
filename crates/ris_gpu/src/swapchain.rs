@@ -292,7 +292,7 @@ impl SwapchainEntry {
         framebuffer_create_info: vk::FramebufferCreateInfo,
     ) -> RisResult<vk::Framebuffer> {
         let index = id.index();
-        let mut framebuffer = self.framebuffers.get(index).into_ris_error()?.borrow_mut();
+        let mut framebuffer = self.framebuffers.get(index).ris_expect("id to be in range")?.borrow_mut();
 
         match *framebuffer {
             Some(framebuffer) => Ok(framebuffer),

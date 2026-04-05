@@ -4,8 +4,7 @@ use ris_data::ecs::decl::GameObjectHandle;
 use ris_data::ecs::scene::Scene;
 use ris_data::ecs::scene_stream::SceneReader;
 use ris_data::ecs::scene_stream::SceneWriter;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_io::FatPtr;
 
 use super::ris_header::RisHeader;
@@ -58,7 +57,7 @@ pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
                 .component_factories()
                 .iter()
                 .position(|x| x.component_id() == component.type_id())
-                .into_ris_error()?;
+                .ris_expect("component to be registered")?;
 
             ris_io::write_uint(s, position)?;
             scene.deref_mut_component(component, |x| x.serialize(s))??;
@@ -105,7 +104,7 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
 
     let chunk = &scene.static_chunks[index];
 
-    let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
+    let (header, content) = RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
     header.assert_magic(MAGIC)?;
 
     let uncompressed = miniz_oxide::inflate::decompress_to_vec(content)
@@ -161,13 +160,13 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
     // assign children
     for (game_object, child_ids) in children_to_assign {
         for (i, &child_id) in child_ids.iter().enumerate() {
-            let actual_id = s.lookup.get(child_id).into_ris_error()?;
+            let actual_id = s.lookup.get(child_id).ris_expect("child to be registered in the lookup")?;
 
             let child: GameObjectHandle = chunk
                 .game_objects
                 .iter()
                 .find(|x| x.borrow().handle.scene_id().index == *actual_id)
-                .into_ris_error()?
+                .ris_expect("child to be already deserialized")?
                 .borrow()
                 .handle
                 .into();
@@ -186,7 +185,7 @@ pub fn deserialize(scene: &Scene, bytes: &[u8]) -> RisResult<Option<usize>> {
                 .registry
                 .component_factories()
                 .get(position)
-                .into_ris_error()?;
+                .ris_expect("position to be in range")?;
 
             let component = factory.make(scene, game_object)?;
             scene.deref_mut_component(component, |x| x.deserialize(s))??;
