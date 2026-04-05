@@ -102,16 +102,18 @@ impl FramesInFlight {
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
         for entry in self.entries.iter_mut() {
-            // free synchronization
-            device.destroy_fence(entry.finished_fence, None);
-            device.destroy_semaphore(entry.image_available, None);
+            unsafe {
+                // free synchronization
+                device.destroy_fence(entry.finished_fence, None);
+                device.destroy_semaphore(entry.image_available, None);
 
-            // free command buffers
-            if !entry.secondary_command_buffers.is_empty() {
-                device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
+                // free command buffers
+                if !entry.secondary_command_buffers.is_empty() {
+                    device.free_command_buffers(entry.command_pool, &entry.secondary_command_buffers);
+                }
+                device.free_command_buffers(entry.command_pool, &entry.primary_command_buffers);
+                device.destroy_command_pool(entry.command_pool, None);
             }
-            device.free_command_buffers(entry.command_pool, &entry.primary_command_buffers);
-            device.destroy_command_pool(entry.command_pool, None);
         }
 
         self.entries.clear();

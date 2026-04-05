@@ -69,16 +69,14 @@ impl IUiHelperModule for HierarchyModule {
             }
 
             ui.same_line();
-            if ui.button("save") {
-                if let Some(AssetId::Path(path)) = chunk.clone() {
-                    ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
-                    let bytes = ris_scene::serialize(scene, chunk_index)?;
+            if ui.button("save") && let Some(AssetId::Path(path)) = chunk.clone() {
+                ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
+                let bytes = ris_scene::serialize(scene, chunk_index)?;
 
-                    let asset_path = self.shared_state.borrow().app_info.asset_path()?;
-                    let path = asset_path.join(path);
-                    let mut file = std::fs::File::create(path)?;
-                    ris_io::write(&mut file, &bytes)?;
-                }
+                let asset_path = self.shared_state.borrow().app_info.asset_path()?;
+                let path = asset_path.join(path);
+                let mut file = std::fs::File::create(path)?;
+                ris_io::write(&mut file, &bytes)?;
             }
 
             if let Some(AssetId::Path(path)) = chunk {

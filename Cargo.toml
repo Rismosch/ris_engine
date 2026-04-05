@@ -78,7 +78,9 @@ default = [
     "ris_validation_enabled",
 ]
 
-ris_cli_enabled = []
+ris_cli_enabled = [
+    "ris_core/cli_enabled",
+]
 
 ris_debug_enabled = [
     "ris_core/ui_helper_enabled",

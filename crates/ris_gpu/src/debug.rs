@@ -89,7 +89,7 @@ impl Debugger {
     /// - This object must not be used after it was freed
     pub unsafe fn free(&self) {
         #[cfg(debug_assertions)]
-        {
+        unsafe {
             self.inner
                 .utils
                 .destroy_debug_utils_messenger(self.inner.messenger, None);
@@ -317,7 +317,7 @@ pub unsafe extern "system" fn debug_callback(
         _ => "unknown",
     };
 
-    let message_cstr = CStr::from_ptr((*p_callback_data).p_message);
+    let message_cstr = unsafe {CStr::from_ptr((*p_callback_data).p_message)};
     let message = match message_cstr.to_str() {
         Ok(message) => String::from(message),
         Err(e) => {

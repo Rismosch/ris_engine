@@ -131,14 +131,14 @@ impl Script for FlyCam {
 
         let mut camera = state.camera.borrow_mut();
 
-        ris_core::inspector_util::drag_vec3(
+        crate::inspector_util::drag_vec3(
             format!("camera position##{}", id),
             &mut camera.position,
         )?;
-        ris_core::inspector_util::drag(format!("far##{}", id), &mut camera.far)?;
-        ris_core::inspector_util::drag(format!("near##{}", id), &mut camera.near)?;
+        crate::inspector_util::drag(format!("far##{}", id), &mut camera.far)?;
+        crate::inspector_util::drag(format!("near##{}", id), &mut camera.near)?;
 
-        ris_core::inspector_util::drag(
+        crate::inspector_util::drag(
             format!("translation speed (m/s)##{}", id),
             &mut self.translation_speed_in_meters_per_second,
         )?;

@@ -34,17 +34,19 @@ impl VulkanCore {
     pub unsafe fn free(&mut self) {
         ris_log::debug!("dropping vulkan core...");
 
-        self.swapchain.free(&self.device);
+        unsafe {
+            self.swapchain.free(&self.device);
 
-        self.device
-            .destroy_command_pool(self.transient_command_pool, None);
+            self.device
+                .destroy_command_pool(self.transient_command_pool, None);
 
-        self.device.destroy_device(None);
-        self.surface_loader.destroy_surface(self.surface, None);
+            self.device.destroy_device(None);
+            self.surface_loader.destroy_surface(self.surface, None);
 
-        self.debugger.free();
+            self.debugger.free();
 
-        self.instance.destroy_instance(None);
+            self.instance.destroy_instance(None);
+        }
 
         ris_log::info!("vulkan core dropped!");
     }

@@ -682,20 +682,14 @@ impl Gltf {
                     let mut rotation = [0.0, 0.0, 0.0, 1.0];
                     let mut scale = [1.0, 1.0, 1.0];
 
-                    if let Some(t) = t {
-                        if let Ok(t) = t.try_into() {
-                            translation = t;
-                        }
+                    if let Some(t) = t && let Ok(t) = t.try_into() {
+                        translation = t;
                     }
-                    if let Some(r) = r {
-                        if let Ok(r) = r.try_into() {
-                            rotation = r;
-                        }
+                    if let Some(r) = r && let Ok(r) = r.try_into() {
+                        rotation = r;
                     }
-                    if let Some(s) = s {
-                        if let Ok(s) = s.try_into() {
-                            scale = s;
-                        }
+                    if let Some(s) = s && let Ok(s) = s.try_into() {
+                        scale = s;
                     }
 
                     NodeTransform::TRS {

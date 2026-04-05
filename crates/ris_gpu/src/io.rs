@@ -24,12 +24,15 @@ pub unsafe fn write_to_memory<T: Copy>(
 ) -> RisResult<()> {
     let src = values.as_ref();
 
-    let mapped_memory =
-        device.map_memory(memory, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())? as *mut T;
+    unsafe {
+        let mapped_memory =
+            device.map_memory(memory, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())? as *mut T;
 
-    write_to_mapped_memory(device, src, memory, mapped_memory)?;
+        write_to_mapped_memory(device, src, memory, mapped_memory)?;
 
-    device.unmap_memory(memory);
+        device.unmap_memory(memory);
+    }
+
     Ok(())
 }
 
@@ -45,15 +48,17 @@ pub unsafe fn write_to_mapped_memory<T: Copy>(
 ) -> RisResult<()> {
     let src = values.as_ref();
 
-    mapped_memory.copy_from_nonoverlapping(src.as_ptr(), src.len());
+    unsafe {
+        mapped_memory.copy_from_nonoverlapping(src.as_ptr(), src.len());
 
-    device.flush_mapped_memory_ranges(&[vk::MappedMemoryRange {
-        s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
-        p_next: std::ptr::null(),
-        memory,
-        offset: 0,
-        size: vk::WHOLE_SIZE,
-    }])?;
+        device.flush_mapped_memory_ranges(&[vk::MappedMemoryRange {
+            s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
+            p_next: std::ptr::null(),
+            memory,
+            offset: 0,
+            size: vk::WHOLE_SIZE,
+        }])?;
+    }
 
     Ok(())
 }
@@ -68,12 +73,15 @@ pub unsafe fn read_from_memory<T: Copy>(
 ) -> RisResult<()> {
     let dst = values.as_mut();
 
-    let mapped_memory =
-        device.map_memory(memory, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())? as *mut T;
+    unsafe {
+        let mapped_memory =
+            device.map_memory(memory, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())? as *mut T;
 
-    read_from_mapped_memory(device, dst, memory, mapped_memory)?;
+        read_from_mapped_memory(device, dst, memory, mapped_memory)?;
 
-    device.unmap_memory(memory);
+        device.unmap_memory(memory);
+    }
+
     Ok(())
 }
 
@@ -89,15 +97,17 @@ pub unsafe fn read_from_mapped_memory<T: Copy>(
 ) -> RisResult<()> {
     let dst = values.as_mut();
 
-    device.invalidate_mapped_memory_ranges(&[vk::MappedMemoryRange {
-        s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
-        p_next: std::ptr::null(),
-        memory,
-        offset: 0,
-        size: vk::WHOLE_SIZE,
-    }])?;
+    unsafe {
+        device.invalidate_mapped_memory_ranges(&[vk::MappedMemoryRange {
+            s_type: vk::StructureType::MAPPED_MEMORY_RANGE,
+            p_next: std::ptr::null(),
+            memory,
+            offset: 0,
+            size: vk::WHOLE_SIZE,
+        }])?;
 
-    mapped_memory.copy_to_nonoverlapping(dst.as_mut_ptr(), dst.len());
+        mapped_memory.copy_to_nonoverlapping(dst.as_mut_ptr(), dst.len());
+    }
 
     Ok(())
 }

@@ -1,10 +1,13 @@
+pub mod entry;
 pub mod god_job;
 pub mod god_object;
 pub mod gpu_frame;
 pub mod inspector_util;
 
+#[cfg(feature = "cli_enabled")]
+pub mod cli;
 pub mod log_appenders;
-
+pub mod scripts;
 pub mod ui_helper;
 
 use ris_data::info::app_info::AppInfo;

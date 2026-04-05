@@ -48,12 +48,12 @@ impl Script for TestRotationScript {
     fn inspect(&mut self, data: ScriptInspectData) -> RisResult<()> {
         let ScriptInspectData { id, .. } = data;
 
-        ris_core::inspector_util::drag_vec3(
+        crate::inspector_util::drag_vec3(
             format!("rotation axis##{}", id),
             &mut self.rotation_axis,
         )?;
 
-        ris_core::inspector_util::drag(format!("rotation axis##{}", id), &mut self.rotation_speed)?;
+        crate::inspector_util::drag(format!("rotation axis##{}", id), &mut self.rotation_speed)?;
 
         Ok(())
     }

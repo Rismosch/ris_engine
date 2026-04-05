@@ -22,8 +22,10 @@ impl GizmoTextMesh {
     /// - May only be called once. Memory must not be freed twice.
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device) {
-        self.vertices.free(device);
-        self.text_texture.free(device);
+        unsafe {
+            self.vertices.free(device);
+            self.text_texture.free(device);
+        }
     }
 
     pub fn alloc(core: &VulkanCore, vertices: &[GizmoTextVertex], text: &[u8]) -> RisResult<Self> {

@@ -261,10 +261,8 @@ pub fn create_file(
     let target = target_dir.join(format!("{}.{}", file_stem, extension,));
 
     let parent = target.parent();
-    if let Some(parent) = parent {
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = parent && !parent.exists() {
+        std::fs::create_dir_all(parent)?;
     }
 
     if target.exists() {

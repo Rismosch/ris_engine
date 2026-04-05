@@ -210,10 +210,8 @@ pub fn import(
 
     let splits = first_line.split(' ').collect::<Vec<_>>();
     let second_paramter = splits.get(1);
-    if let Some(parameter) = second_paramter {
-        if *parameter == HEADER {
-            return Ok(());
-        }
+    if let Some(parameter) = second_paramter && *parameter == HEADER {
+        return Ok(());
     }
 
     preproc_assert(
@@ -589,10 +587,8 @@ fn add_content(
 fn resolve_in_out(line: &str, token: &str, add_array: bool) -> String {
     let mut line = line.replace(IN_OUT, token);
 
-    if add_array {
-        if let Some(index) = line.find(';') {
-            line.insert_str(index, "[]");
-        }
+    if add_array && let Some(index) = line.find(';') {
+        line.insert_str(index, "[]");
     }
 
     line
