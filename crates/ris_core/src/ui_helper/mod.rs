@@ -445,7 +445,7 @@ impl UiHelper {
             let seconds = duration.as_secs();
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
-                ris_log::fatal!("manual restart requestd");
+                ris_log::fatal!("manual restart requested");
                 return Ok(GameloopState::WantsToRestart);
             }
         } else {
@@ -521,7 +521,7 @@ impl UiHelper {
         if let Some(_menu_bar) = data.ui.begin_menu_bar() {
             if let Some(_menu) = data.ui.begin_menu("start") {
                 if data.ui.menu_item("restart (F1)") {
-                    ris_log::fatal!("manual restart requestd");
+                    ris_log::fatal!("manual restart requested");
                     return Ok(GameloopState::WantsToRestart);
                 }
 
