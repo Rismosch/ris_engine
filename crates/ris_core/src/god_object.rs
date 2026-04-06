@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use sdl2::EventPump;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
-use sdl2::EventPump;
 
+use ris_asset::RisGodAsset;
 use ris_asset::asset_loader;
 use ris_asset::asset_loader::AssetLoaderGuard;
-use ris_asset::RisGodAsset;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
 use ris_async::ThreadPoolGuard;
@@ -15,8 +15,8 @@ use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
-use ris_data::settings::serializer::SettingsSerializer;
 use ris_data::settings::Settings;
+use ris_data::settings::serializer::SettingsSerializer;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
 use ris_error::RisResult;

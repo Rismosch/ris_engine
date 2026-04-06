@@ -1,8 +1,8 @@
 extern crate libc;
 
+use libc::CPU_SET;
 use libc::cpu_set_t;
 use libc::sched_setaffinity;
-use libc::CPU_SET;
 
 pub fn set_affinity(core_ids: &[usize]) -> Result<(), String> {
     let mut set = unsafe { std::mem::zeroed::<cpu_set_t>() };

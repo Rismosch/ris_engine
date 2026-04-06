@@ -162,11 +162,7 @@ impl Rng {
         let x = self.next_f32();
         let r = (max - min) * x + min;
 
-        if r > max {
-            max
-        } else {
-            r
-        }
+        if r > max { max } else { r }
     }
 
     /// min and max are inclusive
@@ -183,11 +179,7 @@ impl Rng {
         let x = self.next_f32();
         let r = (((max - min) as f32) * x) as i32 + min;
 
-        if r > max {
-            max
-        } else {
-            r
-        }
+        if r > max { max } else { r }
     }
 
     /// returns a random element in a slice.

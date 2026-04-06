@@ -64,7 +64,7 @@ impl RisHeader {
                     return ris_error::new_result!(
                         "all references must be the same enum variant. is_compiled: {}",
                         is_compiled
-                    )
+                    );
                 }
             };
         }

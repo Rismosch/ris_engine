@@ -1,7 +1,6 @@
 use ash::vk;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 #[derive(Clone)]
 pub struct TransientCommandArgs {
@@ -29,7 +28,7 @@ impl TransientCommand {
         let command_pool = self.command_pool;
         let command_buffer = self.command_buffer;
 
-        unsafe {device.free_command_buffers(command_pool, &[command_buffer])};
+        unsafe { device.free_command_buffers(command_pool, &[command_buffer]) };
     }
 
     /// # Safety
@@ -51,7 +50,9 @@ impl TransientCommand {
 
         let command_buffers =
             unsafe { device.allocate_command_buffers(&command_buffer_allocate_info) }?;
-        let command_buffer = *command_buffers.first().into_ris_error()?;
+        let command_buffer = *command_buffers
+            .first()
+            .ris_expect("a command buffer to be allocated")?;
 
         let command_buffer_begin_info = vk::CommandBufferBeginInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,

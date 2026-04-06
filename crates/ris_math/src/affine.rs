@@ -8,18 +8,18 @@ pub fn from_translation(t: Vec3) -> Mat4 {
     let Vec3(x, y, z) = t;
 
     let mut m = Mat4::init(1.0);
-    m.3 .0 = x;
-    m.3 .1 = y;
-    m.3 .2 = z;
+    m.3.0 = x;
+    m.3.1 = y;
+    m.3.2 = z;
 
     m
 }
 
 /// converts a translation matrix to a translation vector
 pub fn to_translation(m: Mat4) -> Vec3 {
-    let x = m.3 .0;
-    let y = m.3 .1;
-    let z = m.3 .2;
+    let x = m.3.0;
+    let y = m.3.1;
+    let z = m.3.2;
 
     Vec3(x, y, z)
 }
@@ -43,40 +43,40 @@ pub fn from_rotation(r: Quat) -> Mat3 {
 
     let mut m = Mat3::default();
 
-    m.0 .0 = 1. - (yy + zz);
-    m.1 .0 = xy - wz;
-    m.2 .0 = xz + wy;
+    m.0.0 = 1. - (yy + zz);
+    m.1.0 = xy - wz;
+    m.2.0 = xz + wy;
 
-    m.0 .1 = xy + wz;
-    m.1 .1 = 1. - (xx + zz);
-    m.2 .1 = yz - wx;
+    m.0.1 = xy + wz;
+    m.1.1 = 1. - (xx + zz);
+    m.2.1 = yz - wx;
 
-    m.0 .2 = xz - wy;
-    m.1 .2 = yz + wx;
-    m.2 .2 = 1. - (xx + yy);
+    m.0.2 = xz - wy;
+    m.1.2 = yz + wx;
+    m.2.2 = 1. - (xx + yy);
 
     m
 }
 
 /// converts a rotation matrix to a quaternion
 pub fn to_rotation(m: Mat3) -> Quat {
-    let tr = m.0 .0 + m.1 .1 + m.2 .2;
+    let tr = m.0.0 + m.1.1 + m.2.2;
     if tr > 0.0 {
         let s = f32::sqrt(tr + 1.0);
         let w = s / 2.0;
         let s = 0.5 / s;
-        let x = (m.1 .2 - m.2 .1) * s;
-        let y = (m.2 .0 - m.0 .2) * s;
-        let z = (m.0 .1 - m.1 .0) * s;
+        let x = (m.1.2 - m.2.1) * s;
+        let y = (m.2.0 - m.0.2) * s;
+        let z = (m.0.1 - m.1.0) * s;
         Quat(x, y, z, w)
     } else {
         let nxt = [1, 2, 0];
 
         let mut i = 0;
-        if m.1 .1 > m.0 .0 {
+        if m.1.1 > m.0.0 {
             i = 1;
         }
-        if m.2 .2 > m[i][i] {
+        if m.2.2 > m[i][i] {
             i = 2;
         }
         let j = nxt[i];
@@ -114,9 +114,9 @@ pub fn from_scale(s: Vec3) -> Mat3 {
     let Vec3(x, y, z) = s;
 
     let mut m = Mat3::init(1.0);
-    m.0 .0 = x;
-    m.1 .1 = y;
-    m.2 .2 = z;
+    m.0.0 = x;
+    m.1.1 = y;
+    m.2.2 = z;
 
     m
 }
@@ -125,9 +125,9 @@ pub fn from_scale(s: Vec3) -> Mat3 {
 ///
 /// **NOTE:** if you want to extract a scale from a trs matrix, use `decompose_trs` instead
 pub fn to_scale(m: Mat3) -> Vec3 {
-    let x = m.0 .0;
-    let y = m.1 .1;
-    let z = m.2 .2;
+    let x = m.0.0;
+    let y = m.1.1;
+    let z = m.2.2;
 
     Vec3(x, y, z)
 }

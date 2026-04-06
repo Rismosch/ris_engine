@@ -1,5 +1,5 @@
-use ris_asset_data::mesh::MeshLookupId;
 use ris_asset_data::AssetId;
+use ris_asset_data::mesh::MeshLookupId;
 use ris_error::prelude::*;
 
 use crate::ecs::decl::GameObjectHandle;

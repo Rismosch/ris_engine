@@ -9,10 +9,10 @@ use ris_data::god_state::GodState;
 use ris_error::RisResult;
 
 use crate::inspector_util;
-use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
+use crate::ui_helper::selection::Selection;
 
 const PAYLOAD_ID: &str = "hierarchy drag drop payload id";
 
@@ -69,7 +69,9 @@ impl IUiHelperModule for HierarchyModule {
             }
 
             ui.same_line();
-            if ui.button("save") && let Some(AssetId::Path(path)) = chunk.clone() {
+            if ui.button("save")
+                && let Some(AssetId::Path(path)) = chunk.clone()
+            {
                 ris_log::debug!("saving scene... chunk: {} path: {}", chunk_index, path,);
                 let bytes = ris_scene::serialize(scene, chunk_index)?;
 

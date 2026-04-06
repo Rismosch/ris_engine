@@ -14,8 +14,7 @@ use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
 use ris_data::input::buttons::Buttons;
 use ris_data::input::keys::KEY_STATE_SIZE;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 pub struct ImguiBackend {
     context: Context,
@@ -128,7 +127,9 @@ impl ImguiBackend {
                 None
             };
 
-            if let Some(pressed) = event && let Some(scancode) = Scancode::from_i32(i as i32) {
+            if let Some(pressed) = event
+                && let Some(scancode) = Scancode::from_i32(i as i32)
+            {
                 forward_keyboard_key_event(io, scancode, pressed);
             }
         }
@@ -156,8 +157,14 @@ impl ImguiBackend {
             .config_flags
             .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
         {
-            let imgui_cursor = self.context.mouse_cursor().into_ris_error()?;
-            let sdl2_cursor = self.cursors.get(&imgui_cursor).into_ris_error()?;
+            let imgui_cursor = self
+                .context
+                .mouse_cursor()
+                .ris_expect("mouse cursor to be displayed")?;
+            let sdl2_cursor = self
+                .cursors
+                .get(&imgui_cursor)
+                .ris_expect("cursor to exist")?;
             sdl2_cursor.set();
         }
 

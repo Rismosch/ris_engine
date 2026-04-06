@@ -1,7 +1,6 @@
 use std::ffi::CString;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_log::constructed_log_message::ConstructedLogFormatArgs;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
@@ -33,7 +32,7 @@ impl IUiHelperModule for LogModule {
         if data.ui.button("clear") {
             let mutex = &crate::log_appenders::ui_helper_appender::MESSAGES;
             let mut mutex_guard = mutex.lock()?;
-            let messages = mutex_guard.as_mut().into_ris_error()?;
+            let messages = mutex_guard.as_mut().ris_expect("")?;
             messages.clear();
         }
 
@@ -91,7 +90,9 @@ impl LogModule {
     fn draw_child(&mut self, data: &mut UiHelperDrawData) -> RisResult<()> {
         let mutex = &crate::log_appenders::ui_helper_appender::MESSAGES;
         let mut mutex_guard = mutex.lock()?;
-        let messages = mutex_guard.as_mut().into_ris_error()?;
+        let messages = mutex_guard
+            .as_mut()
+            .ris_expect("UiHelperAppender to be set up")?;
 
         for message in messages.iter() {
             match message {

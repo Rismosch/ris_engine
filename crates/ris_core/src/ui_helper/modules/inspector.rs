@@ -10,17 +10,16 @@ use ris_async::ThreadPool;
 use ris_data::ecs::components::mesh_component::MeshComponent;
 use ris_data::ecs::components::script_component::DynScriptComponent;
 use ris_data::ecs::components::script_component::ScriptInspectData;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_math::affine;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
 use crate::inspector_util;
-use crate::ui_helper::selection::Selection;
 use crate::ui_helper::IUiHelperModule;
 use crate::ui_helper::SharedStateWeakPtr;
 use crate::ui_helper::UiHelperDrawData;
+use crate::ui_helper::selection::Selection;
 
 pub struct InspectorModule {
     shared_state: SharedStateWeakPtr,
@@ -390,10 +389,12 @@ impl IUiHelperModule for InspectorModule {
                     } else if component.type_id() == TypeId::of::<DynScriptComponent>() {
                         let ptr = data.state.scene.script_components[index].to_weak();
                         let mut aref_mut = ptr.borrow_mut();
-                        let script_name = aref_mut.type_name().into_ris_error()?;
+                        let script_name = aref_mut
+                            .type_name()
+                            .ris_expect("script to have a typename")?;
 
                         let game_object = aref_mut.game_object();
-                        let script = aref_mut.script_mut().into_ris_error()?;
+                        let script = aref_mut.script_mut().ris_expect("script to be started")?;
 
                         let header = ComponentHeader::draw(
                             data.ui,

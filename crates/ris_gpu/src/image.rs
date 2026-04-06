@@ -1,7 +1,6 @@
 use ash::vk;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use super::transient_command::TransientCommand;
 use super::transient_command::TransientCommandArgs;
@@ -85,7 +84,7 @@ impl Image {
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
             physical_device_memory_properties,
         )?
-        .into_ris_error()?;
+        .ris_expect("memory type to exist. if this function fails, chances are the current hardware is not supported")?;
 
         let memory_allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
@@ -226,7 +225,7 @@ impl Image {
                     "TODO: transition from {:?} to {:?} is not yet implemented",
                     transition.0,
                     transition.1,
-                )
+                );
             }
         };
 

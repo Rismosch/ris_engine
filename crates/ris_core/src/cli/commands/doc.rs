@@ -1,8 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use super::ExplanationLevel;
 use super::ICommand;
@@ -40,7 +39,7 @@ impl ICommand for Doc {
 
         let doc_dir = PathBuf::from(&args[0])
             .parent()
-            .into_ris_error()?
+            .ris_expect("the exe path to have a parent")?
             .to_path_buf()
             .join("..")
             .join("doc");

@@ -4,8 +4,8 @@ use std::rc::Rc;
 use ris_asset::codecs::qoi;
 use ris_asset::codecs::qoi::Channels;
 use ris_asset::codecs::qoi::ColorSpace;
-use ris_asset::codecs::qoi::DecodeErrorKind;
-use ris_asset::codecs::qoi::EncodeErrorKind;
+use ris_asset::codecs::qoi::DecodeError;
+use ris_asset::codecs::qoi::EncodeError;
 use ris_asset::codecs::qoi::QoiDesc;
 use ris_rng::rng::Rng;
 use ris_rng::rng::Seed;
@@ -130,7 +130,7 @@ fn should_not_encode_when_width_is_zero() {
     let data = [];
     let error = qoi::encode(&data, desc).unwrap_err();
 
-    assert!(matches!(error.kind, EncodeErrorKind::WidthIsZero));
+    assert!(matches!(error, EncodeError::WidthIsZero));
 }
 
 #[test]
@@ -145,7 +145,7 @@ fn should_not_encode_when_height_is_zero() {
     let data = [];
     let error = qoi::encode(&data, desc).unwrap_err();
 
-    assert!(matches!(error.kind, EncodeErrorKind::HeightIsZero));
+    assert!(matches!(error, EncodeError::HeightIsZero));
 }
 
 #[test]
@@ -160,7 +160,7 @@ fn should_not_encode_when_dimensions_are_too_large() {
     let data = [];
     let error = qoi::encode(&data, desc).unwrap_err();
 
-    assert!(matches!(error.kind, EncodeErrorKind::DimensionsTooLarge));
+    assert!(matches!(error, EncodeError::DimensionsTooLarge));
 }
 
 #[test]
@@ -175,10 +175,7 @@ fn should_not_encode_when_data_does_not_match_dimensions() {
     let data = [1, 2, 3, 4, 5];
     let error = qoi::encode(&data, desc).unwrap_err();
 
-    assert!(matches!(
-        error.kind,
-        EncodeErrorKind::DataDoesNotMatchDimensions
-    ));
+    assert!(matches!(error, EncodeError::DataDoesNotMatchDimensions));
 }
 
 #[test]
@@ -186,7 +183,7 @@ fn should_not_decode_when_data_is_too_small() {
     let data = [0; 21];
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::DataToSmall));
+    assert!(matches!(error, DecodeError::DataToSmall));
 }
 
 #[test]
@@ -194,7 +191,7 @@ fn should_not_decode_when_magic_is_incorrect() {
     let data = [0; 22];
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::IncorrectMagic));
+    assert!(matches!(error, DecodeError::IncorrectMagic));
 }
 
 #[test]
@@ -207,7 +204,7 @@ fn should_not_decode_when_desc_width_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::DescWidthIsZero));
+    assert!(matches!(error, DecodeError::DescWidthIsZero));
 }
 
 #[test]
@@ -221,7 +218,7 @@ fn should_not_decode_when_height_is_zero() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::DescHeightIsZero));
+    assert!(matches!(error, DecodeError::DescHeightIsZero));
 }
 
 #[test]
@@ -236,7 +233,7 @@ fn should_not_decode_when_invalid_channel() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
+    assert!(matches!(error, DecodeError::InvalidCast(_)));
 }
 
 #[test]
@@ -253,5 +250,5 @@ fn should_not_decode_when_invalid_color_space() {
     data[21] = 0x01;
 
     let error = qoi::decode(&data, None).unwrap_err();
-    assert!(matches!(error.kind, DecodeErrorKind::InvalidCast(_)));
+    assert!(matches!(error, DecodeError::InvalidCast(_)));
 }

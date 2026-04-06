@@ -4,13 +4,12 @@ use ash::vk;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
-use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_asset::RisGodAsset;
+use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_gpu::core::VulkanCore;
 use ris_gpu::frames_in_flight::FrameInFlightCreateInfo;
 use ris_gpu::frames_in_flight::FramesInFlight;
@@ -54,7 +53,9 @@ impl Renderer {
     /// - This object must not be used after it was freed
     pub unsafe fn free(&mut self, device: &ash::Device, free_frames_in_flight: bool) {
         unsafe {
-            if free_frames_in_flight && let Some(mut frames_in_flight) = self.frames_in_flight.take() {
+            if free_frames_in_flight
+                && let Some(mut frames_in_flight) = self.frames_in_flight.take()
+            {
                 frames_in_flight.free(device);
             }
 
@@ -148,7 +149,11 @@ impl Renderer {
             ..
         } = core;
 
-        let mut mesh_lookup = self.scene.mesh_lookup.take().into_ris_error()?;
+        let mut mesh_lookup = self
+            .scene
+            .mesh_lookup
+            .take()
+            .ris_expect("mesh_lookup to be Some")?;
         mesh_lookup.reimport_everything(TransientCommandArgs {
             device: device.clone(),
             queue: *graphics_queue,
@@ -286,7 +291,7 @@ impl GpuFrame {
             .renderer
             .frames_in_flight
             .as_mut()
-            .into_ris_error()?
+            .ris_expect("frames_in_flight to be Some")?
             .acquire_next_frame(&device)?;
 
         // acquire an image from the swap chain
@@ -309,7 +314,7 @@ impl GpuFrame {
                     return Ok(ui_helper_state);
                 }
                 vk_result => {
-                    return ris_error::new_result!("failed to acquire chain image: {}", vk_result)
+                    return ris_error::new_result!("failed to acquire chain image: {}", vk_result);
                 }
             },
         };
@@ -460,7 +465,7 @@ impl GpuFrame {
                     Some(self.window.vulkan_drawable_size())
                 }
                 vk_result => {
-                    return ris_error::new_result!("failed to present queue: {}", vk_result)
+                    return ris_error::new_result!("failed to present queue: {}", vk_result);
                 }
             },
         };

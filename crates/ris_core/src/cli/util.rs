@@ -1,8 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use super::commands::ExplanationLevel;
 use super::commands::ICommand;
@@ -34,7 +33,10 @@ pub fn get_root_dir() -> RisResult<PathBuf> {
         .stdout;
     let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
 
-    let root_dir = cargo_path.parent().into_ris_error()?.to_path_buf();
+    let root_dir = cargo_path
+        .parent()
+        .ris_expect("cargo_path to have a parent")?
+        .to_path_buf();
 
     Ok(root_dir)
 }

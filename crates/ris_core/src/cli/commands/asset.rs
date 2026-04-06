@@ -3,8 +3,7 @@ use std::path::Path;
 use ris_asset::asset_compiler;
 use ris_asset::asset_compiler::CompileOptions;
 use ris_asset::asset_importer;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_log::log::IAppender;
 use ris_log::log_level::LogLevel;
 
@@ -67,7 +66,10 @@ impl ICommand for Asset {
             return util::command_error("no args provided", self);
         }
 
-        let command = args.get(3).into_ris_error()?.to_lowercase();
+        let command = args
+            .get(3)
+            .ris_expect("args to have 4 elements")?
+            .to_lowercase();
 
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];

@@ -1,5 +1,4 @@
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_math::affine;
 use ris_math::matrix::Mat4;
 use ris_math::quaternion::Quat;
@@ -428,7 +427,7 @@ impl GameObjectHandle {
 
         let position = parent.children(scene)?.into_iter().position(|x| x == self);
         let index = ris_error::unwrap!(
-            position.into_ris_error(),
+            position.ris_expect("the child registered to the parent"),
             "failed to find sibling index, despite having a parent. this error should never occur and hints at a serious issue"
         );
 

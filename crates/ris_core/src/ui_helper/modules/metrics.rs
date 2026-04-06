@@ -151,7 +151,7 @@ impl IUiHelperModule for MetricsModule {
                     }
                 }
 
-                let filepath = filepath.into_ris_error()?;
+                let filepath = filepath.ris_expect("filepath to exist")?;
                 std::fs::create_dir_all(&dir)?;
                 let mut file = std::fs::File::create(&filepath)?;
 

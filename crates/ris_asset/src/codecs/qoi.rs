@@ -30,12 +30,10 @@ impl TryFrom<u8> for Channels {
         match value {
             3 => Ok(Channels::RGB),
             4 => Ok(Channels::RGBA),
-            _ => Err(DecodeError {
-                kind: DecodeErrorKind::InvalidCast(format!(
-                    "invalid Channels value. Expected 3 or 4, but received {}",
-                    value
-                )),
-            }),
+            _ => Err(DecodeError::InvalidCast(format!(
+                "invalid Channels value. Expected 3 or 4, but received {}",
+                value
+            ))),
         }
     }
 }
@@ -47,12 +45,10 @@ impl TryFrom<u8> for ColorSpace {
         match value {
             0 => Ok(ColorSpace::SRGB),
             1 => Ok(ColorSpace::Linear),
-            _ => Err(DecodeError {
-                kind: DecodeErrorKind::InvalidCast(format!(
-                    "invalid ColorSpace value. Expected 0 or 1, but received {}",
-                    value
-                )),
-            }),
+            _ => Err(DecodeError::InvalidCast(format!(
+                "invalid ColorSpace value. Expected 0 or 1, but received {}",
+                value
+            ))),
         }
     }
 }
@@ -103,47 +99,40 @@ impl Rgba {
 const PADDING: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
 
 #[derive(Debug)]
-pub enum EncodeErrorKind {
+pub enum EncodeError {
     WidthIsZero,
     HeightIsZero,
     DimensionsTooLarge,
     DataDoesNotMatchDimensions,
-    IoError(std::io::Error),
+    WriteError(ris_io::WriteError),
 }
 
 #[derive(Debug)]
-pub enum DecodeErrorKind {
+pub enum DecodeError {
     DataToSmall,
     IncorrectMagic,
     DescWidthIsZero,
     DescHeightIsZero,
-    IoError(std::io::Error),
+    ReadError(ris_io::ReadError),
+    WriteError(ris_io::WriteError),
     InvalidCast(String),
 }
 
-#[derive(Debug)]
-pub struct EncodeError {
-    pub kind: EncodeErrorKind,
-}
-
-#[derive(Debug)]
-pub struct DecodeError {
-    pub kind: DecodeErrorKind,
-}
-
-impl From<std::io::Error> for EncodeError {
-    fn from(value: std::io::Error) -> Self {
-        Self {
-            kind: EncodeErrorKind::IoError(value),
-        }
+impl From<ris_io::WriteError> for EncodeError {
+    fn from(value: ris_io::WriteError) -> Self {
+        Self::WriteError(value)
     }
 }
 
-impl From<std::io::Error> for DecodeError {
-    fn from(value: std::io::Error) -> Self {
-        Self {
-            kind: DecodeErrorKind::IoError(value),
-        }
+impl From<ris_io::ReadError> for DecodeError {
+    fn from(value: ris_io::ReadError) -> Self {
+        Self::ReadError(value)
+    }
+}
+
+impl From<ris_io::WriteError> for DecodeError {
+    fn from(value: ris_io::WriteError) -> Self {
+        Self::WriteError(value)
     }
 }
 
@@ -152,50 +141,45 @@ impl std::error::Error for DecodeError {}
 
 impl std::fmt::Display for EncodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            EncodeErrorKind::WidthIsZero => write!(f, "width may not be 0"),
-            EncodeErrorKind::HeightIsZero => write!(f, "height may not be 0"),
-            EncodeErrorKind::DimensionsTooLarge => {
+        match self {
+            EncodeError::WidthIsZero => write!(f, "width may not be 0"),
+            EncodeError::HeightIsZero => write!(f, "height may not be 0"),
+            EncodeError::DimensionsTooLarge => {
                 write!(f, "pixels may not exceed {}", PIXELS_MAX)
             }
-            EncodeErrorKind::DataDoesNotMatchDimensions => {
+            EncodeError::DataDoesNotMatchDimensions => {
                 write!(f, "data must have length of width * height * channels")
             }
-            EncodeErrorKind::IoError(e) => write!(f, "io error occured: {}", e),
+            EncodeError::WriteError(e) => write!(f, "write error occured: {}", e),
         }
     }
 }
 
 impl std::fmt::Display for DecodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            DecodeErrorKind::DataToSmall => write!(f, "data must be larger than {}", DATA_MIN),
-            DecodeErrorKind::IncorrectMagic => write!(f, "magic must be {:?}", MAGIC),
-            DecodeErrorKind::DescWidthIsZero => write!(f, "decoded header width was 0"),
-            DecodeErrorKind::DescHeightIsZero => write!(f, "decoded header height was 0"),
-            DecodeErrorKind::IoError(e) => write!(f, "io error occured: {}", e),
-            DecodeErrorKind::InvalidCast(e) => write!(f, "invalid cast: {}", e),
+        match self {
+            DecodeError::DataToSmall => write!(f, "data must be larger than {}", DATA_MIN),
+            DecodeError::IncorrectMagic => write!(f, "magic must be {:?}", MAGIC),
+            DecodeError::DescWidthIsZero => write!(f, "decoded header width was 0"),
+            DecodeError::DescHeightIsZero => write!(f, "decoded header height was 0"),
+            DecodeError::ReadError(e) => write!(f, "read error occured: {}", e),
+            DecodeError::WriteError(e) => write!(f, "write error occured: {}", e),
+            DecodeError::InvalidCast(e) => write!(f, "invalid cast: {}", e),
         }
     }
 }
 
 pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     if desc.width == 0 {
-        return Err(EncodeError {
-            kind: EncodeErrorKind::WidthIsZero,
-        });
+        return Err(EncodeError::WidthIsZero);
     }
 
     if desc.height == 0 {
-        return Err(EncodeError {
-            kind: EncodeErrorKind::HeightIsZero,
-        });
+        return Err(EncodeError::HeightIsZero);
     }
 
     if desc.height >= PIXELS_MAX / desc.width {
-        return Err(EncodeError {
-            kind: EncodeErrorKind::DimensionsTooLarge,
-        });
+        return Err(EncodeError::DimensionsTooLarge);
     }
 
     let max_size =
@@ -221,9 +205,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
     let channels = desc.channels as u32;
 
     if px_len != pixels.len() {
-        return Err(EncodeError {
-            kind: EncodeErrorKind::DataDoesNotMatchDimensions,
-        });
+        return Err(EncodeError::DataDoesNotMatchDimensions);
     }
 
     for px_pos in (0..px_len).step_by(channels as usize) {
@@ -294,9 +276,7 @@ pub fn encode(data: &[u8], desc: QoiDesc) -> Result<Vec<u8>, EncodeError> {
 
 pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDesc), DecodeError> {
     if data.len() < DATA_MIN {
-        return Err(DecodeError {
-            kind: DecodeErrorKind::DataToSmall,
-        });
+        return Err(DecodeError::DataToSmall);
     }
 
     let mut bytes = &mut Cursor::new(data);
@@ -312,21 +292,15 @@ pub fn decode(data: &[u8], channels: Option<Channels>) -> Result<(Vec<u8>, QoiDe
     let height = u32::from_be_bytes(height_bytes);
 
     if !ris_util::testing::bytes_eq(&header_magic_bytes, &MAGIC) {
-        return Err(DecodeError {
-            kind: DecodeErrorKind::IncorrectMagic,
-        });
+        return Err(DecodeError::IncorrectMagic);
     }
 
     if width == 0 {
-        return Err(DecodeError {
-            kind: DecodeErrorKind::DescWidthIsZero,
-        });
+        return Err(DecodeError::DescWidthIsZero);
     }
 
     if height == 0 {
-        return Err(DecodeError {
-            kind: DecodeErrorKind::DescHeightIsZero,
-        });
+        return Err(DecodeError::DescHeightIsZero);
     }
 
     let desc = QoiDesc {

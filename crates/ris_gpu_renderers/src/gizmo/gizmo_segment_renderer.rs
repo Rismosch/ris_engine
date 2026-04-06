@@ -2,14 +2,13 @@ use ash::vk;
 
 use ris_asset::RisGodAsset;
 use ris_debug::gizmo::GizmoSegmentVertex;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_gpu::buffer::Buffer;
 use ris_gpu::core::VulkanCore;
+use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::frames_in_flight::FrameInFlight;
 use ris_gpu::frames_in_flight::RendererId;
 use ris_gpu::frames_in_flight::RendererRegisterer;
-use ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT;
 use ris_gpu::swapchain::SwapchainEntry;
 use ris_math::camera::Camera;
 use ris_math::matrix::Mat4;
@@ -445,7 +444,10 @@ impl GizmoSegmentRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
+        let pipeline = graphics_pipelines
+            .into_iter()
+            .next()
+            .ris_expect("a graphics pipline to be created")?;
 
         unsafe { device.destroy_shader_module(vs_module, None) };
         unsafe { device.destroy_shader_module(fs_module, None) };
@@ -555,7 +557,7 @@ impl GizmoSegmentRenderer {
                 let new_mesh =
                     GizmoSegmentMesh::alloc(device, physical_device_memory_properties, vertices)?;
                 *mesh = Some(new_mesh);
-                mesh.as_mut().into_ris_error()?
+                mesh.as_mut().ris_expect("the mesh to exist")?
             }
         };
 

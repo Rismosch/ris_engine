@@ -1,16 +1,16 @@
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
+use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::SendError;
 use std::sync::mpsc::Sender;
-use std::sync::Mutex;
+use std::sync::mpsc::channel;
 
 use ris_asset_data::asset_id::AssetId;
-use ris_async::oneshot_channel;
 use ris_async::OneshotReceiver;
 use ris_async::OneshotSender;
 use ris_async::ThreadPool;
+use ris_async::oneshot_channel;
 use ris_data::info::app_info::AppInfo;
 use ris_error::prelude::*;
 

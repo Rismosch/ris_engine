@@ -1,10 +1,10 @@
+use sdl2::GameControllerSubsystem;
 use sdl2::controller::GameController;
 use sdl2::event::Event;
-use sdl2::GameControllerSubsystem;
 
 use ris_data::input::gamepad_data::GamepadData;
 
-use crate::gamepad_util::{get_button_index, ALL_BUTTONS};
+use crate::gamepad_util::{ALL_BUTTONS, get_button_index};
 
 pub struct GamepadLogic {
     subsystem: GameControllerSubsystem,

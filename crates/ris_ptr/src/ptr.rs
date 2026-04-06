@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 #[cfg(feature = "validation_enabled")]
-use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
+use std::sync::{Arc, atomic::AtomicBool, atomic::Ordering};
 
 /// Threadsafe single owner, which allows non-owning copies. Dropping the StrongPtr invalidates all created WeakPtrs.
 ///

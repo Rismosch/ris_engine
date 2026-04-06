@@ -6,8 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ris_asset_data::asset_id::AssetId;
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_io::FatPtr;
 
 use crate::RisHeader;
@@ -174,7 +173,8 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
             .iter()
             .map(|x| {
                 Ok({
-                    let mut original_path = x.to_str().into_ris_error()?.to_string();
+                    let mut original_path =
+                        x.to_str().ris_expect("x to be valid UTF-8")?.to_string();
                     original_path.replace_range(0..source.len(), "");
                     let mut original_path = original_path.replace('\\', "/");
                     if original_path.starts_with('/') {
@@ -321,7 +321,9 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
         let mut asset_path = PathBuf::new();
         asset_path.push(target);
         asset_path.push(original_path);
-        let parent = asset_path.parent().into_ris_error()?;
+        let parent = asset_path
+            .parent()
+            .ris_expect("asset_path to have a parent")?;
         std::fs::create_dir_all(parent)?;
 
         let mut decompiled_file = File::create(&asset_path)?;

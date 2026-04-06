@@ -1,7 +1,6 @@
 use std::io::Read;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 pub fn run(cmd: &str) -> RisResult<std::process::ExitStatus> {
     run_internal(cmd, None, None::<Vec<(&str, &str)>>)
@@ -90,7 +89,7 @@ where
 
     let mut process = command.spawn()?;
     if let Some(stdout_string) = stdout {
-        let process_stdout = process.stdout.as_mut().into_ris_error()?;
+        let process_stdout = process.stdout.as_mut().ris_expect("stdout to be Some")?;
         process_stdout.read_to_string(stdout_string)?;
     }
     let exit_status = process.wait()?;

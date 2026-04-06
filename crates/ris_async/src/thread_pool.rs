@@ -1,29 +1,28 @@
 use std::cell::UnsafeCell;
 use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::pin;
 use std::pin::Pin;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
+use std::pin::pin;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::TryLockError;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::task::Context;
 use std::task::Poll;
 use std::task::Wake;
 use std::thread::JoinHandle;
 use std::thread::Thread;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
-use crate::job_channel;
 use crate::JobFuture;
 use crate::JobReceiver;
 use crate::JobSender;
 use crate::JobStealer;
 use crate::SpinLock;
+use crate::job_channel;
 
 type Job = Box<dyn Future<Output = ()>>;
 
@@ -221,7 +220,7 @@ impl ThreadPool {
         drop(g);
 
         // initial main worker setup
-        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]){
+        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]) {
             ris_log::error!("failed to set affinities for main worker: {}", e);
         }
         let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
@@ -250,7 +249,7 @@ impl ThreadPool {
                 .name(format!("thread_pool.worker.{}", i))
                 .spawn(move || {
                     // worker initial setup
-                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids){
+                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids) {
                         ris_log::error!("failed to set affinities for worker {}: {}", i, e);
                     }
                     let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
@@ -271,7 +270,7 @@ impl ThreadPool {
                     // prepare worker
                     let mut g = prepared_worker_data.lock();
                     let others = ris_error::unwrap!(
-                        g[i].take().into_ris_error(),
+                        g[i].take().ris_expect("worker to be prepared"),
                         "something has gone terribly wrong. this option should never be none"
                     );
                     drop(g);
@@ -286,7 +285,7 @@ impl ThreadPool {
                     }));
 
                     let worker = ris_error::unwrap!(
-                        get_worker().into_ris_error(),
+                        get_worker().ris_expect("worker to be set"),
                         "something has gone terribly wrong. this option should never be none"
                     );
 
@@ -324,7 +323,7 @@ impl ThreadPool {
 
                 let original = &g[j];
                 let other = ris_error::unwrap!(
-                    original.as_ref().into_ris_error(),
+                    original.as_ref().ris_expect("worker to be set up"),
                     "something has gone terribly wrong. this option should never be none"
                 );
 
@@ -342,7 +341,7 @@ impl ThreadPool {
         // prepare main worker
         let mut g = prepared_worker_data.lock();
         let others = ris_error::unwrap!(
-            g[0].take().into_ris_error(),
+            g[0].take().ris_expect("worker to be prepared"),
             "something has gone terribly wrong. this option should never be none"
         );
         drop(g);

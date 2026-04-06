@@ -418,7 +418,10 @@ impl ImguiRenderer {
             )
         }
         .map_err(|e| e.1)?;
-        let pipeline = graphics_pipelines.into_iter().next().into_ris_error()?;
+        let pipeline = graphics_pipelines
+            .into_iter()
+            .next()
+            .ris_expect("a graphics pipline to be created")?;
 
         unsafe { device.destroy_shader_module(vs_shader_module, None) };
         unsafe { device.destroy_shader_module(fs_shader_module, None) };
@@ -494,7 +497,10 @@ impl ImguiRenderer {
 
         let descriptor_sets =
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
-        let descriptor_set = descriptor_sets.into_iter().next().into_ris_error()?;
+        let descriptor_set = descriptor_sets
+            .into_iter()
+            .next()
+            .ris_expect("the mesh to exist")?;
 
         let image_infos = [vk::DescriptorImageInfo {
             sampler: font_texture.sampler,
@@ -586,7 +592,7 @@ impl ImguiRenderer {
             None => {
                 let new_mesh = Mesh::alloc(device, physical_device_memory_properties, draw_data)?;
                 *mesh = Some(new_mesh);
-                let mesh = mesh.as_mut().into_ris_error()?;
+                let mesh = mesh.as_mut().ris_expect("the mesh to exist")?;
                 (mesh, true)
             }
         };
@@ -696,13 +702,13 @@ impl ImguiRenderer {
             let tmb = -draw_data.display_size[1];
             let tpb = -draw_data.display_size[1];
             let fmn = 2.0;
-            projection.0 .0 = 2.0 / rml;
-            projection.1 .1 = -2.0 / tmb;
-            projection.2 .2 = -1.0 / fmn;
-            projection.3 .0 = -(rpl / rml);
-            projection.3 .1 = -(tpb / tmb);
-            projection.3 .2 = 1.0 / fmn;
-            projection.3 .3 = 1.0;
+            projection.0.0 = 2.0 / rml;
+            projection.1.1 = -2.0 / tmb;
+            projection.2.2 = -1.0 / fmn;
+            projection.3.0 = -(rpl / rml);
+            projection.3.1 = -(tpb / tmb);
+            projection.3.2 = 1.0 / fmn;
+            projection.3.3 = 1.0;
 
             let push_ptr = (&projection) as *const Mat4 as *const u8;
             let push = std::slice::from_raw_parts(push_ptr, std::mem::size_of::<Mat4>());

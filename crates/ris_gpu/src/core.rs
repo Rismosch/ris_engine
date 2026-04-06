@@ -4,8 +4,7 @@ use std::ffi::CString;
 use ash::vk;
 use sdl2::video::Window;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use super::debug::Debugger;
 use super::suitable_device::SuitableDevice;
@@ -126,7 +125,7 @@ impl VulkanCore {
         let instance_handle = vk::Handle::as_raw(instance.handle());
         let surface_raw = window
             .vulkan_create_surface(instance_handle as usize)
-            .into_ris_error()?;
+            .ris_expect("no failure")?;
         let surface: vk::SurfaceKHR = vk::Handle::from_raw(surface_raw);
         let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
 

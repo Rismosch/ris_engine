@@ -133,7 +133,11 @@ fn print_help(commands: &[Box<dyn ICommand>]) {
     }
 
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
-    eprintln!("usage: {} {} [help] <command>", crate::entry::CLI, cargo_pkg_name,);
+    eprintln!(
+        "usage: {} {} [help] <command>",
+        crate::entry::CLI,
+        cargo_pkg_name,
+    );
     eprintln!("commands:");
     for command in commands {
         let mut name = command.name();
@@ -203,7 +207,7 @@ fn get_target_dir(program: impl AsRef<str>, command_name: impl AsRef<str>) -> Ri
         Ok(root_dir) => root_dir,
         Err(_) => PathBuf::from(program)
             .parent()
-            .into_ris_error()?
+            .ris_expect("program to have a parent")?
             .to_path_buf(),
     };
 

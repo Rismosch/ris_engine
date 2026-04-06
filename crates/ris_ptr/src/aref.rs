@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 use std::ptr::NonNull;
 #[cfg(feature = "validation_enabled")]
-use std::sync::{atomic::AtomicIsize, atomic::Ordering, Arc};
+use std::sync::{Arc, atomic::AtomicIsize, atomic::Ordering};
 
 // enable to log all borrows and when they are dropped. useful for debugging.
 #[cfg(feature = "validation_enabled")]

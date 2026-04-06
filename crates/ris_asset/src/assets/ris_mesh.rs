@@ -42,7 +42,8 @@ pub fn serialize(mesh: &CpuMesh) -> RisResult<Vec<u8>> {
 }
 
 pub fn deserialize(bytes: &[u8]) -> RisResult<CpuMesh> {
-    let (header, content) = RisHeader::deserialize(bytes)?.into_ris_error()?;
+    let (header, content) =
+        RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
     header.assert_magic(MAGIC)?;
 
     let decompressed = miniz_oxide::inflate::decompress_to_vec(content)

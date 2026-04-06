@@ -43,17 +43,6 @@ impl std::fmt::Debug for RisError {
     }
 }
 
-#[derive(Debug)]
-pub struct OptionError;
-
-impl Error for OptionError {}
-
-impl std::fmt::Display for OptionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Option was None")
-    }
-}
-
 impl<E: Error + 'static> From<E> for RisError {
     fn from(value: E) -> Self {
         let source_type_name = Some(std::any::type_name::<E>().to_string());
@@ -69,23 +58,20 @@ impl<E: Error + 'static> From<E> for RisError {
 }
 
 pub trait Extensions<T> {
-    fn into_ris_error(self) -> Result<T, RisError>;
+    fn ris_expect(self, msg: &str) -> Result<T, RisError>;
 }
 
 impl<T> Extensions<T> for Option<T> {
-    fn into_ris_error(self) -> Result<T, RisError> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(RisError::from(OptionError)),
-        }
+    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+        self.ok_or("Option was None").ris_expect(msg)
     }
 }
 
 impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn into_ris_error(self) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
         match self {
             Ok(value) => Ok(value),
-            Err(e) => crate::new_result!("{}", e),
+            Err(e) => crate::new_result!("expected {}. error: {}", msg, e),
         }
     }
 }
@@ -126,8 +112,10 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
 
-        if unsafe {$crate::error::PRINT_WARNING_ON_BACKTRACE} {
-            ris_log::warning!("created backtrace. this operation is expensive. excessive use may cost performance");
+        if unsafe { $crate::error::PRINT_WARNING_ON_BACKTRACE } {
+            ris_log::warning!(
+                "created backtrace. this operation is expensive. excessive use may cost performance"
+            );
         }
 
         if $crate::error::PRINT_BACKTRACE_WHEN_GENERATED {
@@ -135,7 +123,7 @@ macro_rules! get_backtrace {
         }
 
         backtrace
-    }}
+    }};
 }
 
 #[macro_export]
@@ -164,4 +152,23 @@ macro_rules! debug_assert {
             $crate::assert!($value)
         }
     }};
+}
+
+#[macro_export]
+macro_rules! declare_error {
+    (
+        $error_name:ident,
+        $error_msg:literal $(,)?
+    ) => {
+        #[derive(Debug)]
+        pub struct $error_name;
+
+        impl std::fmt::Display for $error_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, $error_msg)
+            }
+        }
+
+        impl std::error::Error for $error_name {}
+    };
 }

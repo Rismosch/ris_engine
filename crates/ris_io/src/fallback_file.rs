@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use ris_error::prelude::*;
 use ris_log::counter::Counter;
 
-use crate::path::SanitizeInfo;
 use crate::FatPtr;
+use crate::path::SanitizeInfo;
 
 pub struct FallbackFileAppend {
     current_file: std::fs::File,
@@ -101,7 +101,9 @@ impl FallbackFileOverwrite {
 
     pub fn get_by_index(&self, index: usize) -> RisResult<Vec<u8>> {
         let available_paths = self.available_paths();
-        let path = available_paths.get(index).into_ris_error()?;
+        let path = available_paths
+            .get(index)
+            .ris_expect("index to be in range")?;
         self.get_by_path(path)
     }
 }
