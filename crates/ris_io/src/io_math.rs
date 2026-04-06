@@ -19,8 +19,8 @@ use ris_math::vector::Vec2;
 use ris_math::vector::Vec3;
 use ris_math::vector::Vec4;
 
-use crate::FatPtr;
 use crate::ConversionError;
+use crate::FatPtr;
 use crate::ReadError;
 use crate::WriteError;
 

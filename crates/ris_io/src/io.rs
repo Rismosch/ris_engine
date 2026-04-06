@@ -1,8 +1,7 @@
+use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
-use std::io::Read;
-use std::isize;
 
 pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 
@@ -11,7 +10,10 @@ pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 //
 
 ris_error::declare_error!(BeginWasBiggerThanEnd, "begin was bigger than end");
-ris_error::declare_error!(WrittenBytesDoNotMatchBufLen, "written bytes do not match buf len");
+ris_error::declare_error!(
+    WrittenBytesDoNotMatchBufLen,
+    "written bytes do not match buf len"
+);
 ris_error::declare_error!(ReadBytesDoNotMatchBufLen, "read bytes do not match buf len");
 
 #[derive(Debug, Default)]
@@ -88,7 +90,11 @@ impl From<ConversionError> for ReadError {
 
 impl std::fmt::Display for ConversionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "failed to convert from {} to {}", self.type_name_from, self.type_name_to)
+        write!(
+            f,
+            "failed to convert from {} to {}",
+            self.type_name_from, self.type_name_to
+        )
     }
 }
 
@@ -113,7 +119,7 @@ impl std::fmt::Display for ReadError {
     }
 }
 
-impl std::error::Error for ConversionError{}
+impl std::error::Error for ConversionError {}
 impl std::error::Error for WriteError {}
 impl std::error::Error for ReadError {}
 
@@ -261,7 +267,10 @@ pub fn write_bool(stream: &mut (impl Write + Seek), value: bool) -> Result<FatPt
 }
 
 /// writes a `FatPtr` and advances the stream. returns a `FatPtr` to the byte written.
-pub fn write_fat_ptr(stream: &mut (impl Write + Seek), value: FatPtr) -> Result<FatPtr, WriteError> {
+pub fn write_fat_ptr(
+    stream: &mut (impl Write + Seek),
+    value: FatPtr,
+) -> Result<FatPtr, WriteError> {
     let p_addr = write_u64(stream, value.addr)?;
     let p_len = write_u64(stream, value.len)?;
     let addr = p_addr.addr;
@@ -272,7 +281,10 @@ pub fn write_fat_ptr(stream: &mut (impl Write + Seek), value: FatPtr) -> Result<
 
 /// writes a string and advances the stream. it does so by writing it's len as an `u32`, followed
 /// by it's UTF-8 encoded bytes.
-pub fn write_string(stream: &mut (impl Write + Seek), string: impl AsRef<str>) -> Result<FatPtr, WriteError> {
+pub fn write_string(
+    stream: &mut (impl Write + Seek),
+    string: impl AsRef<str>,
+) -> Result<FatPtr, WriteError> {
     let string = string.as_ref();
     let begin = seek(stream, SeekFrom::Current(0))?;
     write_uint(stream, string.len())?;
