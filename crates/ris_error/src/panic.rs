@@ -1,6 +1,6 @@
 use sdl2::messagebox::MessageBoxFlag;
 
-pub static mut SHOW_MESSAGE_BOX_ON_THROW: bool = true;
+pub static mut SHOW_MESSAGE_BOX_ON_PANIC: bool = true;
 
 #[macro_export]
 macro_rules! panic {
@@ -60,7 +60,7 @@ macro_rules! panic_assert {
 }
 
 pub fn show_panic_message_box(message: &str) {
-    if unsafe { !SHOW_MESSAGE_BOX_ON_THROW } {
+    if unsafe { !SHOW_MESSAGE_BOX_ON_PANIC } {
         return;
     }
 

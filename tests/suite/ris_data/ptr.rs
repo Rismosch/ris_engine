@@ -37,7 +37,7 @@ fn should_deref_weak_ptr_after_strong_ptr() {
 #[cfg(debug_assertions)]
 fn should_panic_on_deref_weak_ptr_when_strong_ptr_was_dropped() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let ptr = StrongPtr::new(42);

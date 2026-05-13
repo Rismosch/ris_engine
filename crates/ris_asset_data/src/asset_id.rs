@@ -53,7 +53,7 @@ pub union AssetId2 {
 impl Drop for AssetId2 {
     fn drop(&mut self) {
         if ASSET_ID_2_KIND == Some(AssetId2Kind::Path) {
-            _ = unsafe {Box::from_raw(self.path)}
+            _ = unsafe { Box::from_raw(self.path) }
         }
     }
 }
@@ -76,12 +76,11 @@ impl AssetId2 {
 
     pub fn index(&self) -> u64 {
         assert_asset_id_2_kind(AssetId2Kind::Index);
-        unsafe {self.index}
+        unsafe { self.index }
     }
 
     pub fn path(&self) -> &Path {
         assert_asset_id_2_kind(AssetId2Kind::Path);
-        unsafe {&(*self.path)}
+        unsafe { &(*self.path) }
     }
 }
-

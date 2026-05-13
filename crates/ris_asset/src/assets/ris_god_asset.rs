@@ -92,6 +92,4 @@ impl RisGodAsset {
 }
 
 #[repr(C)]
-pub struct RisGodAsset2 {
-
-}
+pub struct RisGodAsset2 {}

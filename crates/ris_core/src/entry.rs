@@ -129,7 +129,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
                 eprintln!("restarting...");
                 eprintln!();
                 eprintln!();
-            },
+            }
         }
     }
 }

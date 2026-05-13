@@ -135,7 +135,8 @@ macro_rules! assert {
         #[cfg(not(debug_assertions))]
         {
             let _ = $value;
-            Ok(())
+            let retval: ris_error::RisResult<()> = Ok(());
+            retval
         }
 
         #[cfg(debug_assertions)]
