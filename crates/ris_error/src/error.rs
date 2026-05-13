@@ -129,10 +129,33 @@ macro_rules! get_backtrace {
 #[macro_export]
 macro_rules! assert {
     ($value:expr) => {{
-        if $value {
+        $crate::assert!($value, "")
+    }};
+    ($value:expr, $($arg:tt)*) => {{
+        #[cfg(not(debug_assertions))]
+        {
+            let _ = $value;
             Ok(())
-        } else {
-            ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            if $value {
+                Ok(())
+            } else {
+                let message = format!($($arg)*);
+                if message.len() == 0 {
+                    $crate::new_result!(
+                        "assertion failed: `{}` was false",
+                        stringify!($value),
+                    )
+                } else {
+                    $crate::new_result!(
+                        "assertion failed: {}",
+                        message,
+                    )
+                }
+            }
         }
     }};
 }

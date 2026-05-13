@@ -40,7 +40,7 @@ impl<T: Send, F: Send + FnOnce(Vec<u8>) -> RisResult<T>> LoadRequest for Generic
 
     fn deserialize_and_send(&mut self, data: RisResult<Vec<u8>>) {
         let Some(inner) = self.inner.take() else {
-            ris_error::throw!("attempted to send load request multiple times");
+            ris_error::panic!("attempted to send load request multiple times");
         };
 
         let result = match data {

@@ -364,7 +364,7 @@ impl ThreadPool {
 
     pub fn submit<F: Future + 'static>(future: F) -> JobFuture<F::Output> {
         let Some(worker) = get_worker() else {
-            ris_error::throw!("cannot submit future, caller is not a worker");
+            ris_error::panic!("cannot submit future, caller is not a worker");
         };
 
         let (job_future, job_future_setter) = JobFuture::new();
@@ -393,7 +393,7 @@ impl ThreadPool {
 
     pub fn block_on<F: Future>(future: F) -> F::Output {
         let Some(worker) = get_worker() else {
-            ris_error::throw!("cannot block on future, caller is not a worker");
+            ris_error::panic!("cannot block on future, caller is not a worker");
         };
 
         worker.block_on(future)
@@ -419,7 +419,7 @@ impl ThreadPool {
                     }
                 }
                 Err(TryLockError::Poisoned(e)) => {
-                    ris_error::throw!("mutex is poisoned: {}", e);
+                    ris_error::panic!("mutex is poisoned: {}", e);
                 }
             }
         }

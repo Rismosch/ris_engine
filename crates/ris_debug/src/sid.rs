@@ -45,7 +45,7 @@ impl PartialEq for Sid {
             let right = &other.value;
             let hash = self.hash;
             if result && left != right {
-                ris_error::throw!(
+                ris_error::panic!(
                     "sid collision detected! left: \"{}\" right: \"{}\" hash: \"{}\". this should never happen. change one of the strings to something else",
                     left,
                     right,

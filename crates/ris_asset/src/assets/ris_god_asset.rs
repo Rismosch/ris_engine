@@ -90,3 +90,8 @@ impl RisGodAsset {
         Ok(god_asset)
     }
 }
+
+#[repr(C)]
+pub struct RisGodAsset2 {
+
+}

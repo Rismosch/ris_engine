@@ -3,13 +3,13 @@ use sdl2::messagebox::MessageBoxFlag;
 pub static mut SHOW_MESSAGE_BOX_ON_THROW: bool = true;
 
 #[macro_export]
-macro_rules! throw {
+macro_rules! panic {
     ($($arg:tt)*) => {{
         let message = format!($($arg)*);
         let backtrace = $crate::get_backtrace!();
 
         ris_log::fatal!("{} backtrace:\n{}", message, backtrace);
-        $crate::throw::show_panic_message_box(&message);
+        $crate::panic::show_panic_message_box(&message);
         panic!("{}", message);
     }};
 }
@@ -21,33 +21,40 @@ macro_rules! unwrap {
             Ok(value) => value,
             Err(error) => {
                 let client_message = format!($($arg)*);
-                $crate::throw!("{}: {}", client_message, error);
+                $crate::panic!("{}: {}", client_message, error);
             }
         }
     }};
 }
 
 #[macro_export]
-macro_rules! throw_assert {
-    ($result:expr, $($arg:tt)*) => {{
-        if !$result {
-            let client_message = format!($($arg)*);
-            $crate::throw!("{}", client_message);
-        }
+macro_rules! panic_assert {
+    ($value:expr) => {{
+        $crate::panic_assert!($value, "");
     }};
-}
-
-#[macro_export]
-macro_rules! throw_debug_assert {
-    ($result:expr, $($arg:tt)*) => {{
+    ($value:expr, $($arg:tt)*) => {{
         #[cfg(not(debug_assertions))]
         {
-            let _ = $result;
+            let _ = $value;
         }
 
         #[cfg(debug_assertions)]
         {
-            $crate::throw_assert!($result, $($arg)*)
+            if !$value {
+                let message = format!($($arg)*);
+                if message.len() == 0 {
+                    $crate::panic!(
+                        "assertion failed: `{}` was false",
+                        stringify!($value),
+                    );
+                } else {
+                    $crate::panic!(
+                        "assertion failed: {}",
+                        message,
+                    );
+                }
+
+            }
         }
     }};
 }
