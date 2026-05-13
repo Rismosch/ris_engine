@@ -26,18 +26,6 @@ impl AssetId {
 
 pub static ASSET_ID_2_KIND: Option<AssetId2Kind> = None;
 
-fn assert_asset_id_2_kind(kind: AssetId2Kind) {
-    let actual = ASSET_ID_2_KIND;
-    let expected = Some(kind);
-    if actual != expected {
-        ris_error::panic!(
-            "expected ASSET_ID_2_KIND to be {:?} but was {:?}",
-            expected,
-            actual,
-        )
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AssetId2Kind {
     Index,
@@ -60,13 +48,13 @@ impl Drop for AssetId2 {
 
 impl AssetId2 {
     pub fn from_index(v: u64) -> Self {
-        assert_asset_id_2_kind(AssetId2Kind::Index);
+        ris_error::panic_assert!(ASSET_ID_2_KIND != Some(AssetId2Kind::Index));
 
         Self { index: v }
     }
 
     pub fn from_path(p: impl AsRef<Path>) -> Self {
-        assert_asset_id_2_kind(AssetId2Kind::Path);
+        ris_error::panic_assert!(ASSET_ID_2_KIND != Some(AssetId2Kind::Path));
 
         let p = p.as_ref().to_path_buf();
         let ptr = Box::into_raw(Box::new(p));
@@ -75,12 +63,12 @@ impl AssetId2 {
     }
 
     pub fn index(&self) -> u64 {
-        assert_asset_id_2_kind(AssetId2Kind::Index);
+        ris_error::panic_assert!(ASSET_ID_2_KIND != Some(AssetId2Kind::Index));
         unsafe { self.index }
     }
 
     pub fn path(&self) -> &Path {
-        assert_asset_id_2_kind(AssetId2Kind::Path);
+        ris_error::panic_assert!(ASSET_ID_2_KIND != Some(AssetId2Kind::Path));
         unsafe { &(*self.path) }
     }
 }

@@ -162,23 +162,6 @@ macro_rules! assert {
 }
 
 #[macro_export]
-macro_rules! debug_assert {
-    ($value:expr) => {{
-        #[cfg(not(debug_assertions))]
-        {
-            let _ = $value;
-            let result: ris_error::RisResult<()> = Ok(());
-            result
-        }
-
-        #[cfg(debug_assertions)]
-        {
-            $crate::assert!($value)
-        }
-    }};
-}
-
-#[macro_export]
 macro_rules! declare_error {
     (
         $error_name:ident,
