@@ -531,6 +531,7 @@ dependencies = [
  "ris_io",
  "ris_log",
  "ris_math",
+ "ris_ptr",
  "ris_util",
  "shaderc",
 ]
@@ -545,6 +546,7 @@ dependencies = [
  "ris_io",
  "ris_log",
  "ris_math",
+ "ris_ptr",
 ]
 
 [[package]]

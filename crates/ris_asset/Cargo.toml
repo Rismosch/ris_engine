@@ -18,4 +18,5 @@ ris_gpu = { path = "../ris_gpu" }
 ris_io = { path = "../ris_io" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }
+ris_ptr = { path = "../ris_ptr" }
 ris_util = { path = "../ris_util" }

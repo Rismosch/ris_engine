@@ -4,6 +4,7 @@ pub mod importer;
 pub mod lookup;
 
 pub mod asset_compiler;
+pub mod asset_future;
 pub mod asset_importer;
 pub mod asset_loader;
 pub mod asset_loader_compiled;
@@ -13,6 +14,3 @@ pub mod util;
 
 pub use assets::ris_god_asset::RisGodAsset;
 pub use assets::ris_header::RisHeader;
-
-pub use asset_loader::load_async;
-pub use asset_loader::load_raw_async;
