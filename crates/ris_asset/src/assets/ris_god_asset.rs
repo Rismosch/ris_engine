@@ -1,6 +1,3 @@
-use std::path::Path;
-use std::path::PathBuf;
-
 use ris_asset_data::asset_id::AssetId;
 use ris_error::prelude::*;
 
@@ -10,8 +7,8 @@ use crate::RisHeader;
 pub const MAGIC: [u8; 16] = [
     0x72, 0x69, 0x73, 0x5f, 0x67, 0x6f, 0x64, 0x5f, 0x61, 0x73, 0x73, 0x65, 0x74, 0x00, 0x00, 0x00,
 ];
-pub const PATH: &Path = PathBuf::from("god_asset.ris_god_asset");
-pub const UNNAMED_PATH: &Path = PathBuf::from("asset_0");
+pub const PATH: &str = "god_asset.ris_god_asset";
+pub const UNNAMED_PATH: &str = "asset_0";
 
 #[derive(Clone)]
 pub struct RisGodAsset {

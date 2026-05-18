@@ -3,18 +3,18 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
-use crate::OneshotReceiver;
-use crate::OneshotSender;
+use crate::SingleUseReceiver;
+use crate::SingleUseSender;
 use crate::ThreadPool;
-use crate::oneshot_channel;
+use crate::single_use_channel;
 
 #[must_use]
 pub struct JobFuture<T> {
-    receiver: OneshotReceiver<T>,
+    receiver: SingleUseReceiver<T>,
 }
 
 pub struct JobFutureSetter<T> {
-    sender: OneshotSender<T>,
+    sender: SingleUseSender<T>,
 }
 
 impl<T> Future for JobFuture<T> {
@@ -30,12 +30,12 @@ impl<T> Future for JobFuture<T> {
 
 impl<T> JobFuture<T> {
     pub fn finished(value: T) -> Self {
-        let receiver = OneshotReceiver::with_value(value);
+        let receiver = SingleUseReceiver::with_value(value);
         Self { receiver }
     }
 
     pub fn new() -> (Self, JobFutureSetter<T>) {
-        let (sender, receiver) = oneshot_channel();
+        let (sender, receiver) = single_use_channel();
         let future = Self { receiver };
         let setter = JobFutureSetter { sender };
         (future, setter)

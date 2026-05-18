@@ -1,7 +1,7 @@
 pub mod assets;
 pub mod codecs;
 pub mod importer;
-pub mod lookup;
+//pub mod lookup;
 
 pub mod asset_compiler;
 pub mod asset_future;
@@ -13,4 +13,4 @@ pub mod asset_loader_directory;
 pub mod util;
 
 pub use assets::ris_god_asset::RisGodAsset;
-pub use assets::ris_header::RisHeader;
+//pub use assets::ris_header::RisHeader;

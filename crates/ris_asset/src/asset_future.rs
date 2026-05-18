@@ -1,62 +1,57 @@
+use std::cell::UnsafeCell;
 use std::ffi::c_void;
-use std::future;
+use std::future::Future;
+use std::mem::MaybeUninit;
+use std::pin::Pin;
+use std::ptr::NonNull;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::task::Context;
+use std::task::Poll;
 
+use ris_async::UnsafeReceiver;
+use ris_async::UnsafeSender;
 use ris_async::ThreadPool;
 
 use crate::assets::ris_asset::RisAsset;
 
 #[must_use]
 pub struct AssetFuture<T: RisAsset> {
-    ready: Arc<AtomicBool>,
-    data: T,
+    receiver: UnsafeReceiver,
+    data: UnsafeCell<MaybeUninit<T>>,
 }
 
 pub struct AssetFutureSetter {
-    ready: Arc<AtomicBool>,
-    p_data: *mut c_void,
+    sender: UnsafeSender,
+}
+
+impl<T: RisAsset> Drop for AssetFuture<T> {
+    fn drop(&mut self) {
+        ris_error::panic!("todo: safety check: setter must be dropped before dropping future. setter may not outlive future")
+    }
 }
 
 impl<T: RisAsset> Future for AssetFuture<T> {
     type Output = T;
 
-    fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Self::Output> {
-        match self.as_mut().take() {
-            Some(output) => std::task::Poll::Ready(output),
-            None => std::task::Poll::Pending,
+    fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if unsafe {!self.as_mut().receiver.is_init()} {
+            return Poll::Pending;
         }
+
+        todo!();
+    }
 }
 
 impl<T: RisAsset> AssetFuture<T> {
     pub fn new() -> (Self, AssetFutureSetter) {
-        let future = AssetFuture {
-            ready: Arc::new(AtomicBool::new(false)),
-            data: std::mem::zeroed(),
-        };
-
-        let setter = AssetFutureSetter {
-            ready: future.ready.clone(),
-            p_data: &mut future.data as *mut c_void,
-        };
-
+        let mut data = UnsafeCell::new(MaybeUninit::uninit());
+        let p_data = unsafe {NonNull::<T>::new_unchecked(data.get_mut().as_mut_ptr())};
+        let (sender, receiver) = ris_async::unsafe_channel(p_data);
+        let future = Self { receiver, data };
+        let setter = AssetFutureSetter { sender };
         (future, setter)
-    }
-
-    pub fn receive(mut self) -> Result<T, Self> {
-        match self.take() {
-            Some(value) => Ok(value),
-            None => Err(self),
-        }
-    }
-
-    fn take(&mut self) -> Option<T> {
-        if self.ready.swap(false, Ordering::Acquire) {
-            Some(self.data)
-        } else {
-            None
-        }
     }
 
     pub fn wait(self) -> T {
@@ -65,12 +60,7 @@ impl<T: RisAsset> AssetFuture<T> {
 }
 
 impl AssetFutureSetter {
-    /// # Safety
-    ///
-    /// `AssetFuture` MUST store a `T`. Violating this causes undefined behaviour.
-    unsafe fn set<T: RisAsset>(self, value: T) {
-        let p_data = self.p_data as *mut T;
-        unsafe { *p_data = value};
-        self.ready.store(true, Ordering::Release);
+    pub fn sender(&self) -> &UnsafeSender {
+        &self.sender
     }
 }
