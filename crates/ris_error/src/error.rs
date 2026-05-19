@@ -2,6 +2,8 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
+use crate::panic;
+
 pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
 // useful, for finding errors that are not logged
 pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
@@ -57,18 +59,24 @@ impl<E: Error + 'static> From<E> for RisError {
     }
 }
 
+impl RisError {
+    pub fn panic(self) -> ! {
+        crate::panic!("{}", self);
+    }
+}
+
 pub trait Extensions<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError>;
+    fn ris_expect(self, msg: &str) -> RisResult<T>;
 }
 
 impl<T> Extensions<T> for Option<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> RisResult<T> {
         self.ok_or("Option was None").ris_expect(msg)
     }
 }
 
 impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> RisResult<T> {
         match self {
             Ok(value) => Ok(value),
             Err(e) => crate::new_result!("expected {}. error: {}", msg, e),

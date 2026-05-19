@@ -19,6 +19,8 @@ pub union AssetId {
     path: *mut PathBuf,
 }
 
+unsafe impl Send for AssetId {}
+
 impl std::fmt::Debug for AssetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match unsafe {*ASSET_ID_KIND.get()} {

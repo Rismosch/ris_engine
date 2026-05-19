@@ -17,10 +17,6 @@ pub struct AssetFuture<T: RisAsset> {
     _boo: PhantomData<T>,
 }
 
-pub struct AssetFutureSetter {
-    sender: UnsafeSender,
-}
-
 impl<T: RisAsset> Unpin for AssetFuture<T> {}
 
 impl<T: RisAsset> Future for AssetFuture<T> {
@@ -35,11 +31,10 @@ impl<T: RisAsset> Future for AssetFuture<T> {
 }
 
 impl<T: RisAsset> AssetFuture<T> {
-    pub fn new() -> (Self, AssetFutureSetter) {
+    pub fn new() -> (Self, UnsafeSender) {
         let (sender, receiver) = ris_async::unsafe_channel::<T>();
         let future = Self { receiver, _boo: PhantomData };
-        let setter = AssetFutureSetter { sender };
-        (future, setter)
+        (future, sender)
     }
 
     pub fn wait(self) -> Box<T> {
@@ -47,8 +42,3 @@ impl<T: RisAsset> AssetFuture<T> {
     }
 }
 
-impl AssetFutureSetter {
-    pub fn sender(&self) -> &UnsafeSender {
-        &self.sender
-    }
-}

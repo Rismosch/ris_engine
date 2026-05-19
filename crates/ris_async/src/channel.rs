@@ -24,6 +24,7 @@ pub struct SingleUseReceiver<T> {
     channel: Arc<SingleUseChannel<T>>,
 }
 
+unsafe impl<T> Send for SingleUseChannel<T> where T: Send {}
 unsafe impl<T> Sync for SingleUseChannel<T> where T: Send {}
 
 #[derive(Debug)]
@@ -42,6 +43,9 @@ pub struct UnsafeReceiver {
     channel: Arc<UnsafeChannel>,
 }
 
+unsafe impl Send for UnsafeChannel {}
+unsafe impl Sync for UnsafeChannel {}
+
 // constructor
 pub fn single_use_channel<T>() -> (SingleUseSender<T>, SingleUseReceiver<T>) {
     let channel = Arc::new(SingleUseChannel {
@@ -57,7 +61,7 @@ pub fn single_use_channel<T>() -> (SingleUseSender<T>, SingleUseReceiver<T>) {
     (sender, receiver)
 }
 
-pub fn unsafe_channel<T>() -> (UnsafeSender, UnsafeReceiver) {
+pub fn unsafe_channel<T: Send>() -> (UnsafeSender, UnsafeReceiver) {
     let data = Box::<T>::new_uninit();
     let p_data = Box::leak(data).as_mut_ptr() as *mut T as *mut c_void;
 
@@ -133,7 +137,7 @@ impl<T> SingleUseReceiver<T> {
 }
 
 impl UnsafeReceiver {
-    pub unsafe fn take<T>(&mut self) -> Option<Box<T>> {
+    pub unsafe fn take<T: Send>(&mut self) -> Option<Box<T>> {
         if self.channel.ready.swap(false, Ordering::Acquire) {
             let p_data = self.channel.p_data as *mut T;
             let output = unsafe {Box::from_raw(p_data)};

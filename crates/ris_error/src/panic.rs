@@ -10,7 +10,7 @@ macro_rules! panic {
 
         ris_log::fatal!("{} backtrace:\n{}", message, backtrace);
         $crate::panic::show_panic_message_box(&message);
-        panic!("{}", message);
+        std::panic!("{}", message);
     }};
 }
 
