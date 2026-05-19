@@ -1,7 +1,6 @@
 use std::cell::UnsafeCell;
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
-use std::ptr::NonNull;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -58,10 +57,13 @@ pub fn single_use_channel<T>() -> (SingleUseSender<T>, SingleUseReceiver<T>) {
     (sender, receiver)
 }
 
-pub fn unsafe_channel<T>(p_data: NonNull<T>) -> (UnsafeSender, UnsafeReceiver) {
+pub fn unsafe_channel<T>() -> (UnsafeSender, UnsafeReceiver) {
+    let data = Box::<T>::new_uninit();
+    let p_data = Box::leak(data).as_mut_ptr() as *mut T as *mut c_void;
+
     let channel = Arc::new(UnsafeChannel {
         ready: AtomicBool::new(false),
-        p_data: p_data.as_ptr() as *mut c_void,
+        p_data,
     });
 
     let sender = UnsafeSender {
@@ -131,7 +133,13 @@ impl<T> SingleUseReceiver<T> {
 }
 
 impl UnsafeReceiver {
-    pub unsafe fn is_init(&mut self) -> bool {
-        self.channel.ready.swap(false, Ordering::Acquire)
+    pub unsafe fn take<T>(&mut self) -> Option<Box<T>> {
+        if self.channel.ready.swap(false, Ordering::Acquire) {
+            let p_data = self.channel.p_data as *mut T;
+            let output = unsafe {Box::from_raw(p_data)};
+            Some(output)
+        } else {
+            None
+        }
     }
 }
