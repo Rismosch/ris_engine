@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::mem::MaybeUninit;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
@@ -10,19 +11,32 @@ use std::sync::mpsc::channel;
 use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_async::JobFuture;
+use ris_async::JobFutureSetter;
 use ris_async::UnsafeSender;
 use ris_data::info::app_info::AppInfo;
 use ris_error::prelude::*;
 use ris_ptr::StrongPtr;
 
+use crate::assets::ris_god_asset;
 use crate::asset_future::AssetFuture;
 use crate::assets::ris_asset::RisAsset;
 
 // requests
-struct CompiledLoadRequest {
+enum CompiledLoadRequest {
+    RisAsset(CompiledRisAssetLoadRequest),
+    BinAsset(CompiledBinAssetLoadRequest),
+}
+
+struct CompiledRisAssetLoadRequest {
     asset_id: AssetId,
     size: usize,
     sender: UnsafeSender,
+}
+
+
+struct CompiledBinAssetLoadRequest {
+    asset_id: AssetId,
+    sender: JobFutureSetter<Box<[u8]>>,
 }
 
 struct DirectoryLoadRequest {
@@ -122,13 +136,13 @@ impl AssetLoader {
                 let size = std::mem::size_of::<T>();
                 let (future, setter) = AssetFuture::new();
 
-                let request = CompiledLoadRequest {
+                let request = CompiledRisAssetLoadRequest {
                     asset_id,
                     size,
                     sender: setter,
                 };
 
-                sender.send(request);
+                sender.send(CompiledLoadRequest::RisAsset(request));
                 future
             },
 
@@ -139,8 +153,26 @@ impl AssetLoader {
         }
     }
 
-    pub fn load_bin_async(&self, id: AssetId) -> JobFuture<Vec<u8>> {
-        todo!();
+    pub fn load_bin_async(&self, asset_id: AssetId) -> JobFuture<Box<[u8]>> {
+        match &self.sender {
+            // load compiled binary
+            RequestSender::Compiled(sender) => {
+                let (future, setter) = JobFuture::new();
+
+                let request = CompiledBinAssetLoadRequest {
+                    asset_id,
+                    sender: setter,
+                };
+
+                sender.send(CompiledLoadRequest::BinAsset(request));
+                future
+            },
+
+            // load directory binary
+            RequestSender::Directory(sender) => {
+                todo!();
+            },
+        }
     }
 }
 
@@ -149,25 +181,53 @@ fn load_compiled_asset_thread(
     receiver: Receiver<CompiledLoadRequest>,
 ) -> RisResult<()> {
     for request in receiver.iter() {
-        let CompiledLoadRequest { 
-            asset_id,
-            size,
-            sender,
-        } = request;
-        ris_log::trace!("loading asset {:?}...", asset_id);
+        match request {
+            CompiledLoadRequest::RisAsset(request) => {
+                let CompiledRisAssetLoadRequest { 
+                    asset_id,
+                    size,
+                    sender,
+                } = request;
+                ris_log::trace!("loading asset {:?}...", asset_id);
 
+                // prepare
+                let index = unsafe {asset_id.index()};
+                let p_data = sender.as_mut() as *mut u8;
+                let data = unsafe {std::slice::from_raw_parts_mut(p_data, size)};
 
-        // prepare
-        let index = unsafe {asset_id.index()};
-        let p_data = sender.as_mut() as *mut u8;
-        let data = unsafe {std::slice::from_raw_parts_mut(p_data, size)};
+                // read
+                file.seek(SeekFrom::Start(index))?;
+                file.read_exact(data)?;
 
-        // read
-        file.seek(SeekFrom::Start(index))?;
-        file.read_exact(data);
+                // finalize
+                unsafe {sender.assume_init()};
+            },
+            CompiledLoadRequest::BinAsset(request) => {
+                let CompiledBinAssetLoadRequest {
+                    asset_id,
+                    sender,
+                } = request;
 
-        // finalize
-        unsafe {sender.assume_init()};
+                // prepare
+                let index = unsafe {asset_id.index()};
+
+                // read
+                file.seek(SeekFrom::Start(index));
+
+                let mut buf = [0u8; std::mem::size_of::<u32>()];
+                file.read_exact(&mut buf)?;
+                let size = u32::from_ne_bytes(buf);
+
+                let mut data: Box<[MaybeUninit<u8>]> = Box::new_uninit_slice(size.try_into()?);
+                let p_data = (&mut unsafe {*data.as_mut_ptr()}).as_mut_ptr();
+                let mut buf = unsafe {std::slice::from_raw_parts_mut(p_data, data.len())};
+                file.read_exact(&mut buf)?;
+
+                // finalize
+                let data = unsafe {data.assume_init()};
+                sender.set(data);
+            },
+        }
     }
 
     ris_log::info!("load asset thread ended");
