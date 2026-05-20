@@ -91,6 +91,9 @@ impl UnsafeSender {
         self.channel.p_data
     }
 
+    /// # Safety
+    ///
+    /// The data, accessed via [`Self::as_mut`], must be properly initialized.
     pub unsafe fn assume_init(self) {
         self.channel.ready.store(true, Ordering::Release);
     }
@@ -137,6 +140,9 @@ impl<T> SingleUseReceiver<T> {
 }
 
 impl UnsafeReceiver {
+    /// # Safety
+    ///
+    /// `UnsafeReceiver` must store a `T`
     pub unsafe fn take<T: Send>(&mut self) -> Option<Box<T>> {
         if self.channel.ready.swap(false, Ordering::Acquire) {
             let p_data = self.channel.p_data as *mut T;

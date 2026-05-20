@@ -129,7 +129,10 @@ impl AssetLoader {
         self.god_asset_id.clone()
     }
 
-    pub fn load_async<T: RisAsset>(&self, asset_id: AssetId) -> AssetFuture<T> {
+    /// # Safety
+    ///
+    /// `asset_id` must point to an asset that stores `T`
+    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: AssetId) -> AssetFuture<T> {
         match &self.sender {
             // load compiled
             RequestSender::Compiled(sender) => {
@@ -153,7 +156,10 @@ impl AssetLoader {
         }
     }
 
-    pub fn load_bin_async(&self, asset_id: AssetId) -> JobFuture<Box<[u8]>> {
+    /// # Safety
+    ///
+    /// `asset_id` must point to a binary asset
+    pub unsafe fn load_bin_async(&self, asset_id: AssetId) -> JobFuture<Box<[u8]>> {
         match &self.sender {
             // load compiled binary
             RequestSender::Compiled(sender) => {
@@ -213,18 +219,9 @@ fn load_compiled_asset_thread(
 
                 // read
                 file.seek(SeekFrom::Start(index));
-
-                let mut buf = [0u8; std::mem::size_of::<u32>()];
-                file.read_exact(&mut buf)?;
-                let size = u32::from_ne_bytes(buf);
-
-                let mut data: Box<[MaybeUninit<u8>]> = Box::new_uninit_slice(size.try_into()?);
-                let p_data = (&mut unsafe {*data.as_mut_ptr()}).as_mut_ptr();
-                let mut buf = unsafe {std::slice::from_raw_parts_mut(p_data, data.len())};
-                file.read_exact(&mut buf)?;
+                let data = read_bin(&mut file)?;
 
                 // finalize
-                let data = unsafe {data.assume_init()};
                 sender.set(data);
             },
         }
@@ -259,4 +256,21 @@ fn load_directory_asset_thread(receiver: Receiver<DirectoryLoadRequest>) {
     }
 
     ris_log::info!("load asset thread ended");
+}
+
+fn read_bin(file: &mut std::fs::File) -> RisResult<Box<[u8]>> {
+    let mut size = MaybeUninit::<u32>::uninit();
+    let buf = unsafe {std::slice::from_raw_parts_mut(
+        size.as_mut_ptr() as *mut u8,
+        std::mem::size_of::<u32>(),
+    )};
+    file.read_exact(buf)?;
+    let size = unsafe {size.assume_init()};
+
+    let mut data: Box<[MaybeUninit<u8>]> = Box::new_uninit_slice(size.try_into()?);
+    let p_data = data.as_mut_ptr() as *mut u8;
+    let mut buf = unsafe {std::slice::from_raw_parts_mut(p_data, data.len())};
+    file.read_exact(&mut buf)?;
+
+    Ok(unsafe {data.assume_init()})
 }
