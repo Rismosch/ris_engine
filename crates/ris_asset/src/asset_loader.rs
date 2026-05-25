@@ -88,35 +88,34 @@ impl AssetLoader {
                 sender,
             }
         } else if metadata.is_dir() {
-            todo!();
-            //// directory
-            //unsafe {AssetId::set_kind(AssetIdKind::Path)};
+            // directory
+            unsafe {AssetId::set_kind(AssetIdKind::Path)};
 
-            //// setup channel and thread
-            //let (sender, receiver) = channel();
-            //let sender = RequestSender::Directory(sender);
-            //let _ = std::thread::spawn(|| load_directory_asset_thread(receiver));
+            // setup channel and thread
+            let (sender, receiver) = channel();
+            let sender = RequestSender::Directory(sender);
+            let _ = std::thread::spawn(|| load_directory_asset_thread(receiver));
 
-            //// find god asset
-            //let god_asset_path = if PathBuf::from(asset_path).join(ris_god_asset::PATH).exists() {
-            //    ris_god_asset::PATH
-            //} else if PathBuf::from(asset_path)
-            //    .join(ris_god_asset::UNNAMED_PATH)
-            //    .exists()
-            //{
-            //    ris_god_asset::UNNAMED_PATH
-            //} else {
-            //    return ris_error::new_result!("failed to locate god asset");
-            //};
+            // find god asset
+            let god_asset_path = if PathBuf::from(asset_path).join(ris_god_asset::PATH).exists() {
+                ris_god_asset::PATH
+            } else if PathBuf::from(asset_path)
+                .join(ris_god_asset::UNNAMED_PATH)
+                .exists()
+            {
+                ris_god_asset::UNNAMED_PATH
+            } else {
+                return ris_error::new_result!("failed to locate god asset");
+            };
 
-            //let god_asset_id = AssetId::from_path(god_asset_path);
-            //ris_log::debug!("directory asset loader was created");
+            let god_asset_id = AssetId::from_path(god_asset_path);
+            ris_log::debug!("directory asset loader was created");
 
-            //// return
-            //AssetLoader{
-            //    god_asset_id,
-            //    sender,
-            //}
+            // return
+            AssetLoader{
+                god_asset_id,
+                sender,
+            }
         } else {
             return ris_error::new_result!("assets are neither a file nor a directory");
         };
