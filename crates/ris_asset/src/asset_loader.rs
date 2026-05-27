@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
@@ -20,28 +21,34 @@ use ris_ptr::StrongPtr;
 use crate::assets::ris_god_asset;
 use crate::asset_future::AssetFuture;
 use crate::assets::ris_asset::RisAsset;
+use crate::codecs::json::JsonObject;
 
 // requests
 enum CompiledLoadRequest {
     RisAsset(CompiledRisAssetLoadRequest),
-    BinAsset(CompiledBinAssetLoadRequest),
+    BinAsset(BinAssetLoadRequest),
+}
+
+enum DirectoryLoadRequest {
+    RisAsset(DirectoryRisAssetLoadRequest),
+    BinAsset(BinAssetLoadRequest),
 }
 
 struct CompiledRisAssetLoadRequest {
     asset_id: AssetId,
-    size: usize,
     sender: UnsafeSender,
+    size: usize,
 }
 
+struct DirectoryRisAssetLoadRequest {
+    asset_id: AssetId,
+    sender: UnsafeSender,
+    init_callback: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
+}
 
-struct CompiledBinAssetLoadRequest {
+struct BinAssetLoadRequest {
     asset_id: AssetId,
     sender: JobFutureSetter<Box<[u8]>>,
-}
-
-struct DirectoryLoadRequest {
-    asset_id: AssetId,
-    callback: Box<dyn FnOnce(&[u8])>,
 }
 
 // loader
@@ -131,53 +138,57 @@ impl AssetLoader {
     /// # Safety
     ///
     /// `asset_id` must point to an asset that stores `T`
-    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: AssetId) -> AssetFuture<T> {
+    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: AssetId) -> RisResult<AssetFuture<T>> {
+        let (future, sender) = AssetFuture::new();
+
         match &self.sender {
             // load compiled
-            RequestSender::Compiled(sender) => {
+            RequestSender::Compiled(request_sender) => {
                 let size = std::mem::size_of::<T>();
-                let (future, setter) = AssetFuture::new();
 
                 let request = CompiledRisAssetLoadRequest {
                     asset_id,
+                    sender,
                     size,
-                    sender: setter,
                 };
 
-                sender.send(CompiledLoadRequest::RisAsset(request));
-                future
+                request_sender.send(CompiledLoadRequest::RisAsset(request))?;
             },
 
             // load directory
-            RequestSender::Directory(sender) => {
-                todo!();
+            RequestSender::Directory(request_sender) => {
+                let init_callback = impl_from_json::<T>;
+
+                let request = DirectoryRisAssetLoadRequest {
+                    asset_id,
+                    sender,
+                    init_callback,
+                };
+
+                request_sender.send(DirectoryLoadRequest::RisAsset(request))?;
             },
         }
+
+        Ok(future)
     }
 
     /// # Safety
     ///
     /// `asset_id` must point to a binary asset
-    pub unsafe fn load_bin_async(&self, asset_id: AssetId) -> JobFuture<Box<[u8]>> {
+    pub unsafe fn load_bin_async(&self, asset_id: AssetId) -> RisResult<JobFuture<Box<[u8]>>> {
+        let (future, setter) = JobFuture::new();
+
+        let request = BinAssetLoadRequest {
+            asset_id,
+            sender: setter,
+        };
+
         match &self.sender {
-            // load compiled binary
-            RequestSender::Compiled(sender) => {
-                let (future, setter) = JobFuture::new();
-
-                let request = CompiledBinAssetLoadRequest {
-                    asset_id,
-                    sender: setter,
-                };
-
-                sender.send(CompiledLoadRequest::BinAsset(request));
-                future
-            },
-
-            // load directory binary
-            RequestSender::Directory(sender) => {
-                todo!();
-            },
+            RequestSender::Compiled(sender) => sender.send(CompiledLoadRequest::BinAsset(request))?,
+            RequestSender::Directory(sender) => sender.send(DirectoryLoadRequest::BinAsset(request))?,
         }
+
+        Ok(future)
     }
 }
 
@@ -190,8 +201,8 @@ fn load_compiled_asset_thread(
             CompiledLoadRequest::RisAsset(request) => {
                 let CompiledRisAssetLoadRequest { 
                     asset_id,
-                    size,
                     sender,
+                    size,
                 } = request;
                 ris_log::trace!("loading asset {:?}...", asset_id);
 
@@ -208,7 +219,7 @@ fn load_compiled_asset_thread(
                 unsafe {sender.assume_init()};
             },
             CompiledLoadRequest::BinAsset(request) => {
-                let CompiledBinAssetLoadRequest {
+                let BinAssetLoadRequest {
                     asset_id,
                     sender,
                 } = request;
@@ -232,6 +243,8 @@ fn load_compiled_asset_thread(
 
 fn load_directory_asset_thread(receiver: Receiver<DirectoryLoadRequest>) {
     for request in receiver.iter() {
+        todo
+        reuse bin asset loader
         ////ris_log::trace!("loading asset {:?}...", request.id());
 
         //let result = match &mut loader {
@@ -255,6 +268,12 @@ fn load_directory_asset_thread(receiver: Receiver<DirectoryLoadRequest>) {
     }
 
     ris_log::info!("load asset thread ended");
+}
+
+fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -> RisResult<()>{
+    let ptr = ptr.cast::<MaybeUninit<T>>();
+    let t = unsafe {&mut *ptr};
+    T::from_json(t, json)
 }
 
 fn read_bin(file: &mut std::fs::File) -> RisResult<Box<[u8]>> {

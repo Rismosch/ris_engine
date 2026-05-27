@@ -7,8 +7,8 @@ pub mod asset_compiler;
 pub mod asset_future;
 pub mod asset_importer;
 pub mod asset_loader;
-pub mod asset_loader_compiled;
-pub mod asset_loader_directory;
+//pub mod asset_loader_compiled;
+//pub mod asset_loader_directory;
 
 pub mod util;
 

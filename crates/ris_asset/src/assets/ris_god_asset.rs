@@ -1,14 +1,28 @@
-use ris_asset_data::asset_id::AssetId;
+use std::mem::MaybeUninit;
+
+use ris_asset_data::asset_id;
+use ris_asset_data::AssetId;
 use ris_error::prelude::*;
 
-use crate::RisHeader;
+use crate::assets::ris_asset::RisAsset;
+use crate::codecs::json::JsonObject;
 
-// ris_god_asset\0\0\0
-pub const MAGIC: [u8; 16] = [
-    0x72, 0x69, 0x73, 0x5f, 0x67, 0x6f, 0x64, 0x5f, 0x61, 0x73, 0x73, 0x65, 0x74, 0x00, 0x00, 0x00,
-];
 pub const PATH: &str = "god_asset.ris_god_asset";
 pub const UNNAMED_PATH: &str = "asset_0";
+
+pub const DEFAULT_VERT_SPV: &str = "default_vert_spv";
+pub const DEFAULT_FRAG_SPV: &str = "default_frag_spv";
+pub const TERRAIN_VERT_SPV: &str = "terrain_vert_spv";
+pub const TERRAIN_FRAG_SPV: &str = "terrain_frag_spv";
+pub const IMGUI_VERT_SPV: &str = "imgui_vert_spv";
+pub const IMGUI_FRAG_SPV: &str = "imgui_frag_spv";
+pub const GIZMO_SEGMENT_VERT_SPV: &str = "gizmo_segment_vert_spv";
+pub const GIZMO_SEGMENT_FRAG_SPV: &str = "gizmo_segment_frag_spv";
+pub const GIZMO_TEXT_VERT_SPV: &str = "gizmo_text_vert_spv";
+pub const GIZMO_TEXT_GEOM_SPV: &str = "gizmo_text_geom_spv";
+pub const GIZMO_TEXT_FRAG_SPV: &str = "gizmo_text_frag_spv";
+pub const DEBUG_FONT_TEXTURE: &str = "debug_font_texture";
+pub const TEXTURE: &str = "texture";
 
 #[derive(Clone)]
 pub struct RisGodAsset {
@@ -27,69 +41,69 @@ pub struct RisGodAsset {
     pub texture: AssetId,
 }
 
-impl RisGodAsset {
-    pub fn serialize(&self) -> RisResult<Vec<u8>> {
-        let header = RisHeader::new(
-            MAGIC,
-            vec![
-                self.default_vert_spv.clone(),
-                self.default_frag_spv.clone(),
-                self.terrain_vert_spv.clone(),
-                self.terrain_frag_spv.clone(),
-                self.imgui_vert_spv.clone(),
-                self.imgui_frag_spv.clone(),
-                self.gizmo_segment_vert_spv.clone(),
-                self.gizmo_segment_frag_spv.clone(),
-                self.gizmo_text_vert_spv.clone(),
-                self.gizmo_text_geom_spv.clone(),
-                self.gizmo_text_frag_spv.clone(),
-                self.debug_font_texture.clone(),
-                self.texture.clone(),
-            ],
-        );
+fn asset_id_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<AssetId> {
+    let name = name.as_ref();
+    let value = json.get::<&str>(name)
+        .ris_expect(&format!("id \"{}\" to be assigned", name))?;
+    Ok(AssetId::from_path(value))
+}
 
-        let bytes = header.serialize(&[])?;
-        Ok(bytes)
+impl RisAsset for RisGodAsset {
+    fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()> {
+        let s = unsafe {&mut *s.as_mut_ptr()};
+
+        s.default_vert_spv = asset_id_from_json(json, DEFAULT_VERT_SPV)?;
+        s.default_frag_spv = asset_id_from_json(json, DEFAULT_FRAG_SPV)?;
+        s.terrain_vert_spv = asset_id_from_json(json, TERRAIN_VERT_SPV)?;
+        s.terrain_frag_spv = asset_id_from_json(json, TERRAIN_FRAG_SPV)?;
+        s.imgui_vert_spv = asset_id_from_json(json, IMGUI_VERT_SPV)?;
+        s.imgui_frag_spv = asset_id_from_json(json, IMGUI_FRAG_SPV)?;
+        s.gizmo_segment_vert_spv = asset_id_from_json(json, GIZMO_SEGMENT_VERT_SPV)?;
+        s.gizmo_segment_frag_spv = asset_id_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?;
+        s.gizmo_text_vert_spv = asset_id_from_json(json, GIZMO_TEXT_VERT_SPV)?;
+        s.gizmo_text_geom_spv = asset_id_from_json(json, GIZMO_TEXT_GEOM_SPV)?;
+        s.gizmo_text_frag_spv = asset_id_from_json(json, GIZMO_TEXT_FRAG_SPV)?;
+        s.debug_font_texture = asset_id_from_json(json, DEBUG_FONT_TEXTURE)?;
+        s.texture = asset_id_from_json(json, TEXTURE)?;
+
+        Ok(())
     }
 
-    pub fn deserialize(bytes: &[u8]) -> RisResult<Self> {
-        let (header, _content) =
-            RisHeader::deserialize(bytes)?.ris_expect("a properly formatted header")?;
-        header.assert_magic(MAGIC)?;
+    fn to_json(&self) -> RisResult<JsonObject> {
+        let mut json = JsonObject::default();
+        json.push(DEFAULT_VERT_SPV, self.default_vert_spv.path_string()?);
+        json.push(DEFAULT_FRAG_SPV, self.default_frag_spv.path_string()?);
+        json.push(TERRAIN_VERT_SPV, self.terrain_vert_spv.path_string()?);
+        json.push(TERRAIN_FRAG_SPV, self.terrain_frag_spv.path_string()?);
+        json.push(IMGUI_VERT_SPV, self.imgui_vert_spv.path_string()?);
+        json.push(IMGUI_FRAG_SPV, self.imgui_frag_spv.path_string()?);
+        json.push(GIZMO_SEGMENT_VERT_SPV, self.gizmo_segment_vert_spv.path_string()?);
+        json.push(GIZMO_SEGMENT_FRAG_SPV, self.gizmo_segment_frag_spv.path_string()?);
+        json.push(GIZMO_TEXT_VERT_SPV, self.gizmo_text_vert_spv.path_string()?);
+        json.push(GIZMO_TEXT_GEOM_SPV, self.gizmo_text_geom_spv.path_string()?);
+        json.push(GIZMO_TEXT_FRAG_SPV, self.gizmo_text_frag_spv.path_string()?);
+        json.push(DEBUG_FONT_TEXTURE, self.debug_font_texture.path_string()?);
+        json.push(TEXTURE, self.texture.path_string()?);
 
-        let default_vert_spv = header.references[0].clone();
-        let default_frag_spv = header.references[1].clone();
-        let terrain_vert_spv = header.references[2].clone();
-        let terrain_frag_spv = header.references[3].clone();
-        let imgui_vert_spv = header.references[4].clone();
-        let imgui_frag_spv = header.references[5].clone();
-        let gizmo_segment_vert_spv = header.references[6].clone();
-        let gizmo_segment_frag_spv = header.references[7].clone();
-        let gizmo_text_vert_spv = header.references[8].clone();
-        let gizmo_text_geom_spv = header.references[9].clone();
-        let gizmo_text_frag_spv = header.references[10].clone();
-        let debug_font_texture = header.references[11].clone();
-        let texture = header.references[12].clone();
+        Ok(json)
+    }
 
-        let god_asset = Self {
-            default_vert_spv,
-            default_frag_spv,
-            terrain_vert_spv,
-            terrain_frag_spv,
-            imgui_vert_spv,
-            imgui_frag_spv,
-            gizmo_segment_vert_spv,
-            gizmo_segment_frag_spv,
-            gizmo_text_vert_spv,
-            gizmo_text_geom_spv,
-            gizmo_text_frag_spv,
-            debug_font_texture,
-            texture,
-        };
-
-        Ok(god_asset)
+    fn all_references_mut(&mut self) -> Vec<&mut AssetId> {
+        vec![
+            &mut self.default_vert_spv,
+            &mut self.default_frag_spv,
+            &mut self.terrain_vert_spv,
+            &mut self.terrain_frag_spv,
+            &mut self.imgui_vert_spv,
+            &mut self.imgui_frag_spv,
+            &mut self.gizmo_segment_vert_spv,
+            &mut self.gizmo_segment_frag_spv,
+            &mut self.gizmo_text_vert_spv,
+            &mut self.gizmo_text_geom_spv,
+            &mut self.gizmo_text_frag_spv,
+            &mut self.debug_font_texture,
+            &mut self.texture,
+        ]
     }
 }
 
-#[repr(C)]
-pub struct RisGodAsset2 {}
