@@ -2,8 +2,6 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
-use crate::panic;
-
 pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
 // useful, for finding errors that are not logged
 pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;

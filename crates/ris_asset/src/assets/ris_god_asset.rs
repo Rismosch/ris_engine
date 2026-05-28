@@ -1,6 +1,5 @@
 use std::mem::MaybeUninit;
 
-use ris_asset_data::asset_id;
 use ris_asset_data::AssetId;
 use ris_error::prelude::*;
 

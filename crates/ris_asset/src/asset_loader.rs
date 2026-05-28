@@ -22,6 +22,7 @@ use crate::assets::ris_god_asset;
 use crate::asset_future::AssetFuture;
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
+use crate::codecs::json::JsonValue;
 
 // requests
 enum CompiledLoadRequest {
@@ -74,15 +75,16 @@ impl AssetLoader {
             unsafe {AssetId::set_kind(AssetIdKind::Index)};
 
             // open file
-            let mut file = std::fs::File::open(asset_path)?;
+            let file = std::fs::File::open(asset_path)?;
 
             // setup channel and thread
             let (sender, receiver) = channel();
             let sender = RequestSender::Compiled(sender);
 
             let _ = std::thread::spawn(move || {
-                let test = receiver;
-                //load_compiled_asset_thread(file, receiver)
+                if let Err(e) = load_compiled_asset_thread(file, receiver) {
+                    e.panic()
+                }
             });
 
             // find god asset
@@ -98,10 +100,17 @@ impl AssetLoader {
             // directory
             unsafe {AssetId::set_kind(AssetIdKind::Path)};
 
+            // copy path
+            let asset_path_for_thread = asset_path.to_path_buf();
+
             // setup channel and thread
             let (sender, receiver) = channel();
             let sender = RequestSender::Directory(sender);
-            let _ = std::thread::spawn(|| load_directory_asset_thread(receiver));
+            let _ = std::thread::spawn(move || {
+                if let Err(e) = load_directory_asset_thread(asset_path_for_thread, receiver) {
+                    e.panic();
+                }
+            });
 
             // find god asset
             let god_asset_path = if PathBuf::from(asset_path).join(ris_god_asset::PATH).exists() {
@@ -228,7 +237,7 @@ fn load_compiled_asset_thread(
                 let index = unsafe {asset_id.index()};
 
                 // read
-                file.seek(SeekFrom::Start(index));
+                file.seek(SeekFrom::Start(index))?;
                 let data = read_bin(&mut file)?;
 
                 // finalize
@@ -241,33 +250,56 @@ fn load_compiled_asset_thread(
     Ok(())
 }
 
-fn load_directory_asset_thread(receiver: Receiver<DirectoryLoadRequest>) {
+fn load_directory_asset_thread(root: PathBuf, receiver: Receiver<DirectoryLoadRequest>) -> RisResult<()> {
     for request in receiver.iter() {
-        todo
-        reuse bin asset loader
-        ////ris_log::trace!("loading asset {:?}...", request.id());
+        match request {
+            DirectoryLoadRequest::RisAsset(request) => {
+                let DirectoryRisAssetLoadRequest {
+                    asset_id,
+                    sender,
+                    init_callback,
+                } = request;
 
-        //let result = match &mut loader {
-        //    InternalLoader::Compiled(loader) => match request.id() {
-        //        AssetId::Index(id) => loader.load(id),
-        //        AssetId::Path(id) => ris_error::new_result!(
-        //            "invalid id. expected compiled but was directory. id: {:?}",
-        //            id
-        //        ),
-        //    },
-        //    InternalLoader::Directory(loader) => match request.id() {
-        //        AssetId::Index(id) => ris_error::new_result!(
-        //            "invalid id. expected directory but was compiled. id: {:?}",
-        //            id
-        //        ),
-        //        AssetId::Path(id) => loader.load(id.clone()),
-        //    },
-        //};
+                // prepare
+                let asset_path = root.join(unsafe {asset_id.path()});
+                let mut file = std::fs::File::open(asset_path)?;
 
-        //request.deserialize_and_send(result);
+                // read
+                let mut file_content = String::new();
+                file.read_to_string(&mut file_content)?;
+
+                // deserialize
+                let ptr = sender.as_mut();
+                let JsonValue::Object(json) = JsonValue::deserialize(file_content)? else {
+                    return ris_error::new_result!("file content is not a JsonObject");
+                };
+
+                unsafe {init_callback(ptr, &json)}?;
+
+                // finalize
+                unsafe {sender.assume_init()};
+            },
+            DirectoryLoadRequest::BinAsset(request) => {
+                let BinAssetLoadRequest {
+                    asset_id,
+                    sender,
+                } = request;
+
+                // prepare
+                let asset_path = root.join(unsafe {asset_id.path()});
+                let mut file = std::fs::File::open(asset_path)?;
+
+                // read
+                let data = read_bin(&mut file)?;
+
+                // finalize
+                sender.set(data);
+            },
+        }
     }
 
     ris_log::info!("load asset thread ended");
+    Ok(())
 }
 
 fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -> RisResult<()>{
