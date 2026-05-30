@@ -13,4 +13,5 @@ pub mod asset_loader;
 pub mod util;
 
 pub use assets::ris_god_asset::RisGodAsset;
+pub use asset_loader::AssetLoader;
 //pub use assets::ris_header::RisHeader;

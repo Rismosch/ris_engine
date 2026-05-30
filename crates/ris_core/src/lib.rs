@@ -7,7 +7,7 @@ pub mod inspector_util;
 #[cfg(feature = "cli_enabled")]
 pub mod cli;
 pub mod log_appenders;
-pub mod scripts;
+//pub mod scripts;
 pub mod ui_helper;
 
 use ris_data::info::app_info::AppInfo;

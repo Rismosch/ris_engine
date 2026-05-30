@@ -521,7 +521,6 @@ name = "ris_asset"
 version = "0.1.0"
 dependencies = [
  "ash",
- "miniz_oxide",
  "png",
  "ris_asset_data",
  "ris_async",
@@ -622,7 +621,6 @@ dependencies = [
  "criterion",
  "imgui",
  "libc",
- "miniz_oxide",
  "png",
  "ris_asset",
  "ris_asset_data",

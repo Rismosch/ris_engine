@@ -4,14 +4,11 @@ use sdl2::EventPump;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
 
+use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
-use ris_asset::asset_loader;
-use ris_asset::asset_loader::AssetLoaderGuard;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
 use ris_async::ThreadPoolGuard;
-use ris_data::ecs::registry::Registry;
-use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -19,7 +16,7 @@ use ris_data::settings::Settings;
 use ris_data::settings::serializer::SettingsSerializer;
 use ris_debug::gizmo::GizmoGuard;
 use ris_debug::profiler::ProfilerGuard;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 use ris_gpu::core::VulkanCore;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_gpu_renderers::ImguiBackend;
@@ -78,6 +75,7 @@ impl GodObject {
 
         // assets
         let asset_loader_guard = asset_loader::init(&app_info)?;
+        let asset_loader = AssetLoader::new(&app_info)?;
 
         // profiling
         let profiler_guard = ris_debug::profiler::init()?;
@@ -97,8 +95,7 @@ impl GodObject {
 
         // god asset
         let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset_bytes = asset_loader::load_raw_async(god_asset_id).wait()?;
-        let god_asset = RisGodAsset::deserialize(&god_asset_bytes)?;
+        let god_asset = unsafe {asset_loader.load_async::<RisGodAsset>(god_asset_id)}?.wait();
 
         // video
         let video_subsystem = sdl_context
@@ -146,11 +143,7 @@ impl GodObject {
         let frame_calculator = FrameCalculator::default();
 
         // god state
-        let scene_create_info = SceneCreateInfo {
-            registry: Some(Arc::new(registry)),
-            ..Default::default()
-        };
-        let mut state = GodState::new(settings, scene_create_info)?;
+        let mut state = GodState::new(settings)?;
 
         {
             let input = &mut state.input;

@@ -3,7 +3,7 @@ use sdl2::event::WindowEvent;
 
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
-use ris_data::ecs::script_prelude::*;
+use ris_error::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_input::general_logic::update_general;
 use ris_input::keyboard_logic;

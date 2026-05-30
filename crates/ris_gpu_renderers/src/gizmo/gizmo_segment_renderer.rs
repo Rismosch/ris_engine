@@ -1,5 +1,6 @@
 use ash::vk;
 
+use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
 use ris_debug::gizmo::GizmoSegmentVertex;
 use ris_error::prelude::*;
@@ -86,6 +87,7 @@ impl GizmoSegmentRenderer {
 
     pub fn alloc(
         core: &VulkanCore,
+        asset_loader: &AssetLoader,
         god_asset: &RisGodAsset,
         renderer_registerer: &mut RendererRegisterer,
     ) -> RisResult<Self> {
@@ -154,11 +156,11 @@ impl GizmoSegmentRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_vert_spv.clone());
-        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_segment_frag_spv.clone());
+        let vs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_segment_vert_spv)}?;
+        let fs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_segment_frag_spv)}?;
 
-        let vs_bytes = vs_future.wait()?;
-        let fs_bytes = fs_future.wait()?;
+        let vs_bytes = vs_future.wait();
+        let fs_bytes = fs_future.wait();
 
         let vs_module = ris_gpu::shader::create_module(device, &vs_bytes)?;
         let fs_module = ris_gpu::shader::create_module(device, &fs_bytes)?;

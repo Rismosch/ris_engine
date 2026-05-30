@@ -7,7 +7,6 @@ edition = "2024"
 
 [dependencies]
 ash = "0.37.3"
-miniz_oxide = "=0.8.2"
 png = "0.17.10"
 shaderc = "0.8"
 ris_asset_data = { path = "../ris_asset_data" }

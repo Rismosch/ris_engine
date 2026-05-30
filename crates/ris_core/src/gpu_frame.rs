@@ -1,11 +1,12 @@
 use core::option::Option::None;
 
 use ash::vk;
+use ris_asset::asset_loader;
 use sdl2::video::Window;
 use sdl2_sys::SDL_WindowFlags;
 
+use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
-use ris_asset::lookup::ris_mesh_lookup::MeshLookup;
 use ris_data::gameloop::frame::Frame;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_data::god_state::GodState;
@@ -20,17 +21,19 @@ use ris_gpu_renderers::GizmoSegmentRenderer;
 use ris_gpu_renderers::GizmoSegmentRendererArgs;
 use ris_gpu_renderers::GizmoTextRenderer;
 use ris_gpu_renderers::GizmoTextRendererArgs;
-use ris_gpu_renderers::SceneRenderer;
-use ris_gpu_renderers::SceneRendererArgs;
+//use ris_gpu_renderers::SceneRenderer;
+//use ris_gpu_renderers::SceneRendererArgs;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_gpu_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
+use ris_ptr::WeakPtr;
 
 #[cfg(feature = "ui_helper_enabled")]
 use crate::ui_helper::{UiHelper, UiHelperDrawData};
 
 pub struct Renderer {
     count: usize,
-    scene: SceneRenderer,
+    //scene: SceneRenderer,
+    asset_loader: WeakPtr<AssetLoader>,
     gizmo_segment: GizmoSegmentRenderer,
     gizmo_text: GizmoTextRenderer,
     #[cfg(feature = "ui_helper_enabled")]
@@ -39,7 +42,7 @@ pub struct Renderer {
 }
 
 pub struct RendererIds {
-    scene: RendererId,
+    //scene: RendererId,
     gizmo_segment: RendererId,
     gizmo_text: RendererId,
     #[cfg(feature = "ui_helper_enabled")]
@@ -59,7 +62,7 @@ impl Renderer {
                 frames_in_flight.free(device);
             }
 
-            self.scene.free(device);
+            //self.scene.free(device);
             self.gizmo_segment.free(device);
             self.gizmo_text.free(device);
             #[cfg(feature = "ui_helper_enabled")]
@@ -69,13 +72,15 @@ impl Renderer {
 
     pub fn alloc(
         core: &VulkanCore,
+        asset_loader: WeakPtr<AssetLoader>,
         god_asset: &RisGodAsset,
         #[cfg(feature = "ui_helper_enabled")] imgui_context: &mut imgui::Context,
     ) -> RisResult<Self> {
         Self::alloc_internal(
             core,
+            asset_loader,
             god_asset,
-            None,
+            //None,
             None,
             #[cfg(feature = "ui_helper_enabled")]
             imgui_context,
@@ -85,8 +90,9 @@ impl Renderer {
 
     fn alloc_internal(
         core: &VulkanCore,
+        asset_loader: WeakPtr<AssetLoader>,
         god_asset: &RisGodAsset,
-        mesh_lookup: Option<MeshLookup>,
+        //mesh_lookup: Option<MeshLookup>,
         renderer_ids: Option<RendererIds>,
         #[cfg(feature = "ui_helper_enabled")] imgui_context: &mut imgui::Context,
         frames_in_flight: Option<FramesInFlight>,
@@ -104,10 +110,14 @@ impl Renderer {
             existing_id: None,
         };
 
-        renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.scene);
-        let scene = SceneRenderer::alloc(core, god_asset, mesh_lookup, &mut renderer_registerer)?;
+        //renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.scene);
+        //let scene = SceneRenderer::alloc(core, god_asset, mesh_lookup, &mut renderer_registerer)?;
         renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.gizmo_segment);
-        let gizmo_segment = GizmoSegmentRenderer::alloc(core, god_asset, &mut renderer_registerer)?;
+        let gizmo_segment = GizmoSegmentRenderer::alloc(
+            core, 
+            god_asset,
+            &mut renderer_registerer,
+        )?;
         renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.gizmo_text);
         let gizmo_text = GizmoTextRenderer::alloc(core, god_asset, &mut renderer_registerer)?;
 
@@ -127,7 +137,8 @@ impl Renderer {
 
         Ok(Self {
             count: renderer_count,
-            scene,
+            asset_loader,
+            //scene,
             gizmo_segment,
             gizmo_text,
             #[cfg(feature = "ui_helper_enabled")]
@@ -144,37 +155,38 @@ impl Renderer {
     ) -> RisResult<()> {
         let VulkanCore {
             device,
-            graphics_queue,
-            transient_command_pool,
             ..
         } = core;
 
-        let mut mesh_lookup = self
-            .scene
-            .mesh_lookup
-            .take()
-            .ris_expect("mesh_lookup to be Some")?;
-        mesh_lookup.reimport_everything(TransientCommandArgs {
-            device: device.clone(),
-            queue: *graphics_queue,
-            command_pool: *transient_command_pool,
-        });
+        //let mut mesh_lookup = self
+        //height
+        //    .scene
+        //    .mesh_lookup
+        //    .take()
+        //    .ris_expect("mesh_lookup to be Some")?;
+        //mesh_lookup.reimport_everything(TransientCommandArgs {
+        //    device: device.clone(),
+        //    queue: *graphics_queue,
+        //    command_pool: *transient_command_pool,
+        //});
 
         let renderer_ids = RendererIds {
-            scene: self.scene.renderer_id,
+            //scene: self.scene.renderer_id,
             gizmo_segment: self.gizmo_segment.renderer_id,
             gizmo_text: self.gizmo_text.renderer_id,
             #[cfg(feature = "ui_helper_enabled")]
             imgui: self.imgui.renderer_id,
         };
 
+        let asset_loader = self.asset_loader.clone();
         let frames_in_flight = self.frames_in_flight.take();
 
         unsafe { self.free(device, false) };
         *self = Self::alloc_internal(
             core,
+            asset_loader,
             god_asset,
-            Some(mesh_lookup),
+            //Some(mesh_lookup),
             Some(renderer_ids),
             #[cfg(feature = "ui_helper_enabled")]
             imgui_context,
@@ -340,18 +352,18 @@ impl GpuFrame {
         state.camera.borrow_mut().aspect_ratio = w / h;
         let camera = state.camera.borrow().clone();
 
-        // scene
-        ris_debug::add_record!(r, "scene")?;
-        let args = SceneRendererArgs {
-            core: &self.core,
-            swapchain_entry,
-            window_drawable_size,
-            camera: &camera,
-            scene: &state.scene,
-            frame_in_flight,
-        };
+        //// scene
+        //ris_debug::add_record!(r, "scene")?;
+        //let args = SceneRendererArgs {
+        //    core: &self.core,
+        //    swapchain_entry,
+        //    window_drawable_size,
+        //    camera: &camera,
+        //    scene: &state.scene,
+        //    frame_in_flight,
+        //};
 
-        let scene_command_buffer = self.renderer.scene.draw(args)?;
+        //let scene_command_buffer = self.renderer.scene.draw(args)?;
 
         // gizmos
         ris_debug::add_record!(r, "gizmos")?;
@@ -402,7 +414,7 @@ impl GpuFrame {
         // end command buffer and submit
         ris_debug::add_record!(r, "submit command buffer")?;
 
-        let mut command_buffers = vec![scene_command_buffer];
+        let mut command_buffers = vec![/*scene_command_buffer*/];
         let mut enqueue_command_buffer = |command_buffer: Option<vk::CommandBuffer>| {
             if let Some(command_buffer) = command_buffer {
                 command_buffers.push(command_buffer);

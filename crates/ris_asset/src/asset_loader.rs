@@ -64,7 +64,12 @@ pub struct AssetLoader {
 }
 
 impl AssetLoader {
-    pub unsafe fn new(app_info: &AppInfo) -> RisResult<StrongPtr<AssetLoader>> {
+    pub fn new(app_info: &AppInfo) -> RisResult<StrongPtr<AssetLoader>> {
+        let current_kind = AssetId::kind();
+        if current_kind != None {
+            ris_error::panic!("expected asset id kind to be None but was {:?}", current_kind);
+        }
+
         let asset_path = app_info.asset_path()?;
         let asset_path = Path::new(&asset_path);
 
@@ -147,7 +152,7 @@ impl AssetLoader {
     /// # Safety
     ///
     /// `asset_id` must point to an asset that stores `T`
-    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: AssetId) -> RisResult<AssetFuture<T>> {
+    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: &AssetId) -> RisResult<AssetFuture<T>> {
         let (future, sender) = AssetFuture::new();
 
         match &self.sender {
@@ -156,7 +161,7 @@ impl AssetLoader {
                 let size = std::mem::size_of::<T>();
 
                 let request = CompiledRisAssetLoadRequest {
-                    asset_id,
+                    asset_id: asset_id.clone(),
                     sender,
                     size,
                 };
@@ -169,7 +174,7 @@ impl AssetLoader {
                 let init_callback = impl_from_json::<T>;
 
                 let request = DirectoryRisAssetLoadRequest {
-                    asset_id,
+                    asset_id: asset_id.clone(),
                     sender,
                     init_callback,
                 };
@@ -184,11 +189,11 @@ impl AssetLoader {
     /// # Safety
     ///
     /// `asset_id` must point to a binary asset
-    pub unsafe fn load_bin_async(&self, asset_id: AssetId) -> RisResult<JobFuture<Box<[u8]>>> {
+    pub unsafe fn load_bin_async(&self, asset_id: &AssetId) -> RisResult<JobFuture<Box<[u8]>>> {
         let (future, setter) = JobFuture::new();
 
         let request = BinAssetLoadRequest {
-            asset_id,
+            asset_id: asset_id.clone(),
             sender: setter,
         };
 
