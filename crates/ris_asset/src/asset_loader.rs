@@ -9,6 +9,7 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 
+use ris_asset_data::asset_id;
 use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_async::JobFuture;
@@ -152,7 +153,9 @@ impl AssetLoader {
     /// # Safety
     ///
     /// `asset_id` must point to an asset that stores `T`
-    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: &AssetId) -> RisResult<AssetFuture<T>> {
+    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: impl AsRef<AssetId>) -> RisResult<AssetFuture<T>> {
+        let asset_id = asset_id.as_ref().clone();
+
         let (future, sender) = AssetFuture::new();
 
         match &self.sender {
@@ -161,7 +164,7 @@ impl AssetLoader {
                 let size = std::mem::size_of::<T>();
 
                 let request = CompiledRisAssetLoadRequest {
-                    asset_id: asset_id.clone(),
+                    asset_id,
                     sender,
                     size,
                 };
@@ -189,11 +192,13 @@ impl AssetLoader {
     /// # Safety
     ///
     /// `asset_id` must point to a binary asset
-    pub unsafe fn load_bin_async(&self, asset_id: &AssetId) -> RisResult<JobFuture<Box<[u8]>>> {
+    pub unsafe fn load_bin_async(&self, asset_id: impl AsRef<AssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
+        let asset_id = asset_id.as_ref().clone();
+
         let (future, setter) = JobFuture::new();
 
         let request = BinAssetLoadRequest {
-            asset_id: asset_id.clone(),
+            asset_id,
             sender: setter,
         };
 

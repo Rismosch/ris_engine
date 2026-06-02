@@ -25,8 +25,8 @@ use ris_gpu_renderers::GizmoTextRendererArgs;
 //use ris_gpu_renderers::{ImguiBackend, ImguiRenderer, ImguiRendererArgs};
 use ris_ptr::WeakPtr;
 
-//#[cfg(feature = "ui_helper_enabled")]
-//use crate::ui_helper::{UiHelper, UiHelperDrawData};
+#[cfg(feature = "ui_helper_enabled")]
+use crate::ui_helper::{UiHelper, UiHelperDrawData};
 
 pub struct Renderer {
     count: usize,
@@ -34,8 +34,8 @@ pub struct Renderer {
     asset_loader: WeakPtr<AssetLoader>,
     gizmo_segment: GizmoSegmentRenderer,
     gizmo_text: GizmoTextRenderer,
-    //#[cfg(feature = "ui_helper_enabled")]
-    //imgui: ImguiRenderer,
+    #[cfg(feature = "ui_helper_enabled")]
+    imgui: ImguiRenderer,
     frames_in_flight: Option<FramesInFlight>,
 }
 
@@ -110,12 +110,12 @@ impl Renderer {
 
         //renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.scene);
         //let scene = SceneRenderer::alloc(core, god_asset, mesh_lookup, &mut renderer_registerer)?;
-        //renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.gizmo_segment);
-        //let gizmo_segment = GizmoSegmentRenderer::alloc(
-        //    core, 
-        //    god_asset,
-        //    &mut renderer_registerer,
-        //)?;
+        renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.gizmo_segment);
+        let gizmo_segment = GizmoSegmentRenderer::alloc(
+            core, 
+            god_asset,
+            &mut renderer_registerer,
+        )?;
         renderer_registerer.existing_id = renderer_ids.as_ref().map(|x| x.gizmo_text);
         let gizmo_text = GizmoTextRenderer::alloc(core, god_asset, &mut renderer_registerer)?;
 

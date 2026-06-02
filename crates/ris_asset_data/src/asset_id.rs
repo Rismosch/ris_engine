@@ -20,7 +20,15 @@ pub union AssetId {
     path: *mut PathBuf,
 }
 
-unsafe impl Send for AssetId {}
+impl Drop for AssetId {
+    fn drop(&mut self) {
+        unsafe {
+            if Self::kind() == Some(AssetIdKind::Path) {
+                _ = Box::from_raw(self.path)
+            }
+        }
+    }
+}
 
 impl std::fmt::Debug for AssetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -68,15 +76,13 @@ impl PartialEq for AssetId {
 
 impl Eq for AssetId {}
 
-impl Drop for AssetId {
-    fn drop(&mut self) {
-        unsafe {
-            if Self::kind() == Some(AssetIdKind::Path) {
-                _ = Box::from_raw(self.path)
-            }
-        }
+impl AsRef<AssetId> for AssetId {
+    fn as_ref(&self) -> &AssetId {
+        self
     }
 }
+
+unsafe impl Send for AssetId {}
 
 impl AssetId {
     // global
