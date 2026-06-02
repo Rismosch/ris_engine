@@ -7,6 +7,7 @@ use ris_error::prelude::*;
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
 
+pub const EXTENSION: &str = "ris_god_asset";
 pub const PATH: &str = "god_asset.ris_god_asset";
 pub const UNNAMED_PATH: &str = "asset_0";
 

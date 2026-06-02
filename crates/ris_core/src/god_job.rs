@@ -33,8 +33,6 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let shader = future.wait();
     ris_log::debug!("shader: {:?}", shader);
 
-
-
     loop {
         ris_debug::profiler::new_frame()?;
         let frame = frame_calculator.bump_and_create_frame();
