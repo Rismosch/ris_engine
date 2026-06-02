@@ -88,21 +88,21 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         update_general(&mut god_object.state);
 
-        // update scripts
-        ris_debug::add_record!(r, "update scripts")?;
-        for script in god_object.state.scene.script_components.iter() {
-            let mut aref_mut = script.borrow_mut();
-            if aref_mut.is_alive {
-                aref_mut.update(frame, &god_object.state)?;
-            }
-        }
+        //// update scripts
+        //ris_debug::add_record!(r, "update scripts")?;
+        //for script in god_object.state.scene.script_components.iter() {
+        //    let mut aref_mut = script.borrow_mut();
+        //    if aref_mut.is_alive {
+        //        aref_mut.update(frame, &god_object.state)?;
+        //    }
+        //}
 
-        // render
-        ris_debug::add_record!(r, "gpu frame")?;
-        let gpu_result =
-            god_object
-                .gpu_frame
-                .run(frame, &mut god_object.state, &god_object.god_asset);
+        //// render
+        //ris_debug::add_record!(r, "gpu frame")?;
+        //let gpu_result =
+        //    god_object
+        //        .gpu_frame
+        //        .run(frame, &mut god_object.state, &god_object.god_asset);
 
         // wait for jobs
         ris_debug::add_record!(r, "wait for jobs")?;
@@ -142,7 +142,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "handle errors")?;
 
         save_settings_result?;
-        let gpu_state = gpu_result?;
+        //let gpu_state = gpu_result?;
+        let gpu_state = GameloopState::WantsToQuit;
 
         ris_debug::end_record!(r)?;
 
@@ -165,14 +166,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         };
 
         // shutdown
-        for script in god_object.state.scene.script_components.iter() {
-            let mut aref_mut = script.borrow_mut();
-            if aref_mut.is_alive {
-                aref_mut.end(&god_object.state.scene)?;
-            }
-        }
+        //for script in god_object.state.scene.script_components.iter() {
+        //    let mut aref_mut = script.borrow_mut();
+        //    if aref_mut.is_alive {
+        //        aref_mut.end(&god_object.state.scene)?;
+        //    }
+        //}
 
-        god_object.gpu_frame.wait_idle()?;
+        //god_object.gpu_frame.wait_idle()?;
 
         return Ok(wants_to);
     }

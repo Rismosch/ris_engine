@@ -98,17 +98,13 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
             ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
             // initialize engine
-            let script_registry = crate::scripts::registry()?;
-
-            let god_object = match GodObject::new(app_info.clone(), script_registry) {
+            let god_object = match GodObject::new(app_info.clone()) {
                 Ok(god_object) => god_object,
                 Err(e) => {
                     ris_log::fatal!("failed to create god object: {:?}", e,);
                     return Err(e);
                 }
             };
-
-            crate::scripts::setup_flycam(&god_object)?;
 
             // run engine
             match god_job::run(god_object) {

@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use ris_asset::assets;
 use sdl2::EventPump;
 use sdl2::keyboard::KeyboardUtil;
 use sdl2::keyboard::Scancode;
@@ -21,33 +20,33 @@ use ris_gpu::core::VulkanCore;
 #[cfg(feature = "ui_helper_enabled")]
 use ris_gpu_renderers::ImguiBackend;
 use ris_input::gamepad_logic::GamepadLogic;
+use ris_ptr::StrongPtr;
 
-use crate::gpu_frame::GpuFrame;
-use crate::gpu_frame::Renderer;
-#[cfg(feature = "ui_helper_enabled")]
-use crate::ui_helper::UiHelper;
+//use crate::gpu_frame::GpuFrame;
+//use crate::gpu_frame::Renderer;
+//#[cfg(feature = "ui_helper_enabled")]
+//use crate::ui_helper::UiHelper;
 
 pub struct GodObject {
     pub app_info: AppInfo,
+    pub asset_loader: StrongPtr<AssetLoader>,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
     pub event_pump: EventPump,
     pub keyboard_util: KeyboardUtil,
     pub gamepad_logic: GamepadLogic,
-    pub gpu_frame: GpuFrame,
-    pub god_asset: RisGodAsset,
+    //pub gpu_frame: GpuFrame,
     pub state: GodState,
 
     // guards, must be dropped last.
     // they are dropped in the order they are listed.
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
-    pub asset_loader_guard: AssetLoaderGuard,
     pub thread_pool_guard: ThreadPoolGuard,
 }
 
 impl GodObject {
-    pub fn new(app_info: AppInfo, registry: Registry) -> RisResult<Self> {
+    pub fn new(app_info: AppInfo) -> RisResult<Self> {
         // settings
         let settings_serializer = SettingsSerializer::new(&app_info);
         let settings = match settings_serializer.deserialize(&app_info) {
@@ -74,7 +73,6 @@ impl GodObject {
         let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
 
         // assets
-        let asset_loader_guard = asset_loader::init(&app_info)?;
         let asset_loader = AssetLoader::new(&app_info)?;
 
         // profiling
@@ -92,10 +90,6 @@ impl GodObject {
             .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
 
         let gamepad_logic = GamepadLogic::new(controller_subsystem);
-
-        // god asset
-        let god_asset_id = asset_loader_guard.god_asset_id.clone();
-        let god_asset = unsafe {asset_loader.load_async::<RisGodAsset>(god_asset_id)}?.wait();
 
         // video
         let video_subsystem = sdl_context
@@ -119,27 +113,28 @@ impl GodObject {
         #[cfg(feature = "ui_helper_enabled")]
         let mut imgui_backend = ImguiBackend::init(&app_info)?;
 
-        // gpu frame
-        #[cfg(feature = "ui_helper_enabled")]
-        let ui_helper = UiHelper::new(&app_info)?;
+        //// gpu frame
+        //#[cfg(feature = "ui_helper_enabled")]
+        //let ui_helper = UiHelper::new(&app_info)?;
 
-        let renderer = Renderer::alloc(
-            &vulkan_core,
-            &god_asset,
-            #[cfg(feature = "ui_helper_enabled")]
-            imgui_backend.context(),
-        )?;
+        //let renderer = Renderer::alloc(
+        //    &vulkan_core,
+        //    &god_asset,
+        //    #[cfg(feature = "ui_helper_enabled")]
+        //    imgui_backend.context(),
+        //)?;
 
-        let gpu_frame = GpuFrame {
-            renderer,
-            #[cfg(feature = "ui_helper_enabled")]
-            imgui_backend,
-            #[cfg(feature = "ui_helper_enabled")]
-            ui_helper,
-            core: vulkan_core,
-            window,
-        };
+        //let gpu_frame = GpuFrame {
+        //    renderer,
+        //    #[cfg(feature = "ui_helper_enabled")]
+        //    imgui_backend,
+        //    #[cfg(feature = "ui_helper_enabled")]
+        //    ui_helper,
+        //    core: vulkan_core,
+        //    window,
+        //};
 
+        // frame calculator
         let frame_calculator = FrameCalculator::default();
 
         // god state
@@ -165,19 +160,18 @@ impl GodObject {
         // god object
         let god_object = GodObject {
             app_info,
+            asset_loader,
             settings_serializer,
             frame_calculator,
             event_pump,
             keyboard_util,
             gamepad_logic,
-            gpu_frame,
-            god_asset,
+            //gpu_frame,
             state,
 
             // guards
             gizmo_guard,
             profiler_guard,
-            asset_loader_guard,
             thread_pool_guard,
         };
 
