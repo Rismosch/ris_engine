@@ -1,4 +1,5 @@
 use std::mem::MaybeUninit;
+use std::path::PathBuf;
 
 use ris_asset_data::AssetId;
 use ris_error::prelude::*;
@@ -23,7 +24,7 @@ pub const GIZMO_TEXT_FRAG_SPV: &str = "gizmo_text_frag_spv";
 pub const DEBUG_FONT_TEXTURE: &str = "debug_font_texture";
 pub const TEXTURE: &str = "texture";
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RisGodAsset {
     pub default_vert_spv: AssetId,
     pub default_frag_spv: AssetId,
@@ -40,30 +41,32 @@ pub struct RisGodAsset {
     pub texture: AssetId,
 }
 
-fn asset_id_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<AssetId> {
+fn path_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<PathBuf> {
     let name = name.as_ref();
     let value = json.get::<&str>(name)
         .ris_expect(&format!("id \"{}\" to be assigned", name))?;
-    Ok(AssetId::from_path(value))
+    Ok(PathBuf::from(value))
 }
 
 impl RisAsset for RisGodAsset {
     fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()> {
-        let s = unsafe {&mut *s.as_mut_ptr()};
+        unsafe {
+            let s = &mut *s.as_mut_ptr();
 
-        s.default_vert_spv = asset_id_from_json(json, DEFAULT_VERT_SPV)?;
-        s.default_frag_spv = asset_id_from_json(json, DEFAULT_FRAG_SPV)?;
-        s.terrain_vert_spv = asset_id_from_json(json, TERRAIN_VERT_SPV)?;
-        s.terrain_frag_spv = asset_id_from_json(json, TERRAIN_FRAG_SPV)?;
-        s.imgui_vert_spv = asset_id_from_json(json, IMGUI_VERT_SPV)?;
-        s.imgui_frag_spv = asset_id_from_json(json, IMGUI_FRAG_SPV)?;
-        s.gizmo_segment_vert_spv = asset_id_from_json(json, GIZMO_SEGMENT_VERT_SPV)?;
-        s.gizmo_segment_frag_spv = asset_id_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?;
-        s.gizmo_text_vert_spv = asset_id_from_json(json, GIZMO_TEXT_VERT_SPV)?;
-        s.gizmo_text_geom_spv = asset_id_from_json(json, GIZMO_TEXT_GEOM_SPV)?;
-        s.gizmo_text_frag_spv = asset_id_from_json(json, GIZMO_TEXT_FRAG_SPV)?;
-        s.debug_font_texture = asset_id_from_json(json, DEBUG_FONT_TEXTURE)?;
-        s.texture = asset_id_from_json(json, TEXTURE)?;
+            s.default_vert_spv.set_path(path_from_json(json, DEFAULT_VERT_SPV)?);
+            s.default_frag_spv.set_path(path_from_json(json, DEFAULT_FRAG_SPV)?);
+            s.terrain_vert_spv.set_path(path_from_json(json, TERRAIN_VERT_SPV)?);
+            s.terrain_frag_spv.set_path(path_from_json(json, TERRAIN_FRAG_SPV)?);
+            s.imgui_vert_spv.set_path(path_from_json(json, IMGUI_VERT_SPV)?);
+            s.imgui_frag_spv.set_path(path_from_json(json, IMGUI_FRAG_SPV)?);
+            s.gizmo_segment_vert_spv.set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?);
+            s.gizmo_segment_frag_spv.set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?);
+            s.gizmo_text_vert_spv.set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?);
+            s.gizmo_text_geom_spv.set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?);
+            s.gizmo_text_frag_spv.set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?);
+            s.debug_font_texture.set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?);
+            s.texture.set_path(path_from_json(json, TEXTURE)?);
+        }
 
         Ok(())
     }

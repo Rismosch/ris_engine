@@ -1,3 +1,4 @@
+use std::mem::MaybeUninit;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -106,10 +107,13 @@ impl AssetId {
     }
 
     pub fn from_path(p: impl AsRef<Path>) -> Self {
-        let p = p.as_ref().to_path_buf();
-        let ptr = Box::into_raw(Box::new(p));
+        let mut id = MaybeUninit::<Self>::uninit();
 
-        Self { path: ptr }
+        unsafe {
+            (*id.as_mut_ptr()).set_path(p);
+            id.assume_init()
+        }
+
     }
 
     pub fn null() -> Self {
@@ -137,5 +141,14 @@ impl AssetId {
         let replaced = display.replace('\\', "/");
 
         Ok(replaced)
+    }
+
+    // setter
+    /// this function overwrites the path ptr **without** freeing the previous value. this will
+    /// result in a leak, so only call this method on uninitialized AssetIds!
+    pub unsafe fn set_path(&mut self, p: impl AsRef<Path>) {
+        let p = p.as_ref().to_path_buf();
+        let ptr = Box::into_raw(Box::new(p));
+        self.path = ptr
     }
 }

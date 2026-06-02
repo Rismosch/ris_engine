@@ -1,5 +1,6 @@
 use ris_asset::asset_loader;
 use ris_asset::RisGodAsset;
+use ris_asset_data::AssetId;
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
 
@@ -22,8 +23,12 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
     let asset_loader = god_object.asset_loader.to_weak();
+
     let god_asset_id = asset_loader.god_asset_id();
     let future = unsafe {asset_loader.load_async::<RisGodAsset>(god_asset_id)}?;
+
+    let god_asset = future.wait();
+    ris_log::debug!("{:#?}", god_asset);
 
     loop {
         ris_debug::profiler::new_frame()?;
