@@ -59,7 +59,8 @@ impl<E: Error + 'static> From<E> for RisError {
 
 impl RisError {
     pub fn panic(self) -> ! {
-        crate::panic!("{}", self);
+        ris_log::fatal!("panic on RisError: {:?}", self);
+        crate::panic!("panic on RisError. check log for more information");
     }
 }
 

@@ -9,7 +9,6 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 
-use ris_asset_data::asset_id;
 use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_async::JobFuture;
@@ -248,7 +247,7 @@ fn load_compiled_asset_thread(
 
                 // read
                 file.seek(SeekFrom::Start(index))?;
-                let data = read_bin(&mut file)?;
+                let data = read_compiled_bin(&mut file)?;
 
                 // finalize
                 sender.set(data);
@@ -298,9 +297,11 @@ fn load_directory_asset_thread(root: PathBuf, receiver: Receiver<DirectoryLoadRe
                 // prepare
                 let asset_path = root.join(unsafe {asset_id.path()});
                 let mut file = std::fs::File::open(asset_path)?;
+                let size = file.seek(SeekFrom::End(0))?;
+                file.seek(SeekFrom::Start(0))?;
 
                 // read
-                let data = read_bin(&mut file)?;
+                let data = read_bin(&mut file, size.try_into()?)?;
 
                 // finalize
                 sender.set(data);
@@ -318,19 +319,23 @@ fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -> RisResult
     T::from_json(t, json)
 }
 
-fn read_bin(file: &mut std::fs::File) -> RisResult<Box<[u8]>> {
+fn read_compiled_bin(s: &mut impl Read) -> RisResult<Box<[u8]>> {
     let mut size = MaybeUninit::<u32>::uninit();
     let buf = unsafe {std::slice::from_raw_parts_mut(
         size.as_mut_ptr() as *mut u8,
         std::mem::size_of::<u32>(),
     )};
-    file.read_exact(buf)?;
+    s.read_exact(buf)?;
     let size = unsafe {size.assume_init()};
 
-    let mut data: Box<[MaybeUninit<u8>]> = Box::new_uninit_slice(size.try_into()?);
+    read_bin(s, size.try_into()?)
+}
+
+fn read_bin(s: &mut impl Read, size: usize) -> RisResult<Box<[u8]>> {
+    let mut data: Box<[MaybeUninit<u8>]> = Box::new_uninit_slice(size);
     let p_data = data.as_mut_ptr() as *mut u8;
     let mut buf = unsafe {std::slice::from_raw_parts_mut(p_data, data.len())};
-    file.read_exact(&mut buf)?;
+    s.read_exact(&mut buf)?;
 
     Ok(unsafe {data.assume_init()})
 }

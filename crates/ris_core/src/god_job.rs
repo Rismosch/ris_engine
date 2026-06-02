@@ -26,9 +26,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
     let god_asset_id = asset_loader.god_asset_id();
     let future = unsafe {asset_loader.load_async::<RisGodAsset>(god_asset_id)}?;
-
     let god_asset = future.wait();
-    ris_log::debug!("{:#?}", god_asset);
+    ris_log::debug!("god_asset: {:#?}", god_asset);
+
+    let future = unsafe {asset_loader.load_bin_async(god_asset.default_frag_spv)}?;
+    let shader = future.wait();
+    ris_log::debug!("shader: {:?}", shader);
+
+
 
     loop {
         ris_debug::profiler::new_frame()?;
