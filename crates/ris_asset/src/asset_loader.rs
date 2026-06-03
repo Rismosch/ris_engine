@@ -173,7 +173,7 @@ impl AssetLoader {
 
             // load directory
             RequestSender::Directory(request_sender) => {
-                let init_callback = impl_from_json::<T>;
+                let init_callback = crate::assets::ris_asset::impl_from_json::<T>;
 
                 let request = DirectoryRisAssetLoadRequest {
                     asset_id: asset_id.clone(),
@@ -311,12 +311,6 @@ fn load_directory_asset_thread(root: PathBuf, receiver: Receiver<DirectoryLoadRe
 
     ris_log::info!("load asset thread ended");
     Ok(())
-}
-
-fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -> RisResult<()>{
-    let ptr = ptr.cast::<MaybeUninit<T>>();
-    let t = unsafe {&mut *ptr};
-    T::from_json(t, json)
 }
 
 fn read_compiled_bin(s: &mut impl Read) -> RisResult<Box<[u8]>> {

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::ffi::c_void;
 use std::fs::File;
 use std::io::Cursor;
+use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::path::Path;
@@ -16,38 +18,79 @@ use ris_io::FatPtr;
 
 use crate::assets::ris_asset::RisAsset;
 use crate::assets::ris_god_asset;
+use crate::codecs::json::JsonObject;
+use crate::codecs::json::JsonValue;
+use crate::RisGodAsset;
 
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets/in_use";
 pub const DEFAULT_COMPILED_FILE: &str = "ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
 
-pub const RIS_ASSET_EXTENSIONS: &[&str] = &[
-    ris_god_asset::EXTENSION,
-];
-
-pub const BIN_ASSET_EXTENSIONS: &[&str] = &[
+const BIN_ASSET_EXTENSIONS: &[&str] = &[
     "qoi",
     "spv",
 ];
+
+const VTABLES: &[(&str, VTable)] = &[
+    (ris_god_asset::EXTENSION, VTable::new::<RisGodAsset>()),
+];
+
+#[derive(Debug, Clone)]
+struct VTable {
+    alloc: unsafe fn() -> *mut c_void,
+    from_json: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
+    all_references_mut: unsafe fn(*mut c_void, fn(&[&mut AssetId])),
+    destructor: unsafe fn(*mut c_void),
+}
+
+impl VTable {
+    const fn new<T: RisAsset>() -> Self {
+        use crate::assets::ris_asset;
+
+        Self {
+            alloc: ris_asset::impl_alloc::<T>,
+            from_json: ris_asset::impl_from_json::<T>,
+            all_references_mut: ris_asset::impl_all_references_mut::<T>,
+            destructor: ris_asset::impl_destructor::<T>,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DeserializedAsset {
+    data: *mut c_void,
+    vtable: VTable,
+}
+
+impl Drop for DeserializedAsset {
+    fn drop(&mut self) {
+        if self.data.is_null() {
+            return;
+        }
+
+        unsafe {(self.vtable.destructor)(self.data)};
+    }
+}
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct CompileOptions {
     pub include_original_paths: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 enum AssetKind {
-    Ris,
+    Ris(VTable),
     Bin,
 }
 
 #[derive(Debug, Clone)]
 struct AssetUnit {
     path: PathBuf,
+    extension: String,
     id_path: String,
     id_index: u64,
     kind: AssetKind,
-    size: u64,
+    filesize: u64,
 }
 
 /// compiles a directory to a ris_asset file
@@ -90,13 +133,27 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 .ris_expect("path to be valid utf-8")?
                 .to_lowercase();
 
-            let kind = if RIS_ASSET_EXTENSIONS.contains(&extension.as_str()) {
-                AssetKind::Ris
-            } else if BIN_ASSET_EXTENSIONS.contains(&extension.as_str()) {
+            let kind = if BIN_ASSET_EXTENSIONS.contains(&extension.as_str()) {
                 AssetKind::Bin
             } else {
-                ris_log::warning!("asset \"{}\" has unknown extension and will be ignored", entry_path.display());
-                continue;
+                let mut result = None;
+
+                for (key, vtable) in VTABLES.iter() {
+                    if *key != extension {
+                        continue;
+                    }
+
+                    result = Some(vtable.clone());
+                    break;
+                }
+
+                match result {
+                    Some(deserialized) => AssetKind::Ris(deserialized),
+                    None => {
+                        ris_log::warning!("asset \"{}\" has unknown extension and will be ignored", entry_path.display());
+                        continue;
+                    }
+                }
             };
 
             // compute asset id
@@ -113,10 +170,11 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
             let asset_unit = AssetUnit {
                 path: entry_path,
+                extension,
                 id_path: id.clone(),
                 id_index: u64::MAX,
                 kind,
-                size: u64::MAX,
+                filesize: u64::MAX,
             };
 
             assets.insert(id, asset_unit);
@@ -140,11 +198,34 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         }
 
         let mut file = std::fs::File::open(&reference.path)?;
-        reference.size = file.seek(SeekFrom::End(0))?;
+        reference.filesize = file.seek(SeekFrom::End(0))?;
         file.seek(SeekFrom::Start(0))?;
 
-        if reference.kind == AssetKind::Ris {
-            // TODO find references
+        if let AssetKind::Ris(vtable) = reference.kind {
+            // deserialize asset and find references
+            let mut file_content = String::new();
+            file.read_to_string(&mut file_content)?;
+
+            let JsonValue::Object(json) =  JsonValue::deserialize(file_content)? else {
+                return ris_error::new_result!("file content is not a JsonObject");
+            };
+
+            unsafe {
+                let asset = (vtable.alloc)();
+                ((vtable.all_references_mut)(asset, |ids| {
+                    for &id in ids {
+                        if *id == AssetId::null() {
+                            continue;
+                        }
+
+                        let clean_id = clean_path(id.path());
+                        if let Some(asset) = assets.get(&clean_id) {
+                            references.push_back(asset.clone());
+                        }
+                    }
+                }));
+                (vtable.destructor)(asset);
+            }
         }
 
         referenced_assets.insert(key, reference);
@@ -176,181 +257,6 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
     ris_log::debug!("compiled all assets!");
     Ok(())
-
-    //let mut assets = Vec::new();
-    //let mut asset_lookup_hashmap = HashMap::new();
-    //let mut directories = std::collections::VecDeque::new();
-    //let source_path = PathBuf::from(source);
-    //directories.push_back(source_path.clone());
-
-    //// find all asset files
-    //while let Some(current) = directories.pop_front() {
-    //    let entries = std::fs::read_dir(&current)?;
-
-    //    for entry in entries {
-    //        let entry = entry?;
-    //        let metadata = entry.metadata()?;
-    //        let entry_path = entry.path();
-
-    //        if metadata.is_file() {
-    //            asset_lookup_hashmap.insert(entry_path.clone(), assets.len());
-    //            assets.push(entry_path);
-    //        } else if metadata.is_dir() {
-    //            directories.push_back(entry_path);
-    //        } else {
-    //            return ris_error::new_result!(
-    //                "entry \"{}\" is neither a file, nor a directory",
-    //                entry_path.display(),
-    //            );
-    //        }
-    //    }
-    //}
-
-    //ris_log::trace!("found {} assets:", assets.len());
-    //for (i, file) in assets.iter().enumerate() {
-    //    ris_log::trace!("{}: \"{}\"", i, file.display());
-    //}
-
-    //// create the target file
-    //let target_path = Path::new(target);
-    //if target_path.exists() {
-    //    std::fs::remove_file(target_path)?;
-    //}
-
-    //let mut target_file = File::create(target_path)?;
-    //let target_file = &mut target_file;
-
-    //// write magic
-    //ris_io::seek(target_file, SeekFrom::Start(0))?;
-    //ris_io::write(target_file, &MAGIC)?;
-
-    //// write ptr to original paths
-    //let addr_p_original_asset_names = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //ris_io::write_fat_ptr(target_file, FatPtr::null())?; // placeholder
-
-    //// write lookup
-    //ris_io::write_uint(target_file, assets.len())?;
-    //let addr_asset_lookup = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //let mut asset_lookup = vec![0; assets.len()];
-    //for asset_lookup_entry in asset_lookup.iter() {
-    //    ris_io::write_u64(target_file, *asset_lookup_entry)?; // placeholder
-    //}
-
-    //// compile assets
-    //for (i, asset) in assets.iter().enumerate() {
-    //    ris_log::info!(
-    //        "compiling... {}/{} \"{}\"",
-    //        i + 1,
-    //        assets.len(),
-    //        asset.display(),
-    //    );
-
-    //    let mut file = File::open(asset)?;
-
-    //    let file_size = ris_io::seek(&mut file, SeekFrom::End(0))? as usize;
-    //    let mut file_content = vec![0; file_size];
-    //    ris_io::seek(&mut file, SeekFrom::Start(0))?;
-    //    ris_io::read(&mut file, &mut file_content)?;
-
-    //    let modified_file_content = match RisHeader::deserialize(&file_content)? {
-    //        // asset is not a ris_asset, return unmodified
-    //        None => file_content,
-
-    //        // asset is ris_asset, change directory id to compiled id
-    //        Some((ris_header, ris_asset_content)) => {
-    //            let mut references = Vec::with_capacity(ris_header.references.len());
-    //            for reference in &ris_header.references {
-    //                match reference {
-    //                    AssetId::Index(id) => {
-    //                        return ris_error::new_result!(
-    //                            "attempted to compile an already compiled asset: {}",
-    //                            id,
-    //                        );
-    //                    }
-    //                    AssetId::Path(id) => {
-    //                        let mut id_path = PathBuf::from(&source_path);
-    //                        id_path.push(id);
-    //                        let lookup_value = asset_lookup_hashmap.get(&id_path);
-
-    //                        let Some(compiled_id) = lookup_value else {
-    //                            return ris_error::new_result!(
-    //                                "failed to find compiled id for \"{}\". this probably means that asset \"{}\" references an asset that doesn't exist or doesn't have it's original name anymore.",
-    //                                id_path.display(),
-    //                                asset.display(),
-    //                            );
-    //                        };
-
-    //                        references.push(*compiled_id);
-    //                    }
-    //                }
-    //            }
-
-    //            let mut modified_file_content = Cursor::new(Vec::new());
-    //            let stream = &mut modified_file_content;
-    //            ris_io::write(stream, &ris_header.magic)?;
-    //            ris_io::write_bool(stream, true)?;
-    //            ris_io::write_uint(stream, references.len())?;
-    //            for reference in references {
-    //                ris_io::write_uint(stream, reference)?;
-    //            }
-    //            ris_io::write(stream, ris_asset_content)?;
-
-    //            modified_file_content.into_inner()
-    //        }
-    //    };
-
-    //    // write to compiled file
-    //    let asset_addr = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //    asset_lookup[i] = asset_addr;
-    //    ris_io::write(target_file, &modified_file_content)?;
-    //}
-
-    //// all assets are compiled, compile original paths
-    //let p_original_asset_names = if options.include_original_paths {
-    //    let original_paths = assets
-    //        .iter()
-    //        .map(|x| {
-    //            Ok({
-    //                let mut original_path =
-    //                    x.to_str().ris_expect("x to be valid UTF-8")?.to_string();
-    //                original_path.replace_range(0..source.len(), "");
-    //                let mut original_path = original_path.replace('\\', "/");
-    //                if original_path.starts_with('/') {
-    //                    original_path.remove(0);
-    //                }
-
-    //                original_path
-    //            })
-    //        })
-    //        .collect::<RisResult<Vec<_>>>()?;
-
-    //    let original_paths = original_paths
-    //        .iter()
-    //        .map(|x| x.as_str())
-    //        .collect::<Vec<_>>();
-
-    //    let begin = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //    ris_io::write_uint(target_file, original_paths.len())?;
-    //    for original_path in original_paths {
-    //        ris_io::write_string(target_file, original_path)?;
-    //    }
-    //    let end = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //    FatPtr::begin_end(begin, end)?
-    //} else {
-    //    let addr = ris_io::seek(target_file, SeekFrom::Current(0))?;
-    //    FatPtr { addr, len: 0 }
-    //};
-
-    //// fill placeholder
-    //ris_io::seek(target_file, SeekFrom::Start(addr_p_original_asset_names))?;
-    //ris_io::write_fat_ptr(target_file, p_original_asset_names)?;
-
-    //ris_io::seek(target_file, SeekFrom::Start(addr_asset_lookup))?;
-    //for asset_lookup_entry in asset_lookup.iter() {
-    //    ris_io::write_u64(target_file, *asset_lookup_entry)?;
-    //}
-
-    //Ok(())
 }
 
 /// decompiles a .ris_asset file to a directory.
@@ -358,118 +264,6 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 /// - `target`: the path to the final directory. if this directory exists already, it will be cleared
 pub fn decompile(source: &str, target: &str) -> RisResult<()> {
     todo!();
-    //// preparations
-    //let target = Path::new(target);
-    //if target.exists() {
-    //    std::fs::remove_dir_all(target)?;
-    //}
-
-    //std::fs::create_dir_all(target)?;
-
-    //let mut source = File::open(source)?;
-    //let source = &mut source;
-
-    //// read magic
-    //let mut magic = [0; 16];
-    //ris_io::read(source, &mut magic)?;
-    //if !ris_util::testing::bytes_eq(&magic, &MAGIC) {
-    //    return ris_error::new_result!("expected magic to be {:?} but was {:?}", magic, MAGIC);
-    //}
-
-    //// get original paths addr
-    //let p_original_asset_names = ris_io::read_fat_ptr(source)?;
-
-    //// read lookup
-    //let asset_lookup_count = ris_io::read_uint(source)?;
-    //let mut asset_lookup = vec![0; asset_lookup_count];
-    //for asset_lookup_entry in asset_lookup.iter_mut() {
-    //    *asset_lookup_entry = ris_io::read_u64(source)?;
-    //}
-
-    //// read original paths
-    //let mut original_paths = if p_original_asset_names.len == 0 {
-    //    Vec::new()
-    //} else {
-    //    ris_io::seek(source, SeekFrom::Start(p_original_asset_names.addr))?;
-    //    let original_path_count = ris_io::read_uint(source)?;
-    //    let mut original_paths = Vec::with_capacity(original_path_count);
-    //    for _ in 0..original_path_count {
-    //        let original_path = ris_io::read_string(source)?;
-    //        original_paths.push(original_path);
-    //    }
-    //    original_paths
-    //};
-
-    //let mut i = original_paths.len();
-    //while original_paths.len() < asset_lookup.len() {
-    //    original_paths.push(format!("asset_{}", i));
-    //    i += 1;
-    //}
-
-    //// read assets
-    //for i in 0..asset_lookup.len() {
-    //    let asset_begin = asset_lookup[i];
-    //    let original_path = &original_paths[i];
-
-    //    ris_log::info!(
-    //        "decompiling... {}/{} \"{}\"",
-    //        i + 1,
-    //        asset_lookup.len(),
-    //        original_path,
-    //    );
-
-    //    let asset_end = if i == asset_lookup.len() - 1 {
-    //        p_original_asset_names.addr
-    //    } else {
-    //        asset_lookup[i + 1]
-    //    };
-
-    //    let p_asset = FatPtr::begin_end(asset_begin, asset_end)?;
-    //    let file_content = ris_io::read_at(source, p_asset)?;
-
-    //    // reassign ids
-    //    let modified_file_content = match RisHeader::deserialize(&file_content)? {
-    //        // asset is not a ris_asset, return unmodified
-    //        None => file_content,
-
-    //        // asset is ris_asset, change compiled id to directory id
-    //        Some((old_header, old_content)) => {
-    //            let mut references = Vec::with_capacity(old_header.references.len());
-    //            for reference in &old_header.references {
-    //                match reference {
-    //                    AssetId::Path(id) => {
-    //                        return ris_error::new_result!(
-    //                            "attempted to decompile an already decompiled asset: {}",
-    //                            id,
-    //                        );
-    //                    }
-    //                    AssetId::Index(id) => {
-    //                        let reference = &original_paths[*id];
-    //                        let new_asset_id = AssetId::Path(reference.clone());
-    //                        references.push(new_asset_id);
-    //                    }
-    //                }
-    //            }
-
-    //            let new_header = RisHeader::new(old_header.magic, references);
-    //            new_header.serialize(old_content)?
-    //        }
-    //    };
-
-    //    // create and write file
-    //    let mut asset_path = PathBuf::new();
-    //    asset_path.push(target);
-    //    asset_path.push(original_path);
-    //    let parent = asset_path
-    //        .parent()
-    //        .ris_expect("asset_path to have a parent")?;
-    //    std::fs::create_dir_all(parent)?;
-
-    //    let mut decompiled_file = File::create(&asset_path)?;
-    //    ris_io::write(&mut decompiled_file, &modified_file_content)?;
-    //}
-
-    //Ok(())
 }
 
 fn clean_path(path: impl AsRef<Path>) -> String {
@@ -479,3 +273,4 @@ fn clean_path(path: impl AsRef<Path>) -> String {
         .to_string()
         .replace('\\', "")
 }
+
