@@ -40,7 +40,9 @@ impl std::fmt::Debug for AssetId {
             Some(AssetIdKind::Path) => unsafe {
                 write!(f, "AssetId {{ path: {} }}", self.path().display())
             },
-            None => ris_error::panic!("asset id kind is not set"),
+            None => unsafe {
+                write!(f, "AssetId {{ ?: {} }}", self.index())
+            },
         }
     }
 }
@@ -113,7 +115,11 @@ impl AssetId {
             (*id.as_mut_ptr()).set_path(p);
             id.assume_init()
         }
+    }
 
+    pub unsafe fn is_null_path(&self) -> bool {
+        let path = unsafe {self.path()};
+        path.display().to_string() == NULL_PATH
     }
 
     pub fn null() -> Self {

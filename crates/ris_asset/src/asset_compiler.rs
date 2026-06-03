@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::thread::current;
 use std::u64;
 
+use ris_asset_data::asset_id;
 use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_error::prelude::*;
@@ -39,12 +40,12 @@ const VTABLES: &[(&str, VTable)] = &[
 struct VTable {
     alloc: unsafe fn() -> *mut c_void,
     from_json: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
-    all_references_mut: unsafe fn(*mut c_void, fn(&[&mut AssetId])),
+    all_references_mut: unsafe fn(*mut c_void) -> Vec<&'static mut AssetId>,
     destructor: unsafe fn(*mut c_void),
 }
 
 impl VTable {
-    const fn new<T: RisAsset>() -> Self {
+    const fn new<T: RisAsset + 'static>() -> Self {
         use crate::assets::ris_asset;
 
         Self {
@@ -56,24 +57,8 @@ impl VTable {
     }
 }
 
-#[derive(Debug, Clone)]
-struct DeserializedAsset {
-    data: *mut c_void,
-    vtable: VTable,
-}
-
-impl Drop for DeserializedAsset {
-    fn drop(&mut self) {
-        if self.data.is_null() {
-            return;
-        }
-
-        unsafe {(self.vtable.destructor)(self.data)};
-    }
-}
-
 #[derive(Default, Debug, Clone, Copy)]
-pub struct CompileOptions {
+pub struct CompileSettings {
     pub include_original_paths: bool,
 }
 
@@ -86,7 +71,6 @@ enum AssetKind {
 #[derive(Debug, Clone)]
 struct AssetUnit {
     path: PathBuf,
-    extension: String,
     id_path: String,
     id_index: u64,
     kind: AssetKind,
@@ -96,7 +80,12 @@ struct AssetUnit {
 /// compiles a directory to a ris_asset file
 /// - `source`: the directory to be compiled
 /// - `target`: the path to the final compiled file. if this file exists already, it will be overwritten
-pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult<()> {
+pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResult<()> {
+    // asset compiler makes use of both index and path ids
+    if AssetId::kind() != None {
+        return ris_error::new_result!("expected AssetId::kind() to be None, but was {:?}.", AssetId::kind());
+    }
+
     // initialize
     let source = clean_path(source);
 
@@ -148,7 +137,9 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
                 }
 
                 match result {
-                    Some(deserialized) => AssetKind::Ris(deserialized),
+                    Some(deserialized) => {
+                        AssetKind::Ris(deserialized)
+                    },
                     None => {
                         ris_log::warning!("asset \"{}\" has unknown extension and will be ignored", entry_path.display());
                         continue;
@@ -170,21 +161,23 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
             let asset_unit = AssetUnit {
                 path: entry_path,
-                extension,
                 id_path: id.clone(),
                 id_index: u64::MAX,
                 kind,
                 filesize: u64::MAX,
             };
 
-            assets.insert(id, asset_unit);
+            ris_log::info!("asset \"{}\" found", asset_unit.path.display());
+            if assets.insert(id, asset_unit).is_some() {
+                return ris_error::new_result!("expected asset id to be unique");
+            };
         }
     }
 
-    ris_log::info!("found {} assets:", assets.len());
+    ris_log::info!("found {} assets", assets.len());
 
-    // count references
-    ris_log::debug!("find referenced assets...");
+    // find references
+    ris_log::debug!("determine assets, which are actually referenced...");
     let god_asset = assets.get(ris_god_asset::PATH).ris_expect("god asset to exist")?;
 
     let mut references = std::collections::VecDeque::<AssetUnit>::new();
@@ -201,7 +194,7 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
         reference.filesize = file.seek(SeekFrom::End(0))?;
         file.seek(SeekFrom::Start(0))?;
 
-        if let AssetKind::Ris(vtable) = reference.kind {
+        if let AssetKind::Ris(vtable) = &reference.kind {
             // deserialize asset and find references
             let mut file_content = String::new();
             file.read_to_string(&mut file_content)?;
@@ -212,48 +205,85 @@ pub fn compile(source: &str, target: &str, options: CompileOptions) -> RisResult
 
             unsafe {
                 let asset = (vtable.alloc)();
-                ((vtable.all_references_mut)(asset, |ids| {
-                    for &id in ids {
-                        if *id == AssetId::null() {
-                            continue;
-                        }
+                (vtable.from_json)(asset, &json)?;
+                let ids = (vtable.all_references_mut)(asset);
 
-                        let clean_id = clean_path(id.path());
-                        if let Some(asset) = assets.get(&clean_id) {
-                            references.push_back(asset.clone());
-                        }
+                for id in ids {
+                    if id.is_null_path() {
+                        continue;
                     }
-                }));
+
+                    let clean_id = clean_path(id.path());
+                    if let Some(asset) = assets.get(&clean_id) {
+                        references.push_back(asset.clone());
+                    }
+                }
+
                 (vtable.destructor)(asset);
             }
         }
 
-        referenced_assets.insert(key, reference);
+        if referenced_assets.insert(key, reference).is_some() {
+            return ris_error::new_result!("expected asset id to be unique");
+        }
     }
 
-    ris_log::debug!("assets: {:#?}", referenced_assets);
+    let pruned_len = assets.len() - referenced_assets.len();
+    let pruned_percentage = 100.0 * pruned_len as f32 / assets.len() as f32;
 
     ris_log::info!(
-        "{}/{} assets are referenced",
+        "{}/{} assets are referenced. {} assets ({:.1}%) wont be compiled",
         referenced_assets.len(),
         assets.len(),
+        pruned_len,
+        pruned_percentage,
     );
 
     // compute asset ids
-    ris_log::debug!("compute asset ids...");
-    todo!("indices are enough");
+    ris_log::debug!("flattening referenced asset hashmap to list...");
+    let mut asset_list = referenced_assets
+        .into_iter()
+        .map(|(_, value)| value)
+        .collect::<Vec<_>>();
+    let god_asset_index = asset_list
+        .iter()
+        .position(|asset| asset.id_path == ris_god_asset::PATH)
+        .ris_expect("god asset to exist")?;
+
+    let from = god_asset_index;
+    let to = 0;
+    asset_list.swap(from, to);
+
+    ris_log::debug!("moved god asset from position {} to {}", from, to);
+
+    let mut asset_index_lookup = std::collections::HashMap::new();
+
+    let mut expected_size = 0;
+    for (index, asset) in asset_list.iter_mut().enumerate() {
+        asset.id_index = expected_size.try_into()?;
+        expected_size += asset.filesize;
+
+        if asset_index_lookup.insert(asset.id_path.clone(), index).is_some() {
+            return ris_error::new_result!("expected asset id to be unique");
+        }
+    }
 
     // change asset ids
     ris_log::debug!("change asset ids...");
-    todo!("handle the existance of both index and path asset ids");
+    todo!();
 
-    // compile file
-    ris_log::debug!("compiled file...");
+    // write file
+    ris_log::debug!("write file...");
     todo!();
 
     // append original paths
-    ris_log::debug!("write original paths...");
-    todo!();
+    if settings.include_original_paths {
+        ris_log::debug!("write original paths...");
+        todo!("write paths start");
+        todo!("write 1");
+    } else {
+        todo!("write 0");
+    }
 
     ris_log::debug!("compiled all assets!");
     Ok(())

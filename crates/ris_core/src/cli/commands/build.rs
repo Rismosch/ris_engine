@@ -199,7 +199,7 @@ impl ICommand for Build {
             None,
         )?;
         eprintln!("compiling assets...");
-        let compile_options = ris_asset::asset_compiler::CompileOptions {
+        let compile_options = ris_asset::asset_compiler::CompileSettings {
             include_original_paths: !is_release,
         };
         ris_asset::asset_compiler::compile(

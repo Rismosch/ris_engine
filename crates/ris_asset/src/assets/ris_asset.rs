@@ -24,11 +24,10 @@ pub unsafe fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -
     T::from_json(t, json)
 }
 
-pub unsafe fn impl_all_references_mut<T: RisAsset>(ptr: *mut c_void, callback: fn(&[&mut AssetId])) {
+pub unsafe fn impl_all_references_mut<T: RisAsset + 'static>(ptr: *mut c_void) -> Vec<&'static mut AssetId> {
     let ptr = ptr.cast::<T>();
     let t = unsafe {&mut *ptr};
-    let references = t.all_references_mut();
-    callback(&references)
+    t.all_references_mut()
 }
 
 pub unsafe fn impl_destructor<T: RisAsset>(ptr: *mut c_void) {
