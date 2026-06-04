@@ -104,11 +104,11 @@ impl AssetId {
     }
 
     // constructors
-    pub fn from_index(v: u64) -> Self {
+    pub unsafe fn from_index_unchecked(v: u64) -> Self {
         Self { index: v }
     }
 
-    pub fn from_path(p: impl AsRef<Path>) -> Self {
+    pub unsafe fn from_path_unchecked(p: impl AsRef<Path>) -> Self {
         let mut id = MaybeUninit::<Self>::uninit();
 
         unsafe {
@@ -117,15 +117,24 @@ impl AssetId {
         }
     }
 
-    pub unsafe fn is_null_path(&self) -> bool {
-        let path = unsafe {self.path()};
-        path.display().to_string() == NULL_PATH
+    pub fn from_index(v: u64) -> Self {
+        ris_error::panic_assert!(Self::kind() == Some(AssetIdKind::Index));
+        unsafe {Self::from_index_unchecked(v)}
+    }
+
+    pub fn from_path(p: impl AsRef<Path>) -> Self {
+        ris_error::panic_assert!(Self::kind() == Some(AssetIdKind::Path));
+        unsafe{Self::from_path_unchecked(p)}
+    }
+
+    pub unsafe fn null_index() -> Self {
+        AssetId::from_index(u64::MAX)
     }
 
     pub fn null() -> Self {
         match Self::kind() {
-            Some(AssetIdKind::Index) => AssetId::from_index(u64::MAX),
-            Some(AssetIdKind::Path) => AssetId::from_path(PathBuf::from(NULL_PATH)),
+            Some(AssetIdKind::Index) => unsafe {AssetId::from_index_unchecked(u64::MAX)},
+            Some(AssetIdKind::Path) => unsafe {AssetId::from_path_unchecked(PathBuf::from(NULL_PATH))},
             None => ris_error::panic!("asset id kind is not set!"),
         }
     }
@@ -156,5 +165,11 @@ impl AssetId {
         let p = p.as_ref().to_path_buf();
         let ptr = Box::into_raw(Box::new(p));
         self.path = ptr
+    }
+
+    // methods
+    pub unsafe fn is_null_path(&self) -> bool {
+        let path = unsafe {self.path()};
+        path.display().to_string() == NULL_PATH
     }
 }

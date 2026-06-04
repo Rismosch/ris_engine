@@ -5,6 +5,7 @@ use std::io::Cursor;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -16,9 +17,11 @@ use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_error::prelude::*;
 use ris_io::FatPtr;
+use ris_ptr::Janitor;
 
 use crate::assets::ris_asset::RisAsset;
 use crate::assets::ris_god_asset;
+use crate::codecs::json;
 use crate::codecs::json::JsonObject;
 use crate::codecs::json::JsonValue;
 use crate::RisGodAsset;
@@ -38,6 +41,7 @@ const VTABLES: &[(&str, VTable)] = &[
 
 #[derive(Debug, Clone)]
 struct VTable {
+    size: usize,
     alloc: unsafe fn() -> *mut c_void,
     from_json: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
     all_references_mut: unsafe fn(*mut c_void) -> Vec<&'static mut AssetId>,
@@ -49,6 +53,7 @@ impl VTable {
         use crate::assets::ris_asset;
 
         Self {
+            size: std::mem::size_of::<T>(),
             alloc: ris_asset::impl_alloc::<T>,
             from_json: ris_asset::impl_from_json::<T>,
             all_references_mut: ris_asset::impl_all_references_mut::<T>,
@@ -88,11 +93,15 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
 
     // initialize
     let source = clean_path(source);
+    if std::fs::exists(target)? {
+        std::fs::remove_file(target)?;
+    }
 
-    let mut assets = std::collections::HashMap::<String, AssetUnit>::new();
+    let mut target_file = std::fs::File::create_new(target)?;
 
     // find all assets
-    ris_log::debug!("finding assets...");
+    ris_log::info!("search all assets...");
+    let mut assets = std::collections::HashMap::<String, AssetUnit>::new();
     let mut directories = std::collections::VecDeque::new();
     directories.push_back(PathBuf::from(&source));
 
@@ -156,7 +165,11 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
             let cleaned = clean_path(&entry_path);
             let id = cleaned
                 .strip_prefix(&prefix)
-                .ris_expect("path to start with source")?
+                .ris_expect(&format!(
+                    "path \"{}\" to start with prefix \"{}\"",
+                    cleaned,
+                    prefix,
+                ))?
                 .to_string();
 
             let asset_unit = AssetUnit {
@@ -167,7 +180,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                 filesize: u64::MAX,
             };
 
-            ris_log::info!("asset \"{}\" found", asset_unit.path.display());
+            ris_log::debug!("asset \"{}\" found", asset_unit.path.display());
             if assets.insert(id, asset_unit).is_some() {
                 return ris_error::new_result!("expected asset id to be unique");
             };
@@ -177,18 +190,23 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
     ris_log::info!("found {} assets", assets.len());
 
     // find references
-    ris_log::debug!("determine assets, which are actually referenced...");
+    ris_log::info!("determine assets, which are actually referenced...");
     let god_asset = assets.get(ris_god_asset::PATH).ris_expect("god asset to exist")?;
 
     let mut references = std::collections::VecDeque::<AssetUnit>::new();
     references.push_back(god_asset.clone());
 
     let mut referenced_assets = std::collections::HashMap::<String, AssetUnit>::new();
+
+    let mut counter = 0;
     while let Some(mut reference) = references.pop_front() {
         let key = reference.id_path.clone();
         if referenced_assets.contains_key(&key) {
             continue;
         }
+
+        counter += 1;
+        ris_log::debug!("finding reference... {}/{}", counter, assets.len());
 
         let mut file = std::fs::File::open(&reference.path)?;
         reference.filesize = file.seek(SeekFrom::End(0))?;
@@ -204,9 +222,13 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
             };
 
             unsafe {
-                let asset = (vtable.alloc)();
-                (vtable.from_json)(asset, &json)?;
-                let ids = (vtable.all_references_mut)(asset);
+                let j = Janitor {
+                    data: (vtable.alloc)(),
+                    destructor: vtable.destructor,
+                };
+
+                (vtable.from_json)(j.data, &json)?;
+                let ids = (vtable.all_references_mut)(j.data);
 
                 for id in ids {
                     if id.is_null_path() {
@@ -216,10 +238,14 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                     let clean_id = clean_path(id.path());
                     if let Some(asset) = assets.get(&clean_id) {
                         references.push_back(asset.clone());
+                    } else {
+                        ris_log::warning!(
+                            "asset \"{}\" references a non-existant asset: \"{}\"",
+                            reference.path.display(),
+                            id.path().display(),
+                        )
                     }
                 }
-
-                (vtable.destructor)(asset);
             }
         }
 
@@ -232,15 +258,13 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
     let pruned_percentage = 100.0 * pruned_len as f32 / assets.len() as f32;
 
     ris_log::info!(
-        "{}/{} assets are referenced. {} assets ({:.1}%) wont be compiled",
-        referenced_assets.len(),
-        assets.len(),
+        "{} assets ({:.1}%) are not referenced at all and wont be compiled",
         pruned_len,
         pruned_percentage,
     );
 
     // compute asset ids
-    ris_log::debug!("flattening referenced asset hashmap to list...");
+    ris_log::info!("flattening referenced asset hashmap to list...");
     let mut asset_list = referenced_assets
         .into_iter()
         .map(|(_, value)| value)
@@ -261,31 +285,98 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
     let mut expected_size = 0;
     for (index, asset) in asset_list.iter_mut().enumerate() {
         asset.id_index = expected_size.try_into()?;
-        expected_size += asset.filesize;
+        let asset_size = match &asset.kind {
+            AssetKind::Bin => std::mem::size_of::<u32>() as u64 + asset.filesize,
+            AssetKind::Ris(vtable) => vtable.size as u64,
+        };
+
+        expected_size += asset_size;
 
         if asset_index_lookup.insert(asset.id_path.clone(), index).is_some() {
             return ris_error::new_result!("expected asset id to be unique");
         }
     }
 
-    // change asset ids
-    ris_log::debug!("change asset ids...");
-    todo!();
+    // compile file
+    ris_log::info!("write file...");
 
-    // write file
-    ris_log::debug!("write file...");
-    todo!();
+    for (i, asset) in asset_list.iter().enumerate() {
+        ris_log::debug!("asset {}/{} \"{}\"", i + 1, asset_list.len(), asset.id_path);
+
+        let mut asset_file = std::fs::File::open(&asset.path)?;
+        let mut file_content = vec![0u8; asset.filesize as usize];
+        asset_file.read_exact(&mut file_content)?;
+
+        match &asset.kind {
+            AssetKind::Bin => {
+                ris_log::debug!("write binary asset...");
+                let size = file_content.len() as u32;
+                target_file.write_all(&size.to_ne_bytes())?;
+                target_file.write_all(&file_content)?;
+            },
+            AssetKind::Ris(vtable) => {
+                unsafe {
+                    let j = Janitor {
+                        data: (vtable.alloc)(),
+                        destructor: vtable.destructor,
+                    };
+
+                    let json_string = String::from_utf8(file_content)?;
+                    let JsonValue::Object(json) = JsonValue::deserialize(json_string)? else {
+                        return ris_error::new_result!("file content was not json");
+                    };
+
+                    (vtable.from_json)(j.data, &json)?;
+                    ris_log::debug!("resolve references...");
+
+                    let references = (vtable.all_references_mut)(j.data);
+                    for reference in references {
+                        if reference.is_null_path() {
+                            *reference = AssetId::null_index();
+                        } else {
+                            let reference_id = clean_path(reference.path());
+                            *reference = match asset_index_lookup.get(&reference_id) {
+                                Some(&reference_index) => {
+                                    let reference_asset = &asset_list[reference_index];
+                                    AssetId::from_index_unchecked(reference_asset.id_index)
+                                },
+                                None => AssetId::null_index(),
+                            };
+                        }
+                    }
+
+                    let bytes = std::slice::from_raw_parts(
+                        j.data as *mut u8,
+                        vtable.size,
+                    );
+
+                    ris_log::debug!("write ris asset...");
+                    target_file.write_all(&bytes)?;
+                }
+            },
+        };
+    }
 
     // append original paths
     if settings.include_original_paths {
-        ris_log::debug!("write original paths...");
-        todo!("write paths start");
-        todo!("write 1");
+        ris_log::info!("append original paths...");
+
+        let addr = target_file.seek(SeekFrom::Current(0))?;
+
+        for asset in asset_list.iter() {
+            let bytes = asset.id_path.as_bytes();
+            target_file.write_all(bytes)?;
+            target_file.write_all(&[0u8])?;
+        }
+
+        target_file.write_all(&addr.to_ne_bytes())?;
+        target_file.write_all(&[1u8])?;
     } else {
-        todo!("write 0");
+
+        target_file.write_all(&[0u8])?;
     }
 
-    ris_log::debug!("compiled all assets!");
+    ris_log::info!("compiled all assets!");
     Ok(())
 }
 
@@ -301,6 +392,6 @@ fn clean_path(path: impl AsRef<Path>) -> String {
         .as_ref()
         .display()
         .to_string()
-        .replace('\\', "")
+        .replace('\\', "/")
 }
 

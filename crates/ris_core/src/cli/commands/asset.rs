@@ -78,7 +78,7 @@ impl ICommand for Asset {
         match command.as_str() {
             COMPILE => {
                 let compile_settings = CompileSettings {
-                    include_original_paths: false,
+                    include_original_paths: true,
                 };
                 asset_compiler::compile(
                     asset_compiler::DEFAULT_ASSET_DIRECTORY,

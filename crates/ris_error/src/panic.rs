@@ -53,7 +53,6 @@ macro_rules! panic_assert {
                         message,
                     );
                 }
-
             }
         }
     }};

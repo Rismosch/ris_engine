@@ -1,4 +1,5 @@
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct Sid {
     pub hash: u32,
     #[cfg(feature = "store_sid_values")]
