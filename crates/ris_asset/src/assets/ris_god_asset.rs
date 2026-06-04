@@ -26,6 +26,7 @@ pub const DEBUG_FONT_TEXTURE: &str = "debug_font_texture";
 pub const TEXTURE: &str = "texture";
 
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct RisGodAsset {
     pub default_vert_spv: AssetId,
     pub default_frag_spv: AssetId,
