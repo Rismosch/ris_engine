@@ -151,7 +151,7 @@ impl Image {
         let pixel_width = match self.format {
             vk::Format::R8G8B8A8_SRGB => 4,
             vk::Format::R8G8B8A8_UINT => 4,
-            format => ris_error::throw!(
+            format => ris_error::panic!(
                 "todo: pixel width for format {:?} is not yet implemented",
                 format,
             ),

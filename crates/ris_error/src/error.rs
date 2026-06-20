@@ -57,18 +57,25 @@ impl<E: Error + 'static> From<E> for RisError {
     }
 }
 
+impl RisError {
+    pub fn panic(self) -> ! {
+        ris_log::fatal!("panic on RisError: {:?}", self);
+        crate::panic!("panic on RisError. check log for more information");
+    }
+}
+
 pub trait Extensions<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError>;
+    fn ris_expect(self, msg: &str) -> RisResult<T>;
 }
 
 impl<T> Extensions<T> for Option<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> RisResult<T> {
         self.ok_or("Option was None").ris_expect(msg)
     }
 }
 
 impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
+    fn ris_expect(self, msg: &str) -> RisResult<T> {
         match self {
             Ok(value) => Ok(value),
             Err(e) => crate::new_result!("expected {}. error: {}", msg, e),
@@ -129,27 +136,34 @@ macro_rules! get_backtrace {
 #[macro_export]
 macro_rules! assert {
     ($value:expr) => {{
-        if $value {
-            Ok(())
-        } else {
-            ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
-        }
+        $crate::assert!($value, "")
     }};
-}
-
-#[macro_export]
-macro_rules! debug_assert {
-    ($value:expr) => {{
+    ($value:expr, $($arg:tt)*) => {{
         #[cfg(not(debug_assertions))]
         {
             let _ = $value;
-            let result: ris_error::RisResult<()> = Ok(());
-            result
+            let retval: ris_error::RisResult<()> = Ok(());
+            retval
         }
 
         #[cfg(debug_assertions)]
         {
-            $crate::assert!($value)
+            if $value {
+                Ok(())
+            } else {
+                let message = format!($($arg)*);
+                if message.len() == 0 {
+                    $crate::new_result!(
+                        "assertion failed: `{}` was false",
+                        stringify!($value),
+                    )
+                } else {
+                    $crate::new_result!(
+                        "assertion failed: {}",
+                        message,
+                    )
+                }
+            }
         }
     }};
 }

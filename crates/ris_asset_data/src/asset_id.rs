@@ -1,22 +1,175 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AssetId {
-    Index(usize),
-    Path(String),
+use std::mem::MaybeUninit;
+use std::path::Path;
+use std::path::PathBuf;
+
+use ris_error::prelude::*;
+use ris_ptr::SyncUnsafeCell;
+
+pub const NULL_PATH: &str = "NULL";
+
+static ASSET_ID_KIND: SyncUnsafeCell<Option<AssetIdKind>> = SyncUnsafeCell::new(None);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssetIdKind {
+    Index,
+    Path,
 }
 
+#[repr(C)]
+pub union AssetId {
+    index: u64,
+    path: *mut PathBuf,
+}
+
+impl Drop for AssetId {
+    fn drop(&mut self) {
+        unsafe {
+            if Self::kind() == Some(AssetIdKind::Path) {
+                _ = Box::from_raw(self.path)
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for AssetId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match Self::kind() {
+            Some(AssetIdKind::Index) => unsafe {
+                write!(f, "AssetId {{ index: {} }}", self.index())
+            },
+            Some(AssetIdKind::Path) => unsafe {
+                write!(f, "AssetId {{ path: {} }}", self.path().display())
+            },
+            None => unsafe {
+                write!(f, "AssetId {{ ?: {} }}", self.index())
+            },
+        }
+    }
+}
+
+impl Clone for AssetId {
+    fn clone(&self) -> Self {
+        match Self::kind() {
+            Some(AssetIdKind::Index) => unsafe {
+                let index = self.index();
+                Self::from_index(index)
+            },
+            Some(AssetIdKind::Path) => unsafe {
+                let path = self.path();
+                Self::from_path(path)
+            },
+            None => ris_error::panic!("asset id kind is not set"),
+        }
+    }
+}
+
+impl PartialEq for AssetId {
+    fn eq(&self, other: &Self) -> bool {
+        match Self::kind() {
+            Some(AssetIdKind::Index) => unsafe {
+                self.index() == other.index()
+            },
+            Some(AssetIdKind::Path) => unsafe {
+                self.path() == other.path()
+            },
+            None => ris_error::panic!("asset id kind is not set"),
+        }
+    }
+}
+
+impl Eq for AssetId {}
+
+impl AsRef<AssetId> for AssetId {
+    fn as_ref(&self) -> &AssetId {
+        self
+    }
+}
+
+unsafe impl Send for AssetId {}
+
 impl AssetId {
-    pub fn has_extension(&self, extension: impl AsRef<str>) -> bool {
-        let AssetId::Path(path) = &self else {
-            ris_log::error!("cannot determine extension on index asset id");
-            return false;
-        };
+    // global
+    pub unsafe fn set_kind(kind: AssetIdKind) {
+        unsafe {
+            let current = ASSET_ID_KIND.get();
+            *current = Some(kind);
+        }
+    }
 
-        let mut splits = path.split('.');
-        let Some(last) = splits.next_back() else {
-            ris_log::error!("asset has no extension");
-            return false;
-        };
+    pub fn kind() -> Option<AssetIdKind> {
+        unsafe {
+            let current = ASSET_ID_KIND.get();
+            *current
+        }
+    }
 
-        last.to_lowercase() == extension.as_ref().to_lowercase()
+    // constructors
+    pub unsafe fn from_index_unchecked(v: u64) -> Self {
+        Self { index: v }
+    }
+
+    pub unsafe fn from_path_unchecked(p: impl AsRef<Path>) -> Self {
+        let mut id = MaybeUninit::<Self>::uninit();
+
+        unsafe {
+            (*id.as_mut_ptr()).set_path(p);
+            id.assume_init()
+        }
+    }
+
+    pub fn from_index(v: u64) -> Self {
+        ris_error::panic_assert!(Self::kind() == Some(AssetIdKind::Index));
+        unsafe {Self::from_index_unchecked(v)}
+    }
+
+    pub fn from_path(p: impl AsRef<Path>) -> Self {
+        ris_error::panic_assert!(Self::kind() == Some(AssetIdKind::Path));
+        unsafe{Self::from_path_unchecked(p)}
+    }
+
+    pub unsafe fn null_index() -> Self {
+        AssetId::from_index(u64::MAX)
+    }
+
+    pub fn null() -> Self {
+        match Self::kind() {
+            Some(AssetIdKind::Index) => unsafe {AssetId::from_index_unchecked(u64::MAX)},
+            Some(AssetIdKind::Path) => unsafe {AssetId::from_path_unchecked(PathBuf::from(NULL_PATH))},
+            None => ris_error::panic!("asset id kind is not set!"),
+        }
+    }
+
+    // getter
+    pub unsafe fn index(&self) -> u64 {
+        unsafe { self.index }
+    }
+
+    pub unsafe fn path(&self) -> &Path {
+        unsafe { &(*self.path) }
+    }
+
+    pub fn path_string(&self) -> RisResult<String> {
+        ris_error::assert!(Self::kind() == Some(AssetIdKind::Path))?;
+
+        let path = unsafe {self.path()};
+        let display = path.display().to_string();
+        let replaced = display.replace('\\', "/");
+
+        Ok(replaced)
+    }
+
+    // setter
+    /// this function overwrites the path ptr **without** freeing the previous value. this will
+    /// result in a leak, so only call this method on uninitialized AssetIds!
+    pub unsafe fn set_path(&mut self, p: impl AsRef<Path>) {
+        let p = p.as_ref().to_path_buf();
+        let ptr = Box::into_raw(Box::new(p));
+        self.path = ptr
+    }
+
+    // methods
+    pub unsafe fn is_null_path(&self) -> bool {
+        let path = unsafe {self.path()};
+        path.display().to_string() == NULL_PATH
     }
 }

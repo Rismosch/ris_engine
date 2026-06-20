@@ -146,7 +146,7 @@ impl Scene {
     }
 
     pub fn clear_chunk(&self, index: usize) {
-        ris_error::throw_debug_assert!(index < self.static_chunks.len(), "index was out of bounds",);
+        ris_error::panic_assert!(index < self.static_chunks.len(), "index was out of bounds",);
         let chunk = &self.static_chunks[index];
         if !*chunk.is_reserved.borrow() {
             ris_log::info!(

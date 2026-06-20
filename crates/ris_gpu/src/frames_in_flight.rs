@@ -60,6 +60,7 @@ impl<'a> RendererRegisterer<'a> {
                 let end = id.secondary_command_buffers_end;
                 let count = end - start;
                 ris_error::assert!(count == secondary_command_buffer_count)?;
+
                 id
             }
             None => self.info.register_renderer(secondary_command_buffer_count),

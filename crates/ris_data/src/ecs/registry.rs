@@ -171,7 +171,7 @@ pub fn get() -> &'static Registry {
         let registry = &*REGISTRY.get();
         match registry.as_ref() {
             Some(registry) => registry,
-            None => ris_error::throw!("registry is not initialized"),
+            None => ris_error::panic!("registry is not initialized"),
         }
     }
 }

@@ -538,6 +538,11 @@ impl UiHelper {
                     return ris_error::new_result!("manual crash");
                 }
 
+                if data.ui.menu_item("panic") {
+                    ris_log::fatal!("manual panic requested");
+                    ris_error::panic!("manual panic");
+                }
+
                 if data.ui.menu_item("quit") {
                     return Ok(GameloopState::WantsToQuit);
                 }

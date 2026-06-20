@@ -14,7 +14,7 @@ fn should_eq() {
 #[cfg(feature = "ris_debug_enabled")]
 fn should_detect_collision() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let sid1 = ris_debug::sid!("wCVg");

@@ -1,5 +1,6 @@
 use ash::vk;
 
+use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
 use ris_asset::codecs::qoi;
 use ris_debug::gizmo::GizmoTextVertex;
@@ -96,6 +97,7 @@ impl GizmoTextRenderer {
 
     pub fn alloc(
         core: &VulkanCore,
+        asset_loader: &AssetLoader,
         god_asset: &RisGodAsset,
         renderer_registerer: &mut RendererRegisterer,
     ) -> RisResult<Self> {
@@ -198,13 +200,13 @@ impl GizmoTextRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = ris_asset::load_raw_async(god_asset.gizmo_text_vert_spv.clone());
-        let gs_future = ris_asset::load_raw_async(god_asset.gizmo_text_geom_spv.clone());
-        let fs_future = ris_asset::load_raw_async(god_asset.gizmo_text_frag_spv.clone());
+        let vs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_vert_spv)}?;
+        let gs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_geom_spv)}?;
+        let fs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_frag_spv)}?;
 
-        let vs_bytes = vs_future.wait()?;
-        let gs_bytes = gs_future.wait()?;
-        let fs_bytes = fs_future.wait()?;
+        let vs_bytes = vs_future.wait();
+        let gs_bytes = gs_future.wait();
+        let fs_bytes = fs_future.wait();
 
         let vs_module = ris_gpu::shader::create_module(device, &vs_bytes)?;
         let gs_module = ris_gpu::shader::create_module(device, &gs_bytes)?;
@@ -516,8 +518,8 @@ impl GizmoTextRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // texture
-        let font_future = ris_asset::load_raw_async(god_asset.debug_font_texture.clone());
-        let font_data = font_future.wait()?;
+        let font_future = unsafe {asset_loader.load_bin_async(&god_asset.debug_font_texture)}?;
+        let font_data = font_future.wait();
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 
         let pixels_rgba = match desc.channels {

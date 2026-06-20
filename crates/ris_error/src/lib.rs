@@ -1,5 +1,5 @@
 pub mod error;
-pub mod throw;
+pub mod panic;
 
 pub use error::Extensions;
 pub use error::RisError;

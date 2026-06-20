@@ -1,4 +1,5 @@
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct Sid {
     pub hash: u32,
     #[cfg(feature = "store_sid_values")]
@@ -45,7 +46,7 @@ impl PartialEq for Sid {
             let right = &other.value;
             let hash = self.hash;
             if result && left != right {
-                ris_error::throw!(
+                ris_error::panic!(
                     "sid collision detected! left: \"{}\" right: \"{}\" hash: \"{}\". this should never happen. change one of the strings to something else",
                     left,
                     right,

@@ -10,7 +10,7 @@ use ris_error::prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
-use crate::assets::ris_mesh;
+//use crate::assets::ris_mesh;
 use crate::codecs::gltf::Accessor;
 use crate::codecs::gltf::AccessorComponentType;
 use crate::codecs::gltf::AccessorType;
@@ -203,21 +203,22 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             }
             let cpu_mesh = CpuMesh::try_from(mesh_prototype)?;
 
-            let bytes = ris_mesh::serialize(&cpu_mesh)?;
+            todo!();
+            //let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
-            let mesh_name = if let Some(name) = &mesh.name {
-                name.clone()
-            } else {
-                "none".to_string()
-            };
+            //let mesh_name = if let Some(name) = &mesh.name {
+            //    name.clone()
+            //} else {
+            //    "none".to_string()
+            //};
 
-            let target_name = format!(
-                "{}-{}-{:03}-{:03}",
-                source_file_stem, mesh_name, mesh_index, primitive_index,
-            );
-            let mut output =
-                crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
-            ris_io::write(&mut output, &bytes)?;
+            //let target_name = format!(
+            //    "{}-{}-{:03}-{:03}",
+            //    source_file_stem, mesh_name, mesh_index, primitive_index,
+            //);
+            //let mut output =
+            //    crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
+            //ris_io::write(&mut output, &bytes)?;
         }
     }
 

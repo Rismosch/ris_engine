@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use ris_asset::asset_compiler;
-use ris_asset::asset_compiler::CompileOptions;
+use ris_asset::asset_compiler::CompileSettings;
 use ris_asset::asset_importer;
 use ris_error::prelude::*;
 use ris_log::log::IAppender;
@@ -77,13 +77,13 @@ impl ICommand for Asset {
 
         match command.as_str() {
             COMPILE => {
-                let compile_options = CompileOptions {
-                    include_original_paths: false,
+                let compile_settings = CompileSettings {
+                    include_original_paths: true,
                 };
                 asset_compiler::compile(
                     asset_compiler::DEFAULT_ASSET_DIRECTORY,
                     asset_compiler::DEFAULT_COMPILED_FILE,
-                    compile_options,
+                    compile_settings,
                 )
             }
             DECOMPILE => asset_compiler::decompile(
