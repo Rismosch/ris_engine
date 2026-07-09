@@ -49,7 +49,7 @@ fn async_runner(c: &mut Criterion) {
 
                 group.bench_function(
                     format!(
-                        "threads: {:02}, aff:{}, prk:{} ",
+                        "tds:{:02},aff:{},prk:{}",
                         threads, set_affinity, park_workers
                     ),
                     |b| {

@@ -129,18 +129,18 @@ rpath = false
 name = "async"
 harness = false
 
-[[bench]]
-name = "map"
-harness = false
-
-[[bench]]
-name = "math"
-harness = false
-
-[[bench]]
-name = "sincos"
-harness = false
-
-[[bench]]
-name = "vec"
-harness = false
+#[[bench]]
+#name = "map"
+#harness = false
+#
+#[[bench]]
+#name = "math"
+#harness = false
+#
+#[[bench]]
+#name = "sincos"
+#harness = false
+#
+#[[bench]]
+#name = "vec"
+#harness = false
