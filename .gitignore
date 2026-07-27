@@ -1,0 +1,7 @@
+# build results
+build
+*.dol
+*.elf
+
+# clangd
+compile_commands.json
