@@ -113,9 +113,7 @@ clean:
 	rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
 
 run:
-	wiiload $(TARGET).dol
-
-emu:
+#	wiiload $(TARGET).dol
 	dolphin-emu-nogui $(TARGET).dol
 
 else
