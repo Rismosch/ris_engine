@@ -1,10 +1,9 @@
 #include <gccore.h>
-#include <gctypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 // #include <wiiuse/wpad.h>
 
-#include "ris_types.h"
+#include "ris_primitives.h"
 
 #include "greeter.hpp"
 
@@ -97,7 +96,7 @@ int main(int, char **) {
   printf("usize: %u\n", i);
   printf("isize: %i\n", j);
   printf("bool:  %i\n", k);
-  printf("f32:   %f\n", static_cast<double>(l));
+  printf("f32:   %f\n", static_cast<f64>(l));
   printf("f64:   %f\n", m);
 
   while (SYS_MainLoop()) {

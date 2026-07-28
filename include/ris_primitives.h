@@ -1,5 +1,5 @@
-#ifndef __RIS_TYPES_H__
-#define __RIS_TYPES_H__
+#ifndef __RIS_PRIMITIVES_H__
+#define __RIS_PRIMITIVES_H__
 
 #include <gctypes.h>
 
@@ -17,6 +17,6 @@ using size_t = size_t;
 using f32 = f32;
 using f64 = f64;
 
-#endif /* TYPES_H */
+#endif /* __RIS_PRIMITIVES_H__ */
 
 /* END OF FILE */
