@@ -1,4 +1,5 @@
 #include <gccore.h>
+#include <gctypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 // #include <wiiuse/wpad.h>
@@ -53,25 +54,7 @@ int main(int, char **) {
 
   Greeter greeter;
   greeter.greet();
-
-  // rust primitives:
-  // - [x] pub use bool;
-  // - [-] pub use char;
-  // - [x] pub use f32;
-  // - [x] pub use f64;
-  // - [x] pub use i8;
-  // - [x] pub use i16;
-  // - [x] pub use i32;
-  // - [x] pub use i64;
-  // - [-] pub use i128;
-  // - [x] pub use isize;
-  // - [-] pub use str;
-  // - [x] pub use u8;
-  // - [x] pub use u16;
-  // - [x] pub use u32;
-  // - [x] pub use u64;
-  // - [-] pub use u128;
-  // - [x] pub use usize;
+  printf("\n");
 
   u8 a = UINT8_MAX;
   u16 b = UINT16_MAX;
@@ -100,6 +83,9 @@ int main(int, char **) {
   f64 m = -56.78;
 
   printf("byte order: %i\n", BYTE_ORDER);
+  printf("be: %i\n", BYTE_ORDER == BIG_ENDIAN);
+  printf("ll: %i\n", BYTE_ORDER == LITTLE_ENDIAN);
+  printf("\n");
   printf("u8:    %u\n", a);
   printf("u16:   %u\n", b);
   printf("u32:   %u\n", c);
@@ -121,7 +107,7 @@ int main(int, char **) {
 
     //// WPAD_ButtonsDown tells us which buttons were pressed in this loop
     //// this is a "one shot" state which will not fire again until the button
-    ///has / been released
+    /// has / been released
     // u32 pressed = WPAD_ButtonsDown(0);
 
     //// We return to the launcher application via exit
