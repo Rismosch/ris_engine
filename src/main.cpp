@@ -1,9 +1,11 @@
+#include <assert.h>
 #include <cstddef>
 #include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
 // #include <wiiuse/wpad.h>
 
+#include "ris_assert.hpp"
 #include "ris_collections.hpp"
 #include "ris_primitives.hpp"
 
@@ -110,10 +112,6 @@ int main(int, char **) {
     array.push(42);
     array.push(-13);
     printf("array len: %i capacity: %i\n", array.len(), array.capacity());
-
-    // for (size_t i = 0; i < array.len(); ++i) {
-    //   printf("%i\n", *array.get(i));
-    // }
 
     for (auto it = array.iter(); it.move_next();) {
       auto x = it.current();

@@ -2,6 +2,7 @@
 #define __RIS_COLLECTIONS_H__
 
 #include "ris_alloc.hpp"
+#include "ris_assert.hpp"
 #include "ris_iterator.hpp"
 #include "ris_primitives.hpp"
 
@@ -44,12 +45,7 @@ public:
   }
 
   T *current() override {
-#ifndef NDEBUG
-    if (_current_index < _array->len()) {
-      // TODO: panic
-    }
-#endif
-
+    RIS_ASSERT(_current_index < _array->len());
     return _array->get(_current_index);
   }
 };
@@ -74,22 +70,12 @@ public:
   RisArrayIterator<T> iter() override { return RisArrayIterator<T>(this); }
 
   T *get(usize index) override {
-#ifndef NDEBUG
-    if (index >= _len) {
-      // TODO: panic
-    }
-#endif
-
+    RIS_ASSERT(index < _len);
     return &_data[index];
   }
 
   void push(T value) override {
-#ifndef NDEBUG
-    if (_len == _capacity) {
-      // TODO: panic
-    }
-#endif
-
+    RIS_ASSERT(_len < _capacity);
     _data[_len] = value;
     _len += 1;
   }
