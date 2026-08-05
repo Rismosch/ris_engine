@@ -3,7 +3,7 @@
 
 #define RIS_CONCAT_IMPL(a, b) a##b
 #define RIS_CONCAT(a, b) RIS_CONCAT_IMPL(a, b)
-#define RIS_UNIQUE() RIS_CONCAT(__temp_, __COUNTER__)
+#define RIS_UNIQUE_NAME() RIS_CONCAT(__temp_, __COUNTER__)
 
 #endif /* __RIS_MACRO_H__ */
 

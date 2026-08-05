@@ -108,12 +108,15 @@ int main(int, char **) {
   }
 
   {
-    auto array = StackArray<s32, 4>();
+    auto array = DynArray<s32>(4);
     array.push(42);
     array.push(-13);
+    array.push(1);
+    array.push(2);
+    array.push(3);
     printf("array len: %i capacity: %i\n", array.len(), array.capacity());
 
-    RIS_FOREACH(s32, x, array) { printf("%i\n", *x); }
+    RIS_FOREACH(x, array.iter()) { printf("%i\n", *x); }
   }
 
   while (SYS_MainLoop()) {
