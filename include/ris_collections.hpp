@@ -8,8 +8,8 @@
 
 #define RIS_DEFAULT_DYN_ARRAY_CAPACITY 4
 
+// Interface ===================================================================
 template <typename T> class RisArrayIterator;
-
 template <typename T> class RisArray {
 public:
   virtual ~RisArray() = default;
@@ -24,6 +24,7 @@ public:
   virtual void push(T value) = 0;
 };
 
+// Iterator ====================================================================
 template <typename T> class RisArrayIterator : public RisIterator<T> {
 private:
   usize _current_index = USIZE_MAX;
@@ -52,8 +53,41 @@ public:
   }
 };
 
-// template <typename T> class StackArray {};
+// StackArray ==================================================================
+template <typename T, usize N> class StackArray : public RisArray<T> {
+private:
+  T _data[N];
+  usize _len;
 
+public:
+  StackArray() : _len(0) {}
+
+  ~StackArray() {
+    for (auto it = iter(); it.move_next();) {
+      auto x = it.current();
+      x->~T();
+    }
+  }
+
+  T *data() override { return _data; }
+  usize len() const override { return _len; }
+  usize capacity() const override { return N; }
+
+  RisArrayIterator<T> iter() override { return RisArrayIterator<T>(this); }
+
+  T *get(usize index) override {
+    RIS_ASSERT(index < _len);
+    return &_data[index];
+  }
+
+  void push(T value) override {
+    RIS_ASSERT(_len < N);
+    _data[_len] = value;
+    _len += 1;
+  }
+};
+
+// HeapArray ===================================================================
 template <typename T> class HeapArray : public RisArray<T> {
 protected:
   T *_data;
@@ -97,6 +131,7 @@ protected:
   }
 };
 
+// DynArray ====================================================================
 template <typename T> class DynArray : public HeapArray<T> {
 public:
   DynArray(usize capacity) : HeapArray<T>(capacity) {}

@@ -108,7 +108,7 @@ int main(int, char **) {
   }
 
   {
-    DynArray array = DynArray<s32>(4);
+    auto array = StackArray<s32, 7>();
     array.push(42);
     array.push(-13);
     array.push(1);
