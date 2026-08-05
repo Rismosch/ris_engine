@@ -3,6 +3,7 @@
 
 #include <gctypes.h>
 
+// Definitions ======================================================
 using u8 = u8;
 using u16 = u16;
 using u32 = u32;
@@ -17,6 +18,10 @@ using isize = ssize_t;
 
 using f32 = f32;
 using f64 = f64;
+
+// Constants ========================================================
+#define USIZE_MIN 0
+#define USIZE_MAX ~static_cast<usize>(0)
 
 #endif /* __RIS_PRIMITIVES_H__ */
 

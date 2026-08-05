@@ -110,8 +110,14 @@ int main(int, char **) {
     array.push(42);
     array.push(-13);
     printf("array len: %i capacity: %i\n", array.len(), array.capacity());
-    for (size_t i = 0; i < array.len(); ++i) {
-      printf("%i\n", *array.get(i));
+
+    // for (size_t i = 0; i < array.len(); ++i) {
+    //   printf("%i\n", *array.get(i));
+    // }
+
+    for (auto it = array.iter(); it.move_next();) {
+      auto x = it.current();
+      printf("%i\n", *x);
     }
   }
 
