@@ -108,9 +108,12 @@ int main(int, char **) {
   }
 
   {
-    StaticArray array = StaticArray<s32>(4);
+    DynArray array = DynArray<s32>(4);
     array.push(42);
     array.push(-13);
+    array.push(1);
+    array.push(2);
+    array.push(3);
     printf("array len: %i capacity: %i\n", array.len(), array.capacity());
 
     for (auto it = array.iter(); it.move_next();) {

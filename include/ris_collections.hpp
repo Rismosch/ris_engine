@@ -1,10 +1,12 @@
 #ifndef __RIS_COLLECTIONS_H__
 #define __RIS_COLLECTIONS_H__
 
-#include "ris_alloc.hpp"
 #include "ris_assert.hpp"
 #include "ris_iterator.hpp"
+#include "ris_memory.hpp"
 #include "ris_primitives.hpp"
+
+#define RIS_DEFAULT_DYN_ARRAY_CAPACITY 4
 
 template <typename T> class RisArrayIterator;
 
@@ -36,9 +38,9 @@ public:
       return true;
     }
 
-    if (_current_index < _array->len() - 1) {
+    if (_current_index < _array->len()) {
       _current_index += 1;
-      return true;
+      return _current_index < _array->len();
     }
 
     return false;
@@ -52,15 +54,24 @@ public:
 
 // template <typename T> class StackArray {};
 
-template <typename T> class StaticArray : public RisArray<T> {
-private:
+template <typename T> class HeapArray : public RisArray<T> {
+protected:
   T *_data;
   usize _len;
   usize _capacity;
 
 public:
-  StaticArray(usize capacity) : _len(0), _capacity(capacity) {
+  HeapArray(usize capacity) : _len(0), _capacity(capacity) {
+    RIS_ASSERT(capacity != 0);
     _data = ris_alloc<T>(capacity);
+  }
+
+  ~HeapArray() {
+    for (auto it = iter(); it.move_next();) {
+      auto x = it.current();
+      x->~T();
+    }
+    ris_free(_data);
   }
 
   T *data() override { return _data; }
@@ -76,12 +87,34 @@ public:
 
   void push(T value) override {
     RIS_ASSERT(_len < _capacity);
+    _push(value);
+  }
+
+protected:
+  void _push(T value) {
     _data[_len] = value;
     _len += 1;
   }
 };
 
-// template <typename T> class DynArray {};
+template <typename T> class DynArray : public HeapArray<T> {
+public:
+  DynArray(usize capacity) : HeapArray<T>(capacity) {}
+  DynArray() : HeapArray<T>(RIS_DEFAULT_DYN_ARRAY_CAPACITY) {}
+
+  void push(T value) override {
+    if (HeapArray<T>::_len == HeapArray<T>::_capacity) {
+      usize new_capacity = HeapArray<T>::_capacity * 2;
+      T *new_data = ris_alloc<T>(new_capacity);
+      ris_memcpy(new_data, HeapArray<T>::_data, HeapArray<T>::_len);
+      ris_free(HeapArray<T>::_data);
+      HeapArray<T>::_data = new_data;
+      HeapArray<T>::_capacity = new_capacity;
+    }
+
+    HeapArray<T>::_push(value);
+  }
+};
 
 #endif /* __RIS_COLLECTIONS_H__ */
 

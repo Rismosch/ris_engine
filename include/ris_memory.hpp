@@ -2,6 +2,7 @@
 #define __RIS_ALLOC_H__
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "ris_primitives.hpp"
 
@@ -13,6 +14,10 @@ template <typename T> inline T *ris_alloc(usize count) {
 }
 
 template <typename T> inline void ris_free(T *ptr) { free(ptr); }
+
+template <typename T> inline void ris_memcpy(T *dest, const T *src, usize count) {
+  memcpy(dest, src, count * sizeof(T));
+}
 
 #endif /* __RIS_ALLOC_H__ */
 
