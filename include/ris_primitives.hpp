@@ -1,7 +1,6 @@
 #ifndef __RIS_PRIMITIVES_H__
 #define __RIS_PRIMITIVES_H__
 
-#include <cstdio>
 #include <gctypes.h>
 
 using u8 = u8;
