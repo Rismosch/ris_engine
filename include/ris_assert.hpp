@@ -4,10 +4,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+char __ris_last_exception_message[1024];
+
+inline void __ris_abort() {
+#ifdef RIS_ENABLE_UNIT_TESTS
+  throw __ris_last_exception_message;
+#else
+  printf("%s\n", __ris_last_exception_message);
+  // abort();
+#endif
+}
+
 #define RIS_PANIC(__message) __ris_panic(__FILE__, __LINE__, __message)
 inline void __ris_panic(const char *file, int line, const char *message) {
-  printf("panic at %s:%i \"%s\"\n", file, line, message);
-  abort();
+  sprintf(__ris_last_exception_message, "panic at %s:%i \"%s\"\n", file, line,
+          message);
+  __ris_abort();
 }
 
 #ifdef NDEBUG
@@ -18,8 +30,9 @@ inline void __ris_panic(const char *file, int line, const char *message) {
                   : __ris_failed_assert(__FILE__, __LINE__, #__expression))
 inline void __ris_failed_assert(const char *file, int line,
                                 const char *expression) {
-  printf("assert \"%s\" failed at %s:%i\n", expression, file, line);
-  abort();
+  sprintf(__ris_last_exception_message, "assert \"%s\" failed at %s:%i\n",
+          expression, file, line);
+  __ris_abort();
 }
 #endif /* NDEBUG */
 

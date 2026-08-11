@@ -34,7 +34,9 @@ CFLAGS := \
 LDFLAGS = $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
 DEBUG ?= 1
+TEST  ?= 0
 
+# is debug?
 ifeq ($(DEBUG), 1)
 	CFLAGS += -g3 -Og
 	CFLAGS += -D_GLIBCXX_ASSERTIONS
@@ -42,6 +44,13 @@ ifeq ($(DEBUG), 1)
 else
 	CFLAGS += -O3 -DNDEBUG -flto
 	LDFLAGS += -flto
+endif
+
+# is test?
+ifeq ($(TEST), 1)
+	CFLAGS += -DRIS_ENABLE_UNIT_TESTS
+else
+	CFLAGS += -fno-exceptions
 endif
 
 CXXFLAGS = $(CFLAGS)
@@ -97,17 +106,20 @@ export INCLUDE := \
 export LIBPATHS := -L$(LIBOGC_LIB) $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 export OUTPUT := $(CURDIR)/$(TARGET)
-.PHONY: $(BUILD) debug release clean run emu
+.PHONY: $(BUILD) debug release test clean run
 
 $(BUILD):
 	[ -d $@ ] || mkdir -p $@
 	$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 debug:
-	$(MAKE) DEBUG=1
+	$(MAKE) DEBUG=1 TEST=0
 
 release:
-	$(MAKE) DEBUG=0
+	$(MAKE) DEBUG=0 TEST=0
+
+test:
+	$(MAKE) DEBUG=1 TEST=1
 
 clean:
 	rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
