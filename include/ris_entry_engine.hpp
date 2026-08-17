@@ -10,6 +10,7 @@
 #include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <utility>
 // #include <wiiuse/wpad.h>
 
 #include "ris_assert.hpp"
@@ -20,6 +21,8 @@
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
+
+void foo(DynArray<s32> test) {}
 
 int entry(int, char **) {
   // Initialise the video system
@@ -122,6 +125,8 @@ int entry(int, char **) {
     array.push(2);
     array.push(3);
     printf("array len: %i capacity: %i\n", array.len(), array.capacity());
+
+    foo(std::move(array));
 
     RIS_FOREACH(x, array.iter()) { printf("%i\n", *x); }
   }

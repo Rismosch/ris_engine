@@ -60,7 +60,7 @@ private:
   usize _len;
 
 public:
-  StackArray() : _len(0) {}
+  explicit StackArray() : _len(0) {}
 
   ~StackArray() {
     for (auto it = iter(); it.move_next();) {
@@ -95,10 +95,15 @@ protected:
   usize _capacity;
 
 public:
-  HeapArray(usize capacity) : _len(0), _capacity(capacity) {
+  explicit HeapArray(usize capacity) : _len(0), _capacity(capacity) {
     RIS_ASSERT(capacity != 0);
     _data = ris_alloc<T>(capacity);
   }
+
+  HeapArray(const HeapArray &) = delete;
+  HeapArray &operator=(const HeapArray &) = delete;
+  HeapArray(HeapArray &&) noexcept = default;
+  HeapArray &operator=(HeapArray &&) noexcept = default;
 
   ~HeapArray() {
     for (auto it = iter(); it.move_next();) {
@@ -134,8 +139,8 @@ protected:
 // DynArray ====================================================================
 template <typename T> class DynArray : public HeapArray<T> {
 public:
-  DynArray(usize capacity) : HeapArray<T>(capacity) {}
-  DynArray() : HeapArray<T>(RIS_DEFAULT_DYN_ARRAY_CAPACITY) {}
+  explicit DynArray(usize capacity) : HeapArray<T>(capacity) {}
+  explicit DynArray() : HeapArray<T>(RIS_DEFAULT_DYN_ARRAY_CAPACITY) {}
 
   void push(T value) override {
     if (HeapArray<T>::_len == HeapArray<T>::_capacity) {
