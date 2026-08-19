@@ -1,6 +1,8 @@
 #ifndef __RIS_ENTRY_ENGINE_H__
 #define __RIS_ENTRY_ENGINE_H__
 
+#include <cstdint>
+#include <cstdio>
 #ifdef RIS_ENABLE_UNIT_TESTS
 #error "this is the engine entry, it may not be used when tests are enabled"
 #endif /* RIS_ENABLE_UNIT_TESTS */
@@ -11,11 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <utility>
+#include <vector>
 // #include <wiiuse/wpad.h>
-
-#include "ris_assert.hpp"
-#include "ris_collections.hpp"
-#include "ris_primitives.hpp"
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
@@ -64,17 +63,17 @@ int entry(int, char **) {
   printf("hello world\n\n");
 
   {
-    u8 a = UINT8_MAX;
-    u16 b = UINT16_MAX;
-    u32 c = UINT32_MAX;
-    u64 d = UINT64_MAX;
-    s8 e = INT8_MIN;
-    s16 f = INT16_MIN;
-    s32 g = INT32_MIN;
-    s64 h = INT64_MIN;
+    uint8_t a = UINT8_MAX;
+    uint16_t b = UINT16_MAX;
+    uint32_t c = UINT32_MAX;
+    uint64_t d = UINT64_MAX;
+    int8_t e = INT8_MIN;
+    int16_t f = INT16_MIN;
+    int32_t g = INT32_MIN;
+    int64_t h = INT64_MIN;
 
-    usize i = SIZE_MAX;
-    isize j = 1;
+    size_t i = SIZE_MAX;
+    ssize_t j = 1;
 
     while (true) {
       ssize_t candidate = j << 1;
@@ -110,15 +109,17 @@ int entry(int, char **) {
   }
 
   {
-    auto array = DynArray<s32>(4);
-    array.push(42);
-    array.push(-13);
-    array.push(1);
-    array.push(2);
-    array.push(3);
-    printf("array len: %i capacity: %i\n", array.len(), array.capacity());
-
-    RIS_FOREACH(x, array.iter()) { printf("%i\n", *x); }
+    std::vector<s32> array;
+    // auto array = DynArray<s32>(4);
+    array.push_back(42);
+    array.push_back(-13);
+    array.push_back(1);
+    array.push_back(2);
+    array.push_back(3);
+    printf("array len: %i capacity: %i\n", array.size(), array.capacity());
+    for (auto it = array.begin(); it != array.end(); ++it) {
+      printf("%i\n", *it);
+    }
   }
 
 #ifdef RIS_ENABLE_UNIT_TESTS
