@@ -5,11 +5,12 @@
 #error "this is the test entry, it may only be used when tests are enabled"
 #endif /* RIS_ENABLE_UNIT_TESTS */
 
-#include <assert.h>
 #include <cstddef>
 #include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "ris_assert.hpp"
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
@@ -35,6 +36,12 @@ int entry(int, char **) {
 
   // testing harness
   printf("this is the test entry :)\n");
+
+  try {
+    RIS_ASSERT(false);
+  } catch (RisException exception) {
+    printf("test failed: %s\n", exception.message);
+  }
 
   // main loop
   while (SYS_MainLoop()) {

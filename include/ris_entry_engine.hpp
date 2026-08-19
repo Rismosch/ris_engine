@@ -16,6 +16,8 @@
 #include <vector>
 // #include <wiiuse/wpad.h>
 
+#include "ris_alloc.hpp"
+
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
 
@@ -108,16 +110,25 @@ int entry(int, char **) {
     printf("f64:   %f\n", m);
   }
 
+  //{
+  //  auto ptr1 = RIS_ALLOC(4, 8);
+  //  auto ptr2 = RIS_ALLOC(8, 8);
+  //  RIS_FREE(ptr1);
+  //  auto ptr3 = RIS_ALLOC(16, 8);
+  //  RIS_FREE(ptr2);
+  //  auto ptr4 = RIS_ALLOC(32, 8);
+  //  RIS_FREE(ptr3);
+  //  RIS_FREE(ptr4);
+  //}
   {
-    std::vector<s32> array;
-    // auto array = DynArray<s32>(4);
-    array.push_back(42);
-    array.push_back(-13);
-    array.push_back(1);
-    array.push_back(2);
-    array.push_back(3);
-    printf("array len: %i capacity: %i\n", array.size(), array.capacity());
-    for (auto it = array.begin(); it != array.end(); ++it) {
+    std::vector<int32_t> v;
+    v.push_back(42);
+    v.push_back(-13);
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+    printf("array len: %i capacity: %i\n", v.size(), v.capacity());
+    for (auto it = v.begin(); it != v.end(); ++it) {
       printf("%i\n", *it);
     }
   }

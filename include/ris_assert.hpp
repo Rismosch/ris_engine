@@ -4,22 +4,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char __ris_last_exception_message[1024];
+#define RIS_ABORT_MESSAGE_SIZE 2048
 
-inline void __ris_abort() {
+struct RisException {
+  char message[RIS_ABORT_MESSAGE_SIZE];
+};
+
+inline void __ris_abort(RisException exception) {
 #ifdef RIS_ENABLE_UNIT_TESTS
-  throw __ris_last_exception_message;
+  throw exception;
 #else
-  printf("%s\n", __ris_last_exception_message);
+  printf("%s\n", exception.message);
   // abort();
 #endif
 }
 
 #define RIS_PANIC(__message) __ris_panic(__FILE__, __LINE__, __message)
 inline void __ris_panic(const char *file, int line, const char *message) {
-  sprintf(__ris_last_exception_message, "panic at %s:%i \"%s\"\n", file, line,
-          message);
-  __ris_abort();
+  RisException exception;
+  sprintf(exception.message, "panic at %s:%i \"%s\"\n", file, line, message);
+  __ris_abort(exception);
 }
 
 #ifdef NDEBUG
@@ -30,9 +34,10 @@ inline void __ris_panic(const char *file, int line, const char *message) {
                   : __ris_failed_assert(__FILE__, __LINE__, #__expression))
 inline void __ris_failed_assert(const char *file, int line,
                                 const char *expression) {
-  sprintf(__ris_last_exception_message, "assert \"%s\" failed at %s:%i\n",
-          expression, file, line);
-  __ris_abort();
+  RisException exception;
+  sprintf(exception.message, "assert `%s` failed at %s:%i\n", expression, file,
+          line);
+  __ris_abort(exception);
 }
 #endif /* NDEBUG */
 
