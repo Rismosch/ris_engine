@@ -60,7 +60,7 @@ pub fn find_supported_format(
         }
     }
 
-    ris_error::new_result!("formats are not supported")
+    ris_error::new!("formats are not supported")
 }
 
 pub fn has_stencil_component(format: vk::Format) -> bool {

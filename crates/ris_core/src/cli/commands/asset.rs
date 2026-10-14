@@ -106,7 +106,7 @@ impl ICommand for Asset {
                     None,
                 )
             }
-            _ => ris_error::new_result!("unkown arg: {}", command),
+            _ => ris_error::new!("unkown arg: {}", command),
         }
     }
 }

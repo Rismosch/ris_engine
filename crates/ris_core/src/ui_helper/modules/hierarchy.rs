@@ -192,7 +192,7 @@ impl HierarchyModule {
                 );
 
                 if !is_game_object {
-                    return ris_error::new_result!("handle id was not a gameobject");
+                    return ris_error::new!("handle id was not a gameobject");
                 }
                 let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
                 child.set_parent(scene, Some(handle), usize::MAX)?;

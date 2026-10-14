@@ -59,7 +59,7 @@ fn get_entry_point(package_info: PackageInfo) -> RisResult<EntryPoint> {
         #[cfg(feature = "cli_enabled")]
         return Ok(EntryPoint::Cli(args));
         #[cfg(not(feature = "cli_enabled"))]
-        return ris_error::new_result!("cli is not available");
+        return ris_error::new!("cli is not available");
     }
 
     let args_info = ArgsInfo::parse(args)?;

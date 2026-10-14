@@ -12,6 +12,7 @@ pub type RisResult<T> = Result<T, RisError>;
 pub struct RisError {
     pub source_type_name: Option<String>,
     pub message: String,
+    pub context: Vec<String>,
     pub file: String,
     pub line: u32,
     pub backtrace: Option<Arc<Backtrace>>,
@@ -19,15 +20,13 @@ pub struct RisError {
 
 impl std::fmt::Display for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "RisError")?;
-
         if let Some(source_type_name) = &self.source_type_name {
             write!(f, " from {}", source_type_name)?;
         }
 
         write!(
             f,
-            ": \"{}\"\n    at {}:{}",
+            "\"{}\" at {}:{}",
             self.message, self.file, self.line,
         )
     }
@@ -36,9 +35,21 @@ impl std::fmt::Display for RisError {
 impl std::fmt::Debug for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)?;
+
+        write!(f, "\ncontext:")?;
+
+        if self.context.is_empty() {
+            write!(f, "\n   None")?;
+        } else {
+            for (i, message) in self.context.iter().rev().enumerate() {
+                write!(f, "\n{:4}: {}", i, message)?;
+            }
+        }
+
         if let Some(backtrace) = self.backtrace.as_ref() {
             write!(f, "\nbacktrace:\n{}", backtrace)?;
         }
+
         Ok(())
     }
 }
@@ -50,6 +61,7 @@ impl<E: Error + 'static> From<E> for RisError {
         Self {
             source_type_name,
             message,
+            context: Vec::new(),
             file: file!().to_string(),
             line: line!(),
             backtrace: Some(crate::get_backtrace!()),
@@ -64,27 +76,54 @@ impl RisError {
     }
 }
 
-pub trait Extensions<T> {
-    fn ris_expect(self, msg: &str) -> RisResult<T>;
+pub trait OptionExtensions<T> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T>;
+    fn ris_pexpect(self, msg: impl AsRef<str>);
 }
 
-impl<T> Extensions<T> for Option<T> {
-    fn ris_expect(self, msg: &str) -> RisResult<T> {
+pub trait ResultExtensions<T> : OptionExtensions<T> {
+    fn ris_context(self, msg: impl AsRef<str>) -> Self;
+}
+
+impl<T> OptionExtensions<T> for Option<T> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T> {
         self.ok_or("Option was None").ris_expect(msg)
     }
-}
 
-impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn ris_expect(self, msg: &str) -> RisResult<T> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(e) => crate::new_result!("expected {}. error: {}", msg, e),
+    fn ris_pexpect(self, msg: impl AsRef<str>) {
+        if let Err(e) = self.ris_expect(msg) {
+            crate::panic!("{}", e);
         }
     }
 }
 
+impl<T, E: std::fmt::Display> OptionExtensions<T> for Result<T, E> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(e) => crate::new!("expected {}. error: {}", msg.as_ref(), e),
+        }
+    }
+
+    fn ris_pexpect(self, msg: impl AsRef<str>) {
+        if let Err(e) = self.ris_expect(msg) {
+            crate::panic!("{}", e);
+        }
+    }
+}
+
+impl<T> ResultExtensions<T> for RisResult<T> {
+    fn ris_context(mut self, msg: impl AsRef<str>) -> Self {
+        if let Err(e) = self.as_mut() {
+            e.context.push(msg.as_ref().to_string());
+        }
+
+        self
+    }
+}
+
 #[macro_export]
-macro_rules! new {
+macro_rules! new_error {
     ($($arg:tt)*) => {{
         use $crate::error::RisError;
 
@@ -96,6 +135,7 @@ macro_rules! new {
         RisError {
             source_type_name,
             message,
+            context: Vec::new(),
             file,
             line,
             backtrace,
@@ -104,9 +144,9 @@ macro_rules! new {
 }
 
 #[macro_export]
-macro_rules! new_result {
+macro_rules! new {
     ($($arg:tt)*) => {{
-        let result = $crate::new!($($arg)*);
+        let result = $crate::new_error!($($arg)*);
         Err(result)
     }};
 }
@@ -153,12 +193,12 @@ macro_rules! assert {
             } else {
                 let message = format!($($arg)*);
                 if message.len() == 0 {
-                    $crate::new_result!(
+                    $crate::new!(
                         "assertion failed: `{}` was false",
                         stringify!($value),
                     )
                 } else {
-                    $crate::new_result!(
+                    $crate::new!(
                         "assertion failed: {}",
                         message,
                     )

@@ -126,7 +126,7 @@ impl AssetLoader {
             {
                 ris_god_asset::UNNAMED_PATH
             } else {
-                return ris_error::new_result!("failed to locate god asset");
+                return ris_error::new!("failed to locate god asset");
             };
 
             let god_asset_id = AssetId::from_path(god_asset_path);
@@ -138,7 +138,7 @@ impl AssetLoader {
                 sender,
             }
         } else {
-            return ris_error::new_result!("assets are neither a file nor a directory");
+            return ris_error::new!("assets are neither a file nor a directory");
         };
 
         // return
@@ -280,7 +280,7 @@ fn load_directory_asset_thread(root: PathBuf, receiver: Receiver<DirectoryLoadRe
                 // deserialize
                 let ptr = sender.as_mut();
                 let JsonValue::Object(json) = JsonValue::deserialize(file_content)? else {
-                    return ris_error::new_result!("file content is not a JsonObject");
+                    return ris_error::new!("file content is not a JsonObject");
                 };
 
                 unsafe {init_callback(ptr, &json)}?;

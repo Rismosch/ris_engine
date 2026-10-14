@@ -324,7 +324,7 @@ impl GpuFrame {
                     return Ok(ui_helper_state);
                 }
                 vk_result => {
-                    return ris_error::new_result!("failed to acquire chain image: {}", vk_result);
+                    return ris_error::new!("failed to acquire chain image: {}", vk_result);
                 }
             },
         };
@@ -475,7 +475,7 @@ impl GpuFrame {
                     Some(self.window.vulkan_drawable_size())
                 }
                 vk_result => {
-                    return ris_error::new_result!("failed to present queue: {}", vk_result);
+                    return ris_error::new!("failed to present queue: {}", vk_result);
                 }
             },
         };

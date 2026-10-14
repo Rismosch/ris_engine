@@ -80,21 +80,21 @@ impl GodObject {
 
         // sdl
         let sdl_context =
-            sdl2::init().map_err(|e| ris_error::new!("failed to init sdl2: {}", e))?;
+            sdl2::init().map_err(|e| ris_error::new_error!("failed to init sdl2: {}", e))?;
         let event_pump = sdl_context
             .event_pump()
-            .map_err(|e| ris_error::new!("failed to get event pump: {}", e))?;
+            .map_err(|e| ris_error::new_error!("failed to get event pump: {}", e))?;
         let keyboard_util = sdl_context.keyboard();
         let controller_subsystem = sdl_context
             .game_controller()
-            .map_err(|e| ris_error::new!("failed to get controller subsystem: {}", e))?;
+            .map_err(|e| ris_error::new_error!("failed to get controller subsystem: {}", e))?;
 
         let gamepad_logic = GamepadLogic::new(controller_subsystem);
 
         // video
         let video_subsystem = sdl_context
             .video()
-            .map_err(|e| ris_error::new!("failed to get video subsystem: {}", e))?;
+            .map_err(|e| ris_error::new_error!("failed to get video subsystem: {}", e))?;
 
         let window = video_subsystem
             .window("ris_engine", 640, 480)

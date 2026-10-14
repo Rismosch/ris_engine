@@ -122,7 +122,7 @@ impl Component for DynScriptComponent {
                 ris_io::write_uint(stream, position)?;
                 script.boxed.serialize(stream)
             }
-            None => ris_error::new_result!(
+            None => ris_error::new!(
                 "script was none. make sure to start a script before serializing it"
             ),
         }
@@ -130,7 +130,7 @@ impl Component for DynScriptComponent {
 
     fn deserialize(&mut self, stream: &mut SceneReader) -> RisResult<()> {
         match self.script.as_mut() {
-            Some(script) => ris_error::new_result!(
+            Some(script) => ris_error::new!(
                 "script was Some({:?}). make sure that the script is not started before deserializing",
                 script
             ),
@@ -208,7 +208,7 @@ impl DynScriptComponent {
 
         match self.script_mut() {
             Some(script) => script.end(data),
-            None => ris_error::new_result!(
+            None => ris_error::new!(
                 "script was none. make sure to start the script before calling end"
             ),
         }

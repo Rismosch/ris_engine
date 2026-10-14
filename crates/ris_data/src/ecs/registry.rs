@@ -80,7 +80,7 @@ impl Registry {
                 let right_id = right.script_id();
 
                 if left_id == right_id {
-                    return ris_error::new_result!(
+                    return ris_error::new!(
                         "script id collision detected!\n[{}]: {:?} -> {:?}\n[{}]: {:?} -> {:?}\n",
                         i,
                         left,

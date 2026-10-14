@@ -815,7 +815,7 @@ impl ImguiRenderer {
         } else if let Some(descriptor_set) = self.textures.get(texture_id) {
             Ok(*descriptor_set)
         } else {
-            ris_error::new_result!("bad texture: {:?}", texture_id)
+            ris_error::new!("bad texture: {:?}", texture_id)
         }
     }
 }

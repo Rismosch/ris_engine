@@ -164,7 +164,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 AccessorComponentType::U16 => vk::IndexType::UINT16,
                 AccessorComponentType::U32 => vk::IndexType::UINT32,
                 AccessorComponentType::U8 => vk::IndexType::UINT8_EXT,
-                accessor_component_type => ris_error::new_result!(
+                accessor_component_type => ris_error::new!(
                     "invalid accessor component type for indices: {:?}",
                     accessor_component_type
                 )?,

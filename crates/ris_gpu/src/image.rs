@@ -221,7 +221,7 @@ impl Image {
                 dst_pipeline_stage: vk::PipelineStageFlags::TOP_OF_PIPE,
             },
             transition => {
-                return ris_error::new_result!(
+                return ris_error::new!(
                     "TODO: transition from {:?} to {:?} is not yet implemented",
                     transition.0,
                     transition.1,

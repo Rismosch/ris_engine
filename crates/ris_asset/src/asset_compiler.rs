@@ -88,7 +88,7 @@ struct AssetUnit {
 pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResult<()> {
     // asset compiler makes use of both index and path ids
     if AssetId::kind() != None {
-        return ris_error::new_result!("expected AssetId::kind() to be None, but was {:?}.", AssetId::kind());
+        return ris_error::new!("expected AssetId::kind() to be None, but was {:?}.", AssetId::kind());
     }
 
     // initialize
@@ -182,7 +182,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
 
             ris_log::debug!("asset \"{}\" found", asset_unit.path.display());
             if assets.insert(id, asset_unit).is_some() {
-                return ris_error::new_result!("expected asset id to be unique");
+                return ris_error::new!("expected asset id to be unique");
             };
         }
     }
@@ -218,7 +218,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
             file.read_to_string(&mut file_content)?;
 
             let JsonValue::Object(json) =  JsonValue::deserialize(file_content)? else {
-                return ris_error::new_result!("file content is not a JsonObject");
+                return ris_error::new!("file content is not a JsonObject");
             };
 
             unsafe {
@@ -250,7 +250,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
         }
 
         if referenced_assets.insert(key, reference).is_some() {
-            return ris_error::new_result!("expected asset id to be unique");
+            return ris_error::new!("expected asset id to be unique");
         }
     }
 
@@ -293,7 +293,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
         expected_size += asset_size;
 
         if asset_index_lookup.insert(asset.id_path.clone(), index).is_some() {
-            return ris_error::new_result!("expected asset id to be unique");
+            return ris_error::new!("expected asset id to be unique");
         }
     }
 
@@ -323,7 +323,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
 
                     let json_string = String::from_utf8(file_content)?;
                     let JsonValue::Object(json) = JsonValue::deserialize(json_string)? else {
-                        return ris_error::new_result!("file content was not json");
+                        return ris_error::new!("file content was not json");
                     };
 
                     (vtable.from_json)(j.data, &json)?;

@@ -65,7 +65,7 @@ impl FallbackFileOverwrite {
 
         let written_bytes = current_file.write(buf)?;
         if written_bytes != buf.len() {
-            ris_error::new_result!(
+            ris_error::new!(
                 "failed to write to current file. expected to write {} bytes but actually wrote {}",
                 buf.len(),
                 written_bytes,
@@ -226,7 +226,7 @@ fn move_current_file(
     }
 
     if previous_path.exists() {
-        ris_error::new_result!("failed to generate a unique old filename")
+        ris_error::new!("failed to generate a unique old filename")
     } else {
         std::fs::rename(current_path, &previous_path)?;
 
