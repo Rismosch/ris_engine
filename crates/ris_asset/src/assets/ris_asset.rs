@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
-use ris_asset_data::AssetId;
+use ris_asset_data::RawAssetId;
 use ris_error::prelude::*;
 
 use crate::codecs::json::JsonObject;
@@ -9,7 +9,7 @@ use crate::codecs::json::JsonObject;
 pub trait RisAsset : Clone + Send {
     fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()>;
     fn to_json(&self) -> RisResult<JsonObject>;
-    fn all_references_mut(&mut self) -> Vec<&mut AssetId>;
+    fn all_references_mut(&mut self) -> Vec<&mut RawAssetId>;
 }
 
 pub unsafe fn impl_alloc<T: RisAsset>() -> *mut c_void {
@@ -24,7 +24,7 @@ pub unsafe fn impl_from_json<T: RisAsset>(ptr: *mut c_void, json: &JsonObject) -
     T::from_json(t, json)
 }
 
-pub unsafe fn impl_all_references_mut<T: RisAsset + 'static>(ptr: *mut c_void) -> Vec<&'static mut AssetId> {
+pub unsafe fn impl_all_references_mut<T: RisAsset + 'static>(ptr: *mut c_void) -> Vec<&'static mut RawAssetId> {
     let ptr = ptr.cast::<T>();
     let t = unsafe {&mut *ptr};
     t.all_references_mut()

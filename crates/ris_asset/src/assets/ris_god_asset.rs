@@ -1,7 +1,8 @@
 use std::mem::MaybeUninit;
 use std::path::PathBuf;
 
-use ris_asset_data::AssetId;
+use ris_asset_data::BinAssetId;
+use ris_asset_data::RawAssetId;
 use ris_error::prelude::*;
 
 use crate::assets::ris_asset::RisAsset;
@@ -28,19 +29,19 @@ pub const TEXTURE: &str = "texture";
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct RisGodAsset {
-    pub default_vert_spv: AssetId,
-    pub default_frag_spv: AssetId,
-    pub terrain_vert_spv: AssetId,
-    pub terrain_frag_spv: AssetId,
-    pub imgui_vert_spv: AssetId,
-    pub imgui_frag_spv: AssetId,
-    pub gizmo_segment_vert_spv: AssetId,
-    pub gizmo_segment_frag_spv: AssetId,
-    pub gizmo_text_vert_spv: AssetId,
-    pub gizmo_text_geom_spv: AssetId,
-    pub gizmo_text_frag_spv: AssetId,
-    pub debug_font_texture: AssetId,
-    pub texture: AssetId,
+    pub default_vert_spv: BinAssetId,
+    pub default_frag_spv: BinAssetId,
+    pub terrain_vert_spv: BinAssetId,
+    pub terrain_frag_spv: BinAssetId,
+    pub imgui_vert_spv: BinAssetId,
+    pub imgui_frag_spv: BinAssetId,
+    pub gizmo_segment_vert_spv: BinAssetId,
+    pub gizmo_segment_frag_spv: BinAssetId,
+    pub gizmo_text_vert_spv: BinAssetId,
+    pub gizmo_text_geom_spv: BinAssetId,
+    pub gizmo_text_frag_spv: BinAssetId,
+    pub debug_font_texture: BinAssetId,
+    pub texture: BinAssetId,
 }
 
 fn path_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<PathBuf> {
@@ -92,21 +93,21 @@ impl RisAsset for RisGodAsset {
         Ok(json)
     }
 
-    fn all_references_mut(&mut self) -> Vec<&mut AssetId> {
+    fn all_references_mut(&mut self) -> Vec<&mut RawAssetId> {
         vec![
-            &mut self.default_vert_spv,
-            &mut self.default_frag_spv,
-            &mut self.terrain_vert_spv,
-            &mut self.terrain_frag_spv,
-            &mut self.imgui_vert_spv,
-            &mut self.imgui_frag_spv,
-            &mut self.gizmo_segment_vert_spv,
-            &mut self.gizmo_segment_frag_spv,
-            &mut self.gizmo_text_vert_spv,
-            &mut self.gizmo_text_geom_spv,
-            &mut self.gizmo_text_frag_spv,
-            &mut self.debug_font_texture,
-            &mut self.texture,
+            self.default_vert_spv.raw_mut(),
+            self.default_frag_spv.raw_mut(),
+            self.terrain_vert_spv.raw_mut(),
+            self.terrain_frag_spv.raw_mut(),
+            self.imgui_vert_spv.raw_mut(),
+            self.imgui_frag_spv.raw_mut(),
+            self.gizmo_segment_vert_spv.raw_mut(),
+            self.gizmo_segment_frag_spv.raw_mut(),
+            self.gizmo_text_vert_spv.raw_mut(),
+            self.gizmo_text_geom_spv.raw_mut(),
+            self.gizmo_text_frag_spv.raw_mut(),
+            self.debug_font_texture.raw_mut(),
+            self.texture.raw_mut(),
         ]
     }
 }

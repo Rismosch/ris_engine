@@ -9,7 +9,10 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 
+use ris_asset_data::asset_id::ASSET_ID_KIND;
 use ris_asset_data::asset_id::AssetId;
+use ris_asset_data::asset_id::BinAssetId;
+use ris_asset_data::asset_id::RawAssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_async::JobFuture;
 use ris_async::JobFutureSetter;
@@ -23,6 +26,7 @@ use crate::asset_future::AssetFuture;
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
 use crate::codecs::json::JsonValue;
+use crate::RisGodAsset;
 
 // requests
 enum CompiledLoadRequest {
@@ -36,19 +40,19 @@ enum DirectoryLoadRequest {
 }
 
 struct CompiledRisAssetLoadRequest {
-    asset_id: AssetId,
+    asset_id: RawAssetId,
     sender: UnsafeSender,
     size: usize,
 }
 
 struct DirectoryRisAssetLoadRequest {
-    asset_id: AssetId,
+    asset_id: RawAssetId,
     sender: UnsafeSender,
     init_callback: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
 }
 
 struct BinAssetLoadRequest {
-    asset_id: AssetId,
+    asset_id: RawAssetId,
     sender: JobFutureSetter<Box<[u8]>>,
 }
 
@@ -60,12 +64,12 @@ enum RequestSender {
 
 pub struct AssetLoader {
     sender: RequestSender,
-    god_asset_id: AssetId,
+    god_asset_id: AssetId<RisGodAsset>,
 }
 
 impl AssetLoader {
     pub fn new(app_info: &AppInfo) -> RisResult<StrongPtr<AssetLoader>> {
-        let current_kind = AssetId::kind();
+        let current_kind =  unsafe{*ASSET_ID_KIND.get()};
         if current_kind != None {
             ris_error::panic!("expected asset id kind to be None but was {:?}", current_kind);
         }
@@ -77,7 +81,7 @@ impl AssetLoader {
         let metadata = asset_path.metadata()?;
         let asset_loader = if metadata.is_file() {
             // compiled
-            unsafe {AssetId::set_kind(AssetIdKind::Index)};
+            unsafe {*ASSET_ID_KIND.get() = Some(AssetIdKind::Index)};
 
             // open file
             let file = std::fs::File::open(asset_path)?;
@@ -93,7 +97,8 @@ impl AssetLoader {
             });
 
             // find god asset
-            let god_asset_id = AssetId::from_index(0);
+            let raw_god_asset_id = RawAssetId::from_index(0);
+            let god_asset_id = unsafe{AssetId::from_raw(raw_god_asset_id)};
             ris_log::debug!("compiled asset loader was created");
 
             // return
@@ -103,7 +108,7 @@ impl AssetLoader {
             }
         } else if metadata.is_dir() {
             // directory
-            unsafe {AssetId::set_kind(AssetIdKind::Path)};
+            unsafe {*ASSET_ID_KIND.get() = Some(AssetIdKind::Path)};
 
             // copy path
             let asset_path_for_thread = asset_path.to_path_buf();
@@ -129,7 +134,8 @@ impl AssetLoader {
                 return ris_error::new!("failed to locate god asset");
             };
 
-            let god_asset_id = AssetId::from_path(god_asset_path);
+            let raw_god_asset_id = RawAssetId::from_path(god_asset_path);
+            let god_asset_id = unsafe{AssetId::from_raw(raw_god_asset_id)};
             ris_log::debug!("directory asset loader was created");
 
             // return
@@ -145,14 +151,11 @@ impl AssetLoader {
         Ok(StrongPtr::new(asset_loader))
     }
 
-    pub fn god_asset_id(&self) -> AssetId {
+    pub fn god_asset_id(&self) -> AssetId<RisGodAsset> {
         self.god_asset_id.clone()
     }
 
-    /// # Safety
-    ///
-    /// `asset_id` must point to an asset that stores `T`
-    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: impl AsRef<AssetId>) -> RisResult<AssetFuture<T>> {
+    pub fn load_async<T: RisAsset>(&self, asset_id: impl AsRef<AssetId<T>>) -> RisResult<AssetFuture<T>> {
         let asset_id = asset_id.as_ref().clone();
 
         let (future, sender) = AssetFuture::new();
@@ -163,7 +166,7 @@ impl AssetLoader {
                 let size = std::mem::size_of::<T>();
 
                 let request = CompiledRisAssetLoadRequest {
-                    asset_id,
+                    asset_id: asset_id.raw().clone(),
                     sender,
                     size,
                 };
@@ -176,7 +179,7 @@ impl AssetLoader {
                 let init_callback = crate::assets::ris_asset::impl_from_json::<T>;
 
                 let request = DirectoryRisAssetLoadRequest {
-                    asset_id: asset_id.clone(),
+                    asset_id: asset_id.raw().clone(),
                     sender,
                     init_callback,
                 };
@@ -188,16 +191,13 @@ impl AssetLoader {
         Ok(future)
     }
 
-    /// # Safety
-    ///
-    /// `asset_id` must point to a binary asset
-    pub unsafe fn load_bin_async(&self, asset_id: impl AsRef<AssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
+    pub fn load_bin_async(&self, asset_id: impl AsRef<BinAssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
         let asset_id = asset_id.as_ref().clone();
 
         let (future, setter) = JobFuture::new();
 
         let request = BinAssetLoadRequest {
-            asset_id,
+            asset_id: asset_id.raw().clone(),
             sender: setter,
         };
 

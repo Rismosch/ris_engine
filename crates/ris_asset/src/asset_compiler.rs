@@ -12,8 +12,10 @@ use std::rc::Rc;
 use std::thread::current;
 use std::u64;
 
-use ris_asset_data::asset_id;
+use ris_asset_data::asset_id::ASSET_ID_KIND;
 use ris_asset_data::asset_id::AssetId;
+use ris_asset_data::asset_id::BinAssetId;
+use ris_asset_data::asset_id::RawAssetId;
 use ris_asset_data::asset_id::AssetIdKind;
 use ris_error::prelude::*;
 use ris_io::FatPtr;
@@ -44,7 +46,7 @@ struct VTable {
     size: usize,
     alloc: unsafe fn() -> *mut c_void,
     from_json: unsafe fn(*mut c_void, &JsonObject) -> RisResult<()>,
-    all_references_mut: unsafe fn(*mut c_void) -> Vec<&'static mut AssetId>,
+    all_references_mut: unsafe fn(*mut c_void) -> Vec<&'static mut RawAssetId>,
     destructor: unsafe fn(*mut c_void),
 }
 
@@ -87,8 +89,9 @@ struct AssetUnit {
 /// - `target`: the path to the final compiled file. if this file exists already, it will be overwritten
 pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResult<()> {
     // asset compiler makes use of both index and path ids
-    if AssetId::kind() != None {
-        return ris_error::new!("expected AssetId::kind() to be None, but was {:?}.", AssetId::kind());
+    let kind = unsafe {*ASSET_ID_KIND.get()};
+    if kind != None {
+        return ris_error::new!("expected AssetId::kind() to be None, but was {:?}.", kind);
     }
 
     // initialize
@@ -332,15 +335,15 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                     let references = (vtable.all_references_mut)(j.data);
                     for reference in references {
                         if reference.is_null_path() {
-                            *reference = AssetId::null_index();
+                            *reference = RawAssetId::null_index();
                         } else {
                             let reference_id = clean_path(reference.path());
                             *reference = match asset_index_lookup.get(&reference_id) {
                                 Some(&reference_index) => {
                                     let reference_asset = &asset_list[reference_index];
-                                    AssetId::from_index_unchecked(reference_asset.id_index)
+                                    RawAssetId::from_index_unchecked(reference_asset.id_index)
                                 },
-                                None => AssetId::null_index(),
+                                None => RawAssetId::null_index(),
                             };
                         }
                     }
