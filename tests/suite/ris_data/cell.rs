@@ -55,7 +55,7 @@ fn should_not_panic_when_borrowing_multiple_times() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_while_ref_mut_exists() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = ArefCell::new(42);
@@ -68,7 +68,7 @@ fn should_panic_when_borrowing_while_ref_mut_exists() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_mut_while_ref_exists() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = ArefCell::new(42);
@@ -81,7 +81,7 @@ fn should_panic_when_borrowing_mut_while_ref_exists() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_mut_while_ref_mut_exists() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = ArefCell::new(42);
@@ -94,7 +94,7 @@ fn should_panic_when_borrowing_mut_while_ref_mut_exists() {
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_and_cell_was_dropped() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = ArefCell::new(42);
@@ -108,7 +108,7 @@ fn should_panic_when_deref_and_cell_was_dropped() {
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_mut_and_cell_was_dropped() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = ArefCell::new(42);
@@ -179,7 +179,7 @@ fn should_not_panic_when_borrowing_multiple_times_from_different_threads() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_while_ref_mut_exists_in_multiple_threads() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = Arc::new(ArefCell::new(42));
@@ -205,7 +205,7 @@ fn should_panic_when_borrowing_while_ref_mut_exists_in_multiple_threads() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_mut_while_ref_exists_in_other_thread() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = Arc::new(ArefCell::new(42));
@@ -231,7 +231,7 @@ fn should_panic_when_borrowing_mut_while_ref_exists_in_other_thread() {
 #[cfg(debug_assertions)]
 fn should_panic_when_borrowing_mut_while_ref_mut_exists_in_other_thread() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = Arc::new(ArefCell::new(42));
@@ -257,7 +257,7 @@ fn should_panic_when_borrowing_mut_while_ref_mut_exists_in_other_thread() {
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_and_cell_was_dropped_in_different_thread() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = Arc::new(ArefCell::new(42));
@@ -280,7 +280,7 @@ fn should_panic_when_deref_and_cell_was_dropped_in_different_thread() {
 #[cfg(debug_assertions)]
 fn should_panic_when_deref_mut_and_cell_was_dropped_in_multiple_threads() {
     unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
+        ris_error::panic::SHOW_MESSAGE_BOX_ON_PANIC = false;
     }
 
     let cell = Arc::new(ArefCell::new(42));

@@ -21,7 +21,7 @@ impl AssetLoaderCompiled {
         ris_io::read(f, &mut magic_bytes)?;
 
         if !ris_util::testing::bytes_eq(&magic_bytes, &crate::asset_compiler::MAGIC) {
-            return ris_error::new_result!("unkown magic value: {:?}", magic_bytes);
+            return ris_error::new!("unkown magic value: {:?}", magic_bytes);
         }
 
         let p_original_asset_names = ris_io::read_fat_ptr(f)?;

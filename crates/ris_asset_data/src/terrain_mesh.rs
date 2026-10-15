@@ -82,7 +82,7 @@ impl TryFrom<TerrainCpuMesh> for TerrainMeshPrototype {
                 Indices::U8(indices)
             }
             vk::IndexType::NONE_KHR => Indices::None,
-            index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
+            index_type => ris_error::new!("unkown index type: {:?}", index_type)?,
         };
 
         Ok(Self { vertices, indices })

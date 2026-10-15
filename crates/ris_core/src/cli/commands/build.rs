@@ -199,7 +199,7 @@ impl ICommand for Build {
             None,
         )?;
         eprintln!("compiling assets...");
-        let compile_options = ris_asset::asset_compiler::CompileOptions {
+        let compile_options = ris_asset::asset_compiler::CompileSettings {
             include_original_paths: !is_release,
         };
         ris_asset::asset_compiler::compile(
@@ -253,7 +253,7 @@ impl ICommand for Build {
 
             eprintln!("moving sdl2...");
             let where_sdl2 = cmd::run_where(SDL2_NAME)?;
-            let src_sdl2_path = where_sdl2.first().into_ris_error()?;
+            let src_sdl2_path = where_sdl2.first().ris_expect(&format!("{} to exist on the system", SDL2_NAME))?;
             let dst_sdl2_path = target_dir.join(SDL2_NAME);
             eprintln!(
                 "attempting to copy {} from: \"{}\"",

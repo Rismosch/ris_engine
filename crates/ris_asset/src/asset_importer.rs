@@ -58,7 +58,7 @@ pub fn clean(import_directory: &str) -> RisResult<()> {
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {
-                return ris_error::new_result!(
+                return ris_error::new!(
                     "entry \"{}\" is neither a file nor a directory",
                     entry_path.display(),
                 );
@@ -135,7 +135,7 @@ pub fn import_all(
             } else if metadata.is_dir() {
                 directories.push_back(entry_path);
             } else {
-                return ris_error::new_result!(
+                return ris_error::new!(
                     "entry \"{}\" is neither a file nor a directory",
                     entry_path.display(),
                 );
@@ -164,7 +164,7 @@ pub fn import_all(
 
         if splits.len() != 2 {
             let count = splits.len() - 1;
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "expected to find 1 \"{}\" but found {}. line: {}",
                 COPY_INSTRUCTION_SEPARATOR,
                 count,
@@ -176,7 +176,7 @@ pub fn import_all(
         let split1 = splits[1].trim();
 
         if split0.is_empty() || split1.is_empty() {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "source and target may not be empty. line: {}",
                 line_number,
             );
@@ -186,7 +186,7 @@ pub fn import_all(
         let target = PathBuf::from(in_use_directory).join(split1);
 
         if !source.exists() {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "source \"{}\" does not exist. line: {}",
                 source.display(),
                 line_number,
@@ -215,7 +215,7 @@ pub fn import_all(
                     } else if metadata.is_dir() {
                         directories.push_back(entry_path);
                     } else {
-                        return ris_error::new_result!(
+                        return ris_error::new!(
                             "entry \"{}\" is neither a file nor a directory",
                             entry_path.display(),
                         );
@@ -223,7 +223,7 @@ pub fn import_all(
                 }
             }
         } else {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "source \"{}\" is neither a file nor a directory. line: {}",
                 source.display(),
                 line_number,

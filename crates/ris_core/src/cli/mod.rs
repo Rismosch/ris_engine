@@ -20,7 +20,6 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
     let start = std::time::SystemTime::now();
 
     unsafe {
-        ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
         ris_io::util::TRACE = true;
     }
 
@@ -40,7 +39,6 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
         Box::new(commands::asset::Asset),
         Box::new(commands::build::Build),
         Box::new(commands::doc::Doc),
-        Box::new(commands::god_asset::GodAsset),
         Box::new(commands::pipeline::Pipeline),
         Box::new(commands::profiler_html::ProfilerHtml),
     ];

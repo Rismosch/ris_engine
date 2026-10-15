@@ -1,4 +1,4 @@
-pub mod ecs;
+//pub mod ecs;
 pub mod gameloop;
 pub mod info;
 pub mod input;

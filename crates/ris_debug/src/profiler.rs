@@ -4,8 +4,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 use crate::sid::Sid;
 
