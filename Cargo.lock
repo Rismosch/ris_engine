@@ -340,10 +340,6 @@ dependencies = [
 [[package]]
 name = "ris_error"
 version = "0.1.0"
-dependencies = [
- "ris_log",
- "sdl2",
-]
 
 [[package]]
 name = "ris_gpu"

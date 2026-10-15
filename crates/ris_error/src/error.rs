@@ -2,10 +2,6 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
-pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
-// useful, for finding errors that are not logged
-pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
-
 pub type RisResult<T> = Result<T, RisError>;
 
 #[derive(Clone)]
@@ -71,7 +67,12 @@ impl<E: Error + 'static> From<E> for RisError {
 
 impl RisError {
     pub fn panic(self) -> ! {
-        ris_log::fatal!("panic on RisError: {:?}", self);
+        unsafe {
+            if let Some(ref mut hook) = crate::FATAL_LOG_HOOK {
+                hook(&format!("panic on RisError: {:?}", self));
+            }
+        }
+
         crate::panic!("panic on RisError. check log for more information");
     }
 }
@@ -159,14 +160,10 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
 
-        if unsafe { $crate::error::PRINT_WARNING_ON_BACKTRACE } {
-            ris_log::warning!(
-                "created backtrace. this operation is expensive. excessive use may cost performance"
-            );
-        }
-
-        if $crate::error::PRINT_BACKTRACE_WHEN_GENERATED {
-            ris_log::trace!("backtrace:\n{}", backtrace);
+        unsafe {
+            if let Some(ref mut hook) = $crate::BACKTRACE_HOOK {
+                hook(&backtrace);
+            }
         }
 
         backtrace

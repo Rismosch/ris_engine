@@ -12,3 +12,8 @@ pub mod prelude {
     pub use crate::RisError;
     pub use crate::RisResult;
 }
+
+pub static mut BACKTRACE_HOOK: Option<fn(&std::backtrace::Backtrace)> = None;
+pub static mut FATAL_LOG_HOOK: Option<fn(&str)> = None;
+pub static mut MESSAGE_BOX_HOOK: Option<fn(&str)> = None;
+

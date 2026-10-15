@@ -1,14 +1,15 @@
-use sdl2::messagebox::MessageBoxFlag;
-
-pub static mut SHOW_MESSAGE_BOX_ON_PANIC: bool = true;
-
 #[macro_export]
 macro_rules! panic {
     ($($arg:tt)*) => {{
         let message = format!($($arg)*);
         let backtrace = $crate::get_backtrace!();
 
-        ris_log::fatal!("{} backtrace:\n{}", message, backtrace);
+        unsafe {
+            if let Some(ref mut hook) = $crate::FATAL_LOG_HOOK {
+                hook(&format!("{}\nbacktrace:\n{}", message, backtrace));
+            }
+        }
+
         $crate::panic::show_panic_message_box(&message);
         std::panic!("{}", message);
     }};
@@ -58,15 +59,13 @@ macro_rules! panic_assert {
     }};
 }
 
-pub fn show_panic_message_box(message: &str) {
-    if unsafe { !SHOW_MESSAGE_BOX_ON_PANIC } {
-        return;
+pub fn show_panic_message_box(message: &str) -> bool {
+    unsafe {
+        if let Some(ref mut hook) = crate::MESSAGE_BOX_HOOK {
+            hook(message);
+            true
+        } else {
+            false
+        }
     }
-
-    let _ = sdl2::messagebox::show_simple_message_box(
-        MessageBoxFlag::ERROR,
-        "Fatal Error",
-        message,
-        None,
-    );
 }

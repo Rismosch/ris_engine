@@ -20,7 +20,6 @@ pub fn run<T: AsRef<str>>(args: impl IntoIterator<Item = T>) -> RisResult<()> {
     let start = std::time::SystemTime::now();
 
     unsafe {
-        ris_error::error::PRINT_WARNING_ON_BACKTRACE = false;
         ris_io::util::TRACE = true;
     }
 
