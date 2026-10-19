@@ -146,6 +146,12 @@ impl RawAssetId {
 
     pub fn from_path(p: impl AsRef<Path>) -> Self {
         ris_error::panic_assert!(unsafe{*ASSET_ID_KIND.get()} == Some(AssetIdKind::Path));
+
+        let path = p.as_ref().display().to_string();
+        for c in path.chars() {
+            ris_error::panic_assert!(!c.is_uppercase(), "AssetId may not contain uppercase letters, but p was \"{}\"", path);
+        }
+
         unsafe{Self::from_path_unchecked(p)}
     }
 
