@@ -529,7 +529,7 @@ impl ImguiRenderer {
         let renderer_id = renderer_registerer.register(0)?;
 
         let mut frames = Vec::with_capacity(ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT);
-        for _ in 0..frames.capacity() {
+        for _ in 0..ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT {
             let frame = ImguiFrame { mesh: None };
 
             frames.push(frame);

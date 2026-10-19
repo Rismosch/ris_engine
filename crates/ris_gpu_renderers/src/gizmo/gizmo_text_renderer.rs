@@ -184,7 +184,7 @@ impl GizmoTextRenderer {
             unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }?;
 
         let mut descriptor_set_layout_vec = Vec::with_capacity(FRAMES_IN_FLIGHT);
-        for _ in 0..descriptor_set_layout_vec.capacity() {
+        for _ in 0..FRAMES_IN_FLIGHT {
             descriptor_set_layout_vec.push(descriptor_set_layout);
         }
 

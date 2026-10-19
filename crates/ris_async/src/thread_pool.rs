@@ -200,7 +200,7 @@ impl ThreadPool {
         let threads = std::cmp::min(threads, cpu_count);
 
         let mut affinities = Vec::with_capacity(threads);
-        for _ in 0..affinities.capacity() {
+        for _ in 0..threads {
             affinities.push(Vec::new());
         }
 

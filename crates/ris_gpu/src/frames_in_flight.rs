@@ -131,7 +131,7 @@ impl FramesInFlight {
         } = info;
 
         let mut entries = Vec::with_capacity(FRAMES_IN_FLIGHT);
-        for i in 0..entries.capacity() {
+        for i in 0..FRAMES_IN_FLIGHT {
             // command pool
             let command_pool_create_info = vk::CommandPoolCreateInfo {
                 s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
