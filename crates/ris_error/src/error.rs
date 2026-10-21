@@ -2,16 +2,13 @@ use std::backtrace::Backtrace;
 use std::error::Error;
 use std::sync::Arc;
 
-pub static mut PRINT_WARNING_ON_BACKTRACE: bool = true;
-// useful, for finding errors that are not logged
-pub const PRINT_BACKTRACE_WHEN_GENERATED: bool = false;
-
 pub type RisResult<T> = Result<T, RisError>;
 
 #[derive(Clone)]
 pub struct RisError {
     pub source_type_name: Option<String>,
     pub message: String,
+    pub context: Vec<String>,
     pub file: String,
     pub line: u32,
     pub backtrace: Option<Arc<Backtrace>>,
@@ -19,15 +16,13 @@ pub struct RisError {
 
 impl std::fmt::Display for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "RisError")?;
-
         if let Some(source_type_name) = &self.source_type_name {
             write!(f, " from {}", source_type_name)?;
         }
 
         write!(
             f,
-            ": \"{}\"\n    at {}:{}",
+            "\"{}\" at {}:{}",
             self.message, self.file, self.line,
         )
     }
@@ -36,9 +31,21 @@ impl std::fmt::Display for RisError {
 impl std::fmt::Debug for RisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)?;
+
+        write!(f, "\ncontext:")?;
+
+        if self.context.is_empty() {
+            write!(f, "\n   None")?;
+        } else {
+            for (i, message) in self.context.iter().rev().enumerate() {
+                write!(f, "\n{:4}: {}", i, message)?;
+            }
+        }
+
         if let Some(backtrace) = self.backtrace.as_ref() {
             write!(f, "\nbacktrace:\n{}", backtrace)?;
         }
+
         Ok(())
     }
 }
@@ -50,6 +57,7 @@ impl<E: Error + 'static> From<E> for RisError {
         Self {
             source_type_name,
             message,
+            context: Vec::new(),
             file: file!().to_string(),
             line: line!(),
             backtrace: Some(crate::get_backtrace!()),
@@ -57,27 +65,66 @@ impl<E: Error + 'static> From<E> for RisError {
     }
 }
 
-pub trait Extensions<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError>;
-}
+impl RisError {
+    pub fn panic(self) -> ! {
+        unsafe {
+            if let Some(ref mut hook) = crate::FATAL_LOG_HOOK {
+                hook(&format!("panic on RisError: {:?}", self));
+            }
+        }
 
-impl<T> Extensions<T> for Option<T> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
-        self.ok_or("Option was None").ris_expect(msg)
+        crate::panic!("panic on RisError. check log for more information");
     }
 }
 
-impl<T, E: std::fmt::Display> Extensions<T> for Result<T, E> {
-    fn ris_expect(self, msg: &str) -> Result<T, RisError> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(e) => crate::new_result!("expected {}. error: {}", msg, e),
+pub trait OptionExtensions<T> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T>;
+    fn ris_pexpect(self, msg: impl AsRef<str>);
+}
+
+pub trait ResultExtensions<T> : OptionExtensions<T> {
+    fn ris_context(self, msg: impl AsRef<str>) -> Self;
+}
+
+impl<T> OptionExtensions<T> for Option<T> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T> {
+        self.ok_or("Option was None").ris_expect(msg)
+    }
+
+    fn ris_pexpect(self, msg: impl AsRef<str>) {
+        if let Err(e) = self.ris_expect(msg) {
+            crate::panic!("{}", e);
         }
     }
 }
 
+impl<T, E: std::fmt::Display> OptionExtensions<T> for Result<T, E> {
+    fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(e) => crate::new!("expected {}. error: {}", msg.as_ref(), e),
+        }
+    }
+
+    fn ris_pexpect(self, msg: impl AsRef<str>) {
+        if let Err(e) = self.ris_expect(msg) {
+            crate::panic!("{}", e);
+        }
+    }
+}
+
+impl<T> ResultExtensions<T> for RisResult<T> {
+    fn ris_context(mut self, msg: impl AsRef<str>) -> Self {
+        if let Err(e) = self.as_mut() {
+            e.context.push(msg.as_ref().to_string());
+        }
+
+        self
+    }
+}
+
 #[macro_export]
-macro_rules! new {
+macro_rules! new_error {
     ($($arg:tt)*) => {{
         use $crate::error::RisError;
 
@@ -89,6 +136,7 @@ macro_rules! new {
         RisError {
             source_type_name,
             message,
+            context: Vec::new(),
             file,
             line,
             backtrace,
@@ -97,9 +145,9 @@ macro_rules! new {
 }
 
 #[macro_export]
-macro_rules! new_result {
+macro_rules! new {
     ($($arg:tt)*) => {{
-        let result = $crate::new!($($arg)*);
+        let result = $crate::new_error!($($arg)*);
         Err(result)
     }};
 }
@@ -112,14 +160,10 @@ macro_rules! get_backtrace {
 
         let backtrace = Arc::new(Backtrace::force_capture());
 
-        if unsafe { $crate::error::PRINT_WARNING_ON_BACKTRACE } {
-            ris_log::warning!(
-                "created backtrace. this operation is expensive. excessive use may cost performance"
-            );
-        }
-
-        if $crate::error::PRINT_BACKTRACE_WHEN_GENERATED {
-            ris_log::trace!("backtrace:\n{}", backtrace);
+        unsafe {
+            if let Some(ref mut hook) = $crate::BACKTRACE_HOOK {
+                hook(&backtrace);
+            }
         }
 
         backtrace
@@ -129,27 +173,34 @@ macro_rules! get_backtrace {
 #[macro_export]
 macro_rules! assert {
     ($value:expr) => {{
-        if $value {
-            Ok(())
-        } else {
-            ris_error::new_result!("assertion failed: `{}` was false", stringify!($value))
-        }
+        $crate::assert!($value, "")
     }};
-}
-
-#[macro_export]
-macro_rules! debug_assert {
-    ($value:expr) => {{
+    ($value:expr, $($arg:tt)*) => {{
         #[cfg(not(debug_assertions))]
         {
             let _ = $value;
-            let result: ris_error::RisResult<()> = Ok(());
-            result
+            let retval: ris_error::RisResult<()> = Ok(());
+            retval
         }
 
         #[cfg(debug_assertions)]
         {
-            $crate::assert!($value)
+            if $value {
+                Ok(())
+            } else {
+                let message = format!($($arg)*);
+                if message.len() == 0 {
+                    $crate::new!(
+                        "assertion failed: `{}` was false",
+                        stringify!($value),
+                    )
+                } else {
+                    $crate::new!(
+                        "assertion failed: {}",
+                        message,
+                    )
+                }
+            }
         }
     }};
 }

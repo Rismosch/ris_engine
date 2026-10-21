@@ -5,6 +5,11 @@ use std::sync::atomic::Ordering;
 use ris_util::testing::miri_choose;
 
 #[test]
+fn should_test_unsafe_channel() {
+    panic!();
+}
+
+#[test]
 fn should_send_and_receive() {
     let (sender, receiver, _) = ris_async::job_channel(4);
     sender.send(42).unwrap();

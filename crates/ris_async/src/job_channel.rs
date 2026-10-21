@@ -35,7 +35,7 @@ unsafe impl<T> Sync for JobStealer<T> {}
 
 pub fn job_channel<T>(capacity: usize) -> (JobSender<T>, JobReceiver<T>, Arc<JobStealer<T>>) {
     let mut buf = Vec::with_capacity(capacity);
-    for _ in 0..buf.capacity() {
+    for _ in 0..capacity {
         let entry = SpinLock::new(None);
         buf.push(entry);
     }

@@ -166,3 +166,7 @@ For example, the command below runs the testing pipeline:
 ```bash
 cargo run -- cli pipeline all
 ```
+
+## Benchmarks
+
+Benchmarks are maintaned in a seperate repository. For more info see https://github.com/Rismosch/ris_engine_benchmarks

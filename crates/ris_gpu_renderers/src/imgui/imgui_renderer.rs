@@ -10,6 +10,7 @@ use imgui::DrawData;
 use imgui::TextureId;
 use imgui::Textures;
 
+use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
 use ris_error::prelude::*;
 use ris_gpu::buffer::Buffer;
@@ -84,6 +85,7 @@ impl ImguiRenderer {
 
     pub fn alloc(
         core: &VulkanCore,
+        asset_loader: &AssetLoader,
         god_asset: &RisGodAsset,
         context: &mut Context,
         renderer_registerer: &mut RendererRegisterer,
@@ -101,11 +103,11 @@ impl ImguiRenderer {
         } = core;
 
         // shaders
-        let vs_asset_future = ris_asset::load_raw_async(god_asset.imgui_vert_spv.clone());
-        let fs_asset_future = ris_asset::load_raw_async(god_asset.imgui_frag_spv.clone());
+        let vs_asset_future = unsafe {asset_loader.load_bin_async(&god_asset.imgui_vert_spv)}?;
+        let fs_asset_future = unsafe {asset_loader.load_bin_async(&god_asset.imgui_frag_spv)}?;
 
-        let vs_bytes = vs_asset_future.wait()?;
-        let fs_bytes = fs_asset_future.wait()?;
+        let vs_bytes = vs_asset_future.wait();
+        let fs_bytes = fs_asset_future.wait();
 
         // asset data is read in u8, but vulkan expects it to be in u32.
         // assert that the data is properly aligned
@@ -527,7 +529,7 @@ impl ImguiRenderer {
         let renderer_id = renderer_registerer.register(0)?;
 
         let mut frames = Vec::with_capacity(ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT);
-        for _ in 0..frames.capacity() {
+        for _ in 0..ris_gpu::frames_in_flight::FRAMES_IN_FLIGHT {
             let frame = ImguiFrame { mesh: None };
 
             frames.push(frame);
@@ -813,7 +815,7 @@ impl ImguiRenderer {
         } else if let Some(descriptor_set) = self.textures.get(texture_id) {
             Ok(*descriptor_set)
         } else {
-            ris_error::new_result!("bad texture: {:?}", texture_id)
+            ris_error::new!("bad texture: {:?}", texture_id)
         }
     }
 }

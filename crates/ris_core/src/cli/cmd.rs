@@ -31,7 +31,7 @@ where
 {
     let splits = cmd.split(' ').map(|x| x.trim()).collect::<Vec<_>>();
     if splits.is_empty() {
-        return ris_error::new_result!("cannot run empty cmd");
+        return ris_error::new!("cannot run empty cmd");
     }
 
     let mut command = std::process::Command::new(splits[0]);
@@ -60,7 +60,7 @@ where
     }
 
     if !complete_arg.is_empty() {
-        return ris_error::new_result!("syntax error: failed to find closing quotation mark");
+        return ris_error::new!("syntax error: failed to find closing quotation mark");
     }
 
     if stdout.is_some() {

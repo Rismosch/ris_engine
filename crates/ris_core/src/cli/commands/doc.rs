@@ -34,7 +34,7 @@ impl ICommand for Doc {
         let exit_status = cmd::run(cargo_doc)?;
 
         if !cmd::has_exit_code(&exit_status, 0) {
-            return ris_error::new_result!("`{}` failed", cargo_doc);
+            return ris_error::new!("`{}` failed", cargo_doc);
         }
 
         let doc_dir = PathBuf::from(&args[0])

@@ -72,7 +72,7 @@ impl<T> std::ops::Deref for WeakPtr<T> {
     fn deref(&self) -> &Self::Target {
         #[cfg(feature = "validation_enabled")]
         {
-            ris_error::throw_assert!(
+            ris_error::panic_assert!(
                 self.alive.load(Ordering::SeqCst),
                 "WeakPtr: attempted to deref a dangling reference, StrongPtr has been dropped",
             );
