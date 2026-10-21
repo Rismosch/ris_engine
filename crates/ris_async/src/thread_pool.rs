@@ -17,36 +17,44 @@ use std::thread::Thread;
 
 use ris_error::prelude::*;
 
+use crate::ris_deque::RisDeque;
+
+//==============================================================================
+// Job
+//==============================================================================
 pub struct Job(Box<dyn Fn()>);
 
+impl Job {
+    fn from(callback: impl Fn() + 'static) -> Self {
+        Self(Box::new(callback))
+    }
 
-struct ThreadPool {
-    //boo: PhantomData<*const()>, // prohibit Send/Sync
-}
-
-struct ThreadPoolWorker {
-
-}
-
-
-thread_local! {
-    static WORKER: UnsafeCell<Option<ThreadPoolWorker>> = const {
-        UnsafeCell::new(None)
-    };
-}
-
-impl Drop for ThreadPool {
-    fn drop(&mut self) {
-        
+    fn invoke(self) {
+        self.0()
     }
 }
 
+type JobDeque = Arc<Mutex<RisDeque<Job, 1024>>>;
+
+//==============================================================================
+// ThreadPool
+//==============================================================================
 pub struct ThreadPoolCreateInfo {
     pub buffer_capacity: usize,
     pub cpu_count: usize,
     pub threads: usize,
     pub set_affinity: bool,
     pub use_parking: bool,
+}
+
+struct ThreadPool {
+    //boo: PhantomData<*const()>, // prohibit Send/Sync
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        
+    }
 }
 
 impl ThreadPool {
@@ -67,32 +75,92 @@ impl ThreadPool {
     }
 }
 
-impl ThreadPoolWorker {
-    pub fn submit(&self, job: impl Fn()) {
 
+//==============================================================================
+// Worker
+//==============================================================================
+thread_local! {
+    static WORKER: UnsafeCell<Option<ThreadPoolWorker>> = const {
+        UnsafeCell::new(None)
+    };
+}
+
+struct ThreadPoolWorker {
+    done: Arc<AtomicBool>,
+    local_queue: JobDeque,
+    pool_queue: JobDeque,
+    queues: Vec<JobDeque>,
+    //waker: ThreadWaker,
+    use_parking: bool,
+}
+
+impl ThreadPoolWorker {
+    pub fn name(&self) -> String {
+        let current = std::thread::current();
+        let name = std::thread::Thread::name(&current);
+        name.map(|x| x.to_string()).unwrap_or("no name".to_string())
+    }
+
+    pub fn submit(&self, job: impl Fn()) {
+        let queue = self.lock(&*self.local_queue);
+
+        let mut job: Result<(), Job> = Err(Job::from(job));
+        loop {
+            let Err(job) = job else {
+                break;
+            };
+
+            job = queue.push_back(job);
+        }
     }
 
     pub fn block_on(&self, future) {
 
     }
 
-    pub fn run_pending_job() -> bool {
+    pub fn run_pending_job(&self) -> bool {
+        match self.get_job() {
+            Some(job) => {
+                job.invoke();
+                true
+            },
+            None => false,
+        }
+    }
+
+    pub fn lock<'a, T>(&'a self, mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+        loop {
+            match mutex.try_lock() {
+                Ok(guard) => return guard,
+                Err(TryLockError::WouldBlock) => {
+                    let job_was_run = self.run_pending_job();
+                    if !job_was_run {
+                        std::hint::spin_loop();
+                    }
+                }
+                Err(TryLockError::Poisoned(e)) => {
+                    ris_error::panic!("mutex is poisoned: {}", e);
+                }
+            }
+        }
+    }
+
+    fn get_job(&self) -> Option<Job> {
+        // pop local
+        // pop pool
+        // steal
+        // else return None
+    }
+
+    fn pop_local_queue(&self) -> Option<Job> {
 
     }
 
-    pub fn lock(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    fn pop_pool_queue(&self) -> Option<Job> {
 
     }
 
-    fn pop_local_queue() -> Option<Job> {
-
-    }
-
-    fn pop_pool_queue() -> Option<Job> {
-
-    }
-
-    fn steal_job() -> Option<Job> {
+    fn steal_job(&self) -> Option<Job> {
 
     }
 }
