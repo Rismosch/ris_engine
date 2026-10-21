@@ -24,7 +24,10 @@ use crate::JobStealer;
 use crate::SpinLock;
 use crate::job_channel;
 
-type Job = Box<dyn Future<Output = ()>>;
+pub type Job = Box<dyn Future<Output = ()>>;
+
+#[derive(Clone)]
+pub struct Job2(Box<fn()>);
 
 #[derive(Clone)]
 struct ThreadWaker(Option<Thread>);

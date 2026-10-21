@@ -155,7 +155,7 @@ impl AssetLoader {
         self.god_asset_id.clone()
     }
 
-    pub fn load_async<T: RisAsset>(&self, asset_id: impl AsRef<AssetId<T>>) -> RisResult<AssetFuture<T>> {
+    pub unsafe fn load_async<T: RisAsset>(&self, asset_id: impl AsRef<AssetId<T>>) -> RisResult<AssetFuture<T>> {
         let asset_id = asset_id.as_ref().clone();
 
         let (future, sender) = AssetFuture::new();
@@ -191,7 +191,7 @@ impl AssetLoader {
         Ok(future)
     }
 
-    pub fn load_bin_async(&self, asset_id: impl AsRef<BinAssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
+    pub unsafe fn load_bin_async(&self, asset_id: impl AsRef<BinAssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
         let asset_id = asset_id.as_ref().clone();
 
         let (future, setter) = JobFuture::new();

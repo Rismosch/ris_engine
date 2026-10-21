@@ -1,12 +1,12 @@
 use std::mem::MaybeUninit;
 
-pub struct RingBuffer<T: Copy, const N: usize> {
-    buffer: [MaybeUninit<T>; N],
+pub struct RisDeque<T, const N: usize> {
+    pub buffer: [MaybeUninit<T>; N],
     head: usize,
     tail: usize,
 }
 
-impl<T: Copy, const N: usize> Default for RingBuffer<T, N> {
+impl<T, const N: usize> Default for RisDeque<T, N> {
     fn default() -> Self {
         Self {
             buffer: [const {MaybeUninit::uninit()}; N],
@@ -16,7 +16,13 @@ impl<T: Copy, const N: usize> Default for RingBuffer<T, N> {
     }
 }
 
-impl<T: Copy, const N: usize> RingBuffer<T, N> {
+impl<T, const N: usize> Drop for RisDeque<T, N> {
+    fn drop(&mut self) {
+        while let Some(_) = self.pop_back() {}
+    }
+}
+
+impl<T, const N: usize> RisDeque<T, N> {
     pub fn push_back(&mut self, value: T) -> Result<(), T> {
         let old_head = self.head;
         let mut new_head = old_head + 1;
@@ -41,7 +47,7 @@ impl<T: Copy, const N: usize> RingBuffer<T, N> {
         if new_tail == self.head {
             return Err(value) // buffer is full
         }
-        self.buffer[old_tail].write(value);
+        self.buffer[new_tail].write(value);
         self.tail = new_tail;
         Ok(())
     }
@@ -51,13 +57,13 @@ impl<T: Copy, const N: usize> RingBuffer<T, N> {
         if old_head == self.tail {
             return None; // buffer is empty
         }
-        let value = unsafe {self.buffer[old_head].assume_init_read()};
         let new_head = if old_head == 0 {
             self.buffer.len() - 1
         } else {
             old_head - 1
         };
 
+        let value = unsafe {self.buffer[new_head].assume_init_read()};
         self.head = new_head;
         Some(value)
     }
@@ -77,4 +83,4 @@ impl<T: Copy, const N: usize> RingBuffer<T, N> {
     }
 }
 
-unsafe impl<T: Copy, const N: usize> Sync for RingBuffer<T, N> where T: Send {}
+unsafe impl<T, const N: usize> Sync for RisDeque<T, N> where T: Send {}
