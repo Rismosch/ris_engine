@@ -22,16 +22,39 @@ pub enum WantsTo {
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
-    let asset_loader = god_object.asset_loader.to_weak();
+    //let asset_loader = god_object.asset_loader.to_weak();
 
-    let god_asset_id = asset_loader.god_asset_id();
-    let future = unsafe {asset_loader.load_async::<RisGodAsset>(god_asset_id)}?;
-    let god_asset = future.wait();
-    ris_log::debug!("god_asset: {:#?}", god_asset);
+    //let god_asset_id = asset_loader.god_asset_id();
+    //let future = unsafe {asset_loader.load_async(god_asset_id)}?;
+    //let god_asset = future.wait();
+    //ris_log::debug!("god_asset: {:#?}", god_asset);
 
-    let future = unsafe {asset_loader.load_bin_async(god_asset.default_frag_spv)}?;
-    let shader = future.wait();
-    ris_log::debug!("shader: {:?}", shader);
+    //let future = unsafe {asset_loader.load_bin_async(god_asset.default_frag_spv)}?;
+    //let shader = future.wait();
+    //ris_log::debug!("shader: {:?}", shader);
+
+    use std::cell::UnsafeCell;
+    use std::rc::Rc;
+    use ris_data::ring_buffer::RingBuffer;
+
+    //#[derive(Debug, Clone)]
+    //struct DropCounter(Rc<UnsafeCell<usize>>);
+    //impl Drop for DropCounter {
+    //    fn drop(&mut self) {
+    //        //unsafe {*self.0.get() += 1}
+    //        println!("drop!")
+    //    }
+    //}
+
+    //let counter = DropCounter(Rc::new(UnsafeCell::new(0)));
+    //
+    //let mut b = RingBuffer::<DropCounter, 10>::default();
+    //assert!(unsafe {*counter.0.get()} == 0);
+    //println!("hoi");
+    //b.push_back(counter.clone()).unwrap();
+    //println!("poi");
+
+    //return Ok(WantsTo::Quit);
 
     loop {
         ris_debug::profiler::new_frame()?;
