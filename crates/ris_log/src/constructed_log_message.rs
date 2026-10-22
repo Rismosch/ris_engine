@@ -13,7 +13,7 @@ pub struct ConstructedLogMessage {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct ConstructedLogFormatArgs {
     pub ansi_support: bool,
     pub show_timestamp: bool,

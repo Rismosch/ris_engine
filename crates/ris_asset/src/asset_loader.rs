@@ -14,9 +14,9 @@ use ris_asset_data::asset_id::AssetId;
 use ris_asset_data::asset_id::BinAssetId;
 use ris_asset_data::asset_id::RawAssetId;
 use ris_asset_data::asset_id::AssetIdKind;
-use ris_async::JobFuture;
-use ris_async::JobFutureSetter;
 use ris_async::UnsafeSender;
+use ris_async::SingleUseSender;
+use ris_async::SingleUseReceiver;
 use ris_data::info::app_info::AppInfo;
 use ris_error::prelude::*;
 use ris_ptr::StrongPtr;
@@ -53,7 +53,7 @@ struct DirectoryRisAssetLoadRequest {
 
 struct BinAssetLoadRequest {
     asset_id: RawAssetId,
-    sender: JobFutureSetter<Box<[u8]>>,
+    sender: SingleUseSender<Box<[u8]>>,
 }
 
 // loader
@@ -191,14 +191,14 @@ impl AssetLoader {
         Ok(future)
     }
 
-    pub unsafe fn load_bin_async(&self, asset_id: impl AsRef<BinAssetId>) -> RisResult<JobFuture<Box<[u8]>>> {
+    pub unsafe fn load_bin_async(&self, asset_id: impl AsRef<BinAssetId>) -> RisResult<SingleUseReceiver<Box<[u8]>>> {
         let asset_id = asset_id.as_ref().clone();
 
-        let (future, setter) = JobFuture::new();
+        let (sender, receiver) = ris_async::single_use_channel();
 
         let request = BinAssetLoadRequest {
             asset_id: asset_id.raw().clone(),
-            sender: setter,
+            sender,
         };
 
         match &self.sender {
@@ -206,7 +206,7 @@ impl AssetLoader {
             RequestSender::Directory(sender) => sender.send(DirectoryLoadRequest::BinAsset(request))?,
         }
 
-        Ok(future)
+        Ok(receiver)
     }
 }
 
@@ -250,7 +250,7 @@ fn load_compiled_asset_thread(
                 let data = read_compiled_bin(&mut file)?;
 
                 // finalize
-                sender.set(data);
+                sender.send(data);
             },
         }
     }
@@ -304,7 +304,7 @@ fn load_directory_asset_thread(root: PathBuf, receiver: Receiver<DirectoryLoadRe
                 let data = read_bin(&mut file, size.try_into()?)?;
 
                 // finalize
-                sender.set(data);
+                sender.send(data);
             },
         }
     }

@@ -1,12 +1,8 @@
-use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::Pin;
-use std::task::Context;
-use std::task::Poll;
 
+use ris_async::ThreadPool;
 use ris_async::UnsafeReceiver;
 use ris_async::UnsafeSender;
-use ris_async::ThreadPool;
 
 use crate::assets::ris_asset::RisAsset;
 
@@ -17,19 +13,6 @@ pub struct AssetFuture<T: RisAsset> {
     _boo: PhantomData<T>,
 }
 
-impl<T: RisAsset> Unpin for AssetFuture<T> {}
-
-impl<T: RisAsset> Future for AssetFuture<T> {
-    type Output = Box<T>;
-
-    fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match unsafe{self.as_mut().receiver.take()} {
-            Some(output) => Poll::Ready(output),
-            None => Poll::Pending,
-        }
-    }
-}
-
 impl<T: RisAsset> AssetFuture<T> {
     pub fn new() -> (Self, UnsafeSender) {
         let (sender, receiver) = ris_async::unsafe_channel::<T>();
@@ -37,8 +20,22 @@ impl<T: RisAsset> AssetFuture<T> {
         (future, sender)
     }
 
-    pub fn wait(self) -> Box<T> {
-        ThreadPool::block_on(self)
+    pub fn wait(mut self) -> Box<T> {
+        let Some(worker) = ThreadPool::worker() else {
+            ris_error::panic!("attempted to wait on a non worker")
+        };
+
+        loop {
+            match unsafe {self.receiver.take()} {
+                Some(output) => return output,
+                None => {
+                    let job_was_run = worker.run_pending_job();
+                    if !job_was_run {
+                        std::thread::yield_now();
+                    }
+                }
+            }
+        }
     }
 }
 

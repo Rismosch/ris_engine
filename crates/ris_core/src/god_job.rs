@@ -1,6 +1,3 @@
-use ris_asset::asset_loader;
-use ris_asset::RisGodAsset;
-use ris_asset_data::AssetId;
 use sdl2::event::Event;
 use sdl2::event::WindowEvent;
 
@@ -45,7 +42,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // serialize settings
         ris_debug::add_record!(r, "submit save settings future")?;
-        let save_settings_future = ThreadPool::submit(async move {
+        let (sender, save_settings_future) = ris_async::single_use_channel();
+        god_object.thread_pool.submit(move || {
             let settings_serializer = god_object.settings_serializer;
             let state = previous_state;
 
@@ -57,7 +55,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 Ok(())
             };
 
-            (settings_serializer, result)
+            sender.send((settings_serializer, result));
         });
 
         // sdl2 input
@@ -132,7 +130,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let settings = &god_object.state.settings;
         if settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
-            drop(god_object.thread_pool_guard);
+            drop(god_object.thread_pool);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let threads = crate::determine_thread_count(&god_object.app_info, settings);
@@ -140,14 +138,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             let use_parking = settings.job().use_parking();
 
             let thread_pool_create_info = ThreadPoolCreateInfo {
-                buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
                 cpu_count,
                 threads,
                 set_affinity,
-                use_parking,
+                stall_strategy: ris_async::thread_pool::StallStrategy::Parking,
             };
-            let new_thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
-            god_object.thread_pool_guard = new_thread_pool_guard;
+            let new_thread_pool = ThreadPool::new(thread_pool_create_info)?;
+            god_object.thread_pool = new_thread_pool;
 
             ris_log::debug!("job system restarted!");
         }

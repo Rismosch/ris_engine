@@ -5,5 +5,4 @@ pub mod input;
 pub mod settings;
 
 pub mod god_state;
-pub mod ris_deque;
 pub mod ris_yaml;

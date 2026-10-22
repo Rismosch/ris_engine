@@ -79,7 +79,7 @@ impl RisError {
 
 pub trait OptionExtensions<T> {
     fn ris_expect(self, msg: impl AsRef<str>) -> RisResult<T>;
-    fn ris_pexpect(self, msg: impl AsRef<str>);
+    fn ris_pexpect(self, msg: impl AsRef<str>) -> T;
 }
 
 pub trait ResultExtensions<T> : OptionExtensions<T> {
@@ -91,9 +91,10 @@ impl<T> OptionExtensions<T> for Option<T> {
         self.ok_or("Option was None").ris_expect(msg)
     }
 
-    fn ris_pexpect(self, msg: impl AsRef<str>) {
-        if let Err(e) = self.ris_expect(msg) {
-            crate::panic!("{}", e);
+    fn ris_pexpect(self, msg: impl AsRef<str>) -> T {
+        match self.ris_expect(msg) {
+            Ok(value) => value,
+            Err(e) => crate::panic!("{}", e),
         }
     }
 }
@@ -106,9 +107,10 @@ impl<T, E: std::fmt::Display> OptionExtensions<T> for Result<T, E> {
         }
     }
 
-    fn ris_pexpect(self, msg: impl AsRef<str>) {
-        if let Err(e) = self.ris_expect(msg) {
-            crate::panic!("{}", e);
+    fn ris_pexpect(self, msg: impl AsRef<str>) -> T {
+        match self.ris_expect(msg) {
+            Ok(value) => value,
+            Err(e) => crate::panic!("{}", e),
         }
     }
 }

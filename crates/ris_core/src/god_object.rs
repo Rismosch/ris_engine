@@ -7,7 +7,6 @@ use ris_asset::AssetLoader;
 use ris_asset::RisGodAsset;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
-use ris_async::ThreadPoolGuard;
 use ris_data::gameloop::frame::FrameCalculator;
 use ris_data::god_state::GodState;
 use ris_data::info::app_info::AppInfo;
@@ -30,6 +29,7 @@ use ris_ptr::StrongPtr;
 pub struct GodObject {
     pub app_info: AppInfo,
     pub asset_loader: StrongPtr<AssetLoader>,
+    pub thread_pool: ThreadPool,
     pub settings_serializer: SettingsSerializer,
     pub frame_calculator: FrameCalculator,
     pub event_pump: EventPump,
@@ -42,7 +42,6 @@ pub struct GodObject {
     // they are dropped in the order they are listed.
     pub gizmo_guard: GizmoGuard,
     pub profiler_guard: ProfilerGuard,
-    pub thread_pool_guard: ThreadPoolGuard,
 }
 
 impl GodObject {
@@ -64,13 +63,12 @@ impl GodObject {
         let set_affinity = settings.job().affinity();
         let use_parking = settings.job().use_parking();
         let thread_pool_create_info = ThreadPoolCreateInfo {
-            buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
             cpu_count,
             threads,
             set_affinity,
-            use_parking,
+            stall_strategy: ris_async::thread_pool::StallStrategy::Parking,
         };
-        let thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
+        let thread_pool = ThreadPool::new(thread_pool_create_info)?;
 
         // assets
         let asset_loader = AssetLoader::new(&app_info)?;
@@ -161,6 +159,7 @@ impl GodObject {
         let god_object = GodObject {
             app_info,
             asset_loader,
+            thread_pool,
             settings_serializer,
             frame_calculator,
             event_pump,
@@ -172,7 +171,6 @@ impl GodObject {
             // guards
             gizmo_guard,
             profiler_guard,
-            thread_pool_guard,
         };
 
         Ok(god_object)
