@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 use std::rc::Rc;
 
-use ris_data::ris_deque::RisDeque;
+use ris_async::ris_deque::RisDeque;
 
 #[test]
 fn should_push_and_pop() {

@@ -16,6 +16,8 @@ use crate::ris_deque::RisDeque;
 //==============================================================================
 // Utilities
 //==============================================================================
+const POISON_MESSAGE: &str = "mutex to not be poisoned";
+
 pub struct Job(Box<dyn FnOnce() + Send>);
 
 impl Job {
@@ -144,7 +146,7 @@ impl ThreadPool {
         }
 
         let mut g = worker_create_info.worker_threads.lock()
-            .ris_pexpect("mutex to not be poisoned");
+            .ris_pexpect(POISON_MESSAGE);
         *g = Some(worker_threads.clone());
         drop(g);
         for worker_thread in worker_threads {
@@ -262,7 +264,7 @@ impl ThreadPoolWorker {
         loop {
             let g = worker_threads
                 .lock()
-                .ris_pexpect("mutex to not be poisoned");
+                .ris_pexpect(POISON_MESSAGE);
             if g.is_some() {
                 break;
             }
@@ -273,7 +275,7 @@ impl ThreadPoolWorker {
 
         let worker_threads = worker_threads
             .lock()
-            .ris_pexpect("mutex to not be poisoned")
+            .ris_pexpect(POISON_MESSAGE)
             .clone()
             .ris_pexpect("worker threads to be set at this point");
 
@@ -373,39 +375,39 @@ impl ThreadPoolWorker {
     }
 
     fn get_job(&self) -> Option<Job> {
-        if let Some(job) = self.pop_local_queue() {
+        // get local job
+        let local_job = self.local_queue
+            .lock()
+            .ris_pexpect(POISON_MESSAGE)
+            .pop_back();
+
+        if let Some(job) = local_job {
             return Some(job)
         }
 
-        if let Some(job) = self.pop_pool_queue() {
+        // get pool job
+        let pool_job = self.pool_queue
+            .lock()
+            .ris_pexpect(POISON_MESSAGE)
+            .pop_back();
+
+        if let Some(job) = pool_job {
             return Some(job)
         }
 
-        if let Some(job) = self.steal_job() {
-            return Some(job);
-        }
-
-        None
-    }
-
-    fn pop_local_queue(&self) -> Option<Job> {
-        let mut queue = self.lock(&*self.local_queue);
-        queue.pop_back()
-    }
-
-    fn pop_pool_queue(&self) -> Option<Job> {
-        let mut queue = self.lock(&*self.pool_queue);
-        queue.pop_back()
-    }
-
-    fn steal_job(&self) -> Option<Job> {
+        // steal job
         for other in self.other_queues.iter() {
-            let mut queue = self.lock(&*other);
-            if let Some(job) = queue.pop_front() {
+            let stolen_job = other
+                .lock()
+                .ris_pexpect(POISON_MESSAGE)
+                .pop_front();
+
+            if let Some(job) = stolen_job {
                 return Some(job)
             }
         }
 
+        // everyone is empty!
         None
     }
 }
