@@ -6,8 +6,7 @@ use ris_async::UnsafeSender;
 
 use crate::assets::ris_asset::RisAsset;
 
-/// must be awaited, or the underlying data will be leaked
-#[must_use]
+#[must_use = "must be awaited, or the underlying data will be leaked"]
 pub struct AssetFuture<T: RisAsset> {
     receiver: UnsafeReceiver,
     _boo: PhantomData<T>,

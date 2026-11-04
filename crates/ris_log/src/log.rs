@@ -177,42 +177,42 @@ pub fn forward_to_appenders(log_message: LogMessage) {
 #[macro_export]
 macro_rules! trace {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Trace, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Trace, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Debug, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Debug, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Info, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Info, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Warning, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Warning, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Error, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Error, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! fatal {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Fatal, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Fatal, $($arg)*)
     };
 }
 

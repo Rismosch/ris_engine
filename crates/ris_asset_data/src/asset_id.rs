@@ -269,7 +269,7 @@ impl BinAssetId {
 
     pub fn null() -> Self {
         let raw = RawAssetId::null();
-        unsafe {Self::from_raw(raw)}
+        Self::from_raw(raw)
     }
 
     // getters
