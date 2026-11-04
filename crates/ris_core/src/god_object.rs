@@ -109,7 +109,7 @@ impl GodObject {
 
         // imgui
         #[cfg(feature = "ui_helper_enabled")]
-        let mut imgui_backend = ImguiBackend::init(&app_info)?;
+        let imgui_backend = ImguiBackend::init(&app_info)?;
 
         //// gpu frame
         //#[cfg(feature = "ui_helper_enabled")]
