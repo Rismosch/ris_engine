@@ -3,7 +3,7 @@ use sdl2::event::WindowEvent;
 
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
-use ris_data::ecs::script_prelude::*;
+use ris_error::prelude::*;
 use ris_data::gameloop::gameloop_state::GameloopState;
 use ris_input::general_logic::update_general;
 use ris_input::keyboard_logic;
@@ -19,6 +19,17 @@ pub enum WantsTo {
 pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
     let mut frame_calculator = god_object.frame_calculator;
 
+    let asset_loader = god_object.asset_loader.to_weak();
+
+    let god_asset_id = asset_loader.god_asset_id();
+    let future = unsafe {asset_loader.load_async(god_asset_id)}?;
+    let god_asset = future.wait();
+    ris_log::debug!("god_asset: {:#?}", god_asset);
+
+    let future = unsafe {asset_loader.load_bin_async(god_asset.default_frag_spv)}?;
+    let shader = future.wait();
+    ris_log::debug!("shader: {:?}", shader);
+
     loop {
         ris_debug::profiler::new_frame()?;
         let frame = frame_calculator.bump_and_create_frame();
@@ -31,7 +42,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         // serialize settings
         ris_debug::add_record!(r, "submit save settings future")?;
-        let save_settings_future = ThreadPool::submit(async move {
+        let (sender, save_settings_future) = ris_async::single_use_channel();
+        god_object.thread_pool.submit(move || {
             let settings_serializer = god_object.settings_serializer;
             let state = previous_state;
 
@@ -43,7 +55,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
                 Ok(())
             };
 
-            (settings_serializer, result)
+            sender.send((settings_serializer, result));
         });
 
         // sdl2 input
@@ -88,21 +100,21 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
 
         update_general(&mut god_object.state);
 
-        // update scripts
-        ris_debug::add_record!(r, "update scripts")?;
-        for script in god_object.state.scene.script_components.iter() {
-            let mut aref_mut = script.borrow_mut();
-            if aref_mut.is_alive {
-                aref_mut.update(frame, &god_object.state)?;
-            }
-        }
+        //// update scripts
+        //ris_debug::add_record!(r, "update scripts")?;
+        //for script in god_object.state.scene.script_components.iter() {
+        //    let mut aref_mut = script.borrow_mut();
+        //    if aref_mut.is_alive {
+        //        aref_mut.update(frame, &god_object.state)?;
+        //    }
+        //}
 
-        // render
-        ris_debug::add_record!(r, "gpu frame")?;
-        let gpu_result =
-            god_object
-                .gpu_frame
-                .run(frame, &mut god_object.state, &god_object.god_asset);
+        //// render
+        //ris_debug::add_record!(r, "gpu frame")?;
+        //let gpu_result =
+        //    god_object
+        //        .gpu_frame
+        //        .run(frame, &mut god_object.state, &god_object.god_asset);
 
         // wait for jobs
         ris_debug::add_record!(r, "wait for jobs")?;
@@ -118,7 +130,7 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         let settings = &god_object.state.settings;
         if settings.job().changed() {
             ris_log::debug!("job workers changed. restarting job system...");
-            drop(god_object.thread_pool_guard);
+            drop(god_object.thread_pool);
 
             let cpu_count = god_object.app_info.cpu.cpu_count;
             let threads = crate::determine_thread_count(&god_object.app_info, settings);
@@ -126,14 +138,13 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
             let use_parking = settings.job().use_parking();
 
             let thread_pool_create_info = ThreadPoolCreateInfo {
-                buffer_capacity: ris_async::DEFAULT_BUFFER_CAPACITY,
                 cpu_count,
                 threads,
                 set_affinity,
-                use_parking,
+                stall_strategy: ris_async::thread_pool::StallStrategy::Parking,
             };
-            let new_thread_pool_guard = ThreadPool::init(thread_pool_create_info)?;
-            god_object.thread_pool_guard = new_thread_pool_guard;
+            let new_thread_pool = ThreadPool::new(thread_pool_create_info)?;
+            god_object.thread_pool = new_thread_pool;
 
             ris_log::debug!("job system restarted!");
         }
@@ -142,7 +153,8 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         ris_debug::add_record!(r, "handle errors")?;
 
         save_settings_result?;
-        let gpu_state = gpu_result?;
+        //let gpu_state = gpu_result?;
+        let gpu_state = GameloopState::WantsToQuit;
 
         ris_debug::end_record!(r)?;
 
@@ -165,14 +177,14 @@ pub fn run(mut god_object: GodObject) -> RisResult<WantsTo> {
         };
 
         // shutdown
-        for script in god_object.state.scene.script_components.iter() {
-            let mut aref_mut = script.borrow_mut();
-            if aref_mut.is_alive {
-                aref_mut.end(&god_object.state.scene)?;
-            }
-        }
+        //for script in god_object.state.scene.script_components.iter() {
+        //    let mut aref_mut = script.borrow_mut();
+        //    if aref_mut.is_alive {
+        //        aref_mut.end(&god_object.state.scene)?;
+        //    }
+        //}
 
-        god_object.gpu_frame.wait_idle()?;
+        //god_object.gpu_frame.wait_idle()?;
 
         return Ok(wants_to);
     }

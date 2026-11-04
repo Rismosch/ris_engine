@@ -53,7 +53,7 @@ impl AppInfo {
             if path_buf.exists() {
                 Ok(path_buf)
             } else {
-                ris_error::new_result!("failed to find assets \"{}\"", &self.args.assets,)
+                ris_error::new!("failed to find assets \"{}\"", &self.args.assets,)
             }
         }
     }

@@ -47,15 +47,15 @@ impl Script for TestScriptString {
     }
 
     fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
-        ris_error::new_result!("not implemented")
+        ris_error::new!("not implemented")
     }
 
     fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
-        ris_error::new_result!("not implemented")
+        ris_error::new!("not implemented")
     }
 
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
-        ris_error::new_result!("not implementd")
+        ris_error::new!("not implementd")
     }
 }
 
@@ -75,15 +75,15 @@ impl Script for TestScriptISize {
     }
 
     fn serialize(&mut self, _stream: &mut SceneWriter) -> RisResult<()> {
-        ris_error::new_result!("not implemented")
+        ris_error::new!("not implemented")
     }
 
     fn deserialize(&mut self, _stream: &mut SceneReader) -> RisResult<()> {
-        ris_error::new_result!("not implemented")
+        ris_error::new!("not implemented")
     }
 
     fn inspect(&mut self, _data: ScriptInspectData) -> RisResult<()> {
-        ris_error::new_result!("not implementd")
+        ris_error::new!("not implementd")
     }
 }
 

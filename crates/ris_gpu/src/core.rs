@@ -63,7 +63,7 @@ impl VulkanCore {
             )
         } == sdl2_sys::SDL_bool::SDL_FALSE
         {
-            return ris_error::new_result!("{}", sdl2::get_error());
+            return ris_error::new!("{}", sdl2::get_error());
         }
 
         let mut instance_extensions = vec![std::ptr::null(); count as usize];
@@ -76,7 +76,7 @@ impl VulkanCore {
             )
         } == sdl2_sys::SDL_bool::SDL_FALSE
         {
-            return ris_error::new_result!("{}", sdl2::get_error());
+            return ris_error::new!("{}", sdl2::get_error());
         }
 
         // validation layers
@@ -135,7 +135,7 @@ impl VulkanCore {
         // logical device
         let Some(suitable_device) = suitable_devices.into_iter().min_by_key(|x| x.suitability)
         else {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "no suitable hardware found to initialize vulkan renderer"
             );
         };

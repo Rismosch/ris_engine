@@ -1,427 +1,414 @@
 use std::cell::UnsafeCell;
-use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::Pin;
-use std::pin::pin;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::TryLockError;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::task::Context;
-use std::task::Poll;
-use std::task::Wake;
 use std::thread::JoinHandle;
 use std::thread::Thread;
 
 use ris_error::prelude::*;
 
-use crate::JobFuture;
-use crate::JobReceiver;
-use crate::JobSender;
-use crate::JobStealer;
-use crate::SpinLock;
-use crate::job_channel;
+use crate::ris_deque::RisDeque;
 
-type Job = Box<dyn Future<Output = ()>>;
+//==============================================================================
+// Utilities
+//==============================================================================
+const POISON_MESSAGE: &str = "mutex to not be poisoned";
 
-#[derive(Clone)]
-struct ThreadWaker(Option<Thread>);
+pub struct Job(Box<dyn FnOnce() + Send>);
 
-impl Wake for ThreadWaker {
-    fn wake(self: Arc<Self>) {
-        if let Some(thread) = &self.0 {
-            thread.unpark();
-        }
+impl Job {
+    pub fn from(callback: impl FnOnce() + Send + 'static) -> Self {
+        Self(Box::new(callback))
+    }
+
+    pub fn invoke(self) {
+        self.0()
     }
 }
 
-thread_local! {
-    static WORKER: UnsafeCell<Option<Worker>> = const { UnsafeCell::new(None)};
+const BUFLEN: usize = 1<<10;
+pub type JobDeque = Arc<Mutex<RisDeque<Job, BUFLEN>>>;
+fn new_job_queue() -> JobDeque {
+    Arc::new(Mutex::new(RisDeque::default()))
 }
 
-fn set_worker(value: Option<Worker>) {
-    WORKER.with(|worker| {
-        *unsafe { &mut *worker.get() } = value;
-    })
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StallStrategy {
+    SpinLoop,
+    Yield,
+    Parking,
 }
 
-fn get_worker() -> Option<&'static Worker> {
-    WORKER.with(|worker| unsafe { &*worker.get() }.as_ref())
-}
-
-pub struct Worker {
-    done: Arc<AtomicBool>,
-    sender: JobSender<Job>,
-    receiver: JobReceiver<Job>,
-    waker: ThreadWaker,
-    others: Vec<OtherWorker>,
-    use_parking: bool,
-}
-
-pub struct OtherWorker {
-    stealer: Arc<JobStealer<Job>>,
-    waker: ThreadWaker,
-}
-
-impl Worker {
-    fn name(&self) -> String {
-        let current = std::thread::current();
-        let name = std::thread::Thread::name(&current);
-        name.map(|x| x.to_string()).unwrap_or("no name".to_string())
-    }
-
-    fn run(&self) {
-        while !self.done.load(Ordering::Relaxed) {
-            if !self.run_pending_job() {
-                if self.use_parking {
-                    std::thread::park();
-                } else {
-                    std::hint::spin_loop();
-                }
-            }
-        }
-    }
-
-    fn run_pending_job(&self) -> bool {
-        match self.get_job() {
-            Some(job) => {
-                let pinned = Pin::from(job);
-                self.block_on(pinned);
-                true
-            }
-            None => false,
-        }
-    }
-
-    fn get_job(&self) -> Option<Job> {
-        match self.receiver.receive() {
-            Some(job) => Some(job),
-            None => {
-                for other in self.others.iter() {
-                    if let Some(job) = other.stealer.steal() {
-                        return Some(job);
-                    };
-                }
-
-                None
-            }
-        }
-    }
-
-    fn block_on<F: Future>(&self, future: F) -> F::Output {
-        let mut pinned_future = pin!(future);
-
-        let waker = Arc::new(self.waker.clone()).into();
-        let mut context = Context::from_waker(&waker);
-
-        loop {
-            match pinned_future.as_mut().poll(&mut context) {
-                Poll::Ready(result) => return result,
-                Poll::Pending => {
-                    if !self.run_pending_job() {
-                        std::thread::yield_now();
-                    }
-                }
-            }
-        }
-    }
-
-    fn wake_other_workers(&self) {
-        for other in self.others.iter() {
-            Arc::new(other.waker.clone()).wake();
-        }
-    }
-}
-
+//==============================================================================
+// ThreadPool
+//==============================================================================
 pub struct ThreadPoolCreateInfo {
-    pub buffer_capacity: usize,
     pub cpu_count: usize,
     pub threads: usize,
     pub set_affinity: bool,
-    pub use_parking: bool,
+    pub stall_strategy: StallStrategy,
 }
 
 pub struct ThreadPool {
-    _boo: PhantomData<()>, // prevent ThreadPool to be instantiated
+    join_handles: Vec<JoinHandle<()>>,
+    boo: PhantomData<*const()>, // prohibit Send/Sync
 }
 
-pub struct ThreadPoolGuard {
-    done: Arc<AtomicBool>,
-    join_handles: Option<Vec<JoinHandle<()>>>,
-}
-
-impl Drop for ThreadPoolGuard {
+impl Drop for ThreadPool {
     fn drop(&mut self) {
         ris_log::trace!("dropping thread_pool...");
 
-        self.done.store(true, Ordering::Relaxed);
+        let worker = unsafe {self.main_worker()};
+        worker.done.store(true, Ordering::Relaxed);
 
-        match get_worker() {
-            Some(worker) => {
-                worker.wake_other_workers();
-                while worker.run_pending_job() {}
-                set_worker(None);
-            }
-            None => {
-                ris_log::error!("thread pool was dropped on a non worker thread")
+        while let Some(join_handle) = self.join_handles.pop() {
+            let i = self.join_handles.len() + 1;
+            join_handle.thread().unpark();
+            match join_handle.join() {
+                Ok(()) => ris_log::debug!("joined thread {}", i),
+                Err(_) => ris_log::error!("failed to join thread {}", i),
             }
         }
 
-        match self.join_handles.take() {
-            Some(join_handles) => {
-                for (i, join_handle) in join_handles.into_iter().enumerate() {
-                    let i = i + 1;
-                    match join_handle.join() {
-                        Ok(()) => ris_log::debug!("joined thread {}", i),
-                        Err(_) => ris_log::error!("failed to join thread {}", i),
-                    }
-                }
-            }
-            None => ris_log::error!("no handles to join"),
-        }
-
+        ThreadPoolWorker::finish(worker);
         ris_log::info!("dropped thread_pool!");
     }
 }
 
 impl ThreadPool {
-    pub fn init(create_info: ThreadPoolCreateInfo) -> RisResult<ThreadPoolGuard> {
+    // public methods
+    pub fn new(create_info: ThreadPoolCreateInfo) -> RisResult<Self> {
+        if Self::worker().is_some() {
+            return ris_error::new!("this thread is already part of a thread pool!");
+        }
+
         let ThreadPoolCreateInfo {
-            buffer_capacity,
             cpu_count,
             threads,
             set_affinity,
-            use_parking,
+            stall_strategy,
         } = create_info;
 
-        let threads = std::cmp::max(threads, 1);
-        let threads = std::cmp::min(threads, cpu_count);
-
-        let mut affinities = Vec::with_capacity(threads);
-        for _ in 0..affinities.capacity() {
-            affinities.push(Vec::new());
-        }
-
-        for i in 0..cpu_count {
-            affinities[i % threads].push(i);
-        }
-
-        // setup shared worker data
-        let initial_worker_data = Arc::new(SpinLock::new(Vec::new()));
-        let prepared_worker_data = Arc::new(SpinLock::new(Vec::<Option<_>>::new()));
-        let done_preparing_worker_data = Arc::new(AtomicBool::new(false));
-
-        let mut g = initial_worker_data.lock();
-        for _ in 0..threads {
-            g.push(None);
-        }
-        drop(g);
-
-        // initial main worker setup
-        if set_affinity && let Err(e) = crate::affinity::set_affinity(&affinities[0]) {
-            ris_log::error!("failed to set affinities for main worker: {}", e);
-        }
-        let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
-        let waker = if use_parking {
-            ThreadWaker(Some(std::thread::current()))
+        // prepare affinity
+        let affinities = if !set_affinity {
+            None
         } else {
-            ThreadWaker(None)
+            let threads = std::cmp::max(threads, 1);
+            let threads = std::cmp::min(threads, cpu_count);
+
+            let mut affinities = Vec::with_capacity(threads);
+            for _ in 0..threads {
+                affinities.push(Vec::new());
+            }
+
+            for i in 0..cpu_count {
+                affinities[i % threads].push(i);
+            }
+
+            Some(affinities)
         };
-        initial_worker_data.lock()[0] = Some(OtherWorker {
-            stealer,
-            waker: waker.clone(),
-        });
 
         // setup worker threads
-        let done = Arc::new(AtomicBool::new(false));
+        let worker_create_info = ThreadPoolWorkerCreateInfo {
+            done: Arc::new(AtomicBool::new(false)),
+            id: 0,
+            affinities,
+            pool_queue: new_job_queue(),
+            all_queues: vec![new_job_queue(); threads],
+            worker_threads: Arc::new(Mutex::new(None)),
+            stall_strategy,
+        };
 
         let mut join_handles = Vec::with_capacity(threads - 1);
-        for (i, core_ids) in affinities.iter().enumerate().take(threads).skip(1) {
-            let core_ids = core_ids.clone();
-            let done = done.clone();
-            let initial_worker_data = initial_worker_data.clone();
-            let prepared_worker_data = prepared_worker_data.clone();
-            let done_preparing_worker_data = done_preparing_worker_data.clone();
+        for id in 1..threads {
+            let mut worker_create_info = worker_create_info.clone();
+            worker_create_info.id = id;
 
             let join_handle = std::thread::Builder::new()
-                .name(format!("thread_pool.worker.{}", i))
+                .name(format!("thread_pool_worker_{}", id))
                 .spawn(move || {
-                    // worker initial setup
-                    if set_affinity && let Err(e) = crate::affinity::set_affinity(&core_ids) {
-                        ris_log::error!("failed to set affinities for worker {}: {}", i, e);
-                    }
-                    let (sender, receiver, stealer) = job_channel::<Job>(buffer_capacity);
-                    let waker = if use_parking {
-                        ThreadWaker(Some(std::thread::current()))
-                    } else {
-                        ThreadWaker(None)
-                    };
-                    initial_worker_data.lock()[i] = Some(OtherWorker {
-                        stealer,
-                        waker: waker.clone(),
-                    });
-
-                    while !done_preparing_worker_data.load(Ordering::Relaxed) {
-                        std::thread::yield_now();
-                    }
-
-                    // prepare worker
-                    let mut g = prepared_worker_data.lock();
-                    let others = ris_error::unwrap!(
-                        g[i].take().ris_expect("worker to be prepared"),
-                        "something has gone terribly wrong. this option should never be none"
-                    );
-                    drop(g);
-
-                    set_worker(Some(Worker {
-                        done,
-                        sender,
-                        receiver,
-                        waker,
-                        others,
-                        use_parking,
-                    }));
-
-                    let worker = ris_error::unwrap!(
-                        get_worker().ris_expect("worker to be set"),
-                        "something has gone terribly wrong. this option should never be none"
-                    );
-
-                    // run worker
-                    let worker_name = worker.name();
-                    ris_log::trace!("thread_pool running \"{}\"", worker_name);
+                    let worker = ThreadPoolWorker::new(worker_create_info);
                     worker.run();
-
-                    ris_log::trace!("thread_pool finishing... \"{}\"", worker_name);
-                    while worker.run_pending_job() {}
-                    set_worker(None);
-                    ris_log::debug!("thread_pool finished \"{}\"!", worker_name);
+                    worker.finish();
                 })?;
             join_handles.push(join_handle);
         }
 
-        // wait until all workers have shared their initial worker data
-        for i in 0..threads {
-            while initial_worker_data.lock()[i].is_none() {
-                std::thread::yield_now();
-            }
+        // collect worker threads
+        let mut worker_threads = Vec::with_capacity(join_handles.len());
+        for join_handle in join_handles.iter() {
+            let thread = join_handle.thread().clone();
+            worker_threads.push(thread);
         }
 
-        // all workers are initialized, prepare worker data for everyone
-        for i in 0..threads {
-            let mut shared = Vec::new();
-            let g = initial_worker_data.lock();
-            for j in 0..g.len() {
-                // offset j, such that every worker has a different stealer at first, this attempts
-                // to reduce contention
-                let j = (j + i) % threads;
-                if i == j {
-                    continue;
-                }
-
-                let original = &g[j];
-                let other = ris_error::unwrap!(
-                    original.as_ref().ris_expect("worker to be set up"),
-                    "something has gone terribly wrong. this option should never be none"
-                );
-
-                shared.push(OtherWorker {
-                    stealer: other.stealer.clone(),
-                    waker: other.waker.clone(),
-                });
-            }
-            drop(g);
-            prepared_worker_data.lock().push(Some(shared));
-        }
-
-        done_preparing_worker_data.store(true, Ordering::Relaxed);
-
-        // prepare main worker
-        let mut g = prepared_worker_data.lock();
-        let others = ris_error::unwrap!(
-            g[0].take().ris_expect("worker to be prepared"),
-            "something has gone terribly wrong. this option should never be none"
-        );
+        let mut g = worker_create_info.worker_threads.lock()
+            .ris_pexpect(POISON_MESSAGE);
+        *g = Some(worker_threads.clone());
         drop(g);
+        for worker_thread in worker_threads {
+            worker_thread.unpark();
+        }
 
-        set_worker(Some(Worker {
-            done: done.clone(),
-            sender,
-            receiver,
-            waker,
-            others,
-            use_parking,
-        }));
+        // setup main worker
+        ThreadPoolWorker::new(worker_create_info);
 
-        // return thread pool
-        Ok(ThreadPoolGuard {
-            done,
-            join_handles: Some(join_handles),
+        Ok(ThreadPool {
+            join_handles,
+            boo: Default::default()
         })
     }
 
-    pub fn submit<F: Future + 'static>(future: F) -> JobFuture<F::Output> {
-        let Some(worker) = get_worker() else {
-            ris_error::throw!("cannot submit future, caller is not a worker");
+    pub fn submit(&mut self, job: impl FnOnce() + Send + 'static) {
+        let worker = unsafe {self.main_worker()};
+        worker.submit_to_queue(job, &worker.pool_queue);
+    }
+
+    pub fn worker() -> Option<&'static ThreadPoolWorker> {
+        get_worker()
+    }
+
+    /// # Safety
+    ///
+    /// returned worker MUST NOT live longer than self
+    pub unsafe fn main_worker(&mut self) -> &'static ThreadPoolWorker {
+        let Some(worker) = Self::worker() else {
+            // enforced by the function signature, which takes a `&mut self`
+            unreachable!("main thread should always be a worker"); 
         };
 
-        let (job_future, job_future_setter) = JobFuture::new();
+        worker
+    }
+}
 
-        let mut job: Box<dyn Future<Output = ()>> = Box::new(async move {
-            let output = future.await;
-            job_future_setter.set(output);
-        });
 
-        loop {
-            match worker.sender.send(job) {
-                Ok(()) => break,
-                Err(not_sent) => {
-                    if !worker.run_pending_job() {
-                        std::thread::yield_now();
-                    }
-                    job = not_sent;
-                }
+//==============================================================================
+// Worker
+//==============================================================================
+thread_local! {
+    static WORKER: UnsafeCell<Option<ThreadPoolWorker>> = const {
+        UnsafeCell::new(None)
+    };
+}
+
+fn set_worker(value: Option<ThreadPoolWorker>) {
+    WORKER.with(|worker| {
+        *unsafe { &mut *worker.get() } = value;
+    })
+}
+
+fn get_worker() -> Option<&'static ThreadPoolWorker> {
+    WORKER.with(|worker| unsafe { &*worker.get() }.as_ref())
+}
+
+pub struct ThreadPoolWorker {
+    done: Arc<AtomicBool>,
+    local_queue: JobDeque,
+    pool_queue: JobDeque,
+    other_queues: Vec<JobDeque>,
+    worker_threads: Vec<Thread>,
+    stall_strategy: StallStrategy,
+}
+
+#[derive(Clone)]
+struct ThreadPoolWorkerCreateInfo {
+    done: Arc<AtomicBool>,
+    id: usize,
+    affinities: Option<Vec<Vec<usize>>>,
+    pool_queue: JobDeque,
+    all_queues: Vec<JobDeque>,
+    worker_threads: Arc<Mutex<Option<Vec<Thread>>>>,
+    stall_strategy: StallStrategy,
+}
+
+impl ThreadPoolWorker {
+    // construction
+    fn new(create_info: ThreadPoolWorkerCreateInfo) -> &'static Self {
+        let ThreadPoolWorkerCreateInfo {
+            done,
+            id,
+            affinities,
+            pool_queue,
+            all_queues,
+            worker_threads,
+            stall_strategy,
+        } = create_info;
+
+        // set affinity
+        if let Some(affinities) = affinities {
+            ris_error::panic_assert!(id < affinities.len());
+
+            let core_ids = &affinities[id];
+            let result = crate::affinity::set_affinity(core_ids);
+            if let Err(e) = result {
+                ris_log::error!("failed to set affinities for worker {}: {}", id, e);
             }
         }
 
-        worker.wake_other_workers();
+        // setup queues
+        ris_error::panic_assert!(id < all_queues.len());
 
-        job_future
+        let local_queue = all_queues[id].clone();
+        let mut other_queues = Vec::with_capacity(all_queues.len() - 1);
+
+        for i in 1..all_queues.len() {
+            let index = (i + id) % all_queues.len();
+            let queue = all_queues[index].clone();
+            other_queues.push(queue);
+        }
+
+        // setup worker threads
+        loop {
+            let g = worker_threads
+                .lock()
+                .ris_pexpect(POISON_MESSAGE);
+            if g.is_some() {
+                break;
+            }
+
+            drop(g);
+            std::thread::park();
+        }
+
+        let worker_threads = worker_threads
+            .lock()
+            .ris_pexpect(POISON_MESSAGE)
+            .clone()
+            .ris_pexpect("worker threads to be set at this point");
+
+        // set thread local variabel
+        set_worker(Some(Self {
+            done,
+            local_queue,
+            pool_queue,
+            other_queues,
+            worker_threads,
+            stall_strategy,
+        }));
+        get_worker().ris_pexpect("worker to be set up")
     }
 
-    pub fn block_on<F: Future>(future: F) -> F::Output {
-        let Some(worker) = get_worker() else {
-            ris_error::throw!("cannot block on future, caller is not a worker");
-        };
+    fn run(&self) {
+        ris_log::trace!("thread_pool running... \"{}\"", self.name());
 
-        worker.block_on(future)
+        while !self.done.load(Ordering::Relaxed) {
+            let job_was_run = self.run_pending_job();
+            if job_was_run {
+                continue;
+            }
+
+            match self.stall_strategy {
+                StallStrategy::SpinLoop => std::hint::spin_loop(),
+                StallStrategy::Yield => std::thread::yield_now(),
+                StallStrategy::Parking => std::thread::park(),
+            }
+        }
+
+        ris_log::trace!("thread_pool exited \"{}\"", self.name());
     }
 
-    pub fn run_pending_job() -> bool {
-        let Some(worker) = get_worker() else {
-            ris_log::error!("cannot run pending job, caller is not a worker");
-            return false;
-        };
-
-        worker.run_pending_job()
+    fn finish(&self) {
+        let name = self.name();
+        ris_log::trace!("thread_pool finishing... \"{}\"", name);
+        while self.run_pending_job() {}
+        set_worker(None);
+        ris_log::debug!("thread_pool finished \"{}\"!", name);
     }
 
-    pub fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    // public methods
+    pub fn name(&self) -> String {
+        let current = std::thread::current();
+        let name = std::thread::Thread::name(&current);
+        name.map(|x| x.to_string()).unwrap_or("no name".to_string())
+    }
+
+    pub fn submit(&self, job: impl FnOnce() + Send + 'static) {
+        self.submit_to_queue(job, &self.local_queue);
+    }
+
+    pub fn run_pending_job(&self) -> bool {
+        match self.get_job() {
+            Some(job) => {
+                job.invoke();
+                true
+            },
+            None => false,
+        }
+    }
+
+    pub fn lock<'a, T>(&'a self, mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
         loop {
             match mutex.try_lock() {
                 Ok(guard) => return guard,
                 Err(TryLockError::WouldBlock) => {
-                    let job_was_run = Self::run_pending_job();
+                    let job_was_run = self.run_pending_job();
                     if !job_was_run {
                         std::hint::spin_loop();
                     }
                 }
                 Err(TryLockError::Poisoned(e)) => {
-                    ris_error::throw!("mutex is poisoned: {}", e);
+                    ris_error::panic!("mutex is poisoned: {}", e);
                 }
             }
         }
     }
+
+    // private methods
+    fn submit_to_queue(&self, job: impl FnOnce() + Send + 'static, queue: &JobDeque) {
+        let mut queue = self.lock(&*queue);
+
+        let mut to_enque: Result<(), Job> = Err(Job::from(job));
+        loop {
+            let Err(job) = to_enque else {
+                break;
+            };
+
+            to_enque = queue.push_back(job);
+        }
+
+        for thread in self.worker_threads.iter() {
+            thread.unpark();
+        }
+    }
+
+    fn get_job(&self) -> Option<Job> {
+        // get local job
+        let local_job = self.local_queue
+            .lock()
+            .ris_pexpect(POISON_MESSAGE)
+            .pop_back();
+
+        if let Some(job) = local_job {
+            return Some(job)
+        }
+
+        // get pool job
+        let pool_job = self.pool_queue
+            .lock()
+            .ris_pexpect(POISON_MESSAGE)
+            .pop_back();
+
+        if let Some(job) = pool_job {
+            return Some(job)
+        }
+
+        // steal job
+        for other in self.other_queues.iter() {
+            let stolen_job = other
+                .lock()
+                .ris_pexpect(POISON_MESSAGE)
+                .pop_front();
+
+            if let Some(job) = stolen_job {
+                return Some(job)
+            }
+        }
+
+        // everyone is empty!
+        None
+    }
 }
+

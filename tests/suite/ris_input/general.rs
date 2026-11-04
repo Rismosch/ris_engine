@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use ris_data::ecs::registry::Registry;
-use ris_data::ecs::scene::SceneCreateInfo;
 use ris_data::god_state::GodState;
 use ris_data::input::rebind_matrix::RebindMatrix;
 use ris_data::settings::Settings;
@@ -18,12 +16,7 @@ struct TestContext {
 impl TestContext {
     fn new() -> Self {
         let rng = Rng::new(Seed::new());
-
-        let mut scene_create_info =
-            miri_choose(SceneCreateInfo::default(), SceneCreateInfo::empty());
-        scene_create_info.registry = Some(Arc::new(Registry::new(Vec::new()).unwrap()));
-
-        let state = GodState::new(Settings::default(), scene_create_info).unwrap();
+        let state = GodState::new(Settings::default()).unwrap();
 
         Self { rng, state }
     }

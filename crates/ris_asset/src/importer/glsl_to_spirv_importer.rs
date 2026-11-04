@@ -179,7 +179,7 @@ impl ShaderStage {
 
                 ris_log::error!("{}\n\nsource:\n{}\nerror:\n{}", base_message, log_source, e,);
 
-                ris_error::new!("{}. check log for more infos.", base_message)
+                ris_error::new_error!("{}. check log for more infos.", base_message)
             })?;
 
         Ok(Some(artifact))
@@ -399,7 +399,7 @@ fn preproc_assert(value: bool, message: &str, file: &str, line: usize) -> RisRes
 }
 
 fn preproc_fail<T>(message: &str, file: &str, line: usize) -> RisResult<T> {
-    ris_error::new_result!("preproc assert failed: {} in {}:{}", message, file, line,)
+    ris_error::new!("preproc assert failed: {} in {}:{}", message, file, line,)
 }
 
 struct ResolveIncludeArgs<'a> {
@@ -456,7 +456,7 @@ fn resolve_include(args: ResolveIncludeArgs) -> RisResult<String> {
             error_message.push_str(&format!("\n{} {:?}", i + 1, dependency));
         }
 
-        return ris_error::new_result!("{}", error_message);
+        return ris_error::new!("{}", error_message);
     }
 
     dependency_history.push(include_path.clone());

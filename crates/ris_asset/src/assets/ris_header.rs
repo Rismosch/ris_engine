@@ -38,7 +38,7 @@ impl RisHeader {
             magic[3] != 0x5f
         // `_`
         {
-            return ris_error::new_result!("not a ris asset");
+            return ris_error::new!("not a ris asset");
         }
 
         let mut stream = Cursor::new(Vec::new());
@@ -61,7 +61,7 @@ impl RisHeader {
                     ris_io::write_string(s, sanitized_id)?
                 }
                 _ => {
-                    return ris_error::new_result!(
+                    return ris_error::new!(
                         "all references must be the same enum variant. is_compiled: {}",
                         is_compiled
                     );
@@ -132,7 +132,7 @@ impl RisHeader {
         } else {
             let left_formatted = Self::format_magic(left);
             let right_formatted = Self::format_magic(right);
-            ris_error::new_result!(
+            ris_error::new!(
                 "magic assert failed:\nexpected {}\nbut was  {}",
                 left_formatted,
                 right_formatted,

@@ -280,7 +280,7 @@ impl TryFrom<CpuMesh> for MeshPrototype {
                 Indices::U8(indices)
             }
             vk::IndexType::NONE_KHR => Indices::None,
-            index_type => ris_error::new_result!("unkown index type: {:?}", index_type)?,
+            index_type => ris_error::new!("unkown index type: {:?}", index_type)?,
         };
 
         Ok(Self {
@@ -481,7 +481,7 @@ impl GpuMesh {
         value: CpuMesh,
     ) -> RisResult<()> {
         let Some(inner) = self.inner.as_mut() else {
-            return ris_error::new_result!("gpu mesh was freed");
+            return ris_error::new!("gpu mesh was freed");
         };
 
         // prepare ptrs
@@ -493,8 +493,8 @@ impl GpuMesh {
             vk::IndexType::UINT16 => std::mem::size_of::<u16>(),
             vk::IndexType::UINT32 => std::mem::size_of::<u32>(),
             vk::IndexType::UINT8_EXT => std::mem::size_of::<u8>(),
-            vk::IndexType::NONE_KHR => ris_error::new_result!("index type was none")?,
-            index_type => ris_error::new_result!("unknown index type: {:?}", index_type)?,
+            vk::IndexType::NONE_KHR => ris_error::new!("index type was none")?,
+            index_type => ris_error::new!("unknown index type: {:?}", index_type)?,
         };
 
         let index_count = value.p_indices.len as u32 / index_size as u32;
@@ -561,7 +561,7 @@ impl GpuMesh {
     fn get_inner(&self) -> RisResult<&GpuMeshInner> {
         match self.inner.as_ref() {
             Some(inner) => Ok(inner),
-            None => ris_error::new_result!("gpu mesh was freed"),
+            None => ris_error::new!("gpu mesh was freed"),
         }
     }
 }

@@ -18,7 +18,7 @@ pub const EXTENSION: &str = "ris_scene";
 pub const COMPRESSION_LEVEL: u8 = 6;
 
 pub fn serialize(scene: &Scene, chunk_index: usize) -> RisResult<Vec<u8>> {
-    ris_error::debug_assert!(chunk_index < scene.static_chunks.len())?;
+    ris_error::assert!(chunk_index < scene.static_chunks.len())?;
     let chunk = &scene.static_chunks[chunk_index];
 
     let handles = chunk

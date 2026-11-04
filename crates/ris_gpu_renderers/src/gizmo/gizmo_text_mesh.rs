@@ -38,7 +38,7 @@ impl GizmoTextMesh {
             ..
         } = core;
 
-        ris_error::debug_assert!(text.len().is_multiple_of(4))?;
+        ris_error::assert!(text.len().is_multiple_of(4))?;
 
         let physical_device_memory_properties = unsafe {
             instance.get_physical_device_memory_properties(suitable_device.physical_device)
@@ -105,7 +105,7 @@ impl GizmoTextMesh {
             ..
         } = core;
 
-        ris_error::debug_assert!(text.len().is_multiple_of(4))?;
+        ris_error::assert!(text.len().is_multiple_of(4))?;
 
         let tcas = TransientCommandArgs {
             device: device.clone(),

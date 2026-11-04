@@ -95,7 +95,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
     for module in modules.iter() {
         let name = &module.name;
         if existing_names.contains(name) {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "module names must be unique! offending name: \"{}\"",
                 name
             );
@@ -105,7 +105,7 @@ fn builders() -> RisResult<Vec<UiHelperModuleBuilder>> {
 
         let splits = name.split('.').collect::<Vec<_>>();
         if splits.len() != 1 {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "module name must not contain `.` (dot)! offending name: \"{}\"",
                 name
             );
@@ -466,7 +466,7 @@ impl UiHelper {
 
             if seconds >= CRASH_TIMEOUT_IN_SECS {
                 ris_log::fatal!("manual crash requested");
-                return ris_error::new_result!("manual crash");
+                return ris_error::new!("manual crash");
             }
         } else {
             self.crash_timestamp = Instant::now();
@@ -535,7 +535,12 @@ impl UiHelper {
 
                 if data.ui.menu_item("crash (F4)") {
                     ris_log::fatal!("manual crash requested");
-                    return ris_error::new_result!("manual crash");
+                    return ris_error::new!("manual crash");
+                }
+
+                if data.ui.menu_item("panic") {
+                    ris_log::fatal!("manual panic requested");
+                    ris_error::panic!("manual panic");
                 }
 
                 if data.ui.menu_item("quit") {

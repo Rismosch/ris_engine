@@ -86,7 +86,7 @@ pub fn asset_field(
     let mut buf = path.to_string();
     buf.push('\0');
     let buf_ptr = buf.as_mut_ptr() as *mut i8;
-    let buf_capacity = buf.capacity();
+    let buf_len = buf.len();
 
     let mut flags = 0;
     flags |= imgui::sys::ImGuiInputTextFlags_ReadOnly;
@@ -97,7 +97,7 @@ pub fn asset_field(
         imgui::sys::igInputText(
             label_cstring.as_ptr(),
             buf_ptr,
-            buf_capacity,
+            buf_len,
             flags as i32,
             None,
             std::ptr::null_mut(),

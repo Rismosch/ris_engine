@@ -594,7 +594,7 @@ impl Gltf {
 
         let json_value = JsonValue::deserialize(json)?;
         let JsonValue::Object(json_gltf) = json_value else {
-            return ris_error::new_result!("gltf json is not an object");
+            return ris_error::new!("gltf json is not an object");
         };
 
         // asset
@@ -626,7 +626,7 @@ impl Gltf {
             let is_greater_case_2 =
                 major_version == major_min_version && minor_version < minor_min_version;
             if is_greater_case_1 || is_greater_case_2 {
-                return ris_error::new_result!(
+                return ris_error::new!(
                     "minVersion {:?} may not be greater than version {:?}",
                     min_version_string,
                     version_string,
@@ -708,7 +708,7 @@ impl Gltf {
                         scale,
                     }
                 }
-                _ => return ris_error::new_result!("invalid transform"),
+                _ => return ris_error::new!("invalid transform"),
             };
 
             let node = Node {
@@ -802,7 +802,7 @@ impl Gltf {
                 Some(34962) => Some(BufferViewTarget::ArrayBuffer),
                 Some(34963) => Some(BufferViewTarget::ElementArrayBuffer),
                 Some(target) => {
-                    return ris_error::new_result!("invalid buffer view target: {}", target);
+                    return ris_error::new!("invalid buffer view target: {}", target);
                 }
             };
             let name = json_buffer_view.get::<String>("name");
@@ -839,7 +839,7 @@ impl Gltf {
                 Some(5125) => AccessorComponentType::U32,
                 Some(5126) => AccessorComponentType::F32,
                 component_type => {
-                    return ris_error::new_result!("invalid component type: {:?}", component_type);
+                    return ris_error::new!("invalid component type: {:?}", component_type);
                 }
             };
             let normalized = json_accessor.get::<bool>("normalized").unwrap_or(false);
@@ -855,7 +855,7 @@ impl Gltf {
                 Some("MAT3") => AccessorType::Mat3,
                 Some("MAT4") => AccessorType::Mat4,
                 accessor_type => {
-                    return ris_error::new_result!("invalid accessor type: {:?}", accessor_type);
+                    return ris_error::new!("invalid accessor type: {:?}", accessor_type);
                 }
             };
             let max = json_accessor
@@ -880,7 +880,7 @@ impl Gltf {
                     Some(5123) => AccessorSparseIndicesComponentType::U16,
                     Some(5125) => AccessorSparseIndicesComponentType::U32,
                     component_type => {
-                        return ris_error::new_result!(
+                        return ris_error::new!(
                             "invalid accessor spare indices component type: {:?}",
                             component_type
                         );
@@ -989,7 +989,7 @@ impl Gltf {
                             MeshPrimitiveAttributeName::Custom(json_name.clone())
                         }
                         _ => {
-                            return ris_error::new_result!(
+                            return ris_error::new!(
                                 "invalid mesh primitive attribute name: {:?}",
                                 json_name
                             );
@@ -1016,7 +1016,7 @@ impl Gltf {
                     Some(5) => MeshPrimitiveMode::TriangleStrip,
                     Some(6) => MeshPrimitiveMode::TriangleFan,
                     mode => {
-                        return ris_error::new_result!("invalid mesh primitive mode: {:?}", mode);
+                        return ris_error::new!("invalid mesh primitive mode: {:?}", mode);
                     }
                 };
                 let json_targets = json_mesh
@@ -1044,7 +1044,7 @@ impl Gltf {
                                 MeshPrimitiveTargetName::Custom(json_name.clone())
                             }
                             _ => {
-                                return ris_error::new_result!(
+                                return ris_error::new!(
                                     "invalid mesh primitive attribute name: {:?}",
                                     json_name
                                 );
@@ -1161,7 +1161,7 @@ impl Gltf {
                     mime_type: ImageMimeType::Png,
                     buffer_view: json_buffer_view,
                 },
-                _ => return ris_error::new_result!("invalid gltf image"),
+                _ => return ris_error::new!("invalid gltf image"),
             };
 
             let name = json_image.get::<String>("name");
@@ -1188,7 +1188,7 @@ impl Gltf {
                 Some(9729) => Some(SamplerMagFilter::Linear),
                 None => None,
                 mag_filter => {
-                    return ris_error::new_result!("invalid sampler mag filter: {:?}", mag_filter);
+                    return ris_error::new!("invalid sampler mag filter: {:?}", mag_filter);
                 }
             };
             let min_filter = match json_sampler.get::<usize>("minFilter") {
@@ -1200,7 +1200,7 @@ impl Gltf {
                 Some(9987) => Some(SamplerMinFilter::LinearMipmapLinear),
                 None => None,
                 min_filter => {
-                    return ris_error::new_result!("invalid sampler min filter: {:?}", min_filter);
+                    return ris_error::new!("invalid sampler min filter: {:?}", min_filter);
                 }
             };
             let wrap_s = match json_sampler.get::<usize>("wrapS") {
@@ -1208,14 +1208,14 @@ impl Gltf {
                 Some(33648) => SamplerWrap::MirroredRepeat,
                 Some(10497) => SamplerWrap::Repeat,
                 None => SamplerWrap::Repeat,
-                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", wrap),
+                wrap => return ris_error::new!("invalid sampler wrap: {:?}", wrap),
             };
             let wrap_t = match json_sampler.get::<usize>("wrapT") {
                 Some(33071) => SamplerWrap::ClampToEdge,
                 Some(33648) => SamplerWrap::MirroredRepeat,
                 Some(10497) => SamplerWrap::Repeat,
                 None => SamplerWrap::Repeat,
-                wrap => return ris_error::new_result!("invalid sampler wrap: {:?}", wrap),
+                wrap => return ris_error::new!("invalid sampler wrap: {:?}", wrap),
             };
 
             let name = json_sampler.get::<String>("name");
@@ -1362,7 +1362,7 @@ impl Gltf {
                 Some("MASK") => MaterialAlphaMode::Mask,
                 Some("BLEND") => MaterialAlphaMode::Blend,
                 Some(alpha_mode) => {
-                    return ris_error::new_result!("invalid alpha mode: {:?}", alpha_mode);
+                    return ris_error::new!("invalid alpha mode: {:?}", alpha_mode);
                 }
             };
             let alpha_cutoff = json_material.get::<f32>("alphaCutoff").unwrap_or(0.5);
@@ -1465,7 +1465,7 @@ impl Gltf {
                     })
                 }
                 camera_type => {
-                    return ris_error::new_result!("invalid camera type: {:?}", camera_type);
+                    return ris_error::new!("invalid camera type: {:?}", camera_type);
                 }
             };
 
@@ -1507,7 +1507,7 @@ impl Gltf {
                     Some("scale") => AnimationChannelTargetPath::Scale,
                     Some("weights") => AnimationChannelTargetPath::Weights,
                     path => {
-                        return ris_error::new_result!(
+                        return ris_error::new!(
                             "invalid animation channel target path: {:?}",
                             path
                         );
@@ -1547,7 +1547,7 @@ impl Gltf {
                     Some("STEP") => AnimationSamplerInterpolation::Step,
                     Some("CUBICSPLINE") => AnimationSamplerInterpolation::CubicSpline,
                     interpolation => {
-                        return ris_error::new_result!(
+                        return ris_error::new!(
                             "invalid animation sampler interpolation: {:?}",
                             interpolation
                         );

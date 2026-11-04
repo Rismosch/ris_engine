@@ -1,7 +1,6 @@
 use ash::vk;
 
-use ris_error::Extensions;
-use ris_error::RisResult;
+use ris_error::prelude::*;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -94,7 +93,7 @@ impl Buffer {
         physical_device_memory_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> RisResult<(vk::Buffer, vk::DeviceMemory)> {
         if size == 0 {
-            return ris_error::new_result!("cannot allocate memory of size 0");
+            return ris_error::new!("cannot allocate memory of size 0");
         }
 
         let buffer_create_info = vk::BufferCreateInfo {

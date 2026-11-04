@@ -62,14 +62,14 @@ impl<'a> SceneWriter<'a> {
     pub fn write_game_object(&mut self, game_object: GameObjectHandle) -> RisResult<FatPtr> {
         let scene_id = game_object.0.scene_id();
         let SceneKind::StaticGameObjct { chunk } = scene_id.kind else {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "can only serialize static game objects. kind was: {:?}",
                 scene_id.kind
             );
         };
 
         if self.chunk != chunk {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "during serialization, a chunk may only reference gameobjects in the same chunk. expected: {} actual: {}",
                 self.chunk,
                 chunk

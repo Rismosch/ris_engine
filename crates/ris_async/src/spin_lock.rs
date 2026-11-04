@@ -1,3 +1,9 @@
+// API design from "Rust Atomics and Locks" from Mara Bos:
+// https://mara.nl/atomics/building-spinlock.html
+//
+// Lock strategy from David Álvarez Rosa's SpinLockV4:
+// https://david.alvarezrosa.com/posts/optimizing-a-spin-lock/
+
 use std::cell::UnsafeCell;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -25,22 +31,29 @@ impl<T> SpinLock<T> {
         }
     }
 
-    pub fn spin_once(&self) -> Option<SpinLockGuard<'_, T>> {
-        if self.locked.swap(true, Ordering::Acquire) {
-            None
-        } else {
-            Some(SpinLockGuard { lock: self })
-        }
-    }
-
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
-        loop {
-            if let Some(guard) = self.spin_once() {
-                return guard;
-            }
+        let mut backoff = 1;
+        while self.locked.swap(true, Ordering::Acquire) {
+            loop {
+                for _ in 0..backoff {
+                    std::thread::yield_now();
+                }
 
-            std::hint::spin_loop();
+                backoff = if backoff < 64 {
+                    backoff << 1
+                } else {
+                    64
+                };
+
+                if self.locked.load(Ordering::Relaxed) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
         }
+
+        SpinLockGuard { lock: self }
     }
 }
 

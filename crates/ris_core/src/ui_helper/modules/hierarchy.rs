@@ -40,10 +40,11 @@ impl IUiHelperModule for HierarchyModule {
             ..
         } = data;
 
-        let mut choices = Vec::with_capacity(scene.static_chunks.len() + 1);
+        let choice_count = scene.static_chunks.len();
+        let mut choices = Vec::with_capacity(choice_count + 1);
         choices.push("dynamics".to_string());
 
-        for i in 0..(choices.capacity() - 1) {
+        for i in 0..choice_count {
             let loaded = match self.shared_state.borrow_mut().chunk(i) {
                 Some(AssetId::Index(id)) => id.to_string(),
                 Some(AssetId::Path(id)) => id.clone(),
@@ -192,7 +193,7 @@ impl HierarchyModule {
                 );
 
                 if !is_game_object {
-                    return ris_error::new_result!("handle id was not a gameobject");
+                    return ris_error::new!("handle id was not a gameobject");
                 }
                 let child = GameObjectHandle::new_with_kind(scene, kind.try_into()?)?;
                 child.set_parent(scene, Some(handle), usize::MAX)?;
