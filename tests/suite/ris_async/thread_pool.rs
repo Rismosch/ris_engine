@@ -87,3 +87,20 @@ fn should_run_when_dropped() {
         assert!(results.contains(&i));
     }
 }
+
+#[test]
+fn should_execute_for_each() {
+    todo!();
+    //let numbers = (1..=1_000_000).collect::<Vec<_>>();
+    //let sum = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    //let cloned_sum = sum.clone();
+    //god_object.thread_pool.for_each(
+    //    &numbers,
+    //    move |i| {
+    //        cloned_sum.fetch_add(*i, std::sync::atomic::Ordering::Relaxed);
+    //    },
+    //);
+
+    //ris_log::debug!("sum: {}", sum.load(std::sync::atomic::Ordering::Relaxed));
+    //ris_log::debug!("exp: {}", (1_000_000usize + 1usize) * 1_000_000usize / 2usize);
+}

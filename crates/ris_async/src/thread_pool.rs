@@ -10,6 +10,7 @@ use std::thread::JoinHandle;
 use std::thread::Thread;
 
 use ris_error::prelude::*;
+use ris_ptr::ptr::SyncPtr;
 
 use crate::ris_deque::RisDeque;
 
@@ -169,6 +170,72 @@ impl ThreadPool {
 
     pub fn worker() -> Option<&'static ThreadPoolWorker> {
         get_worker()
+    }
+
+    pub fn for_each<T, Callback>(
+        &mut self,
+        slice: impl AsRef<[T]>,
+        callback: Callback,
+    ) 
+        where
+            T: Send + Sync + 'static,
+            Callback: Fn(&T) + Clone + Send + Sync + 'static
+    {
+        let slice = slice.as_ref();
+        let block_count = unsafe {self.main_worker()}.other_queues.len() + 1;
+        let block_size = slice.len() / block_count;
+        let mut futures = Vec::with_capacity(block_count + 1);
+
+        if block_size == 0 {
+            // not enough elements for blocks! compute each element in parallel...
+            for i in 0..slice.len() {
+                let slice_ptr = SyncPtr::new(slice.as_ptr());
+                let callback = callback.clone();
+                let (setter, receiver) = crate::single_use_channel();
+                self.submit(move || {
+                    let slice_ptr = slice_ptr.get();
+                    let element = unsafe {&*slice_ptr.add(i)};
+                    callback(element);
+                    setter.send(());
+                });
+                futures.push(receiver);
+            }
+        } else {
+            // enough elements! compute elements as parallel blocks...
+            let mut start = 0;
+            loop {
+                let mut end = start + block_size;
+                let is_last_block = end + block_size > slice.len();
+                if is_last_block {
+                    end = slice.len();
+                }
+
+                let slice_ptr = SyncPtr::new(slice.as_ptr());
+                let callback = callback.clone();
+                let (setter, receiver) = crate::single_use_channel();
+                self.submit(move || {
+                    let slice_ptr = slice_ptr.get();
+                    for i in start..end {
+                        let element = unsafe {&*slice_ptr.add(i)};
+                        callback(element);
+                    }
+
+                    setter.send(());
+                });
+                futures.push(receiver);
+
+                if is_last_block {
+                    break;
+                }
+
+                start += block_size;
+            }
+        }
+
+        // wait for blocks to finish
+        for future in futures {
+            future.wait();
+        }
     }
 
     /// # Safety

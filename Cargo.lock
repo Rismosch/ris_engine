@@ -251,6 +251,7 @@ dependencies = [
  "libc",
  "ris_error",
  "ris_log",
+ "ris_ptr",
 ]
 
 [[package]]
