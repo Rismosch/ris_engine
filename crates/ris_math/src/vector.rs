@@ -184,28 +184,28 @@ impl Vec2 {
         self.1
     }
 
-    pub fn set_x(&mut self, x: f32) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: f32) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_r(&mut self, r: f32) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: f32) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_s(&mut self, s: f32) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: f32) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 }
 
@@ -246,40 +246,40 @@ impl Vec3 {
         self.2
     }
 
-    pub fn set_x(&mut self, x: f32) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: f32) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_z(&mut self, z: f32) {
-        self.2 = z
+    pub fn z_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 
-    pub fn set_r(&mut self, r: f32) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: f32) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_b(&mut self, b: f32) {
-        self.2 = b
+    pub fn b_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 
-    pub fn set_s(&mut self, s: f32) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: f32) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_p(&mut self, p: f32) {
-        self.2 = p
+    pub fn p_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 }
 
@@ -332,52 +332,52 @@ impl Vec4 {
         self.3
     }
 
-    pub fn set_x(&mut self, x: f32) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: f32) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_z(&mut self, z: f32) {
-        self.2 = z
+    pub fn z_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 
-    pub fn set_w(&mut self, w: f32) {
-        self.3 = w
+    pub fn w_mut(&mut self) -> &mut f32 {
+        &mut self.3
     }
 
-    pub fn set_r(&mut self, r: f32) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: f32) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_b(&mut self, b: f32) {
-        self.2 = b
+    pub fn b_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 
-    pub fn set_a(&mut self, a: f32) {
-        self.3 = a
+    pub fn a_mut(&mut self) -> &mut f32 {
+        &mut self.3
     }
 
-    pub fn set_s(&mut self, s: f32) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut f32 {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: f32) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut f32 {
+        &mut self.1
     }
 
-    pub fn set_p(&mut self, p: f32) {
-        self.2 = p
+    pub fn p_mut(&mut self) -> &mut f32 {
+        &mut self.2
     }
 
-    pub fn set_q(&mut self, q: f32) {
-        self.3 = q
+    pub fn q_mut(&mut self) -> &mut f32 {
+        &mut self.3
     }
 }
 
@@ -406,28 +406,28 @@ impl Bvec2 {
         self.1
     }
 
-    pub fn set_x(&mut self, x: bool) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: bool) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_r(&mut self, r: bool) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: bool) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_s(&mut self, s: bool) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: bool) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 }
 
@@ -468,40 +468,40 @@ impl Bvec3 {
         self.2
     }
 
-    pub fn set_x(&mut self, x: bool) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: bool) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_z(&mut self, z: bool) {
-        self.2 = z
+    pub fn mut_z(&mut self) -> &mut bool {
+        &mut self.2
     }
 
-    pub fn set_r(&mut self, r: bool) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: bool) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_b(&mut self, b: bool) {
-        self.2 = b
+    pub fn b_mut(&mut self) -> &mut bool {
+        &mut self.2
     }
 
-    pub fn set_s(&mut self, s: bool) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: bool) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_p(&mut self, p: bool) {
-        self.2 = p
+    pub fn p_mut(&mut self) -> &mut bool {
+        &mut self.2
     }
 }
 
@@ -554,52 +554,52 @@ impl Bvec4 {
         self.3
     }
 
-    pub fn set_x(&mut self, x: bool) {
-        self.0 = x
+    pub fn x_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_y(&mut self, y: bool) {
-        self.1 = y
+    pub fn y_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_z(&mut self, z: bool) {
-        self.2 = z
+    pub fn z_mut(&mut self) -> &mut bool {
+        &mut self.2
     }
 
-    pub fn set_w(&mut self, w: bool) {
-        self.3 = w
+    pub fn w_mut(&mut self) -> &mut bool {
+        &mut self.3
     }
 
-    pub fn set_r(&mut self, r: bool) {
-        self.0 = r
+    pub fn r_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_g(&mut self, g: bool) {
-        self.1 = g
+    pub fn g_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_b(&mut self, b: bool) {
-        self.2 = b
+    pub fn b_mut(&mut self) -> &mut bool {
+        &mut self.2
     }
 
-    pub fn set_a(&mut self, a: bool) {
-        self.3 = a
+    pub fn a_mut(&mut self) -> &mut bool {
+        &mut self.3
     }
 
-    pub fn set_s(&mut self, s: bool) {
-        self.0 = s
+    pub fn s_mut(&mut self) -> &mut bool {
+        &mut self.0
     }
 
-    pub fn set_t(&mut self, t: bool) {
-        self.1 = t
+    pub fn t_mut(&mut self) -> &mut bool {
+        &mut self.1
     }
 
-    pub fn set_p(&mut self, p: bool) {
-        self.2 = p
+    pub fn p_mut(&mut self) -> &mut bool {
+        &mut self.2
     }
 
-    pub fn set_q(&mut self, q: bool) {
-        self.3 = q
+    pub fn q_mut(&mut self) -> &mut bool {
+        &mut self.3
     }
 }
 
