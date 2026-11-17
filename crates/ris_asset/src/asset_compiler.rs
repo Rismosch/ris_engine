@@ -3,10 +3,10 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
+use std::mem::MaybeUninit;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_asset_data::asset_id::ASSET_ID_KIND;
 use ris_asset_data::asset_id::RawAssetId;
 use ris_error::prelude::*;
 use ris_ptr::Janitor;
@@ -76,11 +76,13 @@ struct AssetUnit {
 /// compiles a directory to a ris_asset file
 /// - `source`: the directory to be compiled
 /// - `target`: the path to the final compiled file. if this file exists already, it will be overwritten
-pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResult<()> {
-    // asset compiler makes use of both index and path ids
-    let kind = unsafe {*ASSET_ID_KIND.get()};
-    if kind != None {
-        return ris_error::new!("expected AssetId::kind() to be None, but was {:?}.", kind);
+pub fn compile(
+    source: &str,
+    target: &str,
+    settings: CompileSettings,
+) -> RisResult<()> {
+    if !cfg!(debug_assertions) {
+        return ris_error::new!("not available");
     }
 
     // initialize
@@ -227,14 +229,14 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                         continue;
                     }
 
-                    let clean_id = clean_path(id.path());
+                    let clean_id = clean_path(id.path_string());
                     if let Some(asset) = assets.get(&clean_id) {
                         references.push_back(asset.clone());
                     } else {
                         ris_log::warning!(
                             "asset \"{}\" references a non-existant asset: \"{}\"",
                             reference.path.display(),
-                            id.path().display(),
+                            id.path_string(),
                         )
                     }
                 }
@@ -313,6 +315,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                         destructor: vtable.destructor,
                     };
 
+                    // deserialize
                     let json_string = String::from_utf8(file_content)?;
                     let JsonValue::Object(json) = JsonValue::deserialize(json_string)? else {
                         return ris_error::new!("file content was not json");
@@ -321,29 +324,58 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
                     (vtable.from_json)(j.data, &json)?;
                     ris_log::debug!("resolve references...");
 
+                    // store old bytes for a proper free later
+                    let old_bytes = std::slice::from_raw_parts(
+                        j.data as *mut u8,
+                        vtable.size,
+                    ).to_vec();
+
+                    println!("before");
+
+                    // replace path asset ids with index asset ids
                     let references = (vtable.all_references_mut)(j.data);
                     for reference in references {
-                        if reference.is_null_path() {
-                            *reference = RawAssetId::null_index();
+                        let index_id = if reference.is_null_path() {
+                            RawAssetId::null_index()
                         } else {
-                            let reference_id = clean_path(reference.path());
-                            *reference = match asset_index_lookup.get(&reference_id) {
+                            let reference_id = clean_path(reference.path_string());
+                            match asset_index_lookup.get(&reference_id) {
                                 Some(&reference_index) => {
                                     let reference_asset = &asset_list[reference_index];
-                                    RawAssetId::from_index_unchecked(reference_asset.id_index)
+                                    RawAssetId::from_index(reference_asset.id_index)
                                 },
                                 None => RawAssetId::null_index(),
-                            };
-                        }
+                            }
+                        };
+
+                        // assigning calls drop on old value. to avoid freeing
+                        // the path id, first swap it out with nullptr
+                        reference.path = std::ptr::null_mut();
+                        *reference = index_id;
                     }
 
-                    let bytes = std::slice::from_raw_parts(
+                    println!("after");
+
+                    // write to file!
+                    let bytes = std::slice::from_raw_parts_mut(
                         j.data as *mut u8,
                         vtable.size,
                     );
 
                     ris_log::debug!("write ris asset...");
-                    target_file.write_all(&bytes)?;
+                    let write_result = target_file.write_all(&bytes);
+
+                    // restore old bytes, as to properly free the path based ids
+                    println!("hoi");
+                    bytes.copy_from_slice(&old_bytes);
+                    drop(j);
+                    println!("poi");
+
+                    // resolve result at last. this must be done after the ids 
+                    // are replaced, otherwise an error would cause index based 
+                    // ids to be freed, which causes UB
+                    write_result?;
+
                 }
             },
         };
@@ -376,7 +408,7 @@ pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResu
 /// - `source`: the path to the compiled file
 /// - `target`: the path to the final directory. if this directory exists already, it will be cleared
 pub fn decompile(source: &str, target: &str) -> RisResult<()> {
-    todo!();
+    ris_error::new!("todo")
 }
 
 fn clean_path(path: impl AsRef<Path>) -> String {

@@ -104,3 +104,8 @@ fn should_execute_for_each() {
     //ris_log::debug!("sum: {}", sum.load(std::sync::atomic::Ordering::Relaxed));
     //ris_log::debug!("exp: {}", (1_000_000usize + 1usize) * 1_000_000usize / 2usize);
 }
+
+#[test]
+fn benchmark_for_each() {
+    todo!()
+}

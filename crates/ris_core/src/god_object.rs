@@ -71,7 +71,8 @@ impl GodObject {
         let thread_pool = ThreadPool::new(thread_pool_create_info)?;
 
         // assets
-        let asset_loader = AssetLoader::new(&app_info)?;
+        let asset_path = app_info.asset_path()?;
+        let asset_loader = StrongPtr::new(AssetLoader::new(asset_path)?);
 
         // profiling
         let profiler_guard = ris_debug::profiler::init()?;

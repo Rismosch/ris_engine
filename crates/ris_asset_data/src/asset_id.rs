@@ -1,28 +1,22 @@
 use std::marker::PhantomData;
-use std::mem::MaybeUninit;
 use std::path::Path;
 use std::path::PathBuf;
 
 use ris_error::prelude::*;
-use ris_ptr::SyncUnsafeCell;
 
 pub const NULL_PATH: &str = "NULL";
-
-pub static ASSET_ID_KIND: SyncUnsafeCell<Option<AssetIdKind>> = SyncUnsafeCell::new(None);
+pub const NULL_INDEX: u64 = u64::MAX;
 
 //==============================================================================
 // Structs
 //==============================================================================
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AssetIdKind {
-    Index,
-    Path,
-}
 
+// note to self: struct must be a union, because asset compiler constructs 
+// RawAssetIds of both types, that must be stored in the same memory space
 #[repr(C)]
 pub union RawAssetId {
-    index: u64,
-    path: *mut PathBuf,
+    pub path: *mut PathBuf, // used in debug
+    pub index: u64,         // used in release
 }
 
 #[repr(C)]
@@ -32,73 +26,61 @@ pub struct AssetId<T> {
     boo: PhantomData<T>,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BinAssetId {
-    raw: RawAssetId,
-}
+pub type BinAssetId = AssetId<Box<[u8]>>;
 
 //==============================================================================
 // Traits
 //==============================================================================
+
+// drop
 impl Drop for RawAssetId {
     fn drop(&mut self) {
-        unsafe {
-            if *ASSET_ID_KIND.get() == Some(AssetIdKind::Path) {
-                _ = Box::from_raw(self.path)
-            }
+        if cfg!(debug_assertions) {
+            unsafe {free_path(self.path)};
         }
     }
 }
 
+// debug
 impl std::fmt::Debug for RawAssetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match unsafe{*ASSET_ID_KIND.get()} {
-            Some(AssetIdKind::Index) => unsafe {
-                write!(f, "RawAssetId {{ index: {} }}", self.index())
-            },
-            Some(AssetIdKind::Path) => unsafe {
-                write!(f, "RawAssetId {{ path: {} }}", self.path().display())
-            },
-            None => unsafe {
-                write!(f, "RawAssetId {{ ?: {} }}", self.index())
-            },
+        if cfg!(debug_assertions) {
+            let value = unsafe {self.path_string()};
+            write!(f, "RawAssetId {{ path: {:?} }}", value)
+        } else {
+            let value = unsafe {self.index};
+            write!(f, "RawAssetId {{ index: {:#x} }}", value)
         }
+
     }
 }
 
+// clone
 impl Clone for RawAssetId {
     fn clone(&self) -> Self {
-        match unsafe{*ASSET_ID_KIND.get()} {
-            Some(AssetIdKind::Index) => unsafe {
-                let index = self.index();
-                Self::from_index(index)
-            },
-            Some(AssetIdKind::Path) => unsafe {
-                let path = self.path();
-                Self::from_path(path)
-            },
-            None => ris_error::panic!("asset id kind is not set"),
+        if cfg!(debug_assertions) {
+            unsafe {Self::from_path(&*self.path)}
+        } else {
+            unsafe {Self::from_index(self.index)}
         }
     }
 }
 
+// eq
 impl PartialEq for RawAssetId {
     fn eq(&self, other: &Self) -> bool {
-        match unsafe{*ASSET_ID_KIND.get()} {
-            Some(AssetIdKind::Index) => unsafe {
-                self.index() == other.index()
-            },
-            Some(AssetIdKind::Path) => unsafe {
-                self.path() == other.path()
-            },
-            None => ris_error::panic!("asset id kind is not set"),
+        if cfg!(debug_assertions) {
+            unsafe {*self.path == *other.path}
+        } else {
+
+            unsafe {self.index == other.index}
         }
     }
 }
 
 impl Eq for RawAssetId {}
 
+// as ref
 impl AsRef<RawAssetId> for RawAssetId {
     fn as_ref(&self) -> &Self {
         self
@@ -111,111 +93,117 @@ impl<T> AsRef<AssetId<T>> for AssetId<T> {
     }
 }
 
-impl AsRef<BinAssetId> for BinAssetId {
-    fn as_ref(&self) -> &Self {
-        self
-    }
-}
-
+// send
 unsafe impl Send for RawAssetId {}
 unsafe impl<T> Send for AssetId<T> {}
-unsafe impl Send for BinAssetId {}
 
 //==============================================================================
 // Impl RawAssetId
 //==============================================================================
 impl RawAssetId {
-    // constructors
-    pub unsafe fn from_index_unchecked(v: u64) -> Self {
-        Self { index: v }
-    }
-
-    pub unsafe fn from_path_unchecked(p: impl AsRef<Path>) -> Self {
-        let mut id = MaybeUninit::<Self>::uninit();
-
-        unsafe {
-            (*id.as_mut_ptr()).set_path(p);
-            id.assume_init()
+    /// # Safety
+    ///
+    /// only construct in debug mode, or a leak on drop will occur
+    pub unsafe fn from_path(v: impl AsRef<Path>) -> Self {
+        Self {
+            path: alloc_path(v),
         }
     }
-
-    pub fn from_index(v: u64) -> Self {
-        ris_error::panic_assert!(unsafe{*ASSET_ID_KIND.get()} == Some(AssetIdKind::Index));
-        unsafe {Self::from_index_unchecked(v)}
-    }
-
-    pub fn from_path(p: impl AsRef<Path>) -> Self {
-        ris_error::panic_assert!(unsafe{*ASSET_ID_KIND.get()} == Some(AssetIdKind::Path));
-
-        let path = p.as_ref().display().to_string();
-        for c in path.chars() {
-            ris_error::panic_assert!(!c.is_uppercase(), "AssetId may not contain uppercase letters, but p was \"{}\"", path);
-        }
-
-        unsafe{Self::from_path_unchecked(p)}
-    }
-
-    pub unsafe fn null_index() -> Self {
-        RawAssetId::from_index(u64::MAX)
-    }
-
-    pub fn null() -> Self {
-        match unsafe{*ASSET_ID_KIND.get()} {
-            Some(AssetIdKind::Index) => unsafe {RawAssetId::from_index_unchecked(u64::MAX)},
-            Some(AssetIdKind::Path) => unsafe {RawAssetId::from_path_unchecked(PathBuf::from(NULL_PATH))},
-            None => ris_error::panic!("asset id kind is not set!"),
-        }
-    }
-
-    // getter
-    pub unsafe fn index(&self) -> u64 {
-        unsafe { self.index }
-    }
-
-    pub unsafe fn path(&self) -> &Path {
-        unsafe { &(*self.path) }
-    }
-
-    pub fn path_string(&self) -> RisResult<String> {
-        ris_error::assert!(unsafe{*ASSET_ID_KIND.get()} == Some(AssetIdKind::Path))?;
-
-        let path = unsafe {self.path()};
-        let display = path.display().to_string();
-        let replaced = display.replace('\\', "/");
-
-        Ok(replaced)
-    }
-
-    // setter
 
     /// # Safety
-    /// 
-    /// this function overwrites the path ptr **without** freeing the previous value. this will
-    /// result in a leak, so only call this method on uninitialized AssetIds!
-    pub unsafe fn set_path(&mut self, p: impl AsRef<Path>) {
-        let p = p.as_ref().to_path_buf();
-        let ptr = Box::into_raw(Box::new(p));
-        self.path = ptr
+    ///
+    /// dropping in debug builds causes UB. so only construct in release builds
+    /// or dont drop
+    pub unsafe fn from_index(v: u64) -> Self {
+        Self {index: v}
     }
 
-    // methods
+    /// # Safety
+    ///
+    /// See [`Self::from_path`].
+    pub unsafe fn null_path() -> Self {
+        unsafe {Self::from_path(NULL_PATH)}
+    }
+
+    /// # Safety
+    ///
+    /// See [`Self::from_index`].
+    pub unsafe fn null_index() -> Self {
+        unsafe{Self::from_index(NULL_INDEX)}
+    }
+
+    /// # Safety
+    ///
+    /// causes UB when this id does not store a path
     pub unsafe fn is_null_path(&self) -> bool {
-        let path = unsafe {self.path()};
-        path.display().to_string() == NULL_PATH
+        let lhs = unsafe {&*self.path};
+        let rhs = Path::new(NULL_PATH);
+        *lhs == *rhs
+    }
+
+    /// # Safety
+    ///
+    /// causes UB when this id does not store an index
+    pub unsafe fn is_null_index(&self) -> bool {
+        let lhs = unsafe{self.index};
+        let rhs = NULL_INDEX;
+        lhs == rhs
     }
 }
 
+impl RawAssetId {
+    /// # Safety
+    ///
+    /// causes UB when this id does not store a path
+    pub unsafe fn path_string(&self) -> String {
+        let path = unsafe {&*self.path};
+        let display = path.display().to_string();
+        let replaced = display.replace('\\', "/");
+        replaced
+    }
+
+    /// # Safety
+    ///
+    /// does not drop the stored path. only call on uninitialized ids. otherwise
+    /// the previous path will be leaked
+    pub unsafe fn set_path(&mut self, path: impl AsRef<Path>) {
+        unsafe {
+            //free_path(self.path);
+            self.path = alloc_path(path);
+        }
+    }
+}
+
+fn alloc_path(p: impl AsRef<Path>) -> *mut PathBuf {
+    let buf = p.as_ref().to_path_buf();
+    let boxed = Box::new(buf);
+    let ptr = Box::leak(boxed) as *mut PathBuf;
+    //println!("alloc {:?}", ptr);
+    ptr
+}
+
+/// # Safety
+///
+/// see [`Box::from_raw`]
+unsafe fn free_path(ptr: *mut PathBuf) {
+    //println!("free  {:?}", ptr);
+    if ptr.is_null() {
+        return;
+    }
+
+    let _ = unsafe {Box::from_raw(ptr)};
+}
+
 //==============================================================================
-// Impl AssetId & BinAssetId
+// Impl AssetId
 //==============================================================================
 impl<T> AssetId<T> {
     // constructors
 
     /// # Safety
-    /// 
-    /// `T` determines what struct the asset loader allocates and populates. 
-    /// to prevent UB, the asset this id is pointing to must absolutely be of 
-    /// type `T`.
+    ///
+    /// `raw` must be properly constructed and the asset it poins to must be of 
+    /// type `T`. improper usage leads to UB on asset loading
     pub unsafe fn from_raw(raw: impl AsRef<RawAssetId>) -> Self {
         Self {
             raw: raw.as_ref().clone(),
@@ -224,81 +212,47 @@ impl<T> AssetId<T> {
     }
 
     pub fn null() -> Self {
-        let raw = RawAssetId::null();
-        unsafe {Self::from_raw(raw)}
-    }
+        unsafe {
+            let raw = if cfg!(debug_assertions) {
+                RawAssetId::null_path()
+            } else {
+                RawAssetId::null_index()
+            };
 
-    // getters
-    pub fn raw(&self) -> &RawAssetId {
-        &self.raw
-    }
-
-    pub fn raw_mut(&mut self) -> &mut RawAssetId {
-        &mut self.raw
-    }
-
-    pub unsafe fn index(&self) -> u64 {
-        unsafe { self.raw.index }
-    }
-
-    pub unsafe fn path(&self) -> &Path {
-        unsafe { &(*self.raw.path) }
-    }
-
-    pub fn path_string(&self) -> RisResult<String> {
-        self.raw.path_string()
-    }
-
-    // setter
-
-    /// # Safety
-    /// 
-    /// see [`RawAssetId::set_path`]
-    pub unsafe fn set_path(&mut self, p: impl AsRef<Path>) {
-        unsafe {self.raw.set_path(p)};
-    }
-}
-
-impl BinAssetId {
-    // constructors
-    pub fn from_raw(raw: impl AsRef<RawAssetId>) -> Self {
-        Self {
-            raw: raw.as_ref().clone(),
+            Self::from_raw(raw)
         }
     }
 
-    pub fn null() -> Self {
-        let raw = RawAssetId::null();
-        Self::from_raw(raw)
-    }
-
-    // getters
+    // get/set
     pub fn raw(&self) -> &RawAssetId {
         &self.raw
     }
 
-    pub fn raw_mut(&mut self) -> &mut RawAssetId {
+    /// # Safety
+    ///
+    /// this function allows modification of the underlying raw id. this must be
+    /// used with caution. improper use easily leads to incorrectly configured 
+    /// AssetIds, creating UB both when dropping the id and when loading assets 
+    /// with it.
+    pub unsafe fn raw_mut(&mut self) -> &mut RawAssetId {
         &mut self.raw
     }
 
-    pub unsafe fn index(&self) -> u64 {
-        unsafe { self.raw.index }
-    }
-
-    pub unsafe fn path(&self) -> &Path {
-        unsafe { &(*self.raw.path) }
-    }
-
     pub fn path_string(&self) -> RisResult<String> {
-        self.raw.path_string()
+        if cfg!(debug_assertions) {
+            Ok(unsafe{self.raw.path_string()})
+        } else {
+            ris_error::new!("not available")
+        }
     }
 
-    // setter
-
-    /// # Safety
-    /// 
-    /// see [`RawAssetId::set_path`]
-    pub unsafe fn set_path(&mut self, p: impl AsRef<Path>) {
-        unsafe {self.raw.set_path(p)};
+    pub fn set_path(&mut self, path: impl AsRef<Path>) -> RisResult<()> {
+        if cfg!(debug_assertions) {
+            unsafe{self.raw.set_path(path)};
+            Ok(())
+        } else {
+            ris_error::new!("not available")
+        }
     }
 }
+

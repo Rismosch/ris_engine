@@ -56,19 +56,19 @@ impl RisAsset for RisGodAsset {
         unsafe {
             let s = &mut *s.as_mut_ptr();
 
-            s.default_vert_spv.set_path(path_from_json(json, DEFAULT_VERT_SPV)?);
-            s.default_frag_spv.set_path(path_from_json(json, DEFAULT_FRAG_SPV)?);
-            s.terrain_vert_spv.set_path(path_from_json(json, TERRAIN_VERT_SPV)?);
-            s.terrain_frag_spv.set_path(path_from_json(json, TERRAIN_FRAG_SPV)?);
-            s.imgui_vert_spv.set_path(path_from_json(json, IMGUI_VERT_SPV)?);
-            s.imgui_frag_spv.set_path(path_from_json(json, IMGUI_FRAG_SPV)?);
-            s.gizmo_segment_vert_spv.set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?);
-            s.gizmo_segment_frag_spv.set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?);
-            s.gizmo_text_vert_spv.set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?);
-            s.gizmo_text_geom_spv.set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?);
-            s.gizmo_text_frag_spv.set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?);
-            s.debug_font_texture.set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?);
-            s.texture.set_path(path_from_json(json, TEXTURE)?);
+            s.default_vert_spv.set_path(path_from_json(json, DEFAULT_VERT_SPV)?)?;
+            s.default_frag_spv.set_path(path_from_json(json, DEFAULT_FRAG_SPV)?)?;
+            s.terrain_vert_spv.set_path(path_from_json(json, TERRAIN_VERT_SPV)?)?;
+            s.terrain_frag_spv.set_path(path_from_json(json, TERRAIN_FRAG_SPV)?)?;
+            s.imgui_vert_spv.set_path(path_from_json(json, IMGUI_VERT_SPV)?)?;
+            s.imgui_frag_spv.set_path(path_from_json(json, IMGUI_FRAG_SPV)?)?;
+            s.gizmo_segment_vert_spv.set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?)?;
+            s.gizmo_segment_frag_spv.set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?)?;
+            s.gizmo_text_vert_spv.set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?)?;
+            s.gizmo_text_geom_spv.set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?)?;
+            s.gizmo_text_frag_spv.set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?)?;
+            s.debug_font_texture.set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?)?;
+            s.texture.set_path(path_from_json(json, TEXTURE)?)?;
         }
 
         Ok(())
@@ -94,7 +94,7 @@ impl RisAsset for RisGodAsset {
     }
 
     fn all_references_mut(&mut self) -> Vec<&mut RawAssetId> {
-        vec![
+        unsafe {vec![
             self.default_vert_spv.raw_mut(),
             self.default_frag_spv.raw_mut(),
             self.terrain_vert_spv.raw_mut(),
@@ -108,7 +108,7 @@ impl RisAsset for RisGodAsset {
             self.gizmo_text_frag_spv.raw_mut(),
             self.debug_font_texture.raw_mut(),
             self.texture.raw_mut(),
-        ]
+        ]}
     }
 }
 
