@@ -330,8 +330,6 @@ pub fn compile(
                         vtable.size,
                     ).to_vec();
 
-                    println!("before");
-
                     // replace path asset ids with index asset ids
                     let references = (vtable.all_references_mut)(j.data);
                     for reference in references {
@@ -354,8 +352,6 @@ pub fn compile(
                         *reference = index_id;
                     }
 
-                    println!("after");
-
                     // write to file!
                     let bytes = std::slice::from_raw_parts_mut(
                         j.data as *mut u8,
@@ -366,10 +362,8 @@ pub fn compile(
                     let write_result = target_file.write_all(&bytes);
 
                     // restore old bytes, as to properly free the path based ids
-                    println!("hoi");
                     bytes.copy_from_slice(&old_bytes);
                     drop(j);
-                    println!("poi");
 
                     // resolve result at last. this must be done after the ids 
                     // are replaced, otherwise an error would cause index based 
