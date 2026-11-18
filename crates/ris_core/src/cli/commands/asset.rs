@@ -5,6 +5,7 @@ use ris_asset::asset_compiler::CompileSettings;
 use ris_asset::asset_importer;
 use ris_error::prelude::*;
 use ris_log::log::IAppender;
+use ris_log::log::LogMode;
 use ris_log::log_level::LogLevel;
 
 use crate::log_appenders::console_appender::ConsoleAppender;
@@ -13,6 +14,7 @@ use super::ExplanationLevel;
 use super::ICommand;
 use super::util;
 
+const LOG_MODE: LogMode = LogMode::Seq;
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
 pub const COMPILE: &str = "compile";
@@ -73,7 +75,7 @@ impl ICommand for Asset {
 
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];
-        let _log_guard = ris_log::log::init(LOG_LEVEL, appenders);
+        let _log_guard = ris_log::log::init(LOG_MODE, LOG_LEVEL, appenders);
 
         match command.as_str() {
             COMPILE => {

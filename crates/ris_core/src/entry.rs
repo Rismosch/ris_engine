@@ -10,6 +10,7 @@ use ris_data::info::sdl_info::SdlInfo;
 use ris_error::prelude::*;
 use ris_log::log;
 use ris_log::log::IAppender;
+use ris_log::log::LogMode;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
@@ -20,6 +21,7 @@ use crate::log_appenders::file_appender::FileAppender;
 use crate::log_appenders::ui_helper_appender::UiHelperAppender;
 
 pub const CLI: &str = "cli";
+const LOG_MODE: LogMode = LogMode::Seq;
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
 #[allow(clippy::large_enum_variant)]
@@ -102,7 +104,7 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
             let appenders: Vec<Box<dyn IAppender + Send>> =
                 vec![console_appender, file_appender, ui_helper_appender];
 
-            let _log_guard = log::init(LOG_LEVEL, appenders);
+            let _log_guard = log::init(LOG_MODE, LOG_LEVEL, appenders);
 
             ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
