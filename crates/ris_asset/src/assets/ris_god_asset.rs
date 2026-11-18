@@ -7,6 +7,7 @@ use ris_error::prelude::*;
 
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
+use crate::util::InitFromJson;
 
 pub const EXTENSION: &str = "ris_god_asset";
 pub const PATH: &str = "god_asset.ris_god_asset";
@@ -44,44 +45,30 @@ pub struct RisGodAsset {
     pub texture: BinAssetId,
 }
 
-fn path_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<PathBuf> {
-    let name = name.as_ref();
-    let value = json
-        .get::<&str>(name)
-        .ris_expect(&format!("id \"{}\" to be assigned", name))?;
-    Ok(PathBuf::from(value))
-}
-
 impl RisAsset for RisGodAsset {
     fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()> {
         unsafe {
             let s = &mut *s.as_mut_ptr();
 
-            s.default_vert_spv
-                .set_path(path_from_json(json, DEFAULT_VERT_SPV)?)?;
-            s.default_frag_spv
-                .set_path(path_from_json(json, DEFAULT_FRAG_SPV)?)?;
-            s.terrain_vert_spv
-                .set_path(path_from_json(json, TERRAIN_VERT_SPV)?)?;
-            s.terrain_frag_spv
-                .set_path(path_from_json(json, TERRAIN_FRAG_SPV)?)?;
-            s.imgui_vert_spv
-                .set_path(path_from_json(json, IMGUI_VERT_SPV)?)?;
-            s.imgui_frag_spv
-                .set_path(path_from_json(json, IMGUI_FRAG_SPV)?)?;
+            s.default_vert_spv.init_from_json(json, DEFAULT_VERT_SPV)?;
+            s.default_frag_spv.init_from_json(json, DEFAULT_FRAG_SPV)?;
+            s.terrain_vert_spv.init_from_json(json, TERRAIN_VERT_SPV)?;
+            s.terrain_frag_spv.init_from_json(json, TERRAIN_FRAG_SPV)?;
+            s.imgui_vert_spv.init_from_json(json, IMGUI_VERT_SPV)?;
+            s.imgui_frag_spv.init_from_json(json, IMGUI_FRAG_SPV)?;
             s.gizmo_segment_vert_spv
-                .set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?)?;
+                .init_from_json(json, GIZMO_SEGMENT_VERT_SPV)?;
             s.gizmo_segment_frag_spv
-                .set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?)?;
+                .init_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?;
             s.gizmo_text_vert_spv
-                .set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?)?;
+                .init_from_json(json, GIZMO_TEXT_VERT_SPV)?;
             s.gizmo_text_geom_spv
-                .set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?)?;
+                .init_from_json(json, GIZMO_TEXT_GEOM_SPV)?;
             s.gizmo_text_frag_spv
-                .set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?)?;
+                .init_from_json(json, GIZMO_TEXT_FRAG_SPV)?;
             s.debug_font_texture
-                .set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?)?;
-            s.texture.set_path(path_from_json(json, TEXTURE)?)?;
+                .init_from_json(json, DEBUG_FONT_TEXTURE)?;
+            s.texture.init_from_json(json, TEXTURE)?;
         }
 
         Ok(())

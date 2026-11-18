@@ -165,10 +165,7 @@ impl RawAssetId {
     /// does not drop the stored path. only call on uninitialized ids. otherwise
     /// the previous path will be leaked
     pub unsafe fn set_path(&mut self, path: impl AsRef<Path>) {
-        unsafe {
-            //free_path(self.path);
-            self.path = alloc_path(path);
-        }
+        self.path = alloc_path(path);
     }
 }
 
@@ -244,7 +241,11 @@ impl<T> AssetId<T> {
         }
     }
 
-    pub fn set_path(&mut self, path: impl AsRef<Path>) -> RisResult<()> {
+    /// # Safety
+    ///
+    /// does not drop the stored path. only call on uninitialized ids. otherwise
+    /// the previous path will be leaked
+    pub unsafe fn set_path(&mut self, path: impl AsRef<Path>) -> RisResult<()> {
         if cfg!(debug_assertions) {
             unsafe { self.raw.set_path(path) };
             Ok(())
