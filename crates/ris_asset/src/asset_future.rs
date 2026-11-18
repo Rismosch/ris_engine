@@ -15,7 +15,10 @@ pub struct AssetFuture<T: RisAsset> {
 impl<T: RisAsset> AssetFuture<T> {
     pub fn new() -> (Self, UnsafeSender) {
         let (sender, receiver) = ris_async::unsafe_channel::<T>();
-        let future = Self { receiver, _boo: PhantomData };
+        let future = Self {
+            receiver,
+            _boo: PhantomData,
+        };
         (future, sender)
     }
 
@@ -25,7 +28,7 @@ impl<T: RisAsset> AssetFuture<T> {
         };
 
         loop {
-            match unsafe {self.receiver.take()} {
+            match unsafe { self.receiver.take() } {
                 Some(output) => return output,
                 None => {
                     let job_was_run = worker.run_pending_job();
@@ -37,4 +40,3 @@ impl<T: RisAsset> AssetFuture<T> {
         }
     }
 }
-

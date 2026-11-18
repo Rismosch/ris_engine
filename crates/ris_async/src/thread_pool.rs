@@ -31,7 +31,7 @@ impl Job {
     }
 }
 
-const BUFLEN: usize = 1<<10;
+const BUFLEN: usize = 1 << 10;
 pub type JobDeque = Arc<Mutex<RisDeque<Job, BUFLEN>>>;
 fn new_job_queue() -> JobDeque {
     Arc::new(Mutex::new(RisDeque::default()))
@@ -56,14 +56,14 @@ pub struct ThreadPoolCreateInfo {
 
 pub struct ThreadPool {
     join_handles: Vec<JoinHandle<()>>,
-    boo: PhantomData<*const()>, // prohibit Send/Sync
+    boo: PhantomData<*const ()>, // prohibit Send/Sync
 }
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         ris_log::trace!("dropping thread_pool...");
 
-        let worker = unsafe {self.main_worker()};
+        let worker = unsafe { self.main_worker() };
         worker.done.store(true, Ordering::Relaxed);
 
         while let Some(join_handle) = self.join_handles.pop() {
@@ -146,7 +146,9 @@ impl ThreadPool {
             worker_threads.push(thread);
         }
 
-        let mut g = worker_create_info.worker_threads.lock()
+        let mut g = worker_create_info
+            .worker_threads
+            .lock()
             .ris_pexpect(POISON_MESSAGE);
         *g = Some(worker_threads.clone());
         drop(g);
@@ -159,12 +161,12 @@ impl ThreadPool {
 
         Ok(ThreadPool {
             join_handles,
-            boo: Default::default()
+            boo: Default::default(),
         })
     }
 
     pub fn submit(&mut self, job: impl FnOnce() + Send + 'static) {
-        let worker = unsafe {self.main_worker()};
+        let worker = unsafe { self.main_worker() };
         worker.submit_to_queue(job, &worker.pool_queue);
     }
 
@@ -172,17 +174,13 @@ impl ThreadPool {
         get_worker()
     }
 
-    pub fn for_each<T, Callback>(
-        &mut self,
-        slice: impl AsRef<[T]>,
-        callback: Callback,
-    ) 
-        where
-            T: Send + Sync + 'static,
-            Callback: Fn(&T) + Clone + Send + Sync + 'static
+    pub fn for_each<T, Callback>(&mut self, slice: impl AsRef<[T]>, callback: Callback)
+    where
+        T: Send + Sync + 'static,
+        Callback: Fn(&T) + Clone + Send + Sync + 'static,
     {
         let slice = slice.as_ref();
-        let block_count = unsafe {self.main_worker()}.other_queues.len() + 1;
+        let block_count = unsafe { self.main_worker() }.other_queues.len() + 1;
         let block_size = slice.len() / block_count;
         let mut futures = Vec::with_capacity(block_count + 1);
 
@@ -194,7 +192,7 @@ impl ThreadPool {
                 let (setter, receiver) = crate::single_use_channel();
                 self.submit(move || {
                     let slice_ptr = slice_ptr.get();
-                    let element = unsafe {&*slice_ptr.add(i)};
+                    let element = unsafe { &*slice_ptr.add(i) };
                     callback(element);
                     setter.send(());
                 });
@@ -216,7 +214,7 @@ impl ThreadPool {
                 self.submit(move || {
                     let slice_ptr = slice_ptr.get();
                     for i in start..end {
-                        let element = unsafe {&*slice_ptr.add(i)};
+                        let element = unsafe { &*slice_ptr.add(i) };
                         callback(element);
                     }
 
@@ -244,13 +242,12 @@ impl ThreadPool {
     pub unsafe fn main_worker(&mut self) -> &'static ThreadPoolWorker {
         let Some(worker) = Self::worker() else {
             // enforced by the function signature, which takes a `&mut self`
-            unreachable!("main thread should always be a worker"); 
+            unreachable!("main thread should always be a worker");
         };
 
         worker
     }
 }
-
 
 //==============================================================================
 // Worker
@@ -329,9 +326,7 @@ impl ThreadPoolWorker {
 
         // setup worker threads
         loop {
-            let g = worker_threads
-                .lock()
-                .ris_pexpect(POISON_MESSAGE);
+            let g = worker_threads.lock().ris_pexpect(POISON_MESSAGE);
             if g.is_some() {
                 break;
             }
@@ -401,7 +396,7 @@ impl ThreadPoolWorker {
             Some(job) => {
                 job.invoke();
                 true
-            },
+            }
             None => false,
         }
     }
@@ -443,34 +438,33 @@ impl ThreadPoolWorker {
 
     fn get_job(&self) -> Option<Job> {
         // get local job
-        let local_job = self.local_queue
+        let local_job = self
+            .local_queue
             .lock()
             .ris_pexpect(POISON_MESSAGE)
             .pop_back();
 
         if let Some(job) = local_job {
-            return Some(job)
+            return Some(job);
         }
 
         // get pool job
-        let pool_job = self.pool_queue
+        let pool_job = self
+            .pool_queue
             .lock()
             .ris_pexpect(POISON_MESSAGE)
             .pop_back();
 
         if let Some(job) = pool_job {
-            return Some(job)
+            return Some(job);
         }
 
         // steal job
         for other in self.other_queues.iter() {
-            let stolen_job = other
-                .lock()
-                .ris_pexpect(POISON_MESSAGE)
-                .pop_front();
+            let stolen_job = other.lock().ris_pexpect(POISON_MESSAGE).pop_front();
 
             if let Some(job) = stolen_job {
-                return Some(job)
+                return Some(job);
             }
         }
 
@@ -478,4 +472,3 @@ impl ThreadPoolWorker {
         None
     }
 }
-

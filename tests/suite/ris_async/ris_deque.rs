@@ -79,23 +79,23 @@ fn should_drop_owned_data() {
     struct Counter(Rc<UnsafeCell<usize>>);
     impl Drop for Counter {
         fn drop(&mut self) {
-            unsafe {*self.0.get() += 1}
+            unsafe { *self.0.get() += 1 }
         }
     }
 
     let c = Counter(Rc::new(UnsafeCell::new(0)));
     let mut b = RisDeque::<Counter, 16>::default();
-    assert!(unsafe{*c.0.get()} == 0);
+    assert!(unsafe { *c.0.get() } == 0);
     b.push_back(c.clone()).unwrap();
     b.push_back(c.clone()).unwrap();
     b.push_back(c.clone()).unwrap();
     b.push_back(c.clone()).unwrap();
     b.push_back(c.clone()).unwrap();
-    assert!(unsafe{*c.0.get()} == 0);
+    assert!(unsafe { *c.0.get() } == 0);
     drop(b.pop_back().unwrap());
-    assert!(unsafe{*c.0.get()} == 1);
+    assert!(unsafe { *c.0.get() } == 1);
     drop(b.pop_front().unwrap());
-    assert!(unsafe{*c.0.get()} == 2);
+    assert!(unsafe { *c.0.get() } == 2);
     drop(b);
-    assert!(unsafe{*c.0.get()} == 5);
+    assert!(unsafe { *c.0.get() } == 5);
 }

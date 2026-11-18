@@ -103,8 +103,8 @@ impl ImguiRenderer {
         } = core;
 
         // shaders
-        let vs_asset_future = unsafe {asset_loader.load_bin_async(&god_asset.imgui_vert_spv)}?;
-        let fs_asset_future = unsafe {asset_loader.load_bin_async(&god_asset.imgui_frag_spv)}?;
+        let vs_asset_future = unsafe { asset_loader.load_bin_async(&god_asset.imgui_vert_spv) }?;
+        let fs_asset_future = unsafe { asset_loader.load_bin_async(&god_asset.imgui_frag_spv) }?;
 
         let vs_bytes = vs_asset_future.wait();
         let fs_bytes = fs_asset_future.wait();

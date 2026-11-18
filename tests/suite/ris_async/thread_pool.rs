@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use ris_async::spin_lock::SpinLock;
-use ris_async::thread_pool::StallStrategy;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
+use ris_async::spin_lock::SpinLock;
+use ris_async::thread_pool::StallStrategy;
 
 fn get_cpu_count() -> usize {
     #[cfg(miri)]

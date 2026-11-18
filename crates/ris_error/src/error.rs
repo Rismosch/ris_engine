@@ -20,11 +20,7 @@ impl std::fmt::Display for RisError {
             write!(f, " from {}", source_type_name)?;
         }
 
-        write!(
-            f,
-            "\"{}\" at {}:{}",
-            self.message, self.file, self.line,
-        )
+        write!(f, "\"{}\" at {}:{}", self.message, self.file, self.line,)
     }
 }
 
@@ -82,7 +78,7 @@ pub trait OptionExtensions<T> {
     fn ris_pexpect(self, msg: impl AsRef<str>) -> T;
 }
 
-pub trait ResultExtensions<T> : OptionExtensions<T> {
+pub trait ResultExtensions<T>: OptionExtensions<T> {
     fn ris_context(self, msg: impl AsRef<str>) -> Self;
 }
 

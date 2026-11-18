@@ -135,9 +135,7 @@ impl VulkanCore {
         // logical device
         let Some(suitable_device) = suitable_devices.into_iter().min_by_key(|x| x.suitability)
         else {
-            return ris_error::new!(
-                "no suitable hardware found to initialize vulkan renderer"
-            );
+            return ris_error::new!("no suitable hardware found to initialize vulkan renderer");
         };
 
         ris_log::info!("chosen Vulkan Physical Device: {}", suitable_device.name);

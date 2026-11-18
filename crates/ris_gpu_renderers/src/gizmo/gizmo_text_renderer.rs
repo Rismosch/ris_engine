@@ -200,9 +200,9 @@ impl GizmoTextRenderer {
             unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?;
 
         // shaders
-        let vs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_vert_spv)}?;
-        let gs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_geom_spv)}?;
-        let fs_future = unsafe {asset_loader.load_bin_async(&god_asset.gizmo_text_frag_spv)}?;
+        let vs_future = unsafe { asset_loader.load_bin_async(&god_asset.gizmo_text_vert_spv) }?;
+        let gs_future = unsafe { asset_loader.load_bin_async(&god_asset.gizmo_text_geom_spv) }?;
+        let fs_future = unsafe { asset_loader.load_bin_async(&god_asset.gizmo_text_frag_spv) }?;
 
         let vs_bytes = vs_future.wait();
         let gs_bytes = gs_future.wait();
@@ -518,7 +518,7 @@ impl GizmoTextRenderer {
         unsafe { device.destroy_shader_module(fs_module, None) };
 
         // texture
-        let font_future = unsafe {asset_loader.load_bin_async(&god_asset.debug_font_texture)}?;
+        let font_future = unsafe { asset_loader.load_bin_async(&god_asset.debug_font_texture) }?;
         let font_data = font_future.wait();
         let (pixels, desc) = qoi::decode(&font_data, None)?;
 

@@ -30,7 +30,7 @@ enum LoggerInner {
         sender: Sender<LogMessage>,
         thread_handle: JoinHandle<()>,
     },
-    Seq{
+    Seq {
         appenders: Vec<Box<dyn IAppender + Send>>,
     },
 }
@@ -66,20 +66,22 @@ impl Drop for Logger {
         };
 
         match inner {
-            LoggerInner::Async { sender, thread_handle } => {
+            LoggerInner::Async {
+                sender,
+                thread_handle,
+            } => {
                 drop(sender);
                 if let Err(e) = thread_handle.join() {
                     eprintln!("ERROR failed to drop logger: {:?}", e);
                 }
-            },
+            }
             LoggerInner::Seq { mut appenders } => {
                 let final_log_message = LogMessage::Plain(String::from("logging ended"));
                 for appender in appenders.iter_mut() {
                     appender.print(&final_log_message);
                 }
-            },
+            }
         }
-
     }
 }
 
@@ -94,7 +96,6 @@ pub fn init(
             return LogGuard;
         }
 
-
         let inner = match mode {
             LogMode::Async => {
                 let (sender, receiver) = channel();
@@ -102,11 +103,12 @@ pub fn init(
                     log_thread(receiver, appenders);
                 });
 
-                LoggerInner::Async { sender, thread_handle }
-            },
-            LogMode::Seq => {
-                LoggerInner::Seq { appenders }
-            },
+                LoggerInner::Async {
+                    sender,
+                    thread_handle,
+                }
+            }
+            LogMode::Seq => LoggerInner::Seq { appenders },
         };
 
         let logger = Logger {
@@ -208,16 +210,19 @@ pub fn forward_to_appenders(log_message: LogMessage) {
                 };
 
                 match inner {
-                    LoggerInner::Async { sender, thread_handle: _ } => {
+                    LoggerInner::Async {
+                        sender,
+                        thread_handle: _,
+                    } => {
                         if let Err(e) = sender.send(log_message) {
                             eprintln!("ERROR failed forwarding to appenders: send error: {}", e);
                         }
-                    },
-                    LoggerInner::Seq {appenders} => {
+                    }
+                    LoggerInner::Seq { appenders } => {
                         for appender in appenders.iter_mut() {
                             appender.print(&log_message);
                         }
-                    },
+                    }
                 }
             }
         }

@@ -11,24 +11,19 @@ use ris_asset_data::asset_id::RawAssetId;
 use ris_error::prelude::*;
 use ris_ptr::Janitor;
 
+use crate::RisGodAsset;
 use crate::assets::ris_asset::RisAsset;
 use crate::assets::ris_god_asset;
 use crate::codecs::json::JsonObject;
 use crate::codecs::json::JsonValue;
-use crate::RisGodAsset;
 
 pub const DEFAULT_ASSET_DIRECTORY: &str = "assets/in_use";
 pub const DEFAULT_COMPILED_FILE: &str = "ris_assets";
 pub const DEFAULT_DECOMPILED_DIRECTORY: &str = "decompiled_assets";
 
-const BIN_ASSET_EXTENSIONS: &[&str] = &[
-    "qoi",
-    "spv",
-];
+const BIN_ASSET_EXTENSIONS: &[&str] = &["qoi", "spv"];
 
-const VTABLES: &[(&str, VTable)] = &[
-    (ris_god_asset::EXTENSION, VTable::new::<RisGodAsset>()),
-];
+const VTABLES: &[(&str, VTable)] = &[(ris_god_asset::EXTENSION, VTable::new::<RisGodAsset>())];
 
 #[derive(Debug, Clone)]
 struct VTable {
@@ -76,11 +71,7 @@ struct AssetUnit {
 /// compiles a directory to a ris_asset file
 /// - `source`: the directory to be compiled
 /// - `target`: the path to the final compiled file. if this file exists already, it will be overwritten
-pub fn compile(
-    source: &str,
-    target: &str,
-    settings: CompileSettings,
-) -> RisResult<()> {
+pub fn compile(source: &str, target: &str, settings: CompileSettings) -> RisResult<()> {
     if !cfg!(debug_assertions) {
         return ris_error::new!("not available");
     }
@@ -140,11 +131,12 @@ pub fn compile(
                 }
 
                 match result {
-                    Some(deserialized) => {
-                        AssetKind::Ris(deserialized)
-                    },
+                    Some(deserialized) => AssetKind::Ris(deserialized),
                     None => {
-                        ris_log::warning!("asset \"{}\" has unknown extension and will be ignored", entry_path.display());
+                        ris_log::warning!(
+                            "asset \"{}\" has unknown extension and will be ignored",
+                            entry_path.display()
+                        );
                         continue;
                     }
                 }
@@ -161,8 +153,7 @@ pub fn compile(
                 .strip_prefix(&prefix)
                 .ris_expect(&format!(
                     "path \"{}\" to start with prefix \"{}\"",
-                    cleaned,
-                    prefix,
+                    cleaned, prefix,
                 ))?
                 .to_string();
 
@@ -185,7 +176,9 @@ pub fn compile(
 
     // find references
     ris_log::info!("determine assets, which are actually referenced...");
-    let god_asset = assets.get(ris_god_asset::PATH).ris_expect("god asset to exist")?;
+    let god_asset = assets
+        .get(ris_god_asset::PATH)
+        .ris_expect("god asset to exist")?;
 
     let mut references = std::collections::VecDeque::<AssetUnit>::new();
     references.push_back(god_asset.clone());
@@ -211,7 +204,7 @@ pub fn compile(
             let mut file_content = String::new();
             file.read_to_string(&mut file_content)?;
 
-            let JsonValue::Object(json) =  JsonValue::deserialize(file_content)? else {
+            let JsonValue::Object(json) = JsonValue::deserialize(file_content)? else {
                 return ris_error::new!("file content is not a JsonObject");
             };
 
@@ -286,7 +279,10 @@ pub fn compile(
 
         expected_size += asset_size;
 
-        if asset_index_lookup.insert(asset.id_path.clone(), index).is_some() {
+        if asset_index_lookup
+            .insert(asset.id_path.clone(), index)
+            .is_some()
+        {
             return ris_error::new!("expected asset id to be unique");
         }
     }
@@ -307,7 +303,7 @@ pub fn compile(
                 let size = file_content.len() as u32;
                 target_file.write_all(&size.to_ne_bytes())?;
                 target_file.write_all(&file_content)?;
-            },
+            }
             AssetKind::Ris(vtable) => {
                 unsafe {
                     let j = Janitor {
@@ -325,10 +321,8 @@ pub fn compile(
                     ris_log::debug!("resolve references...");
 
                     // store old bytes for a proper free later
-                    let old_bytes = std::slice::from_raw_parts(
-                        j.data as *mut u8,
-                        vtable.size,
-                    ).to_vec();
+                    let old_bytes =
+                        std::slice::from_raw_parts(j.data as *mut u8, vtable.size).to_vec();
 
                     // replace path asset ids with index asset ids
                     let references = (vtable.all_references_mut)(j.data);
@@ -341,7 +335,7 @@ pub fn compile(
                                 Some(&reference_index) => {
                                     let reference_asset = &asset_list[reference_index];
                                     RawAssetId::from_index(reference_asset.id_index)
-                                },
+                                }
                                 None => RawAssetId::null_index(),
                             }
                         };
@@ -353,10 +347,7 @@ pub fn compile(
                     }
 
                     // write to file!
-                    let bytes = std::slice::from_raw_parts_mut(
-                        j.data as *mut u8,
-                        vtable.size,
-                    );
+                    let bytes = std::slice::from_raw_parts_mut(j.data as *mut u8, vtable.size);
 
                     ris_log::debug!("write ris asset...");
                     let write_result = target_file.write_all(&bytes);
@@ -365,13 +356,12 @@ pub fn compile(
                     bytes.copy_from_slice(&old_bytes);
                     drop(j);
 
-                    // resolve result at last. this must be done after the ids 
-                    // are replaced, otherwise an error would cause index based 
+                    // resolve result at last. this must be done after the ids
+                    // are replaced, otherwise an error would cause index based
                     // ids to be freed, which causes UB
                     write_result?;
-
                 }
-            },
+            }
         };
     }
 
@@ -390,7 +380,6 @@ pub fn compile(
         target_file.write_all(&addr.to_ne_bytes())?;
         target_file.write_all(&[1u8])?;
     } else {
-
         target_file.write_all(&[0u8])?;
     }
 
@@ -406,10 +395,5 @@ pub fn decompile(source: &str, target: &str) -> RisResult<()> {
 }
 
 fn clean_path(path: impl AsRef<Path>) -> String {
-    path
-        .as_ref()
-        .display()
-        .to_string()
-        .replace('\\', "/")
+    path.as_ref().display().to_string().replace('\\', "/")
 }
-

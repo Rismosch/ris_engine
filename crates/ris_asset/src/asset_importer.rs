@@ -176,10 +176,7 @@ pub fn import_all(
         let split1 = splits[1].trim();
 
         if split0.is_empty() || split1.is_empty() {
-            return ris_error::new!(
-                "source and target may not be empty. line: {}",
-                line_number,
-            );
+            return ris_error::new!("source and target may not be empty. line: {}", line_number,);
         }
 
         let source = PathBuf::from(import_directory).join(split0);

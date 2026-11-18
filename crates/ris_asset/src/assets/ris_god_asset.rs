@@ -46,7 +46,8 @@ pub struct RisGodAsset {
 
 fn path_from_json(json: &JsonObject, name: impl AsRef<str>) -> RisResult<PathBuf> {
     let name = name.as_ref();
-    let value = json.get::<&str>(name)
+    let value = json
+        .get::<&str>(name)
         .ris_expect(&format!("id \"{}\" to be assigned", name))?;
     Ok(PathBuf::from(value))
 }
@@ -56,18 +57,30 @@ impl RisAsset for RisGodAsset {
         unsafe {
             let s = &mut *s.as_mut_ptr();
 
-            s.default_vert_spv.set_path(path_from_json(json, DEFAULT_VERT_SPV)?)?;
-            s.default_frag_spv.set_path(path_from_json(json, DEFAULT_FRAG_SPV)?)?;
-            s.terrain_vert_spv.set_path(path_from_json(json, TERRAIN_VERT_SPV)?)?;
-            s.terrain_frag_spv.set_path(path_from_json(json, TERRAIN_FRAG_SPV)?)?;
-            s.imgui_vert_spv.set_path(path_from_json(json, IMGUI_VERT_SPV)?)?;
-            s.imgui_frag_spv.set_path(path_from_json(json, IMGUI_FRAG_SPV)?)?;
-            s.gizmo_segment_vert_spv.set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?)?;
-            s.gizmo_segment_frag_spv.set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?)?;
-            s.gizmo_text_vert_spv.set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?)?;
-            s.gizmo_text_geom_spv.set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?)?;
-            s.gizmo_text_frag_spv.set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?)?;
-            s.debug_font_texture.set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?)?;
+            s.default_vert_spv
+                .set_path(path_from_json(json, DEFAULT_VERT_SPV)?)?;
+            s.default_frag_spv
+                .set_path(path_from_json(json, DEFAULT_FRAG_SPV)?)?;
+            s.terrain_vert_spv
+                .set_path(path_from_json(json, TERRAIN_VERT_SPV)?)?;
+            s.terrain_frag_spv
+                .set_path(path_from_json(json, TERRAIN_FRAG_SPV)?)?;
+            s.imgui_vert_spv
+                .set_path(path_from_json(json, IMGUI_VERT_SPV)?)?;
+            s.imgui_frag_spv
+                .set_path(path_from_json(json, IMGUI_FRAG_SPV)?)?;
+            s.gizmo_segment_vert_spv
+                .set_path(path_from_json(json, GIZMO_SEGMENT_VERT_SPV)?)?;
+            s.gizmo_segment_frag_spv
+                .set_path(path_from_json(json, GIZMO_SEGMENT_FRAG_SPV)?)?;
+            s.gizmo_text_vert_spv
+                .set_path(path_from_json(json, GIZMO_TEXT_VERT_SPV)?)?;
+            s.gizmo_text_geom_spv
+                .set_path(path_from_json(json, GIZMO_TEXT_GEOM_SPV)?)?;
+            s.gizmo_text_frag_spv
+                .set_path(path_from_json(json, GIZMO_TEXT_FRAG_SPV)?)?;
+            s.debug_font_texture
+                .set_path(path_from_json(json, DEBUG_FONT_TEXTURE)?)?;
             s.texture.set_path(path_from_json(json, TEXTURE)?)?;
         }
 
@@ -82,8 +95,14 @@ impl RisAsset for RisGodAsset {
         json.push(TERRAIN_FRAG_SPV, self.terrain_frag_spv.path_string()?);
         json.push(IMGUI_VERT_SPV, self.imgui_vert_spv.path_string()?);
         json.push(IMGUI_FRAG_SPV, self.imgui_frag_spv.path_string()?);
-        json.push(GIZMO_SEGMENT_VERT_SPV, self.gizmo_segment_vert_spv.path_string()?);
-        json.push(GIZMO_SEGMENT_FRAG_SPV, self.gizmo_segment_frag_spv.path_string()?);
+        json.push(
+            GIZMO_SEGMENT_VERT_SPV,
+            self.gizmo_segment_vert_spv.path_string()?,
+        );
+        json.push(
+            GIZMO_SEGMENT_FRAG_SPV,
+            self.gizmo_segment_frag_spv.path_string()?,
+        );
         json.push(GIZMO_TEXT_VERT_SPV, self.gizmo_text_vert_spv.path_string()?);
         json.push(GIZMO_TEXT_GEOM_SPV, self.gizmo_text_geom_spv.path_string()?);
         json.push(GIZMO_TEXT_FRAG_SPV, self.gizmo_text_frag_spv.path_string()?);
@@ -94,21 +113,22 @@ impl RisAsset for RisGodAsset {
     }
 
     fn all_references_mut(&mut self) -> Vec<&mut RawAssetId> {
-        unsafe {vec![
-            self.default_vert_spv.raw_mut(),
-            self.default_frag_spv.raw_mut(),
-            self.terrain_vert_spv.raw_mut(),
-            self.terrain_frag_spv.raw_mut(),
-            self.imgui_vert_spv.raw_mut(),
-            self.imgui_frag_spv.raw_mut(),
-            self.gizmo_segment_vert_spv.raw_mut(),
-            self.gizmo_segment_frag_spv.raw_mut(),
-            self.gizmo_text_vert_spv.raw_mut(),
-            self.gizmo_text_geom_spv.raw_mut(),
-            self.gizmo_text_frag_spv.raw_mut(),
-            self.debug_font_texture.raw_mut(),
-            self.texture.raw_mut(),
-        ]}
+        unsafe {
+            vec![
+                self.default_vert_spv.raw_mut(),
+                self.default_frag_spv.raw_mut(),
+                self.terrain_vert_spv.raw_mut(),
+                self.terrain_frag_spv.raw_mut(),
+                self.imgui_vert_spv.raw_mut(),
+                self.imgui_frag_spv.raw_mut(),
+                self.gizmo_segment_vert_spv.raw_mut(),
+                self.gizmo_segment_frag_spv.raw_mut(),
+                self.gizmo_text_vert_spv.raw_mut(),
+                self.gizmo_text_geom_spv.raw_mut(),
+                self.gizmo_text_frag_spv.raw_mut(),
+                self.debug_font_texture.raw_mut(),
+                self.texture.raw_mut(),
+            ]
+        }
     }
 }
-

@@ -7,6 +7,6 @@ pub struct Janitor {
 
 impl Drop for Janitor {
     fn drop(&mut self) {
-        unsafe {(self.destructor)(self.data)}
+        unsafe { (self.destructor)(self.data) }
     }
 }

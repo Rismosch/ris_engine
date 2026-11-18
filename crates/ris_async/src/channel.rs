@@ -129,7 +129,7 @@ pub fn unsafe_channel<T: Send>() -> (UnsafeSender, UnsafeReceiver) {
     let sender = UnsafeSender {
         channel: channel.clone(),
     };
-    let receiver = UnsafeReceiver {channel};
+    let receiver = UnsafeReceiver { channel };
 
     (sender, receiver)
 }
@@ -154,7 +154,7 @@ impl UnsafeReceiver {
     pub unsafe fn take<T: Send>(&mut self) -> Option<Box<T>> {
         if self.channel.ready.swap(false, Ordering::Acquire) {
             let p_data = self.channel.p_data as *mut T;
-            let output = unsafe {Box::from_raw(p_data)};
+            let output = unsafe { Box::from_raw(p_data) };
             Some(output)
         } else {
             None

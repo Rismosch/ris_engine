@@ -39,11 +39,7 @@ impl<T> SpinLock<T> {
                     std::thread::yield_now();
                 }
 
-                backoff = if backoff < 64 {
-                    backoff << 1
-                } else {
-                    64
-                };
+                backoff = if backoff < 64 { backoff << 1 } else { 64 };
 
                 if self.locked.load(Ordering::Relaxed) {
                     continue;

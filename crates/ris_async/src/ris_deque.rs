@@ -9,7 +9,7 @@ pub struct RisDeque<T, const N: usize> {
 impl<T, const N: usize> Default for RisDeque<T, N> {
     fn default() -> Self {
         Self {
-            buffer: [const {MaybeUninit::uninit()}; N],
+            buffer: [const { MaybeUninit::uninit() }; N],
             head: 0,
             tail: 0,
         }
@@ -30,7 +30,7 @@ impl<T, const N: usize> RisDeque<T, N> {
             new_head = 0;
         }
         if new_head == self.tail {
-            return Err(value) // buffer is full
+            return Err(value); // buffer is full
         }
         self.buffer[old_head].write(value);
         self.head = new_head;
@@ -45,7 +45,7 @@ impl<T, const N: usize> RisDeque<T, N> {
             old_tail - 1
         };
         if new_tail == self.head {
-            return Err(value) // buffer is full
+            return Err(value); // buffer is full
         }
         self.buffer[new_tail].write(value);
         self.tail = new_tail;
@@ -63,7 +63,7 @@ impl<T, const N: usize> RisDeque<T, N> {
             old_head - 1
         };
 
-        let value = unsafe {self.buffer[new_head].assume_init_read()};
+        let value = unsafe { self.buffer[new_head].assume_init_read() };
         self.head = new_head;
         Some(value)
     }
@@ -73,7 +73,7 @@ impl<T, const N: usize> RisDeque<T, N> {
         if old_tail == self.head {
             return None; // buffer is empty
         }
-        let value = unsafe {self.buffer[old_tail].assume_init_read()};
+        let value = unsafe { self.buffer[old_tail].assume_init_read() };
         let mut new_tail = old_tail + 1;
         if new_tail == self.buffer.len() {
             new_tail = 0;
