@@ -138,6 +138,7 @@ impl std::error::Error for ReadError {}
 /// ```
 ///
 /// The `FatPtr` in this example refers to Byte 1 and Byte 2.
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FatPtr {
     pub addr: u64,

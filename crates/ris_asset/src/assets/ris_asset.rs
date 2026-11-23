@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
-use ris_asset_data::RawAssetId;
 use ris_error::prelude::*;
 
+use crate::asset_id::RawAssetId;
 use crate::codecs::json::JsonObject;
 
 pub trait RisAsset: Clone + Send {

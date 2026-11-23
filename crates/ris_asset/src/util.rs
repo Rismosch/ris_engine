@@ -1,7 +1,4 @@
-use ris_asset_data::AssetId;
-use ris_error::{RisError, RisResult};
-
-use crate::codecs::json::JsonObject;
+use ris_error::RisResult;
 
 pub fn add_alpha_channel(pixels: &[u8]) -> RisResult<Vec<u8>> {
     ris_error::assert!(pixels.len().is_multiple_of(3))?;
@@ -21,22 +18,4 @@ pub fn add_alpha_channel(pixels: &[u8]) -> RisResult<Vec<u8>> {
     }
 
     Ok(pixels_rgba)
-}
-
-pub trait InitFromJson {
-    /// # Safety
-    ///
-    /// intended to initialize uninitialized memory. calling on initialized
-    /// memory may cause leaks or UB even
-    unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()>;
-}
-
-impl<T> InitFromJson for AssetId<T> {
-    unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()> {
-        let name = name.as_ref();
-        let value = json
-            .get::<&str>(name)
-            .unwrap_or(ris_asset_data::asset_id::NULL_PATH);
-        unsafe { self.set_path(value) }
-    }
 }

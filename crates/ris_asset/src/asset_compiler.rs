@@ -6,13 +6,13 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_asset_data::asset_id::RawAssetId;
 use ris_error::prelude::*;
 use ris_ptr::Janitor;
 
-use crate::RisGodAsset;
+use crate::asset_id::RawAssetId;
 use crate::assets::ris_asset::RisAsset;
 use crate::assets::ris_god_asset;
+use crate::assets::ris_god_asset::RisGodAsset;
 use crate::codecs::json::JsonObject;
 use crate::codecs::json::JsonValue;
 

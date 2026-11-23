@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use ris_error::prelude::*;
 
+use crate::codecs::json::JsonObject;
+
 pub const NULL_PATH: &str = "NULL";
 pub const NULL_INDEX: u64 = u64::MAX;
 
@@ -11,8 +13,8 @@ pub const NULL_INDEX: u64 = u64::MAX;
 // Structs
 //==============================================================================
 
-// note to self: struct must be a union, because asset compiler constructs
-// RawAssetIds of both types, that must be stored in the same memory space
+// note to self: this must be a union, because asset compiler constructs
+// RawAssetIds of both types. the same memory must be used for this
 #[repr(C)]
 pub union RawAssetId {
     pub path: *mut PathBuf, // used in debug
@@ -26,7 +28,9 @@ pub struct AssetId<T> {
     boo: PhantomData<T>,
 }
 
-pub type BinAssetId = AssetId<Box<[u8]>>;
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BinAssetId(AssetId<Box<[u8]>>);
 
 //==============================================================================
 // Traits
@@ -194,6 +198,17 @@ unsafe fn free_path(ptr: *mut PathBuf) {
 //==============================================================================
 impl<T> AssetId<T> {
     // constructors
+    pub fn null() -> Self {
+        unsafe {
+            let raw = if cfg!(debug_assertions) {
+                RawAssetId::null_path()
+            } else {
+                RawAssetId::null_index()
+            };
+
+            Self::from_raw(raw)
+        }
+    }
 
     /// # Safety
     ///
@@ -206,16 +221,16 @@ impl<T> AssetId<T> {
         }
     }
 
-    pub fn null() -> Self {
-        unsafe {
-            let raw = if cfg!(debug_assertions) {
-                RawAssetId::null_path()
-            } else {
-                RawAssetId::null_index()
-            };
-
-            Self::from_raw(raw)
-        }
+    /// # Safety
+    ///
+    /// intended to initialize uninitialized memory. calling on initialized
+    /// memory may cause leaks or UB even
+    pub unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()> {
+        let name = name.as_ref();
+        let value = json
+            .get::<&str>(name)
+            .unwrap_or(NULL_PATH);
+        unsafe { self.set_path(value) }
     }
 
     // get/set
@@ -253,4 +268,49 @@ impl<T> AssetId<T> {
             ris_error::new!("not available")
         }
     }
+}
+
+impl BinAssetId {
+    // constructors
+    pub fn null() -> Self {
+        Self(AssetId::null())
+    }
+
+    /// # Safety
+    ///
+    /// see [`AssetId::from_raw`]
+    pub unsafe fn from_raw(raw: impl AsRef<RawAssetId>) -> Self {
+        unsafe {Self(AssetId::from_raw(raw))}
+    }
+
+    /// # Safety
+    ///
+    /// see [`AssetId::init_from_json`]
+    pub unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()> {
+        unsafe {self.0.init_from_json(json, name)}
+    }
+
+    // get/set
+    pub fn raw(&self) -> &RawAssetId {
+        &self.0.raw
+    }
+
+    /// # Safety
+    ///
+    /// see [`AssetId::raw_mut`]
+    pub unsafe fn raw_mut(&mut self) -> &mut RawAssetId {
+        &mut self.0.raw
+    }
+
+    pub fn path_string(&self) -> RisResult<String> {
+        self.0.path_string()
+    }
+
+    /// # Safety
+    ///
+    /// see [`AssetId::set_path`]
+    pub unsafe fn set_path(&mut self, path: impl AsRef<Path>) -> RisResult<()> {
+        unsafe {self.0.set_path(path)}
+    }
+
 }

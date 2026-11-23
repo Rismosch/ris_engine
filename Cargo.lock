@@ -217,7 +217,6 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "png",
- "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_error",
@@ -228,13 +227,6 @@ dependencies = [
  "ris_ptr",
  "ris_util",
  "shaderc",
-]
-
-[[package]]
-name = "ris_asset_data"
-version = "0.1.0"
-dependencies = [
- "ris_error",
 ]
 
 [[package]]
@@ -255,7 +247,6 @@ dependencies = [
  "ash",
  "imgui",
  "ris_asset",
- "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_debug",
@@ -279,7 +270,6 @@ version = "0.1.0"
 dependencies = [
  "ash",
  "imgui",
- "ris_asset_data",
  "ris_async",
  "ris_debug",
  "ris_error",
@@ -322,7 +312,6 @@ dependencies = [
  "libc",
  "png",
  "ris_asset",
- "ris_asset_data",
  "ris_async",
  "ris_core",
  "ris_data",
@@ -369,7 +358,6 @@ dependencies = [
  "ash",
  "imgui",
  "ris_asset",
- "ris_asset_data",
  "ris_async",
  "ris_data",
  "ris_debug",

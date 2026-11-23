@@ -3,16 +3,16 @@ use std::mem::MaybeUninit;
 use std::path::Path;
 use std::path::PathBuf;
 
-use ris_asset_data::RawAssetId;
-use ris_asset_data::asset_id::AssetId;
-use ris_asset_data::asset_id::BinAssetId;
 use ris_async::SingleUseReceiver;
 use ris_error::prelude::*;
 
-use crate::RisGodAsset;
+use crate::asset_id::AssetId;
+use crate::asset_id::BinAssetId;
+use crate::asset_id::RawAssetId;
 use crate::asset_future::AssetFuture;
 use crate::assets::ris_asset::RisAsset;
 use crate::assets::ris_god_asset;
+use crate::assets::ris_god_asset::RisGodAsset;
 
 //==============================================================================
 // Compiled Asset Loader

@@ -1,13 +1,12 @@
 use std::mem::MaybeUninit;
 use std::path::PathBuf;
 
-use ris_asset_data::BinAssetId;
-use ris_asset_data::RawAssetId;
 use ris_error::prelude::*;
 
+use crate::asset_id::BinAssetId;
+use crate::asset_id::RawAssetId;
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
-use crate::util::InitFromJson;
 
 pub const EXTENSION: &str = "ris_god_asset";
 pub const PATH: &str = "god_asset.ris_god_asset";

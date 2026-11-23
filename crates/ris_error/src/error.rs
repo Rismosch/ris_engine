@@ -174,15 +174,7 @@ macro_rules! assert {
         $crate::assert!($value, "")
     }};
     ($value:expr, $($arg:tt)*) => {{
-        #[cfg(not(debug_assertions))]
-        {
-            let _ = $value;
-            let retval: ris_error::RisResult<()> = Ok(());
-            retval
-        }
-
-        #[cfg(debug_assertions)]
-        {
+        if cfg!(debug_assertions) {
             if $value {
                 Ok(())
             } else {
@@ -199,6 +191,10 @@ macro_rules! assert {
                     )
                 }
             }
+        } else {
+            let _ = $value;
+            let retval: ris_error::RisResult<()> = Ok(());
+            retval
         }
     }};
 }
