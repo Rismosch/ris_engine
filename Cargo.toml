@@ -25,6 +25,7 @@ members = [
     "crates/ris_core",
     "crates/ris_data",
     "crates/ris_debug",
+    "crates/ris_ecs",
     "crates/ris_error",
     "crates/ris_gpu",
     "crates/ris_gpu_renderers",
@@ -44,6 +45,7 @@ ris_asset_data = { path = "crates/ris_asset_data" }
 ris_async = { path = "crates/ris_async" }
 ris_core = { path = "crates/ris_core" }
 ris_data = { path = "crates/ris_data" }
+ris_ecs = { path = "crates/ris_ecs" }
 ris_debug = { path = "crates/ris_debug" }
 ris_error = { path = "crates/ris_error" }
 ris_input = { path = "crates/ris_input" }

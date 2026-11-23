@@ -204,12 +204,12 @@ macro_rules! assert {
 }
 
 #[macro_export]
-macro_rules! declare_error {
+macro_rules! declare_simple_error {
     (
         $error_name:ident,
         $error_msg:literal $(,)?
     ) => {
-        #[derive(Debug)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub struct $error_name;
 
         impl std::fmt::Display for $error_name {
@@ -219,5 +219,30 @@ macro_rules! declare_error {
         }
 
         impl std::error::Error for $error_name {}
+    };
+}
+
+#[macro_export]
+macro_rules! declare_message_error {
+    (
+        $error_name:ident,
+        $error_msg_prefix:literal $(,)?
+    ) => {
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $error_name(String);
+
+        impl std::fmt::Display for $error_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}: {}", $error_msg_prefix, self.0)
+            }
+        }
+
+        impl std::error::Error for $error_name {}
+
+        impl $error_name {
+            pub fn new<T>(message: impl AsRef<str>) -> Result<T, Self> {
+                Err(Self(message.as_ref().to_string()))
+            }
+        }
     };
 }

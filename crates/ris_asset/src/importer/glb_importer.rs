@@ -4,8 +4,8 @@ use std::path::Path;
 
 use ash::vk;
 
-use ris_asset_data::mesh::CpuMesh;
-use ris_asset_data::mesh::MeshPrototype;
+//use ris_asset_data::mesh::CpuMesh;
+//use ris_asset_data::mesh::MeshPrototype;
 use ris_error::prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
@@ -32,197 +32,198 @@ struct Chunk {
 }
 
 pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResult<()> {
-    let source = source.as_ref();
-    let target_dir = target_dir.as_ref();
+    todo!();
+    //let source = source.as_ref();
+    //let target_dir = target_dir.as_ref();
 
-    let source_file_stem = source
-        .file_stem()
-        .ris_expect("source to have a file stem")?
-        .to_str()
-        .ris_expect("file stem to be valid UTF-8")?;
+    //let source_file_stem = source
+    //    .file_stem()
+    //    .ris_expect("source to have a file stem")?
+    //    .to_str()
+    //    .ris_expect("file stem to be valid UTF-8")?;
 
-    let mut file = std::fs::File::open(source)?;
-    let f = &mut file;
+    //let mut file = std::fs::File::open(source)?;
+    //let f = &mut file;
 
-    // header
-    let magic = ris_io::read_u32(f)?;
-    let version = ris_io::read_u32(f)?;
-    let length = ris_io::read_u32(f)?;
+    //// header
+    //let magic = ris_io::read_u32(f)?;
+    //let version = ris_io::read_u32(f)?;
+    //let length = ris_io::read_u32(f)?;
 
-    ris_error::assert!(magic == 0x46546C67)?;
-    ris_error::assert!(version == 2)?;
+    //ris_error::assert!(magic == 0x46546C67)?;
+    //ris_error::assert!(version == 2)?;
 
-    let current = ris_io::seek(f, SeekFrom::Current(0))?;
-    let file_length = ris_io::seek(f, SeekFrom::End(0))?;
-    ris_io::seek(f, SeekFrom::Start(current))?;
+    //let current = ris_io::seek(f, SeekFrom::Current(0))?;
+    //let file_length = ris_io::seek(f, SeekFrom::End(0))?;
+    //ris_io::seek(f, SeekFrom::Start(current))?;
 
-    ris_error::assert!(file_length == length as u64)?;
+    //ris_error::assert!(file_length == length as u64)?;
 
-    // read chunks
-    let mut chunks = Vec::new();
-    loop {
-        let current = ris_io::seek(f, SeekFrom::Current(0))?;
-        ris_error::assert!(current % 4 == 0)?;
-        if current == file_length {
-            break;
-        }
+    //// read chunks
+    //let mut chunks = Vec::new();
+    //loop {
+    //    let current = ris_io::seek(f, SeekFrom::Current(0))?;
+    //    ris_error::assert!(current % 4 == 0)?;
+    //    if current == file_length {
+    //        break;
+    //    }
 
-        let chunk_length = ris_io::read_u32(f)?;
-        let chunk_type = ris_io::read_u32(f)?;
+    //    let chunk_length = ris_io::read_u32(f)?;
+    //    let chunk_type = ris_io::read_u32(f)?;
 
-        let chunk_type = match chunk_type {
-            0x4E4F534A => ChunkType::Json,
-            0x004E4942 => ChunkType::Bin,
-            _ => {
-                ris_io::seek(f, SeekFrom::Current(chunk_length.into()))?;
-                continue;
-            }
-        };
+    //    let chunk_type = match chunk_type {
+    //        0x4E4F534A => ChunkType::Json,
+    //        0x004E4942 => ChunkType::Bin,
+    //        _ => {
+    //            ris_io::seek(f, SeekFrom::Current(chunk_length.into()))?;
+    //            continue;
+    //        }
+    //    };
 
-        let mut chunk = Chunk {
-            chunk_type,
-            data: vec![0; chunk_length as usize],
-        };
+    //    let mut chunk = Chunk {
+    //        chunk_type,
+    //        data: vec![0; chunk_length as usize],
+    //    };
 
-        ris_io::read(f, &mut chunk.data)?;
-        chunks.push(chunk);
-    }
+    //    ris_io::read(f, &mut chunk.data)?;
+    //    chunks.push(chunk);
+    //}
 
-    // identify chunks
-    ris_error::assert!(chunks.len() == 2)?;
+    //// identify chunks
+    //ris_error::assert!(chunks.len() == 2)?;
 
-    let mut chunks = chunks.into_iter();
-    let json_chunk = chunks
-        .next()
-        .ris_expect("chunks to have at least 1 element")?;
-    let bin_chunk = chunks
-        .next()
-        .ris_expect("chunks to have at least 2 elements")?;
-    ris_error::assert!(json_chunk.chunk_type == ChunkType::Json)?;
-    ris_error::assert!(bin_chunk.chunk_type == ChunkType::Bin)?;
+    //let mut chunks = chunks.into_iter();
+    //let json_chunk = chunks
+    //    .next()
+    //    .ris_expect("chunks to have at least 1 element")?;
+    //let bin_chunk = chunks
+    //    .next()
+    //    .ris_expect("chunks to have at least 2 elements")?;
+    //ris_error::assert!(json_chunk.chunk_type == ChunkType::Json)?;
+    //ris_error::assert!(bin_chunk.chunk_type == ChunkType::Bin)?;
 
-    // import gltf
-    let json = String::from_utf8(json_chunk.data)?;
-    let bin = bin_chunk.data;
-    let gltf = Gltf::deserialize(json)?;
+    //// import gltf
+    //let json = String::from_utf8(json_chunk.data)?;
+    //let bin = bin_chunk.data;
+    //let gltf = Gltf::deserialize(json)?;
 
-    // a glb file may have only a single gltf buffer. the first buffer
-    // MUST have it's uri undefined. this way, the buffer references the
-    // bin chunk of the glb file
-    ris_error::assert!(gltf.buffers.len() == 1)?;
-    ris_error::assert!(gltf.buffers[0].uri.is_none())?;
+    //// a glb file may have only a single gltf buffer. the first buffer
+    //// MUST have it's uri undefined. this way, the buffer references the
+    //// bin chunk of the glb file
+    //ris_error::assert!(gltf.buffers.len() == 1)?;
+    //ris_error::assert!(gltf.buffers[0].uri.is_none())?;
 
-    // convert to internal format.
-    // note that this importer makes assumptions about the underlying
-    // data. thus it may return errors on valid gltf
+    //// convert to internal format.
+    //// note that this importer makes assumptions about the underlying
+    //// data. thus it may return errors on valid gltf
 
-    // meshes
-    for (mesh_index, mesh) in gltf.meshes.iter().enumerate() {
-        for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
-            ris_error::assert!(primitive.mode == MeshPrimitiveMode::Triangles)?;
+    //// meshes
+    //for (mesh_index, mesh) in gltf.meshes.iter().enumerate() {
+    //    for (primitive_index, primitive) in mesh.primitives.iter().enumerate() {
+    //        ris_error::assert!(primitive.mode == MeshPrimitiveMode::Triangles)?;
 
-            let vertex_attribute = primitive
-                .get_attribute(MeshPrimitiveAttributeName::Position)
-                .ris_expect("mesh attribute position")?;
-            let normal_attribute = primitive
-                .get_attribute(MeshPrimitiveAttributeName::Normal)
-                .ris_expect("mesh attribute normal")?;
-            let uv_attribute = primitive
-                .get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
-                .ris_expect("mesh attribute tex coord 0")?;
-            let index_accessor_index = primitive.indices.ris_expect("indices to exist")?;
+    //        let vertex_attribute = primitive
+    //            .get_attribute(MeshPrimitiveAttributeName::Position)
+    //            .ris_expect("mesh attribute position")?;
+    //        let normal_attribute = primitive
+    //            .get_attribute(MeshPrimitiveAttributeName::Normal)
+    //            .ris_expect("mesh attribute normal")?;
+    //        let uv_attribute = primitive
+    //            .get_attribute(MeshPrimitiveAttributeName::TexCoord(0))
+    //            .ris_expect("mesh attribute tex coord 0")?;
+    //        let index_accessor_index = primitive.indices.ris_expect("indices to exist")?;
 
-            let vertex_accessor = gltf
-                .accessors
-                .get(vertex_attribute.accessor)
-                .ris_expect("vertex_attribute.accessor to be in range")?;
-            let normal_accessor = gltf
-                .accessors
-                .get(normal_attribute.accessor)
-                .ris_expect("normal_attribute.accessor to be in range")?;
-            let uv_accessor = gltf
-                .accessors
-                .get(uv_attribute.accessor)
-                .ris_expect("uv_attribute.accessor to be in range")?;
-            let index_accessor = gltf
-                .accessors
-                .get(index_accessor_index)
-                .ris_expect("index_attribute.accessor to be in range")?;
+    //        let vertex_accessor = gltf
+    //            .accessors
+    //            .get(vertex_attribute.accessor)
+    //            .ris_expect("vertex_attribute.accessor to be in range")?;
+    //        let normal_accessor = gltf
+    //            .accessors
+    //            .get(normal_attribute.accessor)
+    //            .ris_expect("normal_attribute.accessor to be in range")?;
+    //        let uv_accessor = gltf
+    //            .accessors
+    //            .get(uv_attribute.accessor)
+    //            .ris_expect("uv_attribute.accessor to be in range")?;
+    //        let index_accessor = gltf
+    //            .accessors
+    //            .get(index_accessor_index)
+    //            .ris_expect("index_attribute.accessor to be in range")?;
 
-            ris_error::assert!(vertex_accessor.count == normal_accessor.count)?;
-            ris_error::assert!(vertex_accessor.count == uv_accessor.count)?;
-            ris_error::assert!(vertex_accessor.accessor_type == AccessorType::Vec3)?;
-            ris_error::assert!(vertex_accessor.component_type == AccessorComponentType::F32)?;
-            ris_error::assert!(normal_accessor.accessor_type == AccessorType::Vec3)?;
-            ris_error::assert!(normal_accessor.component_type == AccessorComponentType::F32)?;
-            ris_error::assert!(uv_accessor.accessor_type == AccessorType::Vec2)?;
-            ris_error::assert!(uv_accessor.component_type == AccessorComponentType::F32)?;
-            ris_error::assert!(index_accessor.accessor_type == AccessorType::Scalar)?;
-            ris_error::assert!(index_accessor.component_type == AccessorComponentType::U16)?;
+    //        ris_error::assert!(vertex_accessor.count == normal_accessor.count)?;
+    //        ris_error::assert!(vertex_accessor.count == uv_accessor.count)?;
+    //        ris_error::assert!(vertex_accessor.accessor_type == AccessorType::Vec3)?;
+    //        ris_error::assert!(vertex_accessor.component_type == AccessorComponentType::F32)?;
+    //        ris_error::assert!(normal_accessor.accessor_type == AccessorType::Vec3)?;
+    //        ris_error::assert!(normal_accessor.component_type == AccessorComponentType::F32)?;
+    //        ris_error::assert!(uv_accessor.accessor_type == AccessorType::Vec2)?;
+    //        ris_error::assert!(uv_accessor.component_type == AccessorComponentType::F32)?;
+    //        ris_error::assert!(index_accessor.accessor_type == AccessorType::Scalar)?;
+    //        ris_error::assert!(index_accessor.component_type == AccessorComponentType::U16)?;
 
-            let index_type = match &index_accessor.component_type {
-                AccessorComponentType::U16 => vk::IndexType::UINT16,
-                AccessorComponentType::U32 => vk::IndexType::UINT32,
-                AccessorComponentType::U8 => vk::IndexType::UINT8_EXT,
-                accessor_component_type => ris_error::new!(
-                    "invalid accessor component type for indices: {:?}",
-                    accessor_component_type
-                )?,
-            };
+    //        let index_type = match &index_accessor.component_type {
+    //            AccessorComponentType::U16 => vk::IndexType::UINT16,
+    //            AccessorComponentType::U32 => vk::IndexType::UINT32,
+    //            AccessorComponentType::U8 => vk::IndexType::UINT8_EXT,
+    //            accessor_component_type => ris_error::new!(
+    //                "invalid accessor component type for indices: {:?}",
+    //                accessor_component_type
+    //            )?,
+    //        };
 
-            let vertex_data = access_data(vertex_accessor, &bin, &gltf)?;
-            let normal_data = access_data(normal_accessor, &bin, &gltf)?;
-            let uv_data = access_data(uv_accessor, &bin, &gltf)?;
-            let index_data = access_data(index_accessor, &bin, &gltf)?;
+    //        let vertex_data = access_data(vertex_accessor, &bin, &gltf)?;
+    //        let normal_data = access_data(normal_accessor, &bin, &gltf)?;
+    //        let uv_data = access_data(uv_accessor, &bin, &gltf)?;
+    //        let index_data = access_data(index_accessor, &bin, &gltf)?;
 
-            let mut stream = std::io::Cursor::new(Vec::new());
-            let s = &mut stream;
+    //        let mut stream = std::io::Cursor::new(Vec::new());
+    //        let s = &mut stream;
 
-            let p_vertices = ris_io::write(s, vertex_data)?;
-            let p_normals = ris_io::write(s, normal_data)?;
-            let p_uvs = ris_io::write(s, uv_data)?;
-            let p_indices = ris_io::write(s, index_data)?;
+    //        let p_vertices = ris_io::write(s, vertex_data)?;
+    //        let p_normals = ris_io::write(s, normal_data)?;
+    //        let p_uvs = ris_io::write(s, uv_data)?;
+    //        let p_indices = ris_io::write(s, index_data)?;
 
-            let cpu_mesh = CpuMesh {
-                p_vertices,
-                p_normals,
-                p_uvs,
-                p_indices,
-                index_type,
-                data: stream.into_inner(),
-            };
+    //        let cpu_mesh = CpuMesh {
+    //            p_vertices,
+    //            p_normals,
+    //            p_uvs,
+    //            p_indices,
+    //            index_type,
+    //            data: stream.into_inner(),
+    //        };
 
-            // correct coordinate system
-            let mut mesh_prototype = MeshPrototype::try_from(cpu_mesh)?;
-            let rotation = Quat::angle_axis(0.5 * PI, Vec3::right());
-            for vertex in mesh_prototype.vertices.iter_mut() {
-                *vertex = rotation.rotate(*vertex);
-            }
-            for normal in mesh_prototype.normals.iter_mut() {
-                *normal = rotation.rotate(*normal);
-            }
-            let cpu_mesh = CpuMesh::try_from(mesh_prototype)?;
+    //        // correct coordinate system
+    //        let mut mesh_prototype = MeshPrototype::try_from(cpu_mesh)?;
+    //        let rotation = Quat::angle_axis(0.5 * PI, Vec3::right());
+    //        for vertex in mesh_prototype.vertices.iter_mut() {
+    //            *vertex = rotation.rotate(*vertex);
+    //        }
+    //        for normal in mesh_prototype.normals.iter_mut() {
+    //            *normal = rotation.rotate(*normal);
+    //        }
+    //        let cpu_mesh = CpuMesh::try_from(mesh_prototype)?;
 
-            todo!();
-            //let bytes = ris_mesh::serialize(&cpu_mesh)?;
+    //        todo!();
+    //        //let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
-            //let mesh_name = if let Some(name) = &mesh.name {
-            //    name.clone()
-            //} else {
-            //    "none".to_string()
-            //};
+    //        //let mesh_name = if let Some(name) = &mesh.name {
+    //        //    name.clone()
+    //        //} else {
+    //        //    "none".to_string()
+    //        //};
 
-            //let target_name = format!(
-            //    "{}-{}-{:03}-{:03}",
-            //    source_file_stem, mesh_name, mesh_index, primitive_index,
-            //);
-            //let mut output =
-            //    crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
-            //ris_io::write(&mut output, &bytes)?;
-        }
-    }
+    //        //let target_name = format!(
+    //        //    "{}-{}-{:03}-{:03}",
+    //        //    source_file_stem, mesh_name, mesh_index, primitive_index,
+    //        //);
+    //        //let mut output =
+    //        //    crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
+    //        //ris_io::write(&mut output, &bytes)?;
+    //    }
+    //}
 
-    Ok(())
+    //Ok(())
 }
 
 fn access_data<'a>(accessor: &Accessor, bin: &'a [u8], gltf: &'a Gltf) -> RisResult<&'a [u8]> {

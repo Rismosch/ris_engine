@@ -9,12 +9,12 @@ pub const ADDR_SIZE: usize = std::mem::size_of::<u64>();
 // errors
 //
 
-ris_error::declare_error!(BeginWasBiggerThanEnd, "begin was bigger than end");
-ris_error::declare_error!(
+ris_error::declare_simple_error!(BeginWasBiggerThanEnd, "begin was bigger than end");
+ris_error::declare_simple_error!(
     WrittenBytesDoNotMatchBufLen,
     "written bytes do not match buf len"
 );
-ris_error::declare_error!(ReadBytesDoNotMatchBufLen, "read bytes do not match buf len");
+ris_error::declare_simple_error!(ReadBytesDoNotMatchBufLen, "read bytes do not match buf len");
 
 #[derive(Debug, Default)]
 pub struct ConversionError {

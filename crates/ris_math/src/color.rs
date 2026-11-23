@@ -9,8 +9,8 @@ pub const MIN_NORM: f32 = 1.0 / 255.0;
 // errors
 //
 
-ris_error::declare_error!(NotEnoughElements, "not enough elements");
-ris_error::declare_error!(InvalidHex, "invalid hex");
+ris_error::declare_simple_error!(NotEnoughElements, "not enough elements");
+ris_error::declare_simple_error!(InvalidHex, "invalid hex");
 
 //
 // traits

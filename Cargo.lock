@@ -234,13 +234,7 @@ dependencies = [
 name = "ris_asset_data"
 version = "0.1.0"
 dependencies = [
- "ash",
  "ris_error",
- "ris_gpu",
- "ris_io",
- "ris_log",
- "ris_math",
- "ris_ptr",
 ]
 
 [[package]]
@@ -309,6 +303,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ris_ecs"
+version = "0.1.0"
+dependencies = [
+ "ris_debug",
+ "ris_error",
+ "ris_log",
+ "ris_math",
+]
+
+[[package]]
 name = "ris_engine"
 version = "0.1.0-dev"
 dependencies = [
@@ -323,6 +327,7 @@ dependencies = [
  "ris_core",
  "ris_data",
  "ris_debug",
+ "ris_ecs",
  "ris_error",
  "ris_gpu",
  "ris_gpu_renderers",

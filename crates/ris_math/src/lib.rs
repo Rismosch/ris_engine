@@ -5,7 +5,6 @@ pub mod common;
 pub mod fast;
 pub mod matrix;
 pub mod quaternion;
-pub mod transform;
 pub mod vector;
 
 pub use common::*;
