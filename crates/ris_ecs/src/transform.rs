@@ -26,6 +26,20 @@ pub struct Transform {
     children: Vec<Object>,
 }
 
+impl Default for Transform {
+    fn default() -> Self {
+        Self {
+            name: ris_debug::sid!("object"),
+            is_active: false,
+            position: Vec3::init(0.0),
+            orientation: Quat::identity(),
+            scale: Vec3::init(1.0),
+            parent: None,
+            children: Vec::new(),
+        }
+    }
+}
+
 impl Ecs {
     //==========================================================================
     // transform
@@ -84,7 +98,7 @@ impl Ecs {
     }
 
     pub fn scale(&self, o: Object) -> Vec3 {
-        self.transform(o).position
+        self.transform(o).scale
     }
 
     pub fn scale_mut(&mut self, o: Object) -> &mut Vec3 {
@@ -132,7 +146,7 @@ impl Ecs {
         if let Some(old_parent) = old_parent {
             let position = self.children(old_parent).iter().position(|x| *x == o);
             if let Some(position) = position {
-                self.transform_mut(o).children.remove(position);
+                self.transform_mut(old_parent).children.remove(position);
             }
         }
 
@@ -157,12 +171,15 @@ impl Ecs {
         &self.transform(o).children
     }
 
-    pub fn sibling_index(&self, o: Object) -> Option<usize> {
+    pub fn sibling_index(&self, o: Object) -> usize {
         let Some(parent) = self.parent(o) else {
-            return None;
+            return 0;
         };
 
-        self.children(parent).iter().position(|x| *x == o)
+        self.children(parent)
+            .iter()
+            .position(|x| *x == o)
+            .ris_pexpect("child to be a child of parent")
     }
 
     pub fn set_sibling_index(&mut self, o: Object, sibling_index: usize) {
