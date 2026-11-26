@@ -4,12 +4,12 @@ use std::path::Path;
 
 use ash::vk;
 
-//use ris_asset_data::mesh::CpuMesh;
-//use ris_asset_data::mesh::MeshPrototype;
 use ris_error::prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+use crate::assets::ris_mesh_asset::CpuMesh;
+use crate::assets::ris_mesh_asset::MeshPrototype;
 use crate::assets::ris_mesh_asset::RisMeshAsset;
 use crate::codecs::gltf::Accessor;
 use crate::codecs::gltf::AccessorComponentType;
@@ -182,7 +182,6 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             let p_normals = ris_io::write(s, normal_data)?;
             let p_uvs = ris_io::write(s, uv_data)?;
             let p_indices = ris_io::write(s, index_data)?;
-
             let cpu_mesh = CpuMesh {
                 p_vertices,
                 p_normals,
@@ -201,9 +200,33 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             for normal in mesh_prototype.normals.iter_mut() {
                 *normal = rotation.rotate(*normal);
             }
-            let cpu_mesh = CpuMesh::try_from(mesh_prototype)?;
+            let CpuMesh {
+                p_vertices,
+                p_normals,
+                p_uvs,
+                p_indices,
+                index_type,
+                data,
+            } = CpuMesh::try_from(mesh_prototype)?;
 
             todo!();
+            //// serialize setup
+            //let target_asset_name = format!(
+            //    "{}-{}-{:03}-{:03}",
+            //    source_file_stem, mesh_name, mesh_index, primitive_index,
+            //);
+
+            //// serialize asset
+            //let asset = RisMeshAsset {
+            //    p_vertices,
+            //    p_normals,
+            //    p_uvs,
+            //    p_indices,
+            //    index_type,
+            //    data,
+            //};
+
+            //// serialize data
             //let bytes = ris_mesh::serialize(&cpu_mesh)?;
 
             //let mesh_name = if let Some(name) = &mesh.name {
@@ -216,8 +239,11 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
             //    "{}-{}-{:03}-{:03}",
             //    source_file_stem, mesh_name, mesh_index, primitive_index,
             //);
-            //let mut output =
-            //    crate::asset_importer::create_file(target_name, target_dir, ris_mesh::EXTENSION)?;
+            //let mut output = crate::asset_importer::create_file(
+            //    target_name,
+            //    target_dir,
+            //    ris_mesh::EXTENSION,
+            //)?;
             //ris_io::write(&mut output, &bytes)?;
         }
     }

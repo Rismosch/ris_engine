@@ -168,6 +168,6 @@ impl Ecs {
     pub fn set_sibling_index(&mut self, o: Object, sibling_index: usize) {
         let parent = self.parent(o);
         self.set_parent(o, parent, sibling_index)
-            .ris_pexpect("that assigning to the same parant succeeds")
+            .ris_pexpect("that assigning to the same parent succeeds")
     }
 }

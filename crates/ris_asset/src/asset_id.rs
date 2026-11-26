@@ -95,6 +95,12 @@ impl<T> AsRef<AssetId<T>> for AssetId<T> {
     }
 }
 
+impl AsRef<BinAssetId> for BinAssetId {
+    fn as_ref(&self) -> &BinAssetId {
+        self
+    }
+}
+
 // send
 unsafe impl Send for RawAssetId {}
 unsafe impl<T> Send for AssetId<T> {}

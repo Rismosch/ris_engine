@@ -18,7 +18,6 @@ use crate::assets::ris_god_asset::RisGodAsset;
 // Compiled Asset Loader
 //==============================================================================
 
-#[cfg(not(debug_assertions))]
 mod compiled {
     use std::io::Read;
     use std::io::Seek;
@@ -159,7 +158,6 @@ mod compiled {
 // Directory Asset Loader
 //==============================================================================
 
-#[cfg(debug_assertions)]
 mod directory {
     use std::ffi::c_void;
     use std::io::Read;
@@ -407,7 +405,6 @@ impl AssetLoader {
     }
 }
 
-#[cfg(not(debug_assertions))]
 fn read_compiled_bin(s: &mut impl Read) -> RisResult<Box<[u8]>> {
     let mut size = MaybeUninit::<u32>::uninit();
     let buf = unsafe {

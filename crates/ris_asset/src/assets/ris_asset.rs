@@ -10,6 +10,9 @@ pub trait RisAsset: Clone + Send {
     fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()>;
     fn to_json(&self) -> RisResult<JsonObject>;
     fn all_references_mut(&mut self) -> Vec<&mut RawAssetId>;
+    fn as_bytes(&self) -> &[u8] {
+        todo!();
+    }
 }
 
 pub unsafe fn impl_alloc<T: RisAsset>() -> *mut c_void {
