@@ -25,6 +25,7 @@ pub enum LogMode {
     Seq,
 }
 
+#[cfg(feature = "logging_enabled")]
 enum LoggerInner {
     Async {
         sender: Sender<LogMessage>,

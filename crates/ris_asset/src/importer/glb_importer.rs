@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::Path;
 
 use ash::vk;
@@ -8,6 +9,9 @@ use ris_error::prelude::*;
 use ris_math::quaternion::Quat;
 use ris_math::vector::Vec3;
 
+use crate::asset_id::BinAssetId;
+use crate::assets::ris_asset::RisAsset;
+use crate::assets::ris_mesh_asset;
 use crate::assets::ris_mesh_asset::CpuMesh;
 use crate::assets::ris_mesh_asset::MeshPrototype;
 use crate::assets::ris_mesh_asset::RisMeshAsset;
@@ -209,42 +213,53 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 data,
             } = CpuMesh::try_from(mesh_prototype)?;
 
-            todo!();
-            //// serialize setup
-            //let target_asset_name = format!(
-            //    "{}-{}-{:03}-{:03}",
-            //    source_file_stem, mesh_name, mesh_index, primitive_index,
-            //);
+            // serialize setup
+            let mesh_name = if let Some(name) = &mesh.name {
+                name.clone()
+            } else {
+                "none".to_string()
+            };
+
+            let target_name = format!(
+                "{}-{}-{:03}-{:03}",
+                source_file_stem, mesh_name, mesh_index, primitive_index,
+            );
+
+            let asset_path = crate::asset_importer::target_path(
+                &target_name,
+                target_dir,
+                ris_mesh_asset::ASSET_EXTENSION,
+            )?;
+
+            let data_path = crate::asset_importer::target_path(
+                &target_name,
+                target_dir,
+                ris_mesh_asset::DATA_EXTENSION,
+            )?;
+
+            let data_asset_id: BinAssetId = unsafe {
+                crate::asset_importer::target_asset_id(&data_path).into()
+            };
 
             //// serialize asset
-            //let asset = RisMeshAsset {
-            //    p_vertices,
-            //    p_normals,
-            //    p_uvs,
-            //    p_indices,
-            //    index_type,
-            //    data,
-            //};
+            let asset = RisMeshAsset {
+                p_vertices,
+                p_normals,
+                p_uvs,
+                p_indices,
+                index_type,
+                data: data_asset_id,
+            };
+            let json = asset.to_json()?;
+            let json_string = json.serialize();
+            let json_bytes = json_string.as_bytes();
+
+            let mut output = crate::asset_importer::create_file(asset_path)?;
+            output.write_all(json_bytes)?;
 
             //// serialize data
-            //let bytes = ris_mesh::serialize(&cpu_mesh)?;
-
-            //let mesh_name = if let Some(name) = &mesh.name {
-            //    name.clone()
-            //} else {
-            //    "none".to_string()
-            //};
-
-            //let target_name = format!(
-            //    "{}-{}-{:03}-{:03}",
-            //    source_file_stem, mesh_name, mesh_index, primitive_index,
-            //);
-            //let mut output = crate::asset_importer::create_file(
-            //    target_name,
-            //    target_dir,
-            //    ris_mesh::EXTENSION,
-            //)?;
-            //ris_io::write(&mut output, &bytes)?;
+            let mut output = crate::asset_importer::create_file(data_path)?;
+            ris_io::write(&mut output, &data)?;
         }
     }
 

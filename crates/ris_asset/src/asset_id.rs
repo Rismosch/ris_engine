@@ -278,6 +278,15 @@ impl<T> AssetId<T> {
     }
 }
 
+//==============================================================================
+// Impl BinAssetId
+//==============================================================================
+impl From<AssetId<Box<[u8]>>> for BinAssetId {
+    fn from(value: AssetId<Box<[u8]>>) -> Self {
+        Self(value)
+    }
+}
+
 impl BinAssetId {
     // constructors
     pub fn null() -> Self {

@@ -35,7 +35,6 @@ impl SettingsSerializer {
     pub fn serialize(&self, settings: &Settings) -> RisResult<()> {
         ris_log::debug!("serializing settings...");
 
-        //let bytes = write_bytes(settings);
         let mut yaml = RisYaml::default();
         settings.serialize(&mut yaml);
 

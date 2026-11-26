@@ -15,8 +15,17 @@ use crate::asset_id::RawAssetId;
 use crate::assets::ris_asset::RisAsset;
 use crate::codecs::json::JsonObject;
 
+use super::extensions;
+
 pub const ASSET_EXTENSION: &str = "ris_mesh";
 pub const DATA_EXTENSION: &str = "ris_mesh_data";
+
+pub const P_VERTICES: &str = "p_vertices";
+pub const P_NORMALS: &str = "p_normals";
+pub const P_UVS: &str = "p_uvs";
+pub const P_INDICES: &str = "p_indices";
+pub const INDEX_TYPE: &str = "index_type";
+pub const DATA: &str = "data";
 
 //==============================================================================
 // RisMeshAsset
@@ -34,11 +43,51 @@ pub struct RisMeshAsset {
 
 impl RisAsset for RisMeshAsset {
     fn from_json(s: &mut MaybeUninit<Self>, json: &JsonObject) -> RisResult<()> {
-        todo!()
+        unsafe {
+            let s = &mut *s.as_mut_ptr();
+
+            s.p_vertices = extensions::json_to_fatptr(
+                json.get(P_VERTICES).ris_expect("p_vertices to exist")?
+            )?;
+            s.p_normals = extensions::json_to_fatptr(
+                json.get(P_NORMALS).ris_expect("p_normals to exist")?
+            )?;
+            s.p_uvs = extensions::json_to_fatptr(
+                json.get(P_UVS).ris_expect("p_uvs to exist")?
+            )?;
+            s.p_indices = extensions::json_to_fatptr(
+                json.get(P_INDICES).ris_expect("p_vertices to exist")?
+            )?;
+            s.index_type = vk::IndexType::from_raw(
+                json.get(INDEX_TYPE).ris_expect("index_type to exist")?
+            );
+            s.data.init_from_json(json, DATA)?;
+        }
+
+        Ok(())
     }
 
     fn to_json(&self) -> RisResult<JsonObject> {
-        todo!()
+        let mut json = JsonObject::default();
+        json.push(
+            P_VERTICES,
+            extensions::fatptr_to_json(self.p_vertices),
+        );
+        json.push(
+            P_NORMALS,
+            extensions::fatptr_to_json(self.p_normals),
+        );
+        json.push(
+            P_UVS,
+            extensions::fatptr_to_json(self.p_uvs),
+        );
+        json.push(
+            P_INDICES,
+            extensions::fatptr_to_json(self.p_indices),
+        );
+        json.push(INDEX_TYPE, self.index_type.as_raw());
+        json.push(DATA, self.data.path_string()?);
+        Ok(json)
     }
 
     fn all_references_mut(&mut self) -> Vec<&mut RawAssetId> {

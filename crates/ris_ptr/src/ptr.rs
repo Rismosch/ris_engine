@@ -95,8 +95,6 @@ impl<T> Clone for WeakPtr<T> {
 unsafe impl<T> Sync for StrongPtr<T> where T: Send {}
 unsafe impl<T> Sync for WeakPtr<T> where T: Send {}
 
-//pub struct InvalidCast;
-
 pub struct SyncPtr<T>(*const T);
 unsafe impl<T> Send for SyncPtr<T> where T: Send {}
 unsafe impl<T> Sync for SyncPtr<T> where T: Sync {}

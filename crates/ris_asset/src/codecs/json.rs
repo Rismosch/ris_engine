@@ -23,7 +23,9 @@ pub const ESCAPE: char = '\\';
 pub const QUOTATION_MARK: char = '"';
 pub const BYTE_ORDER_MARK: char = '\u{FEFF}';
 
+//==============================================================================
 // structs
+//==============================================================================
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsonValue {
     Null,
@@ -68,23 +70,31 @@ impl Default for JsonNumber {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum JsonError {
-    InvalidCast,
-    SyntaxError,
-}
+pub struct InvalidCast;
 
-impl std::fmt::Display for JsonError {
+impl std::fmt::Display for InvalidCast {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidCast => write!(f, "specified cast is not valid"),
-            Self::SyntaxError => write!(f, "non valid json syntax"),
-        }
+        write!(f, "specified cast is not valid")
     }
 }
 
-impl std::error::Error for JsonError {}
+impl std::error::Error for InvalidCast {}
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyntaxError;
+
+impl std::fmt::Display for SyntaxError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "non valid json syntax")
+    }
+}
+
+impl std::error::Error for SyntaxError {}
+
+
+//==============================================================================
 // conversion
+//==============================================================================
 impl<T: Into<JsonValue> + Clone> From<&[T]> for JsonValue {
     fn from(value: &[T]) -> Self {
         let array = value.iter().map(|x| x.clone().into()).collect();
@@ -119,6 +129,14 @@ impl From<i32> for JsonValue {
     }
 }
 
+impl From<u64> for JsonValue {
+    fn from(value: u64) -> Self {
+        Self::Number(JsonNumber {
+            inner: value.to_string(),
+        })
+    }
+}
+
 impl From<usize> for JsonValue {
     fn from(value: usize) -> Self {
         Self::Number(JsonNumber {
@@ -138,11 +156,11 @@ impl From<isize> for JsonValue {
 impl From<f32> for JsonValue {
     fn from(value: f32) -> Self {
         if value.is_infinite() {
-            panic!("{}", JsonError::InvalidCast);
+            panic!("{}", InvalidCast);
         }
 
         if value.is_nan() {
-            panic!("{}", JsonError::InvalidCast);
+            panic!("{}", InvalidCast);
         }
 
         Self::Number(JsonNumber {
@@ -164,48 +182,64 @@ impl From<&str> for JsonValue {
 }
 
 impl<'a> TryFrom<&'a JsonValue> for &'a JsonObject {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Object(object) => Ok(object),
-            _ => Err(JsonError::InvalidCast),
+            _ => Err(InvalidCast),
         }
     }
 }
 
 impl TryFrom<&JsonValue> for bool {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Boolean(result) => Ok(*result),
-            _ => Err(JsonError::InvalidCast),
+            _ => Err(InvalidCast),
         }
     }
 }
 
 impl TryFrom<&JsonValue> for JsonNumber {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Number(number) => Ok(number.clone()),
-            _ => Err(JsonError::InvalidCast),
+            _ => Err(InvalidCast),
         }
     }
 }
 
 impl TryFrom<&JsonValue> for i32 {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         let JsonValue::Number(JsonNumber { inner }) = value else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         let Ok(number) = inner.parse() else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
+        };
+
+        Ok(number)
+    }
+}
+
+impl TryFrom<&JsonValue> for u64 {
+    type Error = InvalidCast;
+
+    fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
+        let JsonValue::Number(JsonNumber { inner }) = value else {
+            return Err(InvalidCast);
+        };
+
+        let Ok(number) = inner.parse() else {
+            return Err(InvalidCast);
         };
 
         Ok(number)
@@ -213,15 +247,15 @@ impl TryFrom<&JsonValue> for i32 {
 }
 
 impl TryFrom<&JsonValue> for usize {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         let JsonValue::Number(JsonNumber { inner }) = value else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         let Ok(number) = inner.parse() else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         Ok(number)
@@ -229,15 +263,15 @@ impl TryFrom<&JsonValue> for usize {
 }
 
 impl TryFrom<&JsonValue> for isize {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         let JsonValue::Number(JsonNumber { inner }) = value else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         let Ok(number) = inner.parse() else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         Ok(number)
@@ -245,15 +279,15 @@ impl TryFrom<&JsonValue> for isize {
 }
 
 impl TryFrom<&JsonValue> for f32 {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         let JsonValue::Number(JsonNumber { inner }) = value else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         let Ok(number) = inner.parse() else {
-            return Err(JsonError::InvalidCast);
+            return Err(InvalidCast);
         };
 
         Ok(number)
@@ -261,44 +295,50 @@ impl TryFrom<&JsonValue> for f32 {
 }
 
 impl TryFrom<&JsonValue> for String {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::String(result) => Ok(result.clone()),
-            _ => Err(JsonError::InvalidCast),
+            _ => Err(InvalidCast),
         }
     }
 }
 
 impl<'a> TryFrom<&'a JsonValue> for &'a str {
-    type Error = JsonError;
+    type Error = InvalidCast;
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::String(string) => Ok(string),
-            _ => Err(JsonError::InvalidCast),
+            _ => Err(InvalidCast),
         }
     }
 }
 
-impl<'a, T: TryFrom<&'a JsonValue, Error = JsonError>> TryFrom<&'a JsonValue> for Vec<T> {
-    type Error = JsonError;
+impl<'a, T: TryFrom<&'a JsonValue, Error = InvalidCast>> TryFrom<&'a JsonValue> 
+for Vec<T> {
+    type Error = InvalidCast;
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
         match value {
             JsonValue::Array(array) => array
                 .iter()
                 .map(|x| T::try_from(x))
-                .collect::<Result<Vec<_>, JsonError>>(),
-            _ => Err(JsonError::InvalidCast),
+                .collect::<Result<Vec<_>, InvalidCast>>(),
+            _ => Err(InvalidCast),
         }
     }
 }
 
+//==============================================================================
 // member functions
+//==============================================================================
 impl JsonObject {
-    pub fn get<'a, T: TryFrom<&'a JsonValue>>(&'a self, name: impl AsRef<str>) -> Option<T> {
+    pub fn get<'a, T: TryFrom<&'a JsonValue>>(
+        &'a self,
+        name: impl AsRef<str>,
+    ) -> Option<T> {
         let index = name.as_ref();
         let value = self
             .members
@@ -330,7 +370,9 @@ impl JsonObject {
     }
 }
 
+//==============================================================================
 // serialization
+//==============================================================================
 impl JsonValue {
     pub fn serialize(&self) -> String {
         match self {
@@ -345,7 +387,9 @@ impl JsonValue {
                     serialized_values.push(serialized_value);
                 }
 
-                let serialized_array = serialized_values.join(&VALUE_SEPARATOR.to_string());
+                let serialized_array = serialized_values.join(
+                    &VALUE_SEPARATOR.to_string(),
+                );
 
                 format!("{}{}{}", BEGIN_ARRAY, serialized_array, END_ARRAY,)
             }
@@ -353,8 +397,10 @@ impl JsonValue {
             JsonValue::String(string) => {
                 let mut serialized_string = string.clone();
 
-                let escape =
-                    |x: &mut String, c: char| *x = x.replace(c, &format!("{}{}", ESCAPE, c));
+                let escape = |x: &mut String, c: char| *x = x.replace(
+                    c,
+                    &format!("{}{}", ESCAPE, c),
+                );
 
                 escape(&mut serialized_string, QUOTATION_MARK);
                 escape(&mut serialized_string, ESCAPE);
@@ -364,18 +410,19 @@ impl JsonValue {
                     escape(&mut serialized_string, c);
                 }
 
-                format!("{}{}{}", QUOTATION_MARK, serialized_string, QUOTATION_MARK,)
+                format!("{}{}{}", QUOTATION_MARK, serialized_string, QUOTATION_MARK)
             }
         }
     }
 
-    pub fn deserialize(value: impl AsRef<str>) -> Result<Self, JsonError> {
+    pub fn deserialize(value: impl AsRef<str>) -> Result<Self, SyntaxError> {
         let value = value.as_ref();
 
         let mut is_string = false;
         let mut tokens = vec![String::new()];
 
-        // ignore byte order mark (U+FEFF) for interopability. see https://www.rfc-editor.org/rfc/rfc8259#section-8.1
+        // ignore byte order mark (U+FEFF) for interopability. see 
+        // https://www.rfc-editor.org/rfc/rfc8259#section-8.1
         let skip = if value.starts_with(BYTE_ORDER_MARK) {
             1
         } else {
@@ -433,8 +480,9 @@ impl JsonValue {
             }
         }
 
-        // because of the particular lexer logic used, the last token may be empty. empty tokens
-        // are illegal and thus the last token may be removed
+        // because of the particular lexer logic used, the last token may be 
+        // empty. empty tokens are illegal and thus the last token must be
+        // removed
         let last_index = tokens.len() - 1;
         let last = &tokens[last_index];
         if last.is_empty() {
@@ -445,10 +493,10 @@ impl JsonValue {
         Self::from_tokens(&tokens)
     }
 
-    fn from_tokens(tokens: &[String]) -> Result<Self, JsonError> {
+    fn from_tokens(tokens: &[String]) -> Result<Self, SyntaxError> {
         let len = tokens.len();
         if len == 0 {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         if len == 1 {
@@ -460,31 +508,31 @@ impl JsonValue {
         let first_token = &tokens[0];
         let last_token = &tokens[len - 1];
 
-        // multiple tokens mean one of two scenarios: we are dealing with an object, or an array.
-        // both start and end with a single character token, so we do an early check if the tokens
-        // have a length of 1
+        // multiple tokens mean one of two scenarios: we are dealing with an 
+        // object, or an array. both start and end with a single character 
+        // token, so we do an early check if the tokens have a length of 1
         if first_token.len() != 1 {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         if last_token.len() != 1 {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
-        // these two should never be None, because of the asserts above. but we do error handling
-        // anyway, just in case
+        // these two should never be None, because of the asserts above. but we 
+        // do error handling anyway, just in case
         let Some(first) = first_token.chars().next() else {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         };
         let Some(last) = last_token.chars().next() else {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         };
 
         let is_object = first == BEGIN_OBJECT && last == END_OBJECT;
         let is_array = first == BEGIN_ARRAY && last == END_ARRAY;
 
         if !is_object && !is_array {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         let mut object_generation = 0;
@@ -496,7 +544,7 @@ impl JsonValue {
         let end = tokens.len() - 1;
         for token in &tokens[start..end] {
             match token.len() {
-                0 => return Err(JsonError::SyntaxError),
+                0 => return Err(SyntaxError),
                 1 => match token.chars().next() {
                     Some(BEGIN_OBJECT) => object_generation += 1,
                     Some(BEGIN_ARRAY) => array_generation += 1,
@@ -509,13 +557,13 @@ impl JsonValue {
                         }
                     }
                     Some(_) => {}
-                    None => return Err(JsonError::SyntaxError),
+                    None => return Err(SyntaxError),
                 },
                 _ => {}
             }
 
             if object_generation < 0 || array_generation < 0 {
-                return Err(JsonError::SyntaxError);
+                return Err(SyntaxError);
             }
 
             let last_index = elements.len() - 1;
@@ -527,21 +575,21 @@ impl JsonValue {
             let members = elements
                 .into_iter()
                 .map(|x| JsonMember::from_tokens(&x))
-                .collect::<Result<Vec<_>, JsonError>>()?;
+                .collect::<Result<Vec<_>, SyntaxError>>()?;
             JsonValue::Object(Box::new(JsonObject { members }))
         } else {
             // is_array
             let values = elements
                 .into_iter()
                 .map(|x| Self::from_tokens(&x))
-                .collect::<Result<Vec<_>, JsonError>>()?;
+                .collect::<Result<Vec<_>, SyntaxError>>()?;
             JsonValue::Array(values)
         };
 
         Ok(result)
     }
 
-    fn from_token(token: &str) -> Result<Self, JsonError> {
+    fn from_token(token: &str) -> Result<Self, SyntaxError> {
         // try parse literal
         match token {
             FALSE => return Ok(JsonValue::Boolean(false)),
@@ -568,7 +616,7 @@ impl JsonValue {
                 }
 
                 let Some(c) = char_iter.next() else {
-                    return Err(JsonError::SyntaxError);
+                    return Err(SyntaxError);
                 };
 
                 match c {
@@ -581,20 +629,21 @@ impl JsonValue {
                     'r' => result.push(WS_CARRIAGE_RETURN),
                     't' => result.push(WS_HORIZONTAL_TAB),
                     'u' => {
-                        let digit_1 = char_iter.next().ok_or(JsonError::SyntaxError)?;
-                        let digit_2 = char_iter.next().ok_or(JsonError::SyntaxError)?;
-                        let digit_3 = char_iter.next().ok_or(JsonError::SyntaxError)?;
-                        let digit_4 = char_iter.next().ok_or(JsonError::SyntaxError)?;
+                        let digit_1 = char_iter.next().ok_or(SyntaxError)?;
+                        let digit_2 = char_iter.next().ok_or(SyntaxError)?;
+                        let digit_3 = char_iter.next().ok_or(SyntaxError)?;
+                        let digit_4 = char_iter.next().ok_or(SyntaxError)?;
 
                         let hex_codepoint =
                             format!("{}{}{}{}", digit_1, digit_2, digit_3, digit_4,);
                         let codepoint = u32::from_str_radix(&hex_codepoint, 16)
-                            .map_err(|_| JsonError::SyntaxError)?;
-                        let character = char::from_u32(codepoint).ok_or(JsonError::SyntaxError)?;
+                            .map_err(|_| SyntaxError)?;
+                        let character = char::from_u32(codepoint)
+                            .ok_or(SyntaxError)?;
 
                         result.push(character);
                     }
-                    _ => return Err(JsonError::SyntaxError),
+                    _ => return Err(SyntaxError),
                 }
             }
 
@@ -609,7 +658,7 @@ impl JsonValue {
         }
 
         // invalid token
-        Err(JsonError::SyntaxError)
+        Err(SyntaxError)
     }
 }
 
@@ -635,9 +684,9 @@ impl JsonMember {
         format!("{}{}{}", serialized_name, NAME_SEPARATOR, serialized_value,)
     }
 
-    fn from_tokens(tokens: &[String]) -> Result<Self, JsonError> {
+    fn from_tokens(tokens: &[String]) -> Result<Self, SyntaxError> {
         if tokens.len() < 3 {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         let name_token = &tokens[0];
@@ -646,19 +695,19 @@ impl JsonMember {
 
         let name_value = JsonValue::from_tokens(std::slice::from_ref(name_token))?;
         let JsonValue::String(name) = name_value else {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         };
 
         if separator_token.len() != 1 {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         let Some(separator) = separator_token.chars().next() else {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         };
 
         if separator != NAME_SEPARATOR {
-            return Err(JsonError::SyntaxError);
+            return Err(SyntaxError);
         }
 
         let value = JsonValue::from_tokens(value_tokens)?;

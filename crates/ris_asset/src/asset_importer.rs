@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 use ris_error::prelude::*;
 
+use crate::asset_id::AssetId;
+use crate::asset_id::RawAssetId;
 use crate::importer::*;
 
 pub const DEFAULT_SOURCE_DIRECTORY: &str = "assets/source_files";
@@ -243,11 +245,11 @@ pub fn import_all(
     Ok(())
 }
 
-pub fn create_file(
+pub fn target_path(
     source: impl AsRef<Path>,
     target_dir: impl AsRef<Path>,
     extension: impl AsRef<str>,
-) -> RisResult<File> {
+) -> RisResult<PathBuf> {
     let source = source.as_ref();
     let target_dir = target_dir.as_ref();
     let extension = extension.as_ref();
@@ -259,6 +261,36 @@ pub fn create_file(
         .ris_expect("path to be valid UTF-8")?;
 
     let target = target_dir.join(format!("{}.{}", file_stem, extension,));
+    Ok(target)
+}
+
+/// # Safety
+/// 
+/// the asset pointed to at `target_path` must be of type `T`
+pub unsafe fn target_asset_id<T: std::fmt::Debug>(
+    target_path: impl AsRef<Path>,
+) -> AssetId<T> {
+    if !cfg!(debug_assertions) {
+        ris_error::panic!("cant generate target asset ids in release");
+    }
+
+    let path = ris_io::path::sanitize(
+        target_path.as_ref().display().to_string(),
+        ris_io::path::SanitizeInfo::RemoveInvalidCharsAndReplaceSlashes,
+    );
+
+    let prefix = "assets/imported/";
+    let trimmed = path.trim_start_matches(prefix);
+    let path = PathBuf::from(trimmed);
+
+    unsafe {
+        let raw_asset_id = RawAssetId::from_path(path);
+        AssetId::<T>::from_raw(raw_asset_id)
+    }
+}
+
+pub fn create_file(target: impl AsRef<Path>) -> RisResult<File> {
+    let target = target.as_ref();
 
     let parent = target.parent();
     if let Some(parent) = parent
@@ -271,7 +303,7 @@ pub fn create_file(
         std::fs::remove_file(&target)?;
     }
 
-    let file = File::create(target)?;
+    let file = File::create(&target)?;
     Ok(file)
 }
 

@@ -50,7 +50,12 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
 
     let encoded = qoi::encode(&pixels, desc)?;
 
-    let mut output = crate::asset_importer::create_file(source, target_dir, OUT_EXT_QOI)?;
+    let target = crate::asset_importer::target_path(
+        source,
+        target_dir,
+        OUT_EXT_QOI,
+    )?;
+    let mut output = crate::asset_importer::create_file(target)?;
     ris_io::write(&mut output, &encoded)?;
 
     Ok(())

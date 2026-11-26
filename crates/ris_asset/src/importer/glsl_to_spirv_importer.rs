@@ -357,7 +357,12 @@ pub fn import(
         let extension = extensions[i];
 
         if let Some(artifact) = artifact {
-            let mut output = crate::asset_importer::create_file(source, target_dir, extension)?;
+            let target = crate::asset_importer::target_path(
+                source,
+                target_dir,
+                extension,
+            )?;
+            let mut output = crate::asset_importer::create_file(target)?;
             let bytes = artifact.as_binary_u8();
 
             ris_io::write(&mut output, bytes)?;
