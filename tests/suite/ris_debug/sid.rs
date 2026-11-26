@@ -13,10 +13,6 @@ fn should_eq() {
 #[should_panic]
 #[cfg(feature = "ris_debug_enabled")]
 fn should_detect_collision() {
-    unsafe {
-        ris_error::throw::SHOW_MESSAGE_BOX_ON_THROW = false;
-    }
-
     let sid1 = ris_debug::sid!("wCVg");
     let sid2 = ris_debug::sid!("S0jh");
 

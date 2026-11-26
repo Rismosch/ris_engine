@@ -72,7 +72,7 @@ impl<T> std::ops::Deref for WeakPtr<T> {
     fn deref(&self) -> &Self::Target {
         #[cfg(feature = "validation_enabled")]
         {
-            ris_error::throw_assert!(
+            ris_error::panic_assert!(
                 self.alive.load(Ordering::SeqCst),
                 "WeakPtr: attempted to deref a dangling reference, StrongPtr has been dropped",
             );
@@ -92,9 +92,20 @@ impl<T> Clone for WeakPtr<T> {
     }
 }
 
-unsafe impl<T> Send for StrongPtr<T> where T: Send {}
-unsafe impl<T> Sync for StrongPtr<T> where T: Sync {}
-unsafe impl<T> Send for WeakPtr<T> where T: Send {}
-unsafe impl<T> Sync for WeakPtr<T> where T: Sync {}
+unsafe impl<T> Sync for StrongPtr<T> where T: Send {}
+unsafe impl<T> Sync for WeakPtr<T> where T: Send {}
 
-pub struct InvalidCast;
+//pub struct InvalidCast;
+
+pub struct SyncPtr<T>(*const T);
+unsafe impl<T> Send for SyncPtr<T> where T: Send {}
+unsafe impl<T> Sync for SyncPtr<T> where T: Sync {}
+impl<T> SyncPtr<T> {
+    pub fn new(ptr: *const T) -> Self {
+        Self(ptr)
+    }
+
+    pub fn get(&self) -> *const T {
+        self.0
+    }
+}

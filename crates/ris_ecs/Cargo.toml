@@ -1,14 +1,12 @@
 [package]
-name = "ris_asset_data"
+name = "ris_ecs"
 version = "0.1.0"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = "0.37.3"
 ris_error = { path = "../ris_error" }
-ris_gpu = { path = "../ris_gpu" }
-ris_io = { path = "../ris_io" }
+ris_debug = { path = "../ris_debug" }
 ris_log = { path = "../ris_log" }
 ris_math = { path = "../ris_math" }

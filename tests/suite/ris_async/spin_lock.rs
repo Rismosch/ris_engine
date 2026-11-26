@@ -1,4 +1,4 @@
-use ris_async::SpinLock;
+use ris_async::spin_lock::SpinLock;
 use ris_util::testing::miri_choose;
 
 #[test]

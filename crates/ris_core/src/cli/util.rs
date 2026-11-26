@@ -21,7 +21,7 @@ pub fn print_help_for_command<T: ICommand + ?Sized>(command: &T, level: Explanat
 pub fn command_error<T: ICommand>(message: &str, command: &T) -> RisResult<()> {
     eprintln!("{}", message);
     print_help_for_command(command, ExplanationLevel::Detailed);
-    ris_error::new_result!("{}", message)
+    ris_error::new!("{}", message)
 }
 
 pub fn get_root_dir() -> RisResult<PathBuf> {

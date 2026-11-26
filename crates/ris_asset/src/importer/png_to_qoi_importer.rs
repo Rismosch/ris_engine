@@ -33,7 +33,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
         ColorType::Rgb => Channels::RGB,
         ColorType::Rgba => Channels::RGBA,
         color_type => {
-            return ris_error::new_result!(
+            return ris_error::new!(
                 "cannot encode qoi. unsupported color type: {:?}",
                 color_type
             );

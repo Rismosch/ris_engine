@@ -23,10 +23,10 @@ pub struct FileInfo {
 impl FileInfo {
     pub fn new(package_info: &PackageInfo) -> RisResult<FileInfo> {
         let base_path = sdl2::filesystem::base_path()
-            .map_err(|e| ris_error::new!("error while getting base path: {}", e))?;
+            .map_err(|e| ris_error::new_error!("error while getting base path: {}", e))?;
 
         let pref_path = sdl2::filesystem::pref_path(&package_info.author, &package_info.name)
-            .map_err(|e| ris_error::new!("error while getting pref path: {}", e))?;
+            .map_err(|e| ris_error::new_error!("error while getting pref path: {}", e))?;
 
         Ok(FileInfo {
             base_path,

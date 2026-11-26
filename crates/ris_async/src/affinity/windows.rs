@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-extern "system" {
+unsafe extern "system" {
     fn GetCurrentThread() -> *mut c_void;
     fn SetThreadAffinityMask(thread_handle: *mut c_void, mask: usize) -> usize;
     fn GetLastError() -> u32;

@@ -11,20 +11,45 @@ use crate::counter::Counter;
 use crate::log_level::LogLevel;
 use crate::log_message::LogMessage;
 
+#[cfg(feature = "logging_enabled")]
+static LOG: Mutex<Option<Logger>> = Mutex::new(None);
+
 pub trait IAppender {
     fn print(&mut self, message: &LogMessage);
 }
 
-#[cfg(feature = "logging_enabled")]
-pub static LOG: Mutex<Option<Logger>> = Mutex::new(None);
-
 pub struct LogGuard;
+
+pub enum LogMode {
+    Async,
+    Seq,
+}
+
+enum LoggerInner {
+    Async {
+        sender: Sender<LogMessage>,
+        thread_handle: JoinHandle<()>,
+    },
+    Seq {
+        appenders: Vec<Box<dyn IAppender + Send>>,
+    },
+}
+
+#[cfg(feature = "logging_enabled")]
+struct Logger {
+    counter: Counter,
+    log_level: LogLevel,
+    inner: Option<LoggerInner>,
+}
+
+#[cfg(not(feature = "logging_enabled"))]
+pub struct Logger;
 
 #[cfg(feature = "logging_enabled")]
 impl Drop for LogGuard {
     fn drop(&mut self) {
         match LOG.lock() {
-            Err(e) => eprintln!("error while dropping log: {}", e),
+            Err(e) => eprintln!("ERROR failed to drop LOG: {}", e),
             Ok(mut log) => {
                 *log = None;
             }
@@ -33,47 +58,63 @@ impl Drop for LogGuard {
 }
 
 #[cfg(feature = "logging_enabled")]
-pub struct Logger {
-    counter: Counter,
-    log_level: LogLevel,
-    sender: Option<Sender<LogMessage>>,
-    thread_handle: Option<JoinHandle<()>>,
-}
-
-#[cfg(not(feature = "logging_enabled"))]
-pub struct Logger;
-
-#[cfg(feature = "logging_enabled")]
 impl Drop for Logger {
     fn drop(&mut self) {
-        self.sender.take();
+        let Some(inner) = self.inner.take() else {
+            eprintln!("ERROR failed to drop logger: inner was None");
+            return;
+        };
 
-        if let Some(thread_handle) = self.thread_handle.take()
-            && thread_handle.join().is_err()
-        {
-            eprintln!("error: couldn't join logger handle")
+        match inner {
+            LoggerInner::Async {
+                sender,
+                thread_handle,
+            } => {
+                drop(sender);
+                if let Err(e) = thread_handle.join() {
+                    eprintln!("ERROR failed to drop logger: {:?}", e);
+                }
+            }
+            LoggerInner::Seq { mut appenders } => {
+                let final_log_message = LogMessage::Plain(String::from("logging ended"));
+                for appender in appenders.iter_mut() {
+                    appender.print(&final_log_message);
+                }
+            }
         }
     }
 }
 
-pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> LogGuard {
+pub fn init(
+    mode: LogMode,
+    log_level: LogLevel,
+    appenders: Vec<Box<dyn IAppender + Send>>,
+) -> LogGuard {
     #[cfg(feature = "logging_enabled")]
     {
         if matches!(log_level, LogLevel::None) || appenders.is_empty() {
             return LogGuard;
         }
 
-        let (sender, receiver) = channel();
-        let sender = Some(sender);
-        let thread_handle = Some(std::thread::spawn(|| {
-            log_thread(receiver, appenders);
-        }));
+        let inner = match mode {
+            LogMode::Async => {
+                let (sender, receiver) = channel();
+                let thread_handle = std::thread::spawn(|| {
+                    log_thread(receiver, appenders);
+                });
+
+                LoggerInner::Async {
+                    sender,
+                    thread_handle,
+                }
+            }
+            LogMode::Seq => LoggerInner::Seq { appenders },
+        };
 
         let logger = Logger {
             counter: Counter::default(),
             log_level,
-            sender,
-            thread_handle,
+            inner: Some(inner),
         };
 
         match LOG.lock() {
@@ -81,7 +122,7 @@ pub fn init(log_level: LogLevel, appenders: Vec<Box<dyn IAppender + Send>>) -> L
                 *log = Some(logger);
             }
             Err(e) => {
-                eprintln!("error while initializing log: {}", e);
+                eprintln!("ERROR failed to init LOG: {}", e);
             }
         };
 
@@ -106,7 +147,6 @@ fn log_thread(receiver: Receiver<LogMessage>, mut appenders: Vec<Box<dyn IAppend
     }
 
     let final_log_message = LogMessage::Plain(String::from("log thread ended"));
-
     for appender in appenders.iter_mut() {
         appender.print(&final_log_message);
     }
@@ -116,7 +156,7 @@ pub fn log_level() -> LogLevel {
     #[cfg(feature = "logging_enabled")]
     {
         match LOG.lock() {
-            Err(e) => eprintln!("error while getting log_level: {}", e),
+            Err(e) => eprintln!("ERROR failed getting log_level: {}", e),
             Ok(log) => {
                 if let Some(logger) = &*log {
                     return logger.log_level;
@@ -132,7 +172,7 @@ pub fn get_timestamp() -> Counter {
     #[cfg(feature = "logging_enabled")]
     {
         match LOG.lock() {
-            Err(e) => eprintln!("error while getting log_level: {}", e),
+            Err(e) => eprintln!("ERROR failed getting timestamp: {}", e),
             Ok(mut log) => {
                 if let Some(logger) = log.as_mut() {
                     let previous = logger.counter;
@@ -157,12 +197,32 @@ pub fn forward_to_appenders(log_message: LogMessage) {
     #[cfg(feature = "logging_enabled")]
     {
         match LOG.lock() {
-            Err(e) => eprintln!("error while forwarding to appenders: {}", e),
+            Err(e) => eprintln!("ERROR failed forwarding to appenders: {}", e),
             Ok(mut log) => {
-                if let Some(logger) = &mut *log
-                    && let Some(sender) = &mut logger.sender
-                {
-                    let _ = sender.send(log_message);
+                let Some(logger) = log.as_mut() else {
+                    eprintln!("ERROR failed forwarding to appenders: logger was None");
+                    return;
+                };
+
+                let Some(inner) = logger.inner.as_mut() else {
+                    eprintln!("ERROR failed forwarding to appenders: inner was None");
+                    return;
+                };
+
+                match inner {
+                    LoggerInner::Async {
+                        sender,
+                        thread_handle: _,
+                    } => {
+                        if let Err(e) = sender.send(log_message) {
+                            eprintln!("ERROR failed forwarding to appenders: send error: {}", e);
+                        }
+                    }
+                    LoggerInner::Seq { appenders } => {
+                        for appender in appenders.iter_mut() {
+                            appender.print(&log_message);
+                        }
+                    }
                 }
             }
         }
@@ -177,42 +237,42 @@ pub fn forward_to_appenders(log_message: LogMessage) {
 #[macro_export]
 macro_rules! trace {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Trace, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Trace, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Debug, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Debug, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Info, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Info, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Warning, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Warning, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Error, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Error, $($arg)*)
     };
 }
 
 #[macro_export]
 macro_rules! fatal {
     ($($arg:tt)*) => {
-        ris_log::log!(ris_log::log_level::LogLevel::Fatal, $($arg)*);
+        ris_log::log!(ris_log::log_level::LogLevel::Fatal, $($arg)*)
     };
 }
 

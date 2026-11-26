@@ -1,10 +1,11 @@
 use std::path::Path;
 
 use ris_asset::asset_compiler;
-use ris_asset::asset_compiler::CompileOptions;
+use ris_asset::asset_compiler::CompileSettings;
 use ris_asset::asset_importer;
 use ris_error::prelude::*;
 use ris_log::log::IAppender;
+use ris_log::log::LogMode;
 use ris_log::log_level::LogLevel;
 
 use crate::log_appenders::console_appender::ConsoleAppender;
@@ -13,6 +14,7 @@ use super::ExplanationLevel;
 use super::ICommand;
 use super::util;
 
+const LOG_MODE: LogMode = LogMode::Seq;
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
 pub const COMPILE: &str = "compile";
@@ -73,17 +75,17 @@ impl ICommand for Asset {
 
         let console_appender = Box::new(ConsoleAppender);
         let appenders: Vec<Box<dyn IAppender + Send>> = vec![console_appender];
-        let _log_guard = ris_log::log::init(LOG_LEVEL, appenders);
+        let _log_guard = ris_log::log::init(LOG_MODE, LOG_LEVEL, appenders);
 
         match command.as_str() {
             COMPILE => {
-                let compile_options = CompileOptions {
-                    include_original_paths: false,
+                let compile_settings = CompileSettings {
+                    include_original_paths: true,
                 };
                 asset_compiler::compile(
                     asset_compiler::DEFAULT_ASSET_DIRECTORY,
                     asset_compiler::DEFAULT_COMPILED_FILE,
-                    compile_options,
+                    compile_settings,
                 )
             }
             DECOMPILE => asset_compiler::decompile(
@@ -106,7 +108,7 @@ impl ICommand for Asset {
                     None,
                 )
             }
-            _ => ris_error::new_result!("unkown arg: {}", command),
+            _ => ris_error::new!("unkown arg: {}", command),
         }
     }
 }

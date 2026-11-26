@@ -208,7 +208,7 @@ impl ICommand for Pipeline {
             Ok(())
         } else {
             print(ff, "pipeline failed")?;
-            ris_error::new_result!("pipeline failed")
+            ris_error::new!("pipeline failed")
         };
 
         print_empty(ff, 1)?;

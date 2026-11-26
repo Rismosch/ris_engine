@@ -88,7 +88,7 @@ impl ArgsInfo {
                     match second_arg.parse::<usize>() {
                         Ok(value) => result.workers = Some(value),
                         Err(error) => {
-                            return ris_error::new_result!("could not parse workers: {}", error);
+                            return ris_error::new!("could not parse workers: {}", error);
                         }
                     }
                 }
@@ -97,7 +97,7 @@ impl ArgsInfo {
                     let second_arg = result.get_arg(i)?;
                     result.assets = String::from(second_arg);
                 }
-                _ => return ris_error::new_result!("unexpected argument: [{}] -> {}", i, arg),
+                _ => return ris_error::new!("unexpected argument: [{}] -> {}", i, arg),
             };
 
             i += 1;
@@ -109,7 +109,7 @@ impl ArgsInfo {
     fn get_arg(&self, index: usize) -> RisResult<&str> {
         match self.raw_args.get(index) {
             Some(arg) => Ok(arg),
-            None => ris_error::new_result!(
+            None => ris_error::new!(
                 "index is out of bounds, index: {}, bounds: 0..{}",
                 index,
                 self.raw_args.len() - 1

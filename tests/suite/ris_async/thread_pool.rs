@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use ris_async::SpinLock;
 use ris_async::ThreadPool;
 use ris_async::ThreadPoolCreateInfo;
+use ris_async::spin_lock::SpinLock;
+use ris_async::thread_pool::StallStrategy;
 
 fn get_cpu_count() -> usize {
     #[cfg(miri)]
@@ -20,31 +21,30 @@ fn get_cpu_count() -> usize {
 fn should_run() {
     let cpu_count = get_cpu_count();
     let count = ris_util::testing::miri_choose(1_000, 10);
-
     let create_info = ThreadPoolCreateInfo {
-        buffer_capacity: 256,
         cpu_count,
         threads: cpu_count / 2,
         set_affinity: false,
-        use_parking: true,
+        stall_strategy: StallStrategy::Parking,
     };
-    let _g = ThreadPool::init(create_info).unwrap();
+    let mut pool = ThreadPool::new(create_info).unwrap();
 
-    let mut futures = Vec::new();
+    let mut receivers = Vec::new();
     let results = Arc::new(SpinLock::new(Vec::new()));
 
     for i in 0..count {
         let results = results.clone();
-        let future = ThreadPool::submit(async move {
-            ThreadPool::run_pending_job();
+        let (setter, receiver) = ris_async::single_use_channel();
+        pool.submit(move || {
+            ThreadPool::worker().unwrap().run_pending_job();
             results.lock().push(i);
-            i
+            setter.send(i);
         });
-        futures.push(future);
+        receivers.push(receiver);
     }
 
-    for (i, future) in futures.into_iter().enumerate() {
-        let result = ThreadPool::block_on(future);
+    for (i, receiver) in receivers.into_iter().enumerate() {
+        let result = receiver.wait();
         assert_eq!(result, i);
     }
 
@@ -59,33 +59,54 @@ fn should_run() {
 fn should_run_when_dropped() {
     let cpu_count = get_cpu_count();
     let count = ris_util::testing::miri_choose(1_000, 10);
-
     let create_info = ThreadPoolCreateInfo {
-        buffer_capacity: 256,
         cpu_count,
         threads: cpu_count / 2,
         set_affinity: false,
-        use_parking: true,
+        stall_strategy: StallStrategy::Parking,
     };
-    let g = ThreadPool::init(create_info).unwrap();
+    let mut pool = ThreadPool::new(create_info).unwrap();
 
-    let mut futures = Vec::new();
     let results = Arc::new(SpinLock::new(Vec::new()));
 
     for i in 0..count {
         let results = results.clone();
-        let future = ThreadPool::submit(async move {
-            ThreadPool::run_pending_job();
+        pool.submit(move || {
+            ThreadPool::worker().unwrap().run_pending_job();
             results.lock().push(i);
         });
-        futures.push(future);
     }
 
-    drop(g);
+    drop(pool);
 
     let results = results.lock();
     assert_eq!(results.len(), count);
     for i in 0..results.len() {
         assert!(results.contains(&i));
     }
+}
+
+#[test]
+fn should_execute_for_each() {
+    let cpu_count = get_cpu_count();
+    let count = ris_util::testing::miri_choose(1_000, 10);
+    let create_info = ThreadPoolCreateInfo {
+        cpu_count,
+        threads: cpu_count / 2,
+        set_affinity: false,
+        stall_strategy: StallStrategy::Parking,
+    };
+    let mut pool = ThreadPool::new(create_info).unwrap();
+
+    let numbers = (1..=count).collect::<Vec<_>>();
+    let sum = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let cloned_sum = sum.clone();
+    pool.for_each(&numbers, move |i| {
+        cloned_sum.fetch_add(*i, std::sync::atomic::Ordering::Relaxed);
+    });
+
+    let actual = sum.load(std::sync::atomic::Ordering::Relaxed);
+    let expected = (count + 1) * count / 2;
+
+    assert_eq!(actual, expected);
 }

@@ -57,7 +57,7 @@ impl ImguiBackend {
 
         // load cursors
         let cursors = new_cursor_lookup()
-            .map_err(|e| ris_error::new!("failed to create cursor lookup:  {}", e))?;
+            .map_err(|e| ris_error::new_error!("failed to create cursor lookup:  {}", e))?;
 
         // initialize platform
         context.set_platform_name(Some(String::from("ris_engine sdl2 backend")));

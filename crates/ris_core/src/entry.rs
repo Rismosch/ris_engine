@@ -10,6 +10,7 @@ use ris_data::info::sdl_info::SdlInfo;
 use ris_error::prelude::*;
 use ris_log::log;
 use ris_log::log::IAppender;
+use ris_log::log::LogMode;
 use ris_log::log_level::LogLevel;
 use ris_log::log_message::LogMessage;
 
@@ -20,6 +21,7 @@ use crate::log_appenders::file_appender::FileAppender;
 use crate::log_appenders::ui_helper_appender::UiHelperAppender;
 
 pub const CLI: &str = "cli";
+const LOG_MODE: LogMode = LogMode::Seq;
 const LOG_LEVEL: LogLevel = LogLevel::Trace;
 
 #[allow(clippy::large_enum_variant)]
@@ -34,7 +36,7 @@ enum EntryPoint {
 
 pub fn run(package_info: PackageInfo) -> RisResult<()> {
     let entry_point = get_entry_point(package_info.clone()).inspect_err(|e| {
-        display_error(e, true);
+        show_message_box(&e.to_string());
     })?;
 
     let result = match entry_point.clone() {
@@ -45,7 +47,9 @@ pub fn run(package_info: PackageInfo) -> RisResult<()> {
 
     if let Err(e) = result.as_ref() {
         let show_popup = matches!(entry_point, EntryPoint::Engine(_));
-        display_error(e, show_popup);
+        if show_popup {
+            show_message_box(&e.to_string());
+        }
     }
 
     result
@@ -59,7 +63,7 @@ fn get_entry_point(package_info: PackageInfo) -> RisResult<EntryPoint> {
         #[cfg(feature = "cli_enabled")]
         return Ok(EntryPoint::Cli(args));
         #[cfg(not(feature = "cli_enabled"))]
-        return ris_error::new_result!("cli is not available");
+        return ris_error::new!("cli is not available");
     }
 
     let args_info = ArgsInfo::parse(args)?;
@@ -82,6 +86,13 @@ fn get_entry_point(package_info: PackageInfo) -> RisResult<EntryPoint> {
 fn run_engine(app_info: AppInfo) -> RisResult<()> {
     loop {
         let wants_to = {
+            // setup error hooks
+            unsafe {
+                ris_error::BACKTRACE_HOOK = Some(ris_error_backtrace_callback);
+                ris_error::FATAL_LOG_HOOK = Some(ris_error_fatal_log_callback);
+                ris_error::MESSAGE_BOX_HOOK = Some(show_message_box);
+            }
+
             // setup logging
             let mut logs_dir = PathBuf::new();
             logs_dir.push(&app_info.file.pref_path);
@@ -93,22 +104,18 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
             let appenders: Vec<Box<dyn IAppender + Send>> =
                 vec![console_appender, file_appender, ui_helper_appender];
 
-            let _log_guard = log::init(LOG_LEVEL, appenders);
+            let _log_guard = log::init(LOG_MODE, LOG_LEVEL, appenders);
 
             ris_log::log::forward_to_appenders(LogMessage::Plain(app_info.to_string()));
 
             // initialize engine
-            let script_registry = crate::scripts::registry()?;
-
-            let god_object = match GodObject::new(app_info.clone(), script_registry) {
+            let god_object = match GodObject::new(app_info.clone()) {
                 Ok(god_object) => god_object,
                 Err(e) => {
                     ris_log::fatal!("failed to create god object: {:?}", e,);
                     return Err(e);
                 }
             };
-
-            crate::scripts::setup_flycam(&god_object)?;
 
             // run engine
             match god_job::run(god_object) {
@@ -129,23 +136,33 @@ fn run_engine(app_info: AppInfo) -> RisResult<()> {
                 eprintln!("restarting...");
                 eprintln!();
                 eprintln!();
-            },
+            }
         }
     }
 }
 
-fn display_error(e: &RisError, show_popup: bool) {
-    let mut message = e.to_string();
-    if show_popup {
-        let show_message_result = sdl2::messagebox::show_simple_message_box(
-            sdl2::messagebox::MessageBoxFlag::ERROR,
-            "Fatal Error",
-            &message,
-            None,
-        );
+//==============================================================================
+// Callbacks
+//==============================================================================
+fn ris_error_backtrace_callback(_backtrace: &std::backtrace::Backtrace) {
+    ris_log::warning!(
+        "created backtrace. this operation is expensive. excessive use may cost performance"
+    );
+}
 
-        if let Err(e) = show_message_result {
-            message.push_str(&format!("\n\nfailed to show popup: {}", e,))
-        }
+fn ris_error_fatal_log_callback(message: &str) {
+    ris_log::fatal!("{}", message);
+}
+
+fn show_message_box(message: &str) {
+    let show_message_result = sdl2::messagebox::show_simple_message_box(
+        sdl2::messagebox::MessageBoxFlag::ERROR,
+        "Fatal Error",
+        &message,
+        None,
+    );
+
+    if let Err(e) = show_message_result {
+        ris_log::error!("failed to show message box: {}", e);
     }
 }
