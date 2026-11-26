@@ -1,6 +1,5 @@
 use crate::transform::Transform;
 
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Object(pub usize);

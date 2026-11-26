@@ -231,11 +231,13 @@ impl<T> AssetId<T> {
     ///
     /// intended to initialize uninitialized memory. calling on initialized
     /// memory may cause leaks or UB even
-    pub unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()> {
+    pub unsafe fn init_from_json(
+        &mut self,
+        json: &JsonObject,
+        name: impl AsRef<str>,
+    ) -> RisResult<()> {
         let name = name.as_ref();
-        let value = json
-            .get::<&str>(name)
-            .unwrap_or(NULL_PATH);
+        let value = json.get::<&str>(name).unwrap_or(NULL_PATH);
         unsafe { self.set_path(value) }
     }
 
@@ -286,14 +288,18 @@ impl BinAssetId {
     ///
     /// see [`AssetId::from_raw`]
     pub unsafe fn from_raw(raw: impl AsRef<RawAssetId>) -> Self {
-        unsafe {Self(AssetId::from_raw(raw))}
+        unsafe { Self(AssetId::from_raw(raw)) }
     }
 
     /// # Safety
     ///
     /// see [`AssetId::init_from_json`]
-    pub unsafe fn init_from_json(&mut self, json: &JsonObject, name: impl AsRef<str>) -> RisResult<()> {
-        unsafe {self.0.init_from_json(json, name)}
+    pub unsafe fn init_from_json(
+        &mut self,
+        json: &JsonObject,
+        name: impl AsRef<str>,
+    ) -> RisResult<()> {
+        unsafe { self.0.init_from_json(json, name) }
     }
 
     // get/set
@@ -316,7 +322,6 @@ impl BinAssetId {
     ///
     /// see [`AssetId::set_path`]
     pub unsafe fn set_path(&mut self, path: impl AsRef<Path>) -> RisResult<()> {
-        unsafe {self.0.set_path(path)}
+        unsafe { self.0.set_path(path) }
     }
-
 }

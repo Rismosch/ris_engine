@@ -224,6 +224,4 @@ fn should_set_sibling_index() {
 
     // parent sibling index
     assert_eq!(ecs.sibling_index(parent), 0);
-    
 }
-

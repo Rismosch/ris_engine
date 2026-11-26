@@ -1,13 +1,13 @@
 use ash::vk;
 
-use std::mem::MaybeUninit;
 use std::io::SeekFrom;
+use std::mem::MaybeUninit;
 use std::path::PathBuf;
 
 use ris_error::prelude::*;
 use ris_io::FatPtr;
-use ris_math::vector::Vec3;
 use ris_math::vector::Vec2;
+use ris_math::vector::Vec3;
 
 use crate::asset_id::AssetId;
 use crate::asset_id::BinAssetId;
@@ -42,7 +42,7 @@ impl RisAsset for RisMeshAsset {
     }
 
     fn all_references_mut(&mut self) -> Vec<&mut RawAssetId> {
-        unsafe {vec![self.data.raw_mut()]}
+        unsafe { vec![self.data.raw_mut()] }
     }
 }
 
@@ -344,7 +344,6 @@ impl TryFrom<MeshPrototype> for CpuMesh {
         })
     }
 }
-
 
 //use std::io::SeekFrom;
 //use std::sync::Arc;

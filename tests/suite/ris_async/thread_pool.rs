@@ -101,16 +101,12 @@ fn should_execute_for_each() {
     let numbers = (1..=count).collect::<Vec<_>>();
     let sum = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let cloned_sum = sum.clone();
-    pool.for_each(
-        &numbers,
-        move |i| {
-            cloned_sum.fetch_add(*i, std::sync::atomic::Ordering::Relaxed);
-        },
-    );
+    pool.for_each(&numbers, move |i| {
+        cloned_sum.fetch_add(*i, std::sync::atomic::Ordering::Relaxed);
+    });
 
     let actual = sum.load(std::sync::atomic::Ordering::Relaxed);
     let expected = (count + 1) * count / 2;
 
     assert_eq!(actual, expected);
 }
-

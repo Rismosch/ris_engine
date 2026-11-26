@@ -8,7 +8,10 @@ use ris_math::vector::Vec3;
 use crate::ecs::Ecs;
 use crate::ecs::Object;
 
-ris_error::declare_simple_error!(CircularHierarchy, "operation would cause a circular hierarchy");
+ris_error::declare_simple_error!(
+    CircularHierarchy,
+    "operation would cause a circular hierarchy"
+);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transform {
@@ -109,11 +112,7 @@ impl Ecs {
         let mut model = Mat4::default();
         let mut option = Some(o);
         while let Some(o) = option {
-            model = affine::trs(
-                self.position(o),
-                self.orientation(o),
-                self.scale(o),
-            ) * model;
+            model = affine::trs(self.position(o), self.orientation(o), self.scale(o)) * model;
             option = self.parent(o);
         }
 
