@@ -1,6 +1,6 @@
+use crate::codecs::json::JsonObject;
 use ris_error::prelude::*;
 use ris_io::FatPtr;
-use crate::codecs::json::JsonObject;
 
 //==============================================================================
 // FatPtr
@@ -20,4 +20,3 @@ pub fn fatptr_to_json(ptr: FatPtr) -> JsonObject {
     json.push(LEN, ptr.len);
     json
 }
-

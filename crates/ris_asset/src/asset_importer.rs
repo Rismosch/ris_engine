@@ -265,11 +265,9 @@ pub fn target_path(
 }
 
 /// # Safety
-/// 
+///
 /// the asset pointed to at `target_path` must be of type `T`
-pub unsafe fn target_asset_id<T: std::fmt::Debug>(
-    target_path: impl AsRef<Path>,
-) -> AssetId<T> {
+pub unsafe fn target_asset_id<T: std::fmt::Debug>(target_path: impl AsRef<Path>) -> AssetId<T> {
     if !cfg!(debug_assertions) {
         ris_error::panic!("cant generate target asset ids in release");
     }

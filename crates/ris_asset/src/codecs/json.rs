@@ -23,6 +23,16 @@ pub const ESCAPE: char = '\\';
 pub const QUOTATION_MARK: char = '"';
 pub const BYTE_ORDER_MARK: char = '\u{FEFF}';
 
+pub const INDENT : &str = "    ";
+pub fn indent_by(level: usize) -> String {
+    let mut result = "".to_string();
+    for _ in 0..level {
+        result.push_str(INDENT);
+    }
+
+    result
+}
+
 //==============================================================================
 // structs
 //==============================================================================
@@ -69,7 +79,7 @@ impl Default for JsonNumber {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvalidCast;
 
 impl std::fmt::Display for InvalidCast {
@@ -90,7 +100,6 @@ impl std::fmt::Display for SyntaxError {
 }
 
 impl std::error::Error for SyntaxError {}
-
 
 //==============================================================================
 // conversion
@@ -316,8 +325,7 @@ impl<'a> TryFrom<&'a JsonValue> for &'a str {
     }
 }
 
-impl<'a, T: TryFrom<&'a JsonValue, Error = InvalidCast>> TryFrom<&'a JsonValue> 
-for Vec<T> {
+impl<'a, T: TryFrom<&'a JsonValue, Error = InvalidCast>> TryFrom<&'a JsonValue> for Vec<T> {
     type Error = InvalidCast;
 
     fn try_from(value: &'a JsonValue) -> Result<Self, Self::Error> {
@@ -335,10 +343,7 @@ for Vec<T> {
 // member functions
 //==============================================================================
 impl JsonObject {
-    pub fn get<'a, T: TryFrom<&'a JsonValue>>(
-        &'a self,
-        name: impl AsRef<str>,
-    ) -> Option<T> {
+    pub fn get<'a, T: TryFrom<&'a JsonValue>>(&'a self, name: impl AsRef<str>) -> Option<T> {
         let index = name.as_ref();
         let value = self
             .members
@@ -373,46 +378,121 @@ impl JsonObject {
 //==============================================================================
 // serialization
 //==============================================================================
-impl JsonValue {
-    pub fn serialize(&self) -> String {
-        match self {
-            JsonValue::Null => NULL.to_string(),
-            JsonValue::Boolean(true) => TRUE.to_string(),
-            JsonValue::Boolean(false) => FALSE.to_string(),
-            JsonValue::Object(object) => object.serialize(),
-            JsonValue::Array(array) => {
-                let mut serialized_values = Vec::with_capacity(array.len());
-                for value in array.iter() {
-                    let serialized_value = value.serialize();
-                    serialized_values.push(serialized_value);
-                }
-
-                let serialized_array = serialized_values.join(
-                    &VALUE_SEPARATOR.to_string(),
-                );
-
-                format!("{}{}{}", BEGIN_ARRAY, serialized_array, END_ARRAY,)
+fn serialize_value(value: &JsonValue, indent: bool, level: usize) -> String {
+    let serialized = match value {
+        JsonValue::Null => NULL.to_string(),
+        JsonValue::Boolean(true) => TRUE.to_string(),
+        JsonValue::Boolean(false) => FALSE.to_string(),
+        JsonValue::Object(object) => serialize_object(&object, indent, level),
+        JsonValue::Array(array) => {
+            let mut serialized_values = Vec::with_capacity(array.len());
+            for value in array.iter() {
+                let serialized_value = serialize_value(value, indent, level + 1);
+                serialized_values.push(serialized_value);
             }
-            JsonValue::Number(number) => number.inner.clone(),
-            JsonValue::String(string) => {
-                let mut serialized_string = string.clone();
 
-                let escape = |x: &mut String, c: char| *x = x.replace(
-                    c,
-                    &format!("{}{}", ESCAPE, c),
-                );
+            let (
+                separator,
+                begin_array,
+                end_array,
+            ) = if indent  {
+                (
+                    format!("{}\n{}", VALUE_SEPARATOR, indent_by(level + 1)),
+                    format!("{}\n{}", BEGIN_ARRAY, indent_by(level + 1)),
+                    format!("\n{}{}", indent_by(level), END_ARRAY),
+                )
+            } else {
+                (
+                    VALUE_SEPARATOR.to_string(),
+                    BEGIN_ARRAY.to_string(),
+                    END_ARRAY.to_string(),
+                )
+            };
 
-                escape(&mut serialized_string, QUOTATION_MARK);
-                escape(&mut serialized_string, ESCAPE);
+            let serialized_array = serialized_values.join(&separator);
 
-                for i in 0..=0x1f {
-                    let c = i as u8 as char;
-                    escape(&mut serialized_string, c);
-                }
-
-                format!("{}{}{}", QUOTATION_MARK, serialized_string, QUOTATION_MARK)
-            }
+            format!(
+                "{}{}{}",
+                begin_array,
+                serialized_array,
+                end_array,
+            )
         }
+        JsonValue::Number(number) => number.inner.clone(),
+        JsonValue::String(string) => {
+            let mut serialized_string = string.clone();
+
+            let escape =
+                |x: &mut String, c: char| *x = x.replace(c, &format!("{}{}", ESCAPE, c));
+
+            escape(&mut serialized_string, QUOTATION_MARK);
+            escape(&mut serialized_string, ESCAPE);
+
+            for i in 0..=0x1f {
+                let c = i as u8 as char;
+                escape(&mut serialized_string, c);
+            }
+
+            format!("{}{}{}", QUOTATION_MARK, serialized_string, QUOTATION_MARK)
+        }
+    };
+
+    serialized
+
+}
+
+fn serialize_object(object: &JsonObject, indent: bool, level: usize) -> String {
+    let mut serialized_members = Vec::with_capacity(object.members.len());
+    for member in object.members.iter() {
+        let serialized_member = serialize_member(member, indent, level + 1);
+        serialized_members.push(serialized_member);
+    }
+
+    let (
+        separator,
+        begin_object,
+        end_object,
+    ) = if indent  {
+        (
+            format!("{}\n{}", VALUE_SEPARATOR, indent_by(level + 1)),
+            format!("{}\n{}", BEGIN_OBJECT, indent_by(level + 1)),
+            format!("\n{}{}", indent_by(level), END_OBJECT),
+        )
+    } else {
+        (
+            VALUE_SEPARATOR.to_string(),
+            BEGIN_OBJECT.to_string(),
+            END_OBJECT.to_string(),
+        )
+    };
+
+    let serialized_object = serialized_members.join(&separator);
+
+    format!("{}{}{}", begin_object, serialized_object, end_object)
+}
+
+fn serialize_member(member: &JsonMember, indent: bool, level: usize) -> String {
+    let space = if indent {
+        " "
+    } else {
+        ""
+    };
+
+    let serialized_value = serialize_value(&member.value, indent, level);
+    format!(
+        "{}{}{}{}{}{}",
+        QUOTATION_MARK,
+        member.name,
+        QUOTATION_MARK,
+        NAME_SEPARATOR,
+        space,
+        serialized_value,
+    )
+}
+
+impl JsonValue {
+    pub fn serialize(&self, indent: bool) -> String {
+        serialize_value(self, indent, 0)
     }
 
     pub fn deserialize(value: impl AsRef<str>) -> Result<Self, SyntaxError> {
@@ -421,7 +501,7 @@ impl JsonValue {
         let mut is_string = false;
         let mut tokens = vec![String::new()];
 
-        // ignore byte order mark (U+FEFF) for interopability. see 
+        // ignore byte order mark (U+FEFF) for interopability. see
         // https://www.rfc-editor.org/rfc/rfc8259#section-8.1
         let skip = if value.starts_with(BYTE_ORDER_MARK) {
             1
@@ -480,7 +560,7 @@ impl JsonValue {
             }
         }
 
-        // because of the particular lexer logic used, the last token may be 
+        // because of the particular lexer logic used, the last token may be
         // empty. empty tokens are illegal and thus the last token must be
         // removed
         let last_index = tokens.len() - 1;
@@ -508,8 +588,8 @@ impl JsonValue {
         let first_token = &tokens[0];
         let last_token = &tokens[len - 1];
 
-        // multiple tokens mean one of two scenarios: we are dealing with an 
-        // object, or an array. both start and end with a single character 
+        // multiple tokens mean one of two scenarios: we are dealing with an
+        // object, or an array. both start and end with a single character
         // token, so we do an early check if the tokens have a length of 1
         if first_token.len() != 1 {
             return Err(SyntaxError);
@@ -519,7 +599,7 @@ impl JsonValue {
             return Err(SyntaxError);
         }
 
-        // these two should never be None, because of the asserts above. but we 
+        // these two should never be None, because of the asserts above. but we
         // do error handling anyway, just in case
         let Some(first) = first_token.chars().next() else {
             return Err(SyntaxError);
@@ -636,10 +716,9 @@ impl JsonValue {
 
                         let hex_codepoint =
                             format!("{}{}{}{}", digit_1, digit_2, digit_3, digit_4,);
-                        let codepoint = u32::from_str_radix(&hex_codepoint, 16)
-                            .map_err(|_| SyntaxError)?;
-                        let character = char::from_u32(codepoint)
-                            .ok_or(SyntaxError)?;
+                        let codepoint =
+                            u32::from_str_radix(&hex_codepoint, 16).map_err(|_| SyntaxError)?;
+                        let character = char::from_u32(codepoint).ok_or(SyntaxError)?;
 
                         result.push(character);
                     }
@@ -663,25 +742,14 @@ impl JsonValue {
 }
 
 impl JsonObject {
-    pub fn serialize(&self) -> String {
-        let mut serialized_members = Vec::with_capacity(self.members.len());
-        for member in self.members.iter() {
-            let serialized_member = member.serialize();
-            serialized_members.push(serialized_member);
-        }
-
-        let serialized_object = serialized_members.join(&VALUE_SEPARATOR.to_string());
-
-        format!("{}{}{}", BEGIN_OBJECT, serialized_object, END_OBJECT,)
+    pub fn serialize(&self, indent: bool) -> String {
+        serialize_object(self, indent, 0)
     }
 }
 
 impl JsonMember {
-    pub fn serialize(&self) -> String {
-        let name = JsonValue::String(self.name.clone());
-        let serialized_name = name.serialize();
-        let serialized_value = self.value.serialize();
-        format!("{}{}{}", serialized_name, NAME_SEPARATOR, serialized_value,)
+    pub fn serialize(&self, indent: bool) -> String {
+        serialize_member(self, indent, 0)
     }
 
     fn from_tokens(tokens: &[String]) -> Result<Self, SyntaxError> {

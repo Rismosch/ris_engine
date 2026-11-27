@@ -205,7 +205,7 @@ macro_rules! declare_simple_error {
         $error_name:ident,
         $error_msg:literal $(,)?
     ) => {
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub struct $error_name;
 
         impl std::fmt::Display for $error_name {

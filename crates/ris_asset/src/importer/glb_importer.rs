@@ -237,9 +237,8 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 ris_mesh_asset::DATA_EXTENSION,
             )?;
 
-            let data_asset_id: BinAssetId = unsafe {
-                crate::asset_importer::target_asset_id(&data_path).into()
-            };
+            let data_asset_id: BinAssetId =
+                unsafe { crate::asset_importer::target_asset_id(&data_path).into() };
 
             //// serialize asset
             let asset = RisMeshAsset {
@@ -251,7 +250,7 @@ pub fn import(source: impl AsRef<Path>, target_dir: impl AsRef<Path>) -> RisResu
                 data: data_asset_id,
             };
             let json = asset.to_json()?;
-            let json_string = json.serialize();
+            let json_string = json.serialize(true);
             let json_bytes = json_string.as_bytes();
 
             let mut output = crate::asset_importer::create_file(asset_path)?;

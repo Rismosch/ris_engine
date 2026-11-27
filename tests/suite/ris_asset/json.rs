@@ -4,19 +4,19 @@ use ris_asset::codecs::json::JsonValue;
 // examples directly taken from the rfc
 fn example_1_json() -> &'static str {
     "{
-        \"Image\": {
-            \"Width\":  800,
-            \"Height\": 600,
-            \"Title\":  \"View from 15th Floor\",
-            \"Thumbnail\": {
-                \"Url\":    \"http://www.example.com/image/481989943\",
-                \"Height\": 125,
-                \"Width\":  100
-            },
-            \"Animated\" : false,
-            \"IDs\": [116, 943, 234, 38793]
-        }
-    }"
+    \"Image\": {
+        \"Width\":  800,
+        \"Height\": 600,
+        \"Title\":  \"View from 15th Floor\",
+        \"Thumbnail\": {
+            \"Url\":    \"http://www.example.com/image/481989943\",
+            \"Height\": 125,
+            \"Width\":  100
+        },
+        \"Animated\" : false,
+        \"IDs\": [116, 943, 234, 38793]
+    }
+}"
 }
 
 fn example_2_json() -> &'static str {
@@ -30,27 +30,27 @@ fn example_2_json() -> &'static str {
     //     \"Latitude\":  37.37199,
     //     \"Longitude\": -122.02602,
     "[
-        {
-           \"precision\": \"zip\",
-           \"Latitude\":  37.7668,
-           \"Longitude\": -122.3959,
-           \"Address\":   \"\",
-           \"City\":      \"SAN FRANCISCO\",
-           \"State\":     \"CA\",
-           \"Zip\":       \"94107\",
-           \"Country\":   \"US\"
-        },
-        {
-           \"precision\": \"zip\",
-           \"Latitude\":  37.37199,
-           \"Longitude\": -122.02602,
-           \"Address\":   \"\",
-           \"City\":      \"SUNNYVALE\",
-           \"State\":     \"CA\",
-           \"Zip\":       \"94085\",
-           \"Country\":   \"US\"
-        }
-    ]"
+    {
+       \"precision\": \"zip\",
+       \"Latitude\":  37.7668,
+       \"Longitude\": -122.3959,
+       \"Address\":   \"\",
+       \"City\":      \"SAN FRANCISCO\",
+       \"State\":     \"CA\",
+       \"Zip\":       \"94107\",
+       \"Country\":   \"US\"
+    },
+    {
+       \"precision\": \"zip\",
+       \"Latitude\":  37.37199,
+       \"Longitude\": -122.02602,
+       \"Address\":   \"\",
+       \"City\":      \"SUNNYVALE\",
+       \"State\":     \"CA\",
+       \"Zip\":       \"94085\",
+       \"Country\":   \"US\"
+    }
+]"
 }
 
 fn example_3_json() -> &'static str {
@@ -120,7 +120,7 @@ fn example_5_value() -> JsonValue {
 #[test]
 fn should_serialize_example_1() {
     let example = example_1_value();
-    let json = example.serialize();
+    let json = example.serialize(false);
     let expected = "{\"Image\":{\"Width\":800,\"Height\":600,\"Title\":\"View from 15th Floor\",\"Thumbnail\":{\"Url\":\"http://www.example.com/image/481989943\",\"Height\":125,\"Width\":100},\"Animated\":false,\"IDs\":[116,943,234,38793]}}";
     assert_eq!(json, expected);
 }
@@ -128,7 +128,7 @@ fn should_serialize_example_1() {
 #[test]
 fn should_serialize_example_2() {
     let example = example_2_value();
-    let json = example.serialize();
+    let json = example.serialize(false);
     let expected = "[{\"precision\":\"zip\",\"Latitude\":37.7668,\"Longitude\":-122.3959,\"Address\":\"\",\"City\":\"SAN FRANCISCO\",\"State\":\"CA\",\"Zip\":\"94107\",\"Country\":\"US\"},{\"precision\":\"zip\",\"Latitude\":37.37199,\"Longitude\":-122.02602,\"Address\":\"\",\"City\":\"SUNNYVALE\",\"State\":\"CA\",\"Zip\":\"94085\",\"Country\":\"US\"}]";
     assert_eq!(json, expected);
 }
@@ -136,7 +136,7 @@ fn should_serialize_example_2() {
 #[test]
 fn should_serialize_example_3() {
     let example = example_3_value();
-    let json = example.serialize();
+    let json = example.serialize(false);
     let expected = example_3_json();
     assert_eq!(json, expected);
 }
@@ -144,7 +144,7 @@ fn should_serialize_example_3() {
 #[test]
 fn should_serialize_example_4() {
     let example = example_4_value();
-    let json = example.serialize();
+    let json = example.serialize(false);
     let expected = example_4_json();
     assert_eq!(json, expected);
 }
@@ -152,7 +152,88 @@ fn should_serialize_example_4() {
 #[test]
 fn should_serialize_example_5() {
     let example = example_5_value();
-    let json = example.serialize();
+    let json = example.serialize(false);
+    let expected = example_5_json();
+    assert_eq!(json, expected);
+}
+
+#[test]
+fn should_serialize_example_1_indented() {
+    let example = example_1_value();
+    let json = example.serialize(true);
+    let expected =
+"{
+    \"Image\": {
+        \"Width\": 800,
+        \"Height\": 600,
+        \"Title\": \"View from 15th Floor\",
+        \"Thumbnail\": {
+            \"Url\": \"http://www.example.com/image/481989943\",
+            \"Height\": 125,
+            \"Width\": 100
+        },
+        \"Animated\": false,
+        \"IDs\": [
+            116,
+            943,
+            234,
+            38793
+        ]
+    }
+}";
+    assert_eq!(json, expected);
+}
+
+#[test]
+fn should_serialize_example_2_indented() {
+    let example = example_2_value();
+    let json = example.serialize(true);
+    let expected =
+"[
+    {
+        \"precision\": \"zip\",
+        \"Latitude\": 37.7668,
+        \"Longitude\": -122.3959,
+        \"Address\": \"\",
+        \"City\": \"SAN FRANCISCO\",
+        \"State\": \"CA\",
+        \"Zip\": \"94107\",
+        \"Country\": \"US\"
+    },
+    {
+        \"precision\": \"zip\",
+        \"Latitude\": 37.37199,
+        \"Longitude\": -122.02602,
+        \"Address\": \"\",
+        \"City\": \"SUNNYVALE\",
+        \"State\": \"CA\",
+        \"Zip\": \"94085\",
+        \"Country\": \"US\"
+    }
+]";
+    assert_eq!(json, expected);
+}
+
+#[test]
+fn should_serialize_example_3_indented() {
+    let example = example_3_value();
+    let json = example.serialize(true);
+    let expected = example_3_json();
+    assert_eq!(json, expected);
+}
+
+#[test]
+fn should_serialize_example_4_indented() {
+    let example = example_4_value();
+    let json = example.serialize(true);
+    let expected = example_4_json();
+    assert_eq!(json, expected);
+}
+
+#[test]
+fn should_serialize_example_5_indented() {
+    let example = example_5_value();
+    let json = example.serialize(true);
     let expected = example_5_json();
     assert_eq!(json, expected);
 }

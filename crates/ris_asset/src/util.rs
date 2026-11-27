@@ -19,5 +19,3 @@ pub fn add_alpha_channel(pixels: &[u8]) -> RisResult<Vec<u8>> {
 
     Ok(pixels_rgba)
 }
-
-
